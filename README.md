@@ -342,14 +342,6 @@ See [LICENSE](LICENSE) for details.
 -   Documentation
 -   Examples
 
-### Enterprise Support
-
--   24/7 Support
--   Custom Development
--   Training & Consulting
-
-Contact: [support@ninjatech.ai](mailto:support@ninjatech.ai)
-
 * * *
 
 ## 🎉 Success Stories
@@ -445,12 +437,11 @@ curl http://localhost:6666/api/status
 
 * * *
 
-## 📞 Contact
+##  Contact
 
--   **Website:** [https://www.ninjatech.ai](https://www.ninjatech.ai)
--   **Email:** [support@ninjatech.ai](mailto:support@ninjatech.ai)
--   **GitHub:** [https://github.com/inoni-llc/murphy](https://github.com/inoni-llc/murphy)
--   **Discord:** [https://discord.gg/murphy](https://discord.gg/murphy)
+- 
+-   **Email:** [corey.gfc@gmail.com)
+
 
 * * *
 
