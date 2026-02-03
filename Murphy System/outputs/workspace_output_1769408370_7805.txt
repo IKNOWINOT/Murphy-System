@@ -1,0 +1,1 @@
+Successfully added JS panel routes

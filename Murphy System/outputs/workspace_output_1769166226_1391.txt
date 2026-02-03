@@ -1,0 +1,3 @@
+28:        self.token_expiry_hours = 24
+78:            'exp': datetime.utcnow() + timedelta(hours=self.token_expiry_hours)
+192:            'token_expiry_hours': self.token_expiry_hours

@@ -1,0 +1,21 @@
+                case 'guide':
+                    addTerminalLog('🧙 Opening Librarian for guidance...', 'info');
+                    addTerminalLog("🧙 Librarian is now integrated in the terminal. Just type your question directly!", "info");
+                        const data = await response.json();
+                        if (data.success) {
+                            addTerminalLog(`✓ Plan created: ${data.plan.name}`, 'success');
+                            planReviewPanel.open(data.plan.id);
+                        }
+                    } catch (error) {
+                        addTerminalLog('✗ Failed to create plan', 'error');
+                    }
+                    break;
+                case 'list':
+                    addTerminalLog('📋 Listing all plans...', 'info');
+                    try {
+                        const response = await fetch(`${API_BASE}/api/plans`);
+                        const data = await response.json();
+                        if (data.plans.length === 0) {
+                            addTerminalLog('No plans found', 'warning');
+                        } else {
+                            data.plans.forEach(plan => {

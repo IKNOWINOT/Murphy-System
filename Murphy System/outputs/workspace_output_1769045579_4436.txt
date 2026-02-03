@@ -1,0 +1,24 @@
+        <!-- Center: Terminal & Visualization -->
+        <main class="content">
+            <!-- Terminal -->
+            <div id="terminal" class="terminal">
+                <div class="terminal-line info">Murphy System v2.0 - Ready</div>
+                <div class="terminal-line">Waiting for initialization...</div>
+            </div>
+
+            <!-- Visualization Container -->
+            <div class="visualization-container">
+                <div class="graph-container">
+                    <div class="viz-title">🤖 AGENT GRAPH</div>
+                    <div id="agent-graph"></div>
+                </div>
+                <div class="flow-container">
+                    <div class="viz-title">📊 PROCESS FLOW</div>
+                    <div id="process-flow"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right: Metrics & Info -->
+        <aside class="metrics-panel">
+            <div class="metrics-title">📊 SYSTEM METRICS</div>

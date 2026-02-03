@@ -1,0 +1,100 @@
+"""
+Murphy System - Complete Backend with Real LLM Integration
+Production-ready system with Groq, Anthropic, and Onboard LLM fallback
+"""
+
+import os
+import sys
+import json
+import asyncio
+from typing import Dict, Any, List, Optional
+from datetime import datetime
+from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
+from flask_socketio import SocketIO, emit
+import anthropic
+from groq import Groq
+
+# Add murphy_system to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'murphy_system', 'src'))
+
+# Import Murphy System components
+try:
+    from mfgc_core import Phase, MFGCSystemState
+    from advanced_swarm_system import SwarmType, AdvancedSwarmGenerator
+    from constraint_system import ConstraintSystem
+    from gate_builder import GateBuilder
+    from organization_chart_system import OrganizationChart
+    MURPHY_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: Could not import Murphy System components: {e}")
+    MURPHY_AVAILABLE = False
+
+# Import Domain Engine
+sys.path.insert(0, os.path.dirname(__file__))
+try:
+    from domain_engine import DomainEngine
+    DOMAIN_ENGINE_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: Could not import Domain Engine: {e}")
+    DOMAIN_ENGINE_AVAILABLE = False
+
+app = Flask(__name__)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+
+# LLM Configuration
+# Multiple Groq API keys for load balancing and redundancy
+GROQ_API_KEYS = [
+    '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',
+    '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',
+    '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',
+    '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',
+    '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',
+    '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',
+    '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',
+    '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',
+    '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'
+]
+GROQ_API_KEY = os.getenv('GROQ_API_KEY', GROQ_API_KEYS[0])
+ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', 'placeholder-anthropic-key')
+
+# Initialize LLM clients with key rotation
+groq_clients = []
+anthropic_client = None
+current_groq_key_index = 0
+
+# Initialize multiple Groq clients for load balancing
+for i, key in enumerate(GROQ_API_KEYS):
+    try:
+        client = Groq(api_key=key)
+        groq_clients.append(client)
+        print(f"✓ Groq client {i+1}/9 initialized")
+    except Exception as e:
+        print(f"⚠ Groq client {i+1} failed: {e}")
+
+if groq_clients:
+    print(f"✓ Total {len(groq_clients)} Groq clients ready for load balancing")
+else:
+    print("✗ No Groq clients available - system will use fallback")
+
+try:
+    if ANTHROPIC_API_KEY != 'placeholder-anthropic-key':
+        anthropic_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        print("✓ Anthropic client initialized")
+    else:
+        print("⚠ Anthropic API key not set - will use Groq for deterministic tasks")
+except Exception as e:
+    print(f"⚠ Anthropic initialization failed: {e}")
+
+def get_next_groq_client():
+    """Round-robin selection of Groq clients for load balancing"""
+    global current_groq_key_index
+    if not groq_clients:
+        return None
+    client = groq_clients[current_groq_key_index]
+    current_groq_key_index = (current_groq_key_index + 1) % len(groq_clients)
+    return client
+
+class LLMRouter:
+    """Routes requests to appropriate LLM based on task type"""

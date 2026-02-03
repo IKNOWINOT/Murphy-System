@@ -1,0 +1,1 @@
+✓ Updated all communication_hub references to use get_comm_hub()

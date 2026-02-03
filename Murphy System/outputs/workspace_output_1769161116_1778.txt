@@ -1,0 +1,5 @@
+{
+    "message": "Role set to executor",
+    "role": "executor",
+    "success": true
+}

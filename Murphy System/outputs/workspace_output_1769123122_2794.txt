@@ -1,0 +1,3 @@
+3428:        // Shadow agent utility functions
+4034:                        // Approach 2: CSS class
+4228:        // Old help functions removed - now using module-based handlers

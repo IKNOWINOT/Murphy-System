@@ -1,0 +1,3 @@
+✓ Fixed JavaScript in murphy_ui_fixed_bugs.html
+  - Added unique message IDs
+  - Added setTimeout for smooth scroll

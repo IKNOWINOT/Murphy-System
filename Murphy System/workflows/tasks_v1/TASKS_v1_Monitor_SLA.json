@@ -1,0 +1,411 @@
+{
+  "name": "TASKS_v1_Monitor_SLA",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  t.id,\n  t.client_id,\n  t.title,\n  t.status,\n  t.priority,\n  t.category,\n  t.assigned_to,\n  t.assigned_at,\n  t.due_date,\n  t.created_at,\n  tm.name as assignee_name,\n  tm.email as assignee_email,\n  c.name as client_name,\n  CASE \n    WHEN t.status = 'completed' THEN 'completed'\n    WHEN t.due_date IS NULL THEN 'no_sla'\n    WHEN t.due_date < NOW() THEN 'overdue'\n    WHEN t.due_date < NOW() + INTERVAL '1 hour' THEN 'critical'\n    WHEN t.due_date < NOW() + INTERVAL '4 hours' THEN 'warning'\n    ELSE 'on_track'\n  END as sla_status,\n  CASE \n    WHEN t.due_date IS NULL THEN NULL\n    WHEN t.due_date < NOW() THEN ROUND(EXTRACT(EPOCH FROM (NOW() - t.due_date)) / 3600)\n    ELSE ROUND(EXTRACT(EPOCH FROM (t.due_date - NOW())) / 3600)\n  END as hours_to_due\nFROM tasks t\nLEFT JOIN team_members tm ON t.assigned_to = tm.id\nLEFT JOIN clients c ON t.client_id = c.id\nWHERE t.status IN ('pending', 'in_progress')\n  AND t.created_at >= NOW() - INTERVAL '30 days'\n  AND t.due_date IS NOT NULL\n  AND (\n    t.due_date < NOW() OR\n    t.due_date < NOW() + INTERVAL '4 hours'\n  )\nORDER BY \n  CASE \n    WHEN t.due_date < NOW() THEN 0\n    WHEN t.due_date < NOW() + INTERVAL '1 hour' THEN 1\n    WHEN t.due_date < NOW() + INTERVAL '4 hours' THEN 2\n    ELSE 3\n  END ASC,\n  t.due_date ASC"
+      },
+      "id": "get-active-tasks",
+      "name": "Get Active Tasks",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.sla_status }}",
+              "value2": "completed"
+            }
+          ]
+        }
+      },
+      "id": "filter-non-completed",
+      "name": "Filter Non-Completed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.sla_status }}",
+              "value2": "overdue"
+            }
+          ]
+        }
+      },
+      "id": "check-overdue",
+      "name": "Check Overdue",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "sla_events",
+        "columns": "client_id, task_id, event_type, event_time, description, notified, created_at",
+        "additionalFields": {
+          "columnValues": "={{ {\n  &quot;client_id&quot;: $json.client_id,\n  &quot;task_id&quot;: $json.id,\n  &quot;event_type&quot;: 'sla_breached',\n  &quot;event_time&quot;: $now.toISO(),\n  &quot;description&quot;: `Task overdue by ${Math.abs($json.hours_to_due)} hours`,\n  &quot;notified&quot;: false,\n  &quot;created_at&quot;: $now.toISO()\n} }}\n"
+        }
+      },
+      "id": "create-sla-event",
+      "name": "Create SLA Event",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [1050, 200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "notifications",
+        "columns": "client_id, type, title, message, recipient, status, priority, created_at",
+        "additionalFields": {
+          "columnValues": "={{ {\n  &quot;client_id&quot;: $json.client_id,\n  &quot;type&quot;: 'sla_breach',\n  &quot;title&quot;: 'SLA Breach Alert',\n  &quot;message&quot;: `Task &quot;${$json.title}&quot; is overdue by ${Math.abs($json.hours_to_due)} hours. Priority: ${$json.priority}`,\n  &quot;recipient&quot;: $json.assignee_email || 'admin@example.com',\n  &quot;status&quot;: 'pending',\n  &quot;priority&quot;: 'urgent',\n  &quot;created_at&quot;: $now.toISO()\n} }}\n"
+        }
+      },
+      "id": "create-urgent-notification",
+      "name": "Create Urgent Notification",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [1250, 200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.sla_status }}",
+              "value2": "critical"
+            }
+          ]
+        }
+      },
+      "id": "check-critical",
+      "name": "Check Critical",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "sla_events",
+        "columns": "client_id, task_id, event_type, event_time, description, notified, created_at",
+        "additionalFields": {
+          "columnValues": "={{ {\n  &quot;client_id&quot;: $json.client_id,\n  &quot;task_id&quot;: $json.id,\n  &quot;event_type&quot;: 'sla_critical',\n  &quot;event_time&quot;: $now.toISO(),\n  &quot;description&quot;: `Task due in ${$json.hours_to_due} hours - critical level`,\n  &quot;notified&quot;: false,\n  &quot;created_at&quot;: $now.toISO()\n} }}\n"
+        }
+      },
+      "id": "create-critical-sla-event",
+      "name": "Create Critical SLA Event",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [1050, 400],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "notifications",
+        "columns": "client_id, type, title, message, recipient, status, priority, created_at",
+        "additionalFields": {
+          "columnValues": "={{ {\n  &quot;client_id&quot;: $json.client_id,\n  &quot;type&quot;: 'sla_warning',\n  &quot;title&quot;: 'SLA Critical Warning',\n  &quot;message&quot;: `Task &quot;${$json.title}&quot; is due in ${$json.hours_to_due} hours. Priority: ${$json.priority}`,\n  &quot;recipient&quot;: $json.assignee_email || 'admin@example.com',\n  &quot;status&quot;: 'pending',\n  &quot;priority&quot;: 'high',\n  &quot;created_at&quot;: $now.toISO()\n} }}\n"
+        }
+      },
+      "id": "create-critical-notification",
+      "name": "Create Critical Notification",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [1250, 400],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.sla_status }}",
+              "value2": "warning"
+            }
+          ]
+        }
+      },
+      "id": "check-warning",
+      "name": "Check Warning",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 600]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "sla_events",
+        "columns": "client_id, task_id, event_type, event_time, description, notified, created_at",
+        "additionalFields": {
+          "columnValues": "={{ {\n  &quot;client_id&quot;: $json.client_id,\n  &quot;task_id&quot;: $json.id,\n  &quot;event_type&quot;: 'sla_warning',\n  &quot;event_time&quot;: $now.toISO(),\n  &quot;description&quot;: `Task due in ${$json.hours_to_due} hours`,\n  &quot;notified&quot;: false,\n  &quot;created_at&quot;: $now.toISO()\n} }}\n"
+        }
+      },
+      "id": "create-warning-sla-event",
+      "name": "Create Warning SLA Event",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [1050, 600],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "notifications",
+        "columns": "client_id, type, title, message, recipient, status, priority, created_at",
+        "additionalFields": {
+          "columnValues": "={{ {\n  &quot;client_id&quot;: $json.client_id,\n  &quot;type&quot;: 'sla_warning',\n  &quot;title&quot;: 'SLA Warning',\n  &quot;message&quot;: `Task &quot;${$json.title}&quot; is due in ${$json.hours_to_due} hours. Priority: ${$json.priority}`,\n  &quot;recipient&quot;: $json.assignee_email || 'admin@example.com',\n  &quot;status&quot;: 'pending',\n  &quot;priority&quot;: 'medium',\n  &quot;created_at&quot;: $now.toISO()\n} }}\n"
+        }
+      },
+      "id": "create-warning-notification",
+      "name": "Create Warning Notification",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [1250, 600],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "workflow_executions",
+        "columns": "workflow_id, execution_type, status, input_data, output_data, started_at, completed_at, error_message",
+        "additionalFields": {
+          "columnValues": "={{ {\n  &quot;workflow_id&quot;: 'TASKS_v1_Monitor_SLA',\n  &quot;execution_type&quot;: 'scheduled',\n  &quot;status&quot;: 'success',\n  &quot;input_data&quot;: JSON.stringify($node[&quot;Get Active Tasks&quot;].json),\n  &quot;output_data&quot;: JSON.stringify(items),\n  &quot;started_at&quot;: $now.toISO(),\n  &quot;completed_at&quot;: $now.toISO(),\n  &quot;error_message&quot;: null\n} }}\n"
+        }
+      },
+      "id": "log-execution",
+      "name": "Log Execution",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [1450, 400],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Active Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Active Tasks": {
+      "main": [
+        [
+          {
+            "node": "Filter Non-Completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Non-Completed": {
+      "main": [
+        [
+          {
+            "node": "Check Overdue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Overdue": {
+      "main": [
+        [
+          {
+            "node": "Create SLA Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Critical",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create SLA Event": {
+      "main": [
+        [
+          {
+            "node": "Create Urgent Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Urgent Notification": {
+      "main": [
+        [
+          {
+            "node": "Log Execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Critical": {
+      "main": [
+        [
+          {
+            "node": "Create Critical SLA Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Warning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Critical SLA Event": {
+      "main": [
+        [
+          {
+            "node": "Create Critical Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Critical Notification": {
+      "main": [
+        [
+          {
+            "node": "Log Execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Warning": {
+      "main": [
+        [
+          {
+            "node": "Create Warning SLA Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Warning SLA Event": {
+      "main": [
+        [
+          {
+            "node": "Create Warning Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Warning Notification": {
+      "main": [
+        [
+          {
+            "node": "Log Execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "pinData": {},
+  "triggerCount": 1,
+  "updatedAt": "2025-01-27T11:00:00.000Z",
+  "versionId": "1"
+}

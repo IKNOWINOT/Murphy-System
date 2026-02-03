@@ -1,0 +1,4 @@
+  File "<string>", line 1
+    (✓ if v else ✗)
+     ^
+SyntaxError: invalid character '✓' (U+2713)

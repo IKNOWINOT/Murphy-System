@@ -1,0 +1,1 @@
+export function barSpec(arr:number[]){ return { type:'bar', data: arr.slice(0,64).map((v,i)=>({i,v})) }; }

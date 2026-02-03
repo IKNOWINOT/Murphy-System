@@ -1,0 +1,21 @@
+# ENHANCED RUNTIME ORCHESTRATOR ENDPOINTS
+# ============================================================================
+
+@app.route('/api/runtime/process', methods=['POST'])
+def process_request_runtime():
+    """
+    Process any request using enhanced runtime orchestrator with dynamic agent generation
+    
+    This works for ANY task type:
+    - Books, articles, content
+    - Software development
+    - Research projects
+    - Marketing campaigns
+    - Business operations
+    - Data analysis
+    - etc.
+    
+    Request body:
+    {
+        "task": "Write a complete book about AI automation for small businesses",
+        "capacity_limit": 9,  // optional, default 9

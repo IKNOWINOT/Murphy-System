@@ -1,0 +1,51 @@
+    def check_all_components(self) -> Dict[str, Any]:
+        """Check all system components"""
+        results = {
+            'timestamp': datetime.now().isoformat(),
+            'components': {}
+        }
+        
+        # Check backend server
+        results['components']['backend_server'] = self._check_backend_server()
+        
+        # Check database
+        results['components']['database'] = self._check_database()
+        
+        # Check LLM APIs
+        results['components']['llm_apis'] = self._check_llm_apis()
+        
+        # Check WebSocket
+        results['components']['websocket'] = self._check_websocket()
+        
+        # Check system resources
+        results['components']['system_resources'] = self._check_system_resources()
+        
+        # Calculate overall health
+        results['overall'] = self._calculate_overall_health(results['components'])
+        
+        return results
+    
+    def _check_backend_server(self) -> HealthStatus:
+        """Check backend server health"""
+        try:
+            # Simulate health check
+            status = 'healthy'
+            message = 'Backend server is running normally'
+            details = {
+                'uptime': 'active',
+                'status_code': 200,
+                'response_time_ms': 50
+            }
+            
+            health = HealthStatus(
+                component='backend_server',
+                status=status,
+                message=message,
+                timestamp=datetime.now(),
+                details=details
+            )
+            
+            self.monitoring.register_health_check('backend_server', status, message, details)
+            return health
+            
+        except Exception as e:

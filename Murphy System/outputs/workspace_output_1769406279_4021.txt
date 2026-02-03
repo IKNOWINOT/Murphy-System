@@ -1,0 +1,7 @@
+287:LLM_AVAILABLE = False  # Will try to load later
+305:            'llm': LLM_AVAILABLE,
+2596:    LLM_AVAILABLE = True
+2603:    LLM_AVAILABLE = False
+2612:    librarian_system = LibrarianSystem(llm_client=llm_manager if LLM_AVAILABLE else None)
+2698:        if not LLM_AVAILABLE or not llm_manager:
+2725:        if not LLM_AVAILABLE or not llm_manager:

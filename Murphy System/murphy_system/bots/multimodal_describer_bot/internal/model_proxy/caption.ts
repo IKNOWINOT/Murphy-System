@@ -1,0 +1,1 @@
+export async function captionImage(_ctx:any,_bytes:Uint8Array,_verbosity:'short'|'normal'|'verbose'){ return { caption: _verbosity==='short'?'A photo.':'A general photo with basic details (stub).', usage:{tokens_in:0,tokens_out:0,cost_usd:0.0} } }

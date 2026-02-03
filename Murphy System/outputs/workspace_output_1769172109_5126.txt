@@ -1,0 +1,6 @@
+756:        self.static_analyzer = StaticCodeAnalyzer()
+757:        self.capability_extractor = CapabilityExtractor()
+799:        analysis = self.static_analyzer.analyze_file(source_path)
+802:        capabilities = self.capability_extractor.extract_capabilities(analysis)
+856:        analysis = self.static_analyzer.analyze_file(source_path)
+859:        capabilities = self.capability_extractor.extract_capabilities(analysis)

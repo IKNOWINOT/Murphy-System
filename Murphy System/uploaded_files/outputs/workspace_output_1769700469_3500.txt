@@ -1,0 +1,5 @@
+ lead_id |         email         | full_name | company_name | status | lead_score |         created_at         
+---------+-----------------------+-----------+--------------+--------+------------+----------------------------
+       2 | test.lead@example.com | John Doe  | Example Inc  | new    |          0 | 2026-01-29 15:27:47.637028
+(1 row)
+

@@ -1,0 +1,5 @@
+=== FRONTEND URL ===
+https://7000-7ced438b-5e53-49d7-a2f0-8056ffbc558b.sandbox-service.public.prod.myninja.ai/murphy_complete_v2.html
+
+=== BACKEND URL ===
+https://3002-7ced438b-5e53-49d7-a2f0-8056ffbc558b.sandbox-service.public.prod.myninja.ai

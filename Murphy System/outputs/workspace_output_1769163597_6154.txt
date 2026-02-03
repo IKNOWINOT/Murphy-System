@@ -1,0 +1,6 @@
+let monitoringPanel = null;
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    monitoringPanel = new MonitoringPanel();
+});

@@ -1,0 +1,21 @@
+                case 'assign':
+                    addTerminalLog('Agent assignment coming soon...', 'warning');
+                    break;
+                default:
+                    addTerminalLog('Available org commands: chart, agents, roles, assign', 'info');
+            }
+        }
+        
+        async function handleLibrarianCommand(action, args) {
+            switch (action) {
+                case 'ask':
+                    if (args.length > 0) {
+                        const query = args.join(' ');
+                        addTerminalLog(`🧙 Opening Librarian with query: "${query}"`, 'info');
+                        addTerminalLog("🧙 Librarian is now integrated in the terminal. Just type your question directly!", "info");
+                            const data = await response.json();
+                            if (data.results && data.results.length > 0) {
+                                addTerminalLog(`✓ Found ${data.count} results:`, 'success');
+                                data.results.forEach((result, i) => {
+                                    addTerminalLog(`  ${i + 1}. [${result.type.toUpperCase()}] ${result.name}`, 'info');
+                                    addTerminalLog(`     ${result.description}`, 'info');

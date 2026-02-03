@@ -1,0 +1,10 @@
+./murphy_test_extract/src/neuro_symbolic_models/requirements.txt
+./murphy_test_extract/setup.py
+./murphy_test_extract/requirements.txt
+./murphy_analysis/src/neuro_symbolic_models/requirements.txt
+./murphy_analysis/setup.py
+./murphy_analysis/requirements.txt
+./murphy_system_working/src/neuro_symbolic_models/requirements.txt
+./murphy_system_working/setup.py
+./murphy_system_working/requirements.txt
+./murphy_runtime_analysis/src/neuro_symbolic_models/requirements.txt

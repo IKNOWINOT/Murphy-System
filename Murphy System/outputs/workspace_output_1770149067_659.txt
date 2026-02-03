@@ -1,0 +1,3 @@
+murphy_integrated/terminal_enhanced.html
+murphy_integrated/terminal_worker.html
+murphy_integrated/terminal_architect.html

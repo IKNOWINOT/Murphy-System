@@ -1,0 +1,44 @@
+        async function handleLibrarianCommand(action, args) {
+            switch (action) {
+                case 'search':
+                    if (args.length > 0) {
+                        addTerminalLog(`Searching knowledge base for: ${args.join(' ')}...`, 'info');
+                        addTerminalLog('Librarian search not yet implemented', 'warning');
+                    } else {
+                        addTerminalLog('Usage: /librarian search <query>', 'warning');
+                    }
+                    break;
+                case 'transcripts':
+                    addTerminalLog('Viewing system transcripts...', 'info');
+                    addTerminalLog('Transcript viewing not yet implemented', 'warning');
+                    break;
+                case 'overview':
+                    addTerminalLog('Getting system overview...', 'info');
+                    addTerminalLog('System overview not yet implemented', 'warning');
+                    break;
+                case 'knowledge':
+                    if (args.length > 0) {
+                        addTerminalLog(`Getting knowledge about: ${args.join(' ')}...`, 'info');
+                        addTerminalLog('Knowledge retrieval not yet implemented', 'warning');
+                    } else {
+                        addTerminalLog('Usage: /librarian knowledge <topic>', 'warning');
+                    }
+                    break;
+                default:
+                    addTerminalLog('Available librarian commands: search, transcripts, overview, knowledge', 'info');
+            }
+        }
+        
+        async function handleSwarmCommand(action, args) {
+            switch (action) {
+                case 'create':
+                    if (args.length > 0) {
+                        addTerminalLog(`Creating ${args[0]} swarm...`, 'info');
+                        addTerminalLog('Swarm creation not yet implemented', 'warning');
+                    } else {
+                        addTerminalLog('Usage: /swarm create <type>', 'warning');
+                        addTerminalLog('Types: CREATIVE, ANALYTICAL, HYBRID, ADVERSARIAL, SYNTHESIS, OPTIMIZATION', 'info');
+                    }
+                    break;
+                case 'execute':
+                    if (args.length > 0) {

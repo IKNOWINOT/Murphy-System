@@ -1,0 +1,101 @@
+        
+        # Check for failures
+        failures = []
+        if chosen_representation is None:
+            failures = self.failure_detector.detect_failures(chosen_representation, diagnostics)
+        else:
+            failures = self.failure_detector.detect_failures(chosen_representation, diagnostics)
+        
+        # Create log entry
+        if chosen_representation is None:
+            status = AttentionStatus.REFUSED
+            failure_reason = failures[0] if failures else AttentionFailureReason.INSUFFICIENT_AGREEMENT
+            decision_reason = f"Attention refused: {failure_reason.value}"
+        else:
+            status = AttentionStatus.SUCCESS
+            failure_reason = None
+            decision_reason = diagnostics.get('reason', 'Success')
+        
+        # Extract subsystem scores for logging
+        subsystem_scores = {}
+        if 'diagnostics' in diagnostics and diagnostics['diagnostics']:
+            best_diag = diagnostics['diagnostics'][diagnostics.get('chosen_index', 0)]
+            subsystem_scores = {
+                SubsystemType(st): score
+                for st, score in best_diag.get('subsystem_scores', {}).items()
+                if isinstance(st, str)
+            }
+        
+        # Calculate temporal scores
+        temporal_scores = []
+        if 'diagnostics' in diagnostics and diagnostics['diagnostics']:
+            for diag in diagnostics['diagnostics']:
+                temporal_scores.append(diag.get('temporal_score', 0.0))
+        
+        # Create log entry
+        log_entry = AttentionLogEntry(
+            timestamp=datetime.now(),
+            role=self.current_role,
+            chosen_representation=chosen_representation,
+            candidate_representations=candidates,
+            subsystem_scores=subsystem_scores,
+            temporal_scores=temporal_scores,
+            decision_reason=decision_reason,
+            status=status,
+            failure_reason=failure_reason
+        )
+        
+        # Log the event
+        self.logger.log_attention_event(log_entry)
+        
+        logger.info(f"Attention formation: {status.value} - {decision_reason}")
+        
+        return chosen_representation, log_entry
+    
+    def get_attention_history(self) -> List[InternalRepresentation]:
+        """Get attention history"""
+        return self.attention.get_history()
+    
+    def get_attention_log(self, count: int = 100) -> List[AttentionLogEntry]:
+        """Get attention log entries"""
+        return self.logger.get_recent_events(count)
+    
+    def get_attention_statistics(self) -> Dict[str, Any]:
+        """Get attention statistics"""
+        return self.logger.get_statistics()
+    
+    def reset(self) -> None:
+        """Reset the attention system"""
+        self.attention.clear_history()
+        self.failure_detector.reset()
+        logger.info("Attention system reset")
+
+
+# ============================================================================
+# UTILITY FUNCTIONS
+# ============================================================================
+
+def create_candidate_representations(state: Dict[str, Any], memory: Dict[str, Any], 
+                                    goal: Dict[str, Any], count: int = 10) -> List[InternalRepresentation]:
+    """
+    Create candidate internal representations from state, memory, and goal.
+    
+    Args:
+        state: Current system state
+        memory: Available memory
+        goal: Current goal
+        count: Number of candidates to create
+        
+    Returns:
+        List of candidate representations
+    """
+    candidates = []
+    
+    for i in range(count):
+        # Mix state and goal features
+        features = []
+        for key, value in state.items():
+            if isinstance(value, (int, float)):
+                features.append(float(value))
+        
+        for key, value in goal.items():

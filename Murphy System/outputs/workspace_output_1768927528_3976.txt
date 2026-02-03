@@ -1,0 +1,1 @@
+360:    def generate_domain_gates(self, domain: str) -> List[Dict[str, Any]]:

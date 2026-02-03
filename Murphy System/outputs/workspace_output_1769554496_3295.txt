@@ -1,0 +1,2 @@
+2775:        window.executeTerminalCommand = executeTerminalCommand;
+4363:            window.executeTerminalCommand = executeTerminalCommand;

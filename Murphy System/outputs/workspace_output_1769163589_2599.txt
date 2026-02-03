@@ -1,0 +1,2 @@
+/workspace/shadow_agent_panel.js:393:document.addEventListener('DOMContentLoaded', () => {
+/workspace/monitoring_panel.js:489:document.addEventListener('DOMContentLoaded', () => {

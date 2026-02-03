@@ -1,0 +1,10 @@
+✓ Knowledge Pipeline integrated into Murphy system
+
+New endpoints added:
+  POST /api/pipeline/explode - Explode vague request into plan
+  POST /api/pipeline/org-chart - Generate org chart from description
+  POST /api/pipeline/block/verify - Magnify/Simplify/Solidify blocks
+  POST /api/pipeline/block/update - Update block and see cascade
+  POST /api/pipeline/info-source - Decide information source
+  POST /api/pipeline/schedule - Schedule tasks with dependencies
+  GET  /api/pipeline/status - Get pipeline status

@@ -1,0 +1,4 @@
+{
+    "message": "Observation recorded",
+    "success": true
+}

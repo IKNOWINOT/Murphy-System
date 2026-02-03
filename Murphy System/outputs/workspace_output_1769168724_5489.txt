@@ -1,0 +1,10 @@
+def init_auth_system(secret_key: Optional[str] = None) -> AuthenticationSystem:
+    """Initialize global authentication system"""
+    global auth_system
+    auth_system = AuthenticationSystem(secret_key)
+    return auth_system
+
+
+def get_auth_system() -> Optional[AuthenticationSystem]:
+    """Get global authentication system"""
+    return auth_system

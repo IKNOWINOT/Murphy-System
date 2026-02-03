@@ -1,0 +1,11 @@
+2586:                    commandHistory.push(command);
+2587:                    historyIndex = commandHistory.length;
+2591:                if (historyIndex > 0) {
+2592:                    historyIndex--;
+2593:                    terminalInput.value = commandHistory[historyIndex];
+2597:                if (historyIndex < commandHistory.length - 1) {
+2598:                    historyIndex++;
+2599:                    terminalInput.value = commandHistory[historyIndex];
+2601:                    historyIndex = commandHistory.length;
+2612:        let commandHistory = [];
+2613:        let historyIndex = -1;

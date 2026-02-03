@@ -1,0 +1,1 @@
+const map=new Map<string,number>(); export function update(path_key:string, fidelity:number, entropy_hint:number, hydration_cost:number){ const prior=map.get(path_key)??0.5; const signal= fidelity/Math.max(1e-6, (entropy_hint+hydration_cost)); const updated=(prior+signal)/2; map.set(path_key, updated); } export function rank(){ return [...map.entries()].sort((a,b)=>b[1]-a[1]); }

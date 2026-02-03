@@ -1,0 +1,3 @@
+309:# Generative Decision Gate System - Initialize at module level
+313:    logger.info("✓ Generative Decision Gate System initialized at module level")
+315:    logger.error(f"✗ Generative Decision Gate System failed: {e}")

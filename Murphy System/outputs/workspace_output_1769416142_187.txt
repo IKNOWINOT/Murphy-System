@@ -1,0 +1,41 @@
+{
+    "components": {
+        "artifacts": true,
+        "authentication": true,
+        "command_system": true,
+        "cooperative_swarm": true,
+        "database": true,
+        "librarian": true,
+        "llm": true,
+        "modules": true,
+        "monitoring": true,
+        "shadow_agents": true
+    },
+    "initialized": false,
+    "llms": {
+        "aristotle": {
+            "model": "None",
+            "status": "inactive"
+        },
+        "groq": {
+            "keys": 9,
+            "model": "llama-3.3-70b-versatile",
+            "status": "active"
+        },
+        "onboard": {
+            "status": "inactive"
+        }
+    },
+    "message": "Murphy System Complete Backend",
+    "metrics": {
+        "agents": 0,
+        "artifacts": 0,
+        "gates": 0,
+        "states": 0
+    },
+    "status": "Not Initialized",
+    "success": true,
+    "systems_initialized": false,
+    "timestamp": "2026-01-26T08:29:02.627641",
+    "version": "3.0.0"
+}

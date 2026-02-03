@@ -1,0 +1,43 @@
+@app.route('/api/status', methods=['GET'])
+def status():
+    """Get complete system status"""
+    return jsonify({
+        'status': 'running',
+        'initialized': system_initialized,
+        'systems': SYSTEMS_AVAILABLE,
+        'timestamp': datetime.now().isoformat()
+    })
+
+@app.route('/api/initialize', methods=['POST'])
+def initialize():
+    """Initialize all systems"""
+    global system_initialized
+    system_initialized = True
+    
+    # Initialize each available system
+    results = {}
+    
+    if monitoring_system:
+        results['monitoring'] = 'initialized'
+    
+    if shadow_agent_system:
+        results['shadow_agents'] = 'initialized'
+    
+    if swarm_system:
+        results['swarm'] = 'initialized'
+    
+    return jsonify({
+        'status': 'initialized',
+        'systems': results,
+        'timestamp': datetime.now().isoformat()
+    })
+
+# ============================================================================
+# LLM ENDPOINTS
+# ============================================================================
+
+@app.route('/api/llm/generate', methods=['POST'])
+def llm_generate():
+    """Generate content using LLM"""
+    if not llm_manager:
+        return jsonify({'error': 'LLM not available'}), 503

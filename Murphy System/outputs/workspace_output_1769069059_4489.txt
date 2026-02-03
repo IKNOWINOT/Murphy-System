@@ -1,0 +1,50 @@
+    
+    return jsonify({
+        "rolled_back_from": state_id,
+        "rolled_back_to": state['parent_id']
+    })
+
+@app.route('/api/agents')
+def get_agents():
+    """Get all agents"""
+    return jsonify({
+        "agents": list(system_state['agents'].values())
+    })
+
+@app.route('/api/gates')
+def get_gates():
+    """Get all gates"""
+    return jsonify({
+        "gates": list(system_state['gates'].values())
+    })
+
+# ===== WEBSOCKET EVENTS =====
+
+@socketio.on('connect')
+def handle_connect():
+    print(f"Client connected: {request.sid}")
+    emit('connected', {'message': 'Connected to Murphy System'})
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    print(f"Client disconnected: {request.sid}")
+
+# ===== MAIN =====
+if __name__ == '__main__':
+    print("=" * 60)
+    print("MURPHY SYSTEM UNIFIED SERVER")
+    print("=" * 60)
+    print(f"Starting server on port 3000...")
+    print(f"Frontend: http://localhost:3000/")
+    print(f"API: http://localhost:3000/api/")
+    print(f"Groq Clients: {len(llm_router.groq_clients)}")
+    print(f"Aristotle: {'Active' if llm_router.aristotle_available else 'Unavailable'}")
+    print(f"Onboard LLM: {'Available' if llm_router.onboard_available else 'Unavailable'}")
+    print("=" * 60)
+    
+    # Kill existing processes on port 3000
+    os.system("fuser -k 3000/tcp 2>/dev/null")
+    time.sleep(1)
+    
+    # Start unified server
+    socketio.run(app, host='0.0.0.0', port=3000, debug=False, allow_unsafe_werkzeug=True)

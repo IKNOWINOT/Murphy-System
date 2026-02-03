@@ -1,0 +1,1 @@
+                addTerminalLog(`Error fetching status: ${error.message}`, 'error');

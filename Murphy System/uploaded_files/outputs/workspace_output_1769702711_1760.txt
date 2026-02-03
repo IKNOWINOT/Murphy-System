@@ -1,0 +1,25 @@
+                                                   Table "public.sla_events"
+        Column         |            Type             | Collation | Nullable |                     Default                      
+-----------------------+-----------------------------+-----------+----------+--------------------------------------------------
+ sla_event_id          | integer                     |           | not null | nextval('sla_events_sla_event_id_seq'::regclass)
+ task_id               | integer                     |           | not null | 
+ client_id             | integer                     |           | not null | 
+ sla_type              | character varying(50)       |           | not null | 
+ sla_threshold_minutes | integer                     |           | not null | 
+ triggered_at          | timestamp without time zone |           | not null | 
+ escalated             | boolean                     |           |          | false
+ escalation_level      | integer                     |           |          | 0
+ escalation_recipients | jsonb                       |           |          | 
+ notification_sent     | boolean                     |           |          | false
+ notification_method   | character varying(50)       |           |          | 
+ resolved_at           | timestamp without time zone |           |          | 
+ created_at            | timestamp without time zone |           | not null | now()
+Indexes:
+    "sla_events_pkey" PRIMARY KEY, btree (sla_event_id)
+    "idx_sla_events_client_id" btree (client_id)
+    "idx_sla_events_task_id" btree (task_id)
+    "idx_sla_events_triggered_at" btree (triggered_at)
+Foreign-key constraints:
+    "sla_events_client_id_fkey" FOREIGN KEY (client_id) REFERENCES clients(client_id) ON DELETE CASCADE
+    "sla_events_task_id_fkey" FOREIGN KEY (task_id) REFERENCES tasks(task_id) ON DELETE CASCADE
+

@@ -1,0 +1,60 @@
+"""
+Agent Handoff Manager
+Manages handoffs between agents with context preservation and state transfer
+"""
+
+from typing import Dict, List, Optional, Callable, Any
+from dataclasses import dataclass, field
+from enum import Enum
+import asyncio
+import uuid
+from datetime import datetime
+from cooperative_swarm_system import HandoffType, Task, TaskStatus
+
+
+class HandoffPriority(Enum):
+    LOW = 1
+    MEDIUM = 2
+    HIGH = 3
+    CRITICAL = 4
+
+
+@dataclass
+class HandoffContext:
+    """Context preserved during handoff"""
+    task_history: List[Dict[str, Any]] = field(default_factory=list)
+    shared_variables: Dict[str, Any] = field(default_factory=dict)
+    workflow_state: Dict[str, Any] = field(default_factory=dict)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+class AgentHandoffManager:
+    """Manages agent handoffs with context preservation"""
+    
+    def __init__(self, cooperative_swarm):
+        self.cooperative_swarm = cooperative_swarm
+        self.handoff_handlers: Dict[str, Callable] = {}
+        self.handoff_history: List[Dict] = []
+        self.active_handoffs: Dict[str, Dict] = {}
+        
+    def register_handoff_handler(self, handoff_type: str, handler: Callable):
+        """Register a handler for a specific handoff type"""
+        self.handoff_handlers[handoff_type] = handler
+    
+    async def initiate_handoff(self, 
+                              from_agent: str,
+                              to_agent: str,
+                              task: Task,
+                              handoff_type: HandoffType = HandoffType.DELEGATE,
+                              context: HandoffContext = None,
+                              priority: HandoffPriority = HandoffPriority.MEDIUM) -> Dict[str, Any]:
+        """
+        Initiate a handoff from one agent to another
+        
+        Returns:
+            Dict with handoff details
+        """
+        handoff_id = str(uuid.uuid4())
+        
+        # Create handoff record
+        handoff = {

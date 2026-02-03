@@ -1,0 +1,30 @@
+175:        .terminal {
+188:        .terminal-content {
+194:        .terminal-input-container {
+201:        .terminal-input-prompt {
+207:        .terminal-input {
+218:        .terminal-input::placeholder {
+222:        .terminal-line {
+226:        .terminal-line.info { color: #00aaff; }
+227:        .terminal-line.success { color: #00ff41; }
+228:        .terminal-line.warning { color: #ffaa00; }
+229:        .terminal-line.error { color: #ff4141; }
+230:        .terminal-line.groq { color: #aa00ff; }
+231:        .terminal-line.aristotle { color: #00aaff; }
+233:        .terminal-prompt {
+569:            <div id="terminal" class="terminal">
+570:                <div id="terminal-content" class="terminal-content">
+571:                    <div class="terminal-line info">Murphy System v2.0 - Terminal Interface</div>
+572:                    <div class="terminal-line">Type /help for available commands</div>
+573:                    <div class="terminal-line">----------------------------------------</div>
+575:                <div class="terminal-input-container">
+576:                    <span class="terminal-input-prompt">murphy&gt;</span>
+577:                    <input type="text" id="terminal-input" class="terminal-input" placeholder="Enter command..." autocomplete="off">
+1282:                { name: 'clear', description: 'Clear terminal output', options: [], implemented: true }
+1350:        // Initialize terminal input
+1351:        const terminalInput = document.getElementById('terminal-input');
+1353:        if (terminalInput) {
+1354:            terminalInput.addEventListener('keydown', handleTerminalKeyPress);
+1355:            terminalInput.focus();
+1360:                const command = terminalInput.value.trim();
+1365:                    terminalInput.value = '';

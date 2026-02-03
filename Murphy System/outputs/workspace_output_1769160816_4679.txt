@@ -1,0 +1,11 @@
+class ObservationType(Enum):
+    """Types of observations"""
+    COMMAND = "command"
+    STATE_CHANGE = "state_change"
+    ARTIFACT_GENERATION = "artifact_generation"
+    DOCUMENT_EDIT = "document_edit"
+    APPROVAL = "approval"
+    REJECTION = "rejection"
+
+class ProposalStatus(Enum):
+    """Status of automation proposals"""

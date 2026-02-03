@@ -1,0 +1,8 @@
+{
+    "agents_count": 5,
+    "components_count": 3,
+    "gates_count": 2,
+    "message": "System initialized successfully",
+    "states_count": 1,
+    "success": true
+}

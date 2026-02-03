@@ -1,0 +1,1 @@
+1968:        function addTerminalLog(message, type = 'info') {

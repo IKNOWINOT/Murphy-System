@@ -1,0 +1,21 @@
+        
+        # Update usage stats
+        self.usage_stats['aristotle']['calls'] += 1
+        self.usage_stats['aristotle']['last_used'] = datetime.now().isoformat()
+        
+        try:
+            # Import Aristotle client (placeholder - implement based on Aristotle API)
+            # For now, this is a stub - you'll need to implement based on Aristotle's actual API
+            logger.info(f"Using Aristotle for math task")
+            
+            # Placeholder for Aristotle API call
+            # You'll need to implement this based on Aristotle's actual API documentation
+            response = f"[Aristotle Math Response for: {prompt[:50]}...]"
+            
+            logger.info(f"Aristotle response: {len(response)} chars")
+            return response
+            
+        except Exception as e:
+            logger.error(f"Aristotle API error: {e}")
+            self.usage_stats['aristotle']['errors'] += 1
+            

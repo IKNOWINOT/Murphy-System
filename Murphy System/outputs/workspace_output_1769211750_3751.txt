@@ -1,0 +1,41 @@
+                    addTerminalLog('=== Metrics ===', 'info');
+                    addTerminalLog(`States: ${data.metrics.states}`, 'info');
+                    addTerminalLog(`Agents: ${data.metrics.agents}`, 'info');
+                    addTerminalLog(`Gates: ${data.metrics.gates}`, 'info');
+                    addTerminalLog(`Artifacts: ${data.metrics.artifacts || 0}`, 'info');
+                }
+            } catch (error) {
+                addTerminalLog(`Error fetching status: ${error.message}`, 'error');
+            }
+        }
+
+        async function initializeSystem() {
+            addTerminalLog('Initializing Murphy System...', 'info');
+            
+            try {
+                const initResponse = await fetch(`${API_BASE}/api/initialize`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                });
+                const initResult = await initResponse.json();
+                
+                if (initResult.success || initResult.message) {
+                    addTerminalLog('\u2713 System initialized successfully', 'success');
+                    
+                    // Fetch actual data from backend
+                    const [agentsResponse, statesResponse] = await Promise.all([
+                        fetch(`${API_BASE}/api/agents`),
+                        fetch(`${API_BASE}/api/states`)
+                    ]);
+                    
+                    const agentsData = await agentsResponse.json();
+                    const statesData = await statesResponse.json();
+                    
+                    // Update data
+                    currentAgents = agentsData.agents || [];
+                    currentStates = statesData.states || [];
+                    currentGates = [];
+                    

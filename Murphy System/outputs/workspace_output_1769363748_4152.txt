@@ -1,0 +1,2 @@
+✓ Moved addTerminalLog function to be defined earlier
+✓ Function is now available for all other functions to call

@@ -1,0 +1,2 @@
+4348:            window.shadowAgentPanel = new ShadowAgentPanel(API_BASE);
+4352:            window.monitoringPanel = new MonitoringPanel(API_BASE);

@@ -1,0 +1,10 @@
+584:def regenerate_state_endpoint(state_id):
+900:def run_monitoring_analysis():
+999:def generate_artifact():
+1515:def run_learning_cycle():
+1755:def create_workflow():
+1795:def execute_workflow(workflow_id):
+2648:def execute_command_endpoint():
+2815:def llm_generate():
+3009:def execute_executive_command():
+3040:def execute_executive_workflow(workflow_name):

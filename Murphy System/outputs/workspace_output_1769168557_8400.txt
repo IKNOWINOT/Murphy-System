@@ -1,0 +1,3 @@
+✓ Database initialized successfully
+✓ Tables created
+Database path: murphy_system.db

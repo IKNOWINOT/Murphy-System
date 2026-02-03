@@ -1,0 +1,5 @@
+            initProcessFlow();
+            addLog('Murphy System v2.0 - Ready', 'info');
+            addLog('Click "INITIALIZE SYSTEM" to start', 'info');
+        });
+    </script>

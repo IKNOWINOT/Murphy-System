@@ -1,0 +1,5 @@
+-rw-r--r-- 1 root root  29K Jan 20 06:03 /workspace/murphy_complete_frontend.html
+-rw-r--r-- 1 root root  44K Jan 20 16:15 /workspace/murphy_complete_ui.html
+-rw-r--r-- 1 root root 171K Jan 26 07:48 /workspace/murphy_complete_v2.html
+-rw-r--r-- 1 root root  38K Jan 23 10:02 /workspace/murphy_system_interactive.html
+-rw-r--r-- 1 root root  17K Jan 20 06:19 /workspace/murphy_system_live.html

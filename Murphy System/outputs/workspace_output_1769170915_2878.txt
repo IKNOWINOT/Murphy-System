@@ -1,0 +1,20 @@
+13:    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+1973:        function connectWebSocket() {
+1985:            window.socket.on('connect', function() {
+1989:            window.socket.on('connected', function(data) {
+1993:            window.socket.on('system_initialized', function(data) {
+1994:                addTerminalLog('✓ System initialized via WebSocket', 'success');
+2008:            window.socket.on('state_updated', function(data) {
+2022:            window.socket.on('agent_updated', function(data) {
+2036:            window.socket.on('state_evolved', function(data) {
+2037:                addTerminalLog(`✓ State evolved via WebSocket: ${data.parent_id}`, 'success');
+2050:            window.socket.on('state_regenerated', function(data) {
+2051:                addTerminalLog(`✓ State regenerated via WebSocket: ${data.id}`, 'success');
+2064:            window.socket.on('state_rolledback', function(data) {
+2065:                addTerminalLog(`✓ State rolled back via WebSocket: ${data.state_id}`, 'success');
+2078:            window.socket.on('gate_validated', function(data) {
+2083:            window.socket.on('error', function(data) {
+2087:            window.socket.on('disconnect', function() {
+2091:            window.socket.on('reconnect', function() {
+2123:        function handleWebSocketMessage(data) {
+4010:                    connectWebSocket();

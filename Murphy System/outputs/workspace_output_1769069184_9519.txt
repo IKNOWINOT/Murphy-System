@@ -1,0 +1,4 @@
+1366:                    executeTerminalCommand(command);
+1389:        function executeTerminalCommand(command) {
+1404:            processCommand(cmdName, args);
+1411:        async function processCommand(cmdName, args) {

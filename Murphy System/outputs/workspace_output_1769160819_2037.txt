@@ -1,0 +1,16 @@
+    def observe(self, domain: str, obs_type: ObservationType, action: str, context: Dict):
+        """Record observation across relevant agents"""
+        self.global_observations.append({
+            'domain': domain,
+            'type': obs_type.value,
+            'action': action,
+            'context': context,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+        # Distribute to relevant agents
+        for agent in self.agents.values():
+            if agent.domain == domain or agent.domain == "workflows":
+                agent.observe(obs_type, action, context)
+                
+    def run_learning_cycle(self) -> Dict:

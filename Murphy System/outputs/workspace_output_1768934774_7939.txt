@@ -1,0 +1,200 @@
+"""
+Murphy System - Generative Domain Engine
+Handles domain classification, generative domain creation, and cross-domain impact analysis
+"""
+
+import json
+from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass, asdict
+from enum import Enum
+
+class DomainType(Enum):
+    BUSINESS = "business"
+    ENGINEERING = "engineering"
+    FINANCIAL = "financial"
+    LEGAL = "legal"
+    OPERATIONS = "operations"
+    MARKETING = "marketing"
+    HR = "hr"
+    SALES = "sales"
+    PRODUCT = "product"
+    GENERATIVE = "generative"
+
+class ImpactLevel(Enum):
+    NONE = 0
+    LOW = 1
+    MEDIUM = 2
+    HIGH = 3
+
+@dataclass
+class DomainImpact:
+    """Cross-domain impact definition"""
+    target_domain: str
+    impact_level: ImpactLevel
+    description: str
+    dependencies: List[str]
+    constraints: List[str]
+
+@dataclass
+class Domain:
+    """Domain definition"""
+    name: str
+    domain_type: DomainType
+    purpose: str
+    sub_domains: List[str]
+    key_questions: List[str]
+    cross_impacts: Dict[str, DomainImpact]
+    constraints: List[str]
+    gates: List[str]
+    
+    def to_dict(self):
+        return {
+            'name': self.name,
+            'type': self.domain_type.value,
+            'purpose': self.purpose,
+            'sub_domains': self.sub_domains,
+            'key_questions': self.key_questions,
+            'cross_impacts': {k: asdict(v) for k, v in self.cross_impacts.items()},
+            'constraints': self.constraints,
+            'gates': self.gates
+        }
+
+@dataclass
+class GenerativeDomainTemplate:
+    """Template for creating new domains"""
+    template_type: str
+    name_pattern: str
+    discovery_questions: List[str]
+    required_fields: List[str]
+    
+    def to_dict(self):
+        return asdict(self)
+
+class DomainEngine:
+    """Main domain classification and generation engine"""
+    
+    def __init__(self):
+        self.domains = self._initialize_domains()
+        self.templates = self._initialize_templates()
+        self.generative_domains = {}
+        self.cross_impact_matrix = self._build_impact_matrix()
+    
+    def _initialize_domains(self) -> Dict[str, Domain]:
+        """Initialize all standard domains"""
+        domains = {}
+        
+        # Business Domain
+        domains['business'] = Domain(
+            name="Business Domain",
+            domain_type=DomainType.BUSINESS,
+            purpose="Overarching business strategy and operations",
+            sub_domains=[
+                "Executive Strategy",
+                "Business Development",
+                "Market Analysis",
+                "Competitive Intelligence",
+                "Revenue Models",
+                "Growth Planning",
+                "Risk Management",
+                "Corporate Governance"
+            ],
+            key_questions=[
+                "What is the business model and revenue strategy?",
+                "What are the key performance indicators (KPIs)?",
+                "What is the competitive landscape?",
+                "What are the growth targets and timeline?",
+                "What are the critical success factors?",
+                "What are the major business risks?",
+                "What is the organizational structure?",
+                "What are the resource constraints?"
+            ],
+            cross_impacts={},
+            constraints=[
+                "Budget limitations",
+                "Market conditions",
+                "Competitive pressure",
+                "Resource availability"
+            ],
+            gates=[
+                "Business Viability Gate",
+                "Market Validation Gate",
+                "Financial Feasibility Gate",
+                "Strategic Alignment Gate"
+            ]
+        )
+        
+        # Engineering Domain
+        domains['engineering'] = Domain(
+            name="Engineering Domain",
+            domain_type=DomainType.ENGINEERING,
+            purpose="Technical design, development, and implementation",
+            sub_domains=[
+                "Software Engineering",
+                "Mechanical Engineering",
+                "Electrical Engineering",
+                "Civil Engineering",
+                "Systems Engineering",
+                "Quality Engineering",
+                "Manufacturing Engineering",
+                "Process Engineering"
+            ],
+            key_questions=[
+                "What are the technical requirements and constraints?",
+                "What technologies and platforms will be used?",
+                "What are the performance requirements?",
+                "What are the scalability needs?",
+                "What are the integration requirements?",
+                "What are the security requirements?",
+                "What are the maintenance and support needs?",
+                "What are the technical risks?"
+            ],
+            cross_impacts={},
+            constraints=[
+                "Technical feasibility",
+                "Technology stack limitations",
+                "Performance requirements",
+                "Integration complexity"
+            ],
+            gates=[
+                "Technical Feasibility Gate",
+                "Architecture Review Gate",
+                "Security Review Gate",
+                "Performance Validation Gate",
+                "Integration Testing Gate"
+            ]
+        )
+        
+        # Financial Domain
+        domains['financial'] = Domain(
+            name="Financial Domain",
+            domain_type=DomainType.FINANCIAL,
+            purpose="Financial planning, analysis, and management",
+            sub_domains=[
+                "Accounting",
+                "Financial Planning & Analysis (FP&A)",
+                "Treasury Management",
+                "Tax Planning",
+                "Investment Analysis",
+                "Cost Accounting",
+                "Budgeting",
+                "Financial Reporting"
+            ],
+            key_questions=[
+                "What is the total budget and cost structure?",
+                "What are the revenue projections?",
+                "What is the cash flow timeline?",
+                "What are the funding requirements?",
+                "What are the financial risks?",
+                "What are the tax implications?",
+                "What are the financial reporting requirements?",
+                "What is the ROI and payback period?"
+            ],
+            cross_impacts={},
+            constraints=[
+                "Budget constraints",
+                "Cash flow limitations",
+                "ROI requirements",
+                "Financial reporting standards"
+            ],
+            gates=[
+                "Budget Approval Gate",

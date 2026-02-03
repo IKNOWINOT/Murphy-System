@@ -1,0 +1,50 @@
+- 443 (HTTPS)
+- 5432 (PostgreSQL - internal only)
+- 5678 (n8n - internal only)
+- 8081 (Health Check - internal only)
+- 8082 (Monitoring API - internal only)
+- 8083 (Dashboards - internal only)
+
+**Firewall Configuration:**
+```bash
+# Allow HTTP and HTTPS
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+
+# Block direct access to internal services
+sudo ufw deny 5432/tcp
+sudo ufw deny 5678/tcp
+sudo ufw deny 8081/tcp
+sudo ufw deny 8082/tcp
+sudo ufw deny 8083/tcp
+
+# Enable firewall
+sudo ufw enable
+```
+
+---
+
+## Installation Steps
+
+### Step 1: Create Application User
+
+--
+### Step 4: Configure SSL/TLS
+
+```bash
+# Obtain SSL certificate
+sudo certbot --nginx -d your-domain.com
+
+# Auto-renewal
+sudo certbot renew --dry-run
+```
+
+---
+
+## Initial Setup
+
+### Step 1: Create Systemd Services
+
+#### n8n Service
+
+```bash

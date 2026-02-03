@@ -1,0 +1,1 @@
+189:        module_manager = ModuleManager(module_registry)

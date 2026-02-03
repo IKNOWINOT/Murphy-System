@@ -1,0 +1,1 @@
+    <!-- Set API_BASE before panel scripts -->

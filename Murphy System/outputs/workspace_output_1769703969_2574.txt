@@ -1,0 +1,11 @@
+31:class AgentHandoffManager:
+32-    """Manages agent handoffs with context preservation"""
+33-    
+34-    def __init__(self, cooperative_swarm):
+35-        self.cooperative_swarm = cooperative_swarm
+36-        self.handoff_handlers: Dict[str, Callable] = {}
+37-        self.handoff_history: List[Dict] = []
+38-        self.active_handoffs: Dict[str, Dict] = {}
+39-        
+40-    def register_handoff_handler(self, handoff_type: str, handler: Callable):
+41-        """Register a handler for a specific handoff type"""

@@ -1,0 +1,4 @@
+        .init-modal.hidden {
+            display: none;
+        }
+

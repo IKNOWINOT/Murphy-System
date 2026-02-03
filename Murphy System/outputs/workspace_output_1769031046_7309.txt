@@ -1,0 +1,20 @@
+MURPHY SYSTEM BACKEND v2.0
+============================================================
+✓ Groq clients: 9
+✓ Aristotle: Active
+✓ WebSocket: Enabled
+✓ State Management: Enabled
+✓ Interactive Components: Enabled
+============================================================
+
+Server starting on http://0.0.0.0:8000
+WebSocket endpoint: ws://0.0.0.0:8000
+
+
+ * Serving Flask app 'murphy_backend_v2'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://172.16.95.85:8000
+[33mPress CTRL+C to quit[0m

@@ -1,0 +1,26 @@
+def get_monitoring_health():
+    """Get system health status"""
+    if not MONITORING_AVAILABLE or not health_monitor:
+        return jsonify({
+            'success': False,
+            'message': 'Monitoring system not available'
+        }), 503
+    
+    try:
+        health_summary = health_monitor.get_health_summary()
+        return jsonify({
+            'success': True,
+            'health': health_summary
+        })
+    except Exception as e:
+        logger.error(f"Error getting health: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/api/monitoring/metrics', methods=['GET'])
+def get_monitoring_metrics():
+    """Get performance metrics"""
+    if not MONITORING_AVAILABLE or not monitoring_system:
+        return jsonify({

@@ -1,0 +1,8 @@
+{
+  "agents_count": 3,
+  "artifacts_count": 0,
+  "initialized": true,
+  "states_count": 1,
+  "status": "running",
+  "timestamp": "2026-01-29T15:58:57.465032"
+}

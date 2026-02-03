@@ -1,0 +1,1 @@
+export async function putR2(_env:any, _key:string, _bytes:Uint8Array){ return `r2://${_key}` }

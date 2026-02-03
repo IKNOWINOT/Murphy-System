@@ -1,0 +1,18 @@
+                                                    Table "public.task_assignments"
+         Column         |            Type             | Collation | Nullable |                         Default                         
+------------------------+-----------------------------+-----------+----------+---------------------------------------------------------
+ assignment_id          | integer                     |           | not null | nextval('task_assignments_assignment_id_seq'::regclass)
+ task_id                | integer                     |           | not null | 
+ member_id              | integer                     |           | not null | 
+ assignment_method      | character varying(50)       |           | not null | 
+ workload_at_assignment | integer                     |           |          | 
+ assigned_at            | timestamp without time zone |           | not null | now()
+Indexes:
+    "task_assignments_pkey" PRIMARY KEY, btree (assignment_id)
+    "idx_task_assignments_assigned_at" btree (assigned_at)
+    "idx_task_assignments_member_id" btree (member_id)
+    "idx_task_assignments_task_id" btree (task_id)
+Foreign-key constraints:
+    "task_assignments_member_id_fkey" FOREIGN KEY (member_id) REFERENCES team_members(member_id) ON DELETE CASCADE
+    "task_assignments_task_id_fkey" FOREIGN KEY (task_id) REFERENCES tasks(task_id) ON DELETE CASCADE
+

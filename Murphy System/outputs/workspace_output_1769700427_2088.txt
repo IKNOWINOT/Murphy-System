@@ -1,0 +1,3 @@
+root        7706  0.0  0.0   2920   908 ?        Ss   15:27   0:00 timeout --preserve-status --signal=KILL 60s bash -lc { cd /workspace ; mkdir -p /workspace/outputs ; } { ps aux | grep n8n __ec=$? } >"/workspace/outputs/workspace_output_1769700427_2088.txt" 2>&1 head -c 80000 "/workspace/outputs/workspace_output_1769700427_2088.txt" ( exit "$__ec" )
+root        7707  0.0  0.0   4352  3280 ?        S    15:27   0:00 bash -lc { cd /workspace ; mkdir -p /workspace/outputs ; } { ps aux | grep n8n __ec=$? } >"/workspace/outputs/workspace_output_1769700427_2088.txt" 2>&1 head -c 80000 "/workspace/outputs/workspace_output_1769700427_2088.txt" ( exit "$__ec" )
+root        7712  0.0  0.0   3884  2024 ?        S    15:27   0:00 grep n8n

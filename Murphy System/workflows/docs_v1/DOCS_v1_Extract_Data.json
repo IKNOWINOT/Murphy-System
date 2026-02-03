@@ -1,0 +1,314 @@
+{
+  "name": "DOCS_v1_Extract_Data",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT document_id, client_id, document_uuid, original_filename, storage_path, mime_type, document_type, category, status, metadata FROM documents WHERE status = 'classified' ORDER BY priority DESC, received_at ASC LIMIT 15;",
+        "options": {}
+      },
+      "id": "fetch-classified-docs",
+      "name": "Fetch Classified Documents",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "fileName": "={{ $json.storage_path }}",
+        "options": {}
+      },
+      "id": "read-file-content",
+      "name": "Read File Content",
+      "type": "n8n-nodes-base.readFile",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Determine extraction strategy based on document type and category\nconst document = $input.first().json;\nconst binaryData = $input.first().binary;\n\nconst category = document.category || 'other';\nconst mimeType = document.mime_type;\n\nlet extractionStrategy = {\n  type: 'basic',\n  useOCR: false,\n  fields: [],\n  patterns: []\n};\n\n// Define extraction strategies per category\nswitch(category) {\n  case 'invoice':\n    extractionStrategy = {\n      type: 'structured',\n      useOCR: mimeType !== 'text/plain' && mimeType !== 'application/json',\n      fields: ['invoice_number', 'date', 'due_date', 'vendor', 'total_amount', 'tax_amount', 'line_items'],\n      patterns: [\n        { name: 'invoice_number', regex: /invoice\\s*[:#]?\\s*([A-Z0-9-]+)/i },\n        { name: 'date', regex: /date\\s*[:#]?\\s*(\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4})/i },\n        { name: 'total_amount', regex: /total\\s*[:$]?\\s*[$]?([\\d,]+\\.?\\d*)/i }\n      ]\n    };\n    break;\n    \n  case 'contract':\n    extractionStrategy = {\n      type: 'structured',\n      useOCR: mimeType !== 'text/plain',\n      fields: ['contract_number', 'parties', 'start_date', 'end_date', 'value', 'signatures'],\n      patterns: [\n        { name: 'contract_number', regex: /contract\\s*[:#]?\\s*([A-Z0-9-]+)/i },\n        { name: 'start_date', regex: /start\\s*date\\s*[:#]?\\s*(\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4})/i }\n      ]\n    };\n    break;\n    \n  case 'resume':\n    extractionStrategy = {\n      type: 'structured',\n      useOCR: true,  // Resumes almost always need OCR\n      fields: ['name', 'email', 'phone', 'experience_years', 'skills', 'education'],\n      patterns: [\n        { name: 'email', regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/ },\n        { name: 'phone', regex: /\\+?[\\d\\s-()]{10,}/ }\n      ]\n    };\n    break;\n    \n  case 'receipt':\n    extractionStrategy = {\n      type: 'structured',\n      useOCR: true,\n      fields: ['date', 'vendor', 'total', 'items'],\n      patterns: [\n        { name: 'date', regex: /(\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4})/ },\n        { name: 'total', regex: /total\\s*[:$]?\\s*[$]?([\\d,]+\\.?\\d*)/i }\n      ]\n    };\n    break;\n    \n  default:\n    extractionStrategy = {\n      type: 'basic',\n      useOCR: mimeType !== 'text/plain',\n      fields: ['text_content', 'dates', 'emails', 'phone_numbers'],\n      patterns: [\n        { name: 'emails', regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/g },\n        { name: 'phone_numbers', regex: /\\+?[\\d\\s-()]{10,}/g }\n      ]\n    };\n}\n\n// Prepare extraction data\nconst extractionData = {\n  document_id: document.document_id,\n  document_uuid: document.document_uuid,\n  client_id: document.client_id,\n  original_filename: document.original_filename,\n  storage_path: document.storage_path,\n  mime_type: mimeType,\n  category: category,\n  extraction_strategy: extractionStrategy,\n  has_binary_data: !!(binaryData && binaryData.data),\n  timestamp: new Date().toISOString()\n};\n\nreturn [{ json: extractionData, binary: binaryData }];"
+      },
+      "id": "determine-extraction-strategy",
+      "name": "Determine Extraction Strategy",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "needs-ocr",
+              "leftValue": "={{ $json.extraction_strategy.useOCR }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "needs-ocr-check",
+      "name": "Needs OCR?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Simulate OCR extraction\n// In production, this would call Tesseract OCR or similar\nconst data = $input.first().json;\nconst binaryData = $input.first().binary;\n\nlet extractedText = '';\nlet extractedFields = {};\nlet confidence = 0.7;\n\n// If we have binary data, simulate OCR\nif (binaryData && binaryData.data) {\n  // For text files, just read the content\n  if (data.mime_type === 'text/plain' || data.mime_type === 'application/json') {\n    extractedText = binaryData.data.toString('utf-8');\n    confidence = 0.95;\n  } else {\n    // For images/PDFs, simulate OCR output\n    extractedText = `[OCR EXTRACTED TEXT FROM ${data.original_filename}]\\n`;\n    extractedText += `Document Category: ${data.category}\\n`;\n    extractedText += `Timestamp: ${new Date().toISOString()}\\n\\n`;\n    extractedText += `[Content would be extracted here via Tesseract OCR]`;\n    confidence = 0.75;\n  }\n}\n\n// Extract fields based on patterns\nconst strategy = data.extraction_strategy;\nstrategy.patterns.forEach(pattern => {\n  const matches = extractedText.match(pattern.regex);\n  if (matches) {\n    if (pattern.name.includes('email') || pattern.name.includes('phone')) {\n      extractedFields[pattern.name] = matches;  // Keep all matches\n    } else {\n      extractedFields[pattern.name] = matches[1] || matches[0];  // First match\n    }\n  }\n});\n\n// Add generic fields\nextractedFields.text_content = extractedText.substring(0, 5000);  // Limit to 5KB\nextractedFields.extraction_method = 'ocr_simulated';\nextractedFields.confidence = confidence;\n\nconst result = {\n  document_id: data.document_id,\n  document_uuid: data.document_uuid,\n  client_id: data.client_id,\n  extraction_type: 'ocr',\n  extracted_fields: extractedFields,\n  confidence_score: confidence,\n  extracted_at: new Date().toISOString()\n};\n\nreturn [{ json: result }];"
+      },
+      "id": "extract-with-ocr",
+      "name": "Extract with OCR",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 200],
+      "notesInFlow": true,
+      "notes": "Replace with actual Tesseract OCR execution"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract data without OCR (text-based files)\nconst data = $input.first().json;\nconst binaryData = $input.first().binary;\n\nlet extractedText = '';\nlet extractedFields = {};\nlet confidence = 0.9;\n\nif (binaryData && binaryData.data) {\n  extractedText = binaryData.data.toString('utf-8');\n}\n\n// Extract fields based on patterns\nconst strategy = data.extraction_strategy;\nstrategy.patterns.forEach(pattern => {\n  const matches = extractedText.match(pattern.regex);\n  if (matches) {\n    if (pattern.name.includes('email') || pattern.name.includes('phone')) {\n      extractedFields[pattern.name] = matches;\n    } else {\n      extractedFields[pattern.name] = matches[1] || matches[0];\n    }\n  }\n});\n\n// Add generic fields\nextractedFields.text_content = extractedText.substring(0, 5000);\nextractedFields.extraction_method = 'text_parsing';\nextractedFields.confidence = confidence;\n\nconst result = {\n  document_id: data.document_id,\n  document_uuid: data.document_uuid,\n  client_id: data.client_id,\n  extraction_type: 'text_parsing',\n  extracted_fields: extractedFields,\n  confidence_score: confidence,\n  extracted_at: new Date().toISOString()\n};\n\nreturn [{ json: result }];"
+      },
+      "id": "extract-without-ocr",
+      "name": "Extract Without OCR",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 400]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO document_extractions (document_id, client_id, extraction_type, status, result_data, confidence_score, created_at, updated_at) VALUES ($1, $2, $3, 'completed', $4, $5, NOW(), NOW());",
+        "options": {}
+      },
+      "id": "log-extraction",
+      "name": "Log Extraction",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE documents SET status = 'extracted', updated_at = NOW() WHERE document_id = $1;",
+        "options": {}
+      },
+      "id": "update-document-status",
+      "name": "Update Document Status",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1650, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "options": {}
+      },
+      "id": "merge-for-log",
+      "name": "Merge for Log",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO workflow_executions (client_id, workflow_name, workflow_id, execution_id, status, input_data, output_data, started_at, updated_at) VALUES ($1, $2, $3, $4, 'completed', $5, $6, NOW(), NOW());",
+        "options": {}
+      },
+      "id": "log-execution",
+      "name": "Log Execution",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [2050, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Classified Documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Classified Documents": {
+      "main": [
+        [
+          {
+            "node": "Read File Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read File Content": {
+      "main": [
+        [
+          {
+            "node": "Determine Extraction Strategy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determine Extraction Strategy": {
+      "main": [
+        [
+          {
+            "node": "Needs OCR?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs OCR?": {
+      "main": [
+        [
+          {
+            "node": "Extract with OCR",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract Without OCR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract with OCR": {
+      "main": [
+        [
+          {
+            "node": "Log Extraction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Without OCR": {
+      "main": [
+        [
+          {
+            "node": "Log Extraction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Extraction": {
+      "main": [
+        [
+          {
+            "node": "Update Document Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Document Status": {
+      "main": [
+        [
+          {
+            "node": "Merge for Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge for Log": {
+      "main": [
+        [
+          {
+            "node": "Log Execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-01-15T10:00:00.000Z",
+      "updatedAt": "2024-01-15T10:00:00.000Z",
+      "id": "tag-docs-v1",
+      "name": "DOCS_v1"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-15T10:00:00.000Z",
+  "versionId": "1"
+}

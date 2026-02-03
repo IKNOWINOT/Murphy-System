@@ -1,0 +1,60 @@
+@app.route('/api/initialize', methods=['POST'])
+@validate_input(validate_init_request)
+def initialize_system():
+    """Initialize the system with demo data (NO AUTHENTICATION REQUIRED)"""
+    global system_initialized
+    
+    if system_initialized:
+        # Return current database statistics
+        if DB_AVAILABLE and db_manager:
+            stats = db_manager.get_statistics()
+            return jsonify({
+                'success': True,
+                'message': 'System already initialized',
+                'agents_count': stats['agents_count'],
+                'states_count': stats['states_count']
+            })
+        else:
+            return jsonify({
+                'success': True,
+                'message': 'System already initialized (in-memory mode)',
+                'agents_count': len(agents),
+                'states_count': len(states)
+            })
+    
+    try:
+        # Use database if available
+        if DB_AVAILABLE and db_manager:
+            result = db_manager.initialize_system_data()
+            system_initialized = True
+            return jsonify(result)
+        
+        # Fall back to in-memory initialization
+        else:
+            # Acquire locks for thread safety
+            with state_lock, agents_lock, components_lock, gates_lock:
+                # Create demo agents
+                agents = [
+                    {'id': 'agent-1', 'name': 'Executive Agent', 'role': 'planning', 'status': 'active'},
+                    {'id': 'agent-2', 'name': 'Engineering Agent', 'role': 'technical', 'status': 'active'},
+                    {'id': 'agent-3', 'name': 'Financial Agent', 'role': 'finance', 'status': 'active'},
+                    {'id': 'agent-4', 'name': 'Legal Agent', 'role': 'legal', 'status': 'active'},
+                    {'id': 'agent-5', 'name': 'Operations Agent', 'role': 'operations', 'status': 'active'}
+                ]
+                
+                # Create initial state
+                states = [
+                    {
+                        'id': 'state-1',
+                        'name': 'Initial State',
+                        'description': 'System initialization state',
+                        'confidence': 0.85,
+                        'parent_id': None,
+                        'children': [],
+                        'created_at': datetime.now().isoformat()
+                    }
+                ]
+                
+                # Create components
+                components = [
+                    {'id': 'comp-1', 'name': 'LLM Router', 'status': 'active'},

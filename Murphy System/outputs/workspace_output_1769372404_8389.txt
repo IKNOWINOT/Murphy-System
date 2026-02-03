@@ -1,0 +1,12 @@
+Found 9 Groq API keys:
+1. gsk_mnfwxYk7Apjf69an...wJGIyysZSD
+2. gsk_9WY3qHJZJ3GdgO8Z...9buUDpY2Vb
+3. gsk_GG0EZ6YLewoT6KX2...TIT5Ony9cj
+4. gsk_R0CAW4TthbJonOGu...GRDsyR9udn
+5. gsk_qxw0XSlNz8p1aYrR...YCOjYs1BFV
+6. gsk_ZqbkG1RlgunkHgur...5AkPP9WqIy
+7. gsk_QbCn1BzqBGDvEkrP...cpz9Ozw3vy
+8. gsk_I9DWEpUEY53hO2LM...hdQ9NpTEhK
+9. gsk_Y2oNzdW9jzPPob9l...4gRdVR920O
+
+✓ Saved 9 keys to /workspace/groq_keys.txt

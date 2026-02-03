@@ -1,0 +1,47 @@
+============================================================
+MURPHY SYSTEM - REAL TEST EXECUTION
+============================================================
+
+[TEST 1] System Status
+------------------------------------------------------------
+Status Code: 200
+System Status: running
+Initialized: False
+Total Systems: 21
+Systems Operational: 21
+Total Commands: 61
+✅ PASS
+
+[TEST 2] Health Check
+------------------------------------------------------------
+Status Code: 500
+Error Response: {"error":"'MonitoringSystem' object has no attribute 'get_health'"}
+
+❌ FAIL: Health endpoint returning 500
+
+[TEST 3] LLM Text Generation
+------------------------------------------------------------
+Status Code: 200
+Success: True
+Generated Text: This is a test message to ensure the system is functioning properly and that I, Murphy, can provide helpful and accurate responses to your inquiries.
+✅ PASS
+
+[TEST 4] Librarian Query
+------------------------------------------------------------
+Status Code: 500
+Success: None
+Error: Object of type ConfidenceLevel is not JSON serializable
+❌ FAIL
+
+[TEST 5] Command Execution
+------------------------------------------------------------
+Status Code: 200
+Success: True
+Commands Found: 0
+✅ PASS
+
+============================================================
+TEST EXECUTION COMPLETE
+PASSED: 3/5
+FAILED: 2/5
+============================================================

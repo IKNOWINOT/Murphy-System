@@ -1,0 +1,22 @@
+{
+    "agents": [
+        {
+            "id": "agent-1",
+            "name": "Director",
+            "role": "orchestration",
+            "status": "active"
+        },
+        {
+            "id": "agent-2",
+            "name": "Researcher",
+            "role": "research",
+            "status": "active"
+        },
+        {
+            "id": "agent-3",
+            "name": "Analyst",
+            "role": "analysis",
+            "status": "active"
+        }
+    ]
+}

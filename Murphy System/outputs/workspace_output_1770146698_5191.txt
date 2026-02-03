@@ -1,0 +1,22 @@
+=== correction ===
+6
+=== deployment ===
+0
+=== execution ===
+4
+=== forms ===
+4
+=== hitl ===
+3
+=== performance ===
+1
+=== plan_decomposition ===
+3
+=== risk ===
+5
+=== shadow_agent ===
+14
+=== tests ===
+1
+=== validation ===
+13

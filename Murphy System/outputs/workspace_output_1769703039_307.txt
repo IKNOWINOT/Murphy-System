@@ -1,0 +1,41 @@
+        
+        if not user_input:
+            return jsonify({
+                'success': False,
+                'error': 'No input provided'
+            }), 400
+        
+        # Use the LibrarianSystem to process input
+        import asyncio
+        
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        try:
+            response = loop.run_until_complete(librarian_system.ask(user_input))
+            
+            return jsonify({
+                'success': True,
+                'intent': {
+                    'category': response.intent.category.value,
+                    'confidence': response.intent.confidence,
+                    'keywords': response.intent.keywords,
+                    'suggested_commands': response.intent.suggested_commands
+                },
+                'message': response.message,
+                'commands': response.commands,
+                'workflow': response.workflow,
+                'follow_up_questions': response.follow_up_questions,
+                'confidence_level': response.confidence_level.value
+            })
+        finally:
+            loop.close()
+    
+    except Exception as e:
+        logger.error(f"Librarian ask error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+

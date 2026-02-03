@@ -1,0 +1,51 @@
+            # Store in command history
+            self.command_history.append(entry)
+            
+            # Add to Librarian knowledge base
+            if hasattr(self.librarian_system, 'add_knowledge'):
+                self.librarian_system.add_knowledge(
+                    content=f"Command: /{command.name} - {command.description}",
+                    metadata={
+                        "type": "command",
+                        "name": command.name,
+                        "module": command.module,
+                        "category": command.category.value
+                    }
+                )
+            
+            logger.debug(f"Logged command registration: /{command.name}")
+            
+        except Exception as e:
+            logger.error(f"Error logging command registration: {e}")
+    
+    def log_command_unregistration(self, command_name: str):
+        """Log command unregistration to Librarian"""
+        if not self.enabled:
+            return
+        
+        try:
+            entry = {
+                "timestamp": datetime.utcnow().isoformat(),
+                "event_type": "command_unregistration",
+                "command_name": command_name
+            }
+            self.command_history.append(entry)
+            logger.debug(f"Logged command unregistration: /{command_name}")
+            
+        except Exception as e:
+            logger.error(f"Error logging command unregistration: {e}")
+    
+    def log_command_execution(self, command, args: Dict[str, Any]):
+        """Log command execution to Librarian"""
+        if not self.enabled:
+            return
+        
+        try:
+            entry = {
+                "timestamp": datetime.utcnow().isoformat(),
+                "event_type": "command_execution",
+                "command_name": command.name,
+                "module": command.module,
+                "category": command.category.value,
+                "args": args
+            }

@@ -1,0 +1,71 @@
+{
+    "agents": [
+        {
+            "active_automations": 0,
+            "created_at": "2026-01-23T09:33:21.075027",
+            "domain": "command_system",
+            "id": "cc15d74f-2ba1-41d5-afa7-b93c3ece0ed3",
+            "last_learning_cycle": null,
+            "learning_enabled": true,
+            "name": "Command Observer",
+            "recent_observations": 0,
+            "total_observations": 0,
+            "total_patterns": 0,
+            "total_proposals": 0
+        },
+        {
+            "active_automations": 0,
+            "created_at": "2026-01-23T09:33:21.075044",
+            "domain": "living_documents",
+            "id": "d65cb6b0-4b10-46de-83e4-d370499829f0",
+            "last_learning_cycle": null,
+            "learning_enabled": true,
+            "name": "Document Watcher",
+            "recent_observations": 0,
+            "total_observations": 0,
+            "total_patterns": 0,
+            "total_proposals": 0
+        },
+        {
+            "active_automations": 0,
+            "created_at": "2026-01-23T09:33:21.075050",
+            "domain": "artifact_generation",
+            "id": "b62288fb-4652-4fba-aad2-61e4248567cc",
+            "last_learning_cycle": null,
+            "learning_enabled": true,
+            "name": "Artifact Monitor",
+            "recent_observations": 0,
+            "total_observations": 0,
+            "total_patterns": 0,
+            "total_proposals": 0
+        },
+        {
+            "active_automations": 0,
+            "created_at": "2026-01-23T09:33:21.075060",
+            "domain": "state_machine",
+            "id": "b74e982b-cb43-428f-9c1f-068ffbdab937",
+            "last_learning_cycle": null,
+            "learning_enabled": true,
+            "name": "State Tracker",
+            "recent_observations": 0,
+            "total_observations": 0,
+            "total_patterns": 0,
+            "total_proposals": 0
+        },
+        {
+            "active_automations": 0,
+            "created_at": "2026-01-23T09:33:21.075065",
+            "domain": "workflows",
+            "id": "f1668b0d-ec73-4bbb-b2ac-fdad8058a326",
+            "last_learning_cycle": null,
+            "learning_enabled": true,
+            "name": "Workflow Analyzer",
+            "recent_observations": 0,
+            "total_observations": 0,
+            "total_patterns": 0,
+            "total_proposals": 0
+        }
+    ],
+    "count": 5,
+    "success": true
+}

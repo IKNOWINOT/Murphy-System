@@ -1,0 +1,29 @@
+def execute_command_endpoint():
+    """Execute a command"""
+    if not COMMAND_SYSTEM_AVAILABLE:
+        return jsonify({"success": False, "error": "Command system not available"}), 503
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({"success": False, "error": "No JSON data provided"}), 400
+    
+    command_name = data.get('command')
+    if not command_name:
+        return jsonify({"success": False, "error": "Command name required"}), 400
+    
+    # Remove leading slash if present
+    if command_name.startswith('/'):
+        command_name = command_name[1:]
+    
+    args = data.get('args', {})
+    
+    # Execute command
+    result = execute_command(command_name, args)
+    
+    return jsonify(result)
+
+
+@app.route('/api/commands/<command_name>', methods=['GET'])
+def get_command_details(command_name):
+    """Get details for a specific command"""
+    if not COMMAND_SYSTEM_AVAILABLE:

@@ -1,0 +1,15 @@
+{
+  "id": "state-d6ac013f",
+  "label": "Child State 1",
+  "confidence": 0.95
+}
+{
+  "id": "state-a12558ee",
+  "label": "Child State 2",
+  "confidence": 0.95
+}
+{
+  "id": "state-bcb9932f",
+  "label": "Child State 3",
+  "confidence": 0.95
+}

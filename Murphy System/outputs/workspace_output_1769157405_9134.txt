@@ -1,0 +1,5 @@
+    def __init__(self, obs_type: ObservationType, action: str, context: Dict):
+    def __init__(self, pattern_type: str, description: str, observations: List[Observation]):
+    def __init__(self, pattern: Pattern, automation_type: str, description: str):
+    def __init__(self, name: str, domain: str):
+    def __init__(self):

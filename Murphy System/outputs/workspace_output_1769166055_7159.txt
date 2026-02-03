@@ -1,0 +1,5 @@
+Testing protected endpoint WITH authentication:
+{
+    "message": "Failed to initialize: name 'g' is not defined",
+    "success": false
+}

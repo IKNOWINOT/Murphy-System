@@ -1,0 +1,7 @@
+    17439  2026-01-19 11:08   src/dynamic_command_discovery.py
+    16064  2026-01-19 11:08   src/command_parser.py
+    21938  2026-01-19 11:08   src/command_system.py
+     4438  2026-01-19 11:08   bots/matrix_client.py
+    23502  2026-01-19 11:08   terminal_worker.html
+    21582  2026-01-19 11:08   terminal_enhanced.html
+    43243  2026-01-19 11:08   terminal_architect.html

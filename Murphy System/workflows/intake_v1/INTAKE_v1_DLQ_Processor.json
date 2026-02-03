@@ -1,0 +1,415 @@
+{
+  "name": "INTAKE_v1_DLQ_Processor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT dlq_id, client_id, entity_type, entity_id, workflow_name, error_type, error_message, retry_count, last_retry_at, created_at, updated_at FROM dead_letter_queue WHERE entity_type IN ('lead', 'lead_enrichment', 'lead_routing') AND retry_count < 5 AND status = 'failed' ORDER BY created_at ASC LIMIT 20;",
+        "options": {}
+      },
+      "id": "fetch-dlq-items",
+      "name": "Fetch DLQ Items",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-items",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "has-items-check",
+      "name": "Has Items?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT lead_id, client_id, email, first_name, last_name, company, phone, source, status, lead_score, raw_data FROM leads WHERE lead_id = $1;",
+        "options": {}
+      },
+      "id": "fetch-lead-data",
+      "name": "Fetch Lead Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [850, 200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT enrichment_id, lead_id, client_id, enrichment_type, status, result_data, error_message FROM lead_enrichment WHERE enrichment_id = $1;",
+        "options": {}
+      },
+      "id": "fetch-enrichment-data",
+      "name": "Fetch Enrichment Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [850, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT routing_id, lead_id, client_id, destination_type, destination_config, routing_status, sent_at FROM lead_routing WHERE routing_id = $1;",
+        "options": {}
+      },
+      "id": "fetch-routing-data",
+      "name": "Fetch Routing Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [850, 400],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Determine retry strategy based on error type and entity\nconst dlqItem = $input.first().json;\nconst entityData = $input.all()[1].json;\n\nlet retryStrategy = {\n  shouldRetry: false,\n  action: 'none',\n  delayMinutes: 0,\n  message: ''\n};\n\nconst retryCount = dlqItem.retry_count || 0;\nconst maxRetries = 5;\n\n// Calculate exponential backoff delay\nconst delayMinutes = Math.min(Math.pow(2, retryCount) * 5, 1440); // Cap at 24 hours\n\nswitch(dlqItem.entity_type) {\n  case 'lead':\n    // Lead processing errors - retry if data validation error\n    if (dlqItem.error_type === 'validation_error' && retryCount < 2) {\n      retryStrategy.shouldRetry = true;\n      retryStrategy.action = 'reprocess_lead';\n      retryStrategy.delayMinutes = delayMinutes;\n      retryStrategy.message = 'Reprocessing lead after validation fix';\n    } else if (dlqItem.error_type === 'database_error' && retryCount < 3) {\n      retryStrategy.shouldRetry = true;\n      retryStrategy.action = 'reinsert_lead';\n      retryStrategy.delayMinutes = delayMinutes;\n      retryStrategy.message = 'Retrying database insert';\n    } else {\n      retryStrategy.shouldRetry = false;\n      retryStrategy.action = 'manual_review';\n      retryStrategy.message = 'Requires manual review';\n    }\n    break;\n    \n  case 'lead_enrichment':\n    // Enrichment errors - retry API failures\n    if (dlqItem.error_type === 'api_error' && retryCount < 4) {\n      retryStrategy.shouldRetry = true;\n      retryStrategy.action = 'retry_enrichment';\n      retryStrategy.delayMinutes = delayMinutes;\n      retryStrategy.message = 'Retrying enrichment API call';\n    } else if (dlqItem.error_type === 'rate_limit_error' && retryCount < maxRetries) {\n      retryStrategy.shouldRetry = true;\n      retryStrategy.action = 'retry_enrichment';\n      retryStrategy.delayMinutes = 60; // Wait 1 hour for rate limit\n      retryStrategy.message = 'Retrying after rate limit reset';\n    } else {\n      retryStrategy.shouldRetry = false;\n      retryStrategy.action = 'mark_failed_permanent';\n      retryStrategy.message = 'Max retries reached or permanent failure';\n    }\n    break;\n    \n  case 'lead_routing':\n    // Routing errors - retry transient failures\n    if (dlqItem.error_type === 'network_error' && retryCount < 3) {\n      retryStrategy.shouldRetry = true;\n      retryStrategy.action = 'retry_routing';\n      retryStrategy.delayMinutes = delayMinutes;\n      retryStrategy.message = 'Retrying routing due to network error';\n    } else if (dlqItem.error_type === 'destination_error' && retryCount < 2) {\n      retryStrategy.shouldRetry = true;\n      retryStrategy.action = 'retry_routing';\n      retryStrategy.delayMinutes = delayMinutes;\n      retryStrategy.message = 'Retrying routing to destination';\n    } else {\n      retryStrategy.shouldRetry = false;\n      retryStrategy.action = 'manual_review';\n      retryStrategy.message = 'Requires manual review of destination';\n    }\n    break;\n    \n  default:\n    retryStrategy.action = 'manual_review';\n    retryStrategy.message = 'Unknown entity type';\n}\n\nreturn [{\n  json: {\n    dlqItem: dlqItem,\n    entityData: entityData,\n    retryStrategy: retryStrategy,\n    shouldProceed: retryStrategy.shouldRetry && retryCount < maxRetries\n  }\n}];"
+      },
+      "id": "evaluate-retry-strategy",
+      "name": "Evaluate Retry Strategy",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "should-proceed",
+              "leftValue": "={{ $json.shouldProceed }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "should-retry-check",
+      "name": "Should Retry?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE dead_letter_queue SET retry_count = retry_count + 1, last_retry_at = NOW(), status = 'retrying', updated_at = NOW() WHERE dlq_id = $1;",
+        "options": {}
+      },
+      "id": "increment-retry-count",
+      "name": "Increment Retry Count",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1450, 200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE dead_letter_queue SET status = 'manual_review_required', error_message = CONCAT(error_message, ' - Requires manual review: ', $1), updated_at = NOW() WHERE dlq_id = $2;",
+        "options": {}
+      },
+      "id": "mark-manual-review",
+      "name": "Mark Manual Review",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1450, 400],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO notifications (client_id, notification_type, message, status, created_at, updated_at) VALUES ($1, 'dlq_manual_review', $2, 'unread', NOW(), NOW());",
+        "options": {}
+      },
+      "id": "send-notification",
+      "name": "Send Notification",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1650, 400],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO workflow_executions (client_id, workflow_name, workflow_id, execution_id, status, input_data, output_data, started_at, updated_at) VALUES ($1, $2, $3, $4, 'completed', $5, $6, NOW(), NOW());",
+        "options": {}
+      },
+      "id": "log-execution",
+      "name": "Log Execution",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1850, 200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO workflow_executions (client_id, workflow_name, workflow_id, execution_id, status, input_data, output_data, started_at, updated_at) VALUES ($1, $2, $3, $4, 'completed', $5, $6, NOW(), NOW());",
+        "options": {}
+      },
+      "id": "log-execution-manual",
+      "name": "Log Execution (Manual)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1850, 400],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          " name": "PostgreSQL"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch DLQ Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch DLQ Items": {
+      "main": [
+        [
+          {
+            "node": "Has Items?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Items?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Lead Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Enrichment Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Routing Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Lead Data": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Retry Strategy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Enrichment Data": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Retry Strategy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Routing Data": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Retry Strategy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Retry Strategy": {
+      "main": [
+        [
+          {
+            "node": "Should Retry?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Retry?": {
+      "main": [
+        [
+          {
+            "node": "Increment Retry Count",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Manual Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Increment Retry Count": {
+      "main": [
+        [
+          {
+            "node": "Log Execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Manual Review": {
+      "main": [
+        [
+          {
+            "node": "Send Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Notification": {
+      "main": [
+        [
+          {
+            "node": "Log Execution (Manual)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-01-15T10:00:00.000Z",
+      "updatedAt": "2024-01-15T10:00:00.000Z",
+      "id": "tag-intake-v1",
+      "name": "INTAKE_v1"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-15T10:00:00.000Z",
+  "versionId": "1"
+}

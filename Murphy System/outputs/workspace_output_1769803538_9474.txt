@@ -1,0 +1,100 @@
+"""
+Agent Communication System - Email Chatter Between Agents
+Handles inter-agent messaging, decision gates, and token cost analysis
+"""
+
+import json
+from datetime import datetime
+from typing import List, Dict, Optional
+from dataclasses import dataclass, asdict
+from enum import Enum
+
+class MessageType(Enum):
+    """Types of inter-agent messages"""
+    TASK_ASSIGNMENT = "task_assignment"
+    QUESTION = "question"
+    ANSWER = "answer"
+    APPROVAL_REQUEST = "approval_request"
+    APPROVAL_RESPONSE = "approval_response"
+    STATUS_UPDATE = "status_update"
+    COST_ANALYSIS = "cost_analysis"
+    REVENUE_PROJECTION = "revenue_projection"
+    CLARIFICATION = "clarification"
+
+class ConfidenceLevel(Enum):
+    """Confidence levels for agent decisions"""
+    GREEN = "green"  # 95%+ - Ready to execute
+    YELLOW = "yellow"  # 70-94% - Needs clarification
+    RED = "red"  # <70% - Major information needed
+
+@dataclass
+class DecisionGate:
+    """A decision point that an agent must consider"""
+    gate_id: str
+    question: str
+    options: List[str]
+    selected_option: Optional[str] = None
+    confidence: float = 0.0
+    reasoning: str = ""
+    token_cost: int = 0
+    revenue_impact: float = 0.0
+
+@dataclass
+class AgentMessage:
+    """A message between agents (email chatter)"""
+    message_id: str
+    from_agent: str
+    to_agent: str
+    message_type: MessageType
+    subject: str
+    body: str
+    timestamp: str
+    thread_id: Optional[str] = None
+    requires_response: bool = False
+    attachments: List[Dict] = None
+    
+    def to_dict(self):
+        data = asdict(self)
+        data['message_type'] = self.message_type.value
+        return data
+
+@dataclass
+class AgentTaskReview:
+    """Complete review state for an agent task"""
+    task_id: str
+    agent_name: str
+    agent_role: str
+    
+    # LLM Generative Side
+    llm_state: Dict  # What the LLM generated
+    llm_prompt: str
+    llm_response: str
+    llm_tokens_used: int
+    
+    # Librarian Interpretation Side
+    librarian_interpretation: str  # How to best execute
+    librarian_command_chain: List[str]
+    librarian_confidence: float
+    
+    # Decision Gates
+    gates: List[DecisionGate]
+    overall_confidence: ConfidenceLevel
+    
+    # Cost Analysis
+    token_cost: int
+    revenue_potential: float
+    cost_benefit_ratio: float
+    
+    # Clarifying Questions
+    questions: List[Dict]  # Questions to boost confidence
+    
+    # Communication Thread
+    message_thread: List[AgentMessage]
+    
+    def to_dict(self):
+        data = asdict(self)
+        data['overall_confidence'] = self.overall_confidence.value
+        data['message_thread'] = [msg.to_dict() for msg in self.message_thread]
+        return data
+
+class AgentCommunicationHub:

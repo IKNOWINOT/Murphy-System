@@ -1,0 +1,3 @@
+            <button class="action-btn primary" onclick="if (typeof initializeSystem === 'function') { initializeSystem(); } else { alert('initializeSystem not defined yet!'); }">INITIALIZE SYSTEM</button>
+            <button class="action-btn" style="margin-top: 10px; background: #ff4444;" onclick="testHideModal()">TEST HIDE</button>
+            <button class="action-btn" style="margin-top: 10px; background: #4444ff;" onclick="testShowModal()">TEST SHOW</button>

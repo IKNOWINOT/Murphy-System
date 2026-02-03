@@ -1,0 +1,11 @@
+        let historyIndex = -1;
+        
+        // Initialize terminal input - MOVED HERE TO BE INSIDE DOMContentLoaded
+        const terminalInput = document.getElementById('terminal-input');
+        const terminal = document.getElementById('terminal');
+        
+        if (terminalInput) {
+            terminalInput.addEventListener('keydown', handleTerminalKeyPress);
+            terminalInput.focus();
+        }
+        

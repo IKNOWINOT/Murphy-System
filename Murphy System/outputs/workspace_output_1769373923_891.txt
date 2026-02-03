@@ -1,0 +1,6 @@
+@app.route('/api/librarian/ask', methods=['POST'])
+def librarian_ask():
+    &quot;&quot;&quot;Process any user input with intent classification and command mapping.&quot;&quot;&quot;
+    try:
+        if not LIBRARIAN_AVAILABLE or not librarian_system:
+            return jsonify({

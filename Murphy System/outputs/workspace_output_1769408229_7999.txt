@@ -1,0 +1,10 @@
+-rw-r--r-- 1 root root  21749 Jan 22 16:12 /workspace/artifact_panel.js
+-rw-r--r-- 1 root root  15736 Jan 22 03:38 /workspace/command_enhancements.js
+-rw-r--r-- 1 root root  33193 Jan 22 15:52 /workspace/document_editor_panel.js
+-rw-r--r-- 1 root root  27080 Jan 22 08:05 /workspace/librarian_panel.js
+-rw-r--r-- 1 root root 112079 Jan 23 21:52 /workspace/main_script.js
+-rw-r--r-- 1 root root  18539 Jan 23 12:34 /workspace/module_panel.js
+-rw-r--r-- 1 root root  17892 Jan 22 16:49 /workspace/monitoring_panel.js
+-rw-r--r-- 1 root root  33020 Jan 22 15:50 /workspace/plan_review_panel.js
+-rw-r--r-- 1 root root  14837 Jan 22 16:45 /workspace/shadow_agent_panel.js
+-rw-r--r-- 1 root root  20581 Jan 22 03:42 /workspace/terminal_enhancements_integration.js

@@ -1,0 +1,3 @@
+1098:@app.route('/api/artifacts/search', methods=['GET'])
+1131:@app.route('/api/artifacts/stats', methods=['GET'])
+1154:@app.route('/api/artifacts/<artifact_id>/download', methods=['GET'])

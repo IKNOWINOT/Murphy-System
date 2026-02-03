@@ -1,0 +1,2 @@
+748:            document.getElementById('submit-btn').addEventListener('click', handleSubmit);
+755:                tab.addEventListener('click', () => {

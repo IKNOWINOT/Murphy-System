@@ -1,0 +1,66 @@
+     1	
+     2	        async function initializeSystem() {
+     3	            addTerminalLog('Initializing Murphy System...', 'info');
+     4	            
+     5	            try {
+     6	                const initResponse = await fetch(`${API_BASE}/api/initialize`, {
+     7	                    method: 'POST'
+     8	                });
+     9	                const initResult = await initResponse.json();
+    10	                
+    11	                if (initResult.success || initResult.message) {
+    12	                    addTerminalLog('\u2713 System initialized successfully', 'success');
+    13	                    
+    14	                    // Hide init modal
+    15	                    const modal = document.getElementById('init-modal');
+    16	                    if (modal) {
+    17	                        modal.classList.add('hidden');
+    18	                        console.log('Modal hidden successfully');
+    19	                    } else {
+    20	                        console.log('Modal not found');
+    21	                    }
+    22	                    
+    23	                    // Fetch actual data from backend
+    24	                    const [agentsResponse, statesResponse] = await Promise.all([
+    25	                        fetch(`${API_BASE}/api/agents`),
+    26	                        fetch(`${API_BASE}/api/states`)
+    27	                    ]);
+    28	                    
+    29	                    const agentsData = await agentsResponse.json();
+    30	                    const statesData = await statesResponse.json();
+    31	                    
+    32	                    // Update data
+    33	                    currentAgents = agentsData.agents || [];
+    34	                    currentStates = statesData.states || [];
+    35	                    currentGates = [];
+    36	                    
+    37	                    // Generate connections for agent graph
+    38	                    currentConnections = generateAgentConnections(currentAgents);
+    39	                    
+    40	                    addTerminalLog(`  Loaded ${currentAgents.length} agents`, 'info');
+    41	                    addTerminalLog(`  Loaded ${currentStates.length} states`, 'info');
+    42	                    
+    43	                    // Refresh UI
+    44	                    updateMetrics();
+    45	                    updateAgentGraph(currentAgents, currentConnections);
+    46	                    renderStateTree(currentStates);
+    47	                    updateProcessFlow(currentStates);
+    48	                    
+    49	                    // Connect to Socket.IO for real-time updates
+    50	                    connectWebSocket();
+    51	                } else {
+    52	                    addTerminalLog('\u2717 Initialization failed', 'error');
+    53	                }
+    54	            } catch (error) {
+    55	                addTerminalLog(`\u2717 Error: ${error.message}`, 'error');
+    56	            }
+    57	        }
+    58	
+    59	                addTerminalLog('No agents available. Initialize system first.', 'warning');
+    60	                return;
+    61	            }
+    62	            
+    63	            currentAgents.forEach(agent => {
+    64	                addTerminalLog(`  ${agent.id.padEnd(15)} - ${agent.name}`, 'info');
+    65	            });
+    66	        }

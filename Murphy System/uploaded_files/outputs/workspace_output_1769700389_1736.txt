@@ -1,0 +1,13 @@
+Activating INTAKE_v1 workflows...
+============================================================
+✓ Activated: INTAKE_v1_Capture_Leads
+✓ Activated: INTAKE_v1_Normalize_Data
+✓ Activated: INTAKE_v1_Enrich_Leads
+✓ Activated: INTAKE_v1_Route_Leads
+✓ Activated: INTAKE_v1_DLQ_Processor
+============================================================
+Activated 5/5 workflows
+
+Note: Webhook workflows may take a few seconds to register
+      after activation. You may need to wait 10-15 seconds
+      before testing the webhook endpoint.

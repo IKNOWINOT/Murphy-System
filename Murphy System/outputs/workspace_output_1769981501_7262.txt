@@ -1,0 +1,100 @@
+murphy_backup_extracted/
+├── CHANGELOG_LATEST.md
+├── COMPLETE_MURPHY_SYSTEM_RUNTIME.md
+├── COMPREHENSIVE_WORK_SUMMARY.md
+├── EXECUTION_ENGINES_TEST_CORRECTION_COMPLETE.md
+├── FINAL_COMPLETION_REPORT.md
+├── FINAL_DOCUMENTATION_INDEX.md
+├── FINAL_PACKAGE_RELEASE.md
+├── LICENSE
+├── PACKAGE_MANIFEST.md
+├── README.md
+├── README_DOMAIN_SYSTEM.md
+├── README_FINAL.md
+├── bots
+│   ├── CRMLeadGenerator_bot
+│   ├── Engineering_bot.py
+│   ├── Ghost_Controller_Bot.py
+│   ├── __init__.py
+│   ├── aionmind_core.py
+│   ├── analysisbot
+│   ├── analysisbot.py
+│   ├── analytics.py
+│   ├── anomaly_detection.py
+│   ├── anomaly_watcher_bot
+│   ├── anomaly_watcher_bot.py
+│   ├── api_cache.py
+│   ├── async_utils.py
+│   ├── bot_base
+│   ├── bot_base.py
+│   ├── bots.zip
+│   ├── cache_manager.py
+│   ├── cad_bot
+│   ├── cad_bot.py
+│   ├── clarifier_bot
+│   ├── clarifier_bot.py
+│   ├── code_translator_bot
+│   ├── code_translator_bot.py
+│   ├── coding_bot.py
+│   ├── comment_classifier.py
+│   ├── commissioning_bot
+│   ├── commissioning_bot.py
+│   ├── comms_hub_bot.py
+│   ├── composite_registry.json
+│   ├── composite_registry.py
+│   ├── config.py
+│   ├── config_loader.py
+│   ├── config_manager.py
+│   ├── container_runner.py
+│   ├── crosslinked_knowledge_index.py
+│   ├── crypto_utils.py
+│   ├── dashboard.py
+│   ├── deduplication_refiner_bot
+│   ├── deduplication_refiner_bot.py
+│   ├── dependency_graph.py
+│   ├── efficiency_optimizer.py
+│   ├── energy_logger.py
+│   ├── engineering_bot
+│   ├── execution_planner_bot.py
+│   ├── fallback.py
+│   ├── feedback_bot
+│   ├── feedback_bot.py
+│   ├── ghost_controller_bot
+│   ├── goldenpath_generator
+│   ├── gpt_oss_runner.py
+│   ├── graph_architect_bot.py
+│   ├── health_check.py
+│   ├── history_diff.py
+│   ├── hive_pipelines.py
+│   ├── input_parser.py
+│   ├── json_bot
+│   ├── json_bot.py
+│   ├── json_converter.py
+│   ├── json_streamed_logic.py
+│   ├── jsonbot_schema.py
+│   ├── kaia
+│   ├── key_manager_bot
+│   ├── key_manager_bot.py
+│   ├── kiren
+│   ├── kiren_speak.py
+│   ├── librarian_bot
+│   ├── librarian_bot.py
+│   ├── llm_backend.py
+│   ├── local_summarizer_bot.py
+│   ├── logging_utils.py
+│   ├── matrix_chatbot.py
+│   ├── matrix_client.py
+│   ├── meeting_notes_bot
+│   ├── memory_cortex_bot.py
+│   ├── memory_manager_bot
+│   ├── memory_manager_bot.py
+│   ├── memory_manager_ttl.py
+│   ├── message_validator.py
+│   ├── metrics_exporter.py
+│   ├── multimodal_describer_bot
+│   ├── multimodal_describer_bot.py
+│   ├── optimization_bot
+│   ├── optimization_bot.py
+│   ├── optimizer_core_bot
+│   ├── optimizer_core_bot.py
+│   ├── osmosis

@@ -1,0 +1,21 @@
+ERROR:__main__:✗ Failed to load Monitoring components: cannot import name 'ComponentHealth' from 'health_monitor' (/workspace/health_monitor.py)
+INFO:__main__:✓ Artifact components loaded successfully
+INFO:__main__:✓ Artifact systems initialized
+INFO:__main__:✓ Shadow Agent components loaded successfully
+INFO:__main__:✓ Shadow Agent systems initialized
+INFO:__main__:✓ Cooperative Swarm components loaded successfully
+ERROR:__main__:✗ Failed to initialize cooperative swarm systems: WorkflowOrchestrator.__init__() missing 2 required positional arguments: 'cooperative_swarm' and 'handoff_manager'
+INFO:__main__:============================================================
+INFO:__main__:Murphy System Complete Backend Server v3.0
+INFO:__main__:============================================================
+INFO:__main__:Monitoring: ✗
+INFO:__main__:Artifacts: ✓
+INFO:__main__:Shadow Agents: ✓
+INFO:__main__:Cooperative Swarm: ✓
+INFO:__main__:============================================================
+Traceback (most recent call last):
+  File "/workspace/murphy_backend_complete.py", line 452, in <module>
+    socketio.run(app, host='0.0.0.0', port=3002, debug=True)
+  File "/usr/local/lib/python3.11/site-packages/flask_socketio/__init__.py", line 649, in run
+    raise RuntimeError('The Werkzeug web server is not '
+RuntimeError: The Werkzeug web server is not designed to run in production. Pass allow_unsafe_werkzeug=True to the run() method to disable this error.

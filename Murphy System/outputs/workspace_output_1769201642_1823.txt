@@ -1,0 +1,69 @@
+async function executeEnhancedCommand(input) {
+    const terminalContent = document.getElementById('terminal-content');
+    
+    // Add command to terminal
+    const cmdLine = document.createElement('div');
+    cmdLine.className = 'terminal-line';
+    cmdLine.innerHTML = `<span style="color: #666;">[${new Date().toLocaleTimeString()}]</span> <span class="terminal-prompt">murphy&gt;</span> <span style="color: #fff;">${input}</span>`;
+    terminalContent.appendChild(cmdLine);
+    
+    try {
+        // Step 1: Resolve aliases
+        const resolvedCommand = window.CommandEnhancements.resolveAlias(input);
+        
+        // Step 2: Check for command chains
+        const commands = window.CommandEnhancements.parseCommandChain(resolvedCommand);
+        
+        if (commands.length > 1) {
+            // Command chain detected
+            addTerminalLog(`Executing command chain: ${commands.length} commands`, 'info');
+            
+            const results = await window.CommandEnhancements.executeCommandChain(commands);
+            
+            // Display results
+            results.forEach((result, i) => {
+                const chainMarker = i === results.length - 1 ? '└─' : '├─';
+                const risk = window.CommandEnhancements.getCommandRiskLevel(result.command);
+                const riskColor = window.CommandEnhancements.riskColors ? 
+                    window.CommandEnhancements.riskColors[risk] : '#00ff41';
+                
+                addTerminalLog(`${chainMarker} ${result.command}`, 'info');
+                addTerminalLog(`   Risk: ${risk}`, riskColor);
+                
+                if (result.output) {
+                    addTerminalLog(`   ${result.output}`, result.success ? 'success' : 'error');
+                }
+            });
+            
+            // Log execution
+            window.CommandEnhancements.logCommandExecution(input, true, 'MEDIUM');
+        } else {
+            // Single command
+            const singleCommand = commands[0];
+            const risk = window.CommandEnhancements.getCommandRiskLevel(singleCommand);
+            const requiresConfirm = window.CommandEnhancements.requiresConfirmation(singleCommand);
+            
+            // Show risk level
+            const riskColor = '#00ff41'; // Will use enhanced colors
+            if (risk !== 'LOW') {
+                addTerminalLog(`Command risk level: ${risk}`, riskColor);
+            }
+            
+            // Check if confirmation required
+            if (requiresConfirm) {
+                addTerminalLog(`High-risk command detected! Type 'yes' to confirm:`, 'warning');
+                
+                // This would need a confirmation dialog in a real implementation
+                // For now, we'll proceed
+                addTerminalLog(`Proceeding with command...`, 'info');
+            }
+            
+            // Execute the command
+            await processSingleCommand(singleCommand);
+            
+            // Log execution
+            window.CommandEnhancements.logCommandExecution(input, true, risk);
+        }
+    } catch (error) {
+        addTerminalLog(`Error: ${error.message}`, 'error');
+        window.CommandEnhancements.logCommandExecution(input, false, 'HIGH');

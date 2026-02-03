@@ -1,0 +1,1 @@
+1816:        async function handleDocumentCommand(action, args) {

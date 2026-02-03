@@ -1,0 +1,12 @@
+root         630  0.0  0.7  37224 31612 ?        Ss   14:50   0:01 /usr/bin/python3 /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf
+root         658  0.1  1.6 150892 64800 ?        Sl   14:50   0:06 python /app/browser_api.py
+root         660  0.1  1.2  55892 48780 ?        S    14:50   0:06 python /app/server.py
+root         696  0.0  0.2  15612 11764 ?        S    14:50   0:00 /usr/local/bin/python -c from multiprocessing.resource_tracker import main;main(4)
+root         697  0.1  1.2  55976 49644 ?        S    14:50   0:06 /usr/local/bin/python -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=5, pipe_handle=7) --multiprocessing-fork
+root         698  0.1  1.9 1452132 77872 ?       Sl   14:50   0:06 /usr/local/lib/python3.11/site-packages/playwright/driver/node /usr/local/lib/python3.11/site-packages/playwright/driver/package/cli.js run-driver
+root         839  0.0  0.5  28028 21816 ?        S    14:50   0:00 python3 -m websockify --web /opt/novnc 0.0.0.0:6080 localhost:5901
+root        2284 32.7  1.5 142624 61132 ?        S    15:49   0:00 python3 murphy_backend_complete.py
+root        2285  1.0  0.4  25872 19080 ?        S    15:49   0:00 python3 -m http.server 9000
+root        2287  1.2  0.4  25872 19092 ?        S    15:49   0:00 python -m http.server 9090
+root        2288  2.1  0.4  25872 19088 ?        S    15:49   0:00 python -m http.server 9091
+root        2291 51.0  1.5 142784 62044 ?        Sl   15:49   0:00 /usr/local/bin/python3 murphy_backend_complete.py

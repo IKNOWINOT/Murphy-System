@@ -1,0 +1,2 @@
+140:    def get_health_status(self) -> Dict[str, HealthStatus]:
+145:    def get_overall_health(self) -> Dict[str, Any]:

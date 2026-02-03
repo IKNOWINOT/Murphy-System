@@ -1,0 +1,23 @@
+total 152
+drwxr-xr-x 13 root root  4096 Feb  3 19:01 .
+drwxr-xr-x 42 user user 20480 Feb  3 19:33 ..
+-rw-r--r--  1 root root 12066 Feb  3 18:37 PHASE_2_API_DOCUMENTATION.md
+-rw-r--r--  1 root root 15961 Feb  3 18:38 PHASE_2_COMPLETION_REPORT.md
+-rw-r--r--  1 root root  8962 Feb  3 18:39 PHASE_2_FINAL_SUMMARY.md
+-rw-r--r--  1 root root  7629 Feb  3 18:34 PHASE_2_PROGRESS.md
+-rw-r--r--  1 root root 12480 Feb  3 18:50 PHASE_3_COMPLETION_REPORT.md
+-rw-r--r--  1 root root  7586 Feb  3 18:02 README.md
+-rw-r--r--  1 root root  1239 Feb  3 18:01 __init__.py
+drwxr-xr-x  2 root root  4096 Feb  3 18:48 correction
+drwxr-xr-x  6 root root  4096 Feb  3 19:06 deployment
+drwxr-xr-x  2 root root  4096 Feb  3 17:59 execution
+drwxr-xr-x  2 root root  4096 Feb  3 17:53 forms
+drwxr-xr-x  2 root root  4096 Feb  3 18:00 hitl
+-rw-r--r--  1 root root  2320 Feb  3 18:01 main.py
+drwxr-xr-x  2 root root  4096 Feb  3 18:36 performance
+drwxr-xr-x  2 root root  4096 Feb  3 17:55 plan_decomposition
+-rw-r--r--  1 root root   696 Feb  3 18:02 requirements.txt
+drwxr-xr-x  2 root root  4096 Feb  3 18:32 risk
+drwxr-xr-x  2 root root  4096 Feb  3 18:59 shadow_agent
+drwxr-xr-x  2 root root  4096 Feb  3 18:36 tests
+drwxr-xr-x  2 root root  4096 Feb  3 18:35 validation

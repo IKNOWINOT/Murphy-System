@@ -1,0 +1,100 @@
+        ),
+        Command(
+            name="prod.setup",
+            description="Run production setup",
+            category=CommandCategory.SYSTEM,
+            module="production",
+            examples=["/prod.setup"],
+            risk_level="CRITICAL"
+        ),
+        Command(
+            name="prod.ssl.status",
+            description="Check SSL certificate status",
+            category=CommandCategory.SYSTEM,
+            module="production",
+            examples=["/prod.ssl.status"]
+        ),
+        Command(
+            name="prod.ssl.setup",
+            description="Setup SSL certificates",
+            category=CommandCategory.SYSTEM,
+            module="production",
+            parameters=[
+                {"name": "domain", "description": "Domain name", "required": True}
+            ],
+            examples=["/prod.ssl.setup example.com"],
+            risk_level="HIGH"
+        ),
+        Command(
+            name="prod.schema.migrate",
+            description="Run database migrations",
+            category=CommandCategory.SYSTEM,
+            module="production",
+            examples=["/prod.schema.migrate"],
+            risk_level="CRITICAL"
+        )
+    ]
+    
+    for cmd in commands:
+        registry.register_command(cmd)
+    
+    logger.info(f"✓ Registered {len(commands)} Production commands")
+
+
+def register_all_system_commands(registry: CommandRegistry):
+    """Register ALL commands from ALL systems"""
+    
+    logger.info("=" * 60)
+    logger.info("Registering ALL Murphy System Commands")
+    logger.info("=" * 60)
+    
+    # Register commands from each system
+    register_llm_commands(registry)
+    register_librarian_commands(registry)
+    register_monitoring_commands(registry)
+    register_artifact_commands(registry)
+    register_shadow_agent_commands(registry)
+    register_swarm_commands(registry)
+    register_workflow_commands(registry)
+    register_learning_commands(registry)
+    register_database_commands(registry)
+    register_business_commands(registry)
+    register_production_commands(registry)
+    
+    total_commands = len(registry.get_all_commands())
+    
+    logger.info("=" * 60)
+    logger.info(f"✓ Total Commands Registered: {total_commands}")
+    logger.info("=" * 60)
+    
+    return total_commands
+
+
+def get_command_summary(registry: CommandRegistry) -> dict:
+    """Get summary of all registered commands"""
+    
+    all_commands = registry.get_all_commands()
+    
+    by_module = {}
+    by_category = {}
+    
+    for cmd in all_commands:
+        # By module
+        module = cmd.module or "core"
+        if module not in by_module:
+            by_module[module] = []
+        by_module[module].append(cmd.name)
+        
+        # By category
+        category = cmd.category.value
+        if category not in by_category:
+            by_category[category] = []
+        by_category[category].append(cmd.name)
+    
+    return {
+        "total": len(all_commands),
+        "by_module": {k: len(v) for k, v in by_module.items()},
+        "by_category": {k: len(v) for k, v in by_category.items()},
+        "modules": sorted(by_module.keys()),
+        "categories": sorted(by_category.keys())
+    }

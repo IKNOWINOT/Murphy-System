@@ -1,0 +1,20 @@
+INFO:STABILITY_BASED_ATTENTION_SYSTEM:Stability-Based Attention System initialized
+INFO:__main__:✓ Attention system initialized
+INFO:__main__:✓ Artifact components loaded successfully
+INFO:__main__:✓ Artifact systems initialized
+INFO:__main__:✓ Shadow Agent components loaded successfully
+INFO:__main__:✓ Shadow Agent systems initialized
+INFO:__main__:✓ Cooperative Swarm components loaded successfully
+INFO:__main__:✓ Cooperative Swarm systems initialized
+Traceback (most recent call last):
+  File "/workspace/murphy_backend_complete.py", line 2110, in <module>
+    @app.route('/api/modules/compile/file', methods=['POST'])
+     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/sansio/scaffold.py", line 362, in decorator
+    self.add_url_rule(rule, endpoint, f, **options)
+  File "/usr/local/lib/python3.11/site-packages/flask/sansio/scaffold.py", line 47, in wrapper_func
+    return f(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/sansio/app.py", line 657, in add_url_rule
+    raise AssertionError(
+AssertionError: View function mapping is overwriting an existing endpoint function: decorator

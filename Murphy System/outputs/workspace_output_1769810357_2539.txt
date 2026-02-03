@@ -1,0 +1,41 @@
+    def generate_with_groq(self, prompt: str, key_index: int = None) -> Optional[str]:
+        """
+        Generate response using Groq API
+        
+        Args:
+            prompt: The prompt to send
+            key_index: Specific key to use (optional, auto-rotates if None)
+            
+        Returns:
+            Response string or None if failed
+        """
+        # Get key (rotate or use specific)
+        if key_index is None:
+            api_key, key_index = self.get_next_groq_key()
+        else:
+            api_key = self.groq_keys[key_index]
+        
+        # Check rate limit
+        if not self.check_rate_limit(key_index):
+            # Try next key
+            logger.info(f"Key {key_index} rate limited, trying next key")
+            api_key, key_index = self.get_next_groq_key()
+        
+        # Update usage stats
+        self.usage_stats['groq'][key_index]['calls'] += 1
+        self.usage_stats['groq'][key_index]['last_used'] = datetime.now().isoformat()
+        self.rate_limits[key_index]['calls'] += 1
+        
+        try:
+            from groq_client import GroqClient
+            
+            client = GroqClient(
+                api_keys=[api_key],
+                model="llama-3.3-70b-versatile",
+                temperature=0.7,
+                max_tokens=2048
+            )
+            
+            # Run async method synchronously with proper loop handling
+            try:
+                # Try to get existing event loop

@@ -1,0 +1,1 @@
+export async function ingestToLibrarian(_ctx:any,_doc:any){ return true; }

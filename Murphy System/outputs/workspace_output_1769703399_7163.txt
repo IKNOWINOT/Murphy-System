@@ -1,0 +1,32 @@
+🔌 Activating MONITOR_v1 workflows...
+
+✅ Connected to n8n SQLite database: /root/.n8n/database.sqlite
+
+Activating: MONITOR_v1_Collect_Metrics
+  ✅ Activated: MONITOR_v1_Collect_Metrics
+
+Activating: MONITOR_v1_Process_Errors
+  ✅ Activated: MONITOR_v1_Process_Errors
+
+Activating: MONITOR_v1_Generate_Alerts
+  ✅ Activated: MONITOR_v1_Generate_Alerts
+
+============================================================
+📊 ACTIVATION SUMMARY
+============================================================
+Total workflows activated: 3/3
+
+Active Workflows:
+  ✅ MONITOR_v1_Collect_Metrics
+  ✅ MONITOR_v1_Process_Errors
+  ✅ MONITOR_v1_Generate_Alerts
+
+============================================================
+✅ MONITOR_v1 workflows activated!
+
+📝 Next Steps:
+   1. Monitor workflow executions in n8n UI
+   2. Check metrics collection in database
+   3. Verify alert generation
+   4. Test error processing webhook
+

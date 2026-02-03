@@ -1,0 +1,36 @@
+        ModuleRegistry,
+        ModuleManager,
+        ModuleSpec,
+        GitHubRepoAnalyzer,
+        StaticCodeAnalyzer
+    )
+    MODULES_AVAILABLE = True
+    logger.info("✓ Module System loaded successfully")
+except ImportError as e:
+    logger.error(f"✗ Failed to load Module System: {e}")
+    MODULES_AVAILABLE = False
+    from artifact_manager import ArtifactManager
+    ARTIFACTS_AVAILABLE = True
+    logger.info("✓ Artifact components loaded successfully")
+except ImportError as e:
+    logger.error(f"✗ Failed to load Artifact components: {e}")
+    ARTIFACTS_AVAILABLE = False
+
+# Initialize Artifact System
+artifact_generation_system = None
+
+# Module system components
+module_compiler = None
+module_registry = None
+module_manager = None
+artifact_manager = None
+
+if ARTIFACTS_AVAILABLE:
+    try:
+        artifact_generation_system = ArtifactGenerationSystem()
+        
+        # Initialize module system
+        module_compiler = IntegratedModuleCompiler()
+        module_registry = ModuleRegistry()
+        module_manager = ModuleManager(module_registry, command_registry=get_command_registry() if COMMAND_SYSTEM_AVAILABLE else None)
+        artifact_manager = ArtifactManager()

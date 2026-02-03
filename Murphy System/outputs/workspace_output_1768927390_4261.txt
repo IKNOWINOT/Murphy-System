@@ -1,0 +1,6 @@
+7. Checking advanced_swarm_system.py class definitions:
+12:class SwarmType(Enum):
+22:class GenerationDomain(Enum):
+35:class SwarmCandidate:
+51:class SafetyGate:
+63:class AdvancedSwarmGenerator:

@@ -1,0 +1,6 @@
+Testing protected endpoint WITHOUT authentication:
+{
+    "error": "authentication_required",
+    "message": "Authentication required. Provide Bearer token in Authorization header.",
+    "success": false
+}

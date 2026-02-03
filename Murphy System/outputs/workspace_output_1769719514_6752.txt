@@ -1,0 +1,21 @@
+# Librarian Command Integration
+try:
+    from librarian_command_integration import get_librarian_command_integration
+    librarian_integration = get_librarian_command_integration(
+        librarian_system=librarian_system if librarian_system else None,
+        command_registry=command_registry if command_registry else None,
+        llm_manager=llm_manager if llm_manager else None
+    )
+    
+    # Store all commands in Librarian
+    if librarian_integration:
+        store_result = librarian_integration.store_all_commands()
+        logger.info(f"✓ Stored {store_result.get('stored_count', 0)} commands in Librarian")
+    
+    SYSTEMS_AVAILABLE['librarian_integration'] = True
+    logger.info("✓ Librarian Command Integration initialized")
+except Exception as e:
+    logger.error(f"✗ Librarian Command Integration failed: {e}")
+    librarian_integration = None
+
+# Global state

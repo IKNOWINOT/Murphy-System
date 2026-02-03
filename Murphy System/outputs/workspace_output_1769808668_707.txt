@@ -1,0 +1,33 @@
+REQUIRED MODULES FROM murphy_complete_integrated.py:
+============================================================
+  - agent_communication_system.py
+  - agent_handoff_manager.py
+  - artifact_download_system.py
+  - artifact_generation_system.py
+  - artifact_manager.py
+  - autonomous_business_dev_implementation.py
+  - business_integrations.py
+  - command_system.py
+  - cooperative_swarm_system.py
+  - database_integration.py
+  - dataclasses.py
+  - dynamic_projection_gates.py
+  - enhanced_gate_integration.py
+  - generative_gate_system.py
+  - learning_engine.py
+  - librarian_command_integration.py
+  - librarian_system.py
+  - llm_providers_enhanced.py
+  - monitoring_system.py
+  - multi_agent_book_generator.py
+  - payment_verification_system.py
+  - production_setup.py
+  - register_all_commands.py
+  - runtime_orchestrator_enhanced.py
+  - scheduled_automation_system.py
+  - shadow_agent_system.py
+  - subprocess.py
+  - swarm_knowledge_pipeline.py
+  - workflow_orchestrator.py
+
+Total custom modules needed: 29

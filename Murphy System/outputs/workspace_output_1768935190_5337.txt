@@ -1,0 +1,1 @@
+639:    def analyze_request(self, request: str) -> Dict:

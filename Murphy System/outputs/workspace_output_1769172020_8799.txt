@@ -1,0 +1,5 @@
+1777:                    <div class="terminal-line">Type /help for available commands</div>
+2618:                { name: 'help', description: 'Show all commands by module', options: ['<module>'], implemented: true },
+2845:                    addTerminalLog(`Unknown command: /${cmdName}. Type /help for available commands.`, 'error');
+2895:                addTerminalLog('Type /help <module.py> to see commands for a specific module', 'info');
+4135:        // Old help functions removed - now using module-based handlers

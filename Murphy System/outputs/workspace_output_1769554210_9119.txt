@@ -1,0 +1,2 @@
+2846:        async function executeTerminalCommand(command) {
+4358:            window.executeTerminalCommand = executeTerminalCommand;

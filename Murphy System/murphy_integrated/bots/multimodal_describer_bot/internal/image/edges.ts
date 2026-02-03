@@ -1,0 +1,1 @@
+export function edgeDensity(pixels:number[][][]){ const H=pixels.length||0, W=(pixels[0]||[]).length||0; let edges=0; for(let y=1;y<H;y++){ for(let x=1;x<W;x++){ const p=pixels[y][x][0]; const q=pixels[y-1][x-1][0]; if (Math.abs(p-q)>20) edges++; } } const total=Math.max(1,(H-1)*(W-1)); return +(edges/total).toFixed(3); }

@@ -1,0 +1,3 @@
+root       23726  0.0  0.0   4352  1596 ?        S    11:52   0:00 bash -lc  killall -9 python3 2>/dev/null; sleep 2; cd /workspace && python3 murphy_backend_complete.py > backend.log 2>&1 & 
+root       23727  0.0  1.2 130436 50216 ?        S    11:52   0:00 python3 murphy_backend_complete.py
+root       24383  2.3  1.2 279060 51224 ?        Sl   12:00   0:12 /usr/local/bin/python3 murphy_backend_complete.py

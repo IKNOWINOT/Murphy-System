@@ -1,0 +1,150 @@
+"""
+Advanced Swarm System with Enhanced Generation and Gates
+Combines powerful generative capabilities with Murphy-Free safety
+"""
+
+from typing import List, Dict, Any, Optional, Tuple, Callable
+from dataclasses import dataclass
+from enum import Enum
+import re
+
+
+class SwarmType(Enum):
+    """Types of swarms for different generation strategies"""
+    CREATIVE = "creative"  # Divergent thinking, novel solutions
+    ANALYTICAL = "analytical"  # Systematic, logical approaches
+    HYBRID = "hybrid"  # Combines creative + analytical
+    ADVERSARIAL = "adversarial"  # Red team, find weaknesses
+    SYNTHESIS = "synthesis"  # Combine multiple solutions
+    OPTIMIZATION = "optimization"  # Refine and improve
+
+
+class GenerationDomain(Enum):
+    """Domains for specialized generation"""
+    SOFTWARE = "software"
+    BUSINESS = "business"
+    RESEARCH = "research"
+    CREATIVE_WRITING = "creative_writing"
+    DATA_ANALYSIS = "data_analysis"
+    SYSTEM_DESIGN = "system_design"
+    PROBLEM_SOLVING = "problem_solving"
+    EDUCATION = "education"
+
+
+@dataclass
+class SwarmCandidate:
+    """Enhanced candidate with full metadata"""
+    id: str
+    content: Any
+    swarm_type: SwarmType
+    domain: GenerationDomain
+    confidence: float
+    novelty: float  # How novel/creative (0-1)
+    feasibility: float  # How feasible (0-1)
+    risk_score: float  # Murphy risk (0-1)
+    dependencies: List[str]
+    validation_requirements: List[str]
+    metadata: Dict[str, Any]
+
+
+@dataclass
+class SafetyGate:
+    """Enhanced safety gate with domain awareness"""
+    id: str
+    name: str
+    check_fn: Callable
+    severity: float
+    domain: Optional[GenerationDomain]
+    organizational_context: Optional[str]
+    rationale: str
+    auto_fix: Optional[Callable]  # Can automatically fix issues
+
+
+class AdvancedSwarmGenerator:
+    """
+    Advanced swarm generator with multiple strategies
+    
+    Key features:
+    1. Multiple swarm types (creative, analytical, hybrid, adversarial)
+    2. Domain-specific generation
+    3. Novelty vs feasibility balance
+    4. Automatic gate synthesis
+    5. Organizational context awareness
+    """
+    
+    def __init__(self):
+        self.swarm_types = list(SwarmType)
+        self.domains = list(GenerationDomain)
+        self.generation_history = []
+        self.gate_library = self._initialize_gate_library()
+    
+    def _initialize_gate_library(self) -> Dict[str, SafetyGate]:
+        """Initialize comprehensive gate library"""
+        gates = {}
+        
+        # Universal gates (apply to all domains)
+        gates['scope_creep'] = SafetyGate(
+            id='scope_creep',
+            name='Scope Creep Prevention',
+            check_fn=lambda c: len(c.get('requirements', [])) < 20,
+            severity=0.6,
+            domain=None,
+            organizational_context='project_management',
+            rationale='Prevents unbounded scope expansion',
+            auto_fix=lambda c: self._limit_scope(c, 15)
+        )
+        
+        gates['resource_constraint'] = SafetyGate(
+            id='resource_constraint',
+            name='Resource Constraint Check',
+            check_fn=lambda c: c.get('estimated_cost', 0) < 1000000,
+            severity=0.7,
+            domain=None,
+            organizational_context='budget',
+            rationale='Ensures solution is resource-feasible',
+            auto_fix=None
+        )
+        
+        gates['time_constraint'] = SafetyGate(
+            id='time_constraint',
+            name='Time Constraint Check',
+            check_fn=lambda c: c.get('estimated_time_months', 0) < 24,
+            severity=0.5,
+            domain=None,
+            organizational_context='timeline',
+            rationale='Prevents unrealistic timelines',
+            auto_fix=lambda c: self._adjust_timeline(c)
+        )
+        
+        # Software domain gates
+        gates['tech_debt'] = SafetyGate(
+            id='tech_debt',
+            name='Technical Debt Prevention',
+            check_fn=lambda c: c.get('complexity_score', 0) < 0.8,
+            severity=0.6,
+            domain=GenerationDomain.SOFTWARE,
+            organizational_context='engineering',
+            rationale='Prevents accumulation of technical debt',
+            auto_fix=lambda c: self._simplify_architecture(c)
+        )
+        
+        gates['security_baseline'] = SafetyGate(
+            id='security_baseline',
+            name='Security Baseline',
+            check_fn=lambda c: 'security' in str(c).lower(),
+            severity=0.9,
+            domain=GenerationDomain.SOFTWARE,
+            organizational_context='security',
+            rationale='Ensures security is considered',
+            auto_fix=lambda c: self._add_security_requirements(c)
+        )
+        
+        # Business domain gates
+        gates['market_validation'] = SafetyGate(
+            id='market_validation',
+            name='Market Validation Required',
+            check_fn=lambda c: c.get('market_research', False),
+            severity=0.7,
+            domain=GenerationDomain.BUSINESS,
+            organizational_context='product',
+            rationale='Ensures market demand exists',

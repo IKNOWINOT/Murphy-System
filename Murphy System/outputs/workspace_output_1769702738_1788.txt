@@ -1,0 +1,6 @@
+ member_id |           email            
+-----------+----------------------------
+         1 | john@acme.com
+         4 | alice.johnson@acmecorp.com
+(2 rows)
+

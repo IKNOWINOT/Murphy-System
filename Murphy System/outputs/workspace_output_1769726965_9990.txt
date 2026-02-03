@@ -1,0 +1,7 @@
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      638/sshd: /usr/sbin 
+tcp        0      0 0.0.0.0:3002            0.0.0.0:*               LISTEN      4873/python3        
+tcp        0      0 0.0.0.0:5000            0.0.0.0:*               LISTEN      639/nginx: master p 
+tcp        0      0 0.0.0.0:3222            0.0.0.0:*               LISTEN      639/nginx: master p 
+tcp6       0      0 :::22                   :::*                    LISTEN      638/sshd: /usr/sbin 
+tcp6       0      0 :::5000                 :::*                    LISTEN      639/nginx: master p 
+tcp6       0      0 :::3222                 :::*                    LISTEN      639/nginx: master p 

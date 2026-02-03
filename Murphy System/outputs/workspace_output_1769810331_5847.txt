@@ -1,0 +1,4 @@
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   119  100    96  100    23  18601   4456 --:--:-- --:--:-- --:--:-- 23800
+{"response":"Error: Generation failed","success":true,"timestamp":"2026-01-30T21:58:51.476634"}

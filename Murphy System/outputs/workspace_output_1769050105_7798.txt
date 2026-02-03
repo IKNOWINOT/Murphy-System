@@ -1,0 +1,11 @@
+## Next Priorities
+
+### Priority 2: Connect Full UI to Backend
+- [ ] Update visualization API calls to use relative paths
+- [ ] Implement WebSocket for real-time updates
+- [ ] Sync agent graph with terminal commands
+- [ ] Sync state tree with terminal commands
+- [ ] Sync process flow with terminal commands
+- [ ] Add real-time metrics updates
+
+### Priority 3: Implement Command System Enhancement

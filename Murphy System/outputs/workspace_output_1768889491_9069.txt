@@ -1,0 +1,9 @@
+38:GROQ_API_KEY = os.getenv('GROQ_API_KEY', 'placeholder-groq-key')
+39:ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', 'placeholder-anthropic-key')
+46:    if GROQ_API_KEY != 'placeholder-groq-key':
+47:        groq_client = Groq(api_key=GROQ_API_KEY)
+53:    if ANTHROPIC_API_KEY != 'placeholder-anthropic-key':
+54:        anthropic_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+78:        """Call Groq API"""
+92:        """Call Anthropic API"""
+343:# API Endpoints

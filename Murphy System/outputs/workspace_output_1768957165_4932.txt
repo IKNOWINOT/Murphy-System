@@ -1,0 +1,50 @@
+                const status = await response.json();
+
+                document.getElementById('doc-count').textContent = Object.keys(documents).length;
+                document.getElementById('task-count').textContent = tasks.length;
+                document.getElementById('gate-count').textContent = gates.length;
+                document.getElementById('artifact-count').textContent = status.artifacts || 0;
+                document.getElementById('approval-count').textContent = approvals.length;
+
+                document.getElementById('overview-docs').textContent = Object.keys(documents).length;
+                document.getElementById('overview-tasks').textContent = tasks.length;
+                document.getElementById('overview-gates').textContent = gates.length;
+                document.getElementById('overview-artifacts').textContent = status.artifacts || 0;
+            } catch (error) {
+                console.error('Status update failed:', error);
+            }
+        }
+
+        // Groq Test
+        async function testGroq() {
+            addLog('Testing Groq API...', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/test-groq`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: 'Hello Murphy! Confirm you are operational.' })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    addLog('✓ Groq API test successful', 'success');
+                    addLog(`Response: ${data.response.substring(0, 100)}...`, 'info');
+                } else {
+                    addLog(`✗ Groq API test failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                addLog(`✗ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            addLog('Murphy System UI loaded', 'success');
+            updateStatus();
+            setInterval(updateStatus, 5000); // Update every 5 seconds
+        });
+    </script>
+</body>
+</html>

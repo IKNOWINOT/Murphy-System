@@ -1,0 +1,20 @@
+{
+    "commands": {
+        "by_category": {
+            "artifact": 7,
+            "cooperative": 5,
+            "librarian": 5,
+            "monitoring": 6,
+            "shadow": 7,
+            "system": 31
+        },
+        "by_module": {
+            "artifacts": 7,
+            "business": 7,
+            "database": 5,
+            "learning": 4,
+            "librarian": 5,
+            "llm": 4,
+            "monitoring": 6,
+            "production": 5,
+            "shadow_agents": 7,

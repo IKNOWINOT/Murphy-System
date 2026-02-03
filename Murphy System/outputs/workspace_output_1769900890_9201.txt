@@ -1,0 +1,31 @@
+@app.route('/api/llm/generate', methods=['POST'])
+def llm_generate():
+    """Generate content using LLM"""
+    if not llm_manager:
+        return jsonify({'error': 'LLM not available'}), 503
+    
+    data = request.json
+    prompt = data.get('prompt', '')
+    
+    try:
+        response = llm_manager.generate(prompt)
+        return jsonify({
+            'success': True,
+            'response': response,
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ============================================================================
+# LIBRARIAN ENDPOINTS
+# ============================================================================
+
+@app.route('/api/logs/<event_id>', methods=['GET'])
+def get_event_logs(event_id):
+    """Get logs for a specific event"""
+    for event in event_logs:
+        if event['id'] == event_id:
+            return jsonify(event)
+    return jsonify({'error': 'Event not found'}), 404
+

@@ -1,0 +1,51 @@
+GENERATION COMPLETE
+================================================================================
+
+Task ID: 6e9b03e0-2f59-4715-900f-faefbf4e1ec3
+Status: completed
+Duration: 0.13 seconds
+Agents Used: 3
+
+Agent Results:
+  agent_1: 24 characters
+  agent_2: 24 characters
+  agent_3: 24 characters
+
+Global Context:
+  Themes: []
+  Inconsistencies: 0
+
+Book saved to: The_Art_of_Spiritual_Direction_Runtime_Generated.txt
+Total words: 11
+Words per second: 86.8
+
+--------------------------------------------------------------------------------
+LLM Usage Statistics:
+--------------------------------------------------------------------------------
+
+Total calls: 93
+Total errors: 91
+
+Groq Statistics:
+  Total calls: 91
+  Keys used: 16
+
+Per-Key Usage:
+  Key  1:   1 calls
+  Key  2:   2 calls
+  Key  3:   3 calls
+  Key  4:   4 calls
+  Key  5:   5 calls
+  Key  6:   6 calls
+  Key  7:   7 calls
+  Key  8:   7 calls
+  Key  9:   7 calls
+  Key 10:   7 calls
+  Key 11:   7 calls
+  Key 12:   7 calls
+  Key 13:   7 calls
+  Key 14:   7 calls
+  Key 15:   7 calls
+  Key 16:   7 calls
+
+================================================================================

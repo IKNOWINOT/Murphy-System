@@ -1,0 +1,5 @@
+1975:        function addTerminalLog(message, type = 'info') {
+2012:                    if (typeof addTerminalLog === 'function') {
+2025:                    if (typeof addTerminalLog === 'function') {
+2038:                    if (typeof addTerminalLog === 'function') {
+2062:                    if (typeof addTerminalLog === 'function') {

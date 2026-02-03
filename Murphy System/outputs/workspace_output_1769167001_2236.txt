@@ -1,0 +1,16 @@
+334:@app.route('/api/auth/login', methods=['POST'])
+335-@rate_limit(limit=5, per=60)  # 5 login attempts per minute
+336-def login():
+337-    """Authenticate user and return JWT token"""
+338-    if not AUTH_AVAILABLE:
+339-        return jsonify({
+340-            'success': False,
+341-            'message': 'Authentication system not available'
+342-        }), 503
+343-    
+344-    try:
+345-        data = request.get_json()
+346-        username = data.get('username')
+347-        password = data.get('password')
+348-        
+349-        if not username or not password:

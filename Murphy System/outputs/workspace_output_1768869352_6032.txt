@@ -1,0 +1,100 @@
+"""
+Multi-Factor Constraint System
+Handles budget, regulatory, architectural, and other constraints
+Provides validation, prioritization, conflict resolution, and impact analysis
+"""
+
+from typing import Dict, List, Optional, Any, Tuple
+from dataclasses import dataclass, field
+from enum import Enum
+import json
+from datetime import datetime
+from decimal import Decimal
+
+
+class ConstraintType(Enum):
+    """Types of constraints"""
+    BUDGET = "budget"
+    REGULATORY = "regulatory"
+    ARCHITECTURAL = "architectural"
+    PERFORMANCE = "performance"
+    SECURITY = "security"
+    TIME = "time"
+    RESOURCE = "resource"
+    BUSINESS = "business"
+
+
+class ConstraintSeverity(Enum):
+    """Constraint severity levels"""
+    CRITICAL = "critical"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
+class ConstraintStatus(Enum):
+    """Constraint status"""
+    SATISFIED = "satisfied"
+    VIOLATED = "violated"
+    WARNING = "warning"
+    PENDING = "pending"
+
+
+@dataclass
+class Constraint:
+    """Represents a system constraint"""
+    constraint_id: str
+    name: str
+    constraint_type: ConstraintType
+    severity: ConstraintSeverity
+    description: str
+    parameter: str
+    operator: str  # <=, >=, ==, !=, contains, matches
+    threshold_value: Any
+    current_value: Optional[Any] = None
+    status: ConstraintStatus = ConstraintStatus.PENDING
+    priority: int = 5  # 1-10, higher is more important
+    flexible: bool = False  # Can be negotiated
+    flex_amount: float = 0.0  # Amount of flexibility if flexible
+    dependencies: List[str] = field(default_factory=list)  # Other constraints this depends on
+    source: str = "user"  # user, system, regulatory, best_practice
+    justification: str = ""
+    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+    updated_at: str = field(default_factory=lambda: datetime.now().isoformat())
+    
+    def to_dict(self) -> Dict:
+        return {
+            "constraint_id": self.constraint_id,
+            "name": self.name,
+            "constraint_type": self.constraint_type.value,
+            "severity": self.severity.value,
+            "description": self.description,
+            "parameter": self.parameter,
+            "operator": self.operator,
+            "threshold_value": self.threshold_value,
+            "current_value": self.current_value,
+            "status": self.status.value,
+            "priority": self.priority,
+            "flexible": self.flexible,
+            "flex_amount": self.flex_amount,
+            "dependencies": self.dependencies,
+            "source": self.source,
+            "justification": self.justification,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at
+        }
+
+
+@dataclass
+class ConstraintConflict:
+    """Represents a conflict between constraints"""
+    conflict_id: str
+    constraint_1: str  # Constraint ID
+    constraint_2: str  # Constraint ID
+    conflict_type: str  # "direct", "indirect", "priority", "resource"
+    description: str
+    severity: str
+    suggested_resolution: str
+    auto_resolvable: bool = False
+    
+    def to_dict(self) -> Dict:

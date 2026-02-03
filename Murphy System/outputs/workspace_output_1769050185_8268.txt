@@ -1,0 +1,21 @@
+@app.route('/api/agents')
+def get_agents():
+    """Get all agents"""
+    return jsonify({
+        "agents": list(system_state['agents'].values())
+    })
+
+@app.route('/api/gates')
+def get_gates():
+    """Get all gates"""
+    return jsonify({
+        "gates": list(system_state['gates'].values())
+    })
+
+# ===== WEBSOCKET EVENTS =====
+
+@socketio.on('connect')
+def handle_connect():
+    print(f"Client connected: {request.sid}")
+    emit('connected', {'message': 'Connected to Murphy System'})
+

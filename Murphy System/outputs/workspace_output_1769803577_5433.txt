@@ -1,0 +1,30 @@
+24:class ConfidenceLevel(Enum):
+37:    confidence: float = 0.0
+77:    librarian_confidence: float
+81:    overall_confidence: ConfidenceLevel
+89:    questions: List[Dict]  # Questions to boost confidence
+96:        data['overall_confidence'] = self.overall_confidence.value
+176:            librarian_confidence = librarian_response.confidence
+181:            librarian_confidence = 0.5
+187:            'confidence': librarian_confidence
+190:        # Determine overall confidence level
+191:        if librarian_confidence >= 0.95:
+192:            confidence_level = ConfidenceLevel.GREEN
+193:        elif librarian_confidence >= 0.70:
+194:            confidence_level = ConfidenceLevel.YELLOW
+196:            confidence_level = ConfidenceLevel.RED
+208:            user_request, llm_response, librarian_confidence
+235:            librarian_confidence=librarian_confidence,
+237:            overall_confidence=confidence_level,
+258:            confidence=0.7,
+269:            confidence=0.8,
+280:            confidence=0.75,
+303:                                      confidence: float) -> List[Dict]:
+304:        """Generate questions to boost confidence"""
+307:        if confidence < 0.95:
+310:                'reason': 'To increase confidence in output format',
+311:                'confidence_boost': 0.1
+314:        if confidence < 0.85:
+318:                'confidence_boost': 0.1
+321:        if confidence < 0.75:
+325:                'confidence_boost': 0.15

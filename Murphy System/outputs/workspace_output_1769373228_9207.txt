@@ -1,0 +1,53 @@
+def execute_command(command_name: str, args: Dict[str, Any]) -> Dict[str, Any]:
+    """Execute a command
+    
+    Args:
+        command_name: Name of the command to execute
+        args: Command arguments
+        
+    Returns:
+        Execution result with success status and data/error
+    """
+    command = command_registry.get_command(command_name)
+    
+    if not command:
+        return {
+            "success": False,
+            "error": f"Unknown command: /{command_name}",
+            "suggestion": f"Use /help to see available commands"
+        }
+    
+    if not command.implemented:
+        return {
+            "success": False,
+            "error": f"Command /{command_name} is not yet implemented"
+        }
+    
+    # Log command execution to Librarian if available
+    if command_registry.librarian_adapter:
+        command_registry.librarian_adapter.log_command_execution(command, args)
+    
+    # Execute command handler if available
+    if command.handler:
+        try:
+            result = command.handler(**args)
+            return {
+                "success": True,
+                "data": result
+            }
+        except Exception as e:
+            logger.error(f"Error executing command /{command_name}: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    # No handler registered - command exists but needs implementation
+    return {
+        "success": False,
+        "error": f"Command /{command_name} registered but no handler implemented"
+    }
+
+
+# Initialize core commands on import
+initialize_core_commands()

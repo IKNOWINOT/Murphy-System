@@ -1,0 +1,1 @@
+830:@app.route('/api/artifacts/stats', methods=['GET'])

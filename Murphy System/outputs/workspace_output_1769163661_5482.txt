@@ -1,0 +1,26 @@
+    def get_health_status(self) -> Dict[str, HealthStatus]:
+        """Get all health statuses"""
+        with self.lock:
+            return dict(self.health_checks)
+    
+    def get_overall_health(self) -> Dict[str, Any]:
+        """Calculate overall system health"""
+        health_checks = self.get_health_status()
+        
+        if not health_checks:
+            return {
+                'status': 'unknown',
+                'score': 0,
+                'message': 'No health checks available'
+            }
+        
+        # Count statuses
+        status_counts = {}
+        for check in health_checks.values():
+            status_counts[check.status] = status_counts.get(check.status, 0) + 1
+        
+        # Calculate health score
+        healthy = status_counts.get('healthy', 0)
+        total = len(health_checks)
+        score = int((healthy / total) * 100) if total > 0 else 0
+        

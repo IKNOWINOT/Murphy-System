@@ -1,0 +1,150 @@
+**User:** "How do I monitor equipment efficiency?"
+
+**Librarian Analysis:**
+- Intent: Monitor operational metrics
+- Domain: Manufacturing/Operations
+- Category: Physical Systems
+
+**Librarian Response:**
+```
+I can help you monitor equipment efficiency. Here's how:
+
+Step 1: Set up efficiency monitoring
+Command: /create preset "Efficiency Monitor"
+Parameters:
+  - metrics: ["throughput", "downtime", "quality_rate"]
+  - equipment: ["machine_a", "machine_b"]
+  - threshold: 0.85
+
+Step 2: Enable real-time monitoring
+Command: /agents start efficiency_monitor_agent
+
+--
+**User:** "Show me our project delivery metrics"
+
+**Librarian Analysis:**
+- Intent: View performance metrics
+- Domain: Executive/Branch
+- Category: Agentic Systems
+
+**Librarian Response:**
+```
+Here's your project delivery metrics:
+
+Current Projects: 12
+Completed (Q1): 8
+On Track: 3
+Delayed: 1
+
+Delivery Metrics:
+- Average Cycle Time: 14 days (target: 12 days)
+- On-Time Delivery: 83% (target: 90%)
+- Customer Satisfaction: 4.7/5.0
+
+--
+**User:** "What's the approval workflow for purchases over $50k?"
+
+**Librarian Analysis:**
+- Intent: Understand approval process
+- Domain: Procurement
+- Category: Hybrid Systems
+
+**Librarian Response:**
+```
+Purchase Approval Workflow (>$50k):
+
+Step 1: Request Submission
+Command: /create purchase_request
+Parameters:
+  - amount: [amount]
+  - vendor: [vendor_name]
+  - items: [item_list]
+
+Step 2: Manager Review
+Automatic routing to department manager
+Expected approval time: 2-3 business days
+--
+
+The following are **CATEGORIES**, not domains. Domains are specific business contexts (e.g., "engineering firm that doesn't own its building, witnesses manufacturing equipment testing they designed, but doesn't manufacture").
+
+### 7.2 Category Structure
+
+#### A. Physical Systems
+
+**Purpose:** Systems that interact with sensors and operate physical aspects.
+
+**Subcategories:**
+- Building Automation
+- Manufacturing
+- Energy Management
+- SCADA (Supervisory Control and Data Acquisition)
+- Finance (physical asset tracking, inventory)
+
+**Primary Use Cases:**
+1. Building Automation
+   - Monitor HVAC systems
+   - Control lighting and climate
+   - Manage energy consumption
+--
+- Control parameters
+- Optimization targets
+
+---
+
+#### B. Agentic Systems
+
+**Purpose:** AI-driven decision support and automation.
+
+**Subcategories:**
+- Executive Branch (reactive business piloting, constraint management, metrics tracking, plan adherence monitoring)
+- Marketing
+- Proposals and Sales
+
+**Primary Use Cases:**
+
+1. **Executive Branch**
+   - Strategic planning
+   - Constraint management
+   - Metrics tracking
+   - Plan adherence monitoring
+--
+- Budget allocations
+- Team assignments
+
+---
+
+#### C. Hybrid Systems
+
+**Purpose:** Agentic approval actions based on rules and learning, with physical execution.
+
+**Subcategories:**
+- Turnovers
+- Operations
+- Drafting
+- Manpower Planning
+- Procurement
+- Project Management
+- Delivery and Logistics
+- Revision Control
+
+**Primary Use Cases:**
+
+--
+- Notification settings
+- Quality thresholds
+
+---
+
+#### D. Shadow System (Personal AI Assistant)
+
+**Purpose:** An agent that learns position-specific reasoning and attempts to automate tasks for individuals.
+
+**Key Characteristics:**
+- Belongs to the person doing the work
+- Can be licensed to non-competing companies
+- Learns from user behavior and preferences
+- Provides personalized automation recommendations
+- Maintains privacy and security
+- Adapts to individual work style
+
+**Primary Use Cases:**

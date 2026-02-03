@@ -1,0 +1,30 @@
+INFO:__main__:✓ Monitoring components loaded successfully
+INFO:__main__:✓ Monitoring systems initialized
+INFO:__main__:✓ Stability-Based Attention System loaded successfully
+INFO:STABILITY_BASED_ATTENTION_SYSTEM:Stability-Based Attention System initialized
+INFO:__main__:✓ Attention system initialized
+INFO:__main__:✓ Artifact components loaded successfully
+INFO:__main__:✓ Module System loaded successfully
+INFO:command_system:✓ Registered command: /help (module: None)
+INFO:command_system:✓ Registered command: /status (module: None)
+INFO:command_system:✓ Registered command: /initialize (module: None)
+INFO:command_system:✓ Registered command: /clear (module: None)
+INFO:command_system:✓ Registered command: /state (module: None)
+INFO:command_system:✓ Registered command: /agent (module: None)
+INFO:command_system:✓ Registered command: /artifact (module: None)
+INFO:command_system:✓ Registered command: /shadow (module: None)
+INFO:command_system:✓ Registered command: /monitoring (module: None)
+INFO:command_system:✓ Registered command: /module (module: None)
+INFO:command_system:✓ Initialized 10 core system commands
+INFO:librarian_adapter:✓ Librarian adapter initialized successfully
+INFO:__main__:✓ Command System and Librarian loaded successfully
+INFO:__main__:✓ Artifact systems initialized
+INFO:__main__:✓ Shadow Agent components loaded successfully
+INFO:__main__:✓ Shadow Agent systems initialized
+INFO:__main__:✓ Cooperative Swarm components loaded successfully
+INFO:__main__:✓ Cooperative Swarm systems initialized
+Traceback (most recent call last):
+  File "/workspace/murphy_backend_complete.py", line 441, in <module>
+    @validate_input(validate_init_request)
+     ^^^^^^^^^^^^^^
+NameError: name 'validate_input' is not defined

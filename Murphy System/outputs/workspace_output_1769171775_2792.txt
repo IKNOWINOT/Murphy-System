@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/workspace/murphy_backend_complete.py", line 153, in <module>
+    from integrated_module_system import (
+  File "/workspace/integrated_module_system.py", line 637, in <module>
+    class FailureModeDetector:
+  File "/workspace/integrated_module_system.py", line 641, in FailureModeDetector
+    (r'open\(', 'file_operation', 'File I/O error', MEDIUM),
+                                                    ^^^^^^
+NameError: name 'MEDIUM' is not defined

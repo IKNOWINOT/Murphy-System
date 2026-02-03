@@ -1,0 +1,6 @@
+226:        .terminal-line.info { color: #00aaff; }
+227:        .terminal-line.success { color: #00ff41; }
+228:        .terminal-line.warning { color: #ffaa00; }
+229:        .terminal-line.error { color: #ff4141; }
+230:        .terminal-line.groq { color: #aa00ff; }
+231:        .terminal-line.aristotle { color: #00aaff; }

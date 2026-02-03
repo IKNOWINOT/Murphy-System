@@ -1,0 +1,21 @@
+        "capacity_limit": 9,  // optional, default 9
+        "max_parallel": 9     // optional, default 9
+    }
+    
+    The runtime will:
+    1. Analyze the task
+    2. Determine optimal number of agents
+    3. Generate specialized agents dynamically
+    4. Execute in parallel with collective mind
+    5. Ensure consistency across all outputs
+    6. Synthesize final coherent result
+    """
+    if not llm_manager:
+        return jsonify({'error': 'LLM not available'}), 503
+    
+    data = request.json
+    task = data.get('task', '')
+    capacity_limit = data.get('capacity_limit', 9)
+    max_parallel = data.get('max_parallel', 9)
+    
+    if not task:

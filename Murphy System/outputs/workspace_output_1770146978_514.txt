@@ -1,0 +1,50 @@
+"""
+Murphy Validator
+
+Main validation interface that integrates uncertainty calculations,
+confidence scoring, and Murphy Gate decisions.
+"""
+
+from typing import Dict, Any, Optional
+from datetime import datetime
+import logging
+import sys
+import os
+
+# Add murphy_runtime_analysis to path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../murphy_runtime_analysis'))
+
+from .uncertainty_calculator import UncertaintyCalculator
+from .murphy_gate import MurphyGate
+from .models import UncertaintyScores, GateResult, ConfidenceReport, Phase
+
+logger = logging.getLogger(__name__)
+
+
+class MurphyValidator:
+    """
+    Murphy Validator - Main validation interface
+    
+    Integrates:
+    - Uncertainty calculations (UD, UA, UI, UR, UG)
+    - Confidence scoring (both new and existing formulas)
+    - Murphy Gate decisions
+    - Integration with existing confidence engine
+    """
+    
+    def __init__(self):
+        self.uncertainty_calculator = UncertaintyCalculator()
+        self.murphy_gate = MurphyGate()
+        
+        # Try to import existing confidence engine
+        try:
+            from src.confidence_engine.confidence_calculator import ConfidenceCalculator
+            self.confidence_calculator_v1 = ConfidenceCalculator()
+            self.has_v1_calculator = True
+            logger.info("Loaded existing confidence calculator (v1)")
+        except ImportError:
+            self.confidence_calculator_v1 = None
+            self.has_v1_calculator = False
+            logger.warning("Could not load existing confidence calculator")
+        
+        # Weights for uncertainty-based confidence calculation

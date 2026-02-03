@@ -1,0 +1,11 @@
+            }
+
+            sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize Murphy Runtime
+        const murphy = new MurphyRuntime();
+    </script>
+</body>

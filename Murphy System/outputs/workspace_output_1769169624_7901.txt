@@ -1,0 +1,46 @@
+def validate_input(validator_func):
+    """
+    Decorator for input validation
+    
+    Args:
+        validator_func: Function that validates request data
+    
+    Usage:
+        def validate_artifact_request(data):
+            if not data.get('artifact_type'):
+                raise ValueError('artifact_type is required')
+        
+        @app.route('/api/artifacts')
+        @validate_input(validate_artifact_request)
+        def create_artifact():
+            return jsonify({'success': True})
+    """
+    def decorator(f: Callable) -> Callable:
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            try:
+                # Get request data
+                if request.method in ['POST', 'PUT']:
+                    data = request.get_json() or {}
+                else:
+                    data = request.args.to_dict()
+                
+                # Validate using provided function
+                validation_result = validator_func(data)
+                
+                if isinstance(validation_result, tuple):
+                    # Validation function returned (is_valid, error_message)
+                    is_valid, error_message = validation_result
+                    if not is_valid:
+                        logger.warning(f"Input validation failed: {error_message}")
+                        return jsonify({
+                            'success': False,
+                            'error': 'validation_error',
+                            'message': error_message
+                        }), 400
+                
+                return f(*args, **kwargs)
+                
+            except ValueError as e:
+                logger.warning(f"Input validation error: {e}")
+                return jsonify({

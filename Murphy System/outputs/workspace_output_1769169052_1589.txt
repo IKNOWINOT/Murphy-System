@@ -1,0 +1,2 @@
+274:                'message': 'System already initialized (in-memory mode)',
+286:        # Fall back to in-memory initialization

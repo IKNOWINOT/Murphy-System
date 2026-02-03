@@ -1,0 +1,101 @@
+                    document.querySelectorAll('.state-node.selected').forEach(n => n.classList.remove('selected'));
+                    
+                    // Add selection
+                    this.classList.add('selected');
+                    selectedStateId = stateId;
+                    
+                    showStateDetails(stateId);
+                });
+            });
+        }
+
+        function renderTreeNodes(states, parentId) {
+            const childStates = states.filter(s => s.parent_id === parentId);
+            
+            if (childStates.length === 0) return '';
+            
+            let html = '<ul>';
+            childStates.forEach(state => {
+                html += `
+                    <li>
+                        <div class="state-node ${selectedStateId === state.id ? 'selected' : ''}" 
+                             data-state-id="${state.id}" 
+                             data-state-type="${state.type}">
+                            <span class="state-icon">${getStateIcon(state.type)}</span>
+                            <span class="state-label">${state.label}</span>
+                            <span class="state-confidence">${state.confidence.toFixed(2)}</span>
+                        </div>
+                        ${renderTreeNodes(states, state.id)}
+                    </li>
+                `;
+            });
+            html += '</ul>';
+            return html;
+        }
+
+        function getStateIcon(type) {
+            const icons = {
+                'document': '📄',
+                'gate': '🚧',
+                'artifact': '📦',
+                'swarm': '🐝',
+                'system': '⚙️'
+            };
+            return icons[type] || '📍';
+        }
+
+        async function showStateDetails(stateId) {
+            const response = await fetch(`${API_BASE}/api/states/${stateId}`);
+            const state = await response.json();
+            
+            showDetailPanel({
+                name: state.label,
+                type: state.type,
+                section1: {
+                    title: 'State Information',
+                    content: `
+                        <p><strong>Type:</strong> ${state.type}</p>
+                        <p><strong>Confidence:</strong> ${(state.confidence * 100).toFixed(1)}%</p>
+                        <p><strong>Created:</strong> ${new Date(state.timestamp).toLocaleString()}</p>
+                        <p><strong>Parent:</strong> ${state.parent_id || 'Root'}</p>
+                        <p><strong>Children:</strong> ${state.children.length}</p>
+                    `
+                },
+                section2: {
+                    title: 'Description',
+                    content: `<p>${state.description || 'No description'}</p>`
+                },
+                actions: true,
+                stateId: state.id
+            });
+        }
+
+        // ============================================
+        // STATE ACTIONS
+        // ============================================
+        
+        async function evolveState(stateId) {
+            addLog(`Evolving state: ${stateId}...`, 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/states/${stateId}/evolve`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                
+                addLog(`✓ Evolved ${result.children.length} child states`, 'success');
+                closeDetailPanel();
+            } catch (error) {
+                addLog(`✗ Error evolving state: ${error.message}`, 'error');
+            }
+        }
+
+        async function regenerateState(stateId) {
+            addLog(`Regenerating state: ${stateId}...`, 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/states/${stateId}/regenerate`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                

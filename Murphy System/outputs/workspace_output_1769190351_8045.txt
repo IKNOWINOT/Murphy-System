@@ -1,0 +1,10 @@
+198:    COMMAND_SYSTEM_AVAILABLE = False
+222:    SHADOW_AGENTS_AVAILABLE = True
+227:        MODULES_AVAILABLE = True
+229:        MODULES_AVAILABLE = False
+233:    SHADOW_AGENTS_AVAILABLE = False
+236:    MODULES_AVAILABLE = False
+258:    COOPERATIVE_SWARM_AVAILABLE = True
+262:    COOPERATIVE_SWARM_AVAILABLE = False
+283:LLM_AVAILABLE = False  # Will try to load later
+653:@require_auth(auth_system if AUTH_AVAILABLE else None, roles=['admin'])

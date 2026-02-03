@@ -1,0 +1,12 @@
+7:from flask import Flask, request, jsonify, send_file
+175:@app.route('/')
+179:        return send_file('index.html')
+183:@app.route('/api/status')
+212:@app.route('/api/initialize', methods=['POST'])
+244:@app.route('/api/states')
+251:@app.route('/api/states/<state_id>')
+259:@app.route('/api/states/<state_id>/evolve', methods=['POST'])
+287:@app.route('/api/states/<state_id>/regenerate', methods=['POST'])
+302:@app.route('/api/states/<state_id>/rollback', methods=['POST'])
+326:@app.route('/api/agents')
+333:@app.route('/api/gates')

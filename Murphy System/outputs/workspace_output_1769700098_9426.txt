@@ -1,0 +1,7 @@
+Found 13 script tags
+
+Script 4: 600 characters
+  Braces: 2 open, 2 close, diff: 0
+
+Script 13: 115799 characters
+  Braces: 831 open, 831 close, diff: 0

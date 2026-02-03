@@ -1,0 +1,4 @@
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   157  100   157    0     0  90229      0 --:--:-- --:--:-- --:--:--  153k
+{"status":"initialized","systems":{"monitoring":"initialized","shadow_agents":"initialized","swarm":"initialized"},"timestamp":"2026-01-30T00:00:26.573419"}

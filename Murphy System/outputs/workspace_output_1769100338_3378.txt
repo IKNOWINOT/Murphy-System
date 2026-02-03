@@ -1,0 +1,14 @@
+1101:        function handleWebSocketMessage(data) {
+1630:        function handleTerminalKeyPress(event) {
+1860:        async function handleStateCommand(action, args) {
+1891:        async function handleOrgCommand(action, args) {
+1910:        async function handleLibrarianCommand(action, args) {
+2015:        async function handleSwarmCommand(action, args) {
+2047:        async function handleGateCommand(action, args) {
+2078:        async function handlePlanCommand(action, args) {
+2139:        async function handleDocumentCommand(action, args) {
+2184:        async function handleArtifactCommand(action, args) {
+2352:        async function handleDomainCommand(action, args) {
+2383:        async function handleConstraintCommand(action, args) {
+2411:        async function handleVerifyCommand(action, args) {
+2442:        async function handleLLMCommand(action, args) {

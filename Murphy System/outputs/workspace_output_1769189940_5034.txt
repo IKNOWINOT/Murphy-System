@@ -1,0 +1,9 @@
+181:        module_manager = ModuleManager(module_registry, command_registry=get_command_registry() if COMMAND_SYSTEM_AVAILABLE else None)
+271:    COMMAND_SYSTEM_AVAILABLE = True
+275:    COMMAND_SYSTEM_AVAILABLE = False
+305:            'command_system': COMMAND_SYSTEM_AVAILABLE  # NEW
+2475:    if not COMMAND_SYSTEM_AVAILABLE:
+2497:    if not COMMAND_SYSTEM_AVAILABLE:
+2521:    if not COMMAND_SYSTEM_AVAILABLE:
+2547:    if not COMMAND_SYSTEM_AVAILABLE:
+2588:    logger.info(f"Command System: {'✓' if COMMAND_SYSTEM_AVAILABLE else '✗'}")

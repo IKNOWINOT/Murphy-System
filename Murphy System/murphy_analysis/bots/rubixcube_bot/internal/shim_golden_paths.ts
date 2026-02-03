@@ -1,0 +1,11 @@
+
+type TK={task_type:string,params_preview?:string,software_signature_preview?:string};
+type Sel={id:string,spec:any,confidence:number,runs:number,pass_rate:number};
+const mem=new Map<string,Sel>();
+function key(k:TK){ return JSON.stringify(k); }
+export async function selectPath(_db:any,k:TK,_b:number){ const r=mem.get(key(k)); if(!r) return null; let c=r.confidence; if(r.runs>=20&&r.pass_rate>=0.9)c=Math.max(c,0.95); if(r.runs>=5&&r.pass_rate<0.8)c=Math.min(c,0.6); return {...r,confidence:c}; }
+export async function recordPath(_db:any,a:{task_type:string,key:TK,success:boolean,confidence:number,spec:any}){
+  const k=key(a.key); const ex=mem.get(k);
+  if(!ex){ mem.set(k,{id:`gp_${Date.now()}`,spec:a.spec,confidence:Math.max(0,Math.min(1,a.confidence)),runs:1,pass_rate:a.success?1:0}); }
+  else { const runs=ex.runs+1; const pr=((ex.pass_rate*ex.runs)+(a.success?1:0))/runs; let conf=Math.max(0,Math.min(1,(ex.confidence*0.7)+(Math.max(0,Math.min(1,a.confidence))*0.3))); if(runs>=20&&pr>=0.9)conf=Math.max(conf,0.95); if(runs>=5&&pr<0.8)conf=Math.min(conf,0.6); mem.set(k,{...ex,spec:a.spec,confidence:conf,runs,pass_rate:pr}); }
+}

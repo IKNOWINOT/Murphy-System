@@ -1,0 +1,11 @@
+                    
+                case 'initialize':
+                case 'init':
+                    await initializeSystem();
+                    break;
+                    
+                case 'clear':
+                case 'cls':
+                    clearTerminal();
+                    break;
+                

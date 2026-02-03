@@ -1,0 +1,11 @@
+    logger.info("Systems Status:")
+    for system, available in SYSTEMS_AVAILABLE.items():
+        status = "✓" if available else "✗"
+        logger.info(f"  {status} {system.upper()}")
+    
+    # Initialize Agent Communication Hub
+    global communication_hub
+    try:
+        communication_hub = get_communication_hub(librarian_system, llm_manager)
+        logger.info("✓ Agent Communication Hub initialized")
+    except Exception as e:

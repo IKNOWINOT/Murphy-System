@@ -1,0 +1,49 @@
+        async function initializeSystem() {
+            addLog('Initializing Murphy System...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/initialize`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'demo' })
+                });
+                
+                const data = await response.json();
+                
+                if (data.system_id) {
+                    addLog(`✓ System initialized: ${data.system_id}`, 'success');
+                    addLog(`✓ Agents: ${data.agents}`, 'success');
+                    addLog(`✓ Components: ${data.components}`, 'success');
+                    addLog(`✓ States: ${data.states}`, 'success');
+                    addLog(`✓ Gates: ${data.gates}`, 'success');
+                    
+                    // Hide init modal
+                    document.getElementById('init-modal').classList.add('hidden');
+                    
+                    // Initialize WebSocket
+                    connectWebSocket();
+                    
+                    // Load initial data
+                    await loadSystemData();
+                } else {
+                    addLog('✗ Initialization failed', 'error');
+                }
+            } catch (error) {
+                addLog(`✗ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function connectWebSocket() {
+            // Use Socket.IO for Flask-SocketIO compatibility
+            const socket = io({
+                transports: ['websocket', 'polling'],
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionAttempts: 5
+            });
+            
+            socket.on('connect', function() {
+                addTerminalLog('✓ Connected to Murphy System via Socket.IO', 'success');
+            });
+            
+            socket.on('connected', function(data) {

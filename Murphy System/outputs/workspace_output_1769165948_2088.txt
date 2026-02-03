@@ -1,0 +1,3 @@
+✓ Added @require_auth decorators to 16 POST endpoints
+✓ Added @require_auth decorators to 1 PUT endpoints
+✓ Added @require_auth decorators to 1 DELETE endpoints

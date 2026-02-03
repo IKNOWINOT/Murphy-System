@@ -1,0 +1,3 @@
+807:                userData[stepData.input.key] = input.value;
+897:            const message = input.value.trim();
+901:            input.value = '';

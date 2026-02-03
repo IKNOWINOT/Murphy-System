@@ -1,0 +1,21 @@
+127.0.0.1 - - [22/Jan/2026 16:36:01] "GET /murphy_complete_v2.html HTTP/1.1" 200 -
+127.0.0.1 - - [22/Jan/2026 17:31:16] "GET /murphy_complete_v2.html?password=1704403d-b92f-4eed-adcb-5f494271a2a2 HTTP/1.1" 200 -
+172.16.0.1 - - [22/Jan/2026 17:31:16] "GET /murphy_complete_v2.html?_gl=1*1kl06v4*_gcl_au*NDYwNTA1NTU4LjE3NjgxOTIyNjQ.*_ga*MTg3MDgyMTM5OC4xNzY4MTkyMjYz*_ga_8NW18Q4WF2*czE3NjkwOTU0MTAkbzckZzEkdDE3NjkxMDI4NzIkajU0JGwwJGgxNjExNjE0NjU.&password=1704403d-b92f-4eed-adcb-5f494271a2a2 HTTP/1.1" 200 -
+127.0.0.1 - - [22/Jan/2026 17:31:21] "GET /librarian_panel.js?password=1704403d-b92f-4eed-adcb-5f494271a2a2 HTTP/1.1" 200 -
+172.16.0.1 - - [22/Jan/2026 17:31:21] "GET /librarian_panel.js?password=1704403d-b92f-4eed-adcb-5f494271a2a2 HTTP/1.1" 200 -
+127.0.0.1 - - [22/Jan/2026 17:31:24] "GET /terminal_enhancements_integration.js?password=1704403d-b92f-4eed-adcb-5f494271a2a2 HTTP/1.1" 200 -
+127.0.0.1 - - [22/Jan/2026 17:31:24] "GET /plan_review_panel.js?password=1704403d-b92f-4eed-adcb-5f494271a2a2 HTTP/1.1" 200 -
+172.16.0.1 - - [22/Jan/2026 17:31:24] "GET /terminal_enhancements_integration.js?password=1704403d-b92f-4eed-adcb-5f494271a2a2 HTTP/1.1" 200 -
+172.16.0.1 - - [22/Jan/2026 17:31:24] "GET /plan_review_panel.js?password=1704403d-b92f-4eed-adcb-5f494271a2a2 HTTP/1.1" 200 -
+127.0.0.1 - - [22/Jan/2026 17:31:24] "GET /shadow_agent_panel.js?password=1704403d-b92f-4eed-adcb-5f494271a2a2 HTTP/1.1" 200 -
+127.0.0.1 - - [22/Jan/2026 17:31:24] "GET /command_enhancements.js?password=1704403d-b92f-4eed-adcb-5f494271a2a2 HTTP/1.1" 200 -
+172.16.0.1 - - [22/Jan/2026 17:31:24] "GET /shadow_agent_panel.js?password=1704403d-b92f-4eed-adcb-5f494271a2a2 HTTP/1.1" 200 -
+172.16.0.1 - - [22/Jan/2026 17:31:24] "GET /command_enhancements.js?password=1704403d-b92f-4eed-adcb-5f494271a2a2 HTTP/1.1" 200 -
+127.0.0.1 - - [22/Jan/2026 17:31:24] "GET /monitoring_panel.js?password=1704403d-b92f-4eed-adcb-5f494271a2a2 HTTP/1.1" 200 -
+127.0.0.1 - - [22/Jan/2026 17:31:24] "GET /artifact_panel.js?password=1704403d-b92f-4eed-adcb-5f494271a2a2 HTTP/1.1" 200 -
+172.16.0.1 - - [22/Jan/2026 17:31:24] "GET /monitoring_panel.js?password=1704403d-b92f-4eed-adcb-5f494271a2a2 HTTP/1.1" 200 -
+172.16.0.1 - - [22/Jan/2026 17:31:24] "GET /artifact_panel.js?password=1704403d-b92f-4eed-adcb-5f494271a2a2 HTTP/1.1" 200 -
+127.0.0.1 - - [22/Jan/2026 17:31:24] "GET /document_editor_panel.js?password=1704403d-b92f-4eed-adcb-5f494271a2a2 HTTP/1.1" 200 -
+172.16.0.1 - - [22/Jan/2026 17:31:24] "GET /document_editor_panel.js?password=1704403d-b92f-4eed-adcb-5f494271a2a2 HTTP/1.1" 200 -
+127.0.0.1 - - [22/Jan/2026 17:31:25] code 404, message File not found
+127.0.0.1 - - [22/Jan/2026 17:31:25] "GET /favicon.ico?password=1704403d-b92f-4eed-adcb-5f494271a2a2 HTTP/1.1" 404 -

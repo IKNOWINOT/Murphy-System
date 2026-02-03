@@ -1,0 +1,8 @@
+        function addMessage(type, content, cssClass) {
+            const messagesEl = document.getElementById('messages');
+            const time = new Date().toLocaleTimeString();
+            
+            // Create unique message ID to prevent duplicates
+            const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            
+            const messageEl = document.createElement('div');

@@ -1,0 +1,14 @@
+============================================================
+MURPHY SYSTEM - ERROR SCAN
+============================================================
+
+[1] Checking Python Syntax Errors...
+------------------------------------------------------------
+❌ Found 5 syntax errors:
+  - ./backend_integration_update.py: invalid syntax (backend_integration_update.py, line 149)
+  - ./integrate_systems.py: invalid syntax (integrate_systems.py, line 97)
+  - ./murphy_backend_broken.py: unterminated triple-quoted string literal (detected at line 2766) (murphy_backend_broken.py, line 2723)
+  - ./demo_llm_integration.py: unterminated triple-quoted string literal (detected at line 44) (demo_llm_integration.py, line 37)
+  - ./murphy_backend_phase2.py: expected an indented block after 'except' statement on line 70 (murphy_backend_phase2.py, line 71)
+
+Total Python files scanned: 2540

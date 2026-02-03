@@ -1,0 +1,11 @@
+
+            sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize Murphy Generative System
+        const murphy = new MurphyGenerativeSystem();
+    </script>
+</body>
+</html>

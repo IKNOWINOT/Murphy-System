@@ -1,0 +1,1 @@
+cp: cannot stat '/var/log/supervisor/3002_python3.out.log': No such file or directory

@@ -1,0 +1,9 @@
+{
+    "message": "Login successful",
+    "success": true,
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzY5MTY2MDQ4LCJleHAiOjE3NjkyNTI0NDh9._5TuQ27-Sm9sfUN6Md9TlavIAEv-5IUEIyyNEKdXvdU",
+    "user": {
+        "role": "admin",
+        "username": "admin"
+    }
+}

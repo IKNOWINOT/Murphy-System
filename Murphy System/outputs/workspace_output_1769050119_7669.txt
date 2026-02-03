@@ -1,0 +1,15 @@
+630:        const API_BASE = isLocalhost ? 'http://localhost:8000' : 'https://8000-7ced438b-5e53-49d7-a2f0-8056ffbc558b.sandbox-service.public.prod.myninja.ai';
+647:                const response = await fetch(`${API_BASE}/api/initialize`, {
+709:            const statesResponse = await fetch(`${API_BASE}/api/states`);
+715:            const agentsResponse = await fetch(`${API_BASE}/api/agents`);
+844:            const response = await fetch(`${API_BASE}/api/agents/${agentId}`);
+1040:            const response = await fetch(`${API_BASE}/api/states/${stateId}`);
+1073:                const response = await fetch(`${API_BASE}/api/states/${stateId}/evolve`, {
+1089:                const response = await fetch(`${API_BASE}/api/states/${stateId}/regenerate`, {
+1105:                const response = await fetch(`${API_BASE}/api/states/${stateId}/rollback`, {
+1808:                const response = await fetch(`${API_BASE}/api/status`);
+1838:                const response = await fetch(`${API_BASE}/api/initialize`, {
+1898:                const response = await fetch(`${API_BASE}/api/states/${stateId}/evolve`, {
+1919:                const response = await fetch(`${API_BASE}/api/states/${stateId}/regenerate`, {
+1940:                const response = await fetch(`${API_BASE}/api/states/${stateId}/rollback`, {
+1992:                const response = await fetch(`${API_BASE}/api/status`);

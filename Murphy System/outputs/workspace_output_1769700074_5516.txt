@@ -1,0 +1,70 @@
+Number of <script tags: 13
+
+HTML section (before first script):
+  Open angle brackets: 8
+  Close angle brackets: 8
+
+Script section 1:
+  Open braces: 0
+  Close braces: 0
+  Balance: 0
+
+Script section 2:
+  Open braces: 0
+  Close braces: 0
+  Balance: 0
+
+Script section 3:
+  Open braces: 0
+  Close braces: 0
+  Balance: 0
+
+Script section 4:
+  Open braces: 2
+  Close braces: 2
+  Balance: 0
+
+Script section 5:
+  Open braces: 0
+  Close braces: 0
+  Balance: 0
+
+Script section 6:
+  Open braces: 0
+  Close braces: 0
+  Balance: 0
+
+Script section 7:
+  Open braces: 0
+  Close braces: 0
+  Balance: 0
+
+Script section 8:
+  Open braces: 0
+  Close braces: 0
+  Balance: 0
+
+Script section 9:
+  Open braces: 0
+  Close braces: 0
+  Balance: 0
+
+Script section 10:
+  Open braces: 0
+  Close braces: 0
+  Balance: 0
+
+Script section 11:
+  Open braces: 0
+  Close braces: 0
+  Balance: 0
+
+Script section 12:
+  Open braces: 0
+  Close braces: 0
+  Balance: 0
+
+Script section 13:
+  Open braces: 831
+  Close braces: 831
+  Balance: 0

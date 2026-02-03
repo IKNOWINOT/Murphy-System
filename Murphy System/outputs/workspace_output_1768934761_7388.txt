@@ -1,0 +1,2 @@
+872:                <button class="button" onclick="executeMagnify()">🔍 Magnify</button>
+1013:        async function executeMagnify() {

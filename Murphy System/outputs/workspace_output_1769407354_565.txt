@@ -1,0 +1,20 @@
+1959:        const API_BASE = isLocalhost ? 'http://localhost:3002' : 'https://3002-7ced438b-5e53-49d7-a2f0-8056ffbc558b.sandbox-service.public.prod.myninja.ai';
+1960:        // Make API_BASE globally accessible for external panel scripts
+1961:        window.API_BASE = API_BASE;
+1994:            window.socket = io(API_BASE, {
+2065:                fetch(`${API_BASE}/api/states`)
+2088:                fetch(`${API_BASE}/api/agents`)
+2111:                fetch(`${API_BASE}/api/states`)
+2134:                fetch(`${API_BASE}/api/states`)
+2157:                fetch(`${API_BASE}/api/states`)
+2226:            const statesResponse = await fetch(`${API_BASE}/api/states`);
+2232:            const agentsResponse = await fetch(`${API_BASE}/api/agents`);
+2361:            const response = await fetch(`${API_BASE}/api/agents/${agentId}`);
+2557:            const response = await fetch(`${API_BASE}/api/states/${stateId}`);
+2590:                const response = await fetch(`${API_BASE}/api/states/${stateId}/evolve`, {
+2606:                const response = await fetch(`${API_BASE}/api/states/${stateId}/regenerate`, {
+2622:                const response = await fetch(`${API_BASE}/api/states/${stateId}/rollback`, {
+2840:                const librarianResponse = await fetch(`${API_BASE}/api/librarian/ask`, {
+3054:                const url = moduleId ? `${API_BASE}/api/commands?module=${moduleId}` : `${API_BASE}/api/commands`;
+3066:                const url = topic ? `${API_BASE}/api/help?topic=${topic}` : `${API_BASE}/api/help`;
+3205:                            const response = await fetch(`${API_BASE}/api/librarian/search`, {

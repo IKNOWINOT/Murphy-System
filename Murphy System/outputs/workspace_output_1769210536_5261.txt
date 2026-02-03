@@ -1,0 +1,3 @@
+Found 6 occurrences of &&
+After replacement: 6 occurrences of && remain
+Line 2994: if (data.results &amp;&amp; data.results.length > 0) {

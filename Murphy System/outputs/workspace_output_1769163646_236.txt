@@ -1,0 +1,15 @@
+Health Check Response:
+{
+  "health": {
+    "components": {},
+    "overall": {
+      "message": "No health checks available",
+      "score": 0,
+      "status": "unknown"
+    },
+    "timestamp": "2026-01-23T10:20:47.146643"
+  },
+  "success": true
+}
+
+⚠️ WARNING: Health checks not being executed!

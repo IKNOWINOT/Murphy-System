@@ -1,0 +1,3 @@
+110:        item.addEventListener('click', () => {
+510:document.addEventListener('DOMContentLoaded', function() {
+529:            newTerminalInput.addEventListener('keydown', handleEnhancedTerminalKeyPress);

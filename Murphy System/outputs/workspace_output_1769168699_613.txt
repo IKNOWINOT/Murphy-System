@@ -1,0 +1,6 @@
+45:        self.active_tokens = set()
+86:        self.active_tokens.add(token)
+103:            if token not in self.active_tokens:
+134:        if token in self.active_tokens:
+135:            self.active_tokens.remove(token)
+194:            'active_tokens': len(self.active_tokens),

@@ -1,0 +1,35 @@
+{
+  "timestamp": "2026-01-30T00:53:06.475561",
+  "total": 21,
+  "passed": 14,
+  "failed": 7,
+  "success_rate": "66.7%",
+  "results": {
+    "passed": [
+      "Backend is running",
+      "Get system status",
+      "Health check endpoint",
+      "Initialize system with user data",
+      "LLM text generation",
+      "Execute help command",
+      "Execute status command",
+      "Librarian knowledge query",
+      "List all artifacts",
+      "List swarm tasks",
+      "Generate decision gates",
+      "Get gate sensors status",
+      "List business products",
+      "List scheduled automations"
+    ],
+    "failed": [
+      "LLM status and key rotation",
+      "Search commands in Librarian",
+      "Generate artifact",
+      "Create swarm task",
+      "Create workflow",
+      "Explode vague request into plan",
+      "Get pipeline status"
+    ],
+    "warnings": []
+  }
+}

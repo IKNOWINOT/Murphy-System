@@ -1,0 +1,21 @@
+{
+  "status": "healthy",
+  "timestamp": "2026-01-29T15:22:29.322548Z",
+  "checks": {
+    "database": {
+      "status": "healthy",
+      "latency_ms": 5.65,
+      "error": null
+    },
+    "n8n": {
+      "status": "unhealthy",
+      "active_executions": 0,
+      "error": "n8n process not found"
+    },
+    "storage": {
+      "status": "healthy",
+      "disk_usage_percent": 77.19,
+      "error": null
+    }
+  }
+}

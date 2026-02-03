@@ -1,0 +1,4 @@
+Added Librarian system integration
+Added /api/librarian/ask endpoint
+Connected Librarian with real LLM
+Updated status endpoint

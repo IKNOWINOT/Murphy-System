@@ -1,0 +1,40 @@
+602:    <div class="header">
+604:        <div class="llm-controls">
+605:            <div class="llm-indicator active">
+606:                <div class="status-dot"></div>
+609:            <div class="llm-indicator active">
+610:                <div class="status-dot"></div>
+613:            <div class="llm-indicator active">
+614:                <div class="status-dot"></div>
+621:    <div class="main-container">
+623:        <div class="sidebar">
+624:            <div class="sidebar-section">
+625:                <div class="sidebar-title">📊 SYSTEM STATUS</div>
+626:                <div class="stat-item">
+628:                    <span class="stat-value" id="doc-count">0</span>
+630:                <div class="stat-item">
+632:                    <span class="stat-value" id="task-count">0</span>
+634:                <div class="stat-item">
+636:                    <span class="stat-value" id="gate-count">0</span>
+638:                <div class="stat-item">
+640:                    <span class="stat-value" id="artifact-count">0</span>
+642:                <div class="stat-item">
+644:                    <span class="stat-value" id="approval-count">0</span>
+648:            <div class="sidebar-section">
+649:                <div class="sidebar-title">📄 DOCUMENTS</div>
+651:                    <div class="empty-state">
+652:                        <div class="empty-state-icon">📭</div>
+660:        <div class="content">
+662:            <div class="tab-nav">
+663:                <button class="tab-button active" onclick="switchTab('overview')">📊 Overview</button>
+664:                <button class="tab-button" onclick="switchTab('documents')">📄 Documents</button>
+665:                <button class="tab-button" onclick="switchTab('tasks')">⚙️ Tasks</button>
+666:                <button class="tab-button" onclick="switchTab('gates')">🛡️ Gates</button>
+667:                <button class="tab-button" onclick="switchTab('approvals')">✋ Approvals</button>
+668:                <button class="tab-button" onclick="switchTab('terminal')">📟 Terminal</button>
+672:            <div id="tab-overview" class="tab-content active">
+673:                <div class="stats-grid">
+674:                    <div class="stat-card">
+675:                        <div class="stat-card-value" id="overview-docs">0</div>
+676:                        <div class="stat-card-label">DOCUMENTS</div>
+678:                    <div class="stat-card">

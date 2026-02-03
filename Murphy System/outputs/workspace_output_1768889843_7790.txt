@@ -1,0 +1,51 @@
+Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+✓ Groq client 1/9 initialized
+✓ Groq client 2/9 initialized
+✓ Groq client 3/9 initialized
+✓ Groq client 4/9 initialized
+✓ Groq client 5/9 initialized
+✓ Groq client 6/9 initialized
+✓ Groq client 7/9 initialized
+✓ Groq client 8/9 initialized
+✓ Groq client 9/9 initialized
+✓ Total 9 Groq clients ready for load balancing
+⚠ Anthropic API key not set - will use Groq for deterministic tasks
+============================================================
+Murphy System - Complete Backend
+============================================================
+Murphy System Available: True
+Groq Available: True
+Anthropic Available: False
+Starting server on http://localhost:6666
+============================================================
+ * Serving Flask app 'murphy_complete_backend'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:6666
+ * Running on http://172.16.95.85:6666
+[33mPress CTRL+C to quit[0m
+[2026-01-20 06:17:38,419] ERROR in app: Exception on /api/test-groq [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 976, in ensure_sync
+    return self.async_to_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 997, in async_to_sync
+    raise RuntimeError(
+RuntimeError: Install Flask with the 'async' extra in order to use async views.
+127.0.0.1 - - [20/Jan/2026 06:17:38] "[35m[1mPOST /api/test-groq HTTP/1.1[0m" 500 -

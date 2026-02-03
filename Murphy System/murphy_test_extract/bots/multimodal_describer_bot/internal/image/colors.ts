@@ -1,0 +1,1 @@
+export function topColors(pixels:number[][][], n:number=5){ const map=new Map<string,number>(); for(const row of pixels){ for(const [r,g,b] of row){ const k=`${r>>5}-${g>>5}-${b>>5}`; map.set(k,(map.get(k)||0)+1);} } return [...map.entries()].sort((a,b)=>b[1]-a[1]).slice(0,n).map(([k,c])=>({bucket:k,count:c})); }

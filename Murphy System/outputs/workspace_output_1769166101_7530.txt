@@ -1,0 +1,9 @@
+16:logging.basicConfig(level=logging.INFO)
+17:logger = logging.getLogger(__name__)
+55:state_lock = threading.Lock()
+56:agents_lock = threading.Lock()
+57:components_lock = threading.Lock()
+58:gates_lock = threading.Lock()
+432:                'user': g.user
+1610:            'messages': [msg.to_dict() for msg in messages],
+1652:            'message': msg.to_dict()

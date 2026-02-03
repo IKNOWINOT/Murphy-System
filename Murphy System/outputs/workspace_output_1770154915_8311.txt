@@ -1,0 +1,74 @@
+INFO:__main__:============================================================
+INFO:__main__:PHASE 1: GENERATIVE SETUP (Universal)
+INFO:__main__:============================================================
+INFO:__main__:1. Analyzing request: Automate my factory HVAC system
+INFO:__main__:2. Control type determined: sensor_actuator
+INFO:__main__:3. Engines selected: ['sensor', 'actuator']
+INFO:__main__:4. Compiling execution packet...
+INFO:__main__:   Packet compiled: 2 actions
+INFO:__main__:✓ sensor engine loaded
+INFO:__main__:✓ actuator engine loaded
+INFO:__main__:Session session_1770154915.939552: Loaded 2 engines for sensor_actuator
+INFO:__main__:5. Session created: session_1770154915.939552
+INFO:__main__:============================================================
+INFO:__main__:PHASE 1 COMPLETE
+INFO:__main__:============================================================
+INFO:__main__:============================================================
+INFO:__main__:PHASE 2: PRODUCTION EXECUTION (Universal)
+INFO:__main__:============================================================
+INFO:__main__:1. Executing session: session_1770154915.939552
+INFO:__main__:   Control type: sensor_actuator
+INFO:__main__:   Engines loaded: [<EngineType.SENSOR: 'sensor'>, <EngineType.ACTUATOR: 'actuator'>]
+INFO:__main__:============================================================
+INFO:__main__:PHASE 2 COMPLETE
+INFO:__main__:============================================================
+INFO:__main__:============================================================
+INFO:__main__:PHASE 1: GENERATIVE SETUP (Universal)
+INFO:__main__:============================================================
+INFO:__main__:1. Analyzing request: Automate my blog publishing to WordPress
+INFO:__main__:2. Control type determined: content_api
+INFO:__main__:3. Engines selected: ['content', 'api']
+INFO:__main__:4. Compiling execution packet...
+INFO:__main__:   Packet compiled: 2 actions
+INFO:__main__:✓ content engine loaded
+INFO:__main__:✓ api engine loaded
+INFO:__main__:Session session_1770154915.94011: Loaded 2 engines for content_api
+INFO:__main__:5. Session created: session_1770154915.94011
+INFO:__main__:============================================================
+INFO:__main__:PHASE 1 COMPLETE
+INFO:__main__:============================================================
+INFO:__main__:============================================================
+INFO:__main__:PHASE 2: PRODUCTION EXECUTION (Universal)
+INFO:__main__:============================================================
+INFO:__main__:1. Executing session: session_1770154915.94011
+INFO:__main__:   Control type: content_api
+INFO:__main__:   Engines loaded: [<EngineType.CONTENT: 'content'>, <EngineType.API: 'api'>]
+INFO:__main__:============================================================
+INFO:__main__:PHASE 2 COMPLETE
+INFO:__main__:============================================================
+
+================================================================================
+EXAMPLE 1: FACTORY HVAC AUTOMATION
+================================================================================
+
+Results: {'error': 'Cannot execute packet', 'reasons': ['Packet not signed']}
+
+================================================================================
+EXAMPLE 2: BLOG PUBLISHING AUTOMATION
+================================================================================
+
+Results: {'error': 'Cannot execute packet', 'reasons': ['Packet not signed']}
+
+================================================================================
+SESSION ISOLATION VERIFICATION
+================================================================================
+
+Session 1 (Factory HVAC):
+  Control Type: sensor_actuator
+  Engines: ['sensor', 'actuator']
+
+Session 2 (Blog Publishing):
+  Control Type: content_api
+  Engines: ['content', 'api']
+
+✓ Sessions are isolated - different engines loaded!

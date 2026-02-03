@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  murphy-api:
+    build:
+      context: ../..
+      dockerfile: murphy_implementation/deployment/Dockerfile
+    container_name: murphy-api
+    ports:
+      - "8000:8000"
+    environment:
+      - MURPHY_ENV=production
+      - MURPHY_DATA_DIR=/app/data
+      - MURPHY_LOG_DIR=/app/logs
+      - DATABASE_URL=postgresql://murphy:murphy@postgres:5432/murphy
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - murphy-data:/app/data
+      - murphy-logs:/app/logs
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    networks:
+      - murphy-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: murphy-postgres
+    environment:
+      - POSTGRES_USER=murphy
+      - POSTGRES_PASSWORD=murphy
+      - POSTGRES_DB=murphy
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - murphy-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U murphy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: murphy-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - murphy-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: murphy-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    restart: unless-stopped
+    networks:
+      - murphy-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: murphy-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - murphy-network
+
+volumes:
+  murphy-data:
+  murphy-logs:
+  postgres-data:
+  redis-data:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  murphy-network:
+    driver: bridge

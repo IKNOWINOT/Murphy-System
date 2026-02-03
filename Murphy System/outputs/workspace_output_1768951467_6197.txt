@@ -1,0 +1,4 @@
+        .llm-controls {
+        .llm-indicator {
+        .llm-indicator.active {
+        .status-dot {

@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: murphy-system
+  labels:
+    name: murphy-system
+    environment: production
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: murphy-secrets
+  namespace: murphy-system
+type: Opaque
+stringData:
+  database-url: "postgresql://murphy:CHANGE_ME@postgres-service:5432/murphy"
+  redis-url: "redis://redis-service:6379/0"
+  api-key: "CHANGE_ME"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: murphy-config
+  namespace: murphy-system
+data:
+  murphy.conf: |
+    [server]
+    host = 0.0.0.0
+    port = 8000
+    workers = 4
+    
+    [logging]
+    level = INFO
+    format = json
+    
+    [monitoring]
+    enabled = true
+    prometheus_port = 9090
+    
+    [features]
+    shadow_agent_enabled = true
+    ab_testing_enabled = true
+    gradual_rollout = true

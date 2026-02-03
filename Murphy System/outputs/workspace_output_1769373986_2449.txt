@@ -1,0 +1,7 @@
+    logger.info(f"Cooperative Swarm: {'✓' if COOPERATIVE_SWARM_AVAILABLE else '✗'}")
+    logger.info("="*60)
+    
+    logger.info(f"Command System: {'✓' if COMMAND_SYSTEM_AVAILABLE else '✗'}")
+    logger.info("="*60)
+    
+    socketio.run(app, host='0.0.0.0', port=3002, debug=True, allow_unsafe_werkzeug=True)

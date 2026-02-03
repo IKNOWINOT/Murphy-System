@@ -1,0 +1,31 @@
+
+        // ============================================
+        // METRICS
+        // ============================================
+        
+        function updateMetrics() {
+            document.getElementById('metric-states').textContent = currentStates.length;
+            document.getElementById('metric-agents').textContent = currentAgents.length;
+            document.getElementById('metric-gates').textContent = 2; // Demo gates
+            document.getElementById('metric-connections').textContent = currentConnections.length;
+        }
+
+        async function updateLLMStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/status`);
+                const data = await response.json();
+                
+                // Update Groq status
+                const groqIndicator = document.getElementById('groq-status');
+                if (data.llms.groq.status === 'active') {
+                    groqIndicator.classList.add('active');
+                }
+                
+                // Update Aristotle status
+                const aristotleIndicator = document.getElementById('aristotle-status');
+                if (data.llms.aristotle.status === 'active') {
+                    aristotleIndicator.classList.add('active');
+                }
+                
+                // Update Onboard status
+                const onboardIndicator = document.getElementById('onboard-status');

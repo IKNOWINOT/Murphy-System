@@ -1,0 +1,101 @@
+
+class LLMRouter:
+    """Routes requests to appropriate LLM based on task type
+    
+    - Groq: Fast generative inference (temperature 0.7)
+    - Aristotle (Claude): Deterministic verification and reasoning (temperature 0.1)
+    - Onboard LLM: Local fallback when APIs unavailable
+    """
+    
+    def __init__(self):
+        self.groq_available = len(groq_clients) > 0
+        self.anthropic = anthropic_client
+        self.onboard_available = False
+        
+    async def route_request(self, prompt: str, task_type: str = "generative") -> str:
+        """Route request to appropriate LLM
+        
+        Args:
+            prompt: The prompt to send
+            task_type: 'generative' (Groq), 'deterministic' (Aristotle), or 'verification' (Aristotle)
+        """
+        
+        if task_type in ["verification", "deterministic"] and self.anthropic:
+            return await self._call_aristotle(prompt)
+        elif task_type == "generative" and self.groq_available:
+            return await self._call_groq(prompt)
+        else:
+            return await self._call_onboard(prompt)
+    
+    async def _call_groq(self, prompt: str) -> str:
+        """Call Groq API with automatic key rotation"""
+        try:
+            client = get_next_groq_client()
+            if not client:
+                return await self._call_onboard(prompt)
+            
+            response = client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt}],
+                model="llama-3.3-70b-versatile",
+                temperature=0.7,
+                max_tokens=2000
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            print(f"Groq error: {e}, trying fallback")
+            return await self._call_onboard(prompt)
+    
+    async def _call_aristotle(self, prompt: str) -> str:
+        """Call Aristotle (Claude) for deterministic verification with low temperature (0.1)"""
+        try:
+            if not self.anthropic:
+                print("Aristotle (Claude) not available, using Groq for deterministic task")
+                return await self._call_groq(prompt)
+            
+            response = self.anthropic.messages.create(
+                model="claude-3-sonnet-20240229",
+                max_tokens=2000,
+                temperature=0.1,  # Low temperature for deterministic verification
+                messages=[{"role": "user", "content": prompt}]
+            )
+            return response.content[0].text
+        except Exception as e:
+            print(f"Aristotle error: {e}, falling back to Groq")
+            return await self._call_groq(prompt)
+    
+    async def _call_onboard(self, prompt: str) -> str:
+        """Fallback to onboard LLM"""
+        # Simulate onboard LLM response
+        return f"[Onboard LLM Response] Processed: {prompt[:100]}..."
+
+class LivingDocument:
+    """Represents a living document that evolves through states"""
+    
+    def __init__(self, doc_id: str, title: str, content: str, doc_type: str):
+        self.doc_id = doc_id
+        self.title = title
+        self.content = content
+        self.doc_type = doc_type
+        self.state = "INITIAL"
+        self.confidence = 0.45
+        self.expertise_depth = 0  # Renamed from domain_depth for clarity
+        self.history = []
+        self.children = []
+        self.parent_id = None
+        self.created_at = datetime.now().isoformat()
+        
+    def magnify(self, domain_name: str) -> Dict[str, Any]:
+        """Expand with domain expertise"""
+        self.expertise_depth += 15
+        self.confidence += 0.1
+        self.history.append({
+            "action": "magnify",
+            "domain_name": domain_name,  # Clarified naming
+            "timestamp": datetime.now().isoformat()
+        })
+        return self.to_dict()
+    
+    def simplify(self) -> Dict[str, Any]:
+        """Distill to essentials"""
+        self.expertise_depth = max(0, self.expertise_depth - 10)
+        self.confidence += 0.05

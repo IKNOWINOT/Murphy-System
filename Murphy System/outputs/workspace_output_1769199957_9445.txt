@@ -1,0 +1,5 @@
+{
+  "components": {
+    "artifacts": true,
+    "authentication": true,
+    "command_system": true,

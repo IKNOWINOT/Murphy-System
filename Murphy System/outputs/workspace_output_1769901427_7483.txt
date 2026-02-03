@@ -1,0 +1,8 @@
+total 164K
+drwxr-xr-x  2 root root 4.0K Jan 31 23:17 .
+drwxr-xr-x 35 user user  20K Jan 31 23:16 ..
+-rw-r--r--  1 root root 3.5K Jan 31 23:17 INSTALLATION.md
+-rw-r--r--  1 root root 4.6K Jan 31 23:16 README.md
+-rw-r--r--  1 root root  83K Jan 31 23:16 murphy_complete_integrated.py
+-rw-r--r--  1 root root  39K Jan 31 23:16 murphy_ui_final.html
+-rw-r--r--  1 root root 1.5K Jan 31 23:16 todo.md

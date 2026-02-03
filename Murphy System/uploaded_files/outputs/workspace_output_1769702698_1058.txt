@@ -1,0 +1,39 @@
+                                               Table "public.tasks"
+       Column        |            Type             | Collation | Nullable |                Default                 
+---------------------+-----------------------------+-----------+----------+----------------------------------------
+ task_id             | integer                     |           | not null | nextval('tasks_task_id_seq'::regclass)
+ task_uuid           | uuid                        |           | not null | gen_random_uuid()
+ client_id           | integer                     |           | not null | 
+ source_type         | character varying(50)       |           | not null | 
+ source_id           | integer                     |           |          | 
+ source_reference_id | character varying(255)      |           |          | 
+ title               | character varying(500)      |           | not null | 
+ description         | text                        |           |          | 
+ priority            | character varying(20)       |           | not null | 'medium'::character varying
+ status              | character varying(50)       |           | not null | 'created'::character varying
+ task_type           | character varying(100)      |           |          | 
+ due_date            | timestamp without time zone |           |          | 
+ assigned_to         | integer                     |           |          | 
+ assigned_at         | timestamp without time zone |           |          | 
+ completed_at        | timestamp without time zone |           |          | 
+ cancelled_at        | timestamp without time zone |           |          | 
+ custom_fields       | jsonb                       |           |          | 
+ created_at          | timestamp without time zone |           | not null | now()
+ updated_at          | timestamp without time zone |           | not null | now()
+Indexes:
+    "tasks_pkey" PRIMARY KEY, btree (task_id)
+    "idx_tasks_assigned_to" btree (assigned_to)
+    "idx_tasks_client_id" btree (client_id)
+    "idx_tasks_due_date" btree (due_date)
+    "idx_tasks_priority" btree (priority)
+    "idx_tasks_source" btree (source_type)
+    "idx_tasks_status" btree (status)
+Check constraints:
+    "tasks_priority_check" CHECK (priority::text = ANY (ARRAY['low'::character varying, 'medium'::character varying, 'high'::character varying, 'critical'::character varying]::text[]))
+    "tasks_status_check" CHECK (status::text = ANY (ARRAY['created'::character varying, 'assigned'::character varying, 'in_progress'::character varying, 'completed'::character varying, 'cancelled'::character varying, 'expired'::character varying]::text[]))
+Foreign-key constraints:
+    "tasks_client_id_fkey" FOREIGN KEY (client_id) REFERENCES clients(client_id) ON DELETE CASCADE
+Referenced by:
+    TABLE "sla_events" CONSTRAINT "sla_events_task_id_fkey" FOREIGN KEY (task_id) REFERENCES tasks(task_id) ON DELETE CASCADE
+    TABLE "task_assignments" CONSTRAINT "task_assignments_task_id_fkey" FOREIGN KEY (task_id) REFERENCES tasks(task_id) ON DELETE CASCADE
+

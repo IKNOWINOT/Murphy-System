@@ -1,0 +1,50 @@
+"""
+Neuro-Symbolic Confidence Models
+=================================
+
+Auxiliary ML enhancement layer for confidence estimation.
+
+This module provides learned estimates of:
+- H(x): Epistemic instability
+- D(x): Deterministic grounding
+- R(x): Authority risk
+
+Key Principles:
+1. Additive, not replacement
+2. Optional enhancement
+3. Graceful degradation
+4. Safety guarantees
+"""
+
+__version__ = "1.0.0"
+__status__ = "Production"
+
+# Try to import the full module, fall back to simple wrapper if dependencies missing
+try:
+    from .models import NeuroSymbolicConfidenceModel
+    from .data import GraphDataset, TrainingDataCollector
+    from .inference import MLInferenceService
+    from .training import ModelTrainer, ModelValidator
+    
+    __all__ = [
+        "NeuroSymbolicConfidenceModel",
+        "GraphDataset",
+        "TrainingDataCollector",
+        "MLInferenceService",
+        "ModelTrainer",
+        "ModelValidator"
+    ]
+except ImportError as e:
+    # Fall back to simple wrapper without external dependencies
+    import logging
+    logging.warning(f"Using simplified neuro-symbolic model due to missing dependencies: {e}")
+    
+    from .simple_wrapper import (
+        SimpleNeuroSymbolicModel,
+        NeuroSymbolicConfidenceModel
+    )
+    
+    __all__ = [
+        "NeuroSymbolicConfidenceModel",
+        "SimpleNeuroSymbolicModel"
+    ]

@@ -1,0 +1,17 @@
+1771:        <!-- Center: Terminal & Visualization -->
+1781:                    <span class="terminal-input-prompt">murphy&gt;</span>
+1799:        <!-- Right: Metrics & Info -->
+1843:                <button onclick="closeShadowPanel()" class="close-btn">&times;</button>
+1885:                <button onclick="closeMonitoringPanel()" class="close-btn">&times;</button>
+2697:            cmdLine.innerHTML = `<span style="color: #666;">[${new Date().toLocaleTimeString()}]</span> <span class="terminal-prompt">murphy&gt;</span> <span style="color: #fff;">${command}</span>`;
+2715:            const fullCommand = args.length > 0 && !args[0].startsWith('-') 
+2718:            const remainingArgs = args.length > 0 && !args[0].startsWith('-') ? args.slice(1) : args;
+2980:                            if (data.results &amp;&amp; data.results.length > 0) {
+3001:                        if (data.transcripts &amp;&amp; data.transcripts.length > 0) {
+3022:                        if (data.intent_distribution &amp;&amp; Object.keys(data.intent_distribution).length > 0) {
+3288:                if (data.artifacts &amp;&amp; data.artifacts.length > 0) {
+3320:                if (data.results &amp;&amp; data.results.length > 0) {
+3460:                        if (agents && agents.length > 0) {
+3483:                        if (observations && observations.length > 0) {
+3503:                        if (proposals && proposals.length > 0) {
+3524:                        if (automations && automations.length > 0) {

@@ -1,0 +1,200 @@
+# Murphy System Master Specification
+## From Current State to Autonomous Enterprise Automation
+
+**Version:** 1.0  
+**Status:** Living Specification  
+**Purpose:** Practical guide to automating your company operations using agentic systems
+
+---
+
+## Executive Summary
+
+The Murphy System is an enterprise automation platform that transforms how you run your business by converting manual, repetitive tasks into autonomous agent-driven workflows. Starting from your current manual operations, the system learns from your decision-making patterns, creates automated workflows, and executes them with human-in-the-loop oversight.
+
+**Key Value Proposition:**
+- **Start Where You Are:** No disruption - learns from your existing processes
+- **Automate What You Do:** Captures your expertise as reusable agent behaviors
+- **Scale Through Capability:** System analyzes its own capabilities and decides next business moves
+- **Human-in-the-Loop:** You remain in control with approval checkpoints
+- **Self-Improving:** System continuously learns and optimizes
+
+**Current State Analysis:**
+Your operations involve:
+1. **Strategic decision-making** - Company direction, market positioning, niche selection
+2. **Technical development** - Building systems, integrating components, debugging
+3. **Business management** - Client interactions, project coordination, resource allocation
+4. **Quality control** - Reviewing outputs, validating results, ensuring standards
+
+**Target State:**
+The Murphy System automates these through:
+1. **Executive Branch Agent** - Strategic planning with constraint management
+2. **Development Swarm** - Autonomous code generation and integration
+3. **Operations Orchestrator** - Project coordination and client communication
+4. **Quality Gate System** - Automated validation with human override
+
+---
+
+## 1. System Architecture
+
+### 1.1 Core Philosophy
+
+The Murphy System operates on three principles:
+
+**Principle 1: Observation Before Automation**
+- System first observes your workflows and decision patterns
+- Extracts repeatable processes and decision criteria
+- Creates initial automation candidates for review
+- You approve/refine before deployment
+
+**Principle 2: Confidence-Based Execution**
+- Every action requires a confidence score (0.0-1.0)
+- High confidence (>0.85): Auto-execute
+- Medium confidence (0.60-0.85): Request confirmation
+- Low confidence (<0.60): Human review required
+
+**Principle 3: Adaptive Learning**
+- System learns from your corrections and approvals
+- Updates confidence scoring models
+- Refines automation over time
+- Maintains human oversight always
+
+### 1.2 Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    YOU (The Human)                      │
+│                   Strategic Oversight                    │
+└────────────────────┬────────────────────────────────────┘
+                     │ Human-in-the-Loop
+                     │ (Approvals, Overrides, Guidance)
+┌────────────────────▼────────────────────────────────────┐
+│              Terminal/Orchestrator                        │
+│         (Command Interpreter & Router)                   │
+└──────┬────────────────────────────────────┬─────────────┘
+       │                                    │
+┌──────▼─────────┐                 ┌────────▼──────────┐
+│  Command System│                 │   Librarian       │
+│  (help, exec)  │                 │  (Intent Mapper)  │
+└──────┬─────────┘                 └────────┬──────────┘
+       │                                    │
+       └──────────────┬─────────────────────┘
+                      │ Routes to
+┌─────────────────────▼──────────────────────────────┐
+│              Swarms (Agent Collectives)              │
+│                                                      │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐          │
+│  │Creative  │  │Analytical│  │  Hybrid  │          │
+│  │  Swarm   │  │  Swarm   │  │  Swarm   │          │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘          │
+│       │            │             │                   │
+│       └────────────┴─────────────┘                   │
+│                    │                                  │
+└────────────────────┼──────────────────────────────────┘
+                     │ Executes Through
+┌────────────────────▼──────────────────────────────────┐
+│              System Categories                         │
+│                                                      │
+│  Physical  │  Agentic  │  Hybrid  │  Shadow          │
+│  Systems   │  Systems  │  Systems │  (Personal)      │
+└────────────────────┬──────────────────────────────────┘
+                     │
+┌────────────────────▼──────────────────────────────────┐
+│              Execution Layer                          │
+│                                                      │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐          │
+│  │  Gates   │  │  Presets │  │  Plans   │          │
+│  │  (Valid) │  │ (Reuse)  │  │ (Exec)   │          │
+│  └──────────┘  └──────────┘  └──────────┘          │
+└──────────────────────────────────────────────────────┘
+
+              Infrastructure Layer:
+              - LLM Integration (Groq + Aristotle + Onboard)
+              - Knowledge Base (System docs + domain knowledge)
+              - Telemetry (Metrics + Learning + Feedback)
+              - Security (Auth + Encryption + Audit)
+```
+
+### 1.3 Data Flow
+
+```
+User Input
+    │
+    ├── Natural Language ──► Librarian (Intent) ──► Command
+    │                                              │
+    └── Structured Command ────────────────────────┘
+                                                    │
+                                          ┌────────▼────────┐
+                                          │ Orchestrator    │
+                                          │ Routes to       │
+                                          │ Appropriate     │
+                                          │ Swarm/Category  │
+                                          └────────┬────────┘
+                                                   │
+                                    ┌──────────────┴──────────────┐
+                                    │  Swarm Executes Task         │
+                                    │  - Confidence Scored         │
+                                    │  - LLM Queries Made          │
+                                    │  - Results Generated        │
+                                    └──────────────┬──────────────┘
+                                                   │
+                                    ┌──────────────▼──────────────┐
+                                    │  Gate Validation            │
+                                    │  - Quality Checks           │
+                                    │  - Constraint Compliance    │
+                                    │  - Safety Verification      │
+                                    └──────────────┬──────────────┘
+                                                   │
+                                    ┌──────────────▼──────────────┐
+                                    │  Confidence Threshold       │
+                                    │                             │
+                                    │  > 0.85  ▶ Auto-Execute     │
+                                    │  0.60-0.85 ▶ Confirm User   │
+                                    │  < 0.60  ▶ Human Review     │
+                                    └──────────────┬──────────────┘
+                                                   │
+                                    ┌──────────────▼──────────────┐
+                                    │  Execution & Learning       │
+                                    │  - Execute Action            │
+                                    │  - Log Results              │
+                                    │  - Update Confidence        │
+                                    │  - Store as Preset          │
+                                    └──────────────────────────────┘
+```
+
+---
+
+## 2. Command System (/help)
+
+### 2.1 Purpose
+
+A hierarchical command catalog that provides discoverable, executable system capabilities through the terminal interface. Commands are organized by module, with clear syntax, usage examples, and output classifications.
+
+### 2.2 Output Classification System
+
+| Output Type | Definition | Example | Classification |
+|-------------|------------|---------|----------------|
+| **Deterministic** | Calculator results verified by Aristotle LLM (math LLM, temp 0.1). Marked "verified" only when calculator and LLM results match exactly. | `calculate 23 * 45` → `1035 [VERIFIED]` | Deterministic Output |
+| **Unverified** | Calculator and LLM outputs differ, requiring human judgment. | `estimate project complexity` → `High complexity (calculator: medium, LLM: high)` | Unverified Output |
+| **System** | Hardcoded responses to specific commands. | `/status` → System operational metrics | System Output |
+| **Generative** | Natural language reasoning and explanations from Groq (temp 0.7). | `explain how swarm works` → Detailed explanation | Generative Output |
+| **Mixed** | Combination of system and generative responses. | `/help swarm` → System info + LLM explanation | Mixed Output |
+
+### 2.3 Command Hierarchy
+
+```
+/help
+├── System Commands
+│   ├── /status - Show system status
+│   ├── /help [command] - Show help
+│   ├── /config [key] [value] - View/set config
+│   ├── /logs [count] - View recent logs
+│   └── /version - Show version info
+│
+├── Document Commands
+│   ├── /docs list - List all documents
+│   ├── /docs create [title] - Create document
+│   ├── /docs magnify [id] [domain] - Expand document with domain expertise
+│   ├── /docs simplify [id] - Simplify document
+│   └── /docs solidify [id] - Make document executable
+│
+├── Agent Commands

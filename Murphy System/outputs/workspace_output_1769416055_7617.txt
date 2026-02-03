@@ -1,0 +1,21 @@
+    logger.error(f"✗ Enhanced systems initialization failed: {e}")
+    enhanced_librarian_system = EnhancedLibrarianSystem()
+    executive_bot_manager = ExecutiveBotManager()
+    hybrid_command_system = HybridCommandSystem(
+        librarian_system=enhanced_librarian_system,
+        executive_bots=executive_bot_manager
+    )
+
+    logger.info("✓ Enhanced systems initialized with LLM support")
+    else:
+        enhanced_librarian_system = EnhancedLibrarianSystem()
+        executive_bot_manager = ExecutiveBotManager()
+        hybrid_command_system = HybridCommandSystem(
+            librarian_system=enhanced_librarian_system,
+            executive_bots=executive_bot_manager
+        )
+        logger.info("✓ Enhanced systems initialized (LLM not available)")
+except Exception as e:
+    logger.error(f"✗ Enhanced systems initialization failed: {e}")
+    enhanced_librarian_system = EnhancedLibrarianSystem()
+    executive_bot_manager = ExecutiveBotManager()

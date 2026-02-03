@@ -1,0 +1,9 @@
+class FeedbackType(str, Enum):
+class FeedbackPriority(str, Enum):
+class FeedbackStatus(str, Enum):
+class Feedback(BaseModel):
+class FeedbackCollectionInterface:
+class FeedbackCategory(str, Enum):
+class FeedbackCategorizer:
+class FeedbackValidator:
+class FeedbackAnalytics:

@@ -1,0 +1,11 @@
+    def send_message(self, from_agent: str, to_agent: str, 
+                    message_type: str, content: Dict[str, Any]) -> AgentMessage:
+        """Send a message from one agent to another"""
+        message = AgentMessage(
+            id=str(uuid.uuid4()),
+            from_agent=from_agent,
+            to_agent=to_agent,
+            message_type=message_type,
+            content=content
+        )
+        

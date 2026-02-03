@@ -1,0 +1,9 @@
+Opening brace on its own line: 698 matches
+  {
+  {
+  {
+
+
+Analyzing brace distribution...
+Braces outside strings and templates: 0
+This indicates the issue is in template literals or strings

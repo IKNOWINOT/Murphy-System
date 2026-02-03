@@ -1,0 +1,6 @@
+Testing artifact generation WITH authentication...
+{
+    "error": "invalid_token",
+    "message": "Invalid or expired token",
+    "success": false
+}

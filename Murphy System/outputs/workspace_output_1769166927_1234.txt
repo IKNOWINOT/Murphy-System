@@ -1,0 +1,2 @@
+8:import hashlib
+51:        return hashlib.sha256(password.encode()).hexdigest()

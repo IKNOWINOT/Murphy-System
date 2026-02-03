@@ -1,0 +1,2 @@
+root       16240  1.0  1.1 127844 47840 ?        S    11:02   0:00 python3 murphy_backend_complete.py
+root       16243  3.0  1.2 129064 48804 ?        Sl   11:02   0:00 /usr/local/bin/python3 murphy_backend_complete.py

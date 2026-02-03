@@ -1,0 +1,10 @@
+total 72
+drwxr-xr-x  3 root root  4096 Feb  3 19:33 .
+drwxr-xr-x 30 root root  4096 Feb  3 19:33 ..
+-rw-r--r--  1 root root  1037 Feb  3 19:33 __init__.py
+-rw-r--r--  1 root root 12687 Feb  3 19:33 adapter_contract.py
+-rw-r--r--  1 root root 10993 Feb  3 19:33 adapter_runtime.py
+drwxr-xr-x  2 root root  4096 Feb  3 19:33 adapters
+-rw-r--r--  1 root root  7313 Feb  3 19:33 execution_packet_extension.py
+-rw-r--r--  1 root root 11411 Feb  3 19:33 safety_hooks.py
+-rw-r--r--  1 root root  7008 Feb  3 19:33 telemetry_artifact.py

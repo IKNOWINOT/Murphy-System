@@ -1,0 +1,11 @@
+        # Use the LibrarianSystem to process input
+        import asyncio
+        
+        try:
+            response = asyncio.run(librarian_system.ask(user_input)
+            
+            return jsonify({
+                'success': True,
+                'intent': {
+                    'category': response.intent.category.value,
+                    'confidence': response.intent.confidence,

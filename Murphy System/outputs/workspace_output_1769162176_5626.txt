@@ -1,0 +1,2 @@
+2565:            terminalInput.addEventListener('keydown', handleTerminalKeyPress);
+2571:            terminal.addEventListener('click', function() {

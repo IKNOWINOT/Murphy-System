@@ -1,0 +1,21 @@
+                    }
+                }
+            }
+            return connections;
+        }
+
+        // ============================================
+        // CORE COMMAND IMPLEMENTATIONS
+        // ============================================
+
+        async function showSystemStatus() {
+            addTerminalLog('=== System Status ===', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/status`);
+                const data = await response.json();
+                
+                addTerminalLog(`System Status: ${data.status}`, 'success');
+                addTerminalLog(`Backend Version: ${data.version}`, 'info');
+                addTerminalLog(`Initialized: ${data.initialized ? 'Yes' : 'No'}`, 'info');
+                

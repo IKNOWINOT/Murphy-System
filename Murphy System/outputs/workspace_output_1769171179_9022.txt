@@ -1,0 +1,100 @@
+"""
+Module Specification Data Models
+
+Defines the structure of compiled modules and their capabilities.
+
+Owner: INONI LLC / Corey Post (corey.gfc@gmail.com)
+"""
+
+from dataclasses import dataclass, field
+from typing import Dict, List, Any, Optional
+from enum import Enum
+import hashlib
+import json
+from datetime import datetime
+
+
+class DeterminismLevel(Enum):
+    """Classification of capability determinism"""
+    DETERMINISTIC = "deterministic"  # Same input → same output
+    PROBABILISTIC = "probabilistic"  # Uses randomness
+    EXTERNAL_STATE = "external_state"  # Depends on external state
+
+
+class FailureSeverity(Enum):
+    """Severity of potential failure modes"""
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+@dataclass
+class ResourceProfile:
+    """Resource requirements for capability execution"""
+    cpu_limit: float = 1.0  # CPU cores
+    memory_limit: str = "512MB"  # Memory limit
+    disk_limit: str = "100MB"  # Disk space limit
+    timeout_seconds: int = 60  # Execution timeout
+    network_required: bool = False  # Network access needed
+    gpu_required: bool = False  # GPU access needed
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "cpu_limit": self.cpu_limit,
+            "memory_limit": self.memory_limit,
+            "disk_limit": self.disk_limit,
+            "timeout_seconds": self.timeout_seconds,
+            "network_required": self.network_required,
+            "gpu_required": self.gpu_required,
+        }
+
+
+@dataclass
+class FailureMode:
+    """Potential failure mode for a capability"""
+    type: str  # e.g., "network_timeout", "division_by_zero"
+    severity: FailureSeverity
+    description: str
+    mitigation: Optional[str] = None
+    probability: Optional[float] = None  # 0.0 to 1.0
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "type": self.type,
+            "severity": self.severity.value,
+            "description": self.description,
+            "mitigation": self.mitigation,
+            "probability": self.probability,
+        }
+
+
+@dataclass
+class Capability:
+    """A single executable capability within a module"""
+    name: str
+    description: str
+    input_schema: Dict[str, Any]  # JSON Schema
+    output_schema: Dict[str, Any]  # JSON Schema
+    determinism: DeterminismLevel
+    resource_profile: ResourceProfile
+    failure_modes: List[FailureMode] = field(default_factory=list)
+    test_vectors: List[Dict[str, Any]] = field(default_factory=list)
+    entry_point: Optional[str] = None  # Function/method name
+    required_env_vars: List[str] = field(default_factory=list)
+    required_files: List[str] = field(default_factory=list)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "name": self.name,
+            "description": self.description,
+            "input_schema": self.input_schema,
+            "output_schema": self.output_schema,
+            "determinism": self.determinism.value,
+            "resource_profile": self.resource_profile.to_dict(),
+            "failure_modes": [fm.to_dict() for fm in self.failure_modes],
+            "test_vectors": self.test_vectors,
+            "entry_point": self.entry_point,
+            "required_env_vars": self.required_env_vars,
+            "required_files": self.required_files,
+        }

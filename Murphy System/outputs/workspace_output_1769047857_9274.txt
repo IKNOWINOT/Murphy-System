@@ -1,0 +1,5 @@
+1963:        function showLibrarianHelp() {
+1975:        function showSwarmHelp() {
+1990:        function showGateHelp() {
+2009:        function showDocumentHelp() {
+2024:        function showArtifactHelp() {

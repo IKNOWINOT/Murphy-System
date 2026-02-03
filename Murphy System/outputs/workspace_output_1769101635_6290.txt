@@ -1,0 +1,13 @@
+index.html
+murphy_backend_integrated.html
+murphy_complete_frontend.html
+murphy_complete_ui.html
+murphy_complete_v2.html
+murphy_generative_system.html
+murphy_integrated_terminal.html
+murphy_interactive_demo.html
+murphy_live_demo.html
+murphy_system_interactive.html
+murphy_system_live.html
+murphy_terminal_runtime.html
+terminal_enhanced.html

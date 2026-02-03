@@ -1,0 +1,21 @@
+    <div id="artifact-detail-modal" class="detail-panel"></div>
+    <div id="artifact-generate-modal" class="detail-panel"></div>
+    <div id="artifact-version-modal" class="detail-panel"></div>
+    <div id="artifact-convert-modal" class="detail-panel"></div>
+
+    <!-- Artifact List Container (for sidebar or tab) -->
+    <div id="artifact-list" style="display: none;"></div>
+
+    <!-- Command Enhancements Module (Priority 3) -->
+    <script src="command_enhancements.js"></script>
+    <script src="terminal_enhancements_integration.js"></script>
+    
+    <script>
+        // ============================================
+        // CONFIGURATION
+        // ============================================
+        // Auto-detect if we're on localhost or production
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const API_BASE = isLocalhost ? 'http://localhost:3002' : 'https://3002-7ced438b-5e53-49d7-a2f0-8056ffbc558b.sandbox-service.public.prod.myninja.ai';
+        let ws = null;
+        let agentGraph = null;

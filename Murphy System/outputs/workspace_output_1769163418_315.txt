@@ -1,0 +1,1 @@
+2261:                    content: `<pre>${JSON.stringify(agent.config, null, 2)}</pre>`

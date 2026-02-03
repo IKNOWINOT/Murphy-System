@@ -1,0 +1,1 @@
+export function stylize(text:string, tone:'neutral'|'formal'|'casual'='neutral'){ if(tone==='formal') return text.replace(/\byou\b/gi, 'you'); if(tone==='casual') return text; return text; }

@@ -1,0 +1,1 @@
+4157:        function addTerminalLog(message, type = 'info') {

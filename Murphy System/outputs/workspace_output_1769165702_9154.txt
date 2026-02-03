@@ -1,0 +1,21 @@
+Error responses with success: False: 106
+500 status codes: 43
+Authentication errors (401/403): 0
+Try-except blocks that return errors: 0
+
+Sample error response patterns:
+
+1. return jsonify({
+            'success': False,
+            'message': f'Failed to initialize: {str(e)}'
+        })...
+
+2. return jsonify({
+            'success': False,
+            'message': 'Monitoring system not available'
+        })...
+
+3. return jsonify({
+            'success': False,
+            'message': str(e)
+        })...

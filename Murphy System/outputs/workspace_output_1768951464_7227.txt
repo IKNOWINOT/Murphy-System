@@ -1,0 +1,6 @@
+695:                    <button class="button secondary" onclick="testGroq()">🧪 Test Groq API</button>
+1284:        // Groq Test
+1285:        async function testGroq() {
+1286:            addLog('Testing Groq API...', 'info');
+1298:                    addLog('✓ Groq API test successful', 'success');
+1301:                    addLog(`✗ Groq API test failed: ${data.error}`, 'error');

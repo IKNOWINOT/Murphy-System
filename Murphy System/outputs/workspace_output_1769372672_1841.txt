@@ -1,0 +1,9 @@
+{
+  "demo_mode": false,
+  "provider": "Groq",
+  "response": [
+    "2 + 2 = 4.",
+    76
+  ],
+  "success": true
+}

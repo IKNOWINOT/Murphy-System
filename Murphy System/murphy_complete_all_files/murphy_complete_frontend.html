@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murphy System - Complete Business Operating System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #e0e0e0;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(90deg, #1a1f3a 0%, #2a2f4a 100%);
+            border-bottom: 3px solid #00ff41;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            color: #00ff41;
+            text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+        }
+
+        .llm-status {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .llm-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .llm-badge.active {
+            background: linear-gradient(135deg, #00ff41 0%, #00cc33 100%);
+            color: #0a0e27;
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.5);
+        }
+
+        .llm-badge.inactive {
+            background: #2a2f4a;
+            color: #666;
+            border: 1px solid #444;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .main-container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+
+        .sidebar {
+            width: 320px;
+            background: #0f1420;
+            border-right: 2px solid #00ff41;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .sidebar h3 {
+            color: #00ff41;
+            font-size: 16px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #00ff41;
+        }
+
+        .center-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #0a0e27;
+        }
+
+        .living-document-editor {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .document-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1f3a 0%, #2a2f4a 100%);
+            border-radius: 10px;
+            border: 2px solid #00ff41;
+        }
+
+        .document-title {
+            font-size: 24px;
+            color: #00ff41;
+        }
+
+        .document-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00ff41 0%, #00cc33 100%);
+            color: #0a0e27;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 65, 0.4);
+        }
+
+        .btn-secondary {
+            background: #2a2f4a;
+            color: #00ff41;
+            border: 1px solid #00ff41;
+        }
+
+        .btn-secondary:hover {
+            background: #3a3f5a;
+        }
+
+        .document-stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #1a1f3a;
+            border-radius: 8px;
+        }
+
+        .stat {
+            flex: 1;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            color: #00ff41;
+            font-weight: bold;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #2a2f4a;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff41 0%, #00cc33 100%);
+            transition: width 0.3s;
+        }
+
+        .content-editor {
+            background: #1a1f3a;
+            border: 2px solid #00ff41;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 400px;
+            color: #e0e0e0;
+            font-size: 16px;
+            line-height: 1.8;
+        }
+
+        .content-editor[contenteditable="true"] {
+            outline: none;
+        }
+
+        .content-editor:focus {
+            border-color: #00ffff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+
+        .state-tree {
+            margin-top: 20px;
+        }
+
+        .state-node {
+            padding: 12px;
+            margin: 8px 0;
+            background: #1a1f3a;
+            border-left: 4px solid #00ff41;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .state-node:hover {
+            background: #2a2f4a;
+            transform: translateX(5px);
+        }
+
+        .state-node.active {
+            background: linear-gradient(90deg, #00ff41 0%, #00cc33 100%);
+            color: #0a0e27;
+            font-weight: bold;
+        }
+
+        .state-node.child {
+            margin-left: 20px;
+            border-left-color: #0088ff;
+        }
+
+        .swarm-visualizer {
+            margin-top: 20px;
+        }
+
+        .swarm-agent {
+            padding: 15px;
+            margin: 10px 0;
+            background: #1a1f3a;
+            border-radius: 8px;
+            border: 2px solid #00ff41;
+        }
+
+        .agent-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .agent-name {
+            font-size: 16px;
+            color: #00ff41;
+            font-weight: bold;
+        }
+
+        .agent-status {
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            background: #2a2f4a;
+        }
+
+        .agent-progress {
+            margin-top: 10px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1f3a 0%, #2a2f4a 100%);
+            border: 3px solid #00ff41;
+            border-radius: 15px;
+            padding: 40px;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 255, 65, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .modal-title {
+            font-size: 28px;
+            color: #00ff41;
+        }
+
+        .close-modal {
+            font-size: 32px;
+            color: #ff4444;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .close-modal:hover {
+            transform: scale(1.2);
+        }
+
+        .init-option {
+            padding: 20px;
+            margin: 15px 0;
+            background: #1a1f3a;
+            border: 2px solid #00ff41;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .init-option:hover {
+            background: #2a2f4a;
+            transform: translateX(10px);
+            box-shadow: 0 5px 20px rgba(0, 255, 65, 0.3);
+        }
+
+        .init-option h4 {
+            color: #00ff41;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .init-option p {
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        .demo-banner {
+            background: linear-gradient(135deg, #ff00ff 0%, #ff0088 100%);
+            color: white;
+            padding: 15px 30px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .demo-banner:hover {
+            background: linear-gradient(135deg, #ff0088 0%, #ff00ff 100%);
+            box-shadow: 0 5px 20px rgba(255, 0, 136, 0.5);
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0a0e27;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #00ff41 0%, #00cc33 100%);
+            border-radius: 5px;
+        }
+    </style>
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>⚡ MURPHY SYSTEM - Complete Business Operating System</h1>
+        <div class="llm-status">
+            <div class="llm-badge inactive" id="llm-groq">
+                <div class="status-dot"></div>
+                GROQ
+            </div>
+            <div class="llm-badge inactive" id="llm-aristotle">
+                <div class="status-dot"></div>
+                ARISTOTLE
+            </div>
+            <div class="llm-badge active" id="llm-onboard">
+                <div class="status-dot"></div>
+                ONBOARD
+            </div>
+        </div>
+    </div>
+
+    <!-- Demo Banner -->
+    <div class="demo-banner" onclick="startFreeDemo()">
+        🎁 DEMO ON THE HOUSE - Try Murphy System FREE! Click Here
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Left Sidebar -->
+        <div class="sidebar">
+            <h3>📊 STATE EVOLUTION</h3>
+            <div class="state-tree" id="state-tree"></div>
+
+            <h3 style="margin-top: 30px;">🤖 ACTIVE SWARMS</h3>
+            <div class="swarm-visualizer" id="swarm-list"></div>
+        </div>
+
+        <!-- Center Panel -->
+        <div class="center-panel">
+            <div class="living-document-editor">
+                <div class="document-header">
+                    <div class="document-title" id="doc-title">Living Document</div>
+                    <div class="document-controls">
+                        <button class="btn btn-primary" onclick="magnifyDocument()">🔍 MAGNIFY</button>
+                        <button class="btn btn-primary" onclick="simplifyDocument()">📉 SIMPLIFY</button>
+                        <button class="btn btn-secondary" onclick="editDocument()">✏️ EDIT</button>
+                        <button class="btn btn-primary" onclick="solidifyDocument()">✅ SOLIDIFY</button>
+                    </div>
+                </div>
+
+                <div class="document-stats">
+                    <div class="stat">
+                        <div class="stat-label">Confidence</div>
+                        <div class="stat-value" id="stat-confidence">0.45</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-confidence" style="width: 45%"></div>
+                        </div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Domain Depth</div>
+                        <div class="stat-value" id="stat-domain">0%</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-domain" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">State</div>
+                        <div class="stat-value" id="stat-state">INITIAL</div>
+                    </div>
+                </div>
+
+                <div class="content-editor" id="content-editor" contenteditable="true">
+                    Click "Initialize System" to begin...
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="sidebar">
+            <h3>🎯 DOMAIN GATES</h3>
+            <div id="gates-list"></div>
+
+            <h3 style="margin-top: 30px;">📦 ARTIFACTS</h3>
+            <div id="artifacts-list"></div>
+        </div>
+    </div>
+
+    <!-- Initialization Modal -->
+    <div class="modal active" id="init-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Initialize Murphy System</div>
+                <div class="close-modal" onclick="closeModal('init-modal')">&times;</div>
+            </div>
+
+            <div class="init-option" onclick="initMode('company')">
+                <h4>🏢 I Know My Company Details</h4>
+                <p>Start with your organization structure and requirements</p>
+            </div>
+
+            <div class="init-option" onclick="initMode('demo')">
+                <h4>🎮 Load Demo Company</h4>
+                <p>Explore with a pre-configured example company</p>
+            </div>
+
+            <div class="init-option" onclick="initMode('problem')">
+                <h4>🎯 I Have a Specific Problem</h4>
+                <p>Start with your challenge and work backwards</p>
+            </div>
+
+            <div class="init-option" onclick="initMode('librarian')">
+                <h4>📚 Guide Me (Librarian)</h4>
+                <p>Let the system ask questions and build your setup</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // System State
+        let systemState = {
+            initialized: false,
+            currentDocument: null,
+            documents: {},
+            states: [],
+            swarms: [],
+            gates: [],
+            artifacts: []
+        };
+
+        // Initialize with mode
+        function initMode(mode) {
+            closeModal('init-modal');
+            
+            if (mode === 'librarian') {
+                startLibrarianGuide();
+            } else if (mode === 'demo') {
+                loadDemoCompany();
+            } else if (mode === 'problem') {
+                startWithProblem();
+            } else {
+                startWithCompany();
+            }
+        }
+
+        // Librarian guided setup
+        function startLibrarianGuide() {
+            const content = document.getElementById('content-editor');
+            content.innerHTML = `
+                <h2>Welcome to Murphy System</h2>
+                <p>I'm the Librarian. I'll help you set up your system.</p>
+                <br>
+                <p><strong>Question 1:</strong> What type of business are you running?</p>
+                <input type="text" id="q1" placeholder="e.g., Manufacturing, Software, Consulting" style="width: 100%; padding: 10px; margin: 10px 0; background: #0a0e27; border: 1px solid #00ff41; color: #00ff41;">
+                <br><br>
+                <p><strong>Question 2:</strong> What's your primary goal right now?</p>
+                <input type="text" id="q2" placeholder="e.g., Build a facility, Launch a product, Improve operations" style="width: 100%; padding: 10px; margin: 10px 0; background: #0a0e27; border: 1px solid #00ff41; color: #00ff41;">
+                <br><br>
+                <button class="btn btn-primary" onclick="processLibrarianAnswers()">Continue</button>
+            `;
+        }
+
+        function processLibrarianAnswers() {
+            const q1 = document.getElementById('q1').value;
+            const q2 = document.getElementById('q2').value;
+            
+            createLivingDocument('Business Initiative', `
+                Business Type: ${q1}
+                Primary Goal: ${q2}
+                
+                We need to develop a comprehensive plan that addresses all aspects of this initiative,
+                including engineering, financial, regulatory, and operational considerations.
+            `);
+        }
+
+        // Load demo company
+        function loadDemoCompany() {
+            createLivingDocument('Manufacturing Facility Proposal', `
+                Project: Build a 50,000 sq ft manufacturing facility
+                
+                Requirements:
+                - Load capacity: 500 tons
+                - Crane system: 20-ton overhead
+                - Power: 480V 3-phase, 2000A service
+                - Compliance: FDA, OSHA, local building codes
+                - Budget: $5M
+                - Timeline: 18 months
+                
+                This facility will manufacture medical devices and must meet all regulatory requirements.
+            `);
+        }
+
+        // Start with problem
+        function startWithProblem() {
+            const content = document.getElementById('content-editor');
+            content.innerHTML = `
+                <h2>Describe Your Challenge</h2>
+                <p>Tell me what you're trying to accomplish:</p>
+                <textarea id="problem-input" style="width: 100%; height: 200px; padding: 15px; margin: 10px 0; background: #0a0e27; border: 2px solid #00ff41; color: #00ff41; font-size: 16px; border-radius: 5px;"></textarea>
+                <br><br>
+                <button class="btn btn-primary" onclick="processProblem()">Analyze & Create Plan</button>
+            `;
+        }
+
+        function processProblem() {
+            const problem = document.getElementById('problem-input').value;
+            createLivingDocument('Solution Plan', problem);
+        }
+
+        // Start with company
+        function startWithCompany() {
+            const content = document.getElementById('content-editor');
+            content.innerHTML = `
+                <h2>Company Information</h2>
+                <p><strong>Company Name:</strong></p>
+                <input type="text" id="company-name" style="width: 100%; padding: 10px; margin: 10px 0; background: #0a0e27; border: 1px solid #00ff41; color: #00ff41;">
+                
+                <p><strong>Industry:</strong></p>
+                <input type="text" id="company-industry" style="width: 100%; padding: 10px; margin: 10px 0; background: #0a0e27; border: 1px solid #00ff41; color: #00ff41;">
+                
+                <p><strong>Current Initiative:</strong></p>
+                <textarea id="company-initiative" style="width: 100%; height: 150px; padding: 15px; margin: 10px 0; background: #0a0e27; border: 2px solid #00ff41; color: #00ff41; font-size: 16px; border-radius: 5px;"></textarea>
+                <br><br>
+                <button class="btn btn-primary" onclick="processCompanyInfo()">Create Living Document</button>
+            `;
+        }
+
+        function processCompanyInfo() {
+            const name = document.getElementById('company-name').value;
+            const industry = document.getElementById('company-industry').value;
+            const initiative = document.getElementById('company-initiative').value;
+            
+            createLivingDocument(`${name} - ${industry} Initiative`, `
+                Company: ${name}
+                Industry: ${industry}
+                
+                Initiative:
+                ${initiative}
+            `);
+        }
+
+        // Create living document
+        function createLivingDocument(title, content) {
+            const doc = {
+                id: `DOC-${Date.now()}`,
+                title: title,
+                content: content,
+                state: 'INITIAL',
+                confidence: 0.45,
+                domainDepth: 0,
+                history: []
+            };
+            
+            systemState.currentDocument = doc;
+            systemState.documents[doc.id] = doc;
+            
+            updateDocumentDisplay();
+            addStateNode(doc.id, title, 'INITIAL', 0.45);
+        }
+
+        // Update document display
+        function updateDocumentDisplay() {
+            const doc = systemState.currentDocument;
+            if (!doc) return;
+            
+            document.getElementById('doc-title').textContent = doc.title;
+            document.getElementById('content-editor').innerHTML = doc.content.replace(/\n/g, '<br>');
+            document.getElementById('stat-confidence').textContent = doc.confidence.toFixed(2);
+            document.getElementById('stat-domain').textContent = doc.domainDepth + '%';
+            document.getElementById('stat-state').textContent = doc.state;
+            document.getElementById('progress-confidence').style.width = (doc.confidence * 100) + '%';
+            document.getElementById('progress-domain').style.width = doc.domainDepth + '%';
+        }
+
+        // Magnify document
+        function magnifyDocument() {
+            const doc = systemState.currentDocument;
+            if (!doc) return;
+            
+            doc.domainDepth = Math.min(100, doc.domainDepth + 15);
+            doc.confidence = Math.min(1.0, doc.confidence + 0.1);
+            doc.history.push({action: 'magnify', timestamp: new Date().toISOString()});
+            
+            updateDocumentDisplay();
+            addStateNode(doc.id, `${doc.title} (Magnified)`, 'MAGNIFIED', doc.confidence);
+        }
+
+        // Simplify document
+        function simplifyDocument() {
+            const doc = systemState.currentDocument;
+            if (!doc) return;
+            
+            doc.domainDepth = Math.max(0, doc.domainDepth - 10);
+            doc.confidence = Math.min(1.0, doc.confidence + 0.05);
+            doc.history.push({action: 'simplify', timestamp: new Date().toISOString()});
+            
+            updateDocumentDisplay();
+            addStateNode(doc.id, `${doc.title} (Simplified)`, 'SIMPLIFIED', doc.confidence);
+        }
+
+        // Edit document
+        function editDocument() {
+            const editor = document.getElementById('content-editor');
+            editor.contentEditable = true;
+            editor.focus();
+        }
+
+        // Solidify document
+        function solidifyDocument() {
+            const doc = systemState.currentDocument;
+            if (!doc) return;
+            
+            doc.state = 'SOLIDIFIED';
+            doc.confidence = Math.min(1.0, doc.confidence + 0.2);
+            
+            updateDocumentDisplay();
+            
+            // Generate prompts and start swarms
+            generatePromptsAndSwarms();
+        }
+
+        // Generate prompts and swarms
+        function generatePromptsAndSwarms() {
+            const domains = ['Engineering', 'Financial', 'Regulatory', 'Sales', 'Operations'];
+            
+            domains.forEach((domain, index) => {
+                setTimeout(() => {
+                    addSwarm(domain, `Analyzing ${domain.toLowerCase()} requirements`);
+                    generateDomainGates(domain);
+                }, index * 500);
+            });
+        }
+
+        // Add state node
+        function addStateNode(docId, title, state, confidence) {
+            const tree = document.getElementById('state-tree');
+            const node = document.createElement('div');
+            node.className = 'state-node';
+            node.innerHTML = `
+                <div>${title}</div>
+                <div style="font-size: 11px; opacity: 0.7; margin-top: 5px;">
+                    ${state} | Confidence: ${confidence.toFixed(2)}
+                </div>
+            `;
+            tree.appendChild(node);
+        }
+
+        // Add swarm
+        function addSwarm(domain, purpose) {
+            const swarm = {
+                id: `SWARM-${systemState.swarms.length}`,
+                domain: domain,
+                purpose: purpose,
+                progress: 0,
+                status: 'active'
+            };
+            
+            systemState.swarms.push(swarm);
+            renderSwarms();
+            
+            // Simulate progress
+            const interval = setInterval(() => {
+                swarm.progress += Math.random() * 15;
+                if (swarm.progress >= 100) {
+                    swarm.progress = 100;
+                    swarm.status = 'completed';
+                    clearInterval(interval);
+                    
+                    // Generate artifact
+                    addArtifact(domain, `${domain} Analysis Report`);
+                }
+                renderSwarms();
+            }, 1000);
+        }
+
+        // Render swarms
+        function renderSwarms() {
+            const list = document.getElementById('swarm-list');
+            list.innerHTML = '';
+            
+            systemState.swarms.forEach(swarm => {
+                const div = document.createElement('div');
+                div.className = 'swarm-agent';
+                div.innerHTML = `
+                    <div class="agent-header">
+                        <div class="agent-name">${swarm.domain}</div>
+                        <div class="agent-status">${swarm.status}</div>
+                    </div>
+                    <div style="font-size: 12px; opacity: 0.8;">${swarm.purpose}</div>
+                    <div class="agent-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${swarm.progress}%"></div>
+                        </div>
+                        <div style="font-size: 11px; margin-top: 5px;">${swarm.progress.toFixed(0)}%</div>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // Generate domain gates
+        function generateDomainGates(domain) {
+            const gateTemplates = {
+                'Engineering': ['Load Calculations', 'Code Compliance', 'Safety Factors'],
+                'Financial': ['Budget Constraint', 'ROI Threshold', 'Cash Flow'],
+                'Regulatory': ['FDA Compliance', 'OSHA Standards', 'Local Laws'],
+                'Sales': ['Market Validation', 'Pricing Strategy', 'Contract Terms'],
+                'Operations': ['Resource Availability', 'Timeline Feasibility', 'Quality Standards']
+            };
+            
+            const gates = gateTemplates[domain] || [];
+            gates.forEach(gateName => {
+                addGate(domain, gateName);
+            });
+        }
+
+        // Add gate
+        function addGate(domain, name) {
+            const gate = {
+                id: `GATE-${systemState.gates.length}`,
+                domain: domain,
+                name: name,
+                status: 'active'
+            };
+            
+            systemState.gates.push(gate);
+            renderGates();
+        }
+
+        // Render gates
+        function renderGates() {
+            const list = document.getElementById('gates-list');
+            list.innerHTML = '';
+            
+            systemState.gates.forEach(gate => {
+                const div = document.createElement('div');
+                div.className = 'state-node';
+                div.innerHTML = `
+                    <div style="font-size: 12px; font-weight: bold;">${gate.name}</div>
+                    <div style="font-size: 10px; opacity: 0.7; margin-top: 3px;">${gate.domain}</div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // Add artifact
+        function addArtifact(domain, name) {
+            const artifact = {
+                id: `ARTIFACT-${systemState.artifacts.length}`,
+                domain: domain,
+                name: name,
+                timestamp: new Date().toISOString()
+            };
+            
+            systemState.artifacts.push(artifact);
+            renderArtifacts();
+        }
+
+        // Render artifacts
+        function renderArtifacts() {
+            const list = document.getElementById('artifacts-list');
+            list.innerHTML = '';
+            
+            systemState.artifacts.forEach(artifact => {
+                const div = document.createElement('div');
+                div.className = 'state-node';
+                div.innerHTML = `
+                    <div style="font-size: 12px; font-weight: bold;">${artifact.name}</div>
+                    <div style="font-size: 10px; opacity: 0.7; margin-top: 3px;">${artifact.domain}</div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // Start free demo
+        function startFreeDemo() {
+            alert('🎁 Demo On The House activated! All features unlocked for this session.');
+            loadDemoCompany();
+        }
+
+        // Close modal
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Initialize on load
+        window.onload = () => {
+            console.log('Murphy System - Complete Business Operating System');
+        };
+    </script>
+</body>
+</html>

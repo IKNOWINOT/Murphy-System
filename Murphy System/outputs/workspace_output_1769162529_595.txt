@@ -1,0 +1,10 @@
+                    const currentValue = parseInt(metric.textContent);
+                    if (!isNaN(currentValue)) {
+                        metric.textContent = currentValue + (Math.random() > 0.5 ? 1 : -1);
+                    }
+                }
+            });
+        }, 5000);
+    </script>
+</body>
+</html>

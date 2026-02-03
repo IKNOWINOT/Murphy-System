@@ -1,0 +1,100 @@
+"""
+Integration Script for Enhanced Murphy Systems
+
+This script integrates:
+1. Enhanced Librarian System
+2. Executive Bot System
+3. Hybrid Command System
+
+Run this to update the backend with new systems
+"""
+
+import sys
+
+# Read current backend
+try:
+    with open('/workspace/murphy_backend_complete.py', 'r') as f:
+        backend_content = f.read()
+    print("Backend file loaded successfully")
+except FileNotFoundError:
+    print("Backend file not found. Creating new integration code...")
+    backend_content = ""
+
+# Import statements to add
+new_imports = """
+# Enhanced Systems Integration
+from enhanced_librarian_system import EnhancedLibrarianSystem, DiscoveryPhase
+from executive_bot_system import ExecutiveBotManager, BotRole
+from hybrid_command_system import HybridCommandSystem
+"""
+
+# Check if imports already exist
+if "from enhanced_librarian_system" not in backend_content:
+    # Find the last import statement and add after it
+    lines = backend_content.split('\n')
+    import_idx = -1
+    
+    for i, line in enumerate(lines):
+        if line.startswith('from ') or line.startswith('import '):
+            import_idx = i
+    
+    if import_idx >= 0:
+        lines.insert(import_idx + 1, new_imports)
+        backend_content = '\n'.join(lines)
+        print("Added new imports")
+    else:
+        print("No imports found, appending to beginning")
+        backend_content = new_imports + '\n' + backend_content
+else:
+    print("Imports already exist")
+
+# Initialization code to add
+initialization_code = """
+
+# Initialize Enhanced Systems
+enhanced_librarian_system = None
+executive_bot_manager = None
+hybrid_command_system = None
+
+if LIBRARIAN_AVAILABLE and llm_manager:
+    enhanced_librarian_system = EnhancedLibrarianSystem(llm_client=llm_manager)
+    executive_bot_manager = ExecutiveBotManager(llm_client=llm_manager)
+    hybrid_command_system = HybridCommandSystem(
+        librarian_system=enhanced_librarian_system,
+        executive_bots=executive_bot_manager
+    )
+    logger.info("Enhanced systems initialized with LLM support")
+else:
+    enhanced_librarian_system = EnhancedLibrarianSystem()
+    executive_bot_manager = ExecutiveBotManager()
+    hybrid_command_system = HybridCommandSystem()
+    logger.info("Enhanced systems initialized without LLM support")
+"""
+
+# Find where to add initialization (after librarian initialization)
+if "enhanced_librarian_system" not in backend_content:
+    # Find librarian initialization block
+    if "librarian_system = LibrarianSystem" in backend_content:
+        # Add after librarian initialization
+        backend_content = backend_content.replace(
+            "    logger.info(&quot;Librarian System initialized&quot;)",
+            "    logger.info(&quot;Librarian System initialized&quot;)" + initialization_code
+        )
+        print("Added enhanced systems initialization")
+    else:
+        print("Librarian initialization not found, cannot add enhanced systems initialization")
+else:
+    print("Enhanced systems initialization already exists")
+
+# New API endpoints to add
+new_endpoints = """
+
+# ==================== ENHANCED LIBRARIAN ENDPOINTS ====================
+
+@app.route('/api/librarian/enhanced', methods=['POST'])
+@require_auth(auth_system if AUTH_AVAILABLE else None)
+def librarian_enhanced_ask():
+    """Enhanced librarian endpoint with discovery workflow"""
+    try:
+        data = request.get_json()
+        user_input = data.get('input', '')

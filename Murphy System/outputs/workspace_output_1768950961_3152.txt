@@ -1,0 +1,20 @@
+total 436
+drwxr-xr-x  9 root root  4096 Jan 20 23:02 .
+drwxr-xr-x  9 user user  4096 Jan 20 19:21 ..
+-rw-r--r--  1 root root  4679 Jan 20 16:37 CHANGELOG_LATEST.md
+-rw-r--r--  1 root root  8074 Jan 19 11:08 COMPLETE_MURPHY_SYSTEM_RUNTIME.md
+-rw-r--r--  1 root root 11413 Jan 19 11:08 COMPREHENSIVE_WORK_SUMMARY.md
+-rw-r--r--  1 root root  9874 Jan 19 11:08 EXECUTION_ENGINES_TEST_CORRECTION_COMPLETE.md
+-rw-r--r--  1 root root  6728 Jan 19 11:16 FINAL_COMPLETION_REPORT.md
+-rw-r--r--  1 root root 15301 Jan 19 11:08 FINAL_DOCUMENTATION_INDEX.md
+-rw-r--r--  1 root root  2452 Jan 19 11:15 FINAL_PACKAGE_RELEASE.md
+-rw-r--r--  1 root root 10731 Jan 19 11:16 LICENSE
+-rw-r--r--  1 root root  3820 Jan 20 16:46 NAMING_CONVENTIONS_FIXED.md
+-rw-r--r--  1 root root 11356 Jan 19 11:08 PACKAGE_MANIFEST.md
+-rw-r--r--  1 root root  5403 Jan 19 11:08 README.md
+-rw-r--r--  1 root root  5609 Jan 20 16:37 README_DOMAIN_SYSTEM.md
+-rw-r--r--  1 root root 12916 Jan 19 11:15 README_FINAL.md
+-rw-r--r--  1 root root 11789 Jan 20 19:15 TEST_REPORT.md
+-rw-r--r--  1 root root  8393 Jan 20 16:47 UPDATE_SUMMARY_NAMING_FIXES.md
+-rw-r--r--  1 root root 10871 Jan 20 19:19 USER_GUIDE.md
+drwxr-xr-x  2 root root  4096 Jan 20 18:55 __pycache__

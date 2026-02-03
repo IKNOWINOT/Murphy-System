@@ -1,0 +1,349 @@
+{
+  "name": "DOCS_v1_Route_Docs",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT d.document_id, d.client_id, d.document_uuid, d.original_filename, d.storage_path, d.category, d.priority, d.validation_score, d.status, de.result_data, de.confidence_score FROM documents d LEFT JOIN document_extractions de ON d.document_id = de.document_id WHERE d.status = 'validated' ORDER BY d.priority DESC, d.received_at ASC LIMIT 15;",
+        "options": {}
+      },
+      "id": "fetch-validated-docs",
+      "name": "Fetch Validated Documents",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT config_key, config_value FROM client_config WHERE client_id = $1 AND pack_name = 'DOCS_v1' AND config_key LIKE 'routing_%' ORDER BY config_key;",
+        "options": {}
+      },
+      "id": "get-routing-config",
+      "name": "Get Routing Config",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [650, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse routing configuration and determine destinations\nconst document = $input.first().json;\nconst routingConfigItems = $input.all().slice(1).map(item => item.json);\n\n// Initialize routing rules with defaults\nlet routingRules = {\n  destinations: [],\n  categoryMappings: {},\n  minValidationScore: 70,\n  autoRoute: false\n};\n\n// Parse config values\nroutingConfigItems.forEach(config => {\n  const key = config.config_key;\n  const value = config.config_value;\n  \n  if (key === 'routing_destinations') {\n    routingRules.destinations = value || [];\n  } else if (key === 'category_mappings') {\n    routingRules.categoryMappings = value || {};\n  } else if (key === 'routing_min_validation_score') {\n    routingRules.minValidationScore = value || 70;\n  } else if (key === 'routing_auto') {\n    routingRules.autoRoute = value || false;\n  }\n});\n\n// Determine destinations for this document\nconst category = document.category || 'other';\nconst validationScore = document.validation_score || 0;\n\nlet destinations = [];\n\n// Check category-specific mappings first\nif (routingRules.categoryMappings[category]) {\n  destinations = routingRules.categoryMappings[category];\n}\n\n// If no category mapping, use default destinations\nif (destinations.length === 0) {\n  destinations = routingRules.destinations;\n}\n\n// Determine if document should be routed\nconst shouldRoute = validationScore >= routingRules.minValidationScore && \n                     routingRules.autoRoute && \n                     destinations.length > 0;\n\n// Prepare routing data\nconst routingData = {\n  document_id: document.document_id,\n  document_uuid: document.document_uuid,\n  client_id: document.client_id,\n  original_filename: document.original_filename,\n  storage_path: document.storage_path,\n  category: category,\n  priority: document.priority,\n  validation_score: validationScore,\n  extracted_data: document.result_data || {},\n  confidence_score: document.confidence_score || 0,\n  routing_rules: routingRules,\n  destinations: destinations,\n  should_route: shouldRoute,\n  timestamp: new Date().toISOString()\n};\n\nreturn [{ json: routingData }];"
+      },
+      "id": "evaluate-routing-rules",
+      "name": "Evaluate Routing Rules",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "should-route",
+              "leftValue": "={{ $json.should_route }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "should-route-check",
+      "name": "Should Route?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "operation": "loop",
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "loop-destinations",
+      "name": "Loop Destinations",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1250, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Route document to specific destination\nconst data = $input.first().json;\nconst document = data;\nconst destination = document.destinations[data.$index || 0];\n\nconst destinationType = destination.type;\nconst destinationConfig = destination.config || {};\n\nlet result = {\n  document_id: document.document_id,\n  destination_type: destinationType,\n  destination_config: destinationConfig,\n  status: 'pending',\n  message: '',\n  sent_at: null\n};\n\ntry {\n  switch(destinationType) {\n    case 'webhook':\n      // Prepare webhook payload\n      const webhookPayload = {\n        document_id: document.document_uuid,\n        document_uuid: document.document_uuid,\n        client_id: document.client_id,\n        filename: document.original_filename,\n        category: document.category,\n        priority: document.priority,\n        validation_score: document.validation_score,\n        extracted_data: document.extracted_data,\n        storage_path: document.storage_path,\n        timestamp: document.timestamp\n      };\n      \n      // In production, this would be an actual HTTP POST\n      result.message = `Webhook call would be made to: ${destinationConfig.url}`;\n      result.payload = webhookPayload;\n      result.status = 'sent';\n      result.sent_at = new Date().toISOString();\n      break;\n      \n    case 'email':\n      result.message = `Email would be sent to: ${destinationConfig.recipient || destinationConfig.to}`;\n      result.recipient = destinationConfig.recipient;\n      result.subject = `New ${document.category} document: ${document.original_filename}`;\n      result.status = 'sent';\n      result.sent_at = new Date().toISOString();\n      break;\n      \n    case 'slack':\n      result.message = `Slack message would be sent to: ${destinationConfig.channel}`;\n      result.channel = destinationConfig.channel;\n      result.status = 'sent';\n      result.sent_at = new Date().toISOString();\n      break;\n      \n    case 'storage':\n      result.message = `Document would be copied to storage: ${destinationConfig.path}`;\n      result.storage_path = destinationConfig.path;\n      result.status = 'sent';\n      result.sent_at = new Date().toISOString();\n      break;\n      \n    case 'database':\n      result.message = `Document data would be inserted into table: ${destinationConfig.table}`;\n      result.table = destinationConfig.table;\n      result.status = 'sent';\n      result.sent_at = new Date().toISOString();\n      break;\n      \n    default:\n      result.status = 'failed';\n      result.message = `Unknown destination type: ${destinationType}`;\n  }\n  \n} catch (error) {\n  result.status = 'failed';\n  result.message = error.message;\n}\n\nreturn [{ json: result }];"
+      },
+      "id": "route-to-destination",
+      "name": "Route to Destination",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 200]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO document_routing (document_id, client_id, destination_type, destination_config, routing_status, sent_at, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW());",
+        "options": {}
+      },
+      "id": "log-routing",
+      "name": "Log Routing",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1650, 200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE documents SET status = 'routed', updated_at = NOW() WHERE document_id = $1;",
+        "options": {}
+      },
+      "id": "mark-routed",
+      "name": "Mark as Routed",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1850, 200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE documents SET status = 'pending_manual_review', updated_at = NOW() WHERE document_id = $1;",
+        "options": {}
+      },
+      "id": "mark-pending-review",
+      "name": "Mark Pending Review",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1250, 400],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "options": {}
+      },
+      "id": "merge-for-log",
+      "name": "Merge for Log",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [2050, 200]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO workflow_executions (client_id, workflow_name, workflow_id, execution_id, status, input_data, output_data, started_at, updated_at) VALUES ($1, $2, $3, $4, 'completed', $5, $6, NOW(), NOW());",
+        "options": {}
+      },
+      "id": "log-execution",
+      "name": "Log Execution",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [2250, 200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Validated Documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Validated Documents": {
+      "main": [
+        [
+          {
+            "node": "Get Routing Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Routing Config": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Routing Rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Routing Rules": {
+      "main": [
+        [
+          {
+            "node": "Should Route?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Route?": {
+      "main": [
+        [
+          {
+            "node": "Loop Destinations",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Pending Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Destinations": {
+      "main": [
+        [
+          {
+            "node": "Route to Destination",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route to Destination": {
+      "main": [
+        [
+          {
+            "node": "Log Routing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Routing": {
+      "main": [
+        [
+          {
+            "node": "Mark as Routed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark as Routed": {
+      "main": [
+        [
+          {
+            "node": "Merge for Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Pending Review": {
+      "main": [
+        [
+          {
+            "node": "Merge for Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge for Log": {
+      "main": [
+        [
+          {
+            "node": "Log Execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-01-15T10:00:00.000Z",
+      "updatedAt": "2024-01-15T10:00:00.000Z",
+      "id": "tag-docs-v1",
+      "name": "DOCS_v1"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-15T10:00:00.000Z",
+  "versionId": "1"
+}

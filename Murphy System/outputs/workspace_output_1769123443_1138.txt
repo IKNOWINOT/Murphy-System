@@ -1,0 +1,7 @@
+734:        .init-modal {
+747:        .init-modal.hidden {
+751:        .init-modal-content {
+760:        .init-modal-content h2 {
+765:        .init-modal-content p {
+4002:                    const modal = document.getElementById('init-modal');
+4267:            addLog('Click "INITIALIZE SYSTEM" to start', 'info');

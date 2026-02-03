@@ -1,0 +1,2 @@
+root       16348  0.0  0.0   4352  3108 ?        S    00:26   0:00 bash -lc  python3 murphy_complete_integrated.py > murphy_ui_test.log 2>&1 
+root       16355  0.0  1.6 149016 67024 ?        S    00:26   0:00 python3 murphy_complete_integrated.py

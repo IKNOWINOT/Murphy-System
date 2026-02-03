@@ -1,0 +1,4 @@
+Duplicate Functions: 0
+Duplicate Classes: 0
+Open Braces: 1072, Close Braces: 1074, Balanced: False
+Open Parens: 1266, Close Parens: 1266, Balanced: True

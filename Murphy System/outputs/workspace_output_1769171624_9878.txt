@@ -1,0 +1,8 @@
+150:    from artifact_generation_system import ArtifactGenerationSystem, ArtifactType
+169:artifact_generation_system = None
+174:        artifact_generation_system = ArtifactGenerationSystem()
+802:    if not ARTIFACTS_AVAILABLE or not artifact_generation_system:
+809:        types = artifact_generation_system.get_supported_types()
+825:    if not ARTIFACTS_AVAILABLE or not artifact_generation_system:
+852:                artifact_generation_system.generate_artifact(
+863:            from artifact_generation_system import Artifact

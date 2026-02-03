@@ -1,0 +1,2 @@
+762:    def compile_from_github(self, github_url: str, 
+843:    def compile_from_file(self, source_path: str, 

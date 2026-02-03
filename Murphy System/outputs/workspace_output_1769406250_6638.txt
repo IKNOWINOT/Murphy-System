@@ -1,0 +1,20 @@
+18:from librarian_system import LibrarianSystem
+187:    from librarian_adapter import get_librarian_adapter
+190:    librarian_adapter = get_librarian_adapter()
+192:    # Initialize librarian
+193:    librarian_adapter.initialize()
+195:    # Connect command registry with librarian
+196:    command_registry.librarian_adapter = librarian_adapter
+204:    librarian_adapter = None
+306:            'librarian': LIBRARIAN_AVAILABLE,
+2510:    # Get librarian context if available
+2512:    if librarian_adapter and librarian_adapter.enabled:
+2513:        context = librarian_adapter.get_help_context(module_id)
+2567:    # Get librarian context for this command
+2569:    if librarian_adapter and librarian_adapter.enabled:
+2570:        context = librarian_adapter.get_command_context(command_name)
+2612:    librarian_system = LibrarianSystem(llm_client=llm_manager if LLM_AVAILABLE else None)
+2618:    librarian_system = None
+2630:@app.route('/api/librarian/ask', methods=['POST'])
+2631:def librarian_ask():
+2634:        if not LIBRARIAN_AVAILABLE or not librarian_system:

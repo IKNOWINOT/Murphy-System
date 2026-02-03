@@ -1,0 +1,6 @@
+root        1424  1.2  1.2  55892 48912 ?        S    20:10   0:00 python /app/server.py
+root        1605  0.1  0.4  25872 19132 ?        S    20:11   0:00 python3 -m http.server 9000
+root        1606  0.1  0.4  25872 19144 ?        S    20:11   0:00 python -m http.server 9090
+root        1607  0.1  0.4  25872 19056 ?        S    20:11   0:00 python -m http.server 9091
+root        1608  3.3  1.2 131220 51556 ?        S    20:11   0:00 python3 murphy_backend_complete.py
+root        1610  5.6  1.2 132428 52404 ?        Rl   20:11   0:01 /usr/local/bin/python3 murphy_backend_complete.py

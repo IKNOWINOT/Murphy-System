@@ -1,0 +1,6 @@
+    "response": {
+        "demo_mode": false,
+        "provider": "Groq",
+        "response": "All systems operational.",
+        "success": true
+    },

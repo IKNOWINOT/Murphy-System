@@ -1,0 +1,20 @@
+697:            'message': 'Autonomous textbook business created!'
+775:            'message': 'Unified schema created',
+789:        'message': 'Connected to Murphy Complete System',
+1184:            'message': f'Book generated with {num_chapters} chapters using multi-agent system'
+1306:            'message': f'Task completed with {result.get("num_agents", 0)} agents'
+1370:            'message': 'Capacity limits updated',
+1660:            'message': f'{len(affected)} blocks need regeneration'
+1793:@app.route('/api/agent/message/send', methods=['POST'])
+1794:def send_agent_message():
+1795:    """Send a message from one agent to another"""
+1800:        message = get_comm_hub().send_message(
+1803:            message_type=MessageType[data['message_type']],
+1812:            'message': message.to_dict()
+1819:    """Get all messages for an agent"""
+1823:        messages = get_comm_hub().get_agent_inbox(agent_name)
+1827:            'message_count': len(messages),
+1828:            'messages': [msg.to_dict() for msg in messages]
+1834:def get_message_thread(thread_id):
+1835:    """Get all messages in a thread"""
+1839:        messages = get_comm_hub().get_thread(thread_id)

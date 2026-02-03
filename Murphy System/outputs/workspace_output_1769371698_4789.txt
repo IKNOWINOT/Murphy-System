@@ -1,0 +1,21 @@
+# ============================================================================
+# LLM API ENDPOINTS
+# ============================================================================
+
+@app.route('/api/llm/generate', methods=['POST'])
+def llm_generate():
+    &quot;&quot;&quot;Generate LLM response.&quot;&quot;&quot;
+    try:
+        data = request.get_json()
+        prompt = data.get('prompt', '')
+        
+        if not prompt:
+            return jsonify({
+                'success': False,
+                'error': 'No prompt provided'
+            }), 400
+        
+        if not LLM_AVAILABLE or not llm_manager:
+            return jsonify({
+                'success': False,
+                'error': 'LLM system not available'

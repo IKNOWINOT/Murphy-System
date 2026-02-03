@@ -1,0 +1,1 @@
+{"initialized":false,"llm_enabled":false,"llm_stats":{"help_calls":0,"state_calls":0,"status_calls":0,"total_llm_enhancements":0},"metrics":{"agents":0,"artifacts":0,"gates":0,"states":0},"status":"running","system_id":null}

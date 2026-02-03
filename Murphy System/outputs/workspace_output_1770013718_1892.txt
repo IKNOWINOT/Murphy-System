@@ -1,0 +1,15 @@
+./murphy_runtime_analysis
+./murphy_complete_all_files
+./murphy_analysis
+./murphy_system_working
+./murphy_system_v2.0_UI_UPDATED_20260130_1810
+./murphy_system
+./murphy_system_v2.0_BUGFIXED_20260130_2114
+./murphy_backup_extracted
+./murphy_complete_final
+./murphy_system_documentation_package
+./murphy_system_fixed
+./murphy_complete_installation
+./murphy_complete_with_fixes
+./murphy_ui_fixes_package
+./murphy_test_extract

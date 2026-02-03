@@ -1,0 +1,10 @@
+# Murphy System - Complete Workflow & Implementation Plan
+
+## Understanding the Complete System
+
+### The Big Picture: From Setup to Operation
+
+The Murphy System is NOT just a terminal or UI - it's a **complete business automation lifecycle** with 4 distinct phases:
+
+## Phase 1: System Setup (Swarm-Based Initialization)
+

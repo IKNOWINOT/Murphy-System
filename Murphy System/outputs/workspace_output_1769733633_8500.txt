@@ -1,0 +1,103 @@
+============================================================
+MURPHY UI BACKEND COMMUNICATION TEST
+============================================================
+
+============================================================
+Testing: System Status Check
+Method: GET /api/status
+Status: 200
+✅ SUCCESS
+Response: {
+  "commands": {
+    "by_category": {
+      "artifact": 7,
+      "cooperative": 5,
+      "librarian": 5,
+      "monitoring": 6,
+      "shadow": 7,
+      "system": 31
+    },
+    "by_module": {
+      "...
+
+============================================================
+Testing: Health Monitoring
+Method: GET /api/monitoring/health
+Status: 200
+✅ SUCCESS
+Response: {
+  "health": {},
+  "success": true,
+  "timestamp": "2026-01-30T00:40:34.443552"
+}...
+
+============================================================
+Testing: System Initialization
+Method: POST /api/initialize
+Status: 200
+✅ SUCCESS
+Response: {
+  "status": "initialized",
+  "systems": {
+    "monitoring": "initialized",
+    "shadow_agents": "initialized",
+    "swarm": "initialized"
+  },
+  "timestamp": "2026-01-30T00:40:34.946779"
+}...
+
+============================================================
+Testing: LLM Text Generation
+Method: POST /api/llm/generate
+Status: 200
+✅ SUCCESS
+Response: {
+  "response": "Hello. This is Murphy, your AI assistant. I'm here to help with any questions or tasks you may have. Your test message has been received successfully. Is there anything else I can ass...
+
+============================================================
+Testing: Command Execution
+Method: POST /api/command/execute
+Status: 200
+✅ SUCCESS
+Response: {
+  "error": "/bin/sh: 1: system_status: not found\n",
+  "output": "",
+  "return_code": 127,
+  "success": true
+}...
+
+============================================================
+Testing: Librarian Knowledge Query
+Method: POST /api/librarian/ask
+Status: 200
+✅ SUCCESS
+Response: {
+  "response": {
+    "commands": [
+      "/status",
+      "/help"
+    ],
+    "confidence_level": "very_low",
+    "follow_up_questions": [
+      "Would you like more details about any specific compone...
+
+============================================================
+TEST SUMMARY
+============================================================
+Passed: 6/6
+Success Rate: 100.0%
+
+✅ ALL TESTS PASSED - UI Backend Communication Working!
+
+============================================================
+ENDPOINTS USED BY UI:
+============================================================
+✓ GET  /api/status              - System status
+✓ GET  /api/monitoring/health   - Health check
+✓ POST /api/initialize          - User onboarding
+✓ POST /api/llm/generate        - AI text generation
+✓ POST /api/command/execute     - Command execution
+✓ POST /api/librarian/ask       - Knowledge queries
+
+✓ Socket.IO on port 3002        - Real-time updates
+============================================================

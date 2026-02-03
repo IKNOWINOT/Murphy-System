@@ -1,0 +1,27 @@
+            
+            // Initialize Plan Review Panel
+            window.planReviewPanel = new PlanReviewPanel(API_BASE);
+            window.planReviewPanel.init();
+            
+            // Initialize Document Editor Panel
+            window.documentEditorPanel = new DocumentEditorPanel(API_BASE);
+            window.documentEditorPanel.init();
+            
+            // Initialize Artifact Panel
+            if (typeof ArtifactPanel !== 'undefined') {
+                ArtifactPanel.init();
+                window.ArtifactPanel = ArtifactPanel;
+            }
+            
+            // Initialize Shadow Agent Panel
+            window.shadowAgentPanel = new ShadowAgentPanel();
+            window.shadowAgentPanel.init();
+            
+            // Initialize Monitoring Panel
+            window.monitoringPanel = new MonitoringPanel();
+            window.monitoringPanel.init();
+            
+            // Make executeTerminalCommand available globally
+            window.executeTerminalCommand = executeTerminalCommand;
+            
+            // Make addTerminalLog available globally for panels

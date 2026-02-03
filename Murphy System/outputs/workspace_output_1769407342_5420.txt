@@ -1,0 +1,4 @@
+COMMAND  PID USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+python3 1488 root    6u  IPv4   5963      0t0  TCP *:3002 (LISTEN)
+python3 1491 root    6u  IPv4   5963      0t0  TCP *:3002 (LISTEN)
+python3 1491 root    7u  IPv4   5963      0t0  TCP *:3002 (LISTEN)

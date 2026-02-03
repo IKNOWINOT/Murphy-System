@@ -1,0 +1,9 @@
+        config_key        |                              config_value                               | value_type 
+--------------------------+-------------------------------------------------------------------------+------------
+ enabled_input_channels   | ["web_form", "email", "api"]                                            | array
+ min_lead_score_threshold | 50                                                                      | number
+ routing_destinations     | [{"type": "webhook", "config": {"url": "https://example.com/webhook"}}] | json
+ routing_min_score        | 20                                                                      | number
+ routing_auto             | true                                                                    | boolean
+(5 rows)
+

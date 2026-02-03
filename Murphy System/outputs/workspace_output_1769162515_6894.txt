@@ -1,0 +1,49 @@
+    <script>
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Layer navigation
+        document.querySelectorAll('.layer-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.layer-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                
+                // Navigate to appropriate tab based on layer
+                const layer = item.dataset.layer;
+                if (['runtime', 'production', 'business', 'state'].includes(layer)) {
+                    document.querySelector('[data-tab="overview"]').click();
+                } else if (['standards', 'laws', 'practices'].includes(layer)) {
+                    document.querySelector('[data-tab="constraints"]').click();
+                } else if (['orgchart', 'shadows', 'gaps'].includes(layer)) {
+                    document.querySelector('[data-tab="organization"]').click();
+                } else if (['automation', 'recommendations'].includes(layer)) {
+                    document.querySelector('[data-tab="automation"]').click();
+                }
+            });
+        });
+
+        // Toggle switches
+        document.querySelectorAll('.switch').forEach(sw => {
+            sw.addEventListener('click', () => {
+                sw.classList.toggle('active');
+            });
+        });
+
+        // Command execution
+        const commandInput = document.getElementById('commandInput');
+        const executeBtn = document.getElementById('executeBtn');
+
+        executeBtn.addEventListener('click', executeCommand);
+        commandInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') executeCommand();
+        });
+
+        function executeCommand() {

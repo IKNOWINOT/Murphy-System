@@ -1,0 +1,7 @@
+    auth_system = init_auth_system()
+    logger.info("✓ Authentication System loaded successfully")
+except ImportError as e:
+    logger.error(f"✗ Failed to load Authentication System: {e}")
+    AUTH_AVAILABLE = False
+    auth_system = None
+

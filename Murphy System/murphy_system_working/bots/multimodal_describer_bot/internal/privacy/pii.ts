@@ -1,0 +1,8 @@
+
+export function redactPII(s:string){
+  if (!s) return s;
+  let out = s;
+  out = out.replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,'<redacted@email>');
+  out = out.replace(/\b\+?\d[\d\s\-]{7,}\b/g,'<redacted:phone>');
+  return out;
+}

@@ -1,0 +1,3 @@
+/workspace/ARISTOTLE_INTEGRATION_FIX_SUMMARY.md
+/workspace/VERIFICATION_REPORT.md
+/workspace/API_KEYS_SETUP.md

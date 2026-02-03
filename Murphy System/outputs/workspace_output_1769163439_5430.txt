@@ -1,0 +1,3 @@
+4207:            window.librarianPanel = new LibrarianPanel(API_BASE);
+4211:            window.planReviewPanel = new PlanReviewPanel(API_BASE);
+4215:            window.documentEditorPanel = new DocumentEditorPanel(API_BASE);

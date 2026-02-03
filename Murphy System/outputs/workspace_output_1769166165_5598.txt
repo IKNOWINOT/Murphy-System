@@ -1,0 +1,7 @@
+Getting fresh token...
+
+Testing shadow observe WITH fresh authentication...
+{
+    "message": "Invalid obs_type: COMMAND. Must be one of: ['command', 'state_change', 'artifact_generation', 'document_edit', 'approval', 'rejection']",
+    "success": false
+}

@@ -1,0 +1,4 @@
+root        1745  6.9  1.6  73752 66964 ?        S    01:41   0:00 python murphy_unified_server.py
+root        1770  0.0  0.0   2920   916 ?        Ss   01:41   0:00 timeout --preserve-status --signal=KILL 60s bash -lc { cd /workspace ; mkdir -p /workspace/outputs ; } { ps aux | grep murphy_unified_server __ec=$? } >"/workspace/outputs/workspace_output_1769046110_7813.txt" 2>&1 head -c 80000 "/workspace/outputs/workspace_output_1769046110_7813.txt" ( exit "$__ec" )
+root        1771  0.0  0.0   4352  3208 ?        S    01:41   0:00 bash -lc { cd /workspace ; mkdir -p /workspace/outputs ; } { ps aux | grep murphy_unified_server __ec=$? } >"/workspace/outputs/workspace_output_1769046110_7813.txt" 2>&1 head -c 80000 "/workspace/outputs/workspace_output_1769046110_7813.txt" ( exit "$__ec" )
+root        1776  0.0  0.0   3884  1912 ?        S    01:41   0:00 grep murphy_unified_server

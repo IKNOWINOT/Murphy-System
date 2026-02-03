@@ -1,0 +1,8 @@
+    from integrated_module_system import (
+        IntegratedModuleCompiler,
+        ModuleRegistry,
+        ModuleManager,
+        ModuleSpec,
+        GitHubRepoAnalyzer,
+        StaticCodeAnalyzer
+    )

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Button Click Test</title>
+    <style>
+        body { 
+            background: #0a0a0a; 
+            color: #00ff41; 
+            font-family: 'Courier New', monospace; 
+            padding: 20px; 
+        }
+        #terminal {
+            background: #000;
+            border: 1px solid #333;
+            padding: 20px;
+            height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        #log {
+            background: #000;
+            border: 1px solid #333;
+            padding: 20px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        #terminal-input {
+            background: #000;
+            color: #00ff41;
+            border: 1px solid #333;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            width: 100%;
+            margin-bottom: 10px;
+            outline: none;
+        }
+        .terminal-line { margin: 5px 0; }
+        .terminal-prompt { color: #00ff41; }
+        .log-entry { margin: 2px 0; }
+    </style>
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+    <h1>Murphy Basic Terminal (Fixed)</h1>
+    <div id="terminal"></div>
+    <input type="text" id="terminal-input" placeholder="Type a command (test, help, clear, echo, status) and press Enter...">
+    
+    <h3>Console Log:</h3>
+    <div id="log"></div>
+    
+    <script>
+        console.log('=== MURPHY BASIC TEST FIXED - SCRIPT STARTED ===');
+        
+        // Command history - declared before use
+        let commandHistory = [];
+        let historyIndex = -1;
+        
+        const terminalInput = document.getElementById('terminal-input');
+        const terminal = document.getElementById('terminal');
+        const logDiv = document.getElementById('log');
+        
+        function addTerminalLog(message, type = 'info') {
+            const line = document.createElement('div');
+            line.className = 'terminal-line';
+            
+            if (type === 'success') {
+                line.style.color = '#00ff41';
+            } else if (type === 'error') {
+                line.style.color = '#ff3333';
+            } else if (type === 'warning') {
+                line.style.color = '#ffcc00';
+            } else {
+                line.style.color = '#fff';
+            }
+            
+            line.textContent = message;
+            terminal.appendChild(line);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+        
+        function addDebugLog(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            
+            if (type === 'success') {
+                entry.style.color = '#00ff41';
+            } else if (type === 'error') {
+                entry.style.color = '#ff3333';
+            } else if (type === 'warning') {
+                entry.style.color = '#ffcc00';
+            } else {
+                entry.style.color = '#fff';
+            }
+            
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function executeCommand(command) {
+            // Add command to terminal
+            const cmdLine = document.createElement('div');
+            cmdLine.className = 'terminal-line';
+            cmdLine.innerHTML = '<span class="terminal-prompt">murphy&gt;</span> ' + command;
+            terminal.appendChild(cmdLine);
+            
+            // Parse command
+            const parts = command.trim().split(/\s+/);
+            const cmdName = parts[0].toLowerCase().replace(/^\//, '');
+            const args = parts.slice(1);
+            
+            addDebugLog('Executing: ' + cmdName + ' with args: [' + args.join(', ') + ']', 'info');
+            
+            // Process command
+            switch(cmdName) {
+                case 'help':
+                    addTerminalLog('Available commands:', 'info');
+                    addTerminalLog('  help    - Show this help', 'info');
+                    addTerminalLog('  test    - Run a test command', 'info');
+                    addTerminalLog('  clear   - Clear the terminal', 'info');
+                    addTerminalLog('  echo    - Echo text back', 'info');
+                    addTerminalLog('  status  - Show system status', 'info');
+                    break;
+                    
+                case 'test':
+                    addTerminalLog('✓ Test command executed successfully!', 'success');
+                    addTerminalLog('Terminal is working correctly.', 'success');
+                    addDebugLog('Test command completed', 'success');
+                    break;
+                    
+                case 'clear':
+                    terminal.innerHTML = '';
+                    addDebugLog('Terminal cleared', 'info');
+                    break;
+                    
+                case 'echo':
+                    const echoText = args.join(' ');
+                    addTerminalLog(echoText || 'No text to echo', 'info');
+                    break;
+                    
+                case 'status':
+                    addTerminalLog('Murphy System Status:', 'info');
+                    addTerminalLog('  Terminal: ONLINE', 'success');
+                    addTerminalLog('  Input: FUNCTIONAL', 'success');
+                    addTerminalLog('  History: ENABLED', 'success');
+                    addDebugLog('Status check completed', 'success');
+                    break;
+                    
+                default:
+                    addTerminalLog('Unknown command: ' + cmdName, 'error');
+                    addTerminalLog('Type "help" for available commands', 'info');
+                    addDebugLog('Unknown command: ' + cmdName, 'error');
+            }
+            
+            // Scroll to bottom
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+        
+        function handleKeyPress(event) {
+            addDebugLog('Key pressed: ' + event.key, 'info');
+            
+            if (event.key === 'Enter') {
+                addDebugLog('Enter key detected!', 'success');
+                const command = terminalInput.value.trim();
+                
+                if (command) {
+                    addDebugLog('Command: "' + command + '"', 'info');
+                    executeCommand(command);
+                    commandHistory.push(command);
+                    historyIndex = commandHistory.length;
+                    terminalInput.value = '';
+                    addDebugLog('Command executed and cleared input', 'success');
+                }
+            } else if (event.key === 'ArrowUp') {
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    terminalInput.value = commandHistory[historyIndex];
+                    event.preventDefault();
+                }
+            } else if (event.key === 'ArrowDown') {
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    terminalInput.value = commandHistory[historyIndex];
+                } else {
+                    historyIndex = commandHistory.length;
+                    terminalInput.value = '';
+                }
+                event.preventDefault();
+            }
+        }
+        
+        // Initialize
+        addDebugLog('Script loaded', 'success');
+        addDebugLog('terminalInput: ' + (terminalInput ? 'FOUND' : 'NOT FOUND'), 'info');
+        addDebugLog('terminal: ' + (terminal ? 'FOUND' : 'NOT FOUND'), 'info');
+        
+        if (terminalInput) {
+            addDebugLog('Adding keydown event listener...', 'info');
+            terminalInput.addEventListener('keydown', handleKeyPress);
+            terminalInput.focus();
+            addDebugLog('Event listener added and focus set', 'success');
+            
+            addTerminalLog('Murphy Basic Terminal (Fixed)', 'success');
+            addTerminalLog('Type "help" for available commands', 'info');
+            addTerminalLog('Terminal is ready!', 'success');
+        } else {
+            addDebugLog('ERROR: Could not find terminal input!', 'error');
+        }
+        
+        addDebugLog('Setup complete', 'success');
+    </script>
+</body>
+</html>

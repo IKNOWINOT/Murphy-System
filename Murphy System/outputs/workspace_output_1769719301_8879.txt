@@ -1,0 +1,4 @@
+  File "/workspace/murphy_complete_integrated.py", line 1877
+    global communication_hub
+    ^^^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: name 'communication_hub' is assigned to before global declaration

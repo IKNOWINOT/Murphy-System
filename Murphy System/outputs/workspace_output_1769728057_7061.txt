@@ -1,0 +1,21 @@
+173-                api_keys=[api_key],
+174-                model="llama-3.3-70b-versatile",
+175-                temperature=0.7,
+176-                max_tokens=2048
+177-            )
+178-            
+179-            # Run async method synchronously
+180-            loop = asyncio.new_event_loop()
+181-            asyncio.set_event_loop(loop)
+182-            try:
+183:                result = loop.run_until_complete(client.generate(prompt))
+184-                # GroqClient returns [response, token_count]
+185-                if isinstance(result, (list, tuple)) and len(result) > 0:
+186-                    response = result[0]
+187-                    logger.info(f"Groq key {key_index} response: {len(response)} chars")
+188-                    return response
+189-                return result
+190-            finally:
+191-                loop.close()
+192-                
+193-        except Exception as e:

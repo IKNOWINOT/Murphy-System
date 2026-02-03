@@ -1,0 +1,4 @@
+Syntax Error: unterminated triple-quoted string literal (detected at line 2766) (murphy_backend_complete.py, line 2723)
+Line 2723:     """Get LLM system status."""
+Offset: 30
+End lineno: 2723

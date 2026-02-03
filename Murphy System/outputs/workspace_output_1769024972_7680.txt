@@ -1,0 +1,30 @@
+# Todo: Correct Aristotle API Integration
+
+## Issue
+The user provided a file "Murphy System Keys.txt" which currently contains only Groq API keys, but the user mentioned it has both Groq and Aristotle keys inside.
+
+## Current State
+- File contains 9 Groq API keys (already implemented)
+- Aristotle keys are NOT visible in the file
+- Current implementation uses Groq keys for Aristotle (which is incorrect per user's clarification)
+
+## What I Need From User
+- Please verify the "Murphy System Keys.txt" file contains the Aristotle API keys
+- If Aristotle keys are in a different file, please provide that file
+- Or if Aristotle should use a different API entirely (not Groq), please clarify
+
+## Steps to Complete
+1. Get the correct Aristotle API keys from user
+2. Update backend to use separate Aristotle keys
+3. Verify both Groq and Aristotle work independently
+4. Update documentation
+
+## Current Demo Link
+https://9090-7ced438b-5e53-49d7-a2f0-8056ffbc558b.sandbox-service.public.prod.myninja.ai/murphy_complete_ui.html
+
+## Note
+The file I read shows:
+- 9 Groq keys (already in use)
+- No Aristotle keys visible
+
+Please provide the correct Aristotle API keys so I can update the system properly.

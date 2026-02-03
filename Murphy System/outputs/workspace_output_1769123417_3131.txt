@@ -1,0 +1,1 @@
+Modal removed and auto-initialization added!

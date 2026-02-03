@@ -1,0 +1,1 @@
+35:    def __init__(self, artifact_type: ArtifactType, name: str, source_doc_id: str):

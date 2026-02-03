@@ -1,0 +1,21 @@
+@app.route('/api/monitoring/alerts/<alert_id>/dismiss', methods=['POST'])
+def dismiss_alert(alert_id):
+    """Dismiss an alert"""
+    if not MONITORING_AVAILABLE or not monitoring_system:
+        return jsonify({'error': 'Monitoring system not available'}), 503
+    
+    try:
+        # Find and mark anomaly as resolved
+        anomalies = monitoring_system.get_anomalies(resolved=False)
+        
+        for anomaly in anomalies:
+            if anomaly.id == alert_id:
+                anomaly.resolved = True
+                anomaly.resolution_note = 'Dismissed by user'
+                return jsonify({
+                    'success': True,
+                    'message': 'Alert dismissed'
+                })
+        
+        return jsonify({'error': 'Alert not found'}), 404
+    except Exception as e:

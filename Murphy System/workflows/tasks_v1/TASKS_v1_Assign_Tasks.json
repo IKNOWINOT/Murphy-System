@@ -1,0 +1,334 @@
+{
+  "name": "TASKS_v1_Assign_Tasks",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT t.id, t.client_id, t.title, t.description, t.priority, t.category, t.created_at\nFROM tasks t\nWHERE t.status = 'pending'\nAND t.assigned_to IS NULL\nAND t.created_at >= NOW() - INTERVAL '7 days'\nORDER BY t.priority DESC, t.created_at ASC\nLIMIT 50"
+      },
+      "id": "get-pending-tasks",
+      "name": "Get Pending Tasks",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Get unique client IDs from tasks\nconst clientIds = [...new Set(items.map(item => item.json.client_id))];\n\nreturn clientIds.map(clientId => ({\n  json: { client_id: clientId }\n}));"
+      },
+      "id": "get-clients",
+      "name": "Get Clients",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  tm.id,\n  tm.client_id,\n  tm.name,\n  tm.email,\n  tm.skills,\n  tm.max_workload,\n  tm.is_active,\n  COALESCE(SUM(CASE \n    WHEN ta.active = true THEN 1 \n    ELSE 0 \n  END), 0) as current_workload\nFROM team_members tm\nLEFT JOIN task_assignments ta ON tm.id = ta.team_member_id \n  AND ta.active = true\n  AND ta.task_id IN (SELECT id FROM tasks WHERE status IN ('in_progress', 'pending'))\nWHERE tm.client_id = {{ $json.client_id }}\n  AND tm.is_active = true\n  AND tm.max_workload > 0\nGROUP BY tm.id, tm.client_id, tm.name, tm.email, tm.skills, tm.max_workload, tm.is_active\nORDER BY (tm.max_workload - COALESCE(SUM(CASE WHEN ta.active = true THEN 1 ELSE 0 END), 0)) DESC"
+      },
+      "id": "get-team-members",
+      "name": "Get Team Members",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [850, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Filter tasks for current client\nconst clientId = $input.item.json.client_id;\nconst allTasks = items.filter(item => item.json.client_id === clientId);\n\nreturn allTasks.map(task => ({\n  json: task.json\n}));"
+      },
+      "id": "filter-client-tasks",
+      "name": "Filter Client Tasks",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Intelligent task assignment logic\nconst task = $input.item.json;\nconst teamMembers = $node[&quot;Get Team Members&quot;].json;\n\nif (!teamMembers || teamMembers.length === 0) {\n  return { json: { ...task, assignment_status: 'no_team_members' } };\n}\n\n// Scoring system for team members\nlet bestMember = null;\nlet bestScore = -1;\n\nfor (const member of teamMembers) {\n  let score = 0;\n  \n  // Workload availability (higher is better)\n  const availableCapacity = member.max_workload - member.current_workload;\n  score += availableCapacity * 10;\n  \n  // Skills matching (if task has category)\n  if (task.category && member.skills) {\n    const skills = member.skills.split(',').map(s => s.trim().toLowerCase());\n    if (skills.includes(task.category.toLowerCase())) {\n      score += 20;\n    }\n  }\n  \n  // Priority matching\n  if (task.priority === 'urgent') {\n    score += 15;\n  } else if (task.priority === 'high') {\n    score += 10;\n  } else if (task.priority === 'medium') {\n    score += 5;\n  }\n  \n  if (score > bestScore) {\n    bestScore = score;\n    bestMember = member;\n  }\n}\n\nif (!bestMember) {\n  return { json: { ...task, assignment_status: 'no_available_members' } };\n}\n\nreturn {\n  json: {\n    ...task,\n    assigned_to: bestMember.id,\n    assignee_name: bestMember.name,\n    assignee_email: bestMember.email,\n    assignment_score: bestScore,\n    assignment_status: 'assigned'\n  }\n};"
+      },
+      "id": "calculate-assignment",
+      "name": "Calculate Assignment",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.assignment_status }}",
+              "value2": "assigned"
+            }
+          ]
+        }
+      },
+      "id": "check-assignment",
+      "name": "Check Assignment",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "task_assignments",
+        "columns": "task_id, team_member_id, assigned_at, assigned_by, active",
+        "additionalFields": {
+          "columnValues": "={{ {\n  &quot;task_id&quot;: $json.id,\n  &quot;team_member_id&quot;: $json.assigned_to,\n  &quot;assigned_at&quot;: $now.toISO(),\n  &quot;assigned_by&quot;: 'auto_assigner',\n  &quot;active&quot;: true\n} }}\n"
+        }
+      },
+      "id": "insert-assignment",
+      "name": "Insert Assignment",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [1650, 200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "table": "tasks",
+        "updateKey": "id",
+        "updateData": "={{ {\n  &quot;assigned_to&quot;: $json.assigned_to,\n  &quot;status&quot;: 'in_progress',\n  &quot;assigned_at&quot;: $now.toISO()\n} }}\n"
+      },
+      "id": "update-task",
+      "name": "Update Task",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [1850, 200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "notifications",
+        "columns": "client_id, type, title, message, recipient, status, created_at",
+        "additionalFields": {
+          "columnValues": "={{ {\n  &quot;client_id&quot;: $json.client_id,\n  &quot;type&quot;: 'task_assignment',\n  &quot;title&quot;: 'New Task Assigned',\n  &quot;message&quot;: `You have been assigned to task: ${$json.title}`,\n  &quot;recipient&quot;: $json.assignee_email,\n  &quot;status&quot;: 'pending',\n  &quot;created_at&quot;: $now.toISO()\n} }}\n"
+        }
+      },
+      "id": "create-notification",
+      "name": "Create Notification",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [2050, 200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "dead_letter_queue",
+        "columns": "client_id, workflow_id, operation, payload, error_type, error_message, retry_count, next_retry_at, created_at",
+        "additionalFields": {
+          "columnValues": "={{ {\n  &quot;client_id&quot;: $json.client_id,\n  &quot;workflow_id&quot;: 'TASKS_v1_Assign_Tasks',\n  &quot;operation&quot;: 'assign_task',\n  &quot;payload&quot;: JSON.stringify($json),\n  &quot;error_type&quot;: 'assignment_failed',\n  &quot;error_message&quot;: $json.assignment_status,\n  &quot;retry_count&quot;: 0,\n  &quot;next_retry_at&quot;: $now.toISO(),\n  &quot;created_at&quot;: $now.toISO()\n} }}\n"
+        }
+      },
+      "id": "insert-dlq",
+      "name": "Insert to DLQ",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [1650, 400],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "workflow_executions",
+        "columns": "workflow_id, execution_type, status, input_data, output_data, started_at, completed_at, error_message",
+        "additionalFields": {
+          "columnValues": "={{ {\n  &quot;workflow_id&quot;: 'TASKS_v1_Assign_Tasks',\n  &quot;execution_type&quot;: 'scheduled',\n  &quot;status&quot;: 'success',\n  &quot;input_data&quot;: JSON.stringify($node[&quot;Get Pending Tasks&quot;].json),\n  &quot;output_data&quot;: JSON.stringify(items),\n  &quot;started_at&quot;: $now.toISO(),\n  &quot;completed_at&quot;: $now.toISO(),\n  &quot;error_message&quot;: null\n} }}\n"
+        }
+      },
+      "id": "log-execution",
+      "name": "Log Execution",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [2250, 200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Pending Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Pending Tasks": {
+      "main": [
+        [
+          {
+            "node": "Get Clients",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Clients": {
+      "main": [
+        [
+          {
+            "node": "Get Team Members",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Team Members": {
+      "main": [
+        [
+          {
+            "node": "Filter Client Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Client Tasks": {
+      "main": [
+        [
+          {
+            "node": "Calculate Assignment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Assignment": {
+      "main": [
+        [
+          {
+            "node": "Check Assignment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Assignment": {
+      "main": [
+        [
+          {
+            "node": "Insert Assignment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert to DLQ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Assignment": {
+      "main": [
+        [
+          {
+            "node": "Update Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Task": {
+      "main": [
+        [
+          {
+            "node": "Create Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Notification": {
+      "main": [
+        [
+          {
+            "node": "Log Execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "pinData": {},
+  "triggerCount": 1,
+  "updatedAt": "2025-01-27T10:30:00.000Z",
+  "versionId": "1"
+}

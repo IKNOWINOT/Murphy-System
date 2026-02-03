@@ -1,0 +1,100 @@
+"""
+Organization Chart System
+Parses organization charts and maps job positions to knowledge contexts.
+"""
+
+from typing import Dict, List, Any, Optional
+from dataclasses import dataclass, field
+from enum import Enum
+import json
+
+
+class Department(Enum):
+    """Common departments in organizations."""
+    ENGINEERING = "engineering"
+    DESIGN = "design"
+    PRODUCT = "product"
+    MARKETING = "marketing"
+    SALES = "sales"
+    OPERATIONS = "operations"
+    FINANCE = "finance"
+    HR = "human_resources"
+    LEGAL = "legal"
+    EXECUTIVE = "executive"
+
+
+@dataclass
+class JobPosition:
+    """Represents a job position in an organization."""
+    title: str
+    department: Department
+    level: str  # junior, senior, lead, manager, director, executive
+    knowledge_domains: List[str]
+    skills: List[str]
+    tools_used: List[str]
+    typical_tasks: List[str]
+    collaboration_needs: List[str]
+    
+    def to_dict(self) -> Dict:
+        """Convert to dictionary."""
+        return {
+            "title": self.title,
+            "department": self.department.value,
+            "level": self.level,
+            "knowledge_domains": self.knowledge_domains,
+            "skills": self.skills,
+            "tools_used": self.tools_used,
+            "typical_tasks": self.typical_tasks,
+            "collaboration_needs": self.collaboration_needs
+        }
+
+
+@dataclass
+class OrgNode:
+    """Represents a node in the organization chart."""
+    position: JobPosition
+    reports: List['OrgNode'] = field(default_factory=list)
+    parent: Optional['OrgNode'] = None
+    
+    def to_dict(self) -> Dict:
+        """Convert to dictionary."""
+        return {
+            "position": self.position.to_dict(),
+            "reports": [node.to_dict() for node in self.reports],
+            "parent": self.parent.position.title if self.parent else None
+        }
+
+
+class OrganizationChart:
+    """
+    Manages organization chart structure and job position mappings.
+    Provides knowledge context for each position.
+    """
+    
+    def __init__(self):
+        self.positions: Dict[str, JobPosition] = {}
+        self.root_nodes: List[OrgNode] = []
+        self._initialize_common_positions()
+    
+    def _initialize_common_positions(self):
+        """Initialize common job positions across departments."""
+        
+        # Engineering Department
+        self._add_position(JobPosition(
+            title="Software Engineer",
+            department=Department.ENGINEERING,
+            level="mid",
+            knowledge_domains=["programming", "software development", "algorithms", "system design"],
+            skills=["coding", "debugging", "testing", "code review"],
+            tools_used=["IDEs", "git", "programming languages", "databases"],
+            typical_tasks=["write code", "fix bugs", "implement features", "review code"],
+            collaboration_needs=["product managers", "designers", "other engineers", "QA"]
+        ))
+        
+        self._add_position(JobPosition(
+            title="Senior Software Engineer",
+            department=Department.ENGINEERING,
+            level="senior",
+            knowledge_domains=["architecture", "scalability", "performance", "mentoring"],
+            skills=["system design", "technical leadership", "code review", "mentoring"],
+            tools_used=["architecture tools", "cloud platforms", "development tools"],

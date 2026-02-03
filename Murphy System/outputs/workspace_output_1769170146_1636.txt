@@ -1,0 +1,20 @@
+1955:        // Auto-detect if we're on localhost or production
+1956:        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+1957:        const API_BASE = isLocalhost ? 'http://localhost:3002' : 'https://3002-7ced438b-5e53-49d7-a2f0-8056ffbc558b.sandbox-service.public.prod.myninja.ai';
+2011:                fetch(`${API_BASE}/api/states`)
+2025:                fetch(`${API_BASE}/api/agents`)
+2039:                fetch(`${API_BASE}/api/states`)
+2053:                fetch(`${API_BASE}/api/states`)
+2067:                fetch(`${API_BASE}/api/states`)
+2100:            const statesResponse = await fetch(`${API_BASE}/api/states`);
+2106:            const agentsResponse = await fetch(`${API_BASE}/api/agents`);
+2235:            const response = await fetch(`${API_BASE}/api/agents/${agentId}`);
+2431:            const response = await fetch(`${API_BASE}/api/states/${stateId}`);
+2464:                const response = await fetch(`${API_BASE}/api/states/${stateId}/evolve`, {
+2480:                const response = await fetch(`${API_BASE}/api/states/${stateId}/regenerate`, {
+2496:                const response = await fetch(`${API_BASE}/api/states/${stateId}/rollback`, {
+2973:                            const response = await fetch(`${API_BASE}/api/librarian/search`, {
+2998:                        const response = await fetch(`${API_BASE}/api/librarian/transcripts?limit=5`);
+3017:                        const response = await fetch(`${API_BASE}/api/librarian/overview`);
+3127:                        const response = await fetch(`${API_BASE}/api/plans`, {
+3153:                        const response = await fetch(`${API_BASE}/api/plans`);

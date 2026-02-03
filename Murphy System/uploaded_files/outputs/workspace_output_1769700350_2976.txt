@@ -1,0 +1,3 @@
+ERROR:  invalid input syntax for type uuid: "acme-corp-001"
+LINE 1: ...lient_uuid, name FROM clients WHERE client_uuid = 'acme-corp...
+                                                             ^

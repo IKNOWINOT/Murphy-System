@@ -1,0 +1,6 @@
+842:    <script>
+845:            tab.addEventListener('click', () => {
+856:            item.addEventListener('click', () => {
+876:            sw.addEventListener('click', () => {
+885:        executeBtn.addEventListener('click', executeCommand);
+886:        commandInput.addEventListener('keypress', (e) => {

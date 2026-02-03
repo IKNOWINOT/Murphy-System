@@ -1,0 +1,12 @@
+                if (data.response || data.text) {
+                    addMessage('ATTEMPTED', data.response || data.text, 'attempted');
+                }
+            } catch (error) {
+                throw new Error(`LLM processing failed: ${error.message}`);
+            }
+        }
+
+        async function executeCommand(command) {
+            addMessage('GENERATED', 'Command received by BQA for validation...', 'generated');
+            await sleep(800);
+            

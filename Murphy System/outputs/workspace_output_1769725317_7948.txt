@@ -1,0 +1,4 @@
+Current metrics: dict_keys(['revenue_Q2'])
+Goals: dict_keys(['revenue_Q2'])
+
+Generated 0 revenue gates

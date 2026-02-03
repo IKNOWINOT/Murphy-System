@@ -1,0 +1,1 @@
+export function segmentMixed(text:string){ return [{lang:'auto', text}]; }

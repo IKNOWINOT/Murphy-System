@@ -1,0 +1,11 @@
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+        // ============================================
+        // CONFIGURATION
+        // ============================================
+        // Auto-detect if we're on localhost or production
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const API_BASE = isLocalhost ? 'http://localhost:3002' : 'https://3002-7ced438b-5e53-49d7-a2f0-8056ffbc558b.sandbox-service.public.prod.myninja.ai';
+        let ws = null;
+        let agentGraph = null;
+        let processFlowSvg = null;

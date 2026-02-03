@@ -1,0 +1,16 @@
+            name="business.payment.setup",
+            description="Setup payment processing",
+            category=CommandCategory.SYSTEM,
+            module="business",
+            parameters=[
+                {"name": "provider", "description": "Payment provider", "required": True}
+            ],
+            examples=["/business.payment.setup stripe"],
+            risk_level="HIGH"
+        )
+    ]
+    
+    for cmd in commands:
+        registry.register_command(cmd)
+    
+    logger.info(f"✓ Registered {len(commands)} Business commands")

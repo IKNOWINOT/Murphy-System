@@ -1,0 +1,100 @@
+"""
+UNIFIED MFGC SYSTEM
+One system with confidence-based routing, not separate modes
+"""
+
+import sys
+import os
+import re
+from typing import Dict, List, Any, Optional, Tuple
+from dataclasses import dataclass
+from enum import Enum
+
+# Import existing systems
+from true_swarm_system import (
+    TrueSwarmSystem, ProfessionAtom, ArtifactType, SwarmMode
+)
+from memory_artifact_system import (
+    MemoryArtifactSystem, MemoryPlane, ArtifactState, Artifact
+)
+from infinity_expansion_system import (
+    InfinityExpansionEngine, ExpansionAxis, ExpansionResult
+)
+from learning_system import (
+    LearningPipeline, GatePolicyLearner, MultiDeploymentGeneralization,
+    ExecutionLog, TrainingSignal
+)
+import time
+
+# Try to import LLM
+try:
+    from groq import Groq
+    import os
+    GROQ_AVAILABLE = True
+except ImportError:
+    GROQ_AVAILABLE = False
+
+# Import local fallback LLM
+from local_llm_fallback import get_fallback_llm
+
+# Import key rotator
+from groq_key_rotator import get_rotator
+
+# Import response formatter
+from response_formatter import get_formatter
+
+# Import command parser and question manager
+from command_parser import CommandParser
+from question_manager import QuestionManager
+
+
+class ConfidenceBand(Enum):
+    """Three bands of the same system"""
+    INTRODUCTORY = "introductory"  # 0.7-1.0: Known responses, greetings
+    CONVERSATIONAL = "conversational"  # 0.3-0.7: LLM reasoning, simple tasks
+    EXPLORATORY = "exploratory"  # 0.0-0.3: Swarm orchestration, complex tasks
+
+
+@dataclass
+class SystemState:
+    """Complete system state at any moment"""
+    confidence: float
+    band: ConfidenceBand
+    domain: str
+    complexity: float
+    artifacts_count: int
+    gates_count: int
+    memory_state: Dict[str, int]
+
+
+class UnifiedMFGC:
+    """
+    ONE system that operates across a confidence spectrum
+    
+    Not separate modes - continuous confidence-based behavior
+    """
+    
+    def __init__(self, groq_api_key: str = None, use_key_rotation: bool = True):
+        # Initialize key rotation system
+        self.use_key_rotation = use_key_rotation
+        self.key_rotator = None
+        
+        if use_key_rotation and GROQ_AVAILABLE:
+            try:
+                self.key_rotator = get_rotator()
+                self.llm_available = True
+                self.llm_mode = "groq_rotation"
+                print(f"Groq key rotation enabled with {len(self.key_rotator.keys)} keys")
+            except Exception as e:
+                print(f"Key rotation failed: {e}, falling back to single key mode")
+                self.key_rotator = None
+        
+        # Fallback to single key mode
+        if self.key_rotator is None:
+            self.groq_api_key = groq_api_key or os.environ.get("GROQ_API_KEY")
+            if self.groq_api_key and GROQ_AVAILABLE:
+                self.groq_client = Groq(api_key=self.groq_api_key)
+                self.llm_available = True
+                self.llm_mode = "groq"
+            else:
+                self.groq_client = None

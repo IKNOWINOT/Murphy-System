@@ -1,0 +1,5 @@
+1957:        const API_BASE = isLocalhost ? 'http://localhost:3002' : 'https://3002-7ced438b-5e53-49d7-a2f0-8056ffbc558b.sandbox-service.public.prod.myninja.ai';
+1977:            window.socket = io(API_BASE, {
+2012:                fetch(`${API_BASE}/api/states`)
+2026:                fetch(`${API_BASE}/api/agents`)
+2040:                fetch(`${API_BASE}/api/states`)

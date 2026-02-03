@@ -1,0 +1,10 @@
+            try {
+                addTerminalLog(`🔄 Converting artifact to ${format.toUpperCase()}...`, 'info');
+                const response = await fetch(`${API_BASE}/api/artifacts/${artifactId}/convert`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ format: format })
+                });
+                
+                const data = await response.json();
+                

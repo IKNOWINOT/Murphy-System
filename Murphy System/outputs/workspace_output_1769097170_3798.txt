@@ -1,0 +1,63 @@
+                case 'librarian':
+                    await handleLibrarianCommand(args[0], remainingArgs);
+                    break;
+                
+                // Swarm commands
+                case 'swarm':
+                    await handleSwarmCommand(args[0], remainingArgs);
+                    break;
+                
+                // Gate commands
+                case 'gate':
+                    await handleGateCommand(args[0], remainingArgs);
+                    break;
+                
+                // Document commands
+                case 'document':
+                case 'doc':
+                    await handleDocumentCommand(args[0], remainingArgs);
+                    break;
+                
+                // Artifact commands
+                case 'artifact':
+                    await handleArtifactCommand(args[0], remainingArgs);
+                    break;
+                
+                // Domain commands
+                case 'domain':
+                    await handleDomainCommand(args[0], remainingArgs);
+                    break;
+                
+                // Constraint commands
+                case 'constraint':
+                    await handleConstraintCommand(args[0], remainingArgs);
+                    break;
+                
+                // Verification commands
+                case 'verify':
+                    await handleVerifyCommand(args[0], remainingArgs);
+                    break;
+                
+                // LLM commands
+                case 'llm':
+                    await handleLLMCommand(args[0], remainingArgs);
+                    break;
+                    
+                default:
+                    addTerminalLog(`Unknown command: /${cmdName}. Type /help for available commands.`, 'error');
+            }
+        }
+
+        function showHelp(moduleName) {
+            if (moduleName) {
+                // Show help for specific module
+                const moduleCommands = availableCommands[moduleName];
+                if (moduleCommands) {
+                    addTerminalLog(`=== ${moduleName} ===`, 'info');
+                    addTerminalLog('', 'info');
+                    moduleCommands.forEach(cmd => {
+                        const status = cmd.implemented ? '✓' : '○';
+                        const options = cmd.options.length > 0 ? ' ' + cmd.options.join(' ') : '';
+                        addTerminalLog(`  ${status} /${cmd.name}${options}`, 'info');
+                        addTerminalLog(`     ${cmd.description}`, 'info');
+                    });

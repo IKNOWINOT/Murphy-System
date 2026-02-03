@@ -1,0 +1,4 @@
+  File "<string>", line 21
+    print(f'Open braces: {script13.count({)}')
+                                             ^
+SyntaxError: f-string: closing parenthesis ')' does not match opening parenthesis '{'

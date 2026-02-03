@@ -1,0 +1,156 @@
+=== ANALYZING KEY MODULES ===
+
+### FORM INTAKE ###
+File: murphy_integrated/src/form_intake/__init__.py
+
+File: murphy_integrated/src/form_intake/api.py
+
+File: murphy_integrated/src/form_intake/handlers.py
+class FormSubmissionResult:
+class PlanUploadFormHandler:
+class PlanGenerationFormHandler:
+class TaskExecutionFormHandler:
+class ValidationFormHandler:
+class CorrectionFormHandler:
+class FormHandlerRegistry:
+def submit_form(form_type: FormType, form_data: Dict[str, Any]) -> FormSubmissionResult:
+
+File: murphy_integrated/src/form_intake/plan_decomposer.py
+class PlanDecomposer:
+
+File: murphy_integrated/src/form_intake/plan_models.py
+class TaskStatus(str, Enum):
+class TaskPriority(str, Enum):
+class DependencyType(str, Enum):
+class Dependency(BaseModel):
+class ValidationCriterion(BaseModel):
+class HumanCheckpoint(BaseModel):
+class Task(BaseModel):
+class Plan(BaseModel):
+
+File: murphy_integrated/src/form_intake/schemas.py
+class FormType(str, Enum):
+class ExpansionLevel(str, Enum):
+class CheckpointType(str, Enum):
+class DomainType(str, Enum):
+class RiskTolerance(str, Enum):
+class ExecutionMode(str, Enum):
+class ValidationResult(str, Enum):
+class CorrectionType(str, Enum):
+class Severity(str, Enum):
+class PlanUploadForm(BaseModel):
+class PlanGenerationForm(BaseModel):
+class TaskExecutionForm(BaseModel):
+class ValidationForm(BaseModel):
+class CorrectionForm(BaseModel):
+def get_form_class(form_type: FormType) -> type:
+def validate_form(form_type: FormType, form_data: Dict[str, Any]) -> BaseModel:
+
+### CONFIDENCE ENGINE ###
+File: murphy_integrated/src/confidence_engine/__init__.py
+
+File: murphy_integrated/src/confidence_engine/api_server.py
+def add_artifact():
+def get_graph():
+def analyze_graph():
+def add_verification():
+def list_verification():
+def add_trust_source():
+def update_trust():
+def get_trust_model():
+def compute_confidence():
+def compute_murphy():
+
+File: murphy_integrated/src/confidence_engine/authority_mapper.py
+class AuthorityMapper:
+
+File: murphy_integrated/src/confidence_engine/confidence_calculator.py
+class ConfidenceCalculator:
+
+File: murphy_integrated/src/confidence_engine/credential_interface.py
+class VerificationMethod(str, Enum):
+class ServiceProvider(str, Enum):
+class CredentialPermission(BaseModel):
+class VerificationRequest(BaseModel):
+class VerificationResponse(BaseModel):
+class ICredentialVerifier(Protocol):
+class BaseCredentialVerifier(ABC):
+class AWSCredentialVerifier(BaseCredentialVerifier):
+class GitHubCredentialVerifier(BaseCredentialVerifier):
+class DatabaseCredentialVerifier(BaseCredentialVerifier):
+
+File: murphy_integrated/src/confidence_engine/credential_verifier.py
+class CredentialType(str, Enum):
+class CredentialStatus(str, Enum):
+class Credential(BaseModel):
+class CredentialVerificationResult(BaseModel):
+class CredentialStore:
+class CredentialVerifier:
+class CredentialRefreshManager:
+class CredentialVerificationSystem:
+
+File: murphy_integrated/src/confidence_engine/external_validator.py
+class ValidationType(str, Enum):
+class ValidationStatus(str, Enum):
+class ValidationResult(BaseModel):
+class ExternalValidator(ABC):
+class CredentialValidator(ExternalValidator):
+class DataSourceValidator(ExternalValidator):
+class DomainExpertValidator(ExternalValidator):
+class ExternalValidationService:
+
+File: murphy_integrated/src/confidence_engine/graph_analyzer.py
+class GraphAnalyzer:
+
+File: murphy_integrated/src/confidence_engine/models.py
+class ArtifactType(Enum):
+class ArtifactSource(Enum):
+class VerificationResult(Enum):
+class AuthorityBand(Enum):
+class Phase(Enum):
+class ArtifactNode:
+class ArtifactGraph:
+class VerificationEvidence:
+class SourceTrust:
+class TrustModel:
+
+File: murphy_integrated/src/confidence_engine/murphy_calculator.py
+class MurphyCalculator:
+
+File: murphy_integrated/src/confidence_engine/murphy_gate.py
+class MurphyGate:
+
+File: murphy_integrated/src/confidence_engine/murphy_models.py
+class Phase(str, Enum):
+class GateAction(str, Enum):
+class UncertaintyScores(BaseModel):
+class GateResult(BaseModel):
+class ConfidenceReport(BaseModel):
+
+File: murphy_integrated/src/confidence_engine/murphy_validator.py
+class MurphyValidator:
+
+File: murphy_integrated/src/confidence_engine/performance_optimization.py
+class CacheStrategy(str, Enum):
+class CacheEntry(BaseModel):
+class UncertaintyCache:
+class ParallelProcessor:
+class QueryOptimizer:
+class PerformanceMetric(BaseModel):
+class PerformanceMonitor:
+class BenchmarkResult(BaseModel):
+class PerformanceBenchmark:
+class PerformanceOptimizationSystem:
+
+File: murphy_integrated/src/confidence_engine/phase_controller.py
+class PhaseController:
+
+File: murphy_integrated/src/confidence_engine/rsc_telemetry.py
+def add_telemetry_endpoint(app, current_graph, verification_evidence_store):
+
+File: murphy_integrated/src/confidence_engine/uncertainty_calculator.py
+class UncertaintyCalculator:
+
+File: murphy_integrated/src/confidence_engine/unified_confidence_engine.py
+class UnifiedConfidenceEngine:
+

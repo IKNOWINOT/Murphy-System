@@ -1,0 +1,30 @@
+        agent = shadow_agent_system.get_agent(agent_id)
+        if not agent:
+            return jsonify({'error': 'Agent not found'}), 404
+        observations = [obs.to_dict() for obs in agent.observations]
+    else:
+        observations = shadow_agent_system.global_observations
+        
+    try:
+        analysis = learning_engine.analyze_comprehensive(observations)
+        
+        return jsonify({
+            'success': True,
+            'analysis': analysis
+        })
+    except Exception as e:
+        logger.error(f"Error analyzing patterns: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+# ===== Main =====
+
+if __name__ == '__main__':
+    print("=" * 60)
+    print("MURPHY SYSTEM - PHASE 2: COMMAND RESPONSE INTEGRATION")
+    print("=" * 60)
+    print(f"LLM Available: {LLM_AVAILABLE}")
+    print(f"Port: 3000")
+    print("=" * 60)
+    
+    socketio.run(app, host='0.0.0.0', port=3002, debug=False, allow_unsafe_werkzeug=True)

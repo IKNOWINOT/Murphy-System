@@ -1,0 +1,12 @@
+# Generative Decision Gate System - Initialize at module level
+try:
+    generative_gate_system = get_generative_gate_system()
+    SYSTEMS_AVAILABLE['generative_gates'] = True
+    logger.info("✓ Generative Decision Gate System initialized at module level")
+except Exception as e:
+    logger.error(f"✗ Generative Decision Gate System failed: {e}")
+    generative_gate_system = None
+
+
+# Global state
+system_initialized = False

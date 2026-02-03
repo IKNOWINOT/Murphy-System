@@ -1,0 +1,150 @@
+"""
+Artifact Generation System
+Generates various types of artifacts from solidified living documents
+"""
+
+import json
+import uuid
+from datetime import datetime
+from typing import Dict, List, Optional, Any
+from enum import Enum
+import asyncio
+
+class ArtifactType(Enum):
+    """Types of artifacts that can be generated"""
+    PDF = "pdf"
+    DOCX = "docx"
+    CODE = "code"
+    DESIGN = "design"
+    DATA = "data"
+    REPORT = "report"
+    PRESENTATION = "presentation"
+    CONTRACT = "contract"
+
+class ArtifactStatus(Enum):
+    """Status of artifact generation"""
+    PENDING = "pending"
+    GENERATING = "generating"
+    VALIDATING = "validating"
+    COMPLETE = "complete"
+    FAILED = "failed"
+
+class Artifact:
+    """Represents a generated artifact"""
+    
+    def __init__(self, artifact_type: ArtifactType, name: str, source_doc_id: str):
+        self.id = str(uuid.uuid4())
+        self.type = artifact_type
+        self.name = name
+        self.source_doc_id = source_doc_id
+        self.status = ArtifactStatus.PENDING
+        self.content = None
+        self.metadata = {}
+        self.version = 1
+        self.versions = []
+        self.quality_score = 0.0
+        self.validation_results = []
+        self.created_at = datetime.now().isoformat()
+        self.updated_at = datetime.now().isoformat()
+        self.file_path = None
+        self.file_size = 0
+        self.format = artifact_type.value
+        
+    def to_dict(self) -> Dict:
+        """Convert artifact to dictionary"""
+        return {
+            'id': self.id,
+            'type': self.type.value,
+            'name': self.name,
+            'source_doc_id': self.source_doc_id,
+            'status': self.status.value,
+            'content': self.content,
+            'metadata': self.metadata,
+            'version': self.version,
+            'versions': self.versions,
+            'quality_score': self.quality_score,
+            'validation_results': self.validation_results,
+            'created_at': self.created_at,
+            'updated_at': self.updated_at,
+            'file_path': self.file_path,
+            'file_size': self.file_size,
+            'format': self.format
+        }
+
+class ArtifactGenerator:
+    """Base class for artifact generators"""
+    
+    def __init__(self, llm_router=None):
+        self.llm_router = llm_router
+        
+    async def generate(self, document: Dict, prompts: List[str], swarm_results: List[Dict]) -> Artifact:
+        """Generate artifact from document, prompts, and swarm results"""
+        raise NotImplementedError("Subclasses must implement generate()")
+        
+    async def validate(self, artifact: Artifact) -> Dict:
+        """Validate generated artifact"""
+        raise NotImplementedError("Subclasses must implement validate()")
+
+class PDFGenerator(ArtifactGenerator):
+    """Generates PDF documents"""
+    
+    async def generate(self, document: Dict, prompts: List[str], swarm_results: List[Dict]) -> Artifact:
+        """Generate PDF from document"""
+        artifact = Artifact(ArtifactType.PDF, f"{document['title']}.pdf", document['id'])
+        artifact.status = ArtifactStatus.GENERATING
+        
+        # Simulate PDF generation using LLM
+        if self.llm_router:
+            content_prompt = f"""Generate a professional PDF document with the following:
+Title: {document['title']}
+Content: {document['content']}
+Expertise Level: {document.get('expertise_depth', 0)}
+
+Create structured sections with:
+- Executive Summary
+- Main Content (organized by sections)
+- Technical Details
+- Conclusions
+- References
+
+Format as markdown that can be converted to PDF."""
+            
+            response = await self.llm_router.generate(content_prompt, temperature=0.3)
+            artifact.content = response.get('content', '')
+        else:
+            # Fallback: structured content
+            artifact.content = f"""# {document['title']}
+
+## Executive Summary
+{document['content'][:200]}...
+
+## Main Content
+{document['content']}
+
+## Technical Details
+Expertise Depth: {document.get('expertise_depth', 0)}
+Domain: {document.get('domain_name', 'General')}
+
+## Conclusions
+This document represents a comprehensive analysis of the subject matter.
+
+## References
+Generated from Living Document ID: {document['id']}
+"""
+        
+        artifact.status = ArtifactStatus.VALIDATING
+        artifact.metadata = {
+            'page_count': len(artifact.content.split('\n\n')),
+            'word_count': len(artifact.content.split()),
+            'format': 'markdown-to-pdf'
+        }
+        artifact.file_path = f"/workspace/artifacts/{artifact.id}.pdf"
+        artifact.file_size = len(artifact.content.encode('utf-8'))
+        
+        return artifact
+        
+    async def validate(self, artifact: Artifact) -> Dict:
+        """Validate PDF artifact"""
+        results = {
+            'valid': True,
+            'issues': [],

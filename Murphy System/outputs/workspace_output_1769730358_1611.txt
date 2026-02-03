@@ -1,0 +1,31 @@
+    6. Synthesize final coherent result
+    """
+    if not llm_manager:
+        return jsonify({'error': 'LLM not available'}), 503
+    
+    data = request.json
+    task = data.get('task', '')
+    capacity_limit = data.get('capacity_limit', 9)
+    max_parallel = data.get('max_parallel', 9)
+    
+    if not task:
+        return jsonify({'error': 'task is required'}), 400
+    
+    try:
+        # Update capacity if specified
+        if capacity_limit != 9:
+            enhanced_orchestrator.set_capacity_limit(capacity_limit)
+        if max_parallel != 9:
+            enhanced_orchestrator.set_max_parallel(max_parallel)
+        
+        # Run async function in sync context
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        result = loop.run_until_complete(
+            enhanced_orchestrator.process_request(task)
+        )
+        
+        loop.close()
+        

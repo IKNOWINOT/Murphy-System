@@ -1,0 +1,7 @@
+Line 2979 (index 2978): '                            const data = await response.json();\n'
+Line 2715 contains &&: const fullCommand = args.length > 0 && !args[0].startsWith('-')
+Line 2718 contains &&: const remainingArgs = args.length > 0 && !args[0].startsWith('-') ? args.slice(1
+Line 3460 contains &&: if (agents && agents.length > 0) {
+Line 3483 contains &&: if (observations && observations.length > 0) {
+Line 3503 contains &&: if (proposals && proposals.length > 0) {
+Line 3524 contains &&: if (automations && automations.length > 0) {

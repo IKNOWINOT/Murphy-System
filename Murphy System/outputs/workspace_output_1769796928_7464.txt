@@ -1,0 +1,140 @@
+================================================================================
+TOTAL ENDPOINTS: 91
+================================================================================
+
+
+AGENT (3 endpoints):
+  /api/agent/inbox/<agent_name>
+  /api/agent/message/send
+  /api/agent/thread/<thread_id>
+
+ARTIFACTS (2 endpoints):
+  /api/artifacts
+  /api/artifacts/generate
+
+AUTOMATION (11 endpoints):
+  /api/automation/create
+  /api/automation/delete/<automation_id>
+  /api/automation/disable/<automation_id>
+  /api/automation/enable/<automation_id>
+  /api/automation/execute/<automation_id>
+  /api/automation/get/<automation_id>
+  /api/automation/history
+  /api/automation/list
+  /api/automation/scheduler/start
+  /api/automation/scheduler/stop
+  /api/automation/stats
+
+BD (9 endpoints):
+  /api/bd/calendar/availability
+  /api/bd/campaign/run
+  /api/bd/email/generate
+  /api/bd/email/send
+  /api/bd/leads
+  /api/bd/meeting/schedule
+  /api/bd/research
+  /api/bd/responses
+  /api/bd/shadow/insights
+
+BOOK (3 endpoints):
+  /api/book/generate-multi-agent
+  /api/book/multi-agent/status
+  /api/book/writing-styles
+
+BUSINESS (2 endpoints):
+  /api/business/autonomous-textbook
+  /api/business/products
+
+COMMAND (1 endpoints):
+  /api/command/execute
+
+DOWNLOAD (5 endpoints):
+  /api/download/<download_token>
+  /api/download/customer/<email>
+  /api/download/info/<product_id>
+  /api/download/stats
+  /api/download/url/<product_id>/<sale_id>
+
+GATES (6 endpoints):
+  /api/gates/capabilities
+  /api/gates/capabilities/verify
+  /api/gates/generate
+  /api/gates/learn
+  /api/gates/sensors/<sensor_id>
+  /api/gates/sensors/status
+
+INITIALIZE (1 endpoints):
+  /api/initialize
+
+LIBRARIAN (7 endpoints):
+  /api/librarian/ask
+  /api/librarian/command-stats
+  /api/librarian/deliverable/communicate
+  /api/librarian/generate-command
+  /api/librarian/search-commands
+  /api/librarian/store-commands
+  /api/librarian/suggest-commands
+
+LLM (5 endpoints):
+  /api/llm/generate
+  /api/llm/status
+  /api/llm/test-math
+  /api/llm/test-rotation
+  /api/llm/usage
+
+MONITORING (1 endpoints):
+  /api/monitoring/health
+
+PAYMENT (6 endpoints):
+  /api/payment/create-sale
+  /api/payment/customer/<email>
+  /api/payment/sale/<sale_id>
+  /api/payment/sales
+  /api/payment/stats
+  /api/payment/verify
+
+PIPELINE (7 endpoints):
+  /api/pipeline/block/update
+  /api/pipeline/block/verify
+  /api/pipeline/explode
+  /api/pipeline/info-source
+  /api/pipeline/org-chart
+  /api/pipeline/schedule
+  /api/pipeline/status
+
+PRODUCTION (5 endpoints):
+  /api/production/readiness
+  /api/production/schema/check
+  /api/production/schema/migrate
+  /api/production/setup
+  /api/production/ssl/status
+
+RUNTIME (5 endpoints):
+  /api/runtime/capacity
+  /api/runtime/process
+  /api/runtime/status
+  /api/runtime/task/<task_id>
+  /api/runtime/tasks
+
+STATUS (1 endpoints):
+  /api/status
+
+SWARM (2 endpoints):
+  /api/swarm/task/create
+  /api/swarm/tasks
+
+TASK (6 endpoints):
+  /api/task/review/<task_id>
+  /api/task/review/<task_id>/answer
+  /api/task/review/<task_id>/cost-analysis
+  /api/task/review/<task_id>/gates
+  /api/task/review/all
+  /api/task/review/create
+
+WORKFLOW (2 endpoints):
+  /api/workflow/create
+  /api/workflow/execute/<workflow_id>
+
+
+TOTAL CATEGORIES: 21
+TOTAL ENDPOINTS: 91

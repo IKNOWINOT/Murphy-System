@@ -1,0 +1,21 @@
+6:**Purpose:** Practical guide to automating your company operations using agentic systems
+168:### 2.1 Purpose
+309:### 3.1 Purpose
+659:### 4.1 Purpose
+1079:   - Milestones:
+1080:     * Phase 1 complete: May 1
+1081:     * Phase 2 complete: May 31
+1127:### 5.1 Purpose
+1763:### 6.1 Purpose
+1904:### 6.4 Preset Lifecycle
+2443:| Level | Criteria | Purpose |
+2495:**Purpose:** Systems that interact with sensors and operate physical aspects.
+2613:**Purpose:** AI-driven decision support and automation.
+2705:**Purpose:** Agentic approval actions based on rules and learning, with physical execution.
+2848:**Purpose:** An agent that learns position-specific reasoning and attempts to automate tasks for individuals.
+2934:### 8.1 Purpose
+3136:**Constraint Lifecycle:**
+3797:1. **Implement Phase 1**: Executive Summary + System Architecture
+3798:2. **Implement Phase 2**: Core Components (Command, Librarian, Terminal)
+3799:3. **Implement Phase 3**: Advanced Components (Preset, Domain, Setup)
+3800:4. **Implement Phase 4**: Cross-cutting + Examples

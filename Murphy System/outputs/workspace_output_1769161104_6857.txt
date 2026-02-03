@@ -1,0 +1,28 @@
+{
+    "chosen_representation": {
+        "abstraction_level": 0,
+        "id": "d3442c94-23cf-44b6-b60c-5f65df3e3698",
+        "metadata": {
+            "index": 0,
+            "source": "generated"
+        },
+        "vector_length": 100
+    },
+    "decision_reason": "Candidate selected successfully",
+    "role": "supervisor",
+    "status": "success",
+    "success": true,
+    "temporal_scores": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+    ],
+    "timestamp": "2026-01-23T09:38:24.988270"
+}

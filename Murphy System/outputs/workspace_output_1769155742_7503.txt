@@ -1,0 +1,1 @@
+1290:@app.route('/api/monitoring/alerts/<alert_id>/dismiss', methods=['POST'])

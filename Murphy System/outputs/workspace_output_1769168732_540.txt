@@ -1,0 +1,16 @@
+Directly testing database initialization...
+Initialization result:
+{
+  "success": true,
+  "message": "System data already initialized",
+  "agents_count": 5,
+  "states_count": 1
+}
+
+Statistics:
+{
+  "agents_count": 5,
+  "states_count": 1,
+  "components_count": 3,
+  "gates_count": 2
+}

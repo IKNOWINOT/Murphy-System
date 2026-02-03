@@ -1,0 +1,12 @@
+abc
+agent_communication_system
+agent_handoff_manager
+artifact_generation_system
+command_system
+cooperative_swarm_system
+database
+generative_gate_system
+multi_agent_book_generator
+pydantic
+repositories
+swarm_knowledge_pipeline

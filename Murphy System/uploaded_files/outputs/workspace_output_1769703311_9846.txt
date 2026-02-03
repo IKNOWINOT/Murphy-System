@@ -1,0 +1,35 @@
+                 List of relations
+ Schema |          Name          | Type  |  Owner   
+--------+------------------------+-------+----------
+ public | alerts                 | table | postgres
+ public | audit_logs_enhanced    | table | postgres
+ public | client_config          | table | postgres
+ public | client_integrations    | table | postgres
+ public | client_packs           | table | postgres
+ public | client_workflows       | table | postgres
+ public | clients                | table | postgres
+ public | config_audit_log       | table | postgres
+ public | dead_letter_queue      | table | postgres
+ public | dependency_health      | table | postgres
+ public | document_extractions   | table | postgres
+ public | document_routing       | table | postgres
+ public | documents              | table | postgres
+ public | encryption_keys        | table | postgres
+ public | errors                 | table | postgres
+ public | lead_enrichment        | table | postgres
+ public | lead_routing           | table | postgres
+ public | leads                  | table | postgres
+ public | metrics                | table | postgres
+ public | notifications          | table | postgres
+ public | performance_aggregates | table | postgres
+ public | reports                | table | postgres
+ public | roles                  | table | postgres
+ public | security_events        | table | postgres
+ public | sla_events             | table | postgres
+ public | task_assignments       | table | postgres
+ public | tasks                  | table | postgres
+ public | team_members           | table | postgres
+ public | user_roles             | table | postgres
+ public | workflow_executions    | table | postgres
+(30 rows)
+

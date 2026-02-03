@@ -1,0 +1,17 @@
+                case 'transcripts':
+                    addTerminalLog('📜 Fetching conversation transcripts...', 'info');
+                    try {
+                        const response = await fetch(`${API_BASE}/api/librarian/transcripts?limit=5`);
+                        const data = await response.json();
+                        if (data.transcripts && data.transcripts.length > 0) {
+                            addTerminalLog(`✓ Recent conversations (${data.count}):`, 'success');
+                            data.transcripts.forEach((t, i) => {
+                                addTerminalLog(`  ${i + 1}. "${t.user_input}"`, 'info');
+                                addTerminalLog(`     Intent: ${t.intent_category} (${Math.round(t.confidence * 100)}%)`, 'info');
+                                addTerminalLog(`     Response: ${t.message.substring(0, 80)}...`, 'info');
+                            });
+                        } else {
+                            addTerminalLog('No conversation history yet', 'warning');
+                        }
+                    } catch (error) {
+                        addTerminalLog(`✗ Failed to fetch transcripts: ${error.message}`, 'error');

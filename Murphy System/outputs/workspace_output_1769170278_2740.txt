@@ -1,0 +1,7 @@
+2974:                            const response = await fetch(`${API_BASE}/api/librarian/search`, {
+2999:                        const response = await fetch(`${API_BASE}/api/librarian/transcripts?limit=5`);
+3018:                        const response = await fetch(`${API_BASE}/api/librarian/overview`);
+3128:                        const response = await fetch(`${API_BASE}/api/plans`, {
+3154:                        const response = await fetch(`${API_BASE}/api/plans`);
+3194:                        const response = await fetch(`${API_BASE}/api/documents`);
+3338:                const response = await fetch(`${API_BASE}/api/artifacts/${artifactId}/convert`, {
