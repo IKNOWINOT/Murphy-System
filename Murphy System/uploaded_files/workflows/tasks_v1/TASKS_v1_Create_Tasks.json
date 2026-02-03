@@ -1,0 +1,288 @@
+{
+  "name": "TASKS_v1_Create_Tasks",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tasks-v1/create-task",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "tasks-v1-create-task"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id FROM clients WHERE id = {{ $json.body.client_id }} AND active = true"
+      },
+      "id": "validate-client",
+      "name": "Validate Client",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json[0] }}",
+              "value2": ""
+            }
+          ]
+        }
+      },
+      "id": "check-client-valid",
+      "name": "Check Client Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id FROM client_packs WHERE client_id = {{ $node[&quot;Webhook Trigger&quot;].json.body.client_id }} AND pack_name = 'TASKS_v1' AND active = true"
+      },
+      "id": "validate-pack",
+      "name": "Validate Pack Enabled",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [850, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json[0] }}",
+              "value2": ""
+            }
+          ]
+        }
+      },
+      "id": "check-pack-valid",
+      "name": "Check Pack Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "tasks",
+        "columns": "client_id, title, description, priority, status, category, source, source_reference, due_date, created_at, created_by",
+        "additionalFields": {
+          "columnValues": "={{ {\n  &quot;client_id&quot;: $node[&quot;Webhook Trigger&quot;].json.body.client_id,\n  &quot;title&quot;: $node[&quot;Webhook Trigger&quot;].json.body.title,\n  &quot;description&quot;: $node[&quot;Webhook Trigger&quot;].json.body.description || null,\n  &quot;priority&quot;: $node[&quot;Webhook Trigger&quot;].json.body.priority || 'medium',\n  &quot;status&quot;: 'pending',\n  &quot;category&quot;: $node[&quot;Webhook Trigger&quot;].json.body.category || null,\n  &quot;source&quot;: $node[&quot;Webhook Trigger&quot;].json.body.source || 'api',\n  &quot;source_reference&quot;: $node[&quot;Webhook Trigger&quot;].json.body.source_reference || null,\n  &quot;due_date&quot;: $node[&quot;Webhook Trigger&quot;].json.body.due_date || null,\n  &quot;created_at&quot;: $now.toISO(),\n  &quot;created_by&quot;: $node[&quot;Webhook Trigger&quot;].json.body.created_by || 'system'\n} }}\n"
+        }
+      },
+      "id": "insert-task",
+      "name": "Insert Task",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [1250, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  &quot;success&quot;: true,\n  &quot;message&quot;: &quot;Task created successfully&quot;,\n  &quot;task_id&quot;: $node[&quot;Insert Task&quot;].json[0].id,\n  &quot;status&quot;: &quot;pending&quot;,\n  &quot;created_at&quot;: $node[&quot;Insert Task&quot;].json[0].created_at\n} }}"
+      },
+      "id": "response-success",
+      "name": "Response Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1450, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  &quot;success&quot;: false,\n  &quot;message&quot;: &quot;Invalid client ID or TASKS_v1 pack not enabled&quot;,\n  &quot;error&quot;: &quot;client_validation_failed&quot;\n} }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "response-error",
+      "name": "Response Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1450, 400]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "workflow_executions",
+        "columns": "workflow_id, client_id, execution_type, status, input_data, output_data, started_at, completed_at, error_message",
+        "additionalFields": {
+          "columnValues": "={{ {\n  &quot;workflow_id&quot;: 'TASKS_v1_Create_Tasks',\n  &quot;client_id&quot;: $node[&quot;Webhook Trigger&quot;].json.body.client_id || null,\n  &quot;execution_type&quot;: 'webhook',\n  &quot;status&quot;: 'success',\n  &quot;input_data&quot;: $json,\n  &quot;output_data&quot;: $node[&quot;Insert Task&quot;].json,\n  &quot;started_at&quot;: $now.toISO(),\n  &quot;completed_at&quot;: $now.toISO(),\n  &quot;error_message&quot;: null\n} }}\n"
+        }
+      },
+      "id": "log-execution-success",
+      "name": "Log Execution Success",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [1650, 200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "workflow_executions",
+        "columns": "workflow_id, client_id, execution_type, status, input_data, output_data, started_at, completed_at, error_message",
+        "additionalFields": {
+          "columnValues": "={{ {\n  &quot;workflow_id&quot;: 'TASKS_v1_Create_Tasks',\n  &quot;client_id&quot;: $node[&quot;Webhook Trigger&quot;].json.body.client_id || null,\n  &quot;execution_type&quot;: 'webhook',\n  &quot;status&quot;: 'failed',\n  &quot;input_data&quot;: $json,\n  &quot;output_data&quot;: null,\n  &quot;started_at&quot;: $now.toISO(),\n  &quot;completed_at&quot;: $now.toISO(),\n  &quot;error_message&quot;: 'Client validation failed or pack not enabled'\n} }}\n"
+        }
+      },
+      "id": "log-execution-error",
+      "name": "Log Execution Error",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [1650, 400],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validate Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Client": {
+      "main": [
+        [
+          {
+            "node": "Check Client Valid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Client Valid": {
+      "main": [
+        [
+          {
+            "node": "Validate Pack Enabled",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Response Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Pack Enabled": {
+      "main": [
+        [
+          {
+            "node": "Check Pack Valid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Pack Valid": {
+      "main": [
+        [
+          {
+            "node": "Insert Task",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Response Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Task": {
+      "main": [
+        [
+          {
+            "node": "Response Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Response Success": {
+      "main": [
+        [
+          {
+            "node": "Log Execution Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Response Error": {
+      "main": [
+        [
+          {
+            "node": "Log Execution Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "pinData": {},
+  "triggerCount": 1,
+  "updatedAt": "2025-01-27T10:00:00.000Z",
+  "versionId": "1"
+}

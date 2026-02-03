@@ -1,0 +1,21 @@
+Backend starting on port 3002...
+INFO:__main__:✓ Artifact systems initialized
+INFO:__main__:✓ Shadow Agent components loaded successfully
+INFO:__main__:✓ Shadow Agent systems initialized
+INFO:__main__:✓ Cooperative Swarm components loaded successfully
+INFO:__main__:✓ Cooperative Swarm systems initialized
+INFO:__main__:============================================================
+INFO:__main__:Murphy System Complete Backend Server v3.0
+INFO:__main__:============================================================
+INFO:__main__:Monitoring: ✓
+INFO:__main__:Artifacts: ✓
+INFO:__main__:Shadow Agents: ✓
+INFO:__main__:Cooperative Swarm: ✓
+INFO:__main__:============================================================
+INFO:__main__:Command System: ✓
+INFO:__main__:============================================================
+WARNING:werkzeug:Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+ * Serving Flask app 'murphy_backend_complete'
+ * Debug mode: on
+Address already in use
+Port 3002 is in use by another program. Either identify and stop that program, or start the server with a different port.

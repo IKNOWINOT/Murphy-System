@@ -1,0 +1,21 @@
+class IntegratedModuleCompiler:
+    """
+    Main compiler combining SwissKiss and Module Compiler features
+    
+    Workflow:
+    1. If GitHub URL provided, analyze repository (SwissKiss)
+    2. Perform static code analysis (Module Compiler)
+    3. Extract capabilities (Module Compiler)
+    4. Generate sandbox profile (Module Compiler)
+    5. Detect failure modes (Module Compiler)
+    6. Generate test vectors (Module Compiler)
+    7. Create comprehensive ModuleSpec
+    """
+    
+    def __init__(self):
+        self.github_analyzer = GitHubRepoAnalyzer()
+        self.static_analyzer = StaticCodeAnalyzer()
+        self.capability_extractor = CapabilityExtractor()
+        self.sandbox_generator = SandboxGenerator()
+        self.failure_detector = FailureModeDetector()
+        self.test_vector_generator = TestVectorGenerator()

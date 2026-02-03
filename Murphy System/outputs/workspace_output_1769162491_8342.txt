@@ -1,0 +1,15 @@
+=== murphy_complete_ui.html ===
+1
+=== murphy_backend_integrated.html ===
+1
+=== murphy_complete_frontend.html ===
+1
+=== murphy_system_interactive.html ===
+0
+0
+=== murphy_integrated_terminal.html ===
+0
+0
+=== murphy_generative_system.html ===
+0
+0

@@ -1,0 +1,14 @@
+============================================================
+Murphy System Available: False
+Groq Available: True
+Anthropic Available: False
+Starting server on http://localhost:6666
+============================================================
+ * Serving Flask app 'murphy_complete_backend'
+ * Debug mode: off
+Address already in use
+Port 6666 is in use by another program. Either identify and stop that program, or start the server with a different port.
+---
+root        1982  2.5  2.1 205508 88092 ?        Sl   19:04   0:00 python murphy_complete_backend.py
+root        2030  0.0  0.0   2920   888 ?        Ss   19:05   0:00 timeout --preserve-status --signal=KILL 60s bash -lc { cd /workspace ; mkdir -p /workspace/outputs ; } { sleep 3 && cd /workspace/murphy_test_extract && tail -10 backend.log && echo "---" && ps aux | grep python | grep murphy __ec=$? } >"/workspace/outputs/workspace_output_1768935928_8283.txt" 2>&1 head -c 80000 "/workspace/outputs/workspace_output_1768935928_8283.txt" ( exit "$__ec" )
+root        2031  0.0  0.0   4352  3140 ?        S    19:05   0:00 bash -lc { cd /workspace ; mkdir -p /workspace/outputs ; } { sleep 3 && cd /workspace/murphy_test_extract && tail -10 backend.log && echo "---" && ps aux | grep python | grep murphy __ec=$? } >"/workspace/outputs/workspace_output_1768935928_8283.txt" 2>&1 head -c 80000 "/workspace/outputs/workspace_output_1768935928_8283.txt" ( exit "$__ec" )

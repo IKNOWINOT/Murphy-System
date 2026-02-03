@@ -1,0 +1,1 @@
+export async function asrAudio(_ctx:any,_bytes:Uint8Array){ return { text:'[asr unavailable: stub]', usage:{tokens_in:0,tokens_out:0,cost_usd:0.0} } }

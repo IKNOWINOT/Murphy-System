@@ -1,0 +1,100 @@
+"""
+Murphy System - Librarian Intent Mapping System
+
+The Librarian is Murphy's intelligent guide that understands user intent
+and maps it to system capabilities.
+"""
+
+import asyncio
+from typing import Dict, List, Optional, Tuple
+from enum import Enum
+from dataclasses import dataclass, field
+from datetime import datetime
+import json
+import re
+
+
+class IntentCategory(Enum):
+    """Categories of user intent"""
+    QUERY = "query"              # User wants information
+    ACTION = "action"            # User wants to execute something
+    GUIDANCE = "guidance"        # User needs help deciding
+    LEARNING = "learning"        # User wants to understand
+    CREATION = "creation"        # User wants to create something
+    ANALYSIS = "analysis"        # User wants analysis/insights
+    TROUBLESHOOTING = "troubleshooting"  # User has a problem
+    EXPLORATION = "exploration"  # User wants to explore options
+
+
+class ConfidenceLevel(Enum):
+    """Confidence in intent classification"""
+    VERY_HIGH = "very_high"  # 90-100%
+    HIGH = "high"            # 75-89%
+    MEDIUM = "medium"        # 60-74%
+    LOW = "low"              # 40-59%
+    VERY_LOW = "very_low"    # <40%
+
+
+@dataclass
+class Intent:
+    """Represents a classified user intent"""
+    category: IntentCategory
+    confidence: float
+    keywords: List[str]
+    entities: Dict[str, str]
+    suggested_commands: List[str]
+    suggested_workflow: Optional[Dict] = None
+    context: Dict = field(default_factory=dict)
+    timestamp: datetime = field(default_factory=datetime.now)
+
+
+@dataclass
+class LibrarianResponse:
+    """Response from the Librarian"""
+    intent: Intent
+    message: str
+    commands: List[str]
+    workflow: Optional[Dict] = None
+    follow_up_questions: List[str] = field(default_factory=list)
+    confidence_level: ConfidenceLevel = ConfidenceLevel.MEDIUM
+
+
+class IntentClassifier:
+    """Classifies user input into intent categories"""
+    
+    # Intent patterns for rule-based classification
+    INTENT_PATTERNS = {
+        IntentCategory.QUERY: [
+            r'\b(what|who|where|when|why|how|show|list|get|find|search)\b',
+            r'\b(status|info|information|details|about)\b',
+        ],
+        IntentCategory.ACTION: [
+            r'\b(create|make|build|generate|start|run|execute|do)\b',
+            r'\b(initialize|setup|configure|deploy|launch)\b',
+        ],
+        IntentCategory.GUIDANCE: [
+            r'\b(help|guide|assist|recommend|suggest|advise)\b',
+            r'\b(should|could|would|best way|how to)\b',
+        ],
+        IntentCategory.LEARNING: [
+            r'\b(learn|understand|explain|teach|tutorial)\b',
+            r'\b(what is|how does|why does)\b',
+        ],
+        IntentCategory.CREATION: [
+            r'\b(design|develop|write|compose|draft)\b',
+            r'\b(document|report|proposal|plan|specification)\b',
+        ],
+        IntentCategory.ANALYSIS: [
+            r'\b(analyze|evaluate|assess|review|examine)\b',
+            r'\b(compare|contrast|measure|calculate)\b',
+        ],
+        IntentCategory.TROUBLESHOOTING: [
+            r'\b(fix|solve|debug|error|problem|issue|broken)\b',
+            r'\b(not working|failed|wrong)\b',
+        ],
+        IntentCategory.EXPLORATION: [
+            r'\b(explore|discover|investigate|browse)\b',
+            r'\b(options|possibilities|alternatives)\b',
+        ],
+    }
+    

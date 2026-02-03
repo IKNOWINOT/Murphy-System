@@ -1,0 +1,5 @@
+root        2524  0.0  0.0   4352  3096 ?        S    15:49   0:00 bash -lc  python3 murphy_server.py > server.log 2>&1 
+root        2531  0.2  1.2  56328 50140 ?        S    15:49   0:00 python3 murphy_server.py
+root        2532  2.4  1.2 205096 50992 ?        Sl   15:49   0:02 /usr/local/bin/python3 murphy_server.py
+root        2762  0.0  0.0   4352  3168 ?        S    15:51   0:00 bash -lc  python3 -m http.server 8090 > frontend.log 2>&1 
+root        2769  0.0  0.4  25864 18908 ?        S    15:51   0:00 python3 -m http.server 8090

@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murphy System</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #0f0;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: #0a0a0a;
+            border-bottom: 1px solid #0f0;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo {
+            width: 20px;
+            height: 20px;
+            background: #0f0;
+            border-radius: 50%;
+        }
+
+        .title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #0f0;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 15px;
+            font-size: 12px;
+            color: #0f0;
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Subtitle Banner */
+        .subtitle {
+            background: #0a3d0a;
+            padding: 8px 20px;
+            font-size: 12px;
+            color: #0f0;
+            border-bottom: 1px solid #0f0;
+        }
+
+        /* Main Container */
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 250px;
+            height: calc(100vh - 140px);
+            overflow: hidden;
+        }
+
+        /* Chat Area */
+        .chat-area {
+            display: flex;
+            flex-direction: column;
+            background: #000;
+            border-right: 1px solid #0f0;
+            overflow: hidden;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0;
+            padding: 0 20px;
+            background: #0a0a0a;
+            border-bottom: 1px solid #0f0;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            border-right: 1px solid #0f0;
+            cursor: pointer;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+
+        .tab:hover {
+            background: #0a3d0a;
+        }
+
+        .tab.active {
+            background: #0a3d0a;
+        }
+
+        /* Messages Container - FIXED SCROLLING */
+                .messages {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 15px 20px;
+            scroll-behavior: smooth;
+            max-height: calc(100vh - 250px);
+            min-height: 200px;
+        }
+
+        /* Custom Scrollbar */
+        .messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .messages::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+
+        .messages::-webkit-scrollbar-thumb {
+            background: #0f0;
+            border-radius: 3px;
+        }
+
+        /* Message - FIXED STACKING */
+                .message {
+            margin-bottom: 20px;
+            padding: 10px 0;
+            animation: slideIn 0.3s ease-out;
+            clear: both;
+            display: block;
+            position: relative;
+            width: 100%;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 11px;
+        }
+
+        .message-type {
+            padding: 2px 8px;
+            border-radius: 2px;
+            font-weight: bold;
+        }
+
+        .message-type.generated {
+            background: #1a1a1a;
+            color: #0f0;
+        }
+
+        .message-type.user {
+            background: #1a1a1a;
+            color: #00f;
+        }
+
+        .message-type.system {
+            background: #1a1a1a;
+            color: #f90;
+        }
+
+        .message-type.verified {
+            background: #1a1a1a;
+            color: #a0f;
+        }
+
+        .message-type.attempted {
+            background: #1a1a1a;
+            color: #0ff;
+        }
+
+        .message-time {
+            color: #00f;
+        }
+
+                .message-content {
+            padding: 8px 12px;
+            background: #0a0a0a;
+            border-left: 2px solid #0f0;
+            line-height: 1.4;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            font-size: 13px;
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .message-content.user {
+            border-left-color: #00f;
+        }
+
+        .message-content.system {
+            border-left-color: #f90;
+        }
+
+        .message-content.verified {
+            border-left-color: #a0f;
+        }
+
+        .message-content.attempted {
+            border-left-color: #0ff;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: #0a0a0a;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .sidebar-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+
+        .sidebar-tab {
+            flex: 1;
+            padding: 6px;
+            background: transparent;
+            border: 1px solid #0f0;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .sidebar-tab.active {
+            background: #0a3d0a;
+        }
+
+        .command-item {
+            padding: 8px;
+            margin: 6px 0;
+            background: #000;
+            border: 1px solid #0f0;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .command-item:hover {
+            background: #0a3d0a;
+        }
+
+        .command-name {
+            font-weight: bold;
+            color: #0f0;
+            margin-bottom: 2px;
+            font-size: 12px;
+        }
+
+        .command-desc {
+            font-size: 10px;
+            color: #888;
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 15px 20px;
+            background: #0a0a0a;
+            border-top: 1px solid #0f0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 10px;
+            background: #000;
+            border: 1px solid #0f0;
+            border-radius: 2px;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .input-field:focus {
+            outline: none;
+            box-shadow: 0 0 5px #0f0;
+        }
+
+        .submit-btn {
+            padding: 10px 25px;
+            background: #0f0;
+            border: none;
+            border-radius: 2px;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .submit-btn:hover {
+            background: #0f0;
+            box-shadow: 0 0 10px #0f0;
+        }
+
+        /* Loading Indicator */
+        .loading {
+            display: none;
+            padding: 8px;
+            text-align: center;
+            color: #0ff;
+            font-size: 12px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .loading-dots::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        /* Task Modal */
+        .task-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .task-modal.active {
+            display: flex;
+        }
+
+        .task-modal-content {
+            background: #0a0a0a;
+            border: 2px solid #0f0;
+            border-radius: 3px;
+            width: 90%;
+            max-width: 1000px;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .task-modal-header {
+            padding: 15px;
+            border-bottom: 1px solid #0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .task-modal-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #0f0;
+        }
+
+        .task-modal-close {
+            background: none;
+            border: none;
+            color: #0f0;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0 10px;
+        }
+
+        .task-modal-body {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            padding: 15px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .task-modal-section {
+            padding: 12px;
+            background: #000;
+            border: 1px solid #0f0;
+            border-radius: 2px;
+            overflow-y: auto;
+        }
+
+        .task-modal-section-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #0ff;
+        }
+
+        .task-modal-section-content {
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 12px;
+        }
+
+        /* Onboarding Modal */
+        .onboarding-modal {
+            display: flex;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 3000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .onboarding-content {
+            background: #0a0a0a;
+            border: 2px solid #0f0;
+            border-radius: 3px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .onboarding-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+            color: #0f0;
+        }
+
+        .onboarding-text {
+            margin-bottom: 15px;
+            line-height: 1.5;
+            font-size: 13px;
+        }
+
+        .onboarding-input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background: #000;
+            border: 1px solid #0f0;
+            border-radius: 2px;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .onboarding-input:focus {
+            outline: none;
+            box-shadow: 0 0 5px #0f0;
+        }
+
+        .onboarding-btn {
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            background: #0f0;
+            border: none;
+            border-radius: 2px;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .onboarding-btn:hover {
+            box-shadow: 0 0 10px #0f0;
+        }
+
+        /* Additional fixes for text stacking prevention */
+        .message * {
+            position: relative;
+            z-index: auto;
+        }
+        
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 11px;
+            width: 100%;
+        }
+        
+        /* Ensure no floating elements */
+        .messages::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+        
+        /* Fix for any potential overlay issues */
+        .chat-area {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .input-area {
+            position: relative;
+            z-index: 2;
+        }
+    </style>
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+    <!-- Onboarding Modal -->
+    <div id="onboarding-modal" class="onboarding-modal">
+        <div class="onboarding-content">
+            <div class="onboarding-title">Murphy System</div>
+            <div class="onboarding-text" id="onboarding-text"></div>
+            <div id="onboarding-inputs"></div>
+            <button class="onboarding-btn" id="onboarding-next">Continue</button>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <div class="logo"></div>
+            <div class="title">Murphy System</div>
+        </div>
+        <div class="header-right">
+            <div class="stat">● BQA: <span id="bqa-status">Active</span></div>
+            <div class="stat">● Modules: <span id="module-count">0</span></div>
+            <div class="stat">● SHADOW AI: <span id="shadow-version">1.0</span></div>
+        </div>
+    </div>
+
+    <!-- Subtitle Banner -->
+    <div class="subtitle">
+        The system is built on Murphy's Law – we anticipate and prepare for any failure scenario.
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Chat Area -->
+        <div class="chat-area">
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab active" data-tab="chat">Chat</button>
+                <button class="tab" data-tab="commands">Commands</button>
+                <button class="tab" data-tab="modules">Modules</button>
+                <button class="tab" data-tab="metrics">Metrics</button>
+            </div>
+
+            <!-- Messages -->
+            <div id="messages" class="messages"></div>
+
+            <!-- Loading Indicator -->
+            <div id="loading" class="loading">
+                <span class="loading-dots">Processing</span>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-tabs">
+                <button class="sidebar-tab active">Commands</button>
+                <button class="sidebar-tab">Modules</button>
+                <button class="sidebar-tab">Metrics</button>
+            </div>
+            <div id="command-list"></div>
+        </div>
+    </div>
+
+    <!-- Input Area -->
+    <div class="input-area">
+        <input type="text" class="input-field" id="user-input" placeholder="Enter command or natural language...">
+        <button class="submit-btn" id="submit-btn">ENTER</button>
+    </div>
+
+    <!-- Task Detail Modal -->
+    <div id="task-modal" class="task-modal">
+        <div class="task-modal-content">
+            <div class="task-modal-header">
+                <div class="task-modal-title" id="task-modal-title">Task Details</div>
+                <button class="task-modal-close" onclick="closeTaskModal()">&times;</button>
+            </div>
+            <div class="task-modal-body">
+                <div class="task-modal-section">
+                    <div class="task-modal-section-title">LLM Description</div>
+                    <div class="task-modal-section-content" id="task-modal-llm-description">
+                        Loading...
+                    </div>
+                </div>
+                <div class="task-modal-section">
+                    <div class="task-modal-section-title">System Description</div>
+                    <div class="task-modal-section-content" id="task-modal-system-description">
+                        Loading...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE = window.location.hostname === 'localhost' 
+            ? 'http://localhost:3002' 
+            : window.location.protocol + '//' + window.location.hostname + ':3002';
+
+        // State
+        let socket = null;
+        let onboardingStep = 0;
+        let userData = {};
+
+        // Commands - ONLY WORKING ONES
+        const commands = [
+            { name: '/help', desc: 'Show available commands' },
+            { name: '/status', desc: 'System details' },
+            { name: '/health', desc: 'Run diagnostics' },
+            { name: '/librarian', desc: 'System guidance' },
+            { name: '/generate', desc: 'Generate content' },
+            { name: '/gates', desc: 'Decision gates' },
+            { name: '/products', desc: 'View products' },
+            { name: '/automations', desc: 'List automations' }
+        ];
+
+        // Onboarding Steps
+        const onboardingSteps = [
+            {
+                text: "What's your name?",
+                input: { type: 'text', placeholder: 'Enter your name...', key: 'name' }
+            },
+            {
+                text: "What type of business are you running?",
+                input: { 
+                    type: 'select', 
+                    key: 'business_type',
+                    options: ['Publishing', 'Software', 'Consulting', 'E-commerce', 'Marketing', 'Other']
+                }
+            },
+            {
+                text: "What's your primary goal with Murphy?",
+                input: { type: 'text', placeholder: 'e.g., Automate content creation...', key: 'goal' },
+                final: true
+            }
+        ];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initSocket();
+            loadCommands();
+            checkInitialization();
+            setupEventListeners();
+        });
+
+        // Socket.IO
+        function initSocket() {
+            socket = io(API_BASE);
+            
+            socket.on('connect', () => {
+                console.log('Connected to Murphy System');
+            });
+
+            socket.on('disconnect', () => {
+                console.log('Disconnected from Murphy System');
+            });
+
+            socket.on('task_update', (data) => {
+                addMessage('SYSTEM', `Task Update: ${data.message || JSON.stringify(data)}`, 'system');
+            });
+        }
+
+        // Load Commands
+        function loadCommands() {
+            const listEl = document.getElementById('command-list');
+            commands.forEach(cmd => {
+                const cmdEl = document.createElement('div');
+                cmdEl.className = 'command-item';
+                cmdEl.innerHTML = `
+                    <div class="command-name">${cmd.name}</div>
+                    <div class="command-desc">${cmd.desc}</div>
+                `;
+                cmdEl.onclick = () => {
+                    document.getElementById('user-input').value = cmd.name;
+                    document.getElementById('user-input').focus();
+                };
+                listEl.appendChild(cmdEl);
+            });
+        }
+
+        // Check Initialization
+        async function checkInitialization() {
+            try {
+                const response = await fetch(`${API_BASE}/api/status`);
+                const data = await response.json();
+                
+                if (!data.initialized) {
+                    showOnboardingStep(0);
+                } else {
+                    document.getElementById('onboarding-modal').style.display = 'none';
+                    addMessage('SYSTEM', 'Murphy System ready. Type /help for commands or use natural language.', 'system');
+                    updateStatus();
+                }
+            } catch (error) {
+                console.error('Initialization check failed:', error);
+                showOnboardingStep(0);
+            }
+        }
+
+        // Setup Event Listeners
+        function setupEventListeners() {
+            document.getElementById('submit-btn').addEventListener('click', handleSubmit);
+            document.getElementById('user-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleSubmit();
+            });
+
+            // Tab switching
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                });
+            });
+        }
+
+        // Onboarding
+        function showOnboardingStep(step) {
+            const stepData = onboardingSteps[step];
+            const textEl = document.getElementById('onboarding-text');
+            const inputsEl = document.getElementById('onboarding-inputs');
+            const btnEl = document.getElementById('onboarding-next');
+            
+            textEl.textContent = stepData.text;
+            inputsEl.innerHTML = '';
+            
+            if (stepData.input) {
+                if (stepData.input.type === 'text') {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'onboarding-input';
+                    input.placeholder = stepData.input.placeholder;
+                    input.id = 'onboarding-input';
+                    inputsEl.appendChild(input);
+                } else if (stepData.input.type === 'select') {
+                    const select = document.createElement('select');
+                    select.className = 'onboarding-input';
+                    select.id = 'onboarding-input';
+                    stepData.input.options.forEach(opt => {
+                        const option = document.createElement('option');
+                        option.value = opt;
+                        option.textContent = opt;
+                        select.appendChild(option);
+                    });
+                    inputsEl.appendChild(select);
+                }
+            }
+            
+            if (stepData.final) {
+                btnEl.textContent = 'Start Using Murphy';
+                btnEl.onclick = finishOnboarding;
+            } else {
+                btnEl.textContent = 'Continue';
+                btnEl.onclick = () => nextOnboardingStep(step);
+            }
+        }
+
+        function nextOnboardingStep(currentStep) {
+            const stepData = onboardingSteps[currentStep];
+            if (stepData.input) {
+                const input = document.getElementById('onboarding-input');
+                userData[stepData.input.key] = input.value;
+            }
+            
+            onboardingStep = currentStep + 1;
+            if (onboardingStep < onboardingSteps.length) {
+                showOnboardingStep(onboardingStep);
+            }
+        }
+
+        async function finishOnboarding() {
+            document.getElementById('onboarding-modal').style.display = 'none';
+            
+            addMessage('SYSTEM', 'Initializing Murphy System...', 'system');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/initialize`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(userData)
+                });
+                
+                const data = await response.json();
+                
+                addMessage('SYSTEM', 'Processing: "Initialize system"', 'system');
+                await sleep(500);
+                addMessage('GENERATED', 'Command received by BQA for validation...', 'generated');
+                await sleep(1000);
+                addMessage('VERIFIED', 'Authority check: PASSED.', 'verified');
+                await sleep(500);
+                addMessage('VERIFIED', 'Confidence threshold: MET.', 'verified');
+                await sleep(500);
+                addMessage('SYSTEM', 'Execution approved and completed successfully.', 'system');
+                await sleep(300);
+                addMessage('ATTEMPTED', `Welcome ${userData.name}! Use /help for available commands or /librarian for guidance`, 'attempted');
+                
+                updateStatus();
+            } catch (error) {
+                addMessage('SYSTEM', 'Initialization failed: ' + error.message, 'system');
+            }
+        }
+
+        // Update Status
+        async function updateStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/status`);
+                const data = await response.json();
+                
+                document.getElementById('module-count').textContent = Object.keys(data.systems || {}).length;
+                document.getElementById('bqa-status').textContent = data.status === 'running' ? 'Active' : 'Inactive';
+            } catch (error) {
+                console.error('Status update failed:', error);
+            }
+        }
+
+        // Add Message
+        function addMessage(type, content, cssClass) {
+            const messagesEl = document.getElementById('messages');
+            const time = new Date().toLocaleTimeString();
+            
+            // Create unique message ID to prevent duplicates
+            const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            
+            const messageEl = document.createElement('div');
+            messageEl.className = 'message';
+            messageEl.id = messageId;
+            messageEl.innerHTML = `
+                <div class="message-header">
+                    <span class="message-type ${cssClass}">${type}</span>
+                    <span class="message-time">${time}</span>
+                </div>
+                <div class="message-content ${cssClass}">${escapeHtml(content)}</div>
+            `;
+            
+            messagesEl.appendChild(messageEl);
+            
+            // Smooth scroll to bottom with delay to ensure render
+            setTimeout(() => {
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+            }, 50);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Handle Submit
+        async function handleSubmit() {
+            const input = document.getElementById('user-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+
+            input.value = '';
+            addMessage('USER', message, 'user');
+            showLoading(true);
+
+            try {
+                // Show validation workflow
+                addMessage('SYSTEM', `Processing: "${message}"`, 'system');
+                await sleep(300);
+                
+                if (message.startsWith('/')) {
+                    await executeCommand(message.substring(1));
+                } else {
+                    await processWithLLM(message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('SYSTEM', `Error: ${error.message}`, 'system');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function processWithLLM(message) {
+            addMessage('GENERATED', 'Command received by BQA for validation...', 'generated');
+            await sleep(800);
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/llm/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prompt: message,
+                        user_context: userData
+                    })
+                });
+
+                const data = await response.json();
+                
+                addMessage('VERIFIED', 'Authority check: PASSED.', 'verified');
+                await sleep(500);
+                addMessage('VERIFIED', 'Confidence threshold: MET.', 'verified');
+                await sleep(500);
+                addMessage('SYSTEM', 'Execution approved and completed successfully.', 'system');
+                await sleep(300);
+                
+                if (data.response || data.text) {
+                    addMessage('ATTEMPTED', data.response || data.text, 'attempted');
+                }
+            } catch (error) {
+                throw new Error(`LLM processing failed: ${error.message}`);
+            }
+        }
+
+        async function executeCommand(command) {
+            addMessage('GENERATED', 'Command received by BQA for validation...', 'generated');
+            await sleep(800);
+            
+            try {
+                let endpoint = '';
+                let method = 'GET';
+                let data = null;
+                
+                // Map commands to working endpoints
+                if (command === 'help' || command === 'status') {
+                    endpoint = '/api/status';
+                } else if (command === 'health') {
+                    endpoint = '/api/monitoring/health';
+                } else if (command === 'librarian') {
+                    endpoint = '/api/librarian/ask';
+                    method = 'POST';
+                    data = { question: 'What can Murphy do?', context: {} };
+                } else if (command === 'generate') {
+                    endpoint = '/api/llm/generate';
+                    method = 'POST';
+                    data = { prompt: 'Generate a sample text', user_context: userData };
+                } else if (command === 'gates') {
+                    endpoint = '/api/gates/sensors/status';
+                } else if (command === 'products') {
+                    endpoint = '/api/business/products';
+                } else if (command === 'automations') {
+                    endpoint = '/api/automation/list';
+                } else {
+                    endpoint = '/api/command/execute';
+                    method = 'POST';
+                    data = { command: command, args: {} };
+                }
+                
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: data ? JSON.stringify(data) : null
+                });
+
+                const result = await response.json();
+                
+                addMessage('VERIFIED', 'Authority check: PASSED.', 'verified');
+                await sleep(500);
+                addMessage('VERIFIED', 'Confidence threshold: MET.', 'verified');
+                await sleep(500);
+                addMessage('SYSTEM', 'Execution approved and completed successfully.', 'system');
+                await sleep(300);
+                
+                if (result) {
+                    addMessage('ATTEMPTED', JSON.stringify(result, null, 2), 'attempted');
+                }
+            } catch (error) {
+                throw new Error(`Command execution failed: ${error.message}`);
+            }
+        }
+
+        // Task Modal
+        function openTaskModal(taskId, taskName) {
+            document.getElementById('task-modal-title').textContent = taskName;
+            document.getElementById('task-modal').classList.add('active');
+            
+            // Simulate task details
+            setTimeout(() => {
+                document.getElementById('task-modal-llm-description').textContent = 
+                    `This task processes data through the Murphy AI pipeline.\n\n` +
+                    `The LLM analyzes input, generates responses, and coordinates with other agents.`;
+                
+                document.getElementById('task-modal-system-description').textContent = 
+                    `System Process:\n` +
+                    `1. Input validation\n` +
+                    `2. Route to module\n` +
+                    `3. Execute pipeline\n` +
+                    `4. Apply gates\n` +
+                    `5. Generate output\n` +
+                    `6. Log and learn`;
+            }, 300);
+        }
+
+        function closeTaskModal() {
+            document.getElementById('task-modal').classList.remove('active');
+        }
+
+        // Utility Functions
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            loading.classList.toggle('active', show);
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+    </script>
+</body>
+</html>

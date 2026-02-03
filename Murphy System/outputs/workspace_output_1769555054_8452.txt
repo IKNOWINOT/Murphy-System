@@ -1,0 +1,51 @@
+Last 50 lines of file:
+4329:         // ============================================
+4330:         // INITIALIZATION - Window Load Event
+4331:         // ============================================
+4332: 
+4333:         // Initialize visualizations on load (after all resources are loaded)
+4334:         window.addEventListener('load', function() {
+4335:             initAgentGraph();
+4336:             initProcessFlow();
+4337: 
+4338:             // Librarian Panel Removed - responses now in main terminal
+4339: 
+4340:             // Initialize Plan Review Panel
+4341:             window.planReviewPanel = new PlanReviewPanel(API_BASE);
+4342:             window.planReviewPanel.init();
+4343: 
+4344:             // Initialize Document Editor Panel
+4345:             window.documentEditorPanel = new DocumentEditorPanel(API_BASE);
+4346:             window.documentEditorPanel.init();
+4347: 
+4348:             // Initialize Artifact Panel
+4349:             if (typeof ArtifactPanel !== 'undefined') {
+4350:                 ArtifactPanel.init();
+4351:                 window.ArtifactPanel = ArtifactPanel;
+4352:             }
+4353: 
+4354:             // Initialize Shadow Agent Panel
+4355:             window.shadowAgentPanel = new ShadowAgentPanel(API_BASE);
+4356:             window.shadowAgentPanel.init();
+4357: 
+4358:             // Initialize Monitoring Panel
+4359:             window.monitoringPanel = new MonitoringPanel(API_BASE);
+4360:             window.monitoringPanel.init();
+4361: 
+4362:             // Make executeTerminalCommand available globally
+4363: 
+4364:             // Make addTerminalLog available globally for panels
+4365:             window.addTerminalLog = addLog;
+4366: 
+4367:             addLog('Murphy System v2.0 - Ready', 'info');
+4368:             addLog('System auto-initializing...', 'info');
+4369:             addLog('Type /librarian to open the intelligent guide', 'info');
+4370:             addLog('Type /plan or /document to work with plans and documents', 'info');
+4371: 
+4372:             // Auto-initialize system
+4373:             initializeSystem();
+4374:         });
+4375:         </script>
+4376: <!-- Enhanced Librarian UI removed - not needed -->
+4377: </body>
+4378: </html>

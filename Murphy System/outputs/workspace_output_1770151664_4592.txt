@@ -1,0 +1,21 @@
+murphy_integrated/src/base_governance_runtime/validation_engine.py
+murphy_integrated/src/base_governance_runtime/preset_manager.py
+murphy_integrated/src/domain_swarms.py
+murphy_integrated/src/comms/schemas.py
+murphy_integrated/src/comms/__init__.py
+murphy_integrated/src/comms/pipeline.py
+murphy_integrated/src/librarian/document_manager.py
+murphy_integrated/src/librarian/librarian_module.py
+murphy_integrated/src/local_llm_fallback.py
+murphy_integrated/src/mfgc_metrics.py
+murphy_integrated/src/unified_mfgc.py
+murphy_integrated/src/organization_chart_system.py
+murphy_integrated/src/governance_framework/__init__.py
+murphy_integrated/src/governance_framework/artifact_ingestion.py
+murphy_integrated/src/telemetry_learning/models.py
+murphy_integrated/src/telemetry_learning/__init__.py
+murphy_integrated/src/telemetry_learning/api.py
+murphy_integrated/src/telemetry_learning/ingestion.py
+murphy_integrated/src/telemetry_learning/learning.py
+murphy_integrated/src/conversation_manager.py
+xargs: grep: terminated by signal 13

@@ -1,0 +1,3 @@
+✗ Could not find insertion markers
+Insert marker found: False
+Shadow marker found: True

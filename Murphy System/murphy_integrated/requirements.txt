@@ -1,0 +1,25 @@
+# MFGC-AI Requirements
+# Core dependencies for the system
+
+# LLM and ML
+transformers>=4.30.0
+torch>=2.0.0
+sentencepiece>=0.1.99
+
+# Data structures and utilities
+numpy>=1.24.0
+networkx>=3.1
+
+# Cryptography for execution packets
+cryptography>=41.0.0
+
+# Terminal UI
+rich>=13.0.0
+prompt-toolkit>=3.0.0
+
+# Configuration
+pyyaml>=6.0
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0

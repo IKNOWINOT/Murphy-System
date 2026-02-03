@@ -1,0 +1,1 @@
+export function explainCode(code:string, language:string){ return `[${language.toUpperCase()} EXPLANATION]\nExplain the following code in ${language} without changing its logic:\n\n${code}\n`; }

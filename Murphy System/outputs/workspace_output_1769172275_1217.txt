@@ -1,0 +1,5 @@
+2263:@app.route('/api/modules/search', methods=['GET'])
+2296:@app.route('/api/modules/<module_id>/load', methods=['POST'])
+2338:@app.route('/api/modules/<module_id>/unload', methods=['POST'])
+2375:@app.route('/api/modules/loaded', methods=['GET'])
+2400:@app.route('/api/github/analyze', methods=['POST'])

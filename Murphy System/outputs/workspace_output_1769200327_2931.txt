@@ -1,0 +1,43 @@
+        // Initialize terminal input - MOVED HERE TO BE INSIDE DOMContentLoaded
+        const terminalInput = document.getElementById('terminal-input');
+        const terminal = document.getElementById('terminal');
+        
+        if (terminalInput) {
+            terminalInput.addEventListener('keydown', handleTerminalKeyPress);
+            terminalInput.focus();
+        }
+        
+        // Focus terminal when clicking anywhere in terminal area
+        if (terminal) {
+            terminal.addEventListener('click', function() {
+                if (terminalInput) {
+                    terminalInput.focus();
+                }
+            });
+        }
+
+        function handleTerminalKeyPress(event) {
+            if (event.key === 'Enter') {
+                const command = terminalInput.value.trim();
+                if (command) {
+                    executeTerminalCommand(command);
+                    commandHistory.push(command);
+                    historyIndex = commandHistory.length;
+                    terminalInput.value = '';
+                }
+            } else if (event.key === 'ArrowUp') {
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    terminalInput.value = commandHistory[historyIndex];
+                    event.preventDefault();
+                }
+            } else if (event.key === 'ArrowDown') {
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    terminalInput.value = commandHistory[historyIndex];
+                } else {
+                    historyIndex = commandHistory.length;
+                    terminalInput.value = '';
+                }
+                event.preventDefault();
+            }

@@ -1,0 +1,28 @@
+Found document ready at line 1966
+1966 ( +1):         document.addEventListener('DOMContentLoaded', function() {
+1967 ( +1):         // ============================================
+1968 ( +1):         // CONFIGURATION
+1969 ( +1):         // ============================================
+1970 ( +1):         // Use the globally defined API_BASE (already set in head)
+1971 ( +1):         const API_BASE = window.API_BASE;
+1972 ( +1):         let ws = null;
+1973 ( +1): 
+1974 ( +1):         // ============================================
+1975 ( +1):         // TERMINAL - Defined early for use throughout
+1976 ( +1):         // ============================================
+4327 ( +0):         }); // End of DOMContentLoaded
+4328 ( +0): 
+4329 ( +0):         // ============================================
+4330 ( +0):         // INITIALIZATION - Window Load Event
+4331 ( +0):         // ============================================
+4332 ( +0): 
+4333 ( +0):         // Initialize visualizations on load (after all resources are loaded)
+4370 ( +1):             addLog('Type /plan or /document to work with plans and documents', 'info');
+4371 ( +1): 
+4372 ( +1):             // Auto-initialize system
+4373 ( +1):             initializeSystem();
+4374 ( +0):         });
+4375 ( +0):         </script>
+4376 ( +0): <!-- Enhanced Librarian UI removed - not needed -->
+4377 ( +0): </body>
+4378 ( +0): </html>

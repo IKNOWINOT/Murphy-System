@@ -1,0 +1,22 @@
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeDetailPanel();
+            }
+        });
+
+        // ============================================
+        // TERMINAL COMMAND SYSTEM
+        // ============================================
+        
+        let commandHistory = [];
+        let historyIndex = -1;
+        
+        // Commands organized by Murphy System modules
+        const availableCommands = {
+            'command_system.py': [
+                { name: 'help', description: 'Show all commands by module', options: ['<module>'], implemented: true },
+                { name: 'status', description: 'Show system status', options: [], implemented: true },
+                { name: 'initialize', description: 'Initialize Murphy System', options: [], implemented: true },
+                { name: 'clear', description: 'Clear terminal output', options: [], implemented: true }
+            ],
+            'system_librarian.py': [

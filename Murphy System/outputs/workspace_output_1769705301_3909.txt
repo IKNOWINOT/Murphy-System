@@ -1,0 +1,59 @@
+{
+    "checks": {
+        "monitoring": {
+            "message": "Monitoring active",
+            "passed": true
+        },
+        "performance": {
+            "message": "Using development server",
+            "passed": false,
+            "recommendation": "Switch to Gunicorn or uWSGI for production"
+        },
+        "schema": {
+            "issues": [
+                {
+                    "action": "needs_integration",
+                    "file": "uploaded_files/database/schema.sql",
+                    "type": "schema_file_found"
+                },
+                {
+                    "action": "needs_migration",
+                    "file": "uploaded_files/database/add_monitoring_tables.sql",
+                    "type": "additional_schema"
+                },
+                {
+                    "action": "needs_migration",
+                    "file": "uploaded_files/database/add_security_tables.sql",
+                    "type": "additional_schema"
+                },
+                {
+                    "action": "needs_migration",
+                    "file": "uploaded_files/database/add_tasks_config.sql",
+                    "type": "additional_schema"
+                }
+            ],
+            "message": "Run schema migration",
+            "passed": false
+        },
+        "security": {
+            "issues": [
+                "Missing SECRET_KEY",
+                "Missing DATABASE_URL"
+            ],
+            "message": "Security issues found",
+            "passed": false
+        },
+        "ssl": {
+            "action": "Run SSL setup",
+            "message": "SSL not configured",
+            "passed": false
+        }
+    },
+    "ready_for_production": false,
+    "recommendations": [
+        "Configure SSL/TLS certificates",
+        "Run database schema migration",
+        "Configure environment variables",
+        "Switch to production WSGI server"
+    ]
+}

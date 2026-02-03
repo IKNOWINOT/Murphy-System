@@ -1,0 +1,49 @@
+class TestVectorGenerator:
+    """Generate test vectors for capabilities"""
+    
+    def __init__(self):
+        pass
+    
+    def generate_test_vectors(self, capability: Capability) -> List[Dict[str, Any]]:
+        """Generate test vectors for a capability"""
+        test_vectors = []
+        
+        # Generate valid input test
+        valid_input = {}
+        for prop_name, prop_schema in capability.input_schema.get('properties', {}).items():
+            prop_type = prop_schema.get('type', 'string')
+            if prop_type == 'string':
+                valid_input[prop_name] = f"test_{prop_name}"
+            elif prop_type == 'number':
+                valid_input[prop_name] = 123
+            elif prop_type == 'boolean':
+                valid_input[prop_name] = True
+        
+        test_vectors.append({
+            "name": "valid_input",
+            "description": "Test with valid input",
+            "input": valid_input,
+            "expected": {"success": True}
+        })
+        
+        # Generate empty input test
+        test_vectors.append({
+            "name": "empty_input",
+            "description": "Test with empty input",
+            "input": {},
+            "expected": {"success": False}
+        })
+        
+        # Generate invalid type test
+        if capability.input_schema.get('properties'):
+            invalid_input = {k: None for k in capability.input_schema['properties'].keys()}
+            test_vectors.append({
+                "name": "invalid_types",
+                "description": "Test with invalid types",
+                "input": invalid_input,
+                "expected": {"success": False}
+            })
+        
+        return test_vectors
+
+

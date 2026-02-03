@@ -1,0 +1,225 @@
+
+================================================================================
+ INSURANCE RISK-BASED GATE GENERATION - TEST SUITE
+================================================================================
+
+================================================================================
+ TEST 1: Actuarial Risk Formulas
+================================================================================
+
+📊 INPUT DATA
+Frequency: 10.00 events/year
+Probability: 100.0%
+Average Severity: $5,000.00
+Maximum Severity: $10,000.00
+Exposure: $50,000.00
+Controls: 2 controls
+
+📈 CALCULATED METRICS
+Expected Loss (EL): $50,000.00/year
+  Formula: Frequency × Severity = 10.00 × $5,000.00
+
+Risk Score: 27,397.26
+  Formula: EL / (1 + Control Effectiveness)
+  Lower score = Better (controls working)
+
+Value at Risk (95%): $66,450.00
+  95% confidence that loss won't exceed this amount
+
+Retention Limit: $15,000.00
+  Amount to self-insure (risk appetite: 30%)
+
+Insurance Premium: $76,923.08/year
+  Formula: EL / (1 - Expense Ratio - Profit Margin)
+  Expense Ratio: 25%, Profit Margin: 10%
+
+✅ All actuarial formulas calculated successfully
+
+================================================================================
+ TEST 2: Simple Task Risk Assessment
+================================================================================
+
+📋 TASK DETAILS
+Task ID: task_simple_001
+Type: content_creation
+Complexity: simple
+Revenue Potential: $100
+Budget: $500
+
+🎯 RISK ASSESSMENT
+Exposure: $500.00 (tokens)
+Annual Frequency: 5.00 events/year
+Probability: 99.3%
+Average Severity: $250.00
+Expected Loss: $1,250.00/year
+Risk Score: 714.29
+Risk Category: HIGH
+Requires Gates: YES
+
+🚪 GENERATED GATES: 3
+
+1. RISK_ACCEPTANCE
+   Question: Accept risk score of 714 with expected loss of $1250.00?
+   Options: Accept Risk - Proceed, Mitigate Risk - Add Controls, Transfer Risk - Seek Insurance, Avoid Risk - Reject Task
+   Required: YES
+   Priority: 10/10
+
+2. VALUE_AT_RISK
+   Question: 95% VaR of $664.50 exceeds budget of $500.00. Approve?
+   Options: Approve - Increase Budget, Reduce Scope - Lower VaR, Reject - Exceeds Budget, Seek Additional Funding
+   Required: YES
+   Priority: 10/10
+
+3. RETENTION_TRANSFER
+   Question: Expected loss $1250.00 exceeds retention limit $150.00. Transfer $1100.00?
+   Options: Retain All Risk - Self-Insure $1250.00, Transfer Excess - Insure $1100.00, Increase Retention Limit, Reduce Exposure
+   Required: YES
+   Priority: 9/10
+
+================================================================================
+ TEST 3: Complex Task Risk Assessment
+================================================================================
+
+📋 TASK DETAILS
+Task ID: task_complex_001
+Type: system_development
+Complexity: complex
+Revenue Potential: $50,000
+Budget: $10,000
+Duration: 90 days
+Sensitive Data: True
+Industry: finance
+
+🎯 RISK ASSESSMENT
+Exposure: $50,000.00 (revenue)
+Annual Exposure: $202,777.78
+Annual Frequency: 30.00 events/year
+Probability: 100.0%
+Average Severity: $25,000.00
+Maximum Severity: $50,000.00
+Tail Risk: 50.0%
+
+💰 FINANCIAL METRICS
+Expected Loss: $750,000.00/year
+Risk Score: 410,958.90
+Value at Risk (95%): $66,450.00
+Retention Limit: $15,000.00
+Transfer Amount: $735,000.00
+
+🛡️ CONTROLS
+Control Count: 2
+Control Effectiveness: 82.5%
+
+⚠️ RISK CATEGORY: CRITICAL
+Requires Gates: YES
+
+🚪 GENERATED GATES: 3
+
+1. RISK_ACCEPTANCE (Priority: 10/10)
+   Question: Accept risk score of 410959 with expected loss of $750000.00?
+   Options:
+     • Accept Risk - Proceed
+     • Mitigate Risk - Add Controls
+     • Transfer Risk - Seek Insurance
+     • Avoid Risk - Reject Task
+   Reasoning: Risk category: critical. Actuarial analysis shows significant exposure.
+   Required: YES ⚠️
+
+2. VALUE_AT_RISK (Priority: 10/10)
+   Question: 95% VaR of $66450.00 exceeds budget of $10000.00. Approve?
+   Options:
+     • Approve - Increase Budget
+     • Reduce Scope - Lower VaR
+     • Reject - Exceeds Budget
+     • Seek Additional Funding
+   Reasoning: Value at Risk exceeds available budget. 5% chance of loss > $66450.00
+   Required: YES ⚠️
+
+3. RETENTION_TRANSFER (Priority: 9/10)
+   Question: Expected loss $750000.00 exceeds retention limit $15000.00. Transfer $735000.00?
+   Options:
+     • Retain All Risk - Self-Insure $750000.00
+     • Transfer Excess - Insure $735000.00
+     • Increase Retention Limit
+     • Reduce Exposure
+   Reasoning: Transfer amount exceeds risk appetite. Consider risk transfer mechanisms.
+   Required: YES ⚠️
+
+================================================================================
+ TEST 4: High Revenue Task
+================================================================================
+
+📋 TASK DETAILS
+Task: Launch new SaaS product with marketing campaign
+Revenue Potential: $100,000 💰
+Budget: $5,000
+Revenue/Budget Ratio: 20.0x
+
+🎯 RISK ASSESSMENT
+Exposure: $100,000.00 (HIGH)
+Expected Loss: $750,000.00/year
+Risk Score: 416,666.67
+
+🚪 GENERATED GATES: 3
+
+⚠️ REQUIRED GATES: 3
+
+• RISK_ACCEPTANCE
+  Accept risk score of 416667 with expected loss of $750000.00?
+  Priority: 10/10
+
+• VALUE_AT_RISK
+  95% VaR of $132900.00 exceeds budget of $5000.00. Approve?
+  Priority: 10/10
+
+• RETENTION_TRANSFER
+  Expected loss $750000.00 exceeds retention limit $30000.00. Transfer $720000.00?
+  Priority: 9/10
+
+================================================================================
+ TEST 5: Insurance Risk Sensor Agent
+================================================================================
+
+📋 TASK DETAILS
+Task: Analyze customer data and generate insights
+Has Sensitive Data: True
+
+🎯 RISK ASSESSMENT
+Risk Score: 21,428.57
+Risk Category: CRITICAL
+Expected Loss: $37,500.00/year
+
+🚪 GATES GENERATED: 3
+• risk_acceptance: Accept risk score of 21429 with expected loss of $37500.00?...
+• value_at_risk: 95% VaR of $6645.00 exceeds budget of $2000.00. Approve?...
+• retention_transfer: Expected loss $37500.00 exceeds retention limit $1500.00. Tr...
+
+✅ Sensor agent integration successful
+
+================================================================================
+ TEST 6: Comparative Risk Analysis
+================================================================================
+
+📊 COMPARATIVE RISK ANALYSIS
+
+Scenario                       Risk Score      Expected Loss        Gates      Category  
+-------------------------------------------------------------------------------------
+Low Risk - Simple Blog Post    285.71          $500.00              3          medium    
+Medium Risk - Marketing Campaign 20833.33        $37,500.00           3          critical  
+High Risk - Financial System   410958.90       $750,000.00          3          critical  
+
+✅ Comparative analysis complete
+
+================================================================================
+ TEST SUITE COMPLETE
+================================================================================
+
+✅ All tests passed successfully!
+
+📚 Key Learnings:
+• Insurance actuarial formulas provide rigorous risk assessment
+• Expected Loss = Frequency × Severity
+• Risk Score = Expected Loss / (1 + Control Effectiveness)
+• Gates are generated based on quantitative risk thresholds
+• Higher risk = More gates with higher priority
+• Controls reduce risk score and gate requirements

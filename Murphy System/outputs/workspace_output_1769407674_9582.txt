@@ -1,0 +1,11 @@
+librarian_system = None
+
+# ============================================================================
+# EXISTING ENDPOINTS (from murphy_backend_v2.py)
+# ============================================================================
+
+@app.route('/api/status', methods=['GET'])
+def get_status():
+    """Get system status"""
+    return jsonify({
+        'success': True,

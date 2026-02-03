@@ -1,0 +1,40 @@
+ERROR:murphy_complete_integrated:Exception on /api/librarian/search-commands [GET]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+--
+INFO:werkzeug:127.0.0.1 - - [30/Jan/2026 00:53:06] "[35m[1mGET /api/librarian/search-commands?query=help HTTP/1.1[0m" 500 -
+INFO:werkzeug:127.0.0.1 - - [30/Jan/2026 00:53:06] "[35m[1mPOST /api/artifacts/generate HTTP/1.1[0m" 500 -
+INFO:werkzeug:127.0.0.1 - - [30/Jan/2026 00:53:06] "GET /api/artifacts HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [30/Jan/2026 00:53:06] "[35m[1mPOST /api/swarm/task/create HTTP/1.1[0m" 500 -
+INFO:werkzeug:127.0.0.1 - - [30/Jan/2026 00:53:06] "GET /api/swarm/tasks HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [30/Jan/2026 00:53:06] "[35m[1mPOST /api/workflow/create HTTP/1.1[0m" 500 -
+INFO:generative_gate_system:Sensor quality_sensor generated 0 gates
+INFO:generative_gate_system:Sensor cost_sensor generated 0 gates
+INFO:generative_gate_system:Sensor compliance_sensor generated 0 gates
+INFO:werkzeug:127.0.0.1 - - [30/Jan/2026 00:53:06] "POST /api/gates/generate HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [30/Jan/2026 00:53:06] "GET /api/gates/sensors/status HTTP/1.1" 200 -
+ERROR:murphy_complete_integrated:Exception on /api/pipeline/explode [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+--
+INFO:werkzeug:127.0.0.1 - - [30/Jan/2026 00:53:06] "[35m[1mPOST /api/pipeline/explode HTTP/1.1[0m" 500 -
+ERROR:murphy_complete_integrated:Exception on /api/pipeline/status [GET]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+--
+INFO:werkzeug:127.0.0.1 - - [30/Jan/2026 00:53:06] "[35m[1mGET /api/pipeline/status HTTP/1.1[0m" 500 -
+INFO:werkzeug:127.0.0.1 - - [30/Jan/2026 00:53:06] "GET /api/business/products HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [30/Jan/2026 00:53:06] "GET /api/automation/list HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [30/Jan/2026 00:53:11] "GET /api/llm/status HTTP/1.1" 200 -

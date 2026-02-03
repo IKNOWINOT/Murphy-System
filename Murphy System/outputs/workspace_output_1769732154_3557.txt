@@ -1,0 +1,6 @@
+139:    from artifact_manager import ArtifactManager
+141:    artifact_manager = ArtifactManager()
+147:    artifact_manager = None
+202:    from agent_handoff_manager import AgentHandoffManager
+222:    from database_integration import get_database_manager
+265:        artifact_manager=artifact_manager if artifact_manager else None

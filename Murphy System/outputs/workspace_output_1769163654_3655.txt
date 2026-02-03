@@ -1,0 +1,10 @@
+    def get_health_summary(self) -> Dict[str, Any]:
+        """Get a summary of system health"""
+        health_checks = self.monitoring.get_health_status()
+        overall_health = self.monitoring.get_overall_health()
+        
+        return {
+            'overall': overall_health,
+            'components': health_checks,
+            'timestamp': datetime.now().isoformat()
+        }

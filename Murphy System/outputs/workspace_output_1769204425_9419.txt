@@ -1,0 +1,18 @@
+            // Add command to terminal
+            const cmdLine = document.createElement('div');
+            cmdLine.className = 'terminal-line';
+            cmdLine.innerHTML = `<span class="terminal-prompt">murphy></span> ${command}`;
+            terminal.appendChild(cmdLine);
+            
+            // Parse command
+            const parts = command.trim().split(/\s+/);
+            const cmdName = parts[0].toLowerCase().replace(/^\//, '');
+            const args = parts.slice(1);
+            
+            // Process command
+            processCommand(cmdName, args);
+            
+            // Scroll to bottom
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+        

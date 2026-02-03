@@ -1,0 +1,30 @@
+INFO:generative_gate_system:Initialized quality sensor: quality_sensor
+INFO:generative_gate_system:Registered sensor: quality_sensor (quality)
+INFO:generative_gate_system:Initialized cost sensor: cost_sensor
+INFO:generative_gate_system:Registered sensor: cost_sensor (cost)
+INFO:generative_gate_system:Initialized compliance sensor: compliance_sensor
+INFO:generative_gate_system:Registered sensor: compliance_sensor (compliance)
+INFO:generative_gate_system:Created default generative gate system with 3 sensors
+INFO:__main__:✓ Generative Decision Gate System initialized at module level
+INFO:__main__:✓ Enhanced Gate Integration module loaded
+INFO:__main__:✓ Dynamic Projection Gate System module loaded
+INFO:__main__:✓ Autonomous Business Development System module loaded
+INFO:__main__:✓ Enhanced Gate Integration initialized with app
+INFO:__main__:✓ Dynamic Projection Gate System initialized with app
+INFO:__main__:✓ Autonomous Business Development System initialized
+INFO:__main__:✓ Added 10 Autonomous BD API endpoints
+INFO:__main__:============================================================
+INFO:__main__:Murphy Complete Integrated System
+INFO:__main__:============================================================
+INFO:__main__:Systems Status:
+INFO:__main__:  ✓ LLM
+INFO:__main__:  ✓ LIBRARIAN
+INFO:__main__:  ✓ MONITORING
+INFO:__main__:  ✓ ARTIFACTS
+INFO:__main__:  ✓ SHADOW_AGENTS
+INFO:__main__:  ✓ SWARM
+INFO:__main__:  ✓ COMMANDS
+INFO:__main__:  ✓ LEARNING
+INFO:__main__:  ✓ WORKFLOW
+INFO:__main__:  ✓ DATABASE
+INFO:__main__:  ✓ BUSINESS

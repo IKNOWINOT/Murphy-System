@@ -1,0 +1,24 @@
+Script ends at line 9
+Script ends at line 10
+Script ends at line 13
+Script ends at line 1741
+Script ends at line 1744
+Script ends at line 1746
+Script ends at line 1748
+Script ends at line 1749
+Script ends at line 1957
+Script ends at line 1958
+Script ends at line 1961
+Script ends at line 1963
+DOM Content Loaded starts at line 1966
+Window Load starts at line 4334
+Script ends at line 4375
+
+Now tracking braces from DOMContentLoaded to script end:
+Line 1966 (balance +1): document.addEventListener('DOMContentLoaded', function() {
+Line 4327 (balance +0): }); // End of DOMContentLoaded
+Line 4334 (balance +1): window.addEventListener('load', function() {
+Line 4374 (balance +0): });
+Line 4375 (balance +0): </script>
+
+Final balance in script section: 0

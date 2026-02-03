@@ -1,0 +1,200 @@
+def add_telemetry_endpoint(app, current_graph, verification_evidence_store):
+
+File: murphy_integrated/src/confidence_engine/uncertainty_calculator.py
+class UncertaintyCalculator:
+
+File: murphy_integrated/src/confidence_engine/unified_confidence_engine.py
+class UnifiedConfidenceEngine:
+
+=== OTHER KEY MODULES ===
+### AUTONOMOUS SYSTEMS ###
+-rw-r--r-- 1 root root  1567 Feb  3 19:33 murphy_integrated/src/autonomous_systems/__init__.py
+-rw-r--r-- 1 root root 18481 Feb  3 19:33 murphy_integrated/src/autonomous_systems/autonomous_scheduler.py
+-rw-r--r-- 1 root root 24548 Feb  3 19:33 murphy_integrated/src/autonomous_systems/human_oversight_system.py
+-rw-r--r-- 1 root root 23382 Feb  3 19:33 murphy_integrated/src/autonomous_systems/risk_manager.py
+
+### GATE SYNTHESIS ###
+-rw-r--r-- 1 root root   844 Feb  3 19:33 murphy_integrated/src/gate_synthesis/__init__.py
+-rw-r--r-- 1 root root 18650 Feb  3 19:33 murphy_integrated/src/gate_synthesis/api_server.py
+-rw-r--r-- 1 root root 13539 Feb  3 19:33 murphy_integrated/src/gate_synthesis/failure_mode_enumerator.py
+-rw-r--r-- 1 root root 13660 Feb  3 19:33 murphy_integrated/src/gate_synthesis/gate_generator.py
+-rw-r--r-- 1 root root 10224 Feb  3 19:33 murphy_integrated/src/gate_synthesis/gate_lifecycle_manager.py
+-rw-r--r-- 1 root root 13384 Feb  3 19:33 murphy_integrated/src/gate_synthesis/models.py
+-rw-r--r-- 1 root root  8160 Feb  3 19:33 murphy_integrated/src/gate_synthesis/murphy_estimator.py
+-rw-r--r-- 1 root root  1819 Feb  3 19:33 murphy_integrated/src/gate_synthesis/rsc_telemetry.py
+File: murphy_integrated/src/gate_synthesis/__init__.py
+File: murphy_integrated/src/gate_synthesis/api_server.py
+def enumerate_failure_modes():
+def estimate_murphy_probability():
+def analyze_exposure():
+def generate_gates():
+def activate_gate(gate_id: str):
+def activate_all_gates():
+def retire_gate(gate_id: str):
+def check_expiry():
+def update_retirement_conditions():
+def list_gates():
+File: murphy_integrated/src/gate_synthesis/failure_mode_enumerator.py
+class FailureModeEnumerator:
+File: murphy_integrated/src/gate_synthesis/gate_generator.py
+class GateGenerator:
+File: murphy_integrated/src/gate_synthesis/gate_lifecycle_manager.py
+class GateLifecycleManager:
+File: murphy_integrated/src/gate_synthesis/models.py
+class GateType(Enum):
+class GateCategory(Enum):
+class GateState(Enum):
+class FailureModeType(Enum):
+class RiskVector:
+class FailureMode:
+class RiskPath:
+class ExposureSignal:
+class BlastRadius:
+class RetirementCondition:
+File: murphy_integrated/src/gate_synthesis/murphy_estimator.py
+class MurphyProbabilityEstimator:
+File: murphy_integrated/src/gate_synthesis/rsc_telemetry.py
+def add_telemetry_endpoint(app, gate_lifecycle_manager):
+
+### CONTROL PLANE ###
+-rw-r--r-- 1 root root   670 Feb  3 19:33 murphy_integrated/src/control_plane/__init__.py
+-rw-r--r-- 1 root root 11269 Feb  3 19:33 murphy_integrated/src/control_plane/execution_packet.py
+-rw-r--r-- 1 root root 11352 Feb  3 19:33 murphy_integrated/src/control_plane/packet_compiler.py
+File: murphy_integrated/src/control_plane/__init__.py
+File: murphy_integrated/src/control_plane/execution_packet.py
+class ActionType(Enum):
+class ConstraintType(Enum):
+class Action:
+class SafetyConstraint:
+class Gate:
+class TimeWindow:
+class RollbackPlan:
+class AuthorityEnvelope:
+class ExecutionPacket:
+def create_simple_packet(
+File: murphy_integrated/src/control_plane/packet_compiler.py
+class PacketCompilationError(Exception):
+class PacketCompiler:
+
+### SECURITY PLANE ###
+-rw-r--r-- 1 root root  3056 Feb  3 19:33 murphy_integrated/src/security_plane/__init__.py
+-rw-r--r-- 1 root root 21738 Feb  3 19:33 murphy_integrated/src/security_plane/access_control.py
+-rw-r--r-- 1 root root 27618 Feb  3 19:33 murphy_integrated/src/security_plane/adaptive_defense.py
+-rw-r--r-- 1 root root 29314 Feb  3 19:33 murphy_integrated/src/security_plane/anti_surveillance.py
+-rw-r--r-- 1 root root 26640 Feb  3 19:33 murphy_integrated/src/security_plane/authentication.py
+-rw-r--r-- 1 root root 22182 Feb  3 19:33 murphy_integrated/src/security_plane/cryptography.py
+-rw-r--r-- 1 root root 26998 Feb  3 19:33 murphy_integrated/src/security_plane/data_leak_prevention.py
+-rw-r--r-- 1 root root 23195 Feb  3 19:33 murphy_integrated/src/security_plane/hardening.py
+-rw-r--r-- 1 root root 23125 Feb  3 19:33 murphy_integrated/src/security_plane/middleware.py
+-rw-r--r-- 1 root root 19787 Feb  3 19:33 murphy_integrated/src/security_plane/packet_protection.py
+-rw-r--r-- 1 root root 12072 Feb  3 19:33 murphy_integrated/src/security_plane/schemas.py
+File: murphy_integrated/src/security_plane/__init__.py
+File: murphy_integrated/src/security_plane/access_control.py
+class AccessDecision(Enum):
+class CapabilityScope(Enum):
+class Capability:
+class AccessRequest:
+class AccessGrant:
+class TrustRecomputer:
+class AuthorityBandEnforcer:
+class CapabilityManager:
+class ZeroTrustAccessController:
+File: murphy_integrated/src/security_plane/adaptive_defense.py
+class ThreatLevel(Enum):
+class AnomalyType(Enum):
+class ResponseAction(Enum):
+class AttackType(Enum):
+class SecurityEvent:
+class Anomaly:
+class ThreatIndicator:
+class DefenseResponse:
+class BehavioralAnomalyDetector:
+class StatisticalAnomalyDetector:
+File: murphy_integrated/src/security_plane/anti_surveillance.py
+class TrafficPatternType(Enum):
+class TimingAttackType(Enum):
+class SideChannelType(Enum):
+class MetadataType(Enum):
+class AnonymizationTechnique(Enum):
+class AntiSurveillanceConfig:
+class TrafficPattern:
+class TimingProfile:
+class SideChannelSignature:
+class MetadataPolicy:
+File: murphy_integrated/src/security_plane/authentication.py
+class AuthenticationType(Enum):
+class IdentityType(Enum):
+class BiometricType(Enum):
+class Identity:
+class AuthenticationCredential:
+class AuthenticationAttempt:
+class AuthenticationSession:
+class ContextualVerification:
+class IntentConfirmation:
+class HumanAuthenticator:
+File: murphy_integrated/src/security_plane/cryptography.py
+class HashAlgorithm(Enum):
+class KeyPair:
+class SignatureResult:
+class VerificationResult:
+class CryptographicPrimitives:
+class ClassicalCryptography:
+class PostQuantumCryptography:
+class HybridCryptography:
+class KeyManager:
+class PacketSigner:
+File: murphy_integrated/src/security_plane/data_leak_prevention.py
+class DataSensitivityLevel(Enum):
+class DataCategory(Enum):
+class DataClassification:
+class SensitiveDataClassifier:
+class DataTransfer:
+class ExfiltrationDetector:
+class EncryptionPolicy:
+class EncryptionEnforcer:
+class DataAccessLog:
+class DataAccessLogger:
+File: murphy_integrated/src/security_plane/hardening.py
+class ValidationError(Exception):
+class InjectionAttemptError(Exception):
+class InputType(Enum):
+class OutputContext(Enum):
+class ValidationRule:
+class InputValidator:
+class OutputEncoder:
+class CommandInjectionPreventer:
+class PathTraversalPreventer:
+class HardeningStatistics:
+File: murphy_integrated/src/security_plane/middleware.py
+class SecurityMiddlewareConfig:
+class SecurityContext:
+class AuthenticationMiddleware:
+class EncryptionMiddleware:
+class AuditLoggingMiddleware:
+class TimingNormalizationMiddleware:
+class DLPMiddleware:
+class AntiSurveillanceMiddleware:
+class SecurityMiddleware:
+class ConfidenceEngineMiddleware(SecurityMiddleware):
+File: murphy_integrated/src/security_plane/packet_protection.py
+class PacketStatus(Enum):
+class VerificationResult(Enum):
+class AuthorityLevel(Enum):
+class ExecutionPacket:
+class PacketSignature:
+class VerificationRecord:
+class PacketSigner:
+class ReplayPrevention:
+class AuthorityEnforcer:
+class IntegrityValidator:
+File: murphy_integrated/src/security_plane/schemas.py
+class TrustLevel(Enum):
+class AuthorityBand(Enum):
+class SecurityAction(Enum):
+class AnomalyType(Enum):
+class CryptographicAlgorithm(Enum):
+class TrustScore:
+class SecurityArtifact:
+class SecurityAnomaly:
+class ExecutionPacketSignature:
+class AccessRequest:

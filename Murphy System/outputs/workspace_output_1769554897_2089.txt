@@ -1,0 +1,2 @@
+2773:        async function executeTerminalCommand(command) {
+2933:        async function executeTerminalCommand(command) {

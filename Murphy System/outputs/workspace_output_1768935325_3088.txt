@@ -1,0 +1,31 @@
+    async def generate_prompts_from_document(self, doc_id: str) -> Dict[str, str]:
+        """Generate prompts from solidified document"""
+        doc = self.living_documents.get(doc_id)
+        if not doc or doc.state != "SOLIDIFIED":
+            return {}
+        
+        # Generate master prompt
+        master_prompt = f"""
+        Based on this document:
+        Title: {doc.title}
+        Content: {doc.content}
+        
+        Generate a comprehensive master prompt that captures all requirements.
+        """
+        
+        master = await self.llm_router.route_request(master_prompt, "generative")
+        
+        # Use DomainEngine to determine relevant domains
+        if self.domain_engine:
+            analysis = self.domain_engine.analyze_request(doc.content)
+            domain_names = list(analysis['matched_domains'].keys())
+        else:
+            # Fallback to default domains
+            domain_names = ["engineering", "financial", "regulatory", "sales", "operations"]
+        
+        prompts = {"master": master}
+        
+        # Generate domain-specific prompts
+        for domain_name in domain_names:
+            domain_obj = self.domain_engine.domains.get(domain_name) if self.domain_engine else None
+            

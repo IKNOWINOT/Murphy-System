@@ -1,0 +1,71 @@
+                    addLog(`✓ States: ${data.states}`, 'success');
+                    addLog(`✓ Gates: ${data.gates}`, 'success');
+                    
+                    // Hide init modal
+                    document.getElementById('init-modal').classList.add('hidden');
+                    
+                    // Initialize WebSocket
+                    connectWebSocket();
+                    
+                    // Load initial data
+                    await loadSystemData();
+                } else {
+                    addLog('✗ Initialization failed', 'error');
+                }
+            } catch (error) {
+                addLog(`✗ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function connectWebSocket() {
+            const wsProtocol = isLocalhost ? 'ws://' : 'wss://';
+            const wsHost = isLocalhost ? 'localhost:8000' : '8000-7ced438b-5e53-49d7-a2f0-8056ffbc558b.sandbox-service.public.prod.myninja.ai';
+            ws = new WebSocket(`${wsProtocol}${wsHost}`);
+            
+            ws.onopen = function() {
+                addLog('✓ Connected to Murphy System WebSocket', 'success');
+                
+                // Request initial state
+                ws.send(JSON.stringify({ type: 'get_initial_state' }));
+            };
+            
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                handleWebSocketMessage(data);
+            };
+            
+            ws.onerror = function(error) {
+                addLog('✗ WebSocket error', 'error');
+                console.error('WebSocket error:', error);
+            };
+            
+            ws.onclose = function() {
+                addLog('✗ Disconnected from WebSocket', 'warning');
+                // Attempt to reconnect after 3 seconds
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+
+        async function loadSystemData() {
+            // Load states
+            const statesResponse = await fetch(`${API_BASE}/api/states`);
+            const statesData = await statesResponse.json();
+            currentStates = statesData.states;
+            renderStateTree(currentStates);
+            
+            // Load agents
+            const agentsResponse = await fetch(`${API_BASE}/api/agents`);
+            const agentsData = await agentsResponse.json();
+            currentAgents = agentsData.agents;
+            updateAgentGraph(currentAgents, []);
+            
+            // Update metrics
+            updateMetrics();
+            
+            // Update LLM status
+            updateLLMStatus();
+        }
+
+        // ============================================
+        // WEBSOCKET MESSAGE HANDLING
+        // ============================================

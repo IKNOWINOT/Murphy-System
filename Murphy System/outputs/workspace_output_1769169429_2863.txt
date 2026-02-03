@@ -1,0 +1,5 @@
+881:def list_artifacts():
+1080:def search_artifacts():
+1206:def list_shadow_agents():
+1229:def get_shadow_agent(agent_id):
+1464:def get_shadow_stats():

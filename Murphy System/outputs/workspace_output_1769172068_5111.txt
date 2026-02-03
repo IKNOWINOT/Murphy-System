@@ -1,0 +1,128 @@
+82:    def to_dict(self) -> Dict[str, Any]:
+83-        return {
+84-            "cpu_limit": self.cpu_limit,
+85-            "memory_limit": self.memory_limit,
+86-            "disk_limit": self.disk_limit,
+87-            "timeout_seconds": self.timeout_seconds,
+88-            "network_required": self.network_required,
+89-            "gpu_required": self.gpu_required
+90-        }
+91-
+92-
+93-@dataclass
+94-class FailureMode:
+95-    """Potential failure mode for a capability"""
+96-    type: str
+97-    severity: FailureSeverity
+98-    description: str
+99-    mitigation: Optional[str] = None
+100-    probability: Optional[float] = None
+101-    
+102:    def to_dict(self) -> Dict[str, Any]:
+103-        return {
+104-            "type": self.type,
+105-            "severity": self.severity.value,
+106-            "description": self.description,
+107-            "mitigation": self.mitigation,
+108-            "probability": self.probability
+109-        }
+110-
+111-
+112-@dataclass
+113-class Capability:
+114-    """A single executable capability within a module"""
+115-    name: str
+116-    description: str
+117-    input_schema: Dict[str, Any]
+118-    output_schema: Dict[str, Any]
+119-    determinism: DeterminismLevel
+120-    resource_profile: ResourceProfile
+121-    failure_modes: List[FailureMode] = field(default_factory=list)
+122-    test_vectors: List[Dict[str, Any]] = field(default_factory=list)
+--
+127:    def to_dict(self) -> Dict[str, Any]:
+128-        return {
+129-            "name": self.name,
+130-            "description": self.description,
+131-            "input_schema": self.input_schema,
+132-            "output_schema": self.output_schema,
+133-            "determinism": self.determinism.value,
+134-            "resource_profile": self.resource_profile.to_dict(),
+135-            "failure_modes": [fm.to_dict() for fm in self.failure_modes],
+136-            "test_vectors": self.test_vectors,
+137-            "entry_point": self.entry_point,
+138-            "required_env_vars": self.required_env_vars,
+139-            "required_files": self.required_files
+140-        }
+141-
+142-
+143-@dataclass
+144-class SandboxProfile:
+145-    """Security sandbox configuration for module"""
+146-    profile_type: str = "restricted"
+147-    allowed_imports: List[str] = field(default_factory=list)
+--
+154:    def to_dict(self) -> Dict[str, Any]:
+155-        return {
+156-            "profile_type": self.profile_type,
+157-            "allowed_imports": self.allowed_imports,
+158-            "blocked_imports": self.blocked_imports,
+159-            "environment_variables": self.environment_variables,
+160-            "file_access_rules": self.file_access_rules,
+161-            "network_rules": self.network_rules,
+162-            "resource_limits": self.resource_limits.to_dict()
+163-        }
+164-
+165-
+166-@dataclass
+167-class RiskIssue:
+168-    """A security risk found in code"""
+169-    file: str
+170-    line: int
+171-    pattern: str
+172-    description: str
+173-    severity: str
+174-    
+175:    def to_dict(self) -> Dict[str, Any]:
+176-        return {
+177-            "file": self.file,
+178-            "line": self.line,
+179-            "pattern": self.pattern,
+180-            "description": self.description,
+181-            "severity": self.severity
+182-        }
+183-
+184-
+185-@dataclass
+186-class ModuleSpec:
+187-    """Complete module specification combining SwissKiss and Module Compiler"""
+188-    # Basic Info
+189-    module_id: str
+190-    module_name: str
+191-    source_path: str
+192-    version_hash: str
+193-    
+194-    # GitHub Info (from SwissKiss)
+195-    github_url: Optional[str] = None
+--
+231:    def to_dict(self) -> Dict[str, Any]:
+232-        return {
+233-            "module_id": self.module_id,
+234-            "module_name": self.module_name,
+235-            "source_path": self.source_path,
+236-            "version_hash": self.version_hash,
+237-            "github_url": self.github_url,
+238-            "license_type": self.license_type.value if isinstance(self.license_type, LicenseType) else self.license_type,
+239-            "license_allowed": self.license_allowed,
+240-            "languages": self.languages,
+241-            "readme_summary": self.readme_summary,
+242-            "dependencies": self.dependencies,
+243-            "risk_issues": [issue.to_dict() for issue in self.risk_issues],
+244-            "risk_score": self.risk_score,
+245-            "capabilities": [cap.to_dict() for cap in self.capabilities],
+246-            "sandbox_profile": self.sandbox_profile.to_dict(),
+247-            "compiler_version": self.compiler_version,
+248-            "build_steps": self.build_steps,
+249-            "verification_status": self.verification_status,
+250-            "verification_checks": self.verification_checks,
+251-            "is_partial": self.is_partial,

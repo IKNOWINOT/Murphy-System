@@ -1,0 +1,2 @@
+root         631  0.0  0.7  37340 31624 ?        Ss   21:48   0:00 /usr/bin/python3 /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf
+root        4873  0.1  1.6  76152 67328 ?        S    22:44   0:00 python3 murphy_complete_integrated.py

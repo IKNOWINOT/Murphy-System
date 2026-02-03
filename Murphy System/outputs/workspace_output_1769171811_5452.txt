@@ -1,0 +1,8 @@
+2045:@app.route('/api/modules/compile/github', methods=['POST'])
+2110:@app.route('/api/modules/compile/file', methods=['POST'])
+2175:@app.route('/api/modules/<module_id>', methods=['GET'])
+2205:@app.route('/api/modules', methods=['GET'])
+2230:@app.route('/api/modules/search', methods=['GET'])
+2263:@app.route('/api/modules/<module_id>/load', methods=['POST'])
+2305:@app.route('/api/modules/<module_id>/unload', methods=['POST'])
+2342:@app.route('/api/modules/loaded', methods=['GET'])

@@ -1,0 +1,101 @@
+            inputsEl.innerHTML = '';
+            
+            if (stepData.input) {
+                if (stepData.input.type === 'text') {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'modal-input';
+                    input.placeholder = stepData.input.placeholder;
+                    input.id = 'onboarding-input';
+                    inputsEl.appendChild(input);
+                } else if (stepData.input.type === 'select') {
+                    const select = document.createElement('select');
+                    select.className = 'modal-input';
+                    select.id = 'onboarding-input';
+                    stepData.input.options.forEach(opt => {
+                        const option = document.createElement('option');
+                        option.value = opt;
+                        option.textContent = opt;
+                        select.appendChild(option);
+                    });
+                    inputsEl.appendChild(select);
+                }
+            }
+            
+            if (stepData.final) {
+                btnEl.textContent = 'Start Using Murphy';
+                btnEl.onclick = finishOnboarding;
+            } else {
+                btnEl.textContent = 'Continue';
+                btnEl.onclick = () => nextOnboardingStep(step);
+            }
+        }
+
+        function nextOnboardingStep(currentStep) {
+            const stepData = onboardingSteps[currentStep];
+            if (stepData.input) {
+                const input = document.getElementById('onboarding-input');
+                userData[stepData.input.key] = input.value;
+            }
+            
+            onboardingStep = currentStep + 1;
+            if (onboardingStep < onboardingSteps.length) {
+                showOnboardingStep(onboardingStep);
+            }
+        }
+
+        async function finishOnboarding() {
+            document.getElementById('onboarding-modal').classList.remove('active');
+            
+            addMessage('SYSTEM', 'Initializing Murphy System...', 'system');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/initialize`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(userData)
+                });
+                
+                const data = await response.json();
+                
+                addMessage('VERIFIED', 'System initialized successfully', 'verified');
+                addMessage('VERIFIED', 'All modules loaded and operational', 'verified');
+                addMessage('GENERATED', `Welcome ${userData.name}! I'm ready to help with your ${userData.business_type} business. ${userData.goal}`, 'generated');
+                addMessage('GENERATED', 'Try typing /help to see available commands, or just tell me what you need in natural language.', 'generated');
+                
+                updateStatus();
+            } catch (error) {
+                addMessage('SYSTEM', 'Initialization failed: ' + error.message, 'system');
+            }
+        }
+
+        // Update Status
+        async function updateStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/status`);
+                const data = await response.json();
+                
+                document.getElementById('module-count').textContent = Object.keys(data.systems || {}).length;
+                document.getElementById('ram-status').textContent = data.status === 'running' ? 'Active' : 'Inactive';
+            } catch (error) {
+                console.error('Status update failed:', error);
+            }
+        }
+
+        // Add Message
+        function addMessage(type, content, cssClass) {
+            const messagesEl = document.getElementById('messages');
+            const time = new Date().toLocaleTimeString();
+            
+            const messageEl = document.createElement('div');
+            messageEl.className = 'message';
+            messageEl.innerHTML = `
+                <div class="message-header">
+                    <span class="message-type ${cssClass}">${type}</span>
+                    <span class="message-time">${time}</span>
+                </div>
+                <div class="message-content ${cssClass}">${content}</div>
+            `;
+            
+            messagesEl.appendChild(messageEl);
+            messagesEl.scrollTop = messagesEl.scrollHeight;

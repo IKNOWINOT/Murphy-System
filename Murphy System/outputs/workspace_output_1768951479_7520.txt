@@ -1,0 +1,21 @@
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>⚡ MURPHY SYSTEM</h1>
+        <div class="llm-controls">
+            <div class="llm-indicator active">
+                <div class="status-dot"></div>
+                <span>GROQ (9)</span>
+            </div>
+            <div class="llm-indicator active">
+                <div class="status-dot"></div>
+                <span>ONBOARD</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-section">

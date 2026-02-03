@@ -1,0 +1,3 @@
+Status: 503
+Response: {"error":"Communication hub not initialized","success":false}
+

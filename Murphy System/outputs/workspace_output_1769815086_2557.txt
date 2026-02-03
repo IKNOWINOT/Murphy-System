@@ -1,0 +1,5 @@
+Creating package with FIXED install.bat...
+✓ Created: murphy_system_v2.1_FIXED_INSTALL.zip
+✓ Size: 709,505 bytes (692.88 KB)
+✓ Files: 186
+✗ install.bat MISSING aiohttp!

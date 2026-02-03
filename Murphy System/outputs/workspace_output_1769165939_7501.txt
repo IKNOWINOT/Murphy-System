@@ -1,0 +1,1 @@
+779:@app.route('/api/artifacts/<artifact_id>', methods=['PUT'])

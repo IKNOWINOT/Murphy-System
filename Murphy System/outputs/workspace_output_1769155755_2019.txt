@@ -1,0 +1,4 @@
+  File "<stdin>", line 17
+    """Define a new workflow"""
+       ^^^^^^
+SyntaxError: invalid syntax

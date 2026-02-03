@@ -1,0 +1,3 @@
+36:    from domain_engine import DomainEngine
+247:            self.domain_engine = DomainEngine()
+279:        # Use DomainEngine to determine relevant domains

@@ -1,0 +1,26 @@
+    system_state['states'][state_id] = state
+    
+    # Add to parent's children list
+    if parent_id and parent_id in system_state['states']:
+        system_state['states'][parent_id]['children'].append(state_id)
+    
+    return state
+
+# ===== API ROUTES =====
+
+@app.route('/')
+def index():
+    """Serve the frontend HTML"""
+    try:
+        return send_file('murphy_complete_v2.html')
+    except Exception as e:
+        return f"Error loading frontend: {e}", 500
+
+@app.route('/index.html')
+def index_html():
+    """Serve index.html for backwards compatibility"""
+    try:
+        return send_file('index.html')
+    except Exception as e:
+        return f"Error loading frontend: {e}", 500
+

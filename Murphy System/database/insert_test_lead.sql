@@ -1,0 +1,2 @@
+INSERT INTO leads (client_id, email, phone, full_name, first_name, last_name, company_name, source, status, lead_score, source_details, created_at, updated_at) 
+VALUES (1, 'test.lead@example.com', '+1-555-123-4567', 'John Doe', 'John', 'Doe', 'Example Inc', 'manual_test', 'new', 0, '{"test": true}', NOW(), NOW());

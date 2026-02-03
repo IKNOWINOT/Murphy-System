@@ -1,0 +1,7 @@
+Missing endpoints in backend:
+  /api/artifacts/${artifactId}/convert
+  /api/documents
+  /api/librarian/overview
+  /api/librarian/search
+  /api/librarian/transcripts
+  /api/plans

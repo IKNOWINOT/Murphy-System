@@ -1,0 +1,4 @@
+88:    from monitoring_system import MonitoringSystem
+107:        monitoring_system = MonitoringSystem()
+150:    from artifact_generation_system import ArtifactGenerationSystem, ArtifactType
+204:        artifact_generation_system = ArtifactGenerationSystem()

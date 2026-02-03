@@ -1,0 +1,13 @@
+/workspace/index.html
+/workspace/murphy_backend_integrated.html
+/workspace/murphy_complete_frontend.html
+/workspace/murphy_complete_ui.html
+/workspace/murphy_complete_v2.html
+/workspace/murphy_generative_system.html
+/workspace/murphy_integrated_terminal.html
+/workspace/murphy_interactive_demo.html
+/workspace/murphy_live_demo.html
+/workspace/murphy_system_interactive.html
+/workspace/murphy_system_live.html
+/workspace/murphy_terminal_runtime.html
+/workspace/terminal_enhanced.html

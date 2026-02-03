@@ -1,0 +1,25 @@
+Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+Warning: Could not import Murphy System components: No module named 'mfgc_core'
+✓ Groq client 1/9 initialized
+✓ Groq client 2/9 initialized
+✓ Groq client 3/9 initialized
+✓ Groq client 4/9 initialized
+✓ Groq client 5/9 initialized
+✓ Groq client 6/9 initialized
+✓ Groq client 7/9 initialized
+✓ Groq client 8/9 initialized
+✓ Groq client 9/9 initialized
+✓ Total 9 Groq clients ready for load balancing
+✓ Aristotle (deterministic mode) will use same Groq clients with temperature 0.1
+============================================================
+Murphy System - Complete Backend
+============================================================
+Murphy System Available: False
+Groq (Generative) Available: True
+Aristotle (Deterministic) Available: True
+Starting server on http://localhost:6666
+============================================================
+ * Serving Flask app 'murphy_complete_backend'
+ * Debug mode: off
+Address already in use
+Port 6666 is in use by another program. Either identify and stop that program, or start the server with a different port.

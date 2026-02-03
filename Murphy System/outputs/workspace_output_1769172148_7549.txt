@@ -1,0 +1,16 @@
+        
+        # Extract capabilities
+        capabilities = self.capability_extractor.extract_capabilities(analysis)
+        
+        # Generate sandbox profile
+        sandbox_profile = self.sandbox_generator.generate_sandbox_profile(
+            capabilities, 
+            [dep.get('name', dep) for dep in dependencies]
+        )
+        
+        # Detect failure modes
+        failure_modes = self.failure_detector.detect_failure_modes(source_path)
+        
+        # Generate test vectors
+        for capability in capabilities:
+            capability.test_vectors = self.test_vector_generator.generate_test_vectors(capability)

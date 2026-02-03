@@ -1,0 +1,10 @@
+13:    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+1974:            // Use Socket.IO for Flask-SocketIO compatibility
+1975:            // CRITICAL: Store socket globally for access throughout the application
+1976:            window.socket = io({
+1977:                transports: ['websocket', 'polling'],
+1983:            // Use global window.socket for all event handlers
+1984:            window.socket.on('connect', function() {
+1988:            window.socket.on('connected', function(data) {
+1992:            window.socket.on('system_initialized', function(data) {
+2007:            window.socket.on('state_updated', function(data) {

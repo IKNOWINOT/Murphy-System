@@ -1,0 +1,30 @@
+INFO:__main__:✓ Artifact components loaded successfully
+INFO:__main__:✓ Artifact systems initialized
+INFO:__main__:✓ Shadow Agent components loaded successfully
+INFO:__main__:✓ Shadow Agent systems initialized
+INFO:__main__:✓ Cooperative Swarm components loaded successfully
+INFO:__main__:✓ Cooperative Swarm systems initialized
+INFO:__main__:============================================================
+INFO:__main__:Murphy System Complete Backend Server v3.0
+INFO:__main__:============================================================
+INFO:__main__:Monitoring: ✓
+INFO:__main__:Artifacts: ✓
+INFO:__main__:Shadow Agents: ✓
+INFO:__main__:Cooperative Swarm: ✓
+INFO:__main__:============================================================
+WARNING:werkzeug:Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 919-934-296
+INFO:werkzeug:127.0.0.1 - - [23/Jan/2026 11:44:37] "GET /api/status HTTP/1.1" 200 -
+INFO:auth_system:Token generated for user: admin
+INFO:__main__:Successful login for user: admin
+INFO:werkzeug:127.0.0.1 - - [23/Jan/2026 11:44:41] "POST /api/auth/login HTTP/1.1" 200 -
+WARNING:auth_system:Token not found in active tokens
+WARNING:auth_middleware:Authentication failed: Invalid token
+INFO:werkzeug:127.0.0.1 - - [23/Jan/2026 11:44:41] "[31m[1mPOST /api/initialize HTTP/1.1[0m" 401 -
+INFO:auth_system:Token generated for user: admin
+INFO:__main__:Successful login for user: admin
+INFO:werkzeug:127.0.0.1 - - [23/Jan/2026 11:44:45] "POST /api/auth/login HTTP/1.1" 200 -
+WARNING:auth_system:Token not found in active tokens
+WARNING:auth_middleware:Authentication failed: Invalid token
+INFO:werkzeug:127.0.0.1 - - [23/Jan/2026 11:44:45] "[31m[1mPOST /api/initialize HTTP/1.1[0m" 401 -

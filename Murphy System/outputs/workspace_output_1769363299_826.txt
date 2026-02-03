@@ -1,0 +1,54 @@
+                const initResponse = await fetch(`${API_BASE}/api/initialize`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                });
+                const initResult = await initResponse.json();
+                
+                if (initResult.success || initResult.message) {
+                    addTerminalLog('\u2713 System initialized successfully', 'success');
+                    
+                    // Fetch actual data from backend
+                    const [agentsResponse, statesResponse] = await Promise.all([
+                        fetch(`${API_BASE}/api/agents`),
+                        fetch(`${API_BASE}/api/states`)
+                    ]);
+                    
+                    const agentsData = await agentsResponse.json();
+                    const statesData = await statesResponse.json();
+                    
+                    // Update data
+                    currentAgents = agentsData.agents || [];
+                    currentStates = statesData.states || [];
+                    currentGates = [];
+                    
+                    // Generate connections for agent graph
+                    currentConnections = generateAgentConnections(currentAgents);
+                    
+                    addTerminalLog(`  Loaded ${currentAgents.length} agents`, 'info');
+                    addTerminalLog(`  Loaded ${currentStates.length} states`, 'info');
+                    
+                    // Refresh UI
+                    updateMetrics();
+                    updateAgentGraph(currentAgents, currentConnections);
+                    renderStateTree(currentStates);
+                    updateProcessFlow(currentStates);
+                    
+                    // Connect to Socket.IO for real-time updates
+                    connectWebSocket();
+                } else {
+                    addTerminalLog('\u2717 Initialization failed', 'error');
+                }
+            } catch (error) {
+                console.error('Initialization error:', error);
+                addTerminalLog(`\u2717 Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function listAgents() {
+            addTerminalLog('=== Agents ===', 'info');
+            
+            if (currentAgents.length === 0) {
+                addTerminalLog('No agents available. Initialize system first.', 'warning');

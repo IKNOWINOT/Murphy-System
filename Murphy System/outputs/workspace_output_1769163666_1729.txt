@@ -1,0 +1,2 @@
+304:        health_summary = health_monitor.get_health_summary()
+401:            results['health'] = str(health_monitor.get_overall_health())

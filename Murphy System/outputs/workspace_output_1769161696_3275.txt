@@ -1,0 +1,20 @@
+{
+    "decision_reason": "Attention refused: insufficient_agreement",
+    "failure_reason": "insufficient_agreement",
+    "role": "executor",
+    "status": "refused",
+    "success": true,
+    "temporal_scores": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+    ],
+    "timestamp": "2026-01-23T09:48:16.478579"
+}

@@ -1,0 +1,30 @@
+  → Status: 200
+✓ PASS: Simplify returns expertise_depth
+  → Expertise depth: 20
+✓ PASS: POST /api/documents/{id}/solidify works
+  → Status: 200
+✓ PASS: GET /api/domains works
+  → Status: 200
+✓ PASS: Domains endpoint returns domain list
+  → Found 9 domains
+
+=== Testing DomainEngine Integration ===
+✓ PASS: Runtime can access DomainEngine
+  → DomainEngine integrated in runtime
+✓ PASS: All 9 standard domains available
+  → Domains: ['business', 'engineering', 'financial', 'legal', 'operations', 'marketing', 'hr', 'sales', 'product']
+✓ PASS: Can retrieve Domain object by name
+  → Domain type: Domain
+✓ PASS: Domain objects have gates defined
+  → Gates: ['Technical Feasibility Gate', 'Architecture Review Gate', 'Security Review Gate']
+✓ PASS: Domain.to_dict() serializes correctly
+  → Dict keys: ['name', 'type', 'purpose', 'sub_domains', 'key_questions', 'cross_impacts', 'constraints', 'gates']
+
+======================================================================
+TEST SUMMARY
+======================================================================
+Total Tests: 52
+Passed: 52 ✓
+Failed: 0 ✗
+Success Rate: 100.0%
+======================================================================

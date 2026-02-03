@@ -1,0 +1,1 @@
+export function toIngestionPayload(profile:any, automation:any){ return { type:'ghost_automation', profile, automation_spec: automation }; }

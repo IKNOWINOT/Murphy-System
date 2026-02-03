@@ -1,0 +1,6 @@
+let shadowPanel = null;
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    shadowPanel = new ShadowAgentPanel();
+});

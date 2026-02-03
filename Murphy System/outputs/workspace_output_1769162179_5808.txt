@@ -1,0 +1,10 @@
+2959:                             document.getElementById('librarian-input').value = query;
+3037:                         document.getElementById('librarian-input').value = 'I need guidance on what to do next';
+3429:             document.getElementById('shadow-agents-modal').style.display = 'block';
+3436:             document.getElementById('shadow-agents-modal').style.display = 'none';
+3440:             document.getElementById('monitoring-panel-modal').style.display = 'block';
+3447:             document.getElementById('monitoring-panel-modal').style.display = 'none';
+4144:             document.getElementById('metric-states').textContent = currentStates.length;
+4145:             document.getElementById('metric-agents').textContent = currentAgents.length;
+4146:             document.getElementById('metric-gates').textContent = 2; // Demo gates
+4147:             document.getElementById('metric-connections').textContent = currentConnections.length;

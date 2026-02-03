@@ -1,0 +1,4 @@
+    <script src="librarian_panel.js"></script>
+    <!-- Plan Review Panel Component -->
+    <script src="plan_review_panel.js"></script>
+    <!-- Document Editor Panel Component -->

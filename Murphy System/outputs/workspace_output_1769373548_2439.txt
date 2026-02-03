@@ -1,0 +1,20 @@
+109:    def __init__(self, llm_client=None):
+113:    async def classify_intent(self, user_input: str, context: Dict = None) -> Intent:
+145:    def _rule_based_classification(self, user_input: str) -> Intent:
+184:    async def _llm_based_classification(self, user_input: str, context: Dict) -> Intent:
+225:    def _combine_classifications(self, rule_based: Intent, llm_based: Intent) -> Intent:
+249:    def _extract_entities(self, user_input: str) -> Dict[str, str]:
+312:    def __init__(self):
+315:    def map_to_commands(self, intent: Intent) -> List[str]:
+342:    def suggest_workflow(self, intent: Intent) -> Optional[Dict]:
+380:    def __init__(self, llm_client=None, groq_client=None, aristotle_client=None):
+389:    def _build_knowledge_base(self) -> Dict:
+421:    async def ask(self, user_input: str, context: Dict = None) -> LibrarianResponse:
+471:    async def _generate_response_message(self, intent: Intent, user_input: str) -> str:
+508:    def _generate_follow_up_questions(self, intent: Intent) -> List[str]:
+539:    def _get_confidence_level(self, confidence: float) -> ConfidenceLevel:
+552:    def search_knowledge(self, query: str) -> List[Dict]:
+592:    def get_transcripts(self, limit: int = 10) -> List[Dict]:
+596:    def get_overview(self) -> Dict:
+609:    def _get_intent_distribution(self) -> Dict[str, int]:
+617:    def _get_common_commands(self) -> List[Tuple[str, int]]:

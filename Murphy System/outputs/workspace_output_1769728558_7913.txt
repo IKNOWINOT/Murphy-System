@@ -1,0 +1,4 @@
+Adding PACKAGE_CONTENTS.md to the package...
+✓ Added PACKAGE_CONTENTS.md (7,292 bytes)
+
+✓ Final package size: 152,379 bytes (0.15 MB)

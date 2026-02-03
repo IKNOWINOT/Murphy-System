@@ -1,0 +1,11 @@
+    def list_artifacts(self, artifact_type: Optional[str] = None, 
+                      status: Optional[str] = None) -> List[Dict]:
+        """List all artifacts with optional filtering"""
+        results = []
+        
+        for artifact in self.artifacts.values():
+            # Apply filters
+            if artifact_type and artifact.type.value != artifact_type:
+                continue
+            if status and artifact.status.value != status:
+                continue

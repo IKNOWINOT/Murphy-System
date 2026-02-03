@@ -1,0 +1,7 @@
+71:system_initialized = False
+250:        'systems_initialized': system_initialized,
+259:    global system_initialized
+261:    if system_initialized:
+283:            system_initialized = True
+325:                system_initialized = True
+331:        socketio.emit('system_initialized', {

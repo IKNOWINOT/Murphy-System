@@ -1,0 +1,47 @@
+        async function initializeSystem() {
+            addTerminalLog('Initializing Murphy System...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/initialize`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    addTerminalLog('✓ System initialized successfully', 'success');
+                    addTerminalLog(`  Created ${result.agents.length} agents`, 'info');
+                    addTerminalLog(`  Created ${result.components.length} components`, 'info');
+                    addTerminalLog(`  Created ${result.states.length} states`, 'info');
+                    addTerminalLog(`  Created ${result.gates.length} gates`, 'info');
+                    
+                    // Update data
+                    currentAgents = result.agents;
+                    currentStates = result.states;
+                    currentGates = result.gates;
+                    
+                    // Refresh UI
+                    updateMetrics();
+                    renderAgentGraph();
+                    renderStateTree();
+                    renderProcessFlow();
+                } else {
+                    addTerminalLog('✗ Initialization failed', 'error');
+                }
+            } catch (error) {
+                addTerminalLog(`✗ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function listAgents() {
+            addTerminalLog('=== Agents ===', 'info');
+            
+            if (currentAgents.length === 0) {
+                addTerminalLog('No agents available. Initialize system first.', 'warning');
+                return;
+            }
+            
+            currentAgents.forEach(agent => {
+                addTerminalLog(`  ${agent.id.padEnd(15)} - ${agent.name}`, 'info');
+            });
+        }
+

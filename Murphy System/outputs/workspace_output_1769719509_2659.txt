@@ -1,0 +1,41 @@
+    if librarian_integration:
+        store_result = librarian_integration.store_all_commands()
+        logger.info(f"✓ Stored {store_result.get('stored_count', 0)} commands in Librarian")
+    
+    SYSTEMS_AVAILABLE['librarian_integration'] = True
+    logger.info("✓ Librarian Command Integration initialized")
+except Exception as e:
+    logger.error(f"✗ Librarian Command Integration failed: {e}")
+    librarian_integration = None
+
+# Global state
+system_initialized = False
+artifacts = []
+tasks = []
+workflows = []
+products = []
+customers = []
+
+# ============================================================================
+# UNIFIED API - All systems accessible through one interface
+# ============================================================================
+
+@app.route('/')
+def index():
+    return send_from_directory('.', 'murphy_complete_v2.html')
+
+@app.route('/api/status', methods=['GET'])
+def status():
+    """Get complete system status"""
+    
+    # Get command statistics if available
+    command_stats = {}
+    if command_registry:
+        from register_all_commands import get_command_summary
+        command_stats = get_command_summary(command_registry)
+    
+    return jsonify({
+        'status': 'running',
+        'initialized': system_initialized,
+        'systems': SYSTEMS_AVAILABLE,
+        'commands': command_stats,

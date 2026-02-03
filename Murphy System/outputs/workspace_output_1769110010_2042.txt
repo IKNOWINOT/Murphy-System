@@ -1,0 +1,31 @@
+            }
+            
+            currentAgents.forEach(agent => {
+                addTerminalLog(`  ${agent.id.padEnd(15)} - ${agent.name}`, 'info');
+            });
+        }
+
+        function testHideModal() {
+            const modal = document.getElementById('init-modal');
+            console.log('TEST HIDE - Before:', modal.style.display);
+            modal.style.display = 'none';
+            modal.classList.add('hidden');
+            console.log('TEST HIDE - After:', modal.style.display);
+        }
+
+        function testShowModal() {
+            const modal = document.getElementById('init-modal');
+            console.log('TEST SHOW - Before:', modal.style.display);
+            modal.style.display = 'flex';
+            modal.classList.remove('hidden');
+            console.log('TEST SHOW - After:', modal.style.display);
+        }
+
+        async function listStates() {
+            addTerminalLog('=== States ===', 'info');
+            
+            if (currentStates.length === 0) {
+                addTerminalLog('No states available. Initialize system first.', 'warning');
+                return;
+            }
+            

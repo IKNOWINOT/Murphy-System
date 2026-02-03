@@ -1,0 +1,21 @@
+                } else if (command === 'librarian') {
+                    endpoint = '/api/librarian/ask';
+                    method = 'POST';
+                    data = { question: 'What can Murphy do?', context: {} };
+                } else if (command === 'generate') {
+                    endpoint = '/api/llm/generate';
+                    method = 'POST';
+                    data = { prompt: 'Generate a sample text', user_context: userData };
+                } else if (command === 'gates') {
+                    endpoint = '/api/gates/sensors/status';
+                } else if (command === 'products') {
+                    endpoint = '/api/business/products';
+                } else if (command === 'automations') {
+                    endpoint = '/api/automation/list';
+                } else {
+                    endpoint = '/api/command/execute';
+                    method = 'POST';
+                    data = { command: command, args: {} };
+                }
+                
+                const response = await fetch(`${API_BASE}${endpoint}`, {

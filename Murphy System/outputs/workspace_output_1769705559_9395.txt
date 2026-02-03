@@ -1,0 +1,88 @@
+    from command_system import CommandRegistry, execute_command
+    command_registry = CommandRegistry()
+    SYSTEMS_AVAILABLE['commands'] = True
+    logger.info("✓ Command System initialized")
+except Exception as e:
+    logger.error(f"✗ Command System failed: {e}")
+    command_registry = None
+
+# Learning Engine
+try:
+    from learning_engine import LearningEngine
+    learning_engine = LearningEngine()
+    SYSTEMS_AVAILABLE['learning'] = True
+    logger.info("✓ Learning Engine initialized")
+except Exception as e:
+    logger.error(f"✗ Learning Engine failed: {e}")
+    learning_engine = None
+
+# Workflow Orchestrator (needs swarm and handoff manager)
+try:
+    from workflow_orchestrator import WorkflowOrchestrator
+    from agent_handoff_manager import AgentHandoffManager
+    
+    # Only initialize if swarm is available
+    if swarm_system:
+        handoff_manager = AgentHandoffManager(cooperative_swarm=swarm_system)
+        workflow_orchestrator = WorkflowOrchestrator(
+            cooperative_swarm=swarm_system,
+            handoff_manager=handoff_manager
+        )
+        SYSTEMS_AVAILABLE['workflow'] = True
+        logger.info("✓ Workflow Orchestrator initialized")
+    else:
+        workflow_orchestrator = None
+        logger.warning("⚠ Workflow Orchestrator skipped (swarm not available)")
+except Exception as e:
+    logger.error(f"✗ Workflow Orchestrator failed: {e}")
+    workflow_orchestrator = None
+
+# Database
+try:
+    from database_integration import get_database_manager
+    db_manager = get_database_manager()
+    SYSTEMS_AVAILABLE['database'] = True
+    logger.info("✓ Database initialized")
+except Exception as e:
+    logger.error(f"✗ Database failed: {e}")
+    db_manager = None
+
+# Business Integrations
+try:
+    from business_integrations import get_business_automation
+    business_automation = get_business_automation(llm_manager=llm_manager if llm_manager else None)
+    SYSTEMS_AVAILABLE['business'] = True
+    logger.info("✓ Business Automation initialized")
+except Exception as e:
+    logger.error(f"✗ Business Automation failed: {e}")
+    business_automation = None
+
+# Production Setup
+try:
+    from production_setup import get_production_readiness
+    production_readiness = get_production_readiness()
+    SYSTEMS_AVAILABLE['production'] = True
+    logger.info("✓ Production Readiness initialized")
+except Exception as e:
+    logger.error(f"✗ Production Readiness failed: {e}")
+    production_readiness = None
+
+# Global state
+system_initialized = False
+artifacts = []
+tasks = []
+workflows = []
+products = []
+customers = []
+
+# ============================================================================
+# UNIFIED API - All systems accessible through one interface
+# ============================================================================
+
+@app.route('/')
+def index():
+    return send_from_directory('.', 'murphy_complete_v2.html')
+
+@app.route('/api/status', methods=['GET'])
+def status():
+    """Get complete system status"""

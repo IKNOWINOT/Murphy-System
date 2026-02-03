@@ -1,0 +1,13 @@
+Murphy System - Stability-Based Attention and Role-Governed Cognition
+======================================================================
+Traceback (most recent call last):
+  File "/workspace/STABILITY_BASED_ATTENTION_SYSTEM.py", line 1346, in <module>
+    chosen, log_entry = attention_system.form_attention(state, memory, goal, candidates)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/STABILITY_BASED_ATTENTION_SYSTEM.py", line 1143, in form_attention
+    chosen_representation, diagnostics = self.attention.update(candidates, hypotheses)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/STABILITY_BASED_ATTENTION_SYSTEM.py", line 701, in update
+    weighted_agreement = ag * hypothesis.confidence * hypothesis.get_weight()
+                                                      ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Hypothesis' object has no attribute 'get_weight'

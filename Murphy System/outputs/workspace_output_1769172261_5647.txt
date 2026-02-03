@@ -1,0 +1,21 @@
+except ImportError as e:
+    logger.error(f"✗ Failed to load Cooperative Swarm components: {e}")
+    COOPERATIVE_SWARM_AVAILABLE = False
+
+# Initialize Cooperative Swarm System
+cooperative_swarm = None
+handoff_manager = None
+workflow_orchestrator = None
+
+if COOPERATIVE_SWARM_AVAILABLE:
+    try:
+        # Initialize in correct order: cooperative_swarm -> handoff_manager -> orchestrator
+        cooperative_swarm = CooperativeSwarmSystem()
+        handoff_manager = AgentHandoffManager(cooperative_swarm)
+        workflow_orchestrator = WorkflowOrchestrator(cooperative_swarm, handoff_manager)
+        logger.info("✓ Cooperative Swarm systems initialized")
+    except Exception as e:
+        logger.error(f"✗ Failed to initialize cooperative swarm systems: {e}")
+
+# ============================================================================
+# LLM INTEGRATION

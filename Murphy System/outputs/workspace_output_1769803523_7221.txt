@@ -1,0 +1,27 @@
+SYSTEMS_AVAILABLE = {
+    'llm': False,
+    'librarian': False,
+    'monitoring': False,
+    'artifacts': False,
+    'shadow_agents': False,
+    'swarm': False,
+    'commands': False,
+    'learning': False,
+    'workflow': False,
+    'database': False
+}
+
+# Global variables
+_communication_hub_instance = None
+
+def get_comm_hub():
+    """Get the communication hub instance"""
+    return _communication_hub_instance
+
+# LLM Manager
+try:
+    from llm_providers_enhanced import EnhancedLLMManager
+    # EnhancedLLMManager expects file paths
+    llm_manager = EnhancedLLMManager(
+        groq_keys_file='groq_keys.txt',
+        aristotle_key_file='aristotle_key.txt'

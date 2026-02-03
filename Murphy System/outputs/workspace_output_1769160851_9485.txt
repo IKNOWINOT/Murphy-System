@@ -1,0 +1,10 @@
+115:    from cooperative_swarm_system import CooperativeSwarmSystem, Task, TaskStatus, HandoffType
+1147:    if not COOPERATIVE_SWARM_AVAILABLE or not cooperative_swarm_system:
+1155:        workflows = cooperative_swarm_system.workflow_orchestrator.workflows
+1171:    if not COOPERATIVE_SWARM_AVAILABLE or not cooperative_swarm_system:
+1178:        status = cooperative_swarm_system.get_workflow_status(workflow_id)
+1200:    if not COOPERATIVE_SWARM_AVAILABLE or not cooperative_swarm_system:
+1221:                cooperative_swarm_system.execute_cooperative_workflow(workflow_definition)
+1239:    if not COOPERATIVE_SWARM_AVAILABLE or not cooperative_swarm_system:
+1246:        status = cooperative_swarm_system.get_workflow_status(workflow_id)
+1270:    if not COOPERATIVE_SWARM_AVAILABLE or not cooperative_swarm_system:

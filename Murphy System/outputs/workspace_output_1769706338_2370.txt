@@ -1,0 +1,30 @@
+17:    """Handle payment processing via multiple providers (NO STRIPE)"""
+21:        Initialize payment processor
+44:    def create_payment_link(self, product_name: str, price: float, description: str, currency: str = 'USD') -> Dict:
+45:        """Create a payment link for the product"""
+55:        # Generate payment link based on provider
+69:                'error': f'Unsupported payment provider: {self.provider}'
+73:        """Create PayPal payment link"""
+74:        # In production, this would call PayPal API to create a payment button/link
+79:            'payment_link': f'https://www.paypal.com/paypalme/yourbusiness/{price}',
+89:        """Create Square payment link"""
+95:            'payment_link': f'https://square.link/{product_id}',
+105:        """Create Coinbase Commerce crypto payment link"""
+111:            'payment_link': f'https://commerce.coinbase.com/charges/{product_id}',
+121:        """Create Paddle payment link"""
+127:            'payment_link': f'https://buy.paddle.com/product/{product_id}',
+137:        """Create Lemon Squeezy payment link"""
+143:            'payment_link': f'https://yourbusiness.lemonsqueezy.com/checkout/buy/{product_id}',
+153:        """Create a product in the payment system"""
+166:        """Get list of supported payment providers"""
+295:    def __init__(self, llm_manager=None, payment_provider='paypal'):
+297:        self.payment_processor = PaymentProcessor(provider=payment_provider)
+305:                                   payment_provider: str = None) -> Dict:
+310:        3. Setup payment processing (NO STRIPE)
+315:        if payment_provider:
+316:            self.payment_processor = PaymentProcessor(provider=payment_provider)
+319:        logger.info(f"Payment provider: {self.payment_processor.provider}")
+346:        # Step 3: Setup payment processing
+347:        payment_info = self.payment_processor.create_payment_link(
+372:            'payment_provider': self.payment_processor.provider,
+373:            'payment_info': payment_info,

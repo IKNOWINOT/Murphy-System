@@ -1,0 +1,47 @@
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @getzep/zep-cloud@1.0.6
+npm warn Found: @langchain/core@1.1.8
+npm warn node_modules/n8n/node_modules/@langchain/core
+npm warn   @langchain/core@"1.1.8" from @n8n/ai-workflow-builder@1.4.3
+npm warn   node_modules/n8n/node_modules/@n8n/ai-workflow-builder
+npm warn     @n8n/ai-workflow-builder@"1.4.3" from n8n@2.4.7
+npm warn     node_modules/n8n
+npm warn   21 more (@n8n/n8n-nodes-langchain, n8n-core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional @langchain/core@"~0.1.29" from @getzep/zep-cloud@1.0.6
+npm warn node_modules/n8n/node_modules/@getzep/zep-cloud
+npm warn   @getzep/zep-cloud@"1.0.6" from @n8n/n8n-nodes-langchain@2.4.6
+npm warn   node_modules/n8n/node_modules/@n8n/n8n-nodes-langchain
+npm warn   1 more (@langchain/community)
+npm warn
+npm warn Conflicting peer dependency: @langchain/core@0.1.63
+npm warn node_modules/@langchain/core
+npm warn   peerOptional @langchain/core@"~0.1.29" from @getzep/zep-cloud@1.0.6
+npm warn   node_modules/n8n/node_modules/@getzep/zep-cloud
+npm warn     @getzep/zep-cloud@"1.0.6" from @n8n/n8n-nodes-langchain@2.4.6
+npm warn     node_modules/n8n/node_modules/@n8n/n8n-nodes-langchain
+npm warn     1 more (@langchain/community)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @n8n/typeorm@0.3.20-15
+npm warn Found: @sentry/node@9.47.1
+npm warn node_modules/n8n/node_modules/@sentry/node
+npm warn   @sentry/node@"^9.42.1" from n8n@2.4.7
+npm warn   node_modules/n8n
+npm warn     n8n@"*" from the root project
+npm warn   2 more (@n8n/task-runner, n8n-core)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional @sentry/node@"<=8.x" from @n8n/typeorm@0.3.20-15
+npm warn node_modules/n8n/node_modules/@n8n/typeorm
+npm warn   @n8n/typeorm@"0.3.20-15" from n8n@2.4.7
+npm warn   node_modules/n8n
+npm warn   2 more (@n8n/db, @n8n/n8n-nodes-langchain)
+npm warn
+npm warn Conflicting peer dependency: @sentry/node@8.55.0
+npm warn node_modules/@sentry/node
+npm warn   peerOptional @sentry/node@"<=8.x" from @n8n/typeorm@0.3.20-15
+npm warn   node_modules/n8n/node_modules/@n8n/typeorm
+npm warn     @n8n/typeorm@"0.3.20-15" from n8n@2.4.7
+npm warn     node_modules/n8n
+npm warn     2 more (@n8n/db, @n8n/n8n-nodes-langchain)

@@ -1,0 +1,111 @@
+{
+    "categories": {
+        "api": 1,
+        "date": 1,
+        "research": 1,
+        "risk": 0,
+        "sensor": 3
+    },
+    "gate_count": 6,
+    "gates": [
+        {
+            "api_calls": [
+                "quality_check",
+                "content_validation",
+                "accuracy_score"
+            ],
+            "confidence": 0.95,
+            "description": "Monitor output quality metrics",
+            "gate_id": "sensor_quality_1769724973.61006",
+            "gate_type": "sensor",
+            "required": true,
+            "sensor_type": "quality",
+            "thresholds": {
+                "max_errors": 5,
+                "min_quality": 0.8
+            }
+        },
+        {
+            "api_calls": [
+                "token_counter",
+                "cost_calculator",
+                "budget_tracker"
+            ],
+            "confidence": 0.98,
+            "description": "Track token usage and costs",
+            "gate_id": "sensor_cost_1769724973.610073",
+            "gate_type": "sensor",
+            "required": true,
+            "sensor_type": "cost",
+            "thresholds": {
+                "max_cost": 1000,
+                "max_tokens": 100000
+            }
+        },
+        {
+            "api_calls": [
+                "compliance_checker",
+                "regulation_validator",
+                "audit_logger"
+            ],
+            "confidence": 0.9,
+            "description": "Verify regulatory compliance",
+            "gate_id": "sensor_compliance_1769724973.610077",
+            "gate_type": "sensor",
+            "regulations": [
+                "HIPAA"
+            ],
+            "required": true,
+            "sensor_type": "compliance",
+            "thresholds": {
+                "compliance_score": 0.95
+            }
+        },
+        {
+            "api_provider": "groq",
+            "apis": [
+                "groq_llama",
+                "groq_mixtral"
+            ],
+            "confidence": 0.95,
+            "description": "LLM API calls for content generation",
+            "gate_id": "api_groq_1769724973.61008",
+            "gate_type": "api",
+            "rate_limits": {
+                "requests_per_minute": 60,
+                "tokens_per_day": 1000000
+            },
+            "required": true,
+            "utilization_tracking": true
+        },
+        {
+            "confidence": 0.98,
+            "deadline": "2025-02-15",
+            "description": "Ensure task completion before deadline",
+            "gate_id": "date_deadline_1769724973.610085",
+            "gate_type": "date_validation",
+            "required": true,
+            "thresholds": {
+                "buffer_days": 2,
+                "requires_confirmation": true
+            },
+            "validation_method": "deterministic_date_check",
+            "validation_type": "deadline"
+        },
+        {
+            "confidence": 0.9,
+            "description": "Verify factual claims with sources",
+            "gate_id": "research_fact_1769724973.610089",
+            "gate_type": "research",
+            "required": true,
+            "requirements": {
+                "cross_reference_count": 3,
+                "label": "FACT",
+                "source_required": true
+            },
+            "research_type": "fact_verification",
+            "validation_method": "deterministic_analysis"
+        }
+    ],
+    "success": true
+}

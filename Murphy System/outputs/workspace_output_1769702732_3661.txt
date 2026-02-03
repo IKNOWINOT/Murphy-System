@@ -1,0 +1,38 @@
+INSERT 0 1
+INSERT 0 5
+INSERT 0 0
+UPDATE 3
+INSERT 0 1
+psql:database/add_tasks_config_simple.sql:56: ERROR:  null value in column "member_id" of relation "task_assignments" violates not-null constraint
+DETAIL:  Failing row contains (2, 18, null, manual, 1, 2026-01-26 16:05:32.520706).
+INSERT 0 1
+INSERT 0 1
+            info             | client_pack_id | client_id | pack_name | pack_version | enabled |         enabled_at         | enabled_by |         created_at         |         updated_at         
+-----------------------------+----------------+-----------+-----------+--------------+---------+----------------------------+------------+----------------------------+----------------------------
+ TASKS_v1 Pack Configuration |              3 |         1 | TASKS_v1  | 1.0.0        | t       | 2026-01-29 16:05:32.516428 |            | 2026-01-29 15:18:57.255196 | 2026-01-29 16:05:32.516428
+(1 row)
+
+     info     | task_id |             title             |   status    | priority |   task_type   
+--------------+---------+-------------------------------+-------------+----------+---------------
+ Sample Tasks |      18 | Initial System Setup          | completed   | high     | setup
+ Sample Tasks |      17 | Update Documentation          | in_progress | medium   | documentation
+ Sample Tasks |      16 | Process Payment Request       | created     | low      | finance
+ Sample Tasks |      15 | Customer Support Ticket #4567 | created     | medium   | support
+ Sample Tasks |      14 | Update Service Contract       | created     | critical | contract
+ Sample Tasks |      13 | Review Invoice INV-2025-001   | created     | high     | invoice
+(6 rows)
+
+ info | assignment_id | task_id | member_id | assignment_method | workload_at_assignment | assigned_at | name 
+------+---------------+---------+-----------+-------------------+------------------------+-------------+------
+(0 rows)
+
+    info    | sla_event_id | task_id | client_id |  sla_type  | sla_threshold_minutes |        triggered_at        | escalated | escalation_level | escalation_recipients | notification_sent | notification_method |        resolved_at         |         created_at         
+------------+--------------+---------+-----------+------------+-----------------------+----------------------------+-----------+------------------+-----------------------+-------------------+---------------------+----------------------------+----------------------------
+ SLA Events |            1 |      18 |         1 | completion |                  2880 | 2026-01-28 16:05:32.521215 | f         |                0 | []                    | t                 | email               | 2026-01-28 16:05:32.521215 | 2026-01-28 16:05:32.521215
+(1 row)
+
+  info   | report_id |             report_uuid              | client_id |    report_type     | report_format |   report_period_start    |    report_period_end     |                     file_path                     |  status   |       generated_at       |        created_at        
+---------+-----------+--------------------------------------+-----------+--------------------+---------------+--------------------------+--------------------------+---------------------------------------------------+-----------+--------------------------+--------------------------
+ Reports |         1 | fd53bf65-da28-4874-a9ed-7aecb8fd610d |         1 | daily_task_summary | html          | 2026-01-22 16:05:32.5233 | 2026-01-29 16:05:32.5233 | /workspace/storage/reports/sample_report_001.html | completed | 2026-01-29 15:05:32.5233 | 2026-01-29 15:05:32.5233
+(1 row)
+

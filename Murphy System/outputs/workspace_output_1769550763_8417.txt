@@ -1,0 +1,6 @@
+3003:                    await handleLibrarianCommand(args[0], remainingArgs);
+3205:        async function handleLibrarianCommand(action, args) {
+3211:                        librarianPanel.open();
+3217:                        librarianPanel.open();
+3293:                    librarianPanel.open();
+3301:                        librarianPanel.open();

@@ -1,0 +1,69 @@
+murphy_integrated/src
+├── __pycache__
+├── adapter_framework
+│   └── adapters
+├── autonomous_systems
+│   └── __pycache__
+├── base_governance_runtime
+├── bridge_layer
+├── comms
+├── compute_plane
+│   ├── analyzers
+│   ├── api
+│   ├── models
+│   ├── parsers
+│   └── solvers
+├── confidence_engine
+│   ├── __pycache__
+│   └── risk
+├── control_plane
+│   └── __pycache__
+├── execution
+│   └── __pycache__
+├── execution_engine
+│   └── __pycache__
+├── execution_orchestrator
+│   └── __pycache__
+├── execution_packet_compiler
+│   └── __pycache__
+├── form_intake
+│   └── __pycache__
+├── gate_synthesis
+│   └── __pycache__
+├── governance_framework
+│   └── __pycache__
+├── integrations
+│   └── __pycache__
+├── learning_engine
+│   └── __pycache__
+├── librarian
+│   └── __pycache__
+├── module_compiler
+│   ├── __pycache__
+│   ├── analyzers
+│   │   └── __pycache__
+│   ├── api
+│   ├── integration
+│   ├── models
+│   │   └── __pycache__
+│   ├── registry
+│   │   └── __pycache__
+│   ├── sandbox
+│   └── tests
+├── neuro_symbolic_models
+│   └── __pycache__
+├── org_compiler
+│   └── __pycache__
+├── recursive_stability_controller
+│   └── __pycache__
+├── security_plane
+│   └── __pycache__
+├── supervisor
+├── supervisor_system
+│   └── __pycache__
+├── synthetic_failure_generator
+│   └── __pycache__
+└── telemetry_learning
+    └── __pycache__
+
+67 directories

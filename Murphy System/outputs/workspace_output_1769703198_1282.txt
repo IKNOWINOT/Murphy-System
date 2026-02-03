@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/workspace/murphy_backend_complete.py", line 36, in <module>
+    if not AUTH_AVAILABLE:
+           ^^^^^^^^^^^^^^
+NameError: name 'AUTH_AVAILABLE' is not defined

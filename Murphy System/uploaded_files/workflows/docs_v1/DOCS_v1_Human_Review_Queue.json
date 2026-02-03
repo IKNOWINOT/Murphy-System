@@ -1,0 +1,274 @@
+{
+  "name": "DOCS_v1_Human_Review_Queue",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT d.document_id, d.client_id, d.document_uuid, d.original_filename, d.storage_path, d.category, d.priority, d.validation_score, d.status, d.validation_errors, d.validation_warnings, de.result_data, de.confidence_score, d.received_at, d.updated_at FROM documents d LEFT JOIN document_extractions de ON d.document_id = de.document_id WHERE d.status IN ('validation_failed', 'pending_manual_review', 'classified_low_confidence') ORDER BY d.priority DESC, d.received_at ASC LIMIT 25;",
+        "options": {}
+      },
+      "id": "fetch-review-docs",
+      "name": "Fetch Documents Needing Review",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate review priority and urgency for each document\nconst document = $input.first().json;\n\nconst status = document.status;\nconst priority = document.priority || 'medium';\nconst validationScore = document.validation_score || 0;\nconst confidenceScore = document.confidence_score || 0;\nconst errors = document.validation_errors || [];\nconst warnings = document.validation_warnings || [];\n\nconst now = new Date();\nconst receivedAt = new Date(document.received_at);\nconst ageInHours = (now - receivedAt) / (1000 * 60 * 60);\n\n// Calculate review urgency score (0-100)\nlet urgencyScore = 50;  // Base score\n\n// Factor in priority level\nif (priority === 'urgent') {\n  urgencyScore += 30;\n} else if (priority === 'high') {\n  urgencyScore += 20;\n} else if (priority === 'medium') {\n  urgencyScore += 10;\n}\n\n// Factor in validation score (lower = more urgent)\nif (validationScore < 50) {\n  urgencyScore += 20;\n} else if (validationScore < 70) {\n  urgencyScore += 10;\n}\n\n// Factor in confidence score (lower = more urgent)\nif (confidenceScore < 60) {\n  urgencyScore += 15;\n} else if (confidenceScore < 80) {\n  urgencyScore += 5;\n}\n\n// Factor in number of errors\nif (errors.length > 3) {\n  urgencyScore += 15;\n} else if (errors.length > 0) {\n  urgencyScore += 5;\n}\n\n// Factor in document age (older = more urgent)\nif (ageInHours > 48) {\n  urgencyScore += 20;\n} else if (ageInHours > 24) {\n  urgencyScore += 10;\n} else if (ageInHours > 12) {\n  urgencyScore += 5;\n}\n\n// Cap at 100\nurgencyScore = Math.min(urgencyScore, 100);\n\n// Determine SLA deadline based on priority\nlet slaDeadline = null;\nconst slaHours = {\n  urgent: 4,\n  high: 8,\n  medium: 24,\n  low: 72\n};\n\nconst hoursUntilDeadline = slaHours[priority] || 24;\nslaDeadline = new Date(receivedAt.getTime() + (hoursUntilDeadline * 60 * 60 * 1000));\n\nconst isOverdue = now > slaDeadline;\n\n// Prepare review queue item\nconst reviewItem = {\n  document_id: document.document_id,\n  document_uuid: document.document_uuid,\n  client_id: document.client_id,\n  original_filename: document.original_filename,\n  storage_path: document.storage_path,\n  category: document.category || 'unknown',\n  priority: priority,\n  urgency_score: urgencyScore,\n  status: status,\n  validation_score: validationScore,\n  confidence_score: confidenceScore,\n  errors: errors,\n  warnings: warnings,\n  age_hours: Math.round(ageInHours * 10) / 10,\n  sla_deadline: slaDeadline.toISOString(),\n  is_overdue: isOverdue,\n  hours_until_deadline: Math.round((slaDeadline - now) / (1000 * 60 * 60) * 10) / 10,\n  review_reason: determineReviewReason(status, validationScore, confidenceScore, errors),\n  review_instructions: generateReviewInstructions(document),\n  queue_added_at: now.toISOString()\n};\n\nreturn [{ json: reviewItem }];\n\n// Helper function to determine review reason\nfunction determineReviewReason(status, validationScore, confidenceScore, errors) {\n  const reasons = [];\n  \n  if (status === 'validation_failed') {\n    reasons.push('Validation failed');\n  }\n  if (status === 'pending_manual_review') {\n    reasons.push('Manual review required');\n  }\n  if (status === 'classified_low_confidence') {\n    reasons.push('Low classification confidence');\n  }\n  if (validationScore < 70) {\n    reasons.push('Low validation score');\n  }\n  if (confidenceScore < 70) {\n    reasons.push('Low extraction confidence');\n  }\n  if (errors.length > 0) {\n    reasons.push(`${errors.length} validation error(s)`);\n  }\n  \n  return reasons.length > 0 ? reasons.join(', ') : 'Manual review required';\n}\n\n// Helper function to generate review instructions\nfunction generateReviewInstructions(document) {\n  const instructions = [];\n  \n  if (document.category === 'invoice') {\n    instructions.push('Verify invoice number matches records');\n    instructions.push('Check total amount accuracy');\n    instructions.push('Confirm vendor details');\n  } else if (document.category === 'contract') {\n    instructions.push('Review contract terms');\n    instructions.push('Verify party information');\n    instructions.push('Check dates and durations');\n  } else if (document.category === 'resume') {\n    instructions.push('Review candidate information');\n    instructions.push('Verify contact details');\n    instructions.push('Assess skills and experience');\n  }\n  \n  if (document.validation_errors && document.validation_errors.length > 0) {\n    instructions.push('Address validation errors');\n  }\n  if (document.validation_warnings && document.validation_warnings.length > 0) {\n    instructions.push('Review validation warnings');\n  }\n  \n  return instructions.join('; ');\n}"
+      },
+      "id": "calculate-review-priority",
+      "name": "Calculate Review Priority",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-overdue",
+              "leftValue": "={{ $json.is_overdue }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "is-overdue-check",
+      "name": "Is Overdue?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO notifications (client_id, notification_type, message, priority, status, created_at, updated_at) VALUES ($1, 'document_review_overdue', $2, 'high', 'unread', NOW(), NOW());",
+        "options": {}
+      },
+      "id": "send-overdue-alert",
+      "name": "Send Overdue Alert",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1050, 200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE documents SET status = 'in_human_review', review_priority = $1, review_reason = $2, review_instructions = $3, sla_deadline = $4, review_started_at = NOW(), updated_at = NOW() WHERE document_id = $5;",
+        "options": {}
+      },
+      "id": "update-document-status",
+      "name": "Update Document Status",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1250, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO workflow_executions (client_id, workflow_name, workflow_id, execution_id, status, input_data, output_data, started_at, updated_at) VALUES ($1, $2, $3, $4, 'completed', $5, $6, NOW(), NOW());",
+        "options": {}
+      },
+      "id": "log-execution",
+      "name": "Log Execution",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate review queue summary report\nconst allReviewItems = $input.all().map(item => item.json);\n\nconst now = new Date();\n\n// Calculate statistics\nconst totalItems = allReviewItems.length;\nconst overdueItems = allReviewItems.filter(item => item.is_overdue).length;\nconst urgentItems = allReviewItems.filter(item => item.priority === 'urgent').length;\nconst highPriorityItems = allReviewItems.filter(item => item.priority === 'high').length;\n\nconst avgUrgency = totalItems > 0 ? \n  allReviewItems.reduce((sum, item) => sum + item.urgency_score, 0) / totalItems : 0;\n\n// Group by status\nconst byStatus = {\n  validation_failed: allReviewItems.filter(item => item.status === 'validation_failed').length,\n  pending_manual_review: allReviewItems.filter(item => item.status === 'pending_manual_review').length,\n  classified_low_confidence: allReviewItems.filter(item => item.status === 'classified_low_confidence').length\n};\n\n// Group by category\nconst byCategory = {};\nallReviewItems.forEach(item => {\n  const cat = item.category || 'unknown';\n  byCategory[cat] = (byCategory[cat] || 0) + 1;\n});\n\nconst summary = {\n  generated_at: now.toISOString(),\n  total_documents_needing_review: totalItems,\n  overdue_documents: overdueItems,\n  urgent_documents: urgentItems,\n  high_priority_documents: highPriorityItems,\n  average_urgency_score: Math.round(avgUrgency * 10) / 10,\n  breakdown_by_status: byStatus,\n  breakdown_by_category: byCategory,\n  documents: allReviewItems.map(item => ({\n    document_id: item.document_id,\n    document_uuid: item.document_uuid,\n    filename: item.original_filename,\n    category: item.category,\n    priority: item.priority,\n    urgency_score: item.urgency_score,\n    is_overdue: item.is_overdue,\n    hours_until_deadline: item.hours_until_deadline,\n    review_reason: item.review_reason\n  }))\n};\n\nreturn [{ json: summary }];"
+      },
+      "id": "generate-summary-report",
+      "name": "Generate Summary Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO reports (client_id, report_type, report_name, generated_data, generated_at, created_at, updated_at) VALUES (1, 'document_review_queue', 'Human Review Queue Summary', $1, NOW(), NOW(), NOW());",
+        "options": {}
+      },
+      "id": "save-summary-report",
+      "name": "Save Summary Report",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1850, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Documents Needing Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Documents Needing Review": {
+      "main": [
+        [
+          {
+            "node": "Calculate Review Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Review Priority": {
+      "main": [
+        [
+          {
+            "node": "Is Overdue?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Overdue?": {
+      "main": [
+        [
+          {
+            "node": "Send Overdue Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Document Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Overdue Alert": {
+      "main": [
+        [
+          {
+            "node": "Update Document Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Document Status": {
+      "main": [
+        [
+          {
+            "node": "Log Execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Execution": {
+      "main": [
+        [
+          {
+            "node": "Generate Summary Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Summary Report": {
+      "main": [
+        [
+          {
+            "node": "Save Summary Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-01-15T10:00:00.000Z",
+      "updatedAt": "2024-01-15T10:00:00.000Z",
+      "id": "tag-docs-v1",
+      "name": "DOCS_v1"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-15T10:00:00.000Z",
+  "versionId": "1"
+}

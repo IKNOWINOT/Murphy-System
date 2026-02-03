@@ -1,0 +1,44 @@
+@app.route('/api/status', methods=['GET'])
+def get_status():
+    """Get system status"""
+    return jsonify({
+        'success': True,
+        'message': 'Murphy System Complete Backend',
+        'version': '3.0.0',
+        'components': {
+            'monitoring': MONITORING_AVAILABLE,
+            'artifacts': ARTIFACTS_AVAILABLE,
+            'shadow_agents': SHADOW_AGENTS_AVAILABLE,
+            'cooperative_swarm': COOPERATIVE_SWARM_AVAILABLE,
+            'llm': LLM_AVAILABLE,
+            'authentication': AUTH_AVAILABLE,
+            'database': DB_AVAILABLE,
+            'modules': MODULES_AVAILABLE
+        },
+        'systems_initialized': system_initialized,
+        'timestamp': datetime.now().isoformat()
+    })
+
+@app.route('/api/initialize', methods=['POST'])
+@validate_input(validate_init_request)
+def initialize_system():
+    """Initialize the system with demo data (NO AUTHENTICATION REQUIRED)"""
+    global system_initialized
+    
+    if system_initialized:
+        # Return current database statistics
+        if DB_AVAILABLE and db_manager:
+            stats = db_manager.get_statistics()
+            return jsonify({
+                'success': True,
+                'message': 'System already initialized',
+                'agents_count': stats['agents_count'],
+                'states_count': stats['states_count']
+            })
+        else:
+            return jsonify({
+                'success': True,
+                'message': 'System already initialized (in-memory mode)',
+                'agents_count': len(agents),
+                'states_count': len(states)
+            })

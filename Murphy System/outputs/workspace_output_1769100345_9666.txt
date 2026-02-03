@@ -1,0 +1,50 @@
+        async function handleArtifactCommand(action, args) {
+            switch (action) {
+                case 'list':
+                    await listArtifacts();
+                    break;
+                case 'view':
+                case 'open':
+                    if (args.length > 0) {
+                        await viewArtifact(args[0]);
+                    } else {
+                        addTerminalLog('Usage: /artifact view <id>', 'warning');
+                    }
+                    break;
+                case 'generate':
+                case 'create':
+                    ArtifactPanel.showGenerateDialog();
+                    addTerminalLog('🎨 Opening artifact generation dialog...', 'info');
+                    break;
+                case 'search':
+                    if (args.length > 0) {
+                        await searchArtifacts(args.join(' '));
+                    } else {
+                        addTerminalLog('Usage: /artifact search <query>', 'warning');
+                    }
+                    break;
+                case 'convert':
+                    if (args.length >= 2) {
+                        await convertArtifact(args[0], args[1]);
+                    } else {
+                        addTerminalLog('Usage: /artifact convert <id> <format>', 'warning');
+                    }
+                    break;
+                case 'download':
+                    if (args.length > 0) {
+                        await ArtifactPanel.downloadArtifact(args[0]);
+                    } else {
+                        addTerminalLog('Usage: /artifact download <id>', 'warning');
+                    }
+                    break;
+                case 'stats':
+                    await showArtifactStats();
+                    break;
+                default:
+                    addTerminalLog('Available artifact commands:', 'info');
+                    addTerminalLog('  /artifact list              - List all artifacts', 'info');
+                    addTerminalLog('  /artifact view <id>         - View artifact details', 'info');
+                    addTerminalLog('  /artifact generate          - Generate new artifact', 'info');
+                    addTerminalLog('  /artifact search <query>    - Search artifacts', 'info');
+                    addTerminalLog('  /artifact convert <id> <fmt> - Convert format', 'info');
+                    addTerminalLog('  /artifact download <id>     - Download artifact', 'info');

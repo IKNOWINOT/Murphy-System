@@ -1,0 +1,4 @@
+656:            { name: '/librarian', desc: 'System guidance' },
+840:                addMessage('ATTEMPTED', `Welcome ${userData.name}! Use /help for available commands or /librarian for guidance`, 'attempted');
+968:                } else if (command === 'librarian') {
+969:                    endpoint = '/api/librarian/ask';

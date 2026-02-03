@@ -1,0 +1,11 @@
+        }
+
+        // Close modal on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeDetailPanel();
+            }
+        });
+
+        // ============================================
+        // TERMINAL COMMAND SYSTEM

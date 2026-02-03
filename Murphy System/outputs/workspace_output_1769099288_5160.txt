@@ -1,0 +1,2 @@
+823:            <button class="action-btn primary" onclick="initializeSystem()">INITIALIZE SYSTEM</button>
+2821:            addLog('Click "INITIALIZE SYSTEM" to start', 'info');

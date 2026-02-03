@@ -1,0 +1,23 @@
+            } else if (cmd === 'test') {
+                runTest(args[0]);
+            } else {
+                // Check if it's a dynamic command
+                if (availableCommands.includes(cmd)) {
+                    executeDynamicCommand(cmd, args);
+                } else {
+                    addOutput('Unknown command: ' + cmd, 'error');
+                }
+            }
+        }
+--
+        
+        function showAvailableCommands() {
+            showAllCommands();
+        }
+        
+        function executeDynamicCommand(commandName, args) {
+            addOutput('Executing dynamic command: ' + commandName, 'info');
+            addOutput('Arguments: ' + args.join(', '), 'info');
+            
+            // Simulate command execution
+            addOutput('Command executed successfully', 'success');

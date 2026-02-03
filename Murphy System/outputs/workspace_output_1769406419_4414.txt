@@ -1,0 +1,44 @@
+{
+    "commands": [
+        "/document create <type>"
+    ],
+    "confidence_level": "medium",
+    "follow_up_questions": [
+        "What type of document would you like to create?",
+        "Which domains should I include?"
+    ],
+    "intent": {
+        "category": "creation",
+        "confidence": 0.6,
+        "keywords": [
+            "document",
+            "plan"
+        ],
+        "suggested_commands": [
+            "/document create <type>"
+        ]
+    },
+    "message": "Let's create that together. Here's the workflow: Document Creation Workflow",
+    "success": true,
+    "workflow": {
+        "name": "Document Creation Workflow",
+        "steps": [
+            {
+                "command": "/document create <type>",
+                "description": "Create initial document"
+            },
+            {
+                "command": "/document magnify <domain>",
+                "description": "Add domain expertise"
+            },
+            {
+                "command": "/document solidify",
+                "description": "Prepare for generation"
+            },
+            {
+                "command": "/swarm execute CREATIVE",
+                "description": "Generate content"
+            }
+        ]
+    }
+}

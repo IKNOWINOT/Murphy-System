@@ -1,0 +1,106 @@
+        async function handleLibrarianCommand(action, args) {
+            switch (action) {
+                case 'ask':
+                    if (args.length > 0) {
+                        const query = args.join(' ');
+                        addTerminalLog(`🧙 Opening Librarian with query: "${query}"`, 'info');
+                        librarianPanel.open();
+                        setTimeout(() => {
+                            document.getElementById('librarian-input').value = query;
+                        }, 100);
+                    } else {
+                        addTerminalLog('🧙 Opening Librarian panel...', 'info');
+                        librarianPanel.open();
+                    }
+                    break;
+                case 'search':
+                    if (args.length > 0) {
+                        const query = args.join(' ');
+                        addTerminalLog(`🔍 Searching knowledge base for: "${query}"...`, 'info');
+                        try {
+                            const response = await fetch(`${API_BASE}/api/librarian/search`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ query })
+                            });
+                            const data = await response.json();
+                            if (data.results && data.results.length > 0) {
+                                addTerminalLog(`✓ Found ${data.count} results:`, 'success');
+                                data.results.forEach((result, i) => {
+                                    addTerminalLog(`  ${i + 1}. [${result.type.toUpperCase()}] ${result.name}`, 'info');
+                                    addTerminalLog(`     ${result.description}`, 'info');
+                                });
+                            } else {
+                                addTerminalLog('No results found', 'warning');
+                            }
+                        } catch (error) {
+                            addTerminalLog(`✗ Search failed: ${error.message}`, 'error');
+                        }
+                    } else {
+                        addTerminalLog('Usage: /librarian search <query>', 'warning');
+                    }
+                    break;
+                case 'transcripts':
+                    addTerminalLog('📜 Fetching conversation transcripts...', 'info');
+                    try {
+                        const response = await fetch(`${API_BASE}/api/librarian/transcripts?limit=5`);
+                        const data = await response.json();
+                        if (data.transcripts && data.transcripts.length > 0) {
+                            addTerminalLog(`✓ Recent conversations (${data.count}):`, 'success');
+                            data.transcripts.forEach((t, i) => {
+                                addTerminalLog(`  ${i + 1}. "${t.user_input}"`, 'info');
+                                addTerminalLog(`     Intent: ${t.intent_category} (${Math.round(t.confidence * 100)}%)`, 'info');
+                                addTerminalLog(`     Response: ${t.message.substring(0, 80)}...`, 'info');
+                            });
+                        } else {
+                            addTerminalLog('No conversation history yet', 'warning');
+                        }
+                    } catch (error) {
+                        addTerminalLog(`✗ Failed to fetch transcripts: ${error.message}`, 'error');
+                    }
+                    break;
+                case 'overview':
+                    addTerminalLog('📊 Getting system overview...', 'info');
+                    try {
+                        const response = await fetch(`${API_BASE}/api/llm/generate`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ prompt: 'What is the system overview?' })
+                        });
+                        const data = await response.json();
+                        addTerminalLog('✓ Librarian System Overview:', 'success');
+                        addTerminalLog(`  Total Interactions: ${data.total_interactions}`, 'info');
+                        if (data.intent_distribution && Object.keys(data.intent_distribution).length > 0) {
+                            addTerminalLog('  Intent Distribution:', 'info');
+                            Object.entries(data.intent_distribution).forEach(([intent, count]) => {
+                                addTerminalLog(`    • ${intent}: ${count}`, 'info');
+                            });
+                        }
+                        addTerminalLog('  Knowledge Base:', 'info');
+                        addTerminalLog(`    • Commands: ${data.knowledge_base_size.commands}`, 'info');
+                        addTerminalLog(`    • Concepts: ${data.knowledge_base_size.concepts}`, 'info');
+                        addTerminalLog(`    • Workflows: ${data.knowledge_base_size.workflows}`, 'info');
+                    } catch (error) {
+                        addTerminalLog(`✗ Failed to get overview: ${error.message}`, 'error');
+                    }
+                    break;
+                case 'guide':
+                    addTerminalLog('🧙 Opening Librarian for guidance...', 'info');
+                    librarianPanel.open();
+                    setTimeout(() => {
+                        document.getElementById('librarian-input').value = 'I need guidance on what to do next';
+                    }, 100);
+                    break;
+                default:
+                    if (!action) {
+                        addTerminalLog('🧙 Opening Librarian panel...', 'info');
+                        librarianPanel.open();
+                    } else {
+                        addTerminalLog('Available librarian commands:', 'info');
+                        addTerminalLog('  /librarian          - Open interactive Librarian panel', 'info');
+                        addTerminalLog('  /librarian ask <q>  - Ask a question', 'info');
+                        addTerminalLog('  /librarian search   - Search knowledge base', 'info');
+                        addTerminalLog('  /librarian transcripts - View conversation history', 'info');
+                        addTerminalLog('  /librarian overview - System overview', 'info');
+                        addTerminalLog('  /librarian guide    - Get guidance', 'info');
+                    }

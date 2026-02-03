@@ -1,0 +1,36 @@
+                console.error('Status update failed:', error);
+            }
+        }
+
+        // Add Message
+        function addMessage(type, content, cssClass) {
+            const messagesEl = document.getElementById('messages');
+            const time = new Date().toLocaleTimeString();
+            
+            // Create unique message ID to prevent duplicates
+            const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            
+            const messageEl = document.createElement('div');
+            messageEl.className = 'message';
+            messageEl.id = messageId;
+            messageEl.innerHTML = `
+                <div class="message-header">
+                    <span class="message-type ${cssClass}">${type}</span>
+                    <span class="message-time">${time}</span>
+                </div>
+                <div class="message-content ${cssClass}">${escapeHtml(content)}</div>
+            `;
+            
+            messagesEl.appendChild(messageEl);
+            
+            // Smooth scroll to bottom with delay to ensure render
+            setTimeout(() => {
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+            }, 50);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }

@@ -1,0 +1,95 @@
+Waiting for server to start...
+
+============================================================
+PHASE 2: COMMAND RESPONSE INTEGRATION TEST SUITE
+============================================================
+
+Test 1: Server Health Check
+✓ Server is running
+
+Test 2: Initialize System
+✓ System initialized successfully
+  System ID: system-3e06fed7
+  Agents: 5
+  States: 1
+  Gates: 2
+
+Test 3: Get System Status (LLM-Enhanced)
+✓ Status retrieved successfully
+  System ID: system-3e06fed7
+  LLM Enabled: True
+  LLM Status: Present
+  Metrics: {'agents': 5, 'artifacts': 0, 'gates': 2, 'states': 1}
+  LLM Status Text: 
+Murphy System Status
+
+System ID: system-3e06fed7
+Initialized: True
+LLM Enabled: True
+
+Metrics:
+  Ag...
+
+Test 4: Get Help (LLM-Enhanced)
+✓ Help retrieved successfully
+  LLM Generated: True
+  Topic: state commands
+  Help Text: 
+Help for: state commands
+
+Core Commands:
+  /help [topic]           - Show help information
+  /status                 - Show system status
+  /initialize             - Initialize the system
+  /clear   ...
+
+Test 5: Get States
+✓ States retrieved successfully
+  Number of states: 1
+  First state: Initial State
+  Insights: States are operational. Use /state evolve to advance system....
+
+Test 6: Evolve State (with LLM Explanation)
+✓ State evolved successfully
+  Children created: 3
+  LLM Explanation: 
+State evolve: Initial State
+ID: state_1
+Description: System initialization state
+Confidence: 0.95
+Status: active
+...
+
+Test 7: Get Agents (with LLM Insights)
+✓ Agents retrieved successfully
+  Number of agents: 5
+  First agent: Agent 1 (Executive)
+  LLM Insights: 
+Organization Information
+
+Total Agents: 5
+Active Agents: 5
+
+Agents:
+  - Agent 1 (Executive): active, confidence: 0.85
+  - Agent 2 (Engineer): active, confidence: 0.87
+  - Agent 3 (Analyst): active, c...
+
+Test 8: Get Gates
+✓ Gates retrieved successfully
+  Number of gates: 2
+  First gate: Safety Gate 1 (safety)
+
+============================================================
+TEST SUMMARY
+============================================================
+✓ PASS: Server Health
+✓ PASS: Initialize System
+✓ PASS: Get Status
+✓ PASS: Get Help
+✓ PASS: Get States
+✓ PASS: Evolve State
+✓ PASS: Get Agents
+✓ PASS: Get Gates
+
+Total: 8/8 tests passed (100.0%)

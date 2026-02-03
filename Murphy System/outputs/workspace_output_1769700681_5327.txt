@@ -1,0 +1,10 @@
+Activating DOCS_v1 workflows...
+============================================================
+✓ Activated: DOCS_v1_Intake_Docs
+✓ Activated: DOCS_v1_Classify_Docs
+✓ Activated: DOCS_v1_Extract_Data
+✓ Activated: DOCS_v1_Validate_Data
+✓ Activated: DOCS_v1_Route_Docs
+✓ Activated: DOCS_v1_Human_Review_Queue
+============================================================
+Activated 6/6 workflows

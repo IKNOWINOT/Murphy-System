@@ -1,0 +1,3 @@
+/workspace/librarian_panel.js:7:class LibrarianPanel {
+/workspace/plan_review_panel.js:8:class PlanReviewPanel {
+/workspace/document_editor_panel.js:8:class DocumentEditorPanel {

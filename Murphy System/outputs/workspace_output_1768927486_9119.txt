@@ -1,0 +1,1 @@
+262:    async def generate_prompts_from_document(self, doc_id: str) -> Dict[str, str]:

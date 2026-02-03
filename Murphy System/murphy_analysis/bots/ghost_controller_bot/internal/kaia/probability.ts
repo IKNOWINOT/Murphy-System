@@ -1,0 +1,1 @@
+export function buildProbabilityChain(microtasks:any[], answers:any[]){ const nodes=microtasks.map((m:any)=>({id:m.id,p:Math.max(0.1,1.0/microtasks.length)})); const edges:any[]=[]; for(let i=0;i<microtasks.length-1;i++) edges.push({from:microtasks[i].id,to:microtasks[i+1].id,weight:0.5}); return {nodes,edges}; }

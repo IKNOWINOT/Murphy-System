@@ -1,0 +1,6 @@
+    "systems": {
+        "agent_communication": true,
+        "artifact_download": true,
+        "artifacts": true,
+        "automation": true,
+        "business": true,

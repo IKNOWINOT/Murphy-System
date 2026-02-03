@@ -1,0 +1,26 @@
+try:
+    from database_integration import get_database_manager
+    db_manager = get_database_manager()
+    DB_AVAILABLE = True
+    logger.info("✓ Database Integration loaded successfully")
+
+# ============================================================================
+# PASS-THROUGH DECORATORS (for when auth is not available)
+# ============================================================================
+
+def pass_through_decorator(*args, **kwargs):
+    """Decorator that passes through when auth is not available"""
+    def decorator(func):
+        return func
+    return decorator
+
+# Use pass-through decorators when auth is not available
+if not AUTH_AVAILABLE:
+    require_auth = pass_through_decorator
+    validate_input = pass_through_decorator
+    rate_limit = pass_through_decorator
+
+except ImportError as e:
+    logger.error(f"✗ Failed to load Database Integration: {e}")
+    DB_AVAILABLE = False
+    db_manager = None

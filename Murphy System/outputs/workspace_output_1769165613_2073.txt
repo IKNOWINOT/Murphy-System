@@ -1,0 +1,31 @@
+# LLM INTEGRATION
+# ============================================================================
+
+LLM_AVAILABLE = False  # Will try to load later
+
+# ============================================================================
+# EXISTING ENDPOINTS (from murphy_backend_v2.py)
+# ============================================================================
+
+@app.route('/api/status', methods=['GET'])
+def get_status():
+    """Get system status"""
+    return jsonify({
+        'success': True,
+        'message': 'Murphy System Complete Backend',
+        'version': '3.0.0',
+        'components': {
+            'monitoring': MONITORING_AVAILABLE,
+            'artifacts': ARTIFACTS_AVAILABLE,
+            'shadow_agents': SHADOW_AGENTS_AVAILABLE,
+            'cooperative_swarm': COOPERATIVE_SWARM_AVAILABLE,
+            'llm': LLM_AVAILABLE
+        },
+        'systems_initialized': system_initialized,
+        'timestamp': datetime.now().isoformat()
+    })
+
+@app.route('/api/initialize', methods=['POST'])
+def initialize_system():
+    """Initialize the system with demo data"""
+    global system_initialized, agents, states, components, gates

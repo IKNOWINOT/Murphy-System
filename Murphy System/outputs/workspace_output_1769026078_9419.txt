@@ -1,0 +1,6 @@
+14:from flask_socketio import SocketIO, emit
+43:socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+271:        socketio.emit('document_created', doc.to_dict())
+360:        socketio.emit('task_started', task)
+369:        socketio.emit('task_completed', task)
+729:    socketio.run(app, host='0.0.0.0', port=6666, debug=False, allow_unsafe_werkzeug=True)

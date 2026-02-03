@@ -1,0 +1,2 @@
+    "doc_id": "DOC-0",
+    "expertise_depth": 0,

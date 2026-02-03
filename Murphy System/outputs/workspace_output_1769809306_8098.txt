@@ -1,0 +1,11 @@
+            input.value = '';
+            addMessage('USER', message, 'user');
+            showLoading(true);
+
+            try {
+                // Show validation workflow
+                addMessage('SYSTEM', `Processing: "${message}"`, 'system');
+                await sleep(300);
+                
+                if (message.startsWith('/')) {
+                    await executeCommand(message.substring(1));

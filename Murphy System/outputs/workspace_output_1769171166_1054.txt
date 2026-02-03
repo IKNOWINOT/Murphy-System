@@ -1,0 +1,12 @@
+/workspace/murphy_test_extract/src/librarian/__pycache__/librarian_module.cpython-311.pyc
+/workspace/murphy_test_extract/src/librarian/librarian_module.py
+/workspace/murphy_test_extract/src/__pycache__/module_compiler_adapter.cpython-311.pyc
+/workspace/murphy_test_extract/src/__pycache__/module_manager.cpython-311.pyc
+/workspace/murphy_test_extract/src/module_compiler/registry/__pycache__/module_registry.cpython-311.pyc
+/workspace/murphy_test_extract/src/module_compiler/registry/module_registry.py
+/workspace/murphy_test_extract/src/module_compiler/models/__pycache__/module_spec.cpython-311.pyc
+/workspace/murphy_test_extract/src/module_compiler/models/module_spec.py
+/workspace/murphy_test_extract/src/module_compiler_adapter.py
+/workspace/murphy_test_extract/src/module_manager.py
+/workspace/murphy_test_extract/tests/test_core_v5_modules_comprehensive.py
+/workspace/murphy_test_extract/tests/__pycache__/test_core_v5_modules_comprehensive.cpython-311.pyc

@@ -1,0 +1,9 @@
+Final brace balance: 1
+Last line with positive balance: 4378
+
+Context around line 4378:
+    4374:         });
+    4375:         </script>
+    4376: <!-- Enhanced Librarian UI removed - not needed -->
+    4377: </body>
+>>> 4378: </html>

@@ -1,0 +1,27 @@
+🚀 Starting MONITOR_v1 workflow import...
+
+✅ Connected to n8n SQLite database: /root/.n8n/database.sqlite
+
+  ✅ Importing workflow: MONITOR_v1_Collect_Metrics
+  ✅ Importing workflow: MONITOR_v1_Process_Errors
+  ✅ Importing workflow: MONITOR_v1_Generate_Alerts
+
+============================================================
+📊 IMPORT SUMMARY
+============================================================
+Total workflows imported: 3
+
+Imported Workflows:
+  ✅ MONITOR_v1_Collect_Metrics.json (ID: 26f3e7c5-66fa-45a0-82b1-eef37f8b9f2d)
+  ✅ MONITOR_v1_Process_Errors.json (ID: 4eaf7fbe-70ee-429a-87a9-f1787efa5da6)
+  ✅ MONITOR_v1_Generate_Alerts.json (ID: 4f8003f9-d7e0-4d53-ad3f-6017bf911ecd)
+
+============================================================
+✅ MONITOR_v1 workflow import complete!
+
+📝 Next Steps:
+   1. Run activate_monitor_workflows.py to activate workflows
+   2. Test workflows in n8n UI
+   3. Verify metrics collection in database
+   4. Configure webhook endpoints for production use
+

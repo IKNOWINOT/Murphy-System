@@ -1,0 +1,2 @@
+1526:                    await handleArtifactCommand(args[0], remainingArgs);
+1933:        async function handleArtifactCommand(action, args) {

@@ -1,0 +1,36 @@
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// ============================================
+// Initialization
+// ============================================
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    // Wait a bit for the main script to finish loading
+    setTimeout(function() {
+        // Initialize command enhancements
+        if (window.CommandEnhancements && window.CommandEnhancements.initializeCommandEnhancements) {
+            window.CommandEnhancements.initializeCommandEnhancements();
+        }
+        
+        // Add suggestions styles
+        addSuggestionsStyles();
+        
+        // Replace existing terminal handler with enhanced version
+        const terminalInput = document.getElementById('terminal-input');
+        if (terminalInput) {
+            // Clone the element to remove all old event listeners
+            const newTerminalInput = terminalInput.cloneNode(true);
+            terminalInput.parentNode.replaceChild(newTerminalInput, terminalInput);
+            
+            // Add enhanced handler to the new element
+            newTerminalInput.addEventListener('keydown', handleEnhancedTerminalKeyPress);
+            newTerminalInput.focus();
+        }
+        
+        // Expose addTerminalLog function for enhancements to use
+        if (typeof addLog === 'function') {
+            window.addTerminalLog = addLog;

@@ -1,0 +1,10 @@
+2736:                    console.log('DEBUG: Calling executeTerminalCommand');
+2737:                    executeTerminalCommand(command);
+2837:        async function executeTerminalCommand(command) {
+2875:                        await processCommand(cmdName, args);
+2884:                            await processCommand(cmdName, args);
+2903:                    await processCommand(cmdName, args);
+2911:                await processCommand(cmdName, args);
+2919:        async function processCommand(cmdName, args) {
+4479:            // Make executeTerminalCommand available globally
+4480:            window.executeTerminalCommand = executeTerminalCommand;

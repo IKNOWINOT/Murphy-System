@@ -1,0 +1,27 @@
+                case 'ask':
+                    if (args.length > 0) {
+                        const query = args.join(' ');
+                        addTerminalLog(`🧙 Opening Librarian with query: "${query}"`, 'info');
+                        librarianPanel.open();
+                        setTimeout(() => {
+                            document.getElementById('librarian-input').value = query;
+                        }, 100);
+                    } else {
+                        addTerminalLog('🧙 Opening Librarian panel...', 'info');
+                        librarianPanel.open();
+                    }
+                    break;
+                case 'search':
+                    if (args.length > 0) {
+                        const query = args.join(' ');
+                        addTerminalLog(`🔍 Searching knowledge base for: "${query}"...`, 'info');
+                        try {
+                            const response = await fetch(`${API_BASE}/api/librarian/search`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ query })
+                            });
+                            const data = await response.json();
+                            if (data.results && data.results.length > 0) {
+                                addTerminalLog(`✓ Found ${data.count} results:`, 'success');
+                                data.results.forEach((result, i) => {

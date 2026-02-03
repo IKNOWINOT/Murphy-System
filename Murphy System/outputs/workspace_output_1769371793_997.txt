@@ -1,0 +1,50 @@
+ * Running on http://172.16.166.90:3002
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
+INFO:werkzeug: * Restarting with stat
+/usr/local/lib/python3.11/site-packages/flask_limiter/_extension.py:364: UserWarning: Using the in-memory storage for tracking rate limits as no storage was explicitly specified. This is not recommended for production use. See: https://flask-limiter.readthedocs.io#configuring-a-storage-backend for documentation about configuring the storage backend.
+  warnings.warn(
+INFO:__main__:✓ Rate limiter initialized
+INFO:auth_system:✓ Authentication System initialized
+INFO:__main__:✓ Authentication System loaded successfully
+INFO:database:✓ Database initialized successfully
+INFO:__main__:✓ Database Integration loaded successfully
+INFO:__main__:✓ Monitoring components loaded successfully
+INFO:__main__:✓ Monitoring systems initialized
+INFO:__main__:✓ Stability-Based Attention System loaded successfully
+INFO:STABILITY_BASED_ATTENTION_SYSTEM:Stability-Based Attention System initialized
+INFO:__main__:✓ Attention system initialized
+INFO:__main__:✓ Artifact components loaded successfully
+INFO:__main__:✓ Module System loaded successfully
+INFO:command_system:✓ Registered command: /help (module: None)
+INFO:command_system:✓ Registered command: /status (module: None)
+INFO:command_system:✓ Registered command: /initialize (module: None)
+INFO:command_system:✓ Registered command: /clear (module: None)
+INFO:command_system:✓ Registered command: /state (module: None)
+INFO:command_system:✓ Registered command: /agent (module: None)
+INFO:command_system:✓ Registered command: /artifact (module: None)
+INFO:command_system:✓ Registered command: /shadow (module: None)
+INFO:command_system:✓ Registered command: /monitoring (module: None)
+INFO:command_system:✓ Registered command: /module (module: None)
+INFO:command_system:✓ Initialized 10 core system commands
+INFO:librarian_adapter:✓ Librarian adapter initialized successfully
+INFO:__main__:✓ Command System and Librarian loaded successfully
+INFO:__main__:✓ Artifact systems initialized
+INFO:__main__:✓ Shadow Agent components loaded successfully
+INFO:__main__:✓ Shadow Agent systems initialized
+INFO:__main__:✓ Cooperative Swarm components loaded successfully
+INFO:__main__:✓ Cooperative Swarm systems initialized
+ERROR:__main__:Failed to initialize LLM Manager: name 'LLMManager' is not defined
+INFO:__main__:============================================================
+INFO:__main__:Murphy System Complete Backend Server v3.0
+INFO:__main__:============================================================
+INFO:__main__:Monitoring: ✓
+INFO:__main__:Artifacts: ✓
+INFO:__main__:Shadow Agents: ✓
+INFO:__main__:Cooperative Swarm: ✓
+INFO:__main__:============================================================
+INFO:__main__:Command System: ✓
+INFO:__main__:============================================================
+WARNING:werkzeug:Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 795-992-900
+INFO:werkzeug:127.0.0.1 - - [25/Jan/2026 20:09:39] "GET /api/status HTTP/1.1" 200 -

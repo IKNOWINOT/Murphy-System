@@ -1,0 +1,10 @@
+/workspace/murphy_test_extract/murphy_complete_backend.py
+/workspace/murphy_test_extract/src/governance_framework/agent_descriptor_complete.py
+/workspace/murphy_test_extract/src/base_governance_runtime/governance_runtime_complete.py
+/workspace/murphy_test_extract/bots/llm_backend.py
+/workspace/murphy_test_extract/tests/test_complete_system_workflow_simple.py
+/workspace/murphy_test_extract/tests/test_complete_system_with_execution_engines.py
+/workspace/murphy_test_extract/tests/test_complete_system_workflow.py
+/workspace/murphy_complete_backend.py
+/workspace/murphy_backend_v2.py
+/workspace/murphy_backend_enhancements.py

@@ -1,0 +1,11 @@
+            }
+
+            sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize Murphy Integrated System
+        const murphy = new MurphyIntegratedSystem();
+    </script>
+</body>

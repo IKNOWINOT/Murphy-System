@@ -1,0 +1,1 @@
+export function validateMicroTasks(mts:any[], dryRun=true){ return mts.map((m:any)=>({ microtask_id:m.id, passed: dryRun, details: dryRun?'dry-run pass':'TODO live' })); }

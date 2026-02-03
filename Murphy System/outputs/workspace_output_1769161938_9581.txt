@@ -1,0 +1,7 @@
+2676:         // Initialize terminal input
+2677:         const terminalInput = document.getElementById('terminal-input');
+2678:         
+2679:         if (terminalInput) {
+2680:             terminalInput.addEventListener('keydown', handleTerminalKeyPress);
+2681:             terminalInput.focus();
+2682:         }

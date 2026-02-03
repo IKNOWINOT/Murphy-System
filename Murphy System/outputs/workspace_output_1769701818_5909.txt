@@ -1,0 +1,34 @@
+{
+    "agents": [
+        {
+            "id": "agent-1",
+            "name": "Director",
+            "role": "orchestration",
+            "status": "active"
+        },
+        {
+            "id": "agent-2",
+            "name": "Researcher",
+            "role": "research",
+            "status": "active"
+        },
+        {
+            "id": "agent-3",
+            "name": "Analyst",
+            "role": "analysis",
+            "status": "active"
+        }
+    ],
+    "states": [
+        {
+            "components": [],
+            "description": "System initialized successfully",
+            "id": "state-1",
+            "metrics": {},
+            "name": "Initial State",
+            "timestamp": "2026-01-29T15:50:18.782150"
+        }
+    ],
+    "status": "initialized",
+    "timestamp": "2026-01-29T15:50:18.782327"
+}

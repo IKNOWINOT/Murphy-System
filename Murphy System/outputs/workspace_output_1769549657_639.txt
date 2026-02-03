@@ -1,0 +1,1 @@
+4454:            window.librarianPanel = new LibrarianPanel(API_BASE);

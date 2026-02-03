@@ -1,0 +1,21 @@
+    return _communication_hub_instance
+
+# LLM Manager
+try:
+    from llm_providers_enhanced import EnhancedLLMManager
+    # EnhancedLLMManager expects file paths
+    llm_manager = EnhancedLLMManager(
+        groq_keys_file='groq_keys.txt',
+        aristotle_key_file='aristotle_key.txt'
+    )
+    SYSTEMS_AVAILABLE['llm'] = True
+    logger.info(f"✓ LLM Manager initialized with key rotation")
+except Exception as e:
+    logger.error(f"✗ LLM Manager failed: {e}")
+    llm_manager = None
+
+# Librarian System
+try:
+    from librarian_system import LibrarianSystem
+    librarian_system = LibrarianSystem(llm_client=llm_manager if llm_manager else None)
+    SYSTEMS_AVAILABLE['librarian'] = True

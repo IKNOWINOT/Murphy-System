@@ -1,0 +1,25 @@
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0*   Trying 127.0.0.1:8000...
+* Connected to localhost (127.0.0.1) port 8000 (#0)
+> GET /api/initialize HTTP/1.1
+> Host: localhost:8000
+> User-Agent: curl/7.88.1
+> Accept: */*
+> 
+< HTTP/1.1 405 METHOD NOT ALLOWED
+< Server: Werkzeug/3.1.5 Python/3.11.14
+< Date: Wed, 21 Jan 2026 22:47:17 GMT
+< Content-Type: text/html; charset=utf-8
+< Allow: POST, OPTIONS
+< Content-Length: 153
+< Connection: close
+< 
+{ [153 bytes data]
+100   153  100   153    0     0  73948      0 --:--:-- --:--:-- --:--:-- 76500
+* Closing connection 0
+<!doctype html>
+<html lang=en>
+<title>405 Method Not Allowed</title>
+<h1>Method Not Allowed</h1>
+<p>The method is not allowed for the requested URL.</p>

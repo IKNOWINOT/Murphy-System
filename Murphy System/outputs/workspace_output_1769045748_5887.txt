@@ -1,0 +1,91 @@
+        
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                const input = document.getElementById('commandInput');
+                const command = input.value.trim();
+                if (command) {
+                    executeCommand(command);
+                    commandHistory.push(command);
+                    historyIndex = commandHistory.length;
+                    input.value = '';
+                }
+            } else if (event.key === 'ArrowUp') {
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    document.getElementById('commandInput').value = commandHistory[historyIndex];
+                }
+            } else if (event.key === 'ArrowDown') {
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    document.getElementById('commandInput').value = commandHistory[historyIndex];
+                } else {
+                    historyIndex = commandHistory.length;
+                    document.getElementById('commandInput').value = '';
+                }
+            }
+        }
+        
+        function executeCommand(command) {
+            const output = document.getElementById('output');
+            
+            // Add command to output
+            const line = document.createElement('div');
+            line.className = 'output-line';
+            line.innerHTML = '<span class="output-prompt">&gt;&gt;</span> <span class="output-command">' + command + '</span>';
+            output.appendChild(line);
+            
+            // Process command
+            processCommand(command);
+            
+            // Scroll to bottom
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        function processCommand(command) {
+            const output = document.getElementById('output');
+            const parts = command.split(' ');
+            const cmd = parts[0].toLowerCase();
+            const args = parts.slice(1);
+            
+            // Dynamic command processing
+            if (cmd === 'help') {
+                if (args.length > 0) {
+                    showCommandHelp(args[0]);
+                } else {
+                    showAllCommands();
+                }
+            } else if (cmd === 'commands') {
+                showAvailableCommands();
+            } else if (cmd === 'status') {
+                showSystemStatus();
+            } else if (cmd === 'state') {
+                processStateCommand(args);
+            } else if (cmd === 'setup') {
+                processSetupCommand(args);
+            } else if (cmd === 'clear') {
+                output.innerHTML = '';
+            } else if (cmd === 'test') {
+                runTest(args[0]);
+            } else {
+                // Check if it's a dynamic command
+                if (availableCommands.includes(cmd)) {
+                    executeDynamicCommand(cmd, args);
+                } else {
+                    addOutput('Unknown command: ' + cmd, 'error');
+                }
+            }
+        }
+        
+        function showAllCommands() {
+            addOutput('=== Available Commands ===', 'info');
+            
+            if (availableCommands.length === 0) {
+                addOutput('No commands available. Couple modules to enable commands.', 'warning');
+                return;
+            }
+            
+            // Group by category
+            const grouped = {};
+            availableCommands.forEach(cmd => {
+                const category = cmd.category || 'General';
+                if (!grouped[category]) {

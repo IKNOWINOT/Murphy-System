@@ -1,0 +1,9 @@
+1827:            <button class="close-btn" onclick="closeDetailPanel()">×</button>
+1928:                    <button class="btn btn-primary" onclick="monitoringPanel.runAnalysis()">
+1931:                    <button class="btn btn-secondary" onclick="closeMonitoringPanel()">
+2510:        function showDetailPanel(data) {
+2549:        function closeDetailPanel() {
+3428:        function openShadowPanel() {
+3435:        function closeShadowPanel() {
+3439:        function openMonitoringPanel() {
+3446:        function closeMonitoringPanel() {

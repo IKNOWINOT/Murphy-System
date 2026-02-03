@@ -1,0 +1,21 @@
+433:@app.route('/api/librarian/ask', methods=['POST'])
+434-def librarian_ask():
+435-    """Ask the librarian system"""
+436-    if not librarian_system:
+437-        return jsonify({'error': 'Librarian not available'}), 503
+438-    
+439-    data = request.json
+440-    query = data.get('query', '')
+441-    
+442-    try:
+443-        # Use asyncio.run to handle async properly
+444-        import asyncio
+445-        response = asyncio.run(librarian_system.ask(query))
+446-        
+447-        return jsonify({
+448-            'success': True,
+449-            'response': response,
+450-            'timestamp': datetime.now().isoformat()
+451-        })
+452-    except Exception as e:
+453-        logger.error(f"Librarian error: {e}")

@@ -1,0 +1,357 @@
+======================================================================
+🚀 RUNNING ALL INTEGRATION TESTS
+======================================================================
+Start Time: 2026-01-29 16:22:56
+======================================================================
+
+
+======================================================================
+Running Test Suites...
+======================================================================
+
+======================================================================
+🧪 INTAKE_v1 INTEGRATION TESTS
+======================================================================
+
+🧪 Running: INTAKE_v1: Lead Capture
+❌ FAIL - INTAKE_v1: Lead Capture (0.00s)
+   Lead capture failed: column "company" of relation "leads" does not exist
+LINE 2: ...O leads (client_id, email, first_name, last_name, company, p...
+                                                             ^
+
+
+🧪 Running: INTAKE_v1: Lead Normalization
+❌ FAIL - INTAKE_v1: Lead Normalization (0.00s)
+   Normalization test failed: column "company" of relation "leads" does not exist
+LINE 2: ...O leads (client_id, email, first_name, last_name, company, s...
+                                                             ^
+
+
+🧪 Running: INTAKE_v1: Lead Scoring
+❌ FAIL - INTAKE_v1: Lead Scoring (0.00s)
+   Scoring test failed: column "company" of relation "leads" does not exist
+LINE 2: ...O leads (client_id, email, first_name, last_name, company, p...
+                                                             ^
+
+
+🧪 Running: INTAKE_v1: Duplicate Detection
+❌ FAIL - INTAKE_v1: Duplicate Detection (0.00s)
+   Duplicate detection failed: null value in column "source" of relation "leads" violates not-null constraint
+DETAIL:  Failing row contains (3, 8df306b2-495b-45a4-8542-4be1a788fe74, 1, duplicate@example.com, null, null, Duplicate, Lead, null, null, null, null, 0, new, null, 2026-01-29 16:22:56.528825, 2026-01-29 16:22:56.528825, 2026-01-29 16:22:56.528825).
+
+
+🧪 Running: INTAKE_v1: Lead Routing
+❌ FAIL - INTAKE_v1: Lead Routing (0.00s)
+   Routing test failed: column "company" of relation "leads" does not exist
+LINE 2: ...O leads (client_id, email, first_name, last_name, company, p...
+                                                             ^
+
+
+======================================================================
+📊 TEST SUMMARY
+======================================================================
+Total Tests:    5
+Passed:         0 ✅
+Failed:         5 ❌
+Pass Rate:      0.0%
+Total Duration: 0.00s
+======================================================================
+
+❌ Failed Tests:
+   - INTAKE_v1: Lead Capture: Lead capture failed: column "company" of relation "leads" does not exist
+LINE 2: ...O leads (client_id, email, first_name, last_name, company, p...
+                                                             ^
+
+   - INTAKE_v1: Lead Normalization: Normalization test failed: column "company" of relation "leads" does not exist
+LINE 2: ...O leads (client_id, email, first_name, last_name, company, s...
+                                                             ^
+
+   - INTAKE_v1: Lead Scoring: Scoring test failed: column "company" of relation "leads" does not exist
+LINE 2: ...O leads (client_id, email, first_name, last_name, company, p...
+                                                             ^
+
+   - INTAKE_v1: Duplicate Detection: Duplicate detection failed: null value in column "source" of relation "leads" violates not-null constraint
+DETAIL:  Failing row contains (3, 8df306b2-495b-45a4-8542-4be1a788fe74, 1, duplicate@example.com, null, null, Duplicate, Lead, null, null, null, null, 0, new, null, 2026-01-29 16:22:56.528825, 2026-01-29 16:22:56.528825, 2026-01-29 16:22:56.528825).
+
+   - INTAKE_v1: Lead Routing: Routing test failed: column "company" of relation "leads" does not exist
+LINE 2: ...O leads (client_id, email, first_name, last_name, company, p...
+                                                             ^
+
+
+📄 Test report saved to: test_results/intake_v1_results.json
+
+
+======================================================================
+🧪 DOCS_v1 INTEGRATION TESTS
+======================================================================
+
+🧪 Running: DOCS_v1: Document Intake
+❌ FAIL - DOCS_v1: Document Intake (0.00s)
+   Document intake failed: column "filename" of relation "documents" does not exist
+LINE 2:             INSERT INTO documents (client_id, filename, file...
+                                                      ^
+
+
+🧪 Running: DOCS_v1: Document Classification
+❌ FAIL - DOCS_v1: Document Classification (0.00s)
+   Classification test failed: column "filename" of relation "documents" does not exist
+LINE 2:             INSERT INTO documents (client_id, filename, file...
+                                                      ^
+
+
+🧪 Running: DOCS_v1: Data Extraction
+❌ FAIL - DOCS_v1: Data Extraction (0.00s)
+   Extraction test failed: column "filename" of relation "documents" does not exist
+LINE 2:             INSERT INTO documents (client_id, filename, cate...
+                                                      ^
+
+
+🧪 Running: DOCS_v1: Data Validation
+❌ FAIL - DOCS_v1: Data Validation (0.00s)
+   Validation test failed: column "filename" of relation "documents" does not exist
+LINE 2:             INSERT INTO documents (client_id, filename, cate...
+                                                      ^
+
+
+🧪 Running: DOCS_v1: Document Routing
+❌ FAIL - DOCS_v1: Document Routing (0.00s)
+   Routing test failed: column "filename" of relation "documents" does not exist
+LINE 2:             INSERT INTO documents (client_id, filename, cate...
+                                                      ^
+
+
+======================================================================
+📊 TEST SUMMARY
+======================================================================
+Total Tests:    5
+Passed:         0 ✅
+Failed:         5 ❌
+Pass Rate:      0.0%
+Total Duration: 0.00s
+======================================================================
+
+❌ Failed Tests:
+   - DOCS_v1: Document Intake: Document intake failed: column "filename" of relation "documents" does not exist
+LINE 2:             INSERT INTO documents (client_id, filename, file...
+                                                      ^
+
+   - DOCS_v1: Document Classification: Classification test failed: column "filename" of relation "documents" does not exist
+LINE 2:             INSERT INTO documents (client_id, filename, file...
+                                                      ^
+
+   - DOCS_v1: Data Extraction: Extraction test failed: column "filename" of relation "documents" does not exist
+LINE 2:             INSERT INTO documents (client_id, filename, cate...
+                                                      ^
+
+   - DOCS_v1: Data Validation: Validation test failed: column "filename" of relation "documents" does not exist
+LINE 2:             INSERT INTO documents (client_id, filename, cate...
+                                                      ^
+
+   - DOCS_v1: Document Routing: Routing test failed: column "filename" of relation "documents" does not exist
+LINE 2:             INSERT INTO documents (client_id, filename, cate...
+                                                      ^
+
+
+📄 Test report saved to: test_results/docs_v1_results.json
+
+
+======================================================================
+🧪 TASKS_v1 INTEGRATION TESTS
+======================================================================
+
+🧪 Running: TASKS_v1: Task Creation
+❌ FAIL - TASKS_v1: Task Creation (0.00s)
+   Task creation failed: column "category" of relation "tasks" does not exist
+LINE 2: ...O tasks (client_id, title, description, priority, category, ...
+                                                             ^
+
+
+🧪 Running: TASKS_v1: Task Assignment
+❌ FAIL - TASKS_v1: Task Assignment (0.00s)
+   Assignment test failed: column "category" of relation "tasks" does not exist
+LINE 2: ...   INSERT INTO tasks (client_id, title, priority, category, ...
+                                                             ^
+
+
+🧪 Running: TASKS_v1: SLA Monitoring
+❌ FAIL - TASKS_v1: SLA Monitoring (0.00s)
+   SLA monitoring test failed: column "id" does not exist
+LINE 4:             RETURNING id
+                              ^
+
+
+🧪 Running: TASKS_v1: Task Completion
+❌ FAIL - TASKS_v1: Task Completion (0.00s)
+   Completion test failed: column "id" does not exist
+LINE 4:             RETURNING id
+                              ^
+
+
+🧪 Running: TASKS_v1: Report Generation
+❌ FAIL - TASKS_v1: Report Generation (0.00s)
+   Report generation test failed: column "report_data" of relation "reports" does not exist
+LINE 2: ...     INSERT INTO reports (client_id, report_type, report_dat...
+                                                             ^
+
+
+======================================================================
+📊 TEST SUMMARY
+======================================================================
+Total Tests:    5
+Passed:         0 ✅
+Failed:         5 ❌
+Pass Rate:      0.0%
+Total Duration: 0.00s
+======================================================================
+
+❌ Failed Tests:
+   - TASKS_v1: Task Creation: Task creation failed: column "category" of relation "tasks" does not exist
+LINE 2: ...O tasks (client_id, title, description, priority, category, ...
+                                                             ^
+
+   - TASKS_v1: Task Assignment: Assignment test failed: column "category" of relation "tasks" does not exist
+LINE 2: ...   INSERT INTO tasks (client_id, title, priority, category, ...
+                                                             ^
+
+   - TASKS_v1: SLA Monitoring: SLA monitoring test failed: column "id" does not exist
+LINE 4:             RETURNING id
+                              ^
+
+   - TASKS_v1: Task Completion: Completion test failed: column "id" does not exist
+LINE 4:             RETURNING id
+                              ^
+
+   - TASKS_v1: Report Generation: Report generation test failed: column "report_data" of relation "reports" does not exist
+LINE 2: ...     INSERT INTO reports (client_id, report_type, report_dat...
+                                                             ^
+
+
+📄 Test report saved to: test_results/tasks_v1_results.json
+
+
+======================================================================
+🧪 MONITOR_v1 INTEGRATION TESTS
+======================================================================
+
+🧪 Running: MONITOR_v1: Metrics Collection
+✅ PASS - MONITOR_v1: Metrics Collection (0.00s)
+   3 metrics collected successfully
+
+🧪 Running: MONITOR_v1: Error Processing
+✅ PASS - MONITOR_v1: Error Processing (0.00s)
+   Error processed successfully (ID: 4)
+
+🧪 Running: MONITOR_v1: Alert Generation
+✅ PASS - MONITOR_v1: Alert Generation (0.00s)
+   Alert generated successfully (ID: 3)
+
+🧪 Running: MONITOR_v1: Alert Acknowledgment
+✅ PASS - MONITOR_v1: Alert Acknowledgment (0.00s)
+   Alert acknowledged by test_user
+
+🧪 Running: MONITOR_v1: Dependency Health
+✅ PASS - MONITOR_v1: Dependency Health (0.00s)
+   3/3 dependencies healthy
+
+======================================================================
+📊 TEST SUMMARY
+======================================================================
+Total Tests:    5
+Passed:         5 ✅
+Failed:         0 ❌
+Pass Rate:      100.0%
+Total Duration: 0.01s
+======================================================================
+
+📄 Test report saved to: test_results/monitor_v1_results.json
+
+
+======================================================================
+Generating Consolidated Report...
+======================================================================
+
+======================================================================
+📊 CONSOLIDATED TEST SUMMARY
+======================================================================
+Test Run: 2026-01-29T16:22:56.554878
+Total Tests:    20
+Passed:         5 ✅
+Failed:         15 ❌
+Pass Rate:      25.0%
+Total Duration: 0.01s
+======================================================================
+
+📦 Test Suite Breakdown:
+  ❌ intake_v1: 0/5 passed (0.0%)
+  ❌ docs_v1: 0/5 passed (0.0%)
+  ❌ tasks_v1: 0/5 passed (0.0%)
+  ✅ monitor_v1: 5/5 passed (100.0%)
+
+❌ Failed Tests:
+   - [intake_v1] INTAKE_v1: Lead Capture: Lead capture failed: column "company" of relation "leads" does not exist
+LINE 2: ...O leads (client_id, email, first_name, last_name, company, p...
+                                                             ^
+
+   - [intake_v1] INTAKE_v1: Lead Normalization: Normalization test failed: column "company" of relation "leads" does not exist
+LINE 2: ...O leads (client_id, email, first_name, last_name, company, s...
+                                                             ^
+
+   - [intake_v1] INTAKE_v1: Lead Scoring: Scoring test failed: column "company" of relation "leads" does not exist
+LINE 2: ...O leads (client_id, email, first_name, last_name, company, p...
+                                                             ^
+
+   - [intake_v1] INTAKE_v1: Duplicate Detection: Duplicate detection failed: null value in column "source" of relation "leads" violates not-null constraint
+DETAIL:  Failing row contains (3, 8df306b2-495b-45a4-8542-4be1a788fe74, 1, duplicate@example.com, null, null, Duplicate, Lead, null, null, null, null, 0, new, null, 2026-01-29 16:22:56.528825, 2026-01-29 16:22:56.528825, 2026-01-29 16:22:56.528825).
+
+   - [intake_v1] INTAKE_v1: Lead Routing: Routing test failed: column "company" of relation "leads" does not exist
+LINE 2: ...O leads (client_id, email, first_name, last_name, company, p...
+                                                             ^
+
+   - [docs_v1] DOCS_v1: Document Intake: Document intake failed: column "filename" of relation "documents" does not exist
+LINE 2:             INSERT INTO documents (client_id, filename, file...
+                                                      ^
+
+   - [docs_v1] DOCS_v1: Document Classification: Classification test failed: column "filename" of relation "documents" does not exist
+LINE 2:             INSERT INTO documents (client_id, filename, file...
+                                                      ^
+
+   - [docs_v1] DOCS_v1: Data Extraction: Extraction test failed: column "filename" of relation "documents" does not exist
+LINE 2:             INSERT INTO documents (client_id, filename, cate...
+                                                      ^
+
+   - [docs_v1] DOCS_v1: Data Validation: Validation test failed: column "filename" of relation "documents" does not exist
+LINE 2:             INSERT INTO documents (client_id, filename, cate...
+                                                      ^
+
+   - [docs_v1] DOCS_v1: Document Routing: Routing test failed: column "filename" of relation "documents" does not exist
+LINE 2:             INSERT INTO documents (client_id, filename, cate...
+                                                      ^
+
+   - [tasks_v1] TASKS_v1: Task Creation: Task creation failed: column "category" of relation "tasks" does not exist
+LINE 2: ...O tasks (client_id, title, description, priority, category, ...
+                                                             ^
+
+   - [tasks_v1] TASKS_v1: Task Assignment: Assignment test failed: column "category" of relation "tasks" does not exist
+LINE 2: ...   INSERT INTO tasks (client_id, title, priority, category, ...
+                                                             ^
+
+   - [tasks_v1] TASKS_v1: SLA Monitoring: SLA monitoring test failed: column "id" does not exist
+LINE 4:             RETURNING id
+                              ^
+
+   - [tasks_v1] TASKS_v1: Task Completion: Completion test failed: column "id" does not exist
+LINE 4:             RETURNING id
+                              ^
+
+   - [tasks_v1] TASKS_v1: Report Generation: Report generation test failed: column "report_data" of relation "reports" does not exist
+LINE 2: ...     INSERT INTO reports (client_id, report_type, report_dat...
+                                                             ^
+
+
+======================================================================
+⚠️  TESTS NEED ATTENTION - Multiple failures detected
+======================================================================
+
+📄 Consolidated report saved to: test_results/consolidated_report.json
+📄 Individual reports saved in: test_results/
+

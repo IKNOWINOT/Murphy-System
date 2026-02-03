@@ -1,0 +1,197 @@
+
+================================================================================
+ AGENT COMMUNICATION SYSTEM - COMPREHENSIVE TEST SUITE
+================================================================================
+
+================================================================================
+ TEST 1: Create Task Review
+================================================================================
+
+✓ Task Review Created Successfully
+
+Task ID: task_001
+Agent: ContentCreator (Senior Content Writer)
+Confidence Level: RED
+Librarian Confidence: 50.0%
+
+--- LLM GENERATIVE SIDE ---
+Tokens Used: 832
+Response Preview: As a Senior Content Writer, I'll provide an analysis of the request to create a comprehensive guide about AI automation for small businesses.
+
+**Project Overview**
+
+The goal is to create a valuable re...
+
+--- LIBRARIAN INTERPRETATION SIDE ---
+Interpretation: Analyzing: Write a comprehensive guide about AI automation for small businesses that we can sell for $49
+Command Chain: 
+
+--- COST ANALYSIS ---
+Token Cost: 832 tokens
+Revenue Potential: $500.00
+Cost/Benefit Ratio: 0.60
+
+--- DECISION GATES ---
+
+Gate 1: Does this task generate revenue or just cost tokens?
+  Options: Generates Revenue, Costs Tokens Only, Uncertain
+  Confidence: 70.0%
+  Reasoning: Analyzing revenue potential based on task type
+
+Gate 2: Where should information come from?
+  Options: Generate with AI, Request from User, Hire External Service
+  Confidence: 80.0%
+  Reasoning: Determining optimal information source
+
+Gate 3: What is the task complexity?
+  Options: Simple (Single Agent), Medium (Multiple Agents), Complex (Sub-Agents Required)
+  Confidence: 75.0%
+  Reasoning: Assessing task complexity for resource allocation
+
+--- CLARIFYING QUESTIONS ---
+
+1. What is the specific deliverable format you need?
+   Reason: To increase confidence in output format
+   Confidence Boost: +10.0%
+
+2. What is your target audience or customer?
+   Reason: To tailor content appropriately
+   Confidence Boost: +10.0%
+
+3. What is your budget or timeline for this task?
+   Reason: To optimize resource allocation
+   Confidence Boost: +15.0%
+
+================================================================================
+ TEST 2: Answer Clarifying Question
+================================================================================
+
+✓ Question Answered Successfully
+
+New Confidence: 60.0%
+Confidence Level: RED
+
+Updated LLM Response Preview:
+[Aristotle Math Response for: As Senior Content Writer, analyze this request: Wr...]...
+
+================================================================================
+ TEST 3: Inter-Agent Communication
+================================================================================
+
+✓ Message 1 Sent: ContentCreator → Editor
+  Subject: Review Request: AI Automation Guide
+  Thread ID: thread_msg_1769720024.995298
+✓ Message 2 Sent: Editor → ContentCreator
+  Subject: RE: Review Request: AI Automation Guide
+
+✓ Thread Retrieved: 2 messages
+
+--- EMAIL THREAD ---
+
+From: ContentCreator → To: Editor
+Subject: Review Request: AI Automation Guide
+Time: 2026-01-29T20:53:44.995309
+Body: I've completed the first draft of the AI automation guide. Could you review chapters 1-3 and provide...
+
+From: Editor → To: ContentCreator
+Subject: RE: Review Request: AI Automation Guide
+Time: 2026-01-29T20:53:44.997833
+Body: Reviewed chapters 1-3. Overall excellent work! Minor suggestions:
+1. Add more concrete examples in C...
+
+================================================================================
+ TEST 4: Agent Inbox
+================================================================================
+
+✓ Editor's Inbox Retrieved
+  Total Messages: 1
+
+--- INBOX MESSAGES ---
+
+From: ContentCreator
+Subject: Review Request: AI Automation Guide
+Type: question
+Requires Response: True
+
+================================================================================
+ TEST 5: Librarian ↔ Deliverable Communication
+================================================================================
+
+✗ Failed: 500
+{"error":"list index out of range","success":false}
+
+
+================================================================================
+ TEST 6: Decision Gates Analysis
+================================================================================
+
+✓ Decision Gates Retrieved for Task: task_001
+
+Overall Confidence: RED
+
+--- DECISION GATES ---
+
+1. Does this task generate revenue or just cost tokens?
+   Gate ID: revenue_gate
+   Options: Generates Revenue, Costs Tokens Only, Uncertain
+   Confidence: 70.0%
+   Reasoning: Analyzing revenue potential based on task type
+   Token Cost: 100
+   Revenue Impact: $0.00
+
+2. Where should information come from?
+   Gate ID: info_source_gate
+   Options: Generate with AI, Request from User, Hire External Service
+   Confidence: 80.0%
+   Reasoning: Determining optimal information source
+   Token Cost: 50
+   Revenue Impact: $0.00
+
+3. What is the task complexity?
+   Gate ID: complexity_gate
+   Options: Simple (Single Agent), Medium (Multiple Agents), Complex (Sub-Agents Required)
+   Confidence: 75.0%
+   Reasoning: Assessing task complexity for resource allocation
+   Token Cost: 75
+   Revenue Impact: $0.00
+
+================================================================================
+ TEST 7: Cost Analysis
+================================================================================
+
+✓ Cost Analysis Retrieved for Task: task_001
+
+Token Cost: 832 tokens
+Revenue Potential: $500.00
+Cost/Benefit Ratio: 0.60
+Recommendation: Review Required
+
+⚠ REVIEW REQUIRED: Token costs exceed revenue
+
+================================================================================
+ TEST 8: All Task Reviews
+================================================================================
+
+✓ Retrieved 1 Task Reviews
+
+Task: task_001
+  Agent: ContentCreator (Senior Content Writer)
+  Confidence: RED
+  Cost/Benefit: 0.60
+  Messages: 1
+
+
+================================================================================
+ TEST SUITE COMPLETE
+================================================================================
+
+✓ All agent communication features tested successfully!
+
+Key Features Demonstrated:
+• Task review creation with LLM + Librarian analysis
+• Decision gates with confidence levels
+• Token cost vs revenue analysis
+• Inter-agent email chatter
+• Clarifying questions to boost confidence
+• Librarian ↔ Deliverable Function communication
+• Agent inboxes and message threads

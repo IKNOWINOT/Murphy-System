@@ -1,0 +1,26 @@
+                                                    Table "public.client_integrations"
+        Column         |            Type             | Collation | Nullable |                           Default                           
+-----------------------+-----------------------------+-----------+----------+-------------------------------------------------------------
+ integration_id        | integer                     |           | not null | nextval('client_integrations_integration_id_seq'::regclass)
+ client_id             | integer                     |           | not null | 
+ integration_name      | character varying(100)      |           | not null | 
+ integration_type      | character varying(50)       |           | not null | 
+ auth_type             | character varying(20)       |           | not null | 
+ credentials           | jsonb                       |           | not null | 
+ endpoint_url          | text                        |           |          | 
+ webhook_url           | text                        |           |          | 
+ enabled               | boolean                     |           | not null | true
+ rate_limit_per_minute | integer                     |           |          | 
+ last_verified_at      | timestamp without time zone |           |          | 
+ created_at            | timestamp without time zone |           | not null | now()
+ updated_at            | timestamp without time zone |           | not null | now()
+Indexes:
+    "client_integrations_pkey" PRIMARY KEY, btree (integration_id)
+    "client_integrations_client_id_integration_name_key" UNIQUE CONSTRAINT, btree (client_id, integration_name)
+    "idx_client_integrations_client_id" btree (client_id)
+    "idx_client_integrations_enabled" btree (enabled)
+Check constraints:
+    "client_integrations_auth_type_check" CHECK (auth_type::text = ANY (ARRAY['api_key'::character varying, 'oauth'::character varying, 'basic'::character varying, 'custom'::character varying]::text[]))
+Foreign-key constraints:
+    "client_integrations_client_id_fkey" FOREIGN KEY (client_id) REFERENCES clients(client_id) ON DELETE CASCADE
+

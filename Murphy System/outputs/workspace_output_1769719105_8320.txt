@@ -1,0 +1,11 @@
+
+@app.route('/api/book/generate-multi-agent', methods=['POST'])
+def generate_book_multi_agent_endpoint():
+    &quot;&quot;&quot;
+    Generate a book using multi-agent parallel processing
+    
+    Request body:
+    {
+        "topic": "AI Automation for Small Business",
+        "title": "The Complete Guide to AI Automation",
+        "num_chapters": 9,

@@ -1,0 +1,20 @@
+/**
+ * Artifact Panel - UI for artifact generation and management
+ */
+
+const ArtifactPanel = {
+    artifacts: [],
+    selectedArtifact: null,
+    
+    init() {
+        console.log('Initializing Artifact Panel...');
+        this.setupEventListeners();
+        this.loadArtifacts();
+    },
+    
+    setupEventListeners() {
+        // Listen for WebSocket events
+        if (window.socket) {
+            window.socket.on('artifact_generated', (data) => {
+                this.handleArtifactGenerated(data);
+            });

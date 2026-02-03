@@ -1,0 +1,2 @@
+11:let commandHistory = [];
+12:let historyIndex = 0;

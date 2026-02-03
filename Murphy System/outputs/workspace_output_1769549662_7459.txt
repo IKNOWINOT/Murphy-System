@@ -1,0 +1,7 @@
+1738:    <script src="librarian_panel.js"></script>
+1740:    <script src="plan_review_panel.js"></script>
+1742:    <script src="document_editor_panel.js"></script>
+1744:    <script src="artifact_panel.js"></script>
+1957:    <script src="shadow_agent_panel.js"></script>
+1959:    <script src="monitoring_panel.js"></script>
+4493:        </script>    <script src="enhanced_librarian_ui.js"></script>

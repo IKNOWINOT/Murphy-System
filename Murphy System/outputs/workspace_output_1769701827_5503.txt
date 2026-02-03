@@ -1,0 +1,20 @@
+1729:    <!-- Set API_BASE before panel scripts -->
+1731:        // Set API_BASE based on whether we're running locally or remotely
+1732:        const isLocalhost = window.location.hostname === 'localhost' || 
+1737:            window.API_BASE = 'http://localhost:3002';
+1739:            window.API_BASE = 'https://3002-0e281fd4-a558-4e54-b1ea-6dc0c0ecb8fe.sandbox-service.public.prod.myninja.ai';
+1970:        // Use the globally defined API_BASE (already set in head)
+1971:        const API_BASE = window.API_BASE;
+2011:            window.socket = io(API_BASE, {
+2082:                fetch(`${API_BASE}/api/states`)
+2105:                fetch(`${API_BASE}/api/agents`)
+2128:                fetch(`${API_BASE}/api/states`)
+2151:                fetch(`${API_BASE}/api/states`)
+2174:                fetch(`${API_BASE}/api/states`)
+2243:            const statesResponse = await fetch(`${API_BASE}/api/states`);
+2249:            const agentsResponse = await fetch(`${API_BASE}/api/agents`);
+2378:            const response = await fetch(`${API_BASE}/api/agents/${agentId}`);
+2574:            const response = await fetch(`${API_BASE}/api/states/${stateId}`);
+2607:                const response = await fetch(`${API_BASE}/api/states/${stateId}/evolve`, {
+2623:                const response = await fetch(`${API_BASE}/api/states/${stateId}/regenerate`, {
+2639:                const response = await fetch(`${API_BASE}/api/states/${stateId}/rollback`, {

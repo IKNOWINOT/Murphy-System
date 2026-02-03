@@ -1,0 +1,31 @@
+186:class ModuleSpec:
+187-    """Complete module specification combining SwissKiss and Module Compiler"""
+188-    # Basic Info
+189-    module_id: str
+190-    module_name: str
+191-    source_path: str
+192-    version_hash: str
+193-    
+194-    # GitHub Info (from SwissKiss)
+195-    github_url: Optional[str] = None
+196-    license_type: LicenseType = LicenseType.MISSING
+197-    license_allowed: bool = False
+198-    languages: Dict[str, int] = field(default_factory=dict)
+199-    readme_summary: str = ""
+200-    
+201-    # Dependencies (from SwissKiss)
+202-    dependencies: List[Dict[str, Any]] = field(default_factory=list)
+203-    
+204-    # Risks (from SwissKiss)
+205-    risk_issues: List[RiskIssue] = field(default_factory=list)
+206-    risk_score: float = 0.0
+207-    
+208-    # Capabilities (from Module Compiler)
+209-    capabilities: List[Capability] = field(default_factory=list)
+210-    
+211-    # Sandbox (from Module Compiler)
+212-    sandbox_profile: SandboxProfile = field(default_factory=SandboxProfile)
+213-    
+214-    # Build Info
+215-    compiler_version: str = "1.0.0"
+216-    build_steps: List[str] = field(default_factory=list)

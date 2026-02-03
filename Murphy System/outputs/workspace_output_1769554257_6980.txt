@@ -1,0 +1,82 @@
+        async function executeTerminalCommand(command) {
+            const terminalContent = document.getElementById('terminal-content');
+            
+            // Add command to terminal
+            const cmdLine = document.createElement('div');
+            cmdLine.className = 'terminal-line';
+            cmdLine.innerHTML = `<span style="color: #666;">[${new Date().toLocaleTimeString()}]</span> <span class="terminal-prompt">murphy&gt;</span> <span style="color: #fff;">${command}</span>`;
+            terminalContent.appendChild(cmdLine);
+            
+            // First, send to librarian for intent classification
+            try {
+                const librarianResponse = await fetch(`${API_BASE}/api/librarian/ask`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ input: command })
+                });
+                
+                const librarianData = await librarianResponse.json();
+                
+                if (librarianData.success) {
+                    // Show librarian's understanding
+                    if (librarianData.intent && librarianData.intent.category !== 'command') {
+                        addTerminalLog(`🤖 Intent: ${librarianData.intent.category.toUpperCase()} (confidence: ${(librarianData.intent.confidence * 100).toFixed(0)}%)`, 'info');
+                    }
+                    
+                    // Show librarian's message in librarian color
+                    if (librarianData.message) {
+                        addTerminalLog(librarianData.message, 'librarian');
+                    }
+                    
+                    // If librarian found a direct command match
+                    if (librarianData.intent && librarianData.intent.category === 'command' && librarianData.commands.length > 0) {
+                        const suggestedCmd = librarianData.commands[0];
+                        // Parse and execute the suggested command
+                        const parts = suggestedCmd.trim().split(/\s+/);
+                        const cmdName = parts[0].toLowerCase().replace(/^\//, '');
+                        const args = parts.slice(1);
+                        await processCommand(cmdName, args);
+                    } else {
+                        // Parse original command normally
+                        const parts = command.trim().split(/\s+/);
+                        const cmdName = parts[0].toLowerCase().replace(/^\//, '');
+                        const args = parts.slice(1);
+                        
+                        // Check if it's a known command (starts with /)
+                        if (command.startsWith('/')) {
+                            await processCommand(cmdName, args);
+                        } else {
+                            // Natural language - show suggestions
+                            if (librarianData.commands && librarianData.commands.length > 0) {
+                                addTerminalLog(`Suggested commands: ${librarianData.commands.join(', ')}`, 'info');
+                            }
+                            if (librarianData.workflow) {
+                                addTerminalLog(`Workflow: ${librarianData.workflow.name}`, 'info');
+                                librarianData.workflow.steps.forEach((step, i) => {
+                                    addTerminalLog(`  ${i + 1}. ${step.command} - ${step.description}`, 'info');
+                                });
+                            }
+                        }
+                    }
+                } else {
+                    // Fallback to normal command processing
+                    const parts = command.trim().split(/\s+/);
+                    const cmdName = parts[0].toLowerCase().replace(/^\//, '');
+                    const args = parts.slice(1);
+                    await processCommand(cmdName, args);
+                }
+            } catch (error) {
+                console.error('Librarian error:', error);
+                // Fallback to normal command processing
+                const parts = command.trim().split(/\s+/);
+                const cmdName = parts[0].toLowerCase().replace(/^\//, '');
+                const args = parts.slice(1);
+                await processCommand(cmdName, args);
+            }
+            
+            // Scroll to bottom
+            const terminal = document.getElementById('terminal');
+            terminalContent.scrollTop = terminalContent.scrollHeight;
+        }

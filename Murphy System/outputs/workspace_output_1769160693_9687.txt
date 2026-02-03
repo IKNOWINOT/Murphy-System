@@ -1,0 +1,21 @@
+def generate_artifact():
+    """Generate a new artifact"""
+    if not ARTIFACTS_AVAILABLE or not artifact_generation_system:
+        return jsonify({
+            'success': False,
+            'message': 'Artifact system not available'
+        }), 503
+    
+    try:
+        data = request.get_json()
+        artifact_type = data.get('type')
+        document = data.get('document', {})
+        prompts = data.get('prompts', [])
+        swarm_results = data.get('swarm_results', [])
+        
+        if not artifact_type:
+            return jsonify({
+                'success': False,
+                'message': 'Artifact type is required'
+            }), 400
+        

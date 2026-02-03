@@ -1,0 +1,12 @@
+✓ install.bat
+✓ start_murphy.bat
+✓ stop_murphy.bat
+✓ install.sh
+✓ start_murphy.sh
+✓ stop_murphy.sh
+✓ requirements.txt
+✓ groq_keys.txt
+✓ README.md
+✓ LICENSE
+
+✓ All files ready in murphy_system_fixed/

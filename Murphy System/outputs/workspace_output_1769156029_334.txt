@@ -1,0 +1,8 @@
+    MONITORING_AVAILABLE = True
+    logger.info("✓ Monitoring components loaded successfully")
+except ImportError as e:
+
+# Initialize cooperative swarm systems
+cooperative_swarm = CooperativeSwarmSystem()
+handoff_manager = AgentHandoffManager(cooperative_swarm)
+workflow_orchestrator = WorkflowOrchestrator(cooperative_swarm, handoff_manager)

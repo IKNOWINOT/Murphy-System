@@ -1,0 +1,41 @@
+INFO:aristotle_client:Initialized Aristotle client with model claude-3-haiku-20240307
+INFO:aristotle_client:Temperature: 0.1 (deterministic)
+INFO:llm_integration_manager:Initialized Aristotle API
+INFO:llm_integration_manager:Initialized Onboard LLM (fallback)
+ERROR:aristotle_client:Aristotle API error: Aristotle API error 401: {"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"},"request_id":"req_011CXMnf6go3Wa8Yr3QHJEwJ"}
+ERROR:__main__:Verification failed: Aristotle API error 401: {"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"},"request_id":"req_011CXMnf6go3Wa8Yr3QHJEwJ"}
+ERROR:aristotle_client:Aristotle API error: Aristotle API error 401: {"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"},"request_id":"req_011CXMnf7JkKFt7MWoFNnkFJ"}
+ERROR:__main__:Verification failed: Aristotle API error 401: {"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"},"request_id":"req_011CXMnf7JkKFt7MWoFNnkFJ"}
+
+============================================================
+ARISTOTLE VERIFICATION SYSTEM TEST
+============================================================
+
+Test 1: Verify State Evolution
+  Result: requires_review
+  Confidence: 0.00
+  Explanation: Verification error: Aristotle API error 401: {"type":"error","error":{"type":"authentication_error",...
+✓ Test 1 passed
+
+Test 2: Verify State Rollback (High Risk)
+  Result: requires_review
+  Confidence: 0.00
+  Explanation: Verification error: Aristotle API error 401: {"type":"error","error":{"type":"authentication_error",...
+✓ Test 2 passed
+
+Test 3: Get Verification History
+  Total verifications: 0
+  Latest: None
+✓ Test 3 passed
+
+Test 4: Get Statistics
+  Total: 0
+  Verified: 0
+  Rejected: 0
+  Review: 0
+  Avg Confidence: 0.00
+✓ Test 4 passed
+
+============================================================
+VERIFICATION SYSTEM TEST COMPLETE
+============================================================

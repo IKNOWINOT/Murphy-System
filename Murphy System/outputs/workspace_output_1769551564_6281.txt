@@ -1,0 +1,118 @@
+        async function handleLibrarianCommand(action, args) {
+            switch (action) {
+                case 'ask':
+                    if (args.length > 0) {
+                        const query = args.join(' ');
+                        addTerminalLog(`🧙 Opening Librarian with query: "${query}"`, 'info');
+                        addTerminalLog("🧙 Librarian is now integrated in the terminal. Just type your question directly!", "info");
+                        // Send the query to librarian
+                        await executeTerminalCommand(query);
+                    } else {
+                        addTerminalLog("🧙 Librarian is now integrated in the terminal. Just type your question directly!", "info");
+                    }
+                    break;
+                case 'transcripts':
+                    addTerminalLog('📜 Fetching conversation transcripts...', 'info');
+                    try {
+                        const response = await fetch(`${API_BASE}/api/librarian/transcripts?limit=5`);
+                        const data = await response.json();
+                        if (data.transcripts && data.transcripts.length > 0) {
+                            addTerminalLog(`✓ Recent conversations (${data.count}):`, 'success');
+                            data.transcripts.forEach((t, i) => {
+                                addTerminalLog(`  ${i + 1}. "${t.user_input}"`, 'info');
+                                addTerminalLog(`     Intent: ${t.intent_category} (${Math.round(t.confidence * 100)}%)`, 'info');
+                                addTerminalLog(`     Response: ${t.message.substring(0, 80)}...`, 'info');
+                            });
+                        } else {
+                            addTerminalLog('No conversation history yet', 'warning');
+                        }
+                    } catch (error) {
+                        addTerminalLog(`✗ Failed to fetch transcripts: ${error.message}`, 'error');
+                    }
+                    break;
+                case 'overview':
+                    addTerminalLog('📊 Getting system overview...', 'info');
+                    try {
+                        const response = await fetch(`${API_BASE}/api/llm/generate`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ prompt: 'What is the system overview?' })
+                        });
+                        const data = await response.json();
+                        addTerminalLog('✓ Librarian System Overview:', 'success');
+                        addTerminalLog(`  Total Interactions: ${data.total_interactions}`, 'info');
+                        if (data.intent_distribution && Object.keys(data.intent_distribution).length > 0) {
+                            addTerminalLog('  Intent Distribution:', 'info');
+                            Object.entries(data.intent_distribution).forEach(([intent, count]) => {
+                                addTerminalLog(`    • ${intent}: ${count}`, 'info');
+                            });
+                        }
+                        addTerminalLog('  Knowledge Base:', 'info');
+                        addTerminalLog(`    • Commands: ${data.knowledge_base_size.commands}`, 'info');
+                        addTerminalLog(`    • Concepts: ${data.knowledge_base_size.concepts}`, 'info');
+                        addTerminalLog(`    • Workflows: ${data.knowledge_base_size.workflows}`, 'info');
+                    } catch (error) {
+                        addTerminalLog(`✗ Failed to get overview: ${error.message}`, 'error');
+                    }
+                    break;
+                case 'guide':
+                    addTerminalLog('🧙 Opening Librarian for guidance...', 'info');
+                    addTerminalLog("🧙 Librarian is now integrated in the terminal. Just type your question directly!", "info");
+                        const data = await response.json();
+                        if (data.success) {
+                            addTerminalLog(`✓ Plan created: ${data.plan.name}`, 'success');
+                            planReviewPanel.open(data.plan.id);
+                        }
+                    } catch (error) {
+                        addTerminalLog('✗ Failed to create plan', 'error');
+                    }
+                    break;
+                case 'list':
+                    addTerminalLog('📋 Listing all plans...', 'info');
+                    try {
+                        const response = await fetch(`${API_BASE}/api/plans`);
+                        const data = await response.json();
+                        if (data.plans.length === 0) {
+                            addTerminalLog('No plans found', 'warning');
+                        } else {
+                            data.plans.forEach(plan => {
+                                addTerminalLog(`  • ${plan.name} (${plan.current_state}) - v${plan.current_version}`, 'info');
+                            });
+                        }
+                    } catch (error) {
+                        addTerminalLog('✗ Failed to list plans', 'error');
+                    }
+                    break;
+                case 'open':
+                    if (args.length > 0) {
+                        addTerminalLog(`📋 Opening plan: ${args[0]}`, 'info');
+                        planReviewPanel.open(args[0]);
+                    } else {
+                        addTerminalLog('Usage: /plan open <plan_id>', 'warning');
+                    }
+                    break;
+                default:
+                    addTerminalLog('Available plan commands:', 'info');
+                    addTerminalLog('  /plan create [name] - Create new plan', 'info');
+                    addTerminalLog('  /plan list - List all plans', 'info');
+                    addTerminalLog('  /plan open <id> - Open plan for review', 'info');
+            }
+        }
+        
+        async function handleDocumentCommand(action, args) {
+            switch (action) {
+                case 'create':
+                    addTerminalLog('📄 Creating new document...', 'info');
+                    const docType = args[0] || 'custom';
+                    const docName = args[1] || 'New Document';
+                    documentEditorPanel.createNew(docType, docName);
+                    break;
+                case 'list':
+                    addTerminalLog('📄 Listing all documents...', 'info');
+                    try {
+                        const response = await fetch(`${API_BASE}/api/documents`);
+                        const data = await response.json();
+                        if (data.documents.length === 0) {
+                            addTerminalLog('No documents found', 'warning');
+                        } else {
+                            data.documents.forEach(doc => {

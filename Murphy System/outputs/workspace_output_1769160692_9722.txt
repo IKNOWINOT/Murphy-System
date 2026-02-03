@@ -1,0 +1,4 @@
+{
+    "message": "Artifact type is required",
+    "success": false
+}

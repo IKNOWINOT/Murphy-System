@@ -1,0 +1,10 @@
+191:        .terminal-input-container {
+198:        .terminal-input-prompt {
+204:        .terminal-input {
+215:        .terminal-input::placeholder {
+572:                <div class="terminal-input-container">
+573:                    <span class="terminal-input-prompt">murphy&gt;</span>
+574:                    <input type="text" id="terminal-input" class="terminal-input" placeholder="Enter command..." autocomplete="off">
+1195:        const terminalInput = document.getElementById('terminal-input');
+1198:            terminalInput.addEventListener('keydown', handleTerminalKeyPress);
+1202:        function handleTerminalKeyPress(event) {

@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murphy System Runtime - Integrated Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #0a0a0a;
+            color: #00ff00;
+            line-height: 1.6;
+        }
+        
+        .terminal-container {
+            max-width: 1400px;
+            margin: 20px auto;
+            background-color: #1a1a1a;
+            border: 2px solid #00ff00;
+            border-radius: 5px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+        }
+        
+        .terminal-header {
+            background-color: #0f0f0f;
+            padding: 15px;
+            border-bottom: 1px solid #00ff00;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .terminal-header h1 {
+            font-size: 18px;
+            color: #00ff00;
+        }
+        
+        .status-badge {
+            padding: 5px 15px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .status-active {
+            background-color: #00ff00;
+            color: #0a0a0a;
+        }
+        
+        .status-offline {
+            background-color: #ff0000;
+            color: #ffffff;
+        }
+        
+        .terminal-output {
+            height: 500px;
+            overflow-y: auto;
+            padding: 15px;
+            background-color: #0d0d0d;
+            font-size: 14px;
+        }
+        
+        .terminal-output::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .terminal-output::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+        
+        .terminal-output::-webkit-scrollbar-thumb {
+            background: #00ff00;
+            border-radius: 4px;
+        }
+        
+        .output-line {
+            margin-bottom: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .output-prompt {
+            color: #00ffff;
+            font-weight: bold;
+        }
+        
+        .output-command {
+            color: #ffffff;
+        }
+        
+        .output-success {
+            color: #00ff00;
+        }
+        
+        .output-error {
+            color: #ff0000;
+        }
+        
+        .output-info {
+            color: #00ffff;
+        }
+        
+        .output-warning {
+            color: #ffff00;
+        }
+        
+        .output-json {
+            color: #ff00ff;
+            margin-left: 20px;
+        }
+        
+        .terminal-input-area {
+            padding: 15px;
+            background-color: #0f0f0f;
+            border-top: 1px solid #00ff00;
+        }
+        
+        .command-input {
+            width: 100%;
+            background-color: #0a0a0a;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            border-radius: 3px;
+        }
+        
+        .command-input:focus {
+            outline: none;
+            border-color: #00ffff;
+            box-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+        }
+        
+        .quick-commands {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 15px;
+            background-color: #0f0f0f;
+            border-top: 1px solid #00ff00;
+        }
+        
+        .command-btn {
+            background-color: #0a0a0a;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 8px 15px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        
+        .command-btn:hover {
+            background-color: #00ff00;
+            color: #0a0a0a;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+        
+        .confidence-bar {
+            display: inline-block;
+            width: 200px;
+            height: 10px;
+            background: #0a0a0a;
+            border: 1px solid #00ff00;
+            margin-left: 10px;
+            position: relative;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff0000 0%, #ffff00 50%, #00ff00 100%);
+            transition: width 0.3s;
+        }
+        
+        .confidence-text {
+            position: absolute;
+            right: 5px;
+            top: -2px;
+            font-size: 10px;
+            color: #00ffff;
+        }
+    </style>
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+    <div class="terminal-container">
+        <div class="terminal-header">
+            <h1>Murphy System Runtime - Integrated Terminal v2.0</h1>
+            <span class="status-badge" id="statusBadge">CONNECTING...</span>
+        </div>
+        
+        <div class="terminal-output" id="output">
+            <div class="output-line output-info">
+╔════════════════════════════════════════════════════════════╗
+║  Murphy System Runtime - Integrated Terminal v2.0          ║
+║  Form-Driven Execution | Murphy Validation | Learning      ║
+╚════════════════════════════════════════════════════════════╝
+            </div>
+            <div class="output-line output-success">
+System initializing...
+Type 'help' for available commands
+Type 'api' to see new integrated endpoints
+            </div>
+        </div>
+        
+        <div class="terminal-input-area">
+            <input type="text" class="command-input" id="commandInput" placeholder="Enter command..." autocomplete="off">
+        </div>
+        
+        <div class="quick-commands">
+            <button class="command-btn" onclick="executeQuickCommand('help')">Help</button>
+            <button class="command-btn" onclick="executeQuickCommand('api')">API Endpoints</button>
+            <button class="command-btn" onclick="executeQuickCommand('status')">System Status</button>
+            <button class="command-btn" onclick="executeQuickCommand('submit')">Submit Task</button>
+            <button class="command-btn" onclick="executeQuickCommand('validate')">Validate Task</button>
+            <button class="command-btn" onclick="executeQuickCommand('correct')">Submit Correction</button>
+            <button class="command-btn" onclick="executeQuickCommand('stats')">Statistics</button>
+            <button class="command-btn" onclick="executeQuickCommand('clear')">Clear</button>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE = 'http://localhost:6666/api';
+        let systemOnline = false;
+        
+        // Check system status on load
+        window.addEventListener('load', () => {
+            checkSystemStatus();
+            setInterval(checkSystemStatus, 30000); // Check every 30 seconds
+        });
+        
+        async function checkSystemStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/system/info`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    systemOnline = true;
+                    document.getElementById('statusBadge').textContent = 'ONLINE';
+                    document.getElementById('statusBadge').className = 'status-badge status-active';
+                    
+                    if (!window.systemInitialized) {
+                        addOutput('✓ Connected to Murphy System backend', 'success');
+                        addOutput('✓ All integration components loaded', 'success');
+                        window.systemInitialized = true;
+                    }
+                }
+            } catch (error) {
+                systemOnline = false;
+                document.getElementById('statusBadge').textContent = 'OFFLINE';
+                document.getElementById('statusBadge').className = 'status-badge status-offline';
+                
+                if (window.systemInitialized) {
+                    addOutput('✗ Backend connection lost', 'error');
+                    window.systemInitialized = false;
+                }
+            }
+        }
+        
+        // Command input handling
+        document.getElementById('commandInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const command = this.value.trim();
+                if (command) {
+                    executeCommand(command);
+                    this.value = '';
+                }
+            }
+        });
+        
+        function executeQuickCommand(cmd) {
+            executeCommand(cmd);
+        }
+        
+        function executeCommand(command) {
+            const output = document.getElementById('output');
+            
+            // Add command to output
+            const line = document.createElement('div');
+            line.className = 'output-line';
+            line.innerHTML = '<span class="output-prompt">>></span> <span class="output-command">' + command + '</span>';
+            output.appendChild(line);
+            
+            // Process command
+            processCommand(command);
+            
+            // Scroll to bottom
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        async function processCommand(command) {
+            const parts = command.split(' ');
+            const cmd = parts[0].toLowerCase();
+            const args = parts.slice(1).join(' ');
+            
+            if (!systemOnline && cmd !== 'help' && cmd !== 'clear') {
+                addOutput('✗ Backend offline. Start murphy_complete_backend_extended.py first.', 'error');
+                return;
+            }
+            
+            switch(cmd) {
+                case 'help':
+                    showHelp();
+                    break;
+                case 'api':
+                    showAPIEndpoints();
+                    break;
+                case 'status':
+                    await showSystemStatus();
+                    break;
+                case 'submit':
+                    await submitTask(args);
+                    break;
+                case 'validate':
+                    await validateTask(args);
+                    break;
+                case 'correct':
+                    await submitCorrection(args);
+                    break;
+                case 'stats':
+                    await showStatistics();
+                    break;
+                case 'patterns':
+                    await showPatterns();
+                    break;
+                case 'interventions':
+                    await showInterventions();
+                    break;
+                case 'clear':
+                    document.getElementById('output').innerHTML = '';
+                    break;
+                default:
+                    addOutput('Unknown command: ' + cmd + '. Type "help" for available commands.', 'error');
+            }
+        }
+        
+        function showHelp() {
+            addOutput('=== Murphy System Integrated Commands ===', 'info');
+            addOutput('');
+            addOutput('SYSTEM COMMANDS:', 'info');
+            addOutput('  help              - Show this help message');
+            addOutput('  api               - Show available API endpoints');
+            addOutput('  status            - Show system status and components');
+            addOutput('  clear             - Clear terminal output');
+            addOutput('');
+            addOutput('FORM SUBMISSION:', 'info');
+            addOutput('  submit            - Submit a task for execution');
+            addOutput('                      Example: submit {"task_type":"analysis","description":"Analyze data"}');
+            addOutput('  validate          - Validate a task without executing');
+            addOutput('                      Example: validate {"task_type":"general","description":"Test"}');
+            addOutput('');
+            addOutput('LEARNING & CORRECTIONS:', 'info');
+            addOutput('  correct           - Submit a correction');
+            addOutput('                      Example: correct {"task_id":"123","correction_type":"output_error"}');
+            addOutput('  patterns          - Show extracted correction patterns');
+            addOutput('  stats             - Show correction statistics');
+            addOutput('');
+            addOutput('HUMAN-IN-THE-LOOP:', 'info');
+            addOutput('  interventions     - Show pending intervention requests');
+            addOutput('');
+            addOutput('For detailed API documentation, see API_DOCUMENTATION.md', 'info');
+        }
+        
+        function showAPIEndpoints() {
+            addOutput('=== Integrated API Endpoints ===', 'info');
+            addOutput('');
+            addOutput('FORM ENDPOINTS:', 'info');
+            addOutput('  POST /api/forms/plan-upload         - Upload pre-existing plan');
+            addOutput('  POST /api/forms/plan-generation     - Generate plan from description');
+            addOutput('  POST /api/forms/task-execution      - Execute task with Murphy validation');
+            addOutput('  POST /api/forms/validation          - Validate task without executing');
+            addOutput('  POST /api/forms/correction          - Submit correction');
+            addOutput('  GET  /api/forms/submission/<id>     - Get submission status');
+            addOutput('');
+            addOutput('CORRECTION ENDPOINTS:', 'info');
+            addOutput('  GET  /api/corrections/patterns      - Get extracted patterns');
+            addOutput('  GET  /api/corrections/statistics    - Get correction statistics');
+            addOutput('  GET  /api/corrections/training-data - Get shadow agent training data');
+            addOutput('');
+            addOutput('HITL ENDPOINTS:', 'info');
+            addOutput('  GET  /api/hitl/interventions/pending      - Get pending interventions');
+            addOutput('  POST /api/hitl/interventions/<id>/respond - Respond to intervention');
+            addOutput('  GET  /api/hitl/statistics                 - Get HITL statistics');
+            addOutput('');
+            addOutput('SYSTEM ENDPOINTS:', 'info');
+            addOutput('  GET  /api/system/info               - Get system information');
+            addOutput('');
+            addOutput('Base URL: ' + API_BASE, 'success');
+        }
+        
+        async function showSystemStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/system/info`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    addOutput('=== System Status ===', 'info');
+                    addOutput('Name: ' + data.system.name, 'success');
+                    addOutput('Version: ' + data.system.version, 'success');
+                    addOutput('');
+                    addOutput('COMPONENTS:', 'info');
+                    for (const [key, value] of Object.entries(data.system.components)) {
+                        const status = value ? '✓' : '✗';
+                        const color = value ? 'success' : 'error';
+                        addOutput('  ' + status + ' ' + key, color);
+                    }
+                } else {
+                    addOutput('✗ Failed to get system status', 'error');
+                }
+            } catch (error) {
+                addOutput('✗ Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function submitTask(argsStr) {
+            if (!argsStr) {
+                addOutput('Usage: submit <JSON>', 'info');
+                addOutput('Example: submit {"task_type":"analysis","description":"Analyze Q4 sales"}', 'info');
+                return;
+            }
+            
+            try {
+                const taskData = JSON.parse(argsStr);
+                addOutput('Submitting task...', 'info');
+                
+                const response = await fetch(`${API_BASE}/forms/task-execution`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(taskData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    addOutput('✓ Task executed successfully', 'success');
+                    addOutput('Task ID: ' + result.task_id, 'success');
+                    addOutput('Status: ' + result.status, 'success');
+                    
+                    if (result.confidence_report) {
+                        const conf = result.confidence_report.combined_confidence;
+                        addOutput('Confidence: ' + (conf * 100).toFixed(1) + '%', 'success');
+                        showConfidenceBar(conf);
+                    }
+                    
+                    if (result.output) {
+                        addOutput('Output:', 'info');
+                        addOutput(JSON.stringify(result.output, null, 2), 'json');
+                    }
+                } else {
+                    addOutput('✗ Task rejected: ' + (result.reason || result.error), 'error');
+                    if (result.confidence_report) {
+                        const conf = result.confidence_report.combined_confidence;
+                        addOutput('Confidence: ' + (conf * 100).toFixed(1) + '% (too low)', 'warning');
+                    }
+                }
+            } catch (error) {
+                addOutput('✗ Error: ' + error.message, 'error');
+                addOutput('Make sure JSON is valid', 'warning');
+            }
+        }
+        
+        async function validateTask(argsStr) {
+            if (!argsStr) {
+                addOutput('Usage: validate <JSON>', 'info');
+                addOutput('Example: validate {"task_type":"general","description":"Process data"}', 'info');
+                return;
+            }
+            
+            try {
+                const taskData = JSON.parse(argsStr);
+                addOutput('Validating task...', 'info');
+                
+                const response = await fetch(`${API_BASE}/forms/validation`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task_data: taskData })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    const approved = result.approved ? '✓ APPROVED' : '✗ REJECTED';
+                    const color = result.approved ? 'success' : 'error';
+                    addOutput(approved, color);
+                    addOutput('Combined Confidence: ' + (result.confidence * 100).toFixed(1) + '%', color);
+                    showConfidenceBar(result.confidence);
+                    
+                    addOutput('');
+                    addOutput('Uncertainty Scores:', 'info');
+                    addOutput('  UD (Data):         ' + (result.uncertainty_scores.UD * 100).toFixed(1) + '%');
+                    addOutput('  UA (Authority):    ' + (result.uncertainty_scores.UA * 100).toFixed(1) + '%');
+                    addOutput('  UI (Information):  ' + (result.uncertainty_scores.UI * 100).toFixed(1) + '%');
+                    addOutput('  UR (Resources):    ' + (result.uncertainty_scores.UR * 100).toFixed(1) + '%');
+                    addOutput('  UG (Disagreement): ' + (result.uncertainty_scores.UG * 100).toFixed(1) + '%');
+                    
+                    if (result.gate_result.reason) {
+                        addOutput('');
+                        addOutput('Reason: ' + result.gate_result.reason, 'info');
+                    }
+                } else {
+                    addOutput('✗ Validation failed: ' + result.error, 'error');
+                }
+            } catch (error) {
+                addOutput('✗ Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function submitCorrection(argsStr) {
+            if (!argsStr) {
+                addOutput('Usage: correct <JSON>', 'info');
+                addOutput('Example: correct {"task_id":"123","correction_type":"output_error","original_output":"wrong","corrected_output":"right","explanation":"Fixed error"}', 'info');
+                return;
+            }
+            
+            try {
+                const correctionData = JSON.parse(argsStr);
+                addOutput('Submitting correction...', 'info');
+                
+                const response = await fetch(`${API_BASE}/forms/correction`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(correctionData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    addOutput('✓ Correction submitted successfully', 'success');
+                    addOutput('Correction ID: ' + result.correction_id, 'success');
+                    addOutput('Patterns extracted: ' + result.patterns_extracted, 'success');
+                    addOutput('✓ Murphy will learn from this correction', 'success');
+                } else {
+                    addOutput('✗ Failed to submit correction: ' + result.error, 'error');
+                }
+            } catch (error) {
+                addOutput('✗ Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function showStatistics() {
+            try {
+                const response = await fetch(`${API_BASE}/corrections/statistics`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const stats = data.statistics;
+                    addOutput('=== Correction Statistics ===', 'info');
+                    addOutput('Total Corrections: ' + stats.total_corrections, 'success');
+                    addOutput('Total Patterns: ' + stats.total_patterns, 'success');
+                    addOutput('');
+                    
+                    if (stats.corrections_by_type) {
+                        addOutput('By Type:', 'info');
+                        for (const [type, count] of Object.entries(stats.corrections_by_type)) {
+                            addOutput('  ' + type + ': ' + count);
+                        }
+                    }
+                    
+                    addOutput('');
+                    if (stats.corrections_by_severity) {
+                        addOutput('By Severity:', 'info');
+                        for (const [severity, count] of Object.entries(stats.corrections_by_severity)) {
+                            addOutput('  ' + severity + ': ' + count);
+                        }
+                    }
+                } else {
+                    addOutput('✗ Failed to get statistics', 'error');
+                }
+            } catch (error) {
+                addOutput('✗ Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function showPatterns() {
+            try {
+                const response = await fetch(`${API_BASE}/corrections/patterns`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    addOutput('=== Correction Patterns ===', 'info');
+                    addOutput('Total patterns: ' + data.count, 'success');
+                    
+                    if (data.patterns && data.patterns.length > 0) {
+                        data.patterns.forEach((pattern, idx) => {
+                            addOutput('');
+                            addOutput(`Pattern ${idx + 1}:`, 'info');
+                            addOutput('  Type: ' + pattern.pattern_type);
+                            addOutput('  Frequency: ' + pattern.frequency);
+                            if (pattern.description) {
+                                addOutput('  Description: ' + pattern.description);
+                            }
+                        });
+                    } else {
+                        addOutput('No patterns extracted yet', 'warning');
+                    }
+                } else {
+                    addOutput('✗ Failed to get patterns', 'error');
+                }
+            } catch (error) {
+                addOutput('✗ Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function showInterventions() {
+            try {
+                const response = await fetch(`${API_BASE}/hitl/interventions/pending`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    addOutput('=== Pending Interventions ===', 'info');
+                    addOutput('Total pending: ' + data.count, 'success');
+                    
+                    if (data.interventions && data.interventions.length > 0) {
+                        data.interventions.forEach((intervention, idx) => {
+                            addOutput('');
+                            addOutput(`Intervention ${idx + 1}:`, 'info');
+                            addOutput('  ID: ' + intervention.request_id);
+                            addOutput('  Task: ' + intervention.task_id);
+                            addOutput('  Type: ' + intervention.intervention_type);
+                            addOutput('  Urgency: ' + intervention.urgency);
+                            addOutput('  Reason: ' + intervention.reason);
+                        });
+                    } else {
+                        addOutput('No pending interventions', 'success');
+                    }
+                } else {
+                    addOutput('✗ Failed to get interventions', 'error');
+                }
+            } catch (error) {
+                addOutput('✗ Error: ' + error.message, 'error');
+            }
+        }
+        
+        function showConfidenceBar(confidence) {
+            const output = document.getElementById('output');
+            const barContainer = document.createElement('div');
+            barContainer.className = 'output-line';
+            
+            const bar = document.createElement('div');
+            bar.className = 'confidence-bar';
+            bar.innerHTML = `
+                <div class="confidence-fill" style="width: ${confidence * 100}%"></div>
+                <div class="confidence-text">${(confidence * 100).toFixed(1)}%</div>
+            `;
+            
+            barContainer.appendChild(bar);
+            output.appendChild(barContainer);
+        }
+        
+        function addOutput(text, type = '') {
+            const output = document.getElementById('output');
+            const line = document.createElement('div');
+            line.className = 'output-line' + (type ? ' output-' + type : '');
+            line.textContent = text;
+            output.appendChild(line);
+            output.scrollTop = output.scrollHeight;
+        }
+    </script>
+</body>
+</html>

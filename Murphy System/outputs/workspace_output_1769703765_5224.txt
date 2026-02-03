@@ -1,0 +1,2 @@
+ERROR:__main__:✗ Artifact Systems failed: ArtifactGenerationSystem.__init__() got an unexpected keyword argument 'llm_client'
+ERROR:__main__:✗ Workflow Orchestrator failed: WorkflowOrchestrator.__init__() missing 2 required positional arguments: 'cooperative_swarm' and 'handoff_manager'

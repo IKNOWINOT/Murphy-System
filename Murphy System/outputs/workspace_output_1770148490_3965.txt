@@ -1,0 +1,9 @@
+class CaptureMethod(str, Enum):
+class CaptureFormat(str, Enum):
+class CorrectionCaptureRequest(BaseModel):
+class CorrectionCaptureResponse(BaseModel):
+class InteractiveCorrectionCapture:
+class BatchCorrectionCapture:
+class APICorrectionCapture:
+class InlineCorrectionCapture:
+class CorrectionCaptureSystem:

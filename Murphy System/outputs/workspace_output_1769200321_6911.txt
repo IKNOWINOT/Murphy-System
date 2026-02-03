@@ -1,0 +1,31 @@
+
+        function executeTerminalCommand(command) {
+            const terminalContent = document.getElementById('terminal-content');
+            
+            // Add command to terminal
+            const cmdLine = document.createElement('div');
+            cmdLine.className = 'terminal-line';
+            cmdLine.innerHTML = `<span style="color: #666;">[${new Date().toLocaleTimeString()}]</span> <span class="terminal-prompt">murphy&gt;</span> <span style="color: #fff;">${command}</span>`;
+            terminalContent.appendChild(cmdLine);
+            
+            // Parse command
+            const parts = command.trim().split(/\s+/);
+            const cmdName = parts[0].toLowerCase().replace(/^\//, '');
+            const args = parts.slice(1);
+            
+            // Process command
+            processCommand(cmdName, args);
+            
+            // Scroll to bottom
+            const terminal = document.getElementById('terminal');
+            terminalContent.scrollTop = terminalContent.scrollHeight;
+        }
+
+        async function processCommand(cmdName, args) {
+            // Handle multi-word commands (e.g., "state evolve", "librarian search")
+            const fullCommand = args.length > 0 && !args[0].startsWith('-') 
+                ? `${cmdName} ${args[0]}` 
+                : cmdName;
+            const remainingArgs = args.length > 0 && !args[0].startsWith('-') ? args.slice(1) : args;
+            
+            // Command routing

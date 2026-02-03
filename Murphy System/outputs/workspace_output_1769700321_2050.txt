@@ -1,0 +1,12 @@
+Importing n8n workflows from JSON files...
+Database: /root/.n8n/database.sqlite
+Workflows directory: /workspace/workflows/intake_v1
+============================================================
+
+✗ Failed to import /workspace/workflows/intake_v1/INTAKE_v1_Capture_Leads.json: table workflow_entity has no column named homeDashboard
+✗ Failed to import /workspace/workflows/intake_v1/INTAKE_v1_DLQ_Processor.json: table workflow_entity has no column named homeDashboard
+✗ Failed to import /workspace/workflows/intake_v1/INTAKE_v1_Enrich_Leads.json: table workflow_entity has no column named homeDashboard
+✗ Failed to import /workspace/workflows/intake_v1/INTAKE_v1_Normalize_Data.json: table workflow_entity has no column named homeDashboard
+✗ Failed to import /workspace/workflows/intake_v1/INTAKE_v1_Route_Leads.json: table workflow_entity has no column named homeDashboard
+============================================================
+Import complete: 0 successful, 5 failed

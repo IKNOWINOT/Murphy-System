@@ -1,0 +1,153 @@
+INFO:__main__:============================================================
+INFO:__main__:PHASE 1: GENERATIVE SETUP
+INFO:__main__:============================================================
+INFO:__main__:1. Gathering information...
+INFO:__main__:   Gathered: {'domain': 'publishing', 'request': 'Automate my blog publishing to WordPress and Medium with approval', 'platforms': ['wordpress', 'medium'], 'content_source': 'manual', 'schedule': 'manual', 'approval_required': True}
+INFO:__main__:2. Discovering regulations...
+INFO:__main__:   Regulations: 4 categories
+INFO:__main__:3. Compiling constraints...
+INFO:__main__:   Constraints: 4 categories
+INFO:__main__:4. Generating agents...
+INFO:__main__:   Generated: 5 agents
+INFO:__main__:5. Setting up sandbox for auto_1770152213.240319...
+INFO:__main__:   Sandbox ready: sandbox_auto_1770152213.240319
+INFO:__main__:============================================================
+INFO:__main__:PHASE 1 COMPLETE - Automation Ready
+INFO:__main__:============================================================
+INFO:__main__:Configuration saved: auto_1770152213.240319
+INFO:__main__:============================================================
+INFO:__main__:PHASE 2: PRODUCTION EXECUTION
+INFO:__main__:============================================================
+INFO:__main__:1. Loading configuration for auto_1770152213.240319...
+INFO:__main__:   Loaded: 5 agents
+INFO:__main__:2. Executing workflow...
+INFO:__main__:   Execution: success
+INFO:__main__:3. Producing deliverables...
+INFO:__main__:   Deliverables: 4 items
+INFO:__main__:4. Storing results...
+INFO:__main__:5. Learning from execution...
+INFO:__main__:============================================================
+INFO:__main__:PHASE 2 COMPLETE - Deliverables Produced
+INFO:__main__:============================================================
+INFO:__main__:============================================================
+INFO:__main__:PHASE 2: PRODUCTION EXECUTION
+INFO:__main__:============================================================
+INFO:__main__:1. Loading configuration for auto_1770152213.240319...
+INFO:__main__:   Loaded: 5 agents
+INFO:__main__:2. Executing workflow...
+INFO:__main__:   Execution: success
+INFO:__main__:3. Producing deliverables...
+INFO:__main__:   Deliverables: 4 items
+INFO:__main__:4. Storing results...
+INFO:__main__:5. Learning from execution...
+INFO:__main__:============================================================
+INFO:__main__:PHASE 2 COMPLETE - Deliverables Produced
+INFO:__main__:============================================================
+
+================================================================================
+CREATING AUTOMATION
+================================================================================
+
+Automation created: auto_1770152213.240319
+
+================================================================================
+RUNNING AUTOMATION
+================================================================================
+
+Deliverables produced:
+{
+  "urls": [
+    "https://example.com/post-1",
+    "https://medium.com/@user/post-1"
+  ],
+  "files": [],
+  "reports": {
+    "execution_summary": {
+      "status": "success",
+      "steps": [
+        {
+          "agent": "ContentFetcher",
+          "role": "fetch_content",
+          "status": "success",
+          "output": "Executed fetch_content"
+        },
+        {
+          "agent": "ContentValidator",
+          "role": "validate_quality",
+          "status": "success",
+          "output": "Executed validate_quality"
+        },
+        {
+          "agent": "ApprovalGate",
+          "role": "human_approval",
+          "status": "success",
+          "output": "Executed human_approval"
+        },
+        {
+          "agent": "Publisher",
+          "role": "publish_content",
+          "status": "success",
+          "output": "Executed publish_content"
+        },
+        {
+          "agent": "ErrorHandler",
+          "role": "handle_errors",
+          "status": "success",
+          "output": "Executed handle_errors"
+        }
+      ]
+    }
+  },
+  "timestamp": "2026-02-03T20:56:53.240471"
+}
+
+================================================================================
+RUNNING AUTOMATION AGAIN (Automated Repeat)
+================================================================================
+
+Deliverables produced:
+{
+  "urls": [
+    "https://example.com/post-1",
+    "https://medium.com/@user/post-1"
+  ],
+  "files": [],
+  "reports": {
+    "execution_summary": {
+      "status": "success",
+      "steps": [
+        {
+          "agent": "ContentFetcher",
+          "role": "fetch_content",
+          "status": "success",
+          "output": "Executed fetch_content"
+        },
+        {
+          "agent": "ContentValidator",
+          "role": "validate_quality",
+          "status": "success",
+          "output": "Executed validate_quality"
+        },
+        {
+          "agent": "ApprovalGate",
+          "role": "human_approval",
+          "status": "success",
+          "output": "Executed human_approval"
+        },
+        {
+          "agent": "Publisher",
+          "role": "publish_content",
+          "status": "success",
+          "output": "Executed publish_content"
+        },
+        {
+          "agent": "ErrorHandler",
+          "role": "handle_errors",
+          "status": "success",
+          "output": "Executed handle_errors"
+        }
+      ]
+    }
+  },
+  "timestamp": "2026-02-03T20:56:53.240678"
+}

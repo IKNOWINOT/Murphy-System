@@ -1,0 +1,23 @@
+        
+        // Initialize visualizations on load
+        window.addEventListener('load', function() {
+            initAgentGraph();
+            initProcessFlow();
+            
+            // Initialize Librarian Panel
+            window.librarianPanel = new LibrarianPanel(API_BASE);
+            window.librarianPanel.init();
+            
+            // Initialize Plan Review Panel
+            window.planReviewPanel = new PlanReviewPanel(API_BASE);
+            window.planReviewPanel.init();
+            
+            // Initialize Document Editor Panel
+            window.documentEditorPanel = new DocumentEditorPanel(API_BASE);
+            window.documentEditorPanel.init();
+            
+            // Make executeTerminalCommand available globally
+            window.executeTerminalCommand = executeTerminalCommand;
+            
+            // Make addTerminalLog available globally for panels
+            window.addTerminalLog = addLog;

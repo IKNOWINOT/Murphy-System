@@ -1,0 +1,30 @@
+1951:        document.addEventListener('DOMContentLoaded', function() {
+1982:            socket.on('connect', function() {
+1986:            socket.on('connected', function(data) {
+1990:            socket.on('system_initialized', function(data) {
+2005:            socket.on('state_updated', function(data) {
+2019:            socket.on('agent_updated', function(data) {
+2033:            socket.on('state_evolved', function(data) {
+2047:            socket.on('state_regenerated', function(data) {
+2061:            socket.on('state_rolledback', function(data) {
+2075:            socket.on('gate_validated', function(data) {
+2080:            socket.on('error', function(data) {
+2084:            socket.on('disconnect', function() {
+2088:            socket.on('reconnect', function() {
+2093:            window.murphySocket = socket;
+2142:                           data.status === 'pass' ? 'success' : 'warning');
+2202:            agentGraph.on('tap', 'node', function(evt) {
+2229:            agentGraph.json({ nodes, edges });
+2284:            processFlowSvg.selectAll("*").remove();
+2315:            stageGroup.append("rect")
+2328:            stageGroup.append("text")
+2338:                processFlowSvg.append("line")
+2349:            processFlowSvg.append("defs")
+2370:                treeContent.innerHTML = '<div style="color: #666; padding: 20px; text-align: center;">No states yet</div>';
+2374:            treeContent.innerHTML = renderTreeNodes(states, null);
+2377:            document.querySelectorAll('.state-node').forEach(node => {
+2378:                node.addEventListener('click', function() {
+2382:                    document.querySelectorAll('.state-node.selected').forEach(n => n.classList.remove('selected'));
+2385:                    this.classList.add('selected');
+2399:            childStates.forEach(state => {
+2514:            titleEl.textContent = data.name;

@@ -1,0 +1,3 @@
+ERROR:  column "config_type" of relation "client_config" does not exist
+LINE 1: ...ient_config (client_id, config_key, config_value, config_typ...
+                                                             ^

@@ -1,0 +1,66 @@
+# Use pass-through decorators when auth is not available
+if not AUTH_AVAILABLE:
+    require_auth = pass_through_decorator
+    validate_input = pass_through_decorator
+    rate_limit = pass_through_decorator
+
+# Initialize Flask app
+app = Flask(__name__)
+app.config['SECRET_KEY'] = os.getenv('MURPHY_SECRET_KEY', os.getenv('SECRET_KEY', 'murphy-backend-complete-secret'))
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+# Initialize rate limiter
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"]
+)
+logger.info("✓ Rate limiter initialized")
+
+# ============================================================================
+# AUTHENTICATION SYSTEM
+# ============================================================================
+
+try:
+    from auth_system import init_auth_system, get_auth_system
+    from auth_middleware import (
+        require_auth, 
+        optional_auth, 
+        validate_input, 
+        rate_limit,
+        validate_login_request,
+        validate_init_request,
+        validate_artifact_request
+    )
+    AUTH_AVAILABLE = True
+    auth_system = init_auth_system()
+    logger.info("✓ Authentication System loaded successfully")
+except ImportError as e:
+    logger.error(f"✗ Failed to load Authentication System: {e}")
+    AUTH_AVAILABLE = False
+    auth_system = None
+
+# ============================================================================
+# DATABASE INTEGRATION
+# ============================================================================
+
+try:
+    from database_integration import get_database_manager
+    db_manager = get_database_manager()
+    DB_AVAILABLE = True
+    logger.info("✓ Database Integration loaded successfully")
+except ImportError as e:
+    logger.error(f"✗ Failed to load Database Integration: {e}")
+    DB_AVAILABLE = False
+    db_manager = None
+
+# Global system state
+system_initialized = False
+agents = []
+states = []
+components = []
+gates = []
+
+# Thread safety locks
+state_lock = threading.Lock()
+agents_lock = threading.Lock()

@@ -1,0 +1,33 @@
+                        'file': 'package.json',
+                        'name': name,
+                        'version': version
+                    })
+            except:
+                pass
+        
+        # pyproject.toml
+        content = self.fetch_raw_file(owner, repo, 'pyproject.toml')
+        if content:
+            # Simple parsing for dependencies
+            if 'dependencies' in content:
+                for line in content.split('\n'):
+                    if '=' in line and not line.startswith('#'):
+                        dep = line.split('=')[0].strip()
+                        dependencies.append({
+                            'file': 'pyproject.toml',
+                            'name': dep,
+                            'version': ''
+                        })
+        
+        return dependencies
+    
+    def get_languages(self, owner: str, repo: str) -> Dict[str, int]:
+        """Get language statistics from GitHub API"""
+        url = f"https://api.github.com/repos/{owner}/{repo}/languages"
+        try:
+            response = self.session.get(url, timeout=10)
+            if response.status_code == 200:
+                return response.json()
+        except:
+            pass
+        return {}

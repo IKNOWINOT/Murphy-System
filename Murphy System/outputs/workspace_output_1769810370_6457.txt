@@ -1,0 +1,23 @@
+⚠ nest_asyncio not installed - may have event loop issues
+  Install with: pip install nest-asyncio
+Groq API error (key 0): No module named 'aiohttp'
+Groq API error (key 1): No module named 'aiohttp'
+Groq API error (key 2): No module named 'aiohttp'
+Groq API error (key 3): No module named 'aiohttp'
+Groq API error (key 4): No module named 'aiohttp'
+Groq API error (key 5): No module named 'aiohttp'
+Groq API error (key 6): No module named 'aiohttp'
+Groq API error (key 7): No module named 'aiohttp'
+Groq API error (key 8): No module named 'aiohttp'
+======================================================================
+TESTING LLM MANAGER DIRECTLY
+======================================================================
+
+✓ LLM Manager initialized
+✓ Groq keys loaded: 9
+
+Testing generation with prompt: 'Say hello'
+
+Response: Error: Generation failed
+
+✗ Generation failed!

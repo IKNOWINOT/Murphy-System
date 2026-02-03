@@ -1,0 +1,6 @@
+1777:                    <div class="terminal-line">Type /help for available commands</div>
+2617:            'command_system.py': [
+2845:                    addTerminalLog(`Unknown command: /${cmdName}. Type /help for available commands.`, 'error');
+2866:                    addTerminalLog('Use /help to see all modules', 'info');
+2895:                addTerminalLog('Type /help <module.py> to see commands for a specific module', 'info');
+3137:                                    {command: '/initialize', description: 'Initialize system', estimated_time: 60}

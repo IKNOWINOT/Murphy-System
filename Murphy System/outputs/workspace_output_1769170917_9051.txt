@@ -1,0 +1,23 @@
+        function connectWebSocket() {
+            // Use Socket.IO for Flask-SocketIO compatibility
+            // CRITICAL: Store socket globally for access throughout the application
+            // CRITICAL: Connect to backend URL, not frontend URL
+            window.socket = io(API_BASE, {
+                transports: ['websocket', 'polling'],
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionAttempts: 5
+            });
+            
+            // Use global window.socket for all event handlers
+            window.socket.on('connect', function() {
+                addTerminalLog('✓ Connected to Murphy System via Socket.IO', 'success');
+            });
+            
+            window.socket.on('connected', function(data) {
+                addTerminalLog(`✓ ${data.message}`, 'success');
+            });
+            
+            window.socket.on('system_initialized', function(data) {
+                addTerminalLog('✓ System initialized via WebSocket', 'success');
+                addTerminalLog(`  System ID: ${data.system_id}`, 'info');

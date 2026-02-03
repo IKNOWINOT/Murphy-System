@@ -1,0 +1,68 @@
+{
+    "commands": {
+        "by_category": {
+            "artifact": 7,
+            "cooperative": 5,
+            "librarian": 5,
+            "monitoring": 6,
+            "shadow": 7,
+            "system": 31
+        },
+        "by_module": {
+            "artifacts": 7,
+            "business": 7,
+            "database": 5,
+            "learning": 4,
+            "librarian": 5,
+            "llm": 4,
+            "monitoring": 6,
+            "production": 5,
+            "shadow_agents": 7,
+            "swarm": 5,
+            "workflow": 6
+        },
+        "categories": [
+            "artifact",
+            "cooperative",
+            "librarian",
+            "monitoring",
+            "shadow",
+            "system"
+        ],
+        "modules": [
+            "artifacts",
+            "business",
+            "database",
+            "learning",
+            "librarian",
+            "llm",
+            "monitoring",
+            "production",
+            "shadow_agents",
+            "swarm",
+            "workflow"
+        ],
+        "total": 61
+    },
+    "initialized": false,
+    "status": "running",
+    "systems": {
+        "artifact_download": true,
+        "artifacts": true,
+        "automation": true,
+        "business": true,
+        "commands": true,
+        "database": true,
+        "learning": true,
+        "librarian": true,
+        "librarian_integration": true,
+        "llm": true,
+        "monitoring": true,
+        "payment_verification": true,
+        "production": true,
+        "shadow_agents": true,
+        "swarm": true,
+        "workflow": true
+    },
+    "timestamp": "2026-01-29T17:13:32.548028"
+}

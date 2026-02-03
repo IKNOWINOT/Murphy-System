@@ -1,0 +1,26 @@
+    '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',
+    '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',
+    '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',
+    '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'
+]
+GROQ_API_KEY = os.getenv('GROQ_API_KEY', GROQ_API_KEYS[0])
+ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', 'placeholder-anthropic-key')
+
+# Initialize LLM clients
+groq_client = None
+anthropic_client = None
+
+try:
+    if GROQ_API_KEY != 'placeholder-groq-key':
+        groq_client = Groq(api_key=GROQ_API_KEY)
+        print("✓ Groq client initialized")
+except Exception as e:
+    print(f"⚠ Groq initialization failed: {e}")
+
+try:
+    if ANTHROPIC_API_KEY != 'placeholder-anthropic-key':
+        anthropic_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        print("✓ Anthropic client initialized")
+except Exception as e:
+    print(f"⚠ Anthropic initialization failed: {e}")
+

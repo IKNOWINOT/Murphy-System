@@ -1,0 +1,82 @@
+=== FORM INTAKE ===
+-rw-r--r-- 1 root root  1036 Feb  3 19:34 murphy_integrated/src/form_intake/__init__.py
+-rw-r--r-- 1 root root  9124 Feb  3 19:34 murphy_integrated/src/form_intake/api.py
+-rw-r--r-- 1 root root 15244 Feb  3 19:34 murphy_integrated/src/form_intake/handlers.py
+-rw-r--r-- 1 root root 15467 Feb  3 19:35 murphy_integrated/src/form_intake/plan_decomposer.py
+-rw-r--r-- 1 root root 12705 Feb  3 19:34 murphy_integrated/src/form_intake/plan_models.py
+-rw-r--r-- 1 root root 18477 Feb  3 19:34 murphy_integrated/src/form_intake/schemas.py
+
+=== CONFIDENCE ENGINE ===
+-rw-r--r-- 1 root root   914 Feb  3 19:33 murphy_integrated/src/confidence_engine/__init__.py
+-rw-r--r-- 1 root root 18603 Feb  3 19:33 murphy_integrated/src/confidence_engine/api_server.py
+-rw-r--r-- 1 root root  6069 Feb  3 19:33 murphy_integrated/src/confidence_engine/authority_mapper.py
+-rw-r--r-- 1 root root  9333 Feb  3 19:33 murphy_integrated/src/confidence_engine/confidence_calculator.py
+-rw-r--r-- 1 root root 18377 Feb  3 19:35 murphy_integrated/src/confidence_engine/credential_interface.py
+-rw-r--r-- 1 root root 16053 Feb  3 19:34 murphy_integrated/src/confidence_engine/credential_verifier.py
+-rw-r--r-- 1 root root 10782 Feb  3 19:34 murphy_integrated/src/confidence_engine/external_validator.py
+-rw-r--r-- 1 root root 14310 Feb  3 19:33 murphy_integrated/src/confidence_engine/graph_analyzer.py
+-rw-r--r-- 1 root root 12048 Feb  3 19:33 murphy_integrated/src/confidence_engine/models.py
+-rw-r--r-- 1 root root  8044 Feb  3 19:33 murphy_integrated/src/confidence_engine/murphy_calculator.py
+-rw-r--r-- 1 root root  8514 Feb  3 19:53 murphy_integrated/src/confidence_engine/murphy_gate.py
+-rw-r--r-- 1 root root  6358 Feb  3 19:34 murphy_integrated/src/confidence_engine/murphy_models.py
+-rw-r--r-- 1 root root 11471 Feb  3 19:53 murphy_integrated/src/confidence_engine/murphy_validator.py
+-rw-r--r-- 1 root root 20077 Feb  3 19:35 murphy_integrated/src/confidence_engine/performance_optimization.py
+-rw-r--r-- 1 root root  4247 Feb  3 19:33 murphy_integrated/src/confidence_engine/phase_controller.py
+-rw-r--r-- 1 root root  2314 Feb  3 19:33 murphy_integrated/src/confidence_engine/rsc_telemetry.py
+-rw-r--r-- 1 root root 19306 Feb  3 19:53 murphy_integrated/src/confidence_engine/uncertainty_calculator.py
+-rw-r--r-- 1 root root  7368 Feb  3 19:36 murphy_integrated/src/confidence_engine/unified_confidence_engine.py
+
+=== EXECUTION ENGINE ===
+-rw-r--r-- 1 root root  1356 Feb  3 19:33 murphy_integrated/src/execution_engine/__init__.py
+-rw-r--r-- 1 root root 13706 Feb  3 19:33 murphy_integrated/src/execution_engine/decision_engine.py
+-rw-r--r-- 1 root root  6263 Feb  3 19:34 murphy_integrated/src/execution_engine/execution_context.py
+-rw-r--r-- 1 root root  4016 Feb  3 19:34 murphy_integrated/src/execution_engine/form_execution_models.py
+-rw-r--r-- 1 root root 14042 Feb  3 20:02 murphy_integrated/src/execution_engine/form_executor.py
+-rw-r--r-- 1 root root  8552 Feb  3 20:02 murphy_integrated/src/execution_engine/integrated_form_executor.py
+-rw-r--r-- 1 root root 10795 Feb  3 19:33 murphy_integrated/src/execution_engine/state_manager.py
+-rw-r--r-- 1 root root 13877 Feb  3 19:59 murphy_integrated/src/execution_engine/task_executor.py
+-rw-r--r-- 1 root root 16596 Feb  3 19:33 murphy_integrated/src/execution_engine/workflow_orchestrator.py
+
+=== SUPERVISOR SYSTEM ===
+-rw-r--r-- 1 root root  2524 Feb  3 19:33 murphy_integrated/src/supervisor_system/__init__.py
+-rw-r--r-- 1 root root 13674 Feb  3 19:33 murphy_integrated/src/supervisor_system/anti_recursion.py
+-rw-r--r-- 1 root root 15459 Feb  3 19:33 murphy_integrated/src/supervisor_system/assumption_management.py
+-rw-r--r-- 1 root root 16961 Feb  3 19:33 murphy_integrated/src/supervisor_system/correction_loop.py
+-rw-r--r-- 1 root root  4137 Feb  3 19:34 murphy_integrated/src/supervisor_system/hitl_models.py
+-rw-r--r-- 1 root root 12276 Feb  3 20:00 murphy_integrated/src/supervisor_system/hitl_monitor.py
+-rw-r--r-- 1 root root  6353 Feb  3 20:02 murphy_integrated/src/supervisor_system/integrated_hitl_monitor.py
+-rw-r--r-- 1 root root  7665 Feb  3 19:33 murphy_integrated/src/supervisor_system/schemas.py
+-rw-r--r-- 1 root root 15130 Feb  3 19:33 murphy_integrated/src/supervisor_system/supervisor_loop.py
+
+=== LEARNING ENGINE ===
+-rw-r--r-- 1 root root  1510 Feb  3 19:54 murphy_integrated/src/learning_engine/__init__.py
+-rw-r--r-- 1 root root 10950 Feb  3 19:34 murphy_integrated/src/learning_engine/ab_testing.py
+-rw-r--r-- 1 root root 18419 Feb  3 19:33 murphy_integrated/src/learning_engine/adaptive_decision_engine.py
+-rw-r--r-- 1 root root 21616 Feb  3 19:59 murphy_integrated/src/learning_engine/correction_capture.py
+-rw-r--r-- 1 root root 19506 Feb  3 20:00 murphy_integrated/src/learning_engine/correction_metadata.py
+-rw-r--r-- 1 root root 15056 Feb  3 19:54 murphy_integrated/src/learning_engine/correction_models.py
+-rw-r--r-- 1 root root 19786 Feb  3 20:00 murphy_integrated/src/learning_engine/correction_storage.py
+-rw-r--r-- 1 root root 11640 Feb  3 19:34 murphy_integrated/src/learning_engine/feature_engineering.py
+-rw-r--r-- 1 root root 20849 Feb  3 19:34 murphy_integrated/src/learning_engine/feedback_system.py
+-rw-r--r-- 1 root root  9819 Feb  3 19:34 murphy_integrated/src/learning_engine/hyperparameter_tuning.py
+-rw-r--r-- 1 root root  8932 Feb  3 19:56 murphy_integrated/src/learning_engine/integrated_correction_system.py
+-rw-r--r-- 1 root root 23884 Feb  3 19:33 murphy_integrated/src/learning_engine/learning_engine.py
+-rw-r--r-- 1 root root 11992 Feb  3 19:34 murphy_integrated/src/learning_engine/model_architecture.py
+-rw-r--r-- 1 root root 10017 Feb  3 19:34 murphy_integrated/src/learning_engine/model_registry.py
+-rw-r--r-- 1 root root 30693 Feb  3 20:00 murphy_integrated/src/learning_engine/pattern_extraction.py
+-rw-r--r-- 1 root root 11987 Feb  3 19:34 murphy_integrated/src/learning_engine/shadow_agent.py
+-rw-r--r-- 1 root root 16524 Feb  3 19:34 murphy_integrated/src/learning_engine/shadow_evaluation.py
+-rw-r--r-- 1 root root 10485 Feb  3 19:35 murphy_integrated/src/learning_engine/shadow_integration.py
+-rw-r--r-- 1 root root  7096 Feb  3 19:34 murphy_integrated/src/learning_engine/shadow_models.py
+-rw-r--r-- 1 root root 13490 Feb  3 19:34 murphy_integrated/src/learning_engine/shadow_monitoring.py
+-rw-r--r-- 1 root root 17257 Feb  3 19:34 murphy_integrated/src/learning_engine/training_data_transformer.py
+-rw-r--r-- 1 root root 13777 Feb  3 19:34 murphy_integrated/src/learning_engine/training_data_validator.py
+-rw-r--r-- 1 root root 11252 Feb  3 19:34 murphy_integrated/src/learning_engine/training_pipeline.py
+
+=== LIBRARIAN ===
+-rw-r--r-- 1 root root   463 Feb  3 19:33 murphy_integrated/src/librarian/__init__.py
+-rw-r--r-- 1 root root 13684 Feb  3 19:33 murphy_integrated/src/librarian/document_manager.py
+-rw-r--r-- 1 root root 11499 Feb  3 19:33 murphy_integrated/src/librarian/knowledge_base.py
+-rw-r--r-- 1 root root  5551 Feb  3 19:33 murphy_integrated/src/librarian/librarian_module.py
+-rw-r--r-- 1 root root 12011 Feb  3 19:33 murphy_integrated/src/librarian/semantic_search.py
+

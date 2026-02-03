@@ -1,0 +1,4 @@
+2323:        function updateAgentGraph(agents, connections) {
+2392:        function updateProcessFlow(data) {
+2480:        function renderStateTree(states) {
+4278:        function updateMetrics() {

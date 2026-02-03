@@ -1,0 +1,13 @@
+    return jsonify({
+        'success': True,
+        'states': states
+    })
+
+@app.route('/api/agents', methods=['GET'])
+def get_agents():
+    """Get all agents"""
+    if DB_AVAILABLE and db_manager:
+        return jsonify({
+            'success': True,
+            'agents': db_manager.get_agents()
+        })

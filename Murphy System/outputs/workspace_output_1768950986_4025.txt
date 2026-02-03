@@ -1,0 +1,10 @@
+3:Production-ready system with Groq, Anthropic, and Onboard LLM fallback
+15:import anthropic
+62:ANTHROPIC_API_KEY = ARISTOTLE_API_KEY  # Aristotle uses Anthropic's Claude
+66:anthropic_client = None
+85:        anthropic_client = anthropic.Anthropic(api_key=ARISTOTLE_API_KEY)
+111:        self.anthropic = anthropic_client
+122:        if task_type in ["verification", "deterministic"] and self.anthropic:
+150:            if not self.anthropic:
+154:            response = self.anthropic.messages.create(
+726:    print(f"Aristotle (Claude) Available: {anthropic_client is not None}")

@@ -1,0 +1,1 @@
+{"message":"Murphy System initialized","mode":"demo","success":true}

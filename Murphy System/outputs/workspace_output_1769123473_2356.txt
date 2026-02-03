@@ -1,0 +1,2 @@
+2718:                    await initializeSystem();
+3952:        async function initializeSystem() {

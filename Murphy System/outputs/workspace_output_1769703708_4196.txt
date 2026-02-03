@@ -1,0 +1,21 @@
+688:class ArtifactGenerationSystem:
+689-    """Main system for generating artifacts"""
+690-    
+691-    def __init__(self, llm_router=None):
+692-        self.llm_router = llm_router
+693-        self.generators = {
+694-            ArtifactType.PDF: PDFGenerator(llm_router),
+695-            ArtifactType.DOCX: DOCXGenerator(llm_router),
+696-            ArtifactType.CODE: CodeGenerator(llm_router),
+697-            ArtifactType.DESIGN: DesignGenerator(llm_router),
+698-            ArtifactType.DATA: DataGenerator(llm_router),
+699-            ArtifactType.REPORT: ReportGenerator(llm_router),
+700-            ArtifactType.PRESENTATION: PresentationGenerator(llm_router),
+701-            ArtifactType.CONTRACT: ContractGenerator(llm_router)
+702-        }
+703-        
+704-    async def generate_artifact(self, artifact_type: str, document: Dict, 
+705-                               prompts: List[str] = None, 
+706-                               swarm_results: List[Dict] = None) -> Artifact:
+707-        """Generate an artifact from a document"""
+708-        try:

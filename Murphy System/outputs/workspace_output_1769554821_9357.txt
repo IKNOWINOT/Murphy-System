@@ -1,0 +1,43 @@
+Checking around executeTerminalCommand function:
+    2766:                     terminalInput.value = '';
+    2767:                 }
+>>> 2768:                 event.preventDefault();
+    2769:             }
+    2770:         }
+    2771: 
+    2772:         // Terminal command execution function
+    2773: 
+    2774:         // Make executeTerminalCommand globally accessible
+    2775:         window.executeTerminalCommand = executeTerminalCommand;
+>>> 2776: 
+    2777:         // Commands organized by Murphy System modules
+    2778:         const availableCommands = {
+    2779:             'command_system.py': [
+    2780:                 { name: 'help', description: 'Show all commands by module', options: ['<module>'], implemented: true },
+    2781:                 { name: 'status', description: 'Show system status', options: [], implemented: true },
+    2782:                 { name: 'initialize', description: 'Initialize Murphy System', options: [], implemented: true },
+    2783:                 { name: 'clear', description: 'Clear terminal output', options: [], implemented: true }
+    2784:             ],
+    2785:             'system_librarian.py': [
+
+Checking where function should end:
+    2846:                 { name: 'llm switch', description: 'Switch LLM provider', options: ['<provider>'], implemented: false },
+    2847:                 { name: 'llm test', description: 'Test LLM connection', options: [], implemented: false }
+    2848:             ]
+    2849:         };
+    2850: 
+    2851:         async function executeTerminalCommand(command) {
+    2852:             const terminalContent = document.getElementById('terminal-content');
+    2853: 
+    2854:             // Add command to terminal
+    2855:             const cmdLine = document.createElement('div');
+    2856:             cmdLine.className = 'terminal-line';
+    2857:             cmdLine.innerHTML = `<span style="color: #666;">[${new Date().toLocaleTimeString()}]</span> <span class="terminal-prompt">murphy&gt;</span> <span style="color: #fff;">${command}</span>`;
+    2858:             terminalContent.appendChild(cmdLine);
+    2859: 
+    2860:             // First, send to librarian for intent classification
+    2861:             try {
+    2862:                 const librarianResponse = await fetch(`${API_BASE}/api/librarian/ask`, {
+    2863:                     method: 'POST',
+    2864:                     headers: {
+    2865:                         'Content-Type': 'application/json'

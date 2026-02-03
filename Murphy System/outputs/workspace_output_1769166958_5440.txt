@@ -1,0 +1,1 @@
+51:        return hashlib.sha256(password.encode()).hexdigest()

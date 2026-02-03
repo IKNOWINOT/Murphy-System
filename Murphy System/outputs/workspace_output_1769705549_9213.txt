@@ -1,0 +1,100 @@
+"""
+Murphy System - Complete Integration
+All systems working together as an automation operating system
+"""
+
+from flask import Flask, request, jsonify, send_from_directory
+from flask_socketio import SocketIO, emit
+from flask_cors import CORS
+import logging
+import subprocess
+import os
+import uuid
+from datetime import datetime
+import json
+import sys
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'murphy-complete-integrated'
+CORS(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+# ============================================================================
+# SYSTEM INITIALIZATION - Load ALL modules
+# ============================================================================
+
+# Track what's available
+SYSTEMS_AVAILABLE = {
+    'llm': False,
+    'librarian': False,
+    'monitoring': False,
+    'artifacts': False,
+    'shadow_agents': False,
+    'swarm': False,
+    'commands': False,
+    'learning': False,
+    'workflow': False,
+    'database': False
+}
+
+# LLM Manager
+try:
+    from llm_providers import LLMManager
+    groq_keys = []
+    if os.path.exists('groq_keys.txt'):
+        with open('groq_keys.txt', 'r') as f:
+            groq_keys = [line.strip() for line in f if line.strip()]
+    llm_manager = LLMManager(groq_api_keys=groq_keys)
+    SYSTEMS_AVAILABLE['llm'] = True
+    logger.info(f"✓ LLM Manager initialized with {len(groq_keys)} keys")
+except Exception as e:
+    logger.error(f"✗ LLM Manager failed: {e}")
+    llm_manager = None
+
+# Librarian System
+try:
+    from librarian_system import LibrarianSystem
+    librarian_system = LibrarianSystem(llm_client=llm_manager if llm_manager else None)
+    SYSTEMS_AVAILABLE['librarian'] = True
+    logger.info("✓ Librarian System initialized")
+except Exception as e:
+    logger.error(f"✗ Librarian System failed: {e}")
+    librarian_system = None
+
+# Monitoring System
+try:
+    from monitoring_system import MonitoringSystem
+    monitoring_system = MonitoringSystem()
+    SYSTEMS_AVAILABLE['monitoring'] = True
+    logger.info("✓ Monitoring System initialized")
+except Exception as e:
+    logger.error(f"✗ Monitoring System failed: {e}")
+    monitoring_system = None
+
+# Artifact System
+try:
+    from artifact_generation_system import ArtifactGenerationSystem
+    from artifact_manager import ArtifactManager
+    artifact_generator = ArtifactGenerationSystem(llm_router=llm_manager if llm_manager else None)
+    artifact_manager = ArtifactManager()
+    SYSTEMS_AVAILABLE['artifacts'] = True
+    logger.info("✓ Artifact Systems initialized")
+except Exception as e:
+    logger.error(f"✗ Artifact Systems failed: {e}")
+    artifact_generator = None
+    artifact_manager = None
+
+# Shadow Agent System
+try:
+    from shadow_agent_system import ShadowAgentSystem
+    shadow_agent_system = ShadowAgentSystem()
+    SYSTEMS_AVAILABLE['shadow_agents'] = True
+    logger.info("✓ Shadow Agent System initialized")
+except Exception as e:
+    logger.error(f"✗ Shadow Agent System failed: {e}")
+    shadow_agent_system = None
+

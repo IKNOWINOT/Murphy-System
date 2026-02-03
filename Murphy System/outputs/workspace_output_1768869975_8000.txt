@@ -1,0 +1,52 @@
+Collecting flask
+  Downloading flask-3.1.2-py3-none-any.whl.metadata (3.2 kB)
+Collecting flask-cors
+  Downloading flask_cors-6.0.2-py3-none-any.whl.metadata (5.3 kB)
+Collecting flask-socketio
+  Downloading flask_socketio-5.6.0-py3-none-any.whl.metadata (2.8 kB)
+Collecting python-socketio
+  Downloading python_socketio-5.16.0-py3-none-any.whl.metadata (3.2 kB)
+Collecting blinker>=1.9.0 (from flask)
+  Downloading blinker-1.9.0-py3-none-any.whl.metadata (1.6 kB)
+Requirement already satisfied: click>=8.1.3 in /usr/local/lib/python3.11/site-packages (from flask) (8.3.1)
+Collecting itsdangerous>=2.2.0 (from flask)
+  Downloading itsdangerous-2.2.0-py3-none-any.whl.metadata (1.9 kB)
+Collecting jinja2>=3.1.2 (from flask)
+  Downloading jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+Collecting markupsafe>=2.1.1 (from flask)
+  Downloading markupsafe-3.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.7 kB)
+Collecting werkzeug>=3.1.0 (from flask)
+  Downloading werkzeug-3.1.5-py3-none-any.whl.metadata (4.0 kB)
+Collecting bidict>=0.21.0 (from python-socketio)
+  Downloading bidict-0.23.1-py3-none-any.whl.metadata (8.7 kB)
+Collecting python-engineio>=4.11.0 (from python-socketio)
+  Downloading python_engineio-4.13.0-py3-none-any.whl.metadata (2.3 kB)
+Collecting simple-websocket>=0.10.0 (from python-engineio>=4.11.0->python-socketio)
+  Downloading simple_websocket-1.1.0-py3-none-any.whl.metadata (1.5 kB)
+Collecting wsproto (from simple-websocket>=0.10.0->python-engineio>=4.11.0->python-socketio)
+  Downloading wsproto-1.3.2-py3-none-any.whl.metadata (5.2 kB)
+Requirement already satisfied: h11<1,>=0.16.0 in /usr/local/lib/python3.11/site-packages (from wsproto->simple-websocket>=0.10.0->python-engineio>=4.11.0->python-socketio) (0.16.0)
+Downloading flask-3.1.2-py3-none-any.whl (103 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 103.3/103.3 kB 6.4 MB/s eta 0:00:00
+Downloading flask_cors-6.0.2-py3-none-any.whl (13 kB)
+Downloading flask_socketio-5.6.0-py3-none-any.whl (18 kB)
+Downloading python_socketio-5.16.0-py3-none-any.whl (79 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 79.6/79.6 kB 27.4 MB/s eta 0:00:00
+Downloading bidict-0.23.1-py3-none-any.whl (32 kB)
+Downloading blinker-1.9.0-py3-none-any.whl (8.5 kB)
+Downloading itsdangerous-2.2.0-py3-none-any.whl (16 kB)
+Downloading jinja2-3.1.6-py3-none-any.whl (134 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 134.9/134.9 kB 36.7 MB/s eta 0:00:00
+Downloading markupsafe-3.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (22 kB)
+Downloading python_engineio-4.13.0-py3-none-any.whl (59 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 59.7/59.7 kB 32.8 MB/s eta 0:00:00
+Downloading werkzeug-3.1.5-py3-none-any.whl (225 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 225.0/225.0 kB 55.1 MB/s eta 0:00:00
+Downloading simple_websocket-1.1.0-py3-none-any.whl (13 kB)
+Downloading wsproto-1.3.2-py3-none-any.whl (24 kB)
+Installing collected packages: wsproto, markupsafe, itsdangerous, blinker, bidict, werkzeug, simple-websocket, jinja2, python-engineio, flask, python-socketio, flask-cors, flask-socketio
+Successfully installed bidict-0.23.1 blinker-1.9.0 flask-3.1.2 flask-cors-6.0.2 flask-socketio-5.6.0 itsdangerous-2.2.0 jinja2-3.1.6 markupsafe-3.0.3 python-engineio-4.13.0 python-socketio-5.16.0 simple-websocket-1.1.0 werkzeug-3.1.5 wsproto-1.3.2
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+
+[notice] A new release of pip is available: 24.0 -> 25.3
+[notice] To update, run: pip install --upgrade pip

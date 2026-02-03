@@ -1,0 +1,22 @@
+                                                Table "public.client_packs"
+     Column     |            Type             | Collation | Nullable |                       Default                        
+----------------+-----------------------------+-----------+----------+------------------------------------------------------
+ client_pack_id | integer                     |           | not null | nextval('client_packs_client_pack_id_seq'::regclass)
+ client_id      | integer                     |           | not null | 
+ pack_name      | character varying(50)       |           | not null | 
+ pack_version   | character varying(20)       |           | not null | '1.0.0'::character varying
+ enabled        | boolean                     |           | not null | true
+ enabled_at     | timestamp without time zone |           |          | 
+ enabled_by     | integer                     |           |          | 
+ created_at     | timestamp without time zone |           | not null | now()
+ updated_at     | timestamp without time zone |           | not null | now()
+Indexes:
+    "client_packs_pkey" PRIMARY KEY, btree (client_pack_id)
+    "client_packs_client_id_pack_name_key" UNIQUE CONSTRAINT, btree (client_id, pack_name)
+    "idx_client_packs_client_id" btree (client_id)
+    "idx_client_packs_enabled" btree (enabled)
+Check constraints:
+    "client_packs_pack_name_check" CHECK (pack_name::text = ANY (ARRAY['INTAKE_v1'::character varying, 'DOCS_v1'::character varying, 'TASKS_v1'::character varying]::text[]))
+Foreign-key constraints:
+    "client_packs_client_id_fkey" FOREIGN KEY (client_id) REFERENCES clients(client_id) ON DELETE CASCADE
+

@@ -1,0 +1,1 @@
+2692:        function executeTerminalCommand(command) {

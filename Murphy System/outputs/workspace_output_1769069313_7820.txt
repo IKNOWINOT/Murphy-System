@@ -1,0 +1,5 @@
+524:    <script src="librarian_panel.js"></script>
+525:<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+630:    <script src="command_enhancements.js"></script>
+631:    <script src="terminal_enhancements_integration.js"></script>
+2284:    </script>

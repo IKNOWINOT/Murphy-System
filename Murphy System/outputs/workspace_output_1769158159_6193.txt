@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "types": [
+    "pdf",
+    "docx",
+    "code",
+    "design",
+    "data",
+    "report",
+    "presentation",
+    "contract"
+  ]
+}

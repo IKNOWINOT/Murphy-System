@@ -1,0 +1,20 @@
+    from auth_system import init_auth_system, get_auth_system
+    from auth_middleware import (
+    from database_integration import get_database_manager
+    from monitoring_system import MonitoringSystem
+    from health_monitor import HealthMonitor
+    from anomaly_detector import AnomalyDetector
+    from optimization_engine import OptimizationEngine
+    from STABILITY_BASED_ATTENTION_SYSTEM import (
+    from artifact_generation_system import ArtifactGenerationSystem, ArtifactType
+    from artifact_manager import ArtifactManager
+    from integrated_module_system import (
+    from command_system import (
+    from librarian_adapter import get_librarian_adapter
+    from shadow_agent_system import ShadowAgentSystem, ObservationType
+    from learning_engine import LearningEngine
+        from integrated_module_system import IntegratedModuleCompiler, ModuleRegistry, ModuleManager
+    from cooperative_swarm_system import CooperativeSwarmSystem, Task, TaskStatus, HandoffType
+    from agent_handoff_manager import AgentHandoffManager, HandoffContext
+    from workflow_orchestrator import WorkflowOrchestrator, WorkflowDefinition, WorkflowExecution
+        from shadow_agent_system import ObservationType

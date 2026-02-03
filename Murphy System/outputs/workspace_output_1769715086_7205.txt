@@ -1,0 +1,175 @@
+
+================================================================================
+  MURPHY SYSTEM ENHANCED LLM PROVIDER - COMPREHENSIVE DEMO
+================================================================================
+
+This demo showcases:
+  1. Key rotation (round-robin across 16 keys)
+  2. Math task routing to Aristotle
+  3. Parallel execution simulation with load balancing
+  4. Usage statistics and monitoring
+
+
+================================================================================
+  DEMO 1: Key Rotation Verification
+================================================================================
+
+System Status:
+  Groq keys available: 16
+  Aristotle available: True
+  Rotation enabled: True
+  Math detection enabled: True
+
+Making 20 consecutive calls to verify rotation...
+--------------------------------------------------------------------------------
+Call  1: Key 1        | groq         | ✓
+Call  2: Key 2        | groq         | ✓
+Call  3: Key 3        | groq         | ✓
+Call  4: Key 4        | groq         | ✓
+Call  5: Key 5        | groq         | ✓
+Call  6: Key 6        | groq         | ✓
+Call  7: Key 7        | groq         | ✓
+Call  8: Key 8        | groq         | ✓
+Call  9: Key 9        | groq         | ✓
+Call 10: Key 10       | groq         | ✓
+Call 11: Key 11       | groq         | ✓
+Call 12: Key 12       | groq         | ✓
+Call 13: Key 13       | groq         | ✓
+Call 14: Key 14       | groq         | ✓
+Call 15: Key 15       | groq         | ✓
+Call 16: Key 0        | groq         | ✓
+Call 17: Key 1        | groq         | ✓
+Call 18: Key 2        | groq         | ✓
+Call 19: Key 3        | groq         | ✓
+Call 20: Key 4        | groq         | ✓
+
+--------------------------------------------------------------------------------
+Rotation Analysis:
+  Keys used: 16
+  Distribution: {-1: 1, 0: 2, 1: 2, 2: 2, 3: 2, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1}
+
+✓ SUCCESS: Rotation working - used all 16 keys!
+
+================================================================================
+  DEMO 2: Math Task Routing
+================================================================================
+
+Testing routing with different prompt types...
+--------------------------------------------------------------------------------
+
+Math        
+  Prompt: Calculate ROI of AI investment...
+  Routed to: aristotle    (Key: N/A) | Math detected: True | ✓
+
+General     
+  Prompt: Write marketing copy for product...
+  Routed to: groq         (Key: Key 5) | Math detected: False | ✓
+
+Math        
+  Prompt: Solve the differential equation: dy/dx = 2x...
+  Routed to: aristotle    (Key: N/A) | Math detected: True | ✓
+
+General     
+  Prompt: Generate a blog post about AI...
+  Routed to: groq         (Key: Key 6) | Math detected: False | ✓
+
+Math        
+  Prompt: What is the break-even point for this business?...
+  Routed to: aristotle    (Key: N/A) | Math detected: True | ✓
+
+General     
+  Prompt: Create a project timeline...
+  Routed to: groq         (Key: Key 7) | Math detected: False | ✓
+
+Math        
+  Prompt: Compute compound interest over 5 years...
+  Routed to: aristotle    (Key: N/A) | Math detected: True | ✓
+
+General     
+  Prompt: Write a company mission statement...
+  Routed to: groq         (Key: Key 8) | Math detected: False | ✓
+
+================================================================================
+  DEMO 3: Parallel Execution Simulation
+================================================================================
+
+Simulating 9 parallel agents...
+--------------------------------------------------------------------------------
+
+Execution Results (completed in 13.98s):
+--------------------------------------------------------------------------------
+
+Load Distribution:
+  Key  0: Conclusion
+  Key  1: Marketing
+  Key  9: Introduction
+  Key 10: Chapter 1
+  Key 11: Chapter 2
+  Key 12: Chapter 3
+  Key 13: Chapter 4
+  Key 14: Chapter 5
+  Key 15: Chapter 6
+
+Individual Results:
+   1. Introduction         | groq         | Key 9  | ✓
+   2. Chapter 1            | groq         | Key 10 | ✓
+   3. Chapter 2            | groq         | Key 11 | ✓
+   4. Chapter 3            | groq         | Key 12 | ✓
+   5. Chapter 4            | groq         | Key 13 | ✓
+   6. Chapter 5            | groq         | Key 14 | ✓
+   7. Chapter 6            | groq         | Key 15 | ✓
+   8. Conclusion           | groq         | Key 0  | ✓
+   9. Marketing            | groq         | Key 1  | ✓
+
+================================================================================
+  DEMO 4: Usage Statistics
+================================================================================
+
+Overall Statistics:
+  Total calls: 37
+  Total errors: 0
+
+Groq Statistics:
+  Total keys: 16
+  Total calls: 33
+  Current rotation: Key 2
+
+Per-Key Usage:
+  Key  1:   3 calls, 0 errors
+  Key  2:   2 calls, 0 errors
+  Key  3:   2 calls, 0 errors
+  Key  4:   2 calls, 0 errors
+  Key  5:   2 calls, 0 errors
+  Key  6:   2 calls, 0 errors
+  Key  7:   2 calls, 0 errors
+  Key  8:   2 calls, 0 errors
+  Key  9:   2 calls, 0 errors
+  Key 10:   2 calls, 0 errors
+  Key 11:   2 calls, 0 errors
+  Key 12:   2 calls, 0 errors
+  Key 13:   2 calls, 0 errors
+  Key 14:   2 calls, 0 errors
+  Key 15:   2 calls, 0 errors
+  Key 16:   2 calls, 0 errors
+
+Aristotle Statistics:
+  Calls: 4
+  Errors: 0
+
+Rate Limits:
+  Window: 60 seconds
+  Max calls per window: 30
+
+================================================================================
+  DEMO COMPLETE
+================================================================================
+
+✓ All demos finished successfully!
+
+Key Findings:
+  ✓ Key rotation working across all 16 Groq keys
+  ✓ Math routing to Aristotle functioning correctly
+  ✓ Load balancing distributing tasks evenly
+  ✓ Usage tracking operational
+
+The Enhanced LLM Provider is ready for production use!

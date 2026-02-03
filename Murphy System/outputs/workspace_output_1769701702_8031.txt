@@ -1,0 +1,10 @@
+-rw-r--r-- 1 root root 5.0K Jan 23 21:28 button_test.html
+lrwxrwxrwx 1 root root   23 Jan 26 08:12 index.html -> murphy_complete_v2.html
+-rw-r--r-- 1 root root 3.1K Jan 23 21:25 keypress_test.html
+-rw-r--r-- 1 root root  42K Jan 20 00:37 murphy_backend_integrated.html
+-rw-r--r-- 1 root root 6.5K Jan 23 21:38 murphy_basic_test.html
+-rw-r--r-- 1 root root 8.4K Jan 23 21:43 murphy_basic_test_fixed.html
+-rw-r--r-- 1 root root  29K Jan 20 06:03 murphy_complete_frontend.html
+-rw-r--r-- 1 root root  44K Jan 20 16:15 murphy_complete_ui.html
+-rw-r--r-- 1 root root 166K Jan 27 23:03 murphy_complete_v2.html
+-rw-r--r-- 1 root root  42K Jan 23 10:02 murphy_generative_system.html

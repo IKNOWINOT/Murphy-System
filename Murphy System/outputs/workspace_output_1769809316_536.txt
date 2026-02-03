@@ -1,0 +1,17 @@
+======================================================================
+TRACING /status COMMAND FLOW
+======================================================================
+
+1. User types: /status
+2. UI strips /: 'status'
+3. UI checks: if (command === 'help' || command === 'status')
+4. Should match and set: endpoint = '/api/status'
+5. Should call: GET /api/status
+
+======================================================================
+CHECKING IF /api/status ENDPOINT WORKS
+======================================================================
+
+✓ /api/status endpoint is accessible
+
+Response: {"commands":{"by_category":{"artifact":7,"cooperative":5,"librarian":5,"monitoring":6,"shadow":7,"system":31},"by_module":{"artifacts":7,"business":7,"database":5,"learning":4,"librarian":5,"llm":4,"m...

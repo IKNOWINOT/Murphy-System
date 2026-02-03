@@ -1,0 +1,2 @@
+1400:            processCommand(cmdName, args);
+1407:        async function processCommand(cmdName, args) {

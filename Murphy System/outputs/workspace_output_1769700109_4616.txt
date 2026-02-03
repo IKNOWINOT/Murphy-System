@@ -1,0 +1,8 @@
+                section3: {
+                    title: 'Recent Operations',
+                    content: agent.recent_ops.length > 0 
+                        ? `<ul>${agent.recent_ops.map(op => `<li>${op}</li>`).join('')}</ul>`
+                        : '<p>No recent operations</p>'
+                },
+                section4: {
+                    title: 'Configuration',

@@ -1,0 +1,18 @@
+            ]
+        };
+
+        // Initialize terminal input
+        const terminalInput = document.getElementById('terminal-input');
+        
+        if (terminalInput) {
+            terminalInput.addEventListener('keydown', handleTerminalKeyPress);
+            terminalInput.focus();
+        }
+
+        function handleTerminalKeyPress(event) {
+            if (event.key === 'Enter') {
+                const command = terminalInput.value.trim();
+                if (command) {
+                    executeTerminalCommand(command);
+                    commandHistory.push(command);
+                    historyIndex = commandHistory.length;

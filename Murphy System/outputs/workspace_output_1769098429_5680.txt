@@ -1,0 +1,16 @@
+275:        .metrics-panel {
+321:        .detail-panel {
+338:        .detail-panel.active {
+518:            .sidebar, .metrics-panel {
+524:    <script src="librarian_panel.js"></script>
+526:    <script src="plan_review_panel.js"></script>
+528:    <script src="document_editor_panel.js"></script>
+601:        <aside class="metrics-panel">
+625:    <div id="detail-panel" class="detail-panel">
+1265:            document.getElementById('detail-panel').classList.add('active');
+1269:            document.getElementById('detail-panel').classList.remove('active');
+1659:                        addTerminalLog('🧙 Opening Librarian panel...', 'info');
+1739:                        addTerminalLog('🧙 Opening Librarian panel...', 'info');
+1743:                        addTerminalLog('  /librarian          - Open interactive Librarian panel', 'info');
+1820:                    // Create a sample plan and open the review panel
+2385:            // Make addTerminalLog available globally for panels

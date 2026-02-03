@@ -1,0 +1,21 @@
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    terminalInput.value = commandHistory[historyIndex];
+                    event.preventDefault();
+                }
+            } else if (event.key === 'ArrowDown') {
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    terminalInput.value = commandHistory[historyIndex];
+                } else {
+                    historyIndex = commandHistory.length;
+                    terminalInput.value = '';
+                }
+                event.preventDefault();
+            }
+        }
+
+        function executeTerminalCommand(command) {
+            const terminalContent = document.getElementById('terminal-content');
+            
+            // Add command to terminal

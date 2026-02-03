@@ -1,0 +1,51 @@
+                        addTerminalLog(`✗ Failed to fetch transcripts: ${error.message}`, 'error');
+                    }
+                    break;
+                case 'overview':
+                    addTerminalLog('📊 Getting system overview...', 'info');
+                    try {
+                        const response = await fetch(`${API_BASE}/api/librarian/overview`);
+                        const data = await response.json();
+                        addTerminalLog('✓ Librarian System Overview:', 'success');
+                        addTerminalLog(`  Total Interactions: ${data.total_interactions}`, 'info');
+                        if (data.intent_distribution && Object.keys(data.intent_distribution).length > 0) {
+                            addTerminalLog('  Intent Distribution:', 'info');
+                            Object.entries(data.intent_distribution).forEach(([intent, count]) => {
+                                addTerminalLog(`    • ${intent}: ${count}`, 'info');
+                            });
+                        }
+                        addTerminalLog('  Knowledge Base:', 'info');
+                        addTerminalLog(`    • Commands: ${data.knowledge_base_size.commands}`, 'info');
+                        addTerminalLog(`    • Concepts: ${data.knowledge_base_size.concepts}`, 'info');
+                        addTerminalLog(`    • Workflows: ${data.knowledge_base_size.workflows}`, 'info');
+                    } catch (error) {
+                        addTerminalLog(`✗ Failed to get overview: ${error.message}`, 'error');
+                    }
+                    break;
+                case 'guide':
+                    addTerminalLog('🧙 Opening Librarian for guidance...', 'info');
+                    librarianPanel.open();
+                    setTimeout(() => {
+                        document.getElementById('librarian-input').value = 'I need guidance on what to do next';
+                    }, 100);
+                    break;
+                default:
+                    if (!action) {
+                        addTerminalLog('🧙 Opening Librarian panel...', 'info');
+                        librarianPanel.open();
+                    } else {
+                        addTerminalLog('Available librarian commands:', 'info');
+                        addTerminalLog('  /librarian          - Open interactive Librarian panel', 'info');
+                        addTerminalLog('  /librarian ask <q>  - Ask a question', 'info');
+                        addTerminalLog('  /librarian search   - Search knowledge base', 'info');
+                        addTerminalLog('  /librarian transcripts - View conversation history', 'info');
+                        addTerminalLog('  /librarian overview - System overview', 'info');
+                        addTerminalLog('  /librarian guide    - Get guidance', 'info');
+                    }
+            }
+        }
+        
+        async function handleSwarmCommand(action, args) {
+            switch (action) {
+                case 'create':
+                    if (args.length > 0) {

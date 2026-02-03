@@ -1,0 +1,18 @@
+                    addTerminalLog('\u2713 System initialized successfully', 'success');
+                    
+                    // Hide init modal
+                    const modal = document.getElementById('init-modal');
+                    if (modal) {
+                        console.log('Before hide:', modal.style.display);
+                        modal.style.display = 'none';
+                        modal.classList.add('hidden');
+                        console.log('After hide:', modal.style.display);
+                        console.log('Modal hidden successfully');
+                    } else {
+                        console.log('Modal not found');
+                    }
+                    
+                    // Fetch actual data from backend
+                    const [agentsResponse, statesResponse] = await Promise.all([
+                        fetch(`${API_BASE}/api/agents`),
+                        fetch(`${API_BASE}/api/states`)

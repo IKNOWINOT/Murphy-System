@@ -1,0 +1,1 @@
+1971:        const API_BASE = window.API_BASE;

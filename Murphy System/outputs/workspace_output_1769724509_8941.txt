@@ -1,0 +1,5 @@
+root         631  0.0  0.7  37340 31548 ?        Ss   21:48   0:00 /usr/bin/python3 /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf
+root         695  0.2  1.9 1452616 77964 ?       Sl   21:48   0:02 /usr/local/lib/python3.11/site-packages/playwright/driver/node /usr/local/lib/python3.11/site-packages/playwright/driver/package/cli.js run-driver
+root        1923  0.2  0.4  25896 19112 ?        S    22:08   0:00 python3 -m http.server 8090
+root        1924  2.5  1.6  74824 65564 ?        S    22:08   0:00 python3 murphy_complete_integrated.py
+root        1934  0.3  0.5  28028 21428 ?        S    22:08   0:00 python3 -m websockify --web /opt/novnc 0.0.0.0:6080 localhost:5901

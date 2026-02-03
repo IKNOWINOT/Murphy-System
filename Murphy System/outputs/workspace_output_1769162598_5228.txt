@@ -1,0 +1,6 @@
+462:                this.terminalInput.addEventListener('keypress', (e) => {
+469:                document.getElementById('approveBtn').addEventListener('click', () => {
+473:                document.getElementById('rejectBtn').addEventListener('click', () => {
+860:                return new Promise((resolve) => {
+893:                return new Promise(resolve => setTimeout(resolve, ms));
+898:        const murphy = new MurphyRuntime();

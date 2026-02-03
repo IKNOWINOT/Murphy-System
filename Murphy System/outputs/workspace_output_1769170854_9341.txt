@@ -1,0 +1,20 @@
+1957:        const API_BASE = isLocalhost ? 'http://localhost:3002' : 'https://3002-7ced438b-5e53-49d7-a2f0-8056ffbc558b.sandbox-service.public.prod.myninja.ai';
+1977:            window.socket = io(API_BASE, {
+2012:                fetch(`${API_BASE}/api/states`)
+2026:                fetch(`${API_BASE}/api/agents`)
+2040:                fetch(`${API_BASE}/api/states`)
+2054:                fetch(`${API_BASE}/api/states`)
+2068:                fetch(`${API_BASE}/api/states`)
+2101:            const statesResponse = await fetch(`${API_BASE}/api/states`);
+2107:            const agentsResponse = await fetch(`${API_BASE}/api/agents`);
+2236:            const response = await fetch(`${API_BASE}/api/agents/${agentId}`);
+2432:            const response = await fetch(`${API_BASE}/api/states/${stateId}`);
+2465:                const response = await fetch(`${API_BASE}/api/states/${stateId}/evolve`, {
+2481:                const response = await fetch(`${API_BASE}/api/states/${stateId}/regenerate`, {
+2497:                const response = await fetch(`${API_BASE}/api/states/${stateId}/rollback`, {
+2974:                            const response = await fetch(`${API_BASE}/api/librarian/search`, {
+2999:                        const response = await fetch(`${API_BASE}/api/librarian/transcripts?limit=5`);
+3018:                        const response = await fetch(`${API_BASE}/api/librarian/overview`);
+3128:                        const response = await fetch(`${API_BASE}/api/plans`, {
+3154:                        const response = await fetch(`${API_BASE}/api/plans`);
+3194:                        const response = await fetch(`${API_BASE}/api/documents`);

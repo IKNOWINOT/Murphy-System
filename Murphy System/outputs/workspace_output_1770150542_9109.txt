@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murphy System</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #0f0;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: #0a0a0a;
+            border-bottom: 1px solid #0f0;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo {
+            width: 20px;
+            height: 20px;
+            background: #0f0;
+            border-radius: 50%;
+        }
+
+        .title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #0f0;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 15px;
+            font-size: 12px;
+            color: #0f0;
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Subtitle Banner */
+        .subtitle {
+            background: #0a3d0a;
+            padding: 8px 20px;
+            font-size: 12px;
+            color: #0f0;
+            border-bottom: 1px solid #0f0;
+        }
+
+        /* Main Container */
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 250px;
+            height: calc(100vh - 140px);
+            overflow: hidden;
+        }
+
+        /* Chat Area */
+        .chat-area {
+            display: flex;
+            flex-direction: column;
+            background: #000;
+            border-right: 1px solid #0f0;
+            overflow: hidden;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0;
+            padding: 0 20px;
+            background: #0a0a0a;
+            border-bottom: 1px solid #0f0;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            border-right: 1px solid #0f0;
+            cursor: pointer;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+
+        .tab:hover {
+            background: #0a3d0a;
+        }
+
+        .tab.active {
+            background: #0a3d0a;
+        }
+
+        /* Messages Container - FIXED SCROLLING */
+                .messages {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 15px 20px;
+            scroll-behavior: smooth;
+            max-height: calc(100vh - 250px);
+            min-height: 200px;
+        }
+
+        /* Custom Scrollbar */
+        .messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .messages::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+
+        .messages::-webkit-scrollbar-thumb {
+            background: #0f0;
+            border-radius: 3px;
+        }
+
+        /* Message - FIXED STACKING */
+                .message {
+            margin-bottom: 20px;
+            padding: 10px 0;
+            animation: slideIn 0.3s ease-out;
+            clear: both;
+            display: block;
+            position: relative;
+            width: 100%;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 11px;
+        }
+
+        .message-type {
+            padding: 2px 8px;
+            border-radius: 2px;
+            font-weight: bold;
+        }
+
+        .message-type.generated {
+            background: #1a1a1a;
+            color: #0f0;
+        }
+
+        .message-type.user {
+            background: #1a1a1a;
+            color: #00f;
+        }
+
+        .message-type.system {
+            background: #1a1a1a;
+            color: #f90;
+        }
+
+        .message-type.verified {
+            background: #1a1a1a;
+            color: #a0f;
+        }
+
+        .message-type.attempted {

@@ -1,0 +1,23 @@
+                                             Table "public.client_config"
+    Column    |            Type             | Collation | Nullable |                     Default                      
+--------------+-----------------------------+-----------+----------+--------------------------------------------------
+ config_id    | integer                     |           | not null | nextval('client_config_config_id_seq'::regclass)
+ client_id    | integer                     |           | not null | 
+ pack_name    | character varying(50)       |           |          | 
+ config_key   | character varying(100)      |           | not null | 
+ config_value | jsonb                       |           | not null | 
+ value_type   | character varying(20)       |           | not null | 'string'::character varying
+ description  | text                        |           |          | 
+ created_at   | timestamp without time zone |           | not null | now()
+ updated_at   | timestamp without time zone |           | not null | now()
+Indexes:
+    "client_config_pkey" PRIMARY KEY, btree (config_id)
+    "client_config_client_id_pack_name_config_key_key" UNIQUE CONSTRAINT, btree (client_id, pack_name, config_key)
+    "idx_client_config_client_id" btree (client_id)
+    "idx_client_config_key" btree (config_key)
+    "idx_client_config_pack_name" btree (pack_name)
+Check constraints:
+    "client_config_value_type_check" CHECK (value_type::text = ANY (ARRAY['string'::character varying, 'boolean'::character varying, 'number'::character varying, 'json'::character varying, 'array'::character varying]::text[]))
+Foreign-key constraints:
+    "client_config_client_id_fkey" FOREIGN KEY (client_id) REFERENCES clients(client_id) ON DELETE CASCADE
+

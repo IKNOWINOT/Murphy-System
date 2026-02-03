@@ -1,0 +1,100 @@
+==========================================
+Testing Librarian Integration
+==========================================
+
+1. Testing /api/librarian/ask endpoint...
+{
+  "commands": [],
+  "confidence_level": "low",
+  "follow_up_questions": [
+    "Would you like me to guide you through the steps?",
+    "Do you need to set up any constraints first?"
+  ],
+  "intent": {
+    "category": "action",
+    "confidence": 0.5,
+    "entities": {
+      "action_type": "create",
+      "artifact_type": "document"
+    },
+    "keywords": [
+      "do",
+      "create"
+    ]
+  },
+  "message": "Let's get that done! Start with: /help",
+  "workflow": {
+    "name": "System Initialization Workflow",
+    "steps": [
+      {
+        "command": "/initialize",
+        "description": "Initialize system"
+      },
+      {
+        "command": "/domain list",
+        "description": "Review available domains"
+      },
+      {
+        "command": "/constraint add <type>",
+        "description": "Add constraints"
+      },
+      {
+        "command": "/gate list",
+        "description": "Review safety gates"
+      }
+    ]
+  }
+}
+
+2. Testing /api/librarian/search endpoint...
+{
+  "count": 2,
+  "query": "state",
+  "results": [
+    {
+      "description": "Manage system states",
+      "name": "state",
+      "relevance": 0.9,
+      "type": "command"
+    },
+    {
+      "description": "A snapshot of system condition with parent-child relationships",
+      "name": "state",
+      "relevance": 0.8,
+      "type": "concept"
+    }
+  ]
+}
+
+3. Testing /api/librarian/transcripts endpoint...
+{
+  "count": 1,
+  "transcripts": [
+    {
+      "commands": [],
+      "confidence": 0.5,
+      "intent_category": "action",
+      "message": "Let's get that done! Start with: /help",
+      "timestamp": "2026-01-22T08:11:13.359606",
+      "user_input": "How do I create a document?"
+    }
+  ]
+}
+
+4. Testing /api/librarian/overview endpoint...
+{
+  "intent_distribution": {
+    "action": 1
+  },
+  "knowledge_base_size": {
+    "commands": 11,
+    "concepts": 7,
+    "workflows": 3
+  },
+  "most_common_commands": [],
+  "total_interactions": 1
+}
+
+==========================================
+All Librarian API tests complete!
+==========================================

@@ -1,0 +1,31 @@
+    try:
+        with open('/workspace/groq_keys.txt', 'r') as f:
+            groq_keys = [line.strip() for line in f if line.strip()]
+        logger.info(f"Loaded {len(groq_keys)} Groq API keys")
+    except FileNotFoundError:
+        logger.warning("No Groq API keys found, using demo mode")
+    
+    # Initialize LLM Manager
+    llm_manager = LLMManager(groq_api_keys=groq_keys)
+    LLM_AVAILABLE = True
+    if len(groq_keys) > 0:
+        logger.info(f"LLM Manager initialized with {len(groq_keys)} real Groq API keys")
+    else:
+        logger.info("LLM Manager initialized (demo mode)")
+except Exception as e:
+    logger.error(f"Failed to initialize LLM Manager: {e}")
+    LLM_AVAILABLE = False
+    llm_manager = None
+
+
+
+
+# ============================================================================
+# LIBRARIAN API ENDPOINTS
+# ============================================================================
+
+@app.route('/api/librarian/ask', methods=['POST'])
+def librarian_ask():
+    """Process user input and get intelligent response with command suggestions."""
+    try:
+        if not LIBRARIAN_AVAILABLE or not librarian_system:

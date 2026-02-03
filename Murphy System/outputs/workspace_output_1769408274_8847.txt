@@ -1,0 +1,8 @@
+17:from llm_providers import LLMManager
+2620:    llm_manager = LLMManager(groq_api_keys=groq_keys)
+2629:    llm_manager = None
+2637:    librarian_system = LibrarianSystem(llm_client=llm_manager if LLM_AVAILABLE else None)
+2721:        if not LLM_AVAILABLE or not llm_manager:
+2727:        result = llm_manager.generate(prompt)
+2748:        if not LLM_AVAILABLE or not llm_manager:
+2755:        status = llm_manager.get_status()

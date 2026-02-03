@@ -1,0 +1,4 @@
+2618:        const availableCommands = {
+2854:                const moduleCommands = availableCommands[moduleName];
+2878:                Object.keys(availableCommands).sort().forEach(module => {
+2879:                    const commands = availableCommands[module];

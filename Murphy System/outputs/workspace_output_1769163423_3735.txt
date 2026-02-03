@@ -1,0 +1,6 @@
+            window.librarianPanel = new LibrarianPanel(API_BASE);
+            window.librarianPanel.init();
+            
+            // Initialize Plan Review Panel
+            window.planReviewPanel = new PlanReviewPanel(API_BASE);
+            window.planReviewPanel.init();

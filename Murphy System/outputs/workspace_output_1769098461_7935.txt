@@ -1,0 +1,5 @@
+321:        .detail-panel {
+338:        .detail-panel.active {
+627:    <div id="detail-panel" class="detail-panel">
+1267:            document.getElementById('detail-panel').classList.add('active');
+1271:            document.getElementById('detail-panel').classList.remove('active');

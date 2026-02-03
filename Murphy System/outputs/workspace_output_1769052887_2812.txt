@@ -1,0 +1,5 @@
+1354:            terminalInput.addEventListener('keydown', handleTerminalKeyPress);
+1358:        function handleTerminalKeyPress(event) {
+1400:            processCommand(cmdName, args);
+1407:        async function processCommand(cmdName, args) {
+1556:                    const commands = availableCommands[module];

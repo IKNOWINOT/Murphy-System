@@ -1,0 +1,6 @@
+  adding: murphy_ui_fixes_package/ (stored 0%)
+  adding: murphy_ui_fixes_package/murphy_complete_integrated.py (deflated 83%)
+  adding: murphy_ui_fixes_package/README.md (deflated 58%)
+  adding: murphy_ui_fixes_package/todo.md (deflated 54%)
+  adding: murphy_ui_fixes_package/INSTALLATION.md (deflated 58%)
+  adding: murphy_ui_fixes_package/murphy_ui_final.html (deflated 81%)

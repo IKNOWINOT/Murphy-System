@@ -1,0 +1,13 @@
+    def list_agents(self) -> List[Dict]:
+        """List all shadow agents"""
+        return [agent.to_dict() for agent in self.agents.values()]
+        
+    def observe(self, domain: str, obs_type: ObservationType, action: str, context: Dict):
+        """Record observation across relevant agents"""
+        self.global_observations.append({
+            'domain': domain,
+            'type': obs_type.value,
+            'action': action,
+            'context': context,
+            'timestamp': datetime.now().isoformat()
+        })

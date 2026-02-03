@@ -1,0 +1,12 @@
+Found 6 HTML lines with braces:
+  Line 1985: line.innerHTML = `<span style="color: #ff9500;">🧙 Librarian:</span> <span style="color: #ffb347;">${message}</span>`;
+  Line 2389: <p><strong>Status:</strong> <span style="color: ${agent.status === 'active' ? '#00ff41' : '#888'}">${agent.status}</span
+  Line 2681: <button class="action-btn primary" onclick="evolveState('${data.stateId}')">EVOLVE</button>
+  Line 2682: <button class="action-btn" onclick="regenerateState('${data.stateId}')">REGENERATE</button>
+  Line 2683: <button class="action-btn danger" onclick="rollbackState('${data.stateId}')">ROLLBACK</button>
+  Line 2779: cmdLine.innerHTML = `<span style="color: #666;">[${new Date().toLocaleTimeString()}]</span> <span class="terminal-prompt
+
+Checking for inline <style> blocks...
+  Style block starts at line 15
+  Style block ends at line 1728
+  Line 2389: Has braces in style attribute: <p><strong>Status:</strong> <span style="color: ${agent.status === 'active' ? '#00ff41' : '#888'}">$

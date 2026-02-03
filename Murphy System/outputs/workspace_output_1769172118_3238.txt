@@ -1,0 +1,6 @@
+519:class CapabilityExtractor:
+520-    """Extract executable capabilities from code"""
+521-    
+522-    def __init__(self):
+523-        pass
+524-    

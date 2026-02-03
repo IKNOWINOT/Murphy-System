@@ -1,0 +1,33 @@
+CHECKING WORKSPACE FOR REQUIRED MODULES:
+============================================================
+✓ agent_communication_system.py                     16,715 bytes
+✓ agent_handoff_manager.py                           6,634 bytes
+✓ artifact_download_system.py                        9,897 bytes
+✓ artifact_generation_system.py                     25,508 bytes
+✓ artifact_manager.py                               14,326 bytes
+✓ autonomous_business_dev_implementation.py         28,991 bytes
+✓ business_integrations.py                          20,834 bytes
+✓ command_system.py                                 14,109 bytes
+✓ cooperative_swarm_system.py                       10,605 bytes
+✓ database_integration.py                           13,498 bytes
+✓ dynamic_projection_gates.py                       18,297 bytes
+✓ enhanced_gate_integration.py                      19,716 bytes
+✓ generative_gate_system.py                         29,709 bytes
+✓ learning_engine.py                                14,543 bytes
+✓ librarian_command_integration.py                  14,302 bytes
+✓ librarian_system.py                               25,923 bytes
+✓ llm_providers_enhanced.py                         19,051 bytes
+✓ monitoring_system.py                               8,526 bytes
+✓ multi_agent_book_generator.py                     24,253 bytes
+✓ payment_verification_system.py                    10,661 bytes
+✓ production_setup.py                               14,853 bytes
+✓ register_all_commands.py                          25,863 bytes
+✓ runtime_orchestrator_enhanced.py                  24,926 bytes
+✓ scheduled_automation_system.py                    16,627 bytes
+✓ shadow_agent_system.py                            20,273 bytes
+✓ swarm_knowledge_pipeline.py                       23,364 bytes
+✓ workflow_orchestrator.py                          17,874 bytes
+
+============================================================
+Present: 27/27
+Missing: 0/27

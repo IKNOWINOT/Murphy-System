@@ -1,0 +1,6 @@
+Pattern: b'&amp;&amp;'
+Replacement: b'&&'
+Found 5 occurrences to replace
+Remaining occurrences: 0
+
+Line 2994: if (data.results && data.results.length > 0) {

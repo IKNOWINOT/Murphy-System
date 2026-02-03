@@ -1,0 +1,83 @@
+### 8.2 Swarm-Based Setup Process
+
+The setup employs a distributed, collaborative approach where each category agent:
+
+**1. Generates Best Practices**
+```python
+async def generate_best_practices(category: str, domain_context: dict) -> List[BestPractice]:
+    """
+    Agent generates category-specific best practices
+    """
+    agent = get_category_agent(category)
+    
+    # Analyze domain context
+    analysis = await agent.analyze_domain(domain_context)
+    
+    # Retrieve industry standards
+    standards = await agent.retrieve_standards(category)
+    
+    # Propose best practices
+    practices = await agent.propose_practices(analysis, standards)
+    
+    # Identify optimization opportunities
+    optimizations = await agent.identify_optimizations(analysis)
+    
+    return practices + optimizations
+```
+
+**2. Incorporates Regulatory Knowledge**
+```python
+async def incorporate_regulations(category: str, domain_context: dict) -> List[Regulation]:
+    """
+    Agent identifies applicable regulations
+    """
+    agent = get_category_agent(category)
+    
+    # Identify applicable regulations
+    regulations = await agent.identify_regulations(
+        domain_context['industry'],
+        domain_context['location'],
+        domain_context['size']
+    )
+--
+### 8.3 Constraint Management
+
+**Constraint Types:**
+
+| Type | Description | Example | Enforcement |
+|------|-------------|---------|-------------|
+| **Hard Constraints** | Cannot be violated | Regulatory requirements, safety limits | Block execution |
+| **Soft Constraints** | Preferences that can be overridden | Preferred vendors, time windows | Warn, allow override |
+| **Dynamic Constraints** | Change based on context | Resource availability, workload | Adapt execution |
+| **Learned Constraints** | Derived from operational data | Patterns that indicate risk | Suggest caution |
+
+**Constraint Lifecycle:**
+
+```
+Discovery and Definition
+    │
+    ├── Regulatory Analysis
+    │   └── Identify required constraints
+    │
+    ├── Business Policy
+    │   └── Define operational limits
+    │
+    └── Operational Learning
+        └── Learn from patterns
+         │
+         ▼
+     Validation and Testing
+    │
+    ├── Test against scenarios
+    ├── Verify no conflicts
+    └── Check enforcement logic
+         │
+         ▼
+     Activation and Enforcement
+    │
+    ├── Deploy to production
+    ├── Monitor violations
+    └── Enforce as defined
+         │
+         ▼
+     Monitoring and Adjustment

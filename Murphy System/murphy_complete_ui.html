@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murphy System - Complete Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0e27;
+            color: #00ff41;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(10, 14, 39, 0.95);
+            border-bottom: 2px solid #00ff41;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            color: #00ff41;
+            text-shadow: 0 0 10px #00ff41;
+        }
+
+        .llm-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .llm-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid #00ff41;
+            border-radius: 5px;
+            font-size: 11px;
+        }
+
+        .llm-indicator.active {
+            background: rgba(0, 255, 65, 0.2);
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff41;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main Layout */
+        .main-container {
+            display: flex;
+            height: 100vh;
+            padding-top: 70px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: rgba(0, 0, 0, 0.8);
+            border-right: 2px solid #00ff41;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .sidebar-section {
+            margin-bottom: 25px;
+        }
+
+        .sidebar-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #00bfff;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #00bfff;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            margin: 5px 0;
+            background: rgba(0, 255, 65, 0.05);
+            border-left: 3px solid #00ff41;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .stat-value {
+            color: #00ff41;
+            font-weight: bold;
+        }
+
+        .document-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: rgba(0, 255, 65, 0.05);
+            border: 1px solid #00ff41;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 12px;
+        }
+
+        .document-item:hover {
+            background: rgba(0, 255, 65, 0.15);
+            transform: translateX(5px);
+        }
+
+        .document-item.selected {
+            background: rgba(0, 255, 65, 0.2);
+            border-color: #00ff41;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+        }
+
+        .doc-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .doc-meta {
+            font-size: 10px;
+            color: #00bfff;
+        }
+
+        .doc-state {
+            display: inline-block;
+            padding: 2px 6px;
+            background: rgba(0, 191, 255, 0.2);
+            border-radius: 3px;
+            font-size: 9px;
+            margin-top: 5px;
+        }
+
+        /* Main Content */
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex;
+            background: rgba(0, 0, 0, 0.8);
+            border-bottom: 2px solid #00ff41;
+            padding: 0 20px;
+        }
+
+        .tab-button {
+            padding: 15px 25px;
+            background: transparent;
+            border: none;
+            color: #00ff41;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab-button:hover {
+            background: rgba(0, 255, 65, 0.1);
+        }
+
+        .tab-button.active {
+            border-bottom-color: #00ff41;
+            background: rgba(0, 255, 65, 0.15);
+        }
+
+        /* Tab Content */
+        .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Panels */
+        .panel {
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ff41;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #00ff41;
+        }
+
+        .panel-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #00bfff;
+        }
+
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            border-radius: 5px;
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 150px;
+        }
+
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+        }
+
+        /* Buttons */
+        .button {
+            background: #00ff41;
+            color: #0a0e27;
+            border: none;
+            padding: 10px 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+
+        .button:hover {
+            background: #00cc33;
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .button.secondary {
+            background: transparent;
+            color: #00ff41;
+            border: 2px solid #00ff41;
+        }
+
+        .button.secondary:hover {
+            background: rgba(0, 255, 65, 0.1);
+        }
+
+        .button.danger {
+            background: #ff4444;
+            color: white;
+        }
+
+        .button.danger:hover {
+            background: #cc0000;
+        }
+
+        .button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Task List */
+        .task-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .task-item {
+            padding: 15px;
+            margin: 10px 0;
+            background: rgba(0, 255, 65, 0.05);
+            border: 1px solid #00ff41;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .task-info {
+            flex: 1;
+        }
+
+        .task-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .task-meta {
+            font-size: 11px;
+            color: #00bfff;
+        }
+
+        .task-status {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            margin-top: 5px;
+        }
+
+        .task-status.pending {
+            background: rgba(255, 165, 0, 0.2);
+            color: #ffa500;
+        }
+
+        .task-status.running {
+            background: rgba(0, 191, 255, 0.2);
+            color: #00bfff;
+        }
+
+        .task-status.complete {
+            background: rgba(0, 255, 65, 0.2);
+            color: #00ff41;
+        }
+
+        /* Gate Display */
+        .gate-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .gate-card {
+            padding: 15px;
+            background: rgba(0, 255, 65, 0.05);
+            border: 2px solid #00ff41;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .gate-card.failed {
+            border-color: #ff4444;
+        }
+
+        .gate-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .gate-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .gate-status {
+            font-size: 11px;
+            color: #00bfff;
+        }
+
+        /* Approval Queue */
+        .approval-item {
+            padding: 15px;
+            margin: 10px 0;
+            background: rgba(255, 165, 0, 0.1);
+            border: 2px solid #ffa500;
+            border-radius: 8px;
+        }
+
+        .approval-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .approval-title {
+            font-weight: bold;
+            color: #ffa500;
+        }
+
+        .approval-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .approval-content {
+            font-size: 12px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        /* Terminal */
+        .terminal {
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #00ff41;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+
+        .terminal-line {
+            margin: 3px 0;
+            padding: 3px;
+            border-left: 3px solid transparent;
+        }
+
+        .terminal-line.success {
+            border-left-color: #00ff41;
+            color: #00ff41;
+        }
+
+        .terminal-line.info {
+            border-left-color: #00bfff;
+            color: #00bfff;
+        }
+
+        .terminal-line.warning {
+            border-left-color: #ffa500;
+            color: #ffa500;
+        }
+
+        .terminal-line.error {
+            border-left-color: #ff4444;
+            color: #ff4444;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #0a0e27;
+            border: 2px solid #00ff41;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #00ff41;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: #ff4444;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #00ff41;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00cc33;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ff41;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-card-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #00ff41;
+            text-shadow: 0 0 10px #00ff41;
+        }
+
+        .stat-card-label {
+            font-size: 11px;
+            color: #00bfff;
+            margin-top: 5px;
+        }
+    </style>
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>⚡ MURPHY SYSTEM</h1>
+        <div class="llm-controls">
+            <div class="llm-indicator active">
+                <div class="status-dot"></div>
+                <span>GROQ (9)</span>
+            </div>
+            <div class="llm-indicator active">
+                <div class="status-dot"></div>
+                <span>ONBOARD</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title">📊 SYSTEM STATUS</div>
+                <div class="stat-item">
+                    <span>Documents</span>
+                    <span class="stat-value" id="doc-count">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>Tasks</span>
+                    <span class="stat-value" id="task-count">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>Gates</span>
+                    <span class="stat-value" id="gate-count">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>Artifacts</span>
+                    <span class="stat-value" id="artifact-count">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>Approvals</span>
+                    <span class="stat-value" id="approval-count">0</span>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title">📄 DOCUMENTS</div>
+                <div id="document-list">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <div>No documents yet</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="content">
+            <!-- Tab Navigation -->
+            <div class="tab-nav">
+                <button class="tab-button active" onclick="switchTab('overview')">📊 Overview</button>
+                <button class="tab-button" onclick="switchTab('documents')">📄 Documents</button>
+                <button class="tab-button" onclick="switchTab('tasks')">⚙️ Tasks</button>
+                <button class="tab-button" onclick="switchTab('gates')">🛡️ Gates</button>
+                <button class="tab-button" onclick="switchTab('approvals')">✋ Approvals</button>
+                <button class="tab-button" onclick="switchTab('terminal')">📟 Terminal</button>
+            </div>
+
+            <!-- Overview Tab -->
+            <div id="tab-overview" class="tab-content active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-card-value" id="overview-docs">0</div>
+                        <div class="stat-card-label">DOCUMENTS</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-value" id="overview-tasks">0</div>
+                        <div class="stat-card-label">TASKS</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-value" id="overview-gates">0</div>
+                        <div class="stat-card-label">GATES</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-value" id="overview-artifacts">0</div>
+                        <div class="stat-card-label">ARTIFACTS</div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">🚀 Quick Start</div>
+                    </div>
+                    <p style="margin-bottom: 15px;">Welcome to Murphy System! Get started by:</p>
+                    <button class="button" onclick="showInitModal()">🎯 Initialize System</button>
+                    <button class="button secondary" onclick="switchTab('documents')">📄 Create Document</button>
+                    <button class="button secondary" onclick="testGroq()">🧪 Test Groq API</button>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">📈 Recent Activity</div>
+                    </div>
+                    <div id="recent-activity">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📊</div>
+                            <div>No activity yet</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Documents Tab -->
+            <div id="tab-documents" class="tab-content">
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">📝 Document Editor</div>
+                        <button class="button" onclick="createDocument()">➕ New Document</button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Document Title</label>
+                        <input type="text" class="form-input" id="doc-title" placeholder="Enter document title...">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Document Type</label>
+                        <select class="form-select" id="doc-type">
+                            <option value="general">General</option>
+                            <option value="proposal">Proposal</option>
+                            <option value="specification">Specification</option>
+                            <option value="contract">Contract</option>
+                            <option value="report">Report</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Content</label>
+                        <textarea class="form-textarea" id="doc-content" placeholder="Enter document content..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Document State: <span id="doc-state-display">New</span></label>
+                    </div>
+
+                    <div>
+                        <button class="button" onclick="saveDocument()">💾 Save</button>
+                        <button class="button secondary" onclick="magnifyDocument()">🔍 Magnify</button>
+                        <button class="button secondary" onclick="simplifyDocument()">📉 Simplify</button>
+                        <button class="button secondary" onclick="solidifyDocument()">🔒 Solidify</button>
+                        <button class="button danger" onclick="clearDocument()">🗑️ Clear</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tasks Tab -->
+            <div id="tab-tasks" class="tab-content">
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">⚙️ Swarm Tasks</div>
+                        <button class="button secondary" onclick="refreshTasks()">🔄 Refresh</button>
+                    </div>
+                    <div id="task-list" class="task-list">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">⚙️</div>
+                            <div>No tasks yet. Solidify a document to generate tasks.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gates Tab -->
+            <div id="tab-gates" class="tab-content">
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">🛡️ Domain Gates</div>
+                        <button class="button secondary" onclick="refreshGates()">🔄 Refresh</button>
+                    </div>
+                    <div id="gate-grid" class="gate-grid">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🛡️</div>
+                            <div>No gates yet. Solidify a document to generate gates.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Approvals Tab -->
+            <div id="tab-approvals" class="tab-content">
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">✋ Approval Queue</div>
+                        <button class="button" onclick="consolidateApprovals()">📋 Consolidate</button>
+                    </div>
+                    <div id="approval-list">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">✋</div>
+                            <div>No pending approvals</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terminal Tab -->
+            <div id="tab-terminal" class="tab-content">
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">📟 System Terminal</div>
+                        <button class="button secondary" onclick="clearTerminal()">🗑️ Clear</button>
+                    </div>
+                    <div class="terminal" id="terminal-output">
+                        <div class="terminal-line success">[SYSTEM] Murphy System initialized</div>
+                        <div class="terminal-line success">[GROQ] 9 API clients ready</div>
+                        <div class="terminal-line info">[SYSTEM] Awaiting commands...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Initialization Modal -->
+    <div id="init-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">🎯 Initialize Murphy System</div>
+                <button class="modal-close" onclick="closeInitModal()">×</button>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Initialization Mode</label>
+                <select class="form-select" id="init-mode">
+                    <option value="demo">Demo - Quick demonstration</option>
+                    <option value="company">Company - Full business setup</option>
+                    <option value="problem">Problem - Solve specific issue</option>
+                    <option value="librarian">Librarian - Guided setup</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Context (Optional)</label>
+                <textarea class="form-textarea" id="init-context" placeholder="Provide context for initialization..." style="min-height: 100px;"></textarea>
+            </div>
+
+            <div>
+                <button class="button" onclick="initializeSystem()">🚀 Initialize</button>
+                <button class="button secondary" onclick="closeInitModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Magnify Modal -->
+    <div id="magnify-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">🔍 Magnify Document</div>
+                <button class="modal-close" onclick="closeMagnifyModal()">×</button>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Domain Expertise</label>
+                <select class="form-select" id="magnify-domain">
+                    <option value="engineering">Engineering</option>
+                    <option value="financial">Financial</option>
+                    <option value="legal">Legal</option>
+                    <option value="medical">Medical</option>
+                    <option value="architectural">Architectural</option>
+                    <option value="software">Software</option>
+                    <option value="manufacturing">Manufacturing</option>
+                    <option value="marketing">Marketing</option>
+                </select>
+            </div>
+
+            <div>
+                <button class="button" onclick="executeMagnify()">🔍 Magnify</button>
+                <button class="button secondary" onclick="closeMagnifyModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:6666';
+        let currentDocId = null;
+        let documents = {};
+        let tasks = [];
+        let gates = [];
+        let approvals = [];
+
+        // Tab Switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+        }
+
+        // Terminal Logging
+        function addLog(message, type = 'info') {
+            const terminal = document.getElementById('terminal-output');
+            const line = document.createElement('div');
+            line.className = `terminal-line ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            line.textContent = `[${timestamp}] ${message}`;
+            terminal.appendChild(line);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function clearTerminal() {
+            document.getElementById('terminal-output').innerHTML = '';
+            addLog('Terminal cleared', 'info');
+        }
+
+        // Modal Functions
+        function showInitModal() {
+            document.getElementById('init-modal').classList.add('active');
+        }
+
+        function closeInitModal() {
+            document.getElementById('init-modal').classList.remove('active');
+        }
+
+        function showMagnifyModal() {
+            document.getElementById('magnify-modal').classList.add('active');
+        }
+
+        function closeMagnifyModal() {
+            document.getElementById('magnify-modal').classList.remove('active');
+        }
+
+        // System Initialization
+        async function initializeSystem() {
+            const mode = document.getElementById('init-mode').value;
+            const context = document.getElementById('init-context').value;
+
+            addLog(`Initializing system in ${mode} mode...`, 'info');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/initialize`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode, context })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    addLog(`✓ System initialized in ${mode} mode`, 'success');
+                    closeInitModal();
+                    updateStatus();
+                } else {
+                    addLog(`✗ Initialization failed: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                addLog(`✗ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Document Management
+        async function createDocument() {
+            const title = document.getElementById('doc-title').value.trim();
+            const content = document.getElementById('doc-content').value.trim();
+            const type = document.getElementById('doc-type').value;
+
+            if (!title || !content) {
+                addLog('✗ Title and content are required', 'error');
+                return;
+            }
+
+            addLog(`Creating document: ${title}...`, 'info');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/documents`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, content, type })
+                });
+
+                const doc = await response.json();
+                documents[doc.id] = doc;
+                currentDocId = doc.id;
+                
+                addLog(`✓ Document created: ${title}`, 'success');
+                updateDocumentList();
+                updateStatus();
+            } catch (error) {
+                addLog(`✗ Error creating document: ${error.message}`, 'error');
+            }
+        }
+
+        function saveDocument() {
+            if (!currentDocId) {
+                createDocument();
+            } else {
+                addLog('Document saved locally', 'success');
+            }
+        }
+
+        function clearDocument() {
+            document.getElementById('doc-title').value = '';
+            document.getElementById('doc-content').value = '';
+            document.getElementById('doc-type').value = 'general';
+            document.getElementById('doc-state-display').textContent = 'New';
+            currentDocId = null;
+            addLog('Document editor cleared', 'info');
+        }
+
+        function magnifyDocument() {
+            if (!currentDocId) {
+                addLog('✗ No document selected', 'error');
+                return;
+            }
+            showMagnifyModal();
+        }
+
+        async function executeMagnify() {
+            const domain = document.getElementById('magnify-domain').value;
+            
+            addLog(`Magnifying document with ${domain} expertise...`, 'info');
+            closeMagnifyModal();
+
+            try {
+                const response = await fetch(`${API_BASE}/api/documents/${currentDocId}/magnify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ domain })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    addLog(`✓ Document magnified with ${domain} expertise`, 'success');
+                    document.getElementById('doc-state-display').textContent = 'Magnified';
+                    document.getElementById('doc-content').value = result.content || document.getElementById('doc-content').value;
+                } else {
+                    addLog(`✗ Magnification failed`, 'error');
+                }
+            } catch (error) {
+                addLog(`✗ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function simplifyDocument() {
+            if (!currentDocId) {
+                addLog('✗ No document selected', 'error');
+                return;
+            }
+
+            addLog('Simplifying document...', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/documents/${currentDocId}/simplify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    addLog('✓ Document simplified', 'success');
+                    document.getElementById('doc-state-display').textContent = 'Simplified';
+                    document.getElementById('doc-content').value = result.content || document.getElementById('doc-content').value;
+                } else {
+                    addLog('✗ Simplification failed', 'error');
+                }
+            } catch (error) {
+                addLog(`✗ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function solidifyDocument() {
+            if (!currentDocId) {
+                addLog('✗ No document selected', 'error');
+                return;
+            }
+
+            addLog('Solidifying document and generating tasks...', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/documents/${currentDocId}/solidify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+                
+                addLog('✓ Document solidified', 'success');
+                addLog(`✓ Generated ${result.prompts?.length || 0} prompts`, 'success');
+                addLog(`✓ Created ${result.tasks?.length || 0} tasks`, 'success');
+                addLog(`✓ Generated ${result.gates?.length || 0} gates`, 'success');
+                
+                document.getElementById('doc-state-display').textContent = 'Solidified';
+                
+                if (result.tasks) tasks = tasks.concat(result.tasks);
+                if (result.gates) gates = gates.concat(result.gates);
+                
+                updateStatus();
+                refreshTasks();
+                refreshGates();
+            } catch (error) {
+                addLog(`✗ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function updateDocumentList() {
+            const listEl = document.getElementById('document-list');
+            const docArray = Object.values(documents);
+            
+            if (docArray.length === 0) {
+                listEl.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><div>No documents yet</div></div>';
+                return;
+            }
+
+            listEl.innerHTML = docArray.map(doc => `
+                <div class="document-item ${doc.id === currentDocId ? 'selected' : ''}" onclick="selectDocument('${doc.id}')">
+                    <div class="doc-title">${doc.title}</div>
+                    <div class="doc-meta">Type: ${doc.type}</div>
+                    <div class="doc-state">${doc.state || 'New'}</div>
+                </div>
+            `).join('');
+        }
+
+        function selectDocument(docId) {
+            const doc = documents[docId];
+            if (!doc) return;
+
+            currentDocId = docId;
+            document.getElementById('doc-title').value = doc.title;
+            document.getElementById('doc-content').value = doc.content;
+            document.getElementById('doc-type').value = doc.type;
+            document.getElementById('doc-state-display').textContent = doc.state || 'New';
+            
+            updateDocumentList();
+            addLog(`Selected document: ${doc.title}`, 'info');
+        }
+
+        // Task Management
+        function refreshTasks() {
+            const listEl = document.getElementById('task-list');
+            
+            if (tasks.length === 0) {
+                listEl.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚙️</div><div>No tasks yet. Solidify a document to generate tasks.</div></div>';
+                return;
+            }
+
+            listEl.innerHTML = tasks.map((task, idx) => `
+                <div class="task-item">
+                    <div class="task-info">
+                        <div class="task-title">Task ${idx + 1}: ${task.type || 'General'}</div>
+                        <div class="task-meta">Swarm: ${task.swarm_type || 'Hybrid'}</div>
+                        <div class="task-status ${task.status || 'pending'}">${task.status || 'Pending'}</div>
+                    </div>
+                    <button class="button" onclick="executeTask('${task.id || idx}')">▶️ Execute</button>
+                </div>
+            `).join('');
+        }
+
+        async function executeTask(taskId) {
+            addLog(`Executing task ${taskId}...`, 'info');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/tasks/${taskId}/execute`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    addLog(`✓ Task ${taskId} completed`, 'success');
+                    
+                    // Update task status
+                    const task = tasks.find(t => t.id === taskId || tasks.indexOf(t) == taskId);
+                    if (task) task.status = 'complete';
+                    
+                    refreshTasks();
+                    updateStatus();
+                } else {
+                    addLog(`✗ Task execution failed`, 'error');
+                }
+            } catch (error) {
+                addLog(`✗ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Gate Management
+        function refreshGates() {
+            const gridEl = document.getElementById('gate-grid');
+            
+            if (gates.length === 0) {
+                gridEl.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🛡️</div><div>No gates yet. Solidify a document to generate gates.</div></div>';
+                return;
+            }
+
+            gridEl.innerHTML = gates.map(gate => `
+                <div class="gate-card ${gate.status === 'failed' ? 'failed' : ''}">
+                    <div class="gate-icon">${gate.icon || '🛡️'}</div>
+                    <div class="gate-name">${gate.name || 'Safety Gate'}</div>
+                    <div class="gate-status">${gate.status || 'Active'}</div>
+                </div>
+            `).join('');
+        }
+
+        // Approval Management
+        async function consolidateApprovals() {
+            addLog('Consolidating approvals...', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/approvals/consolidate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tasks: tasks.filter(t => t.status === 'complete') })
+                });
+
+                const result = await response.json();
+                
+                if (result.consolidated) {
+                    addLog('✓ Approvals consolidated', 'success');
+                    approvals.push(result);
+                    updateStatus();
+                    refreshApprovals();
+                }
+            } catch (error) {
+                addLog(`✗ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function refreshApprovals() {
+            const listEl = document.getElementById('approval-list');
+            
+            if (approvals.length === 0) {
+                listEl.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✋</div><div>No pending approvals</div></div>';
+                return;
+            }
+
+            listEl.innerHTML = approvals.map((approval, idx) => `
+                <div class="approval-item">
+                    <div class="approval-header">
+                        <div class="approval-title">Approval Request ${idx + 1}</div>
+                        <div class="approval-actions">
+                            <button class="button" onclick="approveRequest(${idx})">✓ Approve</button>
+                            <button class="button danger" onclick="rejectRequest(${idx})">✗ Reject</button>
+                        </div>
+                    </div>
+                    <div class="approval-content">${approval.description || 'Review and approve consolidated tasks'}</div>
+                </div>
+            `).join('');
+        }
+
+        function approveRequest(idx) {
+            addLog(`✓ Approval ${idx + 1} approved`, 'success');
+            approvals.splice(idx, 1);
+            refreshApprovals();
+            updateStatus();
+        }
+
+        function rejectRequest(idx) {
+            addLog(`✗ Approval ${idx + 1} rejected`, 'warning');
+            approvals.splice(idx, 1);
+            refreshApprovals();
+            updateStatus();
+        }
+
+        // Status Updates
+        async function updateStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/status`);
+                const status = await response.json();
+
+                document.getElementById('doc-count').textContent = Object.keys(documents).length;
+                document.getElementById('task-count').textContent = tasks.length;
+                document.getElementById('gate-count').textContent = gates.length;
+                document.getElementById('artifact-count').textContent = status.artifacts || 0;
+                document.getElementById('approval-count').textContent = approvals.length;
+
+                document.getElementById('overview-docs').textContent = Object.keys(documents).length;
+                document.getElementById('overview-tasks').textContent = tasks.length;
+                document.getElementById('overview-gates').textContent = gates.length;
+                document.getElementById('overview-artifacts').textContent = status.artifacts || 0;
+            } catch (error) {
+                console.error('Status update failed:', error);
+            }
+        }
+
+        // Groq Test
+        async function testGroq() {
+            addLog('Testing Groq API...', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/test-groq`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: 'Hello Murphy! Confirm you are operational.' })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    addLog('✓ Groq API test successful', 'success');
+                    addLog(`Response: ${data.response.substring(0, 100)}...`, 'info');
+                } else {
+                    addLog(`✗ Groq API test failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                addLog(`✗ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            addLog('Murphy System UI loaded', 'success');
+            updateStatus();
+            setInterval(updateStatus, 5000); // Update every 5 seconds
+        });
+    </script>
+</body>
+</html>

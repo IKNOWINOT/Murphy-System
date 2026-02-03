@@ -1,0 +1,121 @@
+        if self.domain_engine:
+            analysis = self.domain_engine.analyze_request(doc.content)
+            domain_names = list(analysis['matched_domains'].keys())
+        else:
+            # Fallback to default domains
+            domain_names = ["engineering", "financial", "regulatory", "sales", "operations"]
+        
+        prompts = {"master": master}
+        
+        # Generate domain-specific prompts
+        for domain_name in domain_names:
+            domain_obj = self.domain_engine.domains.get(domain_name) if self.domain_engine else None
+            
+            domain_prompt = f"""
+            From the master requirements:
+            {master}
+            
+            Domain: {domain_name}
+            Purpose: {domain_obj.purpose if domain_obj else 'Generate requirements'}
+            
+            Generate specific {domain_name} requirements and tasks.
+            """
+            prompts[domain_name] = await self.llm_router.route_request(domain_prompt, "generative")
+        
+        return prompts
+    
+    def assign_swarm_tasks(self, prompts: Dict[str, str]) -> List[Dict[str, Any]]:
+        """Assign prompts to org chart agents as swarm tasks"""
+        tasks = []
+        
+        role_mapping = {
+            "engineering": "Chief Engineer",
+            "financial": "CFO",
+            "regulatory": "Compliance Officer",
+            "sales": "Sales Director",
+            "operations": "Operations Manager",
+            "marketing": "Marketing Director",
+            "hr": "HR Director",
+            "legal": "Legal Counsel",
+            "product": "Product Manager"
+        }
+        
+        for domain_name, prompt in prompts.items():
+            if domain_name == "master":
+                continue
+            
+            # Get Domain object from engine
+            domain_obj = None
+            if self.domain_engine:
+                domain_obj = self.domain_engine.domains.get(domain_name)
+                
+            role = role_mapping.get(domain_name, "General Agent")
+            task = {
+                "task_id": f"TASK-{len(tasks)}",
+                "domain_name": domain_name,  # Clarified naming
+                "domain_object": domain_obj.to_dict() if domain_obj else None,  # Full domain info
+                "role": role,
+                "prompt": prompt,
+                "status": "assigned",
+                "created_at": datetime.now().isoformat()
+            }
+            tasks.append(task)
+            
+        return tasks
+    
+    async def execute_swarm_task(self, task: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute a swarm task"""
+        task["status"] = "executing"
+        socketio.emit('task_started', task)
+        
+        # Execute with LLM
+        result = await self.llm_router.route_request(task["prompt"], "generative")
+        
+        task["status"] = "completed"
+        task["result"] = result
+        task["completed_at"] = datetime.now().isoformat()
+        
+        socketio.emit('task_completed', task)
+        return task
+    
+    def generate_domain_gates(self, domain_name: str) -> List[Dict[str, Any]]:
+        """Generate validation gates for a specific domain"""
+        gates = []
+        
+        # Get Domain object from engine
+        domain_obj = None
+        if self.domain_engine:
+            domain_obj = self.domain_engine.domains.get(domain_name)
+        
+        # Use gates from Domain object if available
+        if domain_obj and domain_obj.gates:
+            for gate_name in domain_obj.gates:
+                gate = {
+                    "gate_id": f"GATE-{len(self.gates)}",
+                    "name": gate_name,
+                    "domain_name": domain_name,
+                    "domain_object": domain_obj.to_dict() if domain_obj else None,
+                    "severity": 0.9,  # Default severity
+                    "status": "active",
+                    "created_at": datetime.now().isoformat()
+                }
+                gates.append(gate)
+                self.gates.append(gate)
+        else:
+            # Fallback to default gate templates
+            gate_templates = {
+                "engineering": [
+                    {"name": "Technical Feasibility Gate", "severity": 0.9},
+                    {"name": "Architecture Review Gate", "severity": 0.95},
+                    {"name": "Security Review Gate", "severity": 1.0}
+                ],
+                "financial": [
+                    {"name": "Budget Approval Gate", "severity": 0.8},
+                    {"name": "ROI Validation Gate", "severity": 0.7},
+                    {"name": "Financial Viability Gate", "severity": 0.85}
+                ],
+                "legal": [
+                    {"name": "Legal Review Gate", "severity": 1.0},
+                    {"name": "Compliance Validation Gate", "severity": 0.95},
+                    {"name": "Contract Review Gate", "severity": 0.9}
+                ],

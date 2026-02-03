@@ -1,0 +1,5 @@
+except ImportError as e:
+    logger.error(f"✗ Failed to load Shadow Agent components: {e}")
+    SHADOW_AGENTS_AVAILABLE = False
+
+# Try to import Monitoring components

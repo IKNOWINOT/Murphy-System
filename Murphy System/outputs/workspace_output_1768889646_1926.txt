@@ -1,0 +1,30 @@
+Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+✓ Groq client 1/9 initialized
+✓ Groq client 2/9 initialized
+✓ Groq client 3/9 initialized
+✓ Groq client 4/9 initialized
+✓ Groq client 5/9 initialized
+✓ Groq client 6/9 initialized
+✓ Groq client 7/9 initialized
+✓ Groq client 8/9 initialized
+✓ Groq client 9/9 initialized
+✓ Total 9 Groq clients ready for load balancing
+⚠ Anthropic API key not set - will use Groq for deterministic tasks
+============================================================
+Murphy System - Complete Backend
+============================================================
+Murphy System Available: True
+Groq Available: True
+Anthropic Available: False
+Starting server on http://localhost:6666
+============================================================
+ * Serving Flask app 'murphy_complete_backend'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:6666
+ * Running on http://172.16.95.85:6666
+[33mPress CTRL+C to quit[0m
+127.0.0.1 - - [20/Jan/2026 06:16:43] "[33mGET /api/health HTTP/1.1[0m" 404 -
+127.0.0.1 - - [20/Jan/2026 06:16:51] "GET /api/status HTTP/1.1" 200 -
+127.0.0.1 - - [20/Jan/2026 06:16:56] "POST /api/initialize HTTP/1.1" 200 -

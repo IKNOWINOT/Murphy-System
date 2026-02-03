@@ -1,0 +1,12 @@
+9:    <script src="https://d3js.org/d3.v7.min.js"></script>
+10:    <script src="https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js"></script>
+13:    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+1766:    <script src="librarian_panel.js"></script>
+1768:    <script src="plan_review_panel.js"></script>
+1770:    <script src="document_editor_panel.js"></script>
+1772:    <script src="artifact_panel.js"></script>
+1773:<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+1990:    <script src="command_enhancements.js"></script>
+1991:    <script src="terminal_enhancements_integration.js"></script>
+1993:    <script src="shadow_agent_panel.js"></script>
+1995:    <script src="monitoring_panel.js"></script>

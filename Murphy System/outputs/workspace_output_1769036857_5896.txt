@@ -1,0 +1,2 @@
+root        1263  0.0  0.0   4352  3268 ?        S    22:37   0:00 bash -lc  python murphy_backend_v2.py > backend_v2.log 2>&1 
+root        1270  0.0  1.9 271252 80300 ?        Sl   22:37   0:00 python murphy_backend_v2.py

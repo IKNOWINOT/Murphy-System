@@ -1,0 +1,1 @@
+Added cooperative swarm endpoints registration!

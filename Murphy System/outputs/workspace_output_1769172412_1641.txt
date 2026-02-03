@@ -1,0 +1,12 @@
+{
+  "context": {
+    "available": true,
+    "command_usage_stats": {},
+    "most_used_commands": [],
+    "total_executions": 0,
+    "total_registrations": 0
+  },
+  "help_text": "\n============================================================\nAvailable Commands\n============================================================\n\n\nAGENT COMMANDS:\n----------------------------------------\n  /agent\n    Manage AI agents\n    Examples:\n      /agent list\n      /agent override <id>\n\n\nARTIFACT COMMANDS:\n----------------------------------------\n  /artifact\n    Manage generated artifacts\n    Examples:\n      /artifact list\n      /artifact view <id>\n      /artifact generate\n      /artifact stats\n\n\nMODULE COMMANDS:\n----------------------------------------\n  /module\n    Manage system modules\n    Examples:\n      /module list\n      /module compile github <url>\n      /module load <id>\n      /module loaded\n\n\nMONITORING COMMANDS:\n----------------------------------------\n  /monitoring\n    Access monitoring system\n    Examples:\n      /monitoring health\n      /monitoring metrics\n      /monitoring panel\n\n\nSHADOW COMMANDS:\n----------------------------------------\n  /shadow\n    Manage shadow agent learning\n    Examples:\n      /shadow list\n      /shadow learn\n      /shadow stats\n\n\nSTATE COMMANDS:\n----------------------------------------\n  /state\n    Manage system states\n    Examples:\n      /state list\n      /state evolve <id>\n      /state regenerate <id>\n      /state rollback <id>\n\n\nSYSTEM COMMANDS:\n----------------------------------------\n  /help\n    Show all available commands by module\n    Examples:\n      /help\n      /help system\n      /help <module_id>\n\n  /status\n    Show system status and component health\n    Examples:\n      /status\n\n  /initialize [MEDIUM]\n    Initialize the Murphy System with default components\n    Examples:\n      /initialize\n\n  /clear\n    Clear the terminal\n    Examples:\n      /clear\n\n\n============================================================\n",
+  "module": null,
+  "success": true
+}

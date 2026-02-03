@@ -1,0 +1,12 @@
+Murphy System - Stability-Based Attention and Role-Governed Cognition
+======================================================================
+Traceback (most recent call last):
+  File "/workspace/STABILITY_BASED_ATTENTION_SYSTEM.py", line 1294, in <module>
+    attention_system = StabilityBasedAttentionSystem()
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/STABILITY_BASED_ATTENTION_SYSTEM.py", line 1046, in __init__
+    self._initialize_subsystems()
+  File "/workspace/STABILITY_BASED_ATTENTION_SYSTEM.py", line 1070, in _initialize_subsystems
+    self.subsystems[SubsystemType.PERCEPTION] = PerceptionSubsystem(weight=1.0)
+                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: PredictiveSubsystem.__init__() missing 1 required positional argument: 'subsystem_type'

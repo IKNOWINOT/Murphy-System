@@ -1,0 +1,23 @@
+{
+    "commands": [
+        "/status",
+        "/help"
+    ],
+    "confidence_level": "very_low",
+    "follow_up_questions": [
+        "Would you like more details about any specific component?",
+        "Should I show you related commands?"
+    ],
+    "intent": {
+        "category": "query",
+        "confidence": 0.36,
+        "keywords": [],
+        "suggested_commands": [
+            "/status",
+            "/help"
+        ]
+    },
+    "message": "I can help you find that information. Try these commands: /status, /help",
+    "success": true,
+    "workflow": null
+}

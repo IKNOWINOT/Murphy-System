@@ -1,0 +1,3 @@
+1525:        function showLibrarianHelp() {
+1537:        function showSwarmHelp() {
+1552:        function showGateHelp() {

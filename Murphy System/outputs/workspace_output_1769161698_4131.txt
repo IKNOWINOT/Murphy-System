@@ -1,0 +1,12 @@
+{
+    "health": {
+        "components": {},
+        "overall": {
+            "message": "No health checks available",
+            "score": 0,
+            "status": "unknown"
+        },
+        "timestamp": "2026-01-23T09:48:18.206673"
+    },
+    "success": true
+}

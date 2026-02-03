@@ -1,0 +1,20 @@
+        # Execute command
+        pass
+    elif task_type == 'artifact' and artifact_generator:
+        # Generate artifact
+        pass
+    
+    emit('task_result', result)
+
+if __name__ == '__main__':
+    logger.info("=" * 60)
+    logger.info("Murphy Complete Integrated System")
+    logger.info("=" * 60)
+    logger.info("Systems Status:")
+    for system, available in SYSTEMS_AVAILABLE.items():
+        status = "✓" if available else "✗"
+        logger.info(f"  {status} {system.upper()}")
+    logger.info("=" * 60)
+    logger.info("Starting server on port 3002...")
+    
+    socketio.run(app, host='0.0.0.0', port=3002, debug=False, allow_unsafe_werkzeug=True)

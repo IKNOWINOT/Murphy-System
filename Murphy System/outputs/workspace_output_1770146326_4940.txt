@@ -1,0 +1,5 @@
+murphy_complete_system_package/README.md:Licensed under the Apache License, Version 2.0 (the "License");
+murphy_complete_system_package/README.md:Licensed under the Apache License, Version 2.0. See LICENSE file for details.
+murphy_complete_system_package/FINAL_SYSTEM_DOCUMENTATION.md:Licensed under the Apache License, Version 2.0 (the "License");
+murphy_complete_system_package/LICENSE:                                 Apache License
+murphy_complete_system_package/LICENSE:   Licensed under the Apache License, Version 2.0 (the "License");

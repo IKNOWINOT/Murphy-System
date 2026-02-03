@@ -1,0 +1,50 @@
+                    addLog('  Terminal: ONLINE', 'success');
+                    addLog('  Input: FUNCTIONAL', 'success');
+                    addLog('  History: ENABLED', 'success');
+                    break;
+                    
+                default:
+                    addLog(`Unknown command: ${cmdName}`, 'error');
+                    addLog('Type "help" for available commands', 'info');
+            }
+        }
+        
+        function handleTerminalKeyPress(event) {
+            if (event.key === 'Enter') {
+                const command = terminalInput.value.trim();
+                if (command) {
+                    executeTerminalCommand(command);
+                    commandHistory.push(command);
+                    historyIndex = commandHistory.length;
+                    terminalInput.value = '';
+                }
+            } else if (event.key === 'ArrowUp') {
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    terminalInput.value = commandHistory[historyIndex];
+                    event.preventDefault();
+                }
+            } else if (event.key === 'ArrowDown') {
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    terminalInput.value = commandHistory[historyIndex];
+                } else {
+                    historyIndex = commandHistory.length;
+                    terminalInput.value = '';
+                }
+                event.preventDefault();
+            }
+        }
+        
+        // Initialize terminal
+        if (terminalInput) {
+            terminalInput.addEventListener('keydown', handleTerminalKeyPress);
+            terminalInput.focus();
+            
+            addLog('Murphy Basic Terminal Test', 'success');
+            addLog('Type "help" for available commands', 'info');
+            addLog('Enter key is now working!', 'success');
+        }
+    </script>
+</body>
+</html>

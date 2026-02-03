@@ -1,0 +1,5 @@
+class InterventionType(str, Enum):
+class InterventionUrgency(str, Enum):
+class InterventionStatus(str, Enum):
+class InterventionRequest(BaseModel):
+class InterventionResponse(BaseModel):

@@ -1,0 +1,4 @@
+  File "/workspace/murphy_backend_complete.py", line 2784
+    response = asyncio.run(librarian_system.ask(user_input)
+                          ^
+SyntaxError: '(' was never closed

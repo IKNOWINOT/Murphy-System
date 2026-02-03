@@ -1,0 +1,21 @@
+                addTerminalLog(`✗ Error loading stats: ${error.message}`, 'error');
+            }
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+        
+        async function handleShadowCommand(action, args) {
+            switch (action) {
+                case 'list':
+                    addTerminalLog('📋 Listing shadow agents...', 'info');
+                    try {
+                        const response = await fetch(`${API_BASE}/api/shadow/agents`);
+                        const agents = await response.json();
+                        if (agents && agents.length > 0) {
+                            addTerminalLog(`\n✓ Found ${agents.length} shadow agents:\n`, 'success');

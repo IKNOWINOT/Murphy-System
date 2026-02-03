@@ -1,0 +1,39 @@
+                                             Table "public.leads"
+     Column     |            Type             | Collation | Nullable |                Default                 
+----------------+-----------------------------+-----------+----------+----------------------------------------
+ lead_id        | integer                     |           | not null | nextval('leads_lead_id_seq'::regclass)
+ lead_uuid      | uuid                        |           | not null | gen_random_uuid()
+ client_id      | integer                     |           | not null | 
+ email          | character varying(255)      |           | not null | 
+ phone          | character varying(50)       |           |          | 
+ full_name      | character varying(255)      |           |          | 
+ first_name     | character varying(100)      |           |          | 
+ last_name      | character varying(100)      |           |          | 
+ company_name   | character varying(255)      |           |          | 
+ job_title      | character varying(150)      |           |          | 
+ source         | character varying(100)      |           | not null | 
+ source_details | jsonb                       |           |          | 
+ lead_score     | integer                     |           |          | 0
+ status         | character varying(50)       |           | not null | 'new'::character varying
+ custom_fields  | jsonb                       |           |          | 
+ received_at    | timestamp without time zone |           | not null | now()
+ created_at     | timestamp without time zone |           | not null | now()
+ updated_at     | timestamp without time zone |           | not null | now()
+Indexes:
+    "leads_pkey" PRIMARY KEY, btree (lead_id)
+    "idx_leads_client_id" btree (client_id)
+    "idx_leads_created_at" btree (created_at)
+    "idx_leads_email" btree (email)
+    "idx_leads_lead_score" btree (lead_score)
+    "idx_leads_source" btree (source)
+    "idx_leads_status" btree (status)
+    "leads_client_id_email_key" UNIQUE CONSTRAINT, btree (client_id, email)
+Check constraints:
+    "leads_lead_score_check" CHECK (lead_score >= 0 AND lead_score <= 100)
+    "leads_status_check" CHECK (status::text = ANY (ARRAY['new'::character varying, 'processing'::character varying, 'enriched'::character varying, 'routed'::character varying, 'duplicate'::character varying, 'error'::character varying]::text[]))
+Foreign-key constraints:
+    "leads_client_id_fkey" FOREIGN KEY (client_id) REFERENCES clients(client_id) ON DELETE CASCADE
+Referenced by:
+    TABLE "lead_enrichment" CONSTRAINT "lead_enrichment_lead_id_fkey" FOREIGN KEY (lead_id) REFERENCES leads(lead_id) ON DELETE CASCADE
+    TABLE "lead_routing" CONSTRAINT "lead_routing_lead_id_fkey" FOREIGN KEY (lead_id) REFERENCES leads(lead_id) ON DELETE CASCADE
+

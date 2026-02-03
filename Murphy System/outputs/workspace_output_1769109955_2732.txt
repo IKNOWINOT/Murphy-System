@@ -1,0 +1,21 @@
+            }
+            
+            currentAgents.forEach(agent => {
+                addTerminalLog(`  ${agent.id.padEnd(15)} - ${agent.name}`, 'info');
+            });
+        }
+
+        async function listStates() {
+            addTerminalLog('=== States ===', 'info');
+            
+            if (currentStates.length === 0) {
+                addTerminalLog('No states available. Initialize system first.', 'warning');
+                return;
+            }
+            
+            currentStates.forEach(state => {
+                addTerminalLog(`  ${state.id.padEnd(15)} - ${state.label} (${state.type})`, 'info');
+            });
+        }
+
+        async function evolveStateCommand(stateId) {

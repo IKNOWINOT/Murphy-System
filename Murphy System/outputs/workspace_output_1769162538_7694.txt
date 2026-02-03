@@ -1,0 +1,20 @@
+    <script>
+        class MurphyIntegratedSystem {
+            constructor() {
+                this.terminalOutput = document.getElementById('terminalOutput');
+                this.terminalInput = document.getElementById('terminalInput');
+                this.stateTreeContainer = document.getElementById('stateTreeContainer');
+                this.swarmsContainer = document.getElementById('swarmsContainer');
+                this.artifactsContainer = document.getElementById('artifactsContainer');
+                
+                this.states = [];
+                this.currentState = null;
+                this.artifacts = [];
+                this.swarms = [];
+                this.stateIdCounter = 0;
+                
+                this.metrics = {
+                    statesGenerated: 0,
+                    artifactsCreated: 0,
+                    gatesActive: 0,
+                    swarmsRunning: 0

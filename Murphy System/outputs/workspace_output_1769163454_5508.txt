@@ -1,0 +1,23 @@
+==> /workspace/shadow_agent_panel.js <==
+/**
+ * Murphy System - Shadow Agent Panel
+ * Displays shadow agents, observations, automation proposals, and active automations
+ */
+
+class ShadowAgentPanel {
+    constructor() {
+        this.agents = [];
+        this.observations = [];
+        this.proposals = [];
+
+==> /workspace/monitoring_panel.js <==
+/**
+ * Murphy System - Monitoring Panel
+ * Displays system health, performance metrics, anomalies, and optimization recommendations
+ */
+
+class MonitoringPanel {
+    constructor() {
+        this.healthData = null;
+        this.metricsData = [];
+        this.anomaliesData = [];

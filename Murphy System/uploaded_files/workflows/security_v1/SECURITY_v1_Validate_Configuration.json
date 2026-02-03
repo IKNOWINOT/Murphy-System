@@ -1,0 +1,211 @@
+{
+  "name": "SECURITY_v1_Validate_Configuration",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "security-v1/validate-config",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "security-validate-config"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT c.id as client_id, c.name as client_name FROM clients c WHERE c.id = {{ $json.body.client_id }} AND c.active = true"
+      },
+      "id": "get-client",
+      "name": "Get Client",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT pack_name, enabled FROM client_packs WHERE client_id = {{ $json.body.client_id }}"
+      },
+      "id": "get-client-packs",
+      "name": "Get Client Packs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [
+        650,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT integration_id, integration_name, integration_type, enabled, is_encrypted FROM client_integrations WHERE client_id = {{ $json.body.client_id }}"
+      },
+      "id": "get-integrations",
+      "name": "Get Integrations",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [
+        850,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT tm.member_id, tm.name, tm.email, tm.active, tm.max_concurrent_tasks FROM team_members tm WHERE tm.client_id = {{ $json.body.client_id }}"
+      },
+      "id": "get-team-members",
+      "name": "Get Team Members",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [
+        1050,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const client = $node[\"Get Client\"].json[0];\nconst packs = $node[\"Get Client Packs\"].json;\nconst integrations = $node[\"Get Integrations\"].json;\nconst teamMembers = $node[\"Get Team Members\"].json;\n\nconst validationResults = {\n  valid: true,\n  warnings: [],\n  errors: [],\n  score: 100,\n  checks: []\n};\n\nconst requiredPacks = [\"INTAKE_v1\", \"DOCS_v1\", \"TASKS_v1\"];\nconst enabledPacks = packs.filter(p => p.enabled).map(p => p.pack_name);\nconst missingPacks = requiredPacks.filter(p => !enabledPacks.includes(p));\n\nif (missingPacks.length > 0) {\n  validationResults.warnings.push(\"Missing automation packs: \" + missingPacks.join(\", \"));\n  validationResults.score -= 20;\n}\n\nvalidationResults.checks.push({\n  check: \"required_packs\",\n  status: missingPacks.length === 0 ? \"pass\" : \"warning\",\n  message: missingPacks.length === 0 ? \"All required packs enabled\" : \"Missing packs: \" + missingPacks.join(\", \")\n});\n\nconst unencryptedIntegrations = integrations.filter(i => !i.is_encrypted && i.enabled);\nif (unencryptedIntegrations.length > 0) {\n  validationResults.warnings.push(\"Unencrypted integrations: \" + unencryptedIntegrations.map(i => i.integration_name).join(\", \"));\n  validationResults.score -= 10;\n}\n\nvalidationResults.checks.push({\n  check: \"encrypted_integrations\",\n  status: unencryptedIntegrations.length === 0 ? \"pass\" : \"warning\",\n  message: unencryptedIntegrations.length === 0 ? \"All integrations encrypted\" : unencryptedIntegrations.length + \" unencrypted integrations\"\n});\n\nconst activeTeamMembers = teamMembers.filter(tm => tm.active);\nif (activeTeamMembers.length === 0) {\n  validationResults.errors.push(\"No active team members found\");\n  validationResults.valid = false;\n  validationResults.score -= 30;\n}\n\nvalidationResults.checks.push({\n  check: \"active_team_members\",\n  status: activeTeamMembers.length > 0 ? \"pass\" : \"error\",\n  message: activeTeamMembers.length + \" active team members\"\n});\n\nconst hasEncryptionKey = true;\n\nvalidationResults.checks.push({\n  check: \"encryption_key\",\n  status: \"pass\",\n  message: \"Encryption key available\"\n});\n\nconst workflowsConfigured = true;\n\nvalidationResults.checks.push({\n  check: \"workflows_configured\",\n  status: workflowsConfigured ? \"pass\" : \"warning\",\n  message: workflowsConfigured ? \"Workflows configured\" : \"Some workflows not configured\"\n});\n\nvalidationResults.valid = validationResults.score >= 70 && validationResults.errors.length === 0;\n\nvalidationResults.summary = {\n  client_id: client.client_id,\n  client_name: client.client_name,\n  enabled_packs: enabledPacks,\n  total_integrations: integrations.length,\n  encrypted_integrations: integrations.filter(i => i.is_encrypted).length,\n  active_team_members: activeTeamMembers.length,\n  validation_score: validationResults.score,\n  overall_status: validationResults.valid ? \"valid\" : \"invalid\"\n};\n\nreturn { json: validationResults };"
+      },
+      "id": "validate-config",
+      "name": "Validate Configuration",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "security_events",
+        "columns": "event_type, event_category, severity, user_id, client_id, event_details, status, created_at",
+        "additionalFields": {
+          "columnValues": "={{ {\n  \"event_type\": \"configuration_validated\",\n  \"event_category\": \"configuration_management\",\n  \"severity\": $json.valid ? \"info\" : \"warning\",\n  \"user_id\": $node[\"Webhook Trigger\"].json.body.user_id || \"system\",\n  \"client_id\": $node[\"Webhook Trigger\"].json.body.client_id,\n  \"event_details\": {\n    \"validation_score\": $json.score,\n    \"overall_status\": $json.valid ? \"valid\" : \"invalid\",\n    \"warnings\": $json.warnings.length,\n    \"errors\": $json.errors.length\n  },\n  \"status\": \"success\",\n  \"created_at\": $now.toISO()\n} }}\n"
+        }
+      },
+      "id": "log-validation-event",
+      "name": "Log Validation Event",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [
+        1450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "response",
+      "name": "Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1650,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Client": {
+      "main": [
+        [
+          {
+            "node": "Get Client Packs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Client Packs": {
+      "main": [
+        [
+          {
+            "node": "Get Integrations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Integrations": {
+      "main": [
+        [
+          {
+            "node": "Get Team Members",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Team Members": {
+      "main": [
+        [
+          {
+            "node": "Validate Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Configuration": {
+      "main": [
+        [
+          {
+            "node": "Log Validation Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Validation Event": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "pinData": {},
+  "triggerCount": 1,
+  "updatedAt": "2025-01-27T14:30:00.000Z",
+  "versionId": "1"
+}

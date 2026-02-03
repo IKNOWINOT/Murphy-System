@@ -1,0 +1,121 @@
+    'database': False
+}
+
+# LLM Manager
+try:
+    from llm_providers_enhanced import get_enhanced_llm_manager as get_llm_manager
+    groq_keys = []
+    if os.path.exists('groq_keys.txt'):
+        with open('groq_keys.txt', 'r') as f:
+            groq_keys = [line.strip() for line in f if line.strip()]
+    llm_manager = LLMManager(groq_api_keys=groq_keys)
+    SYSTEMS_AVAILABLE['llm'] = True
+    logger.info(f"✓ LLM Manager initialized with {len(groq_keys)} keys")
+except Exception as e:
+    logger.error(f"✗ LLM Manager failed: {e}")
+    llm_manager = None
+
+# Librarian System
+try:
+    from librarian_system import LibrarianSystem
+    librarian_system = LibrarianSystem(llm_client=llm_manager if llm_manager else None)
+    SYSTEMS_AVAILABLE['librarian'] = True
+    logger.info("✓ Librarian System initialized")
+except Exception as e:
+    logger.error(f"✗ Librarian System failed: {e}")
+    librarian_system = None
+
+# Monitoring System
+try:
+    from monitoring_system import MonitoringSystem
+    monitoring_system = MonitoringSystem()
+    SYSTEMS_AVAILABLE['monitoring'] = True
+    logger.info("✓ Monitoring System initialized")
+except Exception as e:
+    logger.error(f"✗ Monitoring System failed: {e}")
+    monitoring_system = None
+
+# Artifact System
+try:
+    from artifact_generation_system import ArtifactGenerationSystem
+    from artifact_manager import ArtifactManager
+    artifact_generator = ArtifactGenerationSystem(llm_router=llm_manager if llm_manager else None)
+    artifact_manager = ArtifactManager()
+    SYSTEMS_AVAILABLE['artifacts'] = True
+    logger.info("✓ Artifact Systems initialized")
+except Exception as e:
+    logger.error(f"✗ Artifact Systems failed: {e}")
+    artifact_generator = None
+    artifact_manager = None
+
+# Shadow Agent System
+try:
+    from shadow_agent_system import ShadowAgentSystem
+    shadow_agent_system = ShadowAgentSystem()
+    SYSTEMS_AVAILABLE['shadow_agents'] = True
+    logger.info("✓ Shadow Agent System initialized")
+except Exception as e:
+    logger.error(f"✗ Shadow Agent System failed: {e}")
+    shadow_agent_system = None
+
+# Cooperative Swarm System
+try:
+    from cooperative_swarm_system import CooperativeSwarmSystem
+    swarm_system = CooperativeSwarmSystem()
+    SYSTEMS_AVAILABLE['swarm'] = True
+    logger.info("✓ Cooperative Swarm System initialized")
+except Exception as e:
+    logger.error(f"✗ Cooperative Swarm System failed: {e}")
+    swarm_system = None
+
+# Command System
+try:
+    from command_system import CommandRegistry, execute_command
+    from register_all_commands import register_all_system_commands, get_command_summary
+    command_registry = CommandRegistry()
+    
+    # Register ALL commands from ALL systems
+    total_commands = register_all_system_commands(command_registry)
+    
+    # Get command summary
+    cmd_summary = get_command_summary(command_registry)
+    
+    SYSTEMS_AVAILABLE['commands'] = True
+    logger.info(f"✓ Command System initialized with {total_commands} commands")
+    logger.info(f"  Modules: {', '.join(cmd_summary['modules'])}")
+    logger.info(f"  By module: {cmd_summary['by_module']}")
+except Exception as e:
+    logger.error(f"✗ Command System failed: {e}")
+    command_registry = None
+
+# Learning Engine
+try:
+    from learning_engine import LearningEngine
+    learning_engine = LearningEngine()
+    SYSTEMS_AVAILABLE['learning'] = True
+    logger.info("✓ Learning Engine initialized")
+except Exception as e:
+    logger.error(f"✗ Learning Engine failed: {e}")
+    learning_engine = None
+
+# Workflow Orchestrator (needs swarm and handoff manager)
+try:
+    from workflow_orchestrator import WorkflowOrchestrator
+    from agent_handoff_manager import AgentHandoffManager
+    
+    # Only initialize if swarm is available
+    if swarm_system:
+        handoff_manager = AgentHandoffManager(cooperative_swarm=swarm_system)
+        workflow_orchestrator = WorkflowOrchestrator(
+            cooperative_swarm=swarm_system,
+            handoff_manager=handoff_manager
+        )
+        SYSTEMS_AVAILABLE['workflow'] = True
+        logger.info("✓ Workflow Orchestrator initialized")
+    else:
+        workflow_orchestrator = None
+        logger.warning("⚠ Workflow Orchestrator skipped (swarm not available)")
+except Exception as e:
+    logger.error(f"✗ Workflow Orchestrator failed: {e}")
+    workflow_orchestrator = None
+

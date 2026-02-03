@@ -1,0 +1,4 @@
+Pattern not found
+Found 'results' at index 37
+Context: b'data.results &amp;&amp; d'
+Hex: 646174612e726573756c74732026616d703b26616d703b2064

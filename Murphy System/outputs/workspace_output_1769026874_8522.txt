@@ -1,0 +1,9 @@
+{
+    "agents": 5,
+    "components": 4,
+    "gates": 2,
+    "initial_state_id": "state-92e6a8d6",
+    "message": "System initialized successfully",
+    "states": 1,
+    "system_id": "system-cf195afd"
+}

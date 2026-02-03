@@ -1,0 +1,31 @@
+def magnify_document(doc_id):
+    """Magnify document with domain expertise"""
+    data = request.json
+    domain_name = data.get('domain_name', data.get('domain', 'general'))  # Support both for backward compatibility
+    
+    doc = runtime.living_documents.get(doc_id)
+    if not doc:
+        return jsonify({"error": "Document not found"}), 404
+    
+    # Validate domain exists in engine
+    if runtime.domain_engine:
+        domain_obj = runtime.domain_engine.domains.get(domain_name)
+        if not domain_obj and domain_name != 'general':
+            return jsonify({"error": f"Domain '{domain_name}' not found"}), 400
+    
+    result = doc.magnify(domain_name)
+    return jsonify(result)
+
+@app.route('/api/documents/<doc_id>/simplify', methods=['POST'])
+def simplify_document(doc_id):
+    """Simplify a document"""
+    doc = runtime.living_documents.get(doc_id)
+    if not doc:
+        return jsonify({"error": "Document not found"}), 404
+    
+    result = doc.simplify()
+    return jsonify(result)
+
+@app.route('/api/documents/<doc_id>/solidify', methods=['POST'])
+def solidify_document(doc_id):
+    """Solidify a document and generate prompts"""

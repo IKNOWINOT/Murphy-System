@@ -1,0 +1,3 @@
+96:    def generate_system(self, user_request: str, business_type: str = None) -> Dict:
+218:    def _generate_org_chart(self, business_type: str) -> OrganizationalChart:
+453:    def _generate_workflows(self, business_type: str, org_chart: OrganizationalChart) -> List[Dict]:

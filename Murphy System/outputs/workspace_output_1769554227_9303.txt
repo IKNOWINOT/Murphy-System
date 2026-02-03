@@ -1,0 +1,21 @@
+            if (event.key === 'Enter') {
+                console.log('DEBUG: Enter key detected');
+                const command = terminalInput.value.trim();
+                console.log('DEBUG: Command:', command);
+                if (command) {
+                    console.log('DEBUG: Calling executeTerminalCommand');
+                    executeTerminalCommand(command);
+                    commandHistory.push(command);
+                    historyIndex = commandHistory.length;
+                    terminalInput.value = '';
+                    console.log('DEBUG: Command executed');
+                } else {
+                    console.log('DEBUG: Empty command, ignoring');
+                }
+            } else if (event.key === 'ArrowUp') {
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    terminalInput.value = commandHistory[historyIndex];
+                    event.preventDefault();
+                }
+            } else if (event.key === 'ArrowDown') {

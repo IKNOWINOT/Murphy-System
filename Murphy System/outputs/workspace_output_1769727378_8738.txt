@@ -1,0 +1,46 @@
+============================================================
+MURPHY SYSTEM - REAL TEST EXECUTION
+============================================================
+
+[TEST 1] System Status
+------------------------------------------------------------
+Status Code: 200
+System Status: running
+Initialized: False
+Total Systems: 21
+Systems Operational: 21
+Total Commands: 61
+✅ PASS
+
+[TEST 2] Health Check
+------------------------------------------------------------
+Status Code: 200
+Overall Health: None
+✅ PASS
+
+[TEST 3] LLM Text Generation
+------------------------------------------------------------
+Status Code: 200
+Success: True
+Generated Text: This is a test message to verify the functionality of the Murphy System business automation platform.
+✅ PASS
+
+[TEST 4] Librarian Query
+------------------------------------------------------------
+Status Code: 200
+Success: True
+Response: {'response': {'commands': ['/status', '/help'], 'confidence_level': 'very_low', 'follow_up_questions': ['Would you like more details about any specific component?', 'Should I show you related commands?'], 'intent': {'category': 'query', 'confidence': 0.36, 'context': {}, 'entities': {}, 'keywords': [], 'suggested_commands': ['/status', '/help'], 'suggested_workflow': None, 'timestamp': 'Thu, 29 Jan 2026 22:56:21 GMT'}, 'message': 'I can help you find that information. Try these commands: /status, /help', 'workflow': None}, 'success': True, 'timestamp': '2026-01-29T22:56:21.746699'}
+❌ FAIL
+
+[TEST 5] Command Execution
+------------------------------------------------------------
+Status Code: 200
+Success: True
+Commands Found: 0
+✅ PASS
+
+============================================================
+TEST EXECUTION COMPLETE
+PASSED: 4/5
+FAILED: 1/5
+============================================================

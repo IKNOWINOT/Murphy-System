@@ -1,0 +1,31 @@
+Importing DOCS_v1 workflows into n8n...
+Database: /root/.n8n/database.sqlite
+Workflows directory: /workspace/workflows/docs_v1
+============================================================
+
+✓ Successfully imported: DOCS_v1_Classify_Docs
+  Workflow ID: 07db0e7d-e88a-49c8-a9c8-5df18596f8e3
+  Version ID: ca1ed683-0b0e-4a37-9050-32008f97b0b7
+
+✓ Successfully imported: DOCS_v1_Extract_Data
+  Workflow ID: ea9065d7-c8d5-4847-83c6-1cbd28ac13d3
+  Version ID: 2bb3ebbd-754c-41f2-87d7-05ea7652b3cf
+
+✓ Successfully imported: DOCS_v1_Human_Review_Queue
+  Workflow ID: 8c927ad9-fdaa-4454-9d55-6f3cccc5ddab
+  Version ID: f805fb6d-1525-4e65-a316-13ad78546373
+
+✓ Successfully imported: DOCS_v1_Intake_Docs
+  Workflow ID: 55a79efd-42ab-4e7a-8ef8-4ba1abbc7922
+  Version ID: cfb67737-9dd4-433f-b4f9-395f05820ce4
+
+✓ Successfully imported: DOCS_v1_Route_Docs
+  Workflow ID: 46a1cde5-0e55-423e-a9b3-8af6d8a214a3
+  Version ID: e357a639-704c-45d2-a520-a932c094c7f3
+
+✓ Successfully imported: DOCS_v1_Validate_Data
+  Workflow ID: f8b27ba8-7a1f-4c05-9031-e239221f0b9e
+  Version ID: 5df7b110-8e83-482b-a270-38f76b7a5a7b
+
+============================================================
+Import complete: 6 successful, 0 failed

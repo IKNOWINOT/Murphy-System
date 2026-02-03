@@ -1,0 +1,9 @@
+{
+  "demo_mode": false,
+  "provider": "Groq",
+  "response": [
+    "The Murphy System is a comprehensive business automation platform designed to streamline and simplify various aspects of business operations. It's an integrated system that combines multiple tools and features to help businesses manage their workflows, automate tasks, and make data-driven decisions.\n\nThe Murphy System is built to cater to the diverse needs of businesses, providing a range of functionalities such as:\n\n1. **Workflow Automation**: Automating repetitive tasks and processes to increase efficiency and reduce manual errors.\n2. **Data Management**: Centralizing and organizing data from various sources, making it easily accessible and actionable.\n3. **Analytics and Reporting**: Providing real-time insights and analytics to help businesses track performance, identify trends, and make informed decisions.\n4. **Integration**: Seamlessly integrating with existing systems, tools, and applications to minimize disruptions and maximize productivity.\n5. **Customization**: Allowing businesses to tailor the system to their specific needs, with flexible configuration options and customizable workflows.\n\nThe Murphy System aims to help businesses of all sizes and industries optimize their operations, enhance collaboration, and drive growth. As your intelligent AI assistant, I'm here to provide guidance, support, and expertise to help you get the most out of the Murphy System. How can I assist you today?",
+    313
+  ],
+  "success": true
+}

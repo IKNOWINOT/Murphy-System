@@ -1,0 +1,7 @@
+76:def log_event(event_type, command, request_data, response_data, error=None):
+573:def execute_command_endpoint():
+1138:def store_commands_in_librarian():
+1147:def search_commands():
+1159:def generate_command():
+1171:def get_command_stats():
+1180:def suggest_commands():

@@ -1,0 +1,30 @@
+42:# Runtime orchestrator - optional, comment out if not needed
+44:    from runtime_orchestrator_enhanced import (
+45:        get_orchestrator,
+46:        reset_orchestrator,
+49:        CollectiveMind,
+51:        GeneratedAgent
+56:    logger.warning("runtime_orchestrator_enhanced not available - some features disabled")
+201:    from workflow_orchestrator import WorkflowOrchestrator
+207:        workflow_orchestrator = WorkflowOrchestrator(
+214:        workflow_orchestrator = None
+218:    workflow_orchestrator = None
+583:    if not workflow_orchestrator:
+584:        return jsonify({'error': 'Workflow orchestrator not available'}), 503
+590:        workflow = workflow_orchestrator.create_workflow(workflow_def)
+604:    if not workflow_orchestrator:
+605:        return jsonify({'error': 'Workflow orchestrator not available'}), 503
+608:        result = workflow_orchestrator.execute(workflow_id)
+1236:    Process any request using enhanced runtime orchestrator with dynamic agent generation
+1276:            enhanced_orchestrator.set_capacity_limit(capacity_limit)
+1278:            enhanced_orchestrator.set_max_parallel(max_parallel)
+1286:            enhanced_orchestrator.process_request(task)
+1312:        status = enhanced_orchestrator.get_task_status(task_id)
+1324:        tasks = enhanced_orchestrator.get_all_tasks()
+1348:            enhanced_orchestrator.set_capacity_limit(capacity_limit)
+1350:            enhanced_orchestrator.set_max_parallel(max_parallel)
+1355:            'capacity_limit': enhanced_orchestrator.capacity_limit,
+1356:            'max_parallel': enhanced_orchestrator.max_parallel
+1363:    """Get enhanced runtime orchestrator status"""
+1367:            'type': 'enhanced_runtime_orchestrator',
+1377:            'capacity_limit': enhanced_orchestrator.capacity_limit,

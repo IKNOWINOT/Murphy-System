@@ -1,0 +1,29 @@
+⚠️  Mismatch in try-except block:
+  Try sets: {'AUTH_AVAILABLE'}
+  Except sets: set()
+⚠️  Mismatch in try-except block:
+  Try sets: {'DB_AVAILABLE'}
+  Except sets: set()
+⚠️  Mismatch in try-except block:
+  Try sets: {'MONITORING_AVAILABLE'}
+  Except sets: set()
+⚠️  Mismatch in try-except block:
+  Try sets: {'ATTENTION_AVAILABLE'}
+  Except sets: set()
+⚠️  Mismatch in try-except block:
+  Try sets: {'ARTIFACTS_AVAILABLE'}
+  Except sets: set()
+⚠️  Mismatch in try-except block:
+  Try sets: {'MODULES_AVAILABLE'}
+  Except sets: set()
+⚠️  Mismatch in try-except block:
+  Try sets: {'COMMAND_SYSTEM_AVAILABLE'}
+  Except sets: set()
+⚠️  Mismatch in try-except block:
+  Try sets: {'MODULES_AVAILABLE', 'SHADOW_AGENTS_AVAILABLE'}
+  Except sets: set()
+⚠️  Mismatch in try-except block:
+  Try sets: {'COOPERATIVE_SWARM_AVAILABLE'}
+  Except sets: set()
+
+✓ All *_AVAILABLE variables properly defined in try-except blocks

@@ -1,0 +1,16 @@
+        'timestamp': datetime.now().isoformat()
+    }
+    
+    # Route to appropriate system
+    if task_type == 'generate' and llm_manager:
+        result['output'] = llm_manager.generate(task_data.get('prompt', ''))
+    elif task_type == 'command':
+        # Execute command
+        pass
+    elif task_type == 'artifact' and artifact_generator:
+        # Generate artifact
+        pass
+    
+    emit('task_result', result)
+
+if __name__ == '__main__':

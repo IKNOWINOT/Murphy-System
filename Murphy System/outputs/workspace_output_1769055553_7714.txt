@@ -1,0 +1,34 @@
+@app.route('/api/status')
+def get_status():
+    """Get system status"""
+    return jsonify({
+        "status": "running",
+        "initialized": system_state['initialized'],
+        "llms": {
+            "groq": {
+                "clients": len(llm_router.groq_clients),
+                "current_index": llm_router.groq_index,
+                "status": "active"
+            },
+            "aristotle": {
+                "endpoint": "Aristotle API",
+                "status": "active" if llm_router.aristotle_available else "unavailable"
+            },
+            "onboard": {
+                "status": "available" if llm_router.onboard_available else "unavailable"
+            }
+        },
+        "metrics": {
+            "agents": len(system_state['agents']),
+            "states_generated": len(system_state['states']),
+            "artifacts_created": 0,
+            "gates_active": len([g for g in system_state['gates'].values() if g['status'] == 'active']),
+            "swarms_running": 0
+        }
+    })
+
+@app.route('/api/initialize', methods=['POST'])
+def initialize_system():
+    """Initialize Murphy System"""
+    system_state['initialized'] = True
+    system_state['system_id'] = f"system-{uuid.uuid4().hex[:8]}"

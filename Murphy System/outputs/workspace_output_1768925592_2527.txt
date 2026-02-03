@@ -1,0 +1,157 @@
+@app.route('/api/initialize', methods=['POST'])
+def initialize_system():
+    """Initialize Murphy System"""
+    data = request.json
+    mode = data.get('mode', 'guided')
+    
+    runtime.initialized = True
+    
+    return jsonify({
+        "success": True,
+        "mode": mode,
+        "message": "Murphy System initialized"
+    })
+
+@app.route('/api/documents', methods=['POST'])
+def create_document():
+    """Create a living document"""
+    data = request.json
+    
+    doc = runtime.create_living_document(
+        title=data.get('title', 'Untitled'),
+        content=data.get('content', ''),
+        doc_type=data.get('type', 'general')
+    )
+    
+    return jsonify(doc.to_dict())
+
+@app.route('/api/documents/<doc_id>/magnify', methods=['POST'])
+def magnify_document(doc_id):
+    """Magnify a document"""
+    data = request.json
+    domain = data.get('domain', 'general')
+    
+    doc = runtime.living_documents.get(doc_id)
+    if not doc:
+        return jsonify({"error": "Document not found"}), 404
+    
+    result = doc.magnify(domain)
+    return jsonify(result)
+
+@app.route('/api/documents/<doc_id>/simplify', methods=['POST'])
+def simplify_document(doc_id):
+    """Simplify a document"""
+    doc = runtime.living_documents.get(doc_id)
+    if not doc:
+        return jsonify({"error": "Document not found"}), 404
+    
+    result = doc.simplify()
+    return jsonify(result)
+
+@app.route('/api/documents/<doc_id>/solidify', methods=['POST'])
+async def solidify_document(doc_id):
+    """Solidify a document and generate prompts"""
+    doc = runtime.living_documents.get(doc_id)
+    if not doc:
+        return jsonify({"error": "Document not found"}), 404
+    
+    # Solidify document
+    doc.solidify()
+    
+    # Generate prompts
+    prompts = await runtime.generate_prompts_from_document(doc_id)
+    
+    # Assign swarm tasks
+    tasks = runtime.assign_swarm_tasks(prompts)
+    
+    # Generate gates
+    gates = []
+    for domain in ["engineering", "financial", "regulatory"]:
+        gates.extend(runtime.generate_domain_gates(domain))
+    
+    return jsonify({
+        "document": doc.to_dict(),
+        "prompts": prompts,
+        "tasks": tasks,
+        "gates": gates
+    })
+
+@app.route('/api/tasks/<task_id>/execute', methods=['POST'])
+async def execute_task(task_id):
+    """Execute a swarm task"""
+    # Find task
+    task = None
+    for t in runtime.swarms:
+        if t.get('task_id') == task_id:
+            task = t
+            break
+    
+    if not task:
+        return jsonify({"error": "Task not found"}), 404
+    
+    result = await runtime.execute_swarm_task(task)
+    return jsonify(result)
+
+@app.route('/api/approvals/consolidate', methods=['POST'])
+def consolidate_approvals():
+    """Consolidate approval requests"""
+    data = request.json
+    tasks = data.get('tasks', [])
+    
+    consolidated = runtime.consolidate_approvals(tasks)
+    return jsonify(consolidated)
+
+@app.route('/api/status', methods=['GET'])
+def get_status():
+    """Get system status"""
+    return jsonify({
+        "initialized": runtime.initialized,
+        "documents": len(runtime.living_documents),
+        "states": len(runtime.states),
+        "artifacts": len(runtime.artifacts),
+        "gates": len(runtime.gates),
+        "swarms": len(runtime.swarms)
+    })
+
+@app.route('/api/test-groq', methods=['POST'])
+def test_groq():
+    """Test Groq API connection"""
+    try:
+        data = request.json
+        prompt = data.get('prompt', 'Say hello and confirm you are the Murphy System AI')
+        
+        # Direct synchronous call to Groq
+        client = get_next_groq_client()
+        if not client:
+            return jsonify({
+                'success': False,
+                'error': 'No Groq clients available'
+            }), 500
+        
+        response = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.3-70b-versatile",
+            temperature=0.7,
+            max_tokens=500
+        )
+        
+        return jsonify({
+            'success': True,
+            'response': response.choices[0].message.content,
+            'groq_clients_available': len(groq_clients),
+            'model': 'llama-3.3-70b-versatile'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/')
+def index():
+    """Serve frontend"""
+    return app.send_static_file('murphy_complete.html')
+
+app.static_folder = '/workspace'
+app.static_url_path = ''
+

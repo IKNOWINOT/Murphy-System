@@ -1,0 +1,7 @@
+0000000                                                                
+0000020                                                   i   f       (
+0000040   d   a   t   a   .   r   e   s   u   l   t   s       &   a   m
+0000060   p   ;   &   a   m   p   ;       d   a   t   a   .   r   e   s
+0000100   u   l   t   s   .   l   e   n   g   t   h       >       0   )
+0000120       {  \n
+0000123

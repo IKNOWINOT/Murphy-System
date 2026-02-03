@@ -1,0 +1,11 @@
+1781:            <button class="action-btn primary" onclick="alert('Button clicked!'); if (typeof initializeSystem === 'function') { initializeSystem(); } else { alert('initializeSystem not defined yet!'); }">INITIALIZE SYSTEM</button>
+1782:            <button class="action-btn" style="margin-top: 10px; background: #ff4444;" onclick="testHideModal()">TEST HIDE</button>
+1783:            <button class="action-btn" style="margin-top: 10px; background: #4444ff;" onclick="testShowModal()">TEST SHOW</button>
+1874:            <button class="close-btn" onclick="closeDetailPanel()">×</button>
+1890:                <button onclick="closeShadowPanel()" class="close-btn">&times;</button>
+1932:                <button onclick="closeMonitoringPanel()" class="close-btn">&times;</button>
+1975:                    <button class="btn btn-primary" onclick="monitoringPanel.runAnalysis()">
+1978:                    <button class="btn btn-secondary" onclick="closeMonitoringPanel()">
+2582:                        <button class="action-btn primary" onclick="evolveState('${data.stateId}')">EVOLVE</button>
+2583:                        <button class="action-btn" onclick="regenerateState('${data.stateId}')">REGENERATE</button>
+2584:                        <button class="action-btn danger" onclick="rollbackState('${data.stateId}')">ROLLBACK</button>

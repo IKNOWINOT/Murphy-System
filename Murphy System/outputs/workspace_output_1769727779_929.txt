@@ -1,0 +1,2 @@
+chmod: cannot access 'start_murphy.sh': No such file or directory
+chmod: cannot access 'stop_murphy.sh': No such file or directory

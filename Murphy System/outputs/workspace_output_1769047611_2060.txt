@@ -1,0 +1,48 @@
+class SystemLibrarian:
+    """
+    Enhanced system librarian
+    Maintains complete transcript logs and generates documentation
+    Provides system understanding from any module's perspective
+    """
+    
+    def __init__(self):
+        self.transcripts: List[TranscriptEntry] = []
+        self.knowledge_base: Dict[str, SystemKnowledge] = {}
+        self.documents: Dict[str, GeneratedDocument] = {}
+        
+        self.entry_count = 0
+        self.knowledge_count = 0
+        self.doc_count = 0
+        
+        # Initialize system knowledge
+        self._initialize_system_knowledge()
+        
+        # Module function mappings
+        self.module_functions = self._load_module_functions()
+        
+        # Module capabilities
+        self.module_capabilities = self._load_module_capabilities()
+    
+    def _initialize_system_knowledge(self):
+        """Initialize system knowledge base"""
+        knowledge_entries = [
+            {
+                "category": "expert_generation",
+                "topic": "Dynamic Expert Generation",
+                "description": "System automatically generates domain experts based on requirements using templates and LLM prompts",
+                "related_modules": ["dynamic_expert_generator"],
+                "related_functions": ["generate_expert", "generate_expert_team"],
+                "references": ["expert_templates", "domain_knowledge"]
+            },
+            {
+                "category": "gate_generation",
+                "topic": "Domain Gate Generation",
+                "description": "System generates safety gates with wired functions based on domain requirements and librarian knowledge",
+                "related_modules": ["domain_gate_generator"],
+                "related_functions": ["generate_gate", "generate_gates_for_system"],
+                "references": ["gate_templates", "wired_functions"]
+            },
+            {
+                "category": "constraint_management",
+                "topic": "Multi-Factor Constraint System",
+                "description": "Manages budget, regulatory, architectural constraints with validation and conflict resolution",

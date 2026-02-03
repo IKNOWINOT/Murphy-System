@@ -1,0 +1,2 @@
+3002_python3: ERROR (not running)
+root        2135  7.0  1.5 142780 62260 ?        Sl   15:48   0:01 /usr/local/bin/python3 murphy_backend_complete.py

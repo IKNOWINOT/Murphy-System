@@ -1,0 +1,31 @@
+# ============================================================================
+# LIBRARIAN SYSTEM INTEGRATION
+# ============================================================================
+
+try:
+    # Initialize Librarian System with real LLM
+    librarian_system = LibrarianSystem(llm_client=llm_manager if LLM_AVAILABLE else None)
+    LIBRARIAN_AVAILABLE = True
+    logger.info("Librarian System initialized")
+
+    logger.error(f"✗ Enhanced systems initialization failed: {e}")
+    enhanced_librarian_system = EnhancedLibrarianSystem()
+    executive_bot_manager = ExecutiveBotManager()
+    hybrid_command_system = HybridCommandSystem(
+        librarian_system=enhanced_librarian_system,
+        executive_bots=executive_bot_manager
+    )
+
+    logger.info("✓ Enhanced systems initialized with LLM support")
+    else:
+        enhanced_librarian_system = EnhancedLibrarianSystem()
+        executive_bot_manager = ExecutiveBotManager()
+        hybrid_command_system = HybridCommandSystem(
+            librarian_system=enhanced_librarian_system,
+            executive_bots=executive_bot_manager
+        )
+        logger.info("✓ Enhanced systems initialized (LLM not available)")
+except Exception as e:
+    logger.error(f"✗ Enhanced systems initialization failed: {e}")
+    enhanced_librarian_system = EnhancedLibrarianSystem()
+    executive_bot_manager = ExecutiveBotManager()

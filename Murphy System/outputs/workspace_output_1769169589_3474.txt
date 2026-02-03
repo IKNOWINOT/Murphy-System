@@ -1,0 +1,21 @@
+            'swarms_running': 0,
+            'agents': len(agents)
+        }
+    })
+
+@app.route('/api/initialize', methods=['POST'])
+def initialize_system():
+    """Initialize Murphy System"""
+    data = request.json or {}
+    init_type = data.get('type', 'demo')
+    
+    # Create demo agents
+    agent_configs = [
+        ("Sales Agent", "Sales", "Business"),
+        ("Engineering Agent", "Engineering", "Engineering"),
+        ("Financial Agent", "Financial", "Financial"),
+        ("Legal Agent", "Legal", "Legal"),
+        ("Operations Agent", "Operations", "Operations")
+    ]
+    
+    for name, type, domain in agent_configs:

@@ -1,0 +1,6 @@
+-rw-r--r-- 1 root root  8566 Jan 22 04:06 /workspace/aristotle_client.py
+-rw-r--r-- 1 root root 14512 Jan 22 04:30 /workspace/aristotle_verification_system.py
+-rw-r--r-- 1 root root  4933 Jan 22 04:05 /workspace/groq_client.py
+-rw-r--r-- 1 root root 17013 Jan 22 04:04 /workspace/llm_integration_manager.py
+-rw-r--r-- 1 root root 15104 Jan 22 04:10 /workspace/murphy_llm_backend.py
+-rw-r--r-- 1 root root  8624 Jan 22 04:13 /workspace/test_llm_integration.py

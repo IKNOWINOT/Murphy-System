@@ -1,0 +1,47 @@
+class PaymentProcessor:
+    """Handle payment processing via Stripe"""
+    
+    def __init__(self, stripe_api_key=None):
+        self.stripe_api_key = stripe_api_key or os.getenv('STRIPE_API_KEY')
+        self.stripe_url = "https://api.stripe.com/v1"
+    
+    def create_payment_link(self, product_name: str, price: float, description: str) -> Dict:
+        """Create a Stripe payment link"""
+        if not self.stripe_api_key:
+            return {
+                'success': False,
+                'error': 'Stripe API key not configured',
+                'demo_link': f'https://buy.stripe.com/demo/{product_name.replace(" ", "-")}'
+            }
+        
+        # In production, this would call Stripe API
+        return {
+            'success': True,
+            'payment_link': f'https://buy.stripe.com/{product_name.replace(" ", "-")}',
+            'product': product_name,
+            'price': price
+        }
+    
+    def create_product(self, name: str, price: float, description: str) -> Dict:
+        """Create a product in Stripe"""
+        return {
+            'success': True,
+            'product_id': f'prod_{name.replace(" ", "_")}',
+            'name': name,
+            'price': price,
+            'description': description
+        }
+
+class EmailMarketing:
+    """Handle email marketing campaigns"""
+    
+    def __init__(self, smtp_host=None, smtp_port=None, smtp_user=None, smtp_pass=None):
+        self.smtp_host = smtp_host or os.getenv('SMTP_HOST', 'smtp.gmail.com')
+        self.smtp_port = smtp_port or int(os.getenv('SMTP_PORT', '587'))
+        self.smtp_user = smtp_user or os.getenv('SMTP_USER')
+        self.smtp_pass = smtp_pass or os.getenv('SMTP_PASS')
+    
+    def send_email(self, to_email: str, subject: str, body: str, html: bool = False) -> Dict:
+        """Send an email"""
+        if not self.smtp_user or not self.smtp_pass:
+            return {

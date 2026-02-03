@@ -1,0 +1,4 @@
+        artifact_manager = ArtifactManager()$
+        logger.info("M-bM-^\M-^S Artifact systems initialized")$
+    except Exception as e:$
+        logger.error(f"M-bM-^\M-^W Failed to initialize artifact systems: {e}")$

@@ -1,0 +1,31 @@
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/llm/status', methods=['GET'])
+def llm_status():
+    """Get LLM system status."""
+    try:
+        if not LLM_AVAILABLE or not llm_manager:
+            return jsonify({
+                'success': False,
+                'available': False,
+                'providers': []
+            })
+        
+        status = llm_manager.get_status()
+        
+        return jsonify({
+            'success': True,
+            'available': True,
+            'total_providers': status['total_providers'],
+            'available_providers': status['available_providers'],
+            'providers': status['providers']
+        })
+    
+    except Exception as e:
+        logger.error(f"LLM status error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500

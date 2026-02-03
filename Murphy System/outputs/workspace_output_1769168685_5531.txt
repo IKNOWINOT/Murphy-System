@@ -1,0 +1,16 @@
+Getting fresh token and initializing...
+Login result: {
+  "message": "Login successful",
+  "success": true,
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzY5MTY4Njg1LCJleHAiOjE3NjkyNTUwODV9.XbHU5BZdJTtCHf19CRoJN7p2ykPRTVFrc4inn_ln860",
+  "user": {
+    "role": "admin",
+    "username": "admin"
+  }
+}
+Token: ...
+Initialization result: {
+  "error": "invalid_token",
+  "message": "Invalid or expired token",
+  "success": false
+}

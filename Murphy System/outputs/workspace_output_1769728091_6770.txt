@@ -1,0 +1,16 @@
+189:            # Run async method synchronously
+190-            loop = asyncio.new_event_loop()
+191-            asyncio.set_event_loop(loop)
+192-            try:
+193-                result = loop.run_until_complete(client.generate(prompt))
+194-                # GroqClient returns [response, token_count]
+195-                if isinstance(result, (list, tuple)) and len(result) > 0:
+196-                    response = result[0]
+197-                    logger.info(f"Groq key {key_index} response: {len(response)} chars")
+198-                    return response
+199-                return result
+200-            finally:
+201-                loop.close()
+202-                
+203-        except Exception as e:
+204-            logger.error(f"Groq API error (key {key_index}): {e}")

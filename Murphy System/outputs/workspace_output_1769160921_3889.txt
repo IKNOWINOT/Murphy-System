@@ -1,0 +1,93 @@
+INFO:__main__:✓ Monitoring components loaded successfully
+INFO:__main__:✓ Monitoring systems initialized
+INFO:__main__:✓ Artifact components loaded successfully
+INFO:__main__:✓ Artifact systems initialized
+INFO:__main__:✓ Shadow Agent components loaded successfully
+INFO:__main__:✓ Shadow Agent systems initialized
+INFO:__main__:✓ Cooperative Swarm components loaded successfully
+INFO:__main__:✓ Cooperative Swarm systems initialized
+INFO:__main__:============================================================
+INFO:__main__:Murphy System Complete Backend Server v3.0
+INFO:__main__:============================================================
+INFO:__main__:Monitoring: ✓
+INFO:__main__:Artifacts: ✓
+INFO:__main__:Shadow Agents: ✓
+INFO:__main__:Cooperative Swarm: ✓
+INFO:__main__:============================================================
+WARNING:werkzeug:Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+ * Serving Flask app 'murphy_backend_complete'
+ * Debug mode: on
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:3002
+ * Running on http://172.16.166.90:3002
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
+INFO:werkzeug: * Restarting with stat
+INFO:__main__:✓ Monitoring components loaded successfully
+INFO:__main__:✓ Monitoring systems initialized
+INFO:__main__:✓ Artifact components loaded successfully
+INFO:__main__:✓ Artifact systems initialized
+INFO:__main__:✓ Shadow Agent components loaded successfully
+INFO:__main__:✓ Shadow Agent systems initialized
+INFO:__main__:✓ Cooperative Swarm components loaded successfully
+INFO:__main__:✓ Cooperative Swarm systems initialized
+INFO:__main__:============================================================
+INFO:__main__:Murphy System Complete Backend Server v3.0
+INFO:__main__:============================================================
+INFO:__main__:Monitoring: ✓
+INFO:__main__:Artifacts: ✓
+INFO:__main__:Shadow Agents: ✓
+INFO:__main__:Cooperative Swarm: ✓
+INFO:__main__:============================================================
+WARNING:werkzeug:Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 782-937-257
+INFO:werkzeug:127.0.0.1 - - [23/Jan/2026 09:35:34] "GET /api/cooperative/workflows HTTP/1.1" 200 -
+INFO:werkzeug: * Detected change in '/workspace/murphy_backend_complete.py', reloading
+INFO:werkzeug: * Restarting with stat
+INFO:__main__:✓ Monitoring components loaded successfully
+INFO:__main__:✓ Monitoring systems initialized
+INFO:__main__:✓ Stability-Based Attention System loaded successfully
+INFO:STABILITY_BASED_ATTENTION_SYSTEM:Stability-Based Attention System initialized
+INFO:__main__:✓ Attention system initialized
+INFO:__main__:✓ Artifact components loaded successfully
+INFO:__main__:✓ Artifact systems initialized
+INFO:__main__:✓ Shadow Agent components loaded successfully
+INFO:__main__:✓ Shadow Agent systems initialized
+INFO:__main__:✓ Cooperative Swarm components loaded successfully
+INFO:__main__:✓ Cooperative Swarm systems initialized
+INFO:__main__:============================================================
+INFO:__main__:Murphy System Complete Backend Server v3.0
+INFO:__main__:============================================================
+INFO:__main__:Monitoring: ✓
+INFO:__main__:Artifacts: ✓
+INFO:__main__:Shadow Agents: ✓
+INFO:__main__:Cooperative Swarm: ✓
+INFO:__main__:============================================================
+WARNING:werkzeug:Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 782-937-257
+INFO:werkzeug: * Detected change in '/workspace/murphy_backend_complete.py', reloading
+INFO:werkzeug: * Restarting with stat
+INFO:__main__:✓ Monitoring components loaded successfully
+INFO:__main__:✓ Monitoring systems initialized
+INFO:__main__:✓ Stability-Based Attention System loaded successfully
+INFO:STABILITY_BASED_ATTENTION_SYSTEM:Stability-Based Attention System initialized
+INFO:__main__:✓ Attention system initialized
+INFO:__main__:✓ Artifact components loaded successfully
+INFO:__main__:✓ Artifact systems initialized
+INFO:__main__:✓ Shadow Agent components loaded successfully
+INFO:__main__:✓ Shadow Agent systems initialized
+INFO:__main__:✓ Cooperative Swarm components loaded successfully
+INFO:__main__:✓ Cooperative Swarm systems initialized
+INFO:__main__:============================================================
+INFO:__main__:Murphy System Complete Backend Server v3.0
+INFO:__main__:============================================================
+INFO:__main__:Monitoring: ✓
+INFO:__main__:Artifacts: ✓
+INFO:__main__:Shadow Agents: ✓
+INFO:__main__:Cooperative Swarm: ✓
+INFO:__main__:============================================================
+WARNING:werkzeug:Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 782-937-257

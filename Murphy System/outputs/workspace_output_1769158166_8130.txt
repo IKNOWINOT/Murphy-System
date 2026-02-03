@@ -1,0 +1,4 @@
+{
+  "message": "ArtifactGenerationSystem.generate_artifact() got an unexpected keyword argument 'content'",
+  "success": false
+}

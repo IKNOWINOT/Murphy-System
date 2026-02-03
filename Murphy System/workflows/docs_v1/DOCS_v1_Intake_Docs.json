@@ -1,0 +1,334 @@
+{
+  "name": "DOCS_v1_Intake_Docs",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "documents/upload",
+        "responseMode": "responseNode",
+        "options": {
+          "binaryData": "file"
+        }
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "docs-v1-intake-docs-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-client-id",
+              "leftValue": "={{ $json.body.client_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty"
+              }
+            },
+            {
+              "id": "has-file",
+              "leftValue": "={{ $json.binary }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "validate-input",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT client_id, name, status, is_active FROM clients WHERE client_id = $1 AND is_active = true;",
+        "options": {}
+      },
+      "id": "lookup-client",
+      "name": "Lookup Client",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [650, 200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT pack_id, is_enabled FROM client_packs WHERE client_id = $1 AND pack_id = 'DOCS_v1' AND is_enabled = true;",
+        "options": {}
+      },
+      "id": "check-pack-enabled",
+      "name": "Check Pack Enabled",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [850, 200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate unique document ID and filename\nconst timestamp = new Date().getTime();\nconst random = Math.random().toString(36).substring(2, 8);\nconst fileId = `doc_${timestamp}_${random}`;\n\n// Get file info from binary data\nconst binaryData = $input.first().binary;\nconst fileInfo = {};\n\n// Find the binary file (could be named 'file', 'data', etc.)\nconst binaryKeys = Object.keys(binaryData);\nfor (const key of binaryKeys) {\n  const file = binaryData[key];\n  if (file && file.data && file.mimeType) {\n    fileInfo.name = file.fileName || 'uploaded_file';\n    fileInfo.mimeType = file.mimeType;\n    fileInfo.size = file.data.length || 0;\n    fileInfo.extension = file.fileName ? file.fileName.split('.').pop().toLowerCase() : 'bin';\n    fileInfo.data = file.data;\n    fileInfo.binaryKey = key;\n    break;\n  }\n}\n\n// Generate storage path\nconst storagePath = `/storage/documents/${fileInfo.mimeType.split('/')[0]}/${fileId}.${fileInfo.extension}`;\n\n// Determine document type based on MIME type\nlet docType = 'unknown';\nconst mimeType = fileInfo.mimeType;\nif (mimeType === 'application/pdf') {\n  docType = 'pdf';\n} else if (mimeType.includes('image')) {\n  docType = 'image';\n} else if (mimeType.includes('text') || mimeType === 'application/json' || mimeType === 'application/xml') {\n  docType = 'text';\n} else if (mimeType.includes('word') || mimeType.includes('document')) {\n  docType = 'document';\n} else if (mimeType.includes('sheet') || mimeType.includes('excel')) {\n  docType = 'spreadsheet';\n}\n\nreturn [{\n  json: {\n    file_id: fileId,\n    original_filename: fileInfo.name,\n    storage_path: storagePath,\n    mime_type: fileInfo.mimeType,\n    file_size: fileInfo.size,\n    file_extension: fileInfo.extension,\n    document_type: docType,\n    source: 'webhook_upload',\n    status: 'uploaded'\n  },\n  binary: {\n    [fileInfo.binaryKey]: binaryData[fileInfo.binaryKey]\n  }\n}];"
+      },
+      "id": "process-file-info",
+      "name": "Process File Info",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "={{ $json.storage_path }}",
+        "dataPropertyName": "data",
+        "options": {}
+      },
+      "id": "save-file",
+      "name": "Save File to Storage",
+      "type": "n8n-nodes-base.writeFile",
+      "typeVersion": 1,
+      "position": [1250, 200]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO documents (client_id, document_uuid, original_filename, storage_path, mime_type, file_size, file_extension, document_type, source, status, metadata, received_at, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW(), NOW()) RETURNING document_id, document_uuid;",
+        "options": {}
+      },
+      "id": "insert-document",
+      "name": "Insert Document Record",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1450, 200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO workflow_executions (client_id, workflow_name, workflow_id, execution_id, status, input_data, output_data, started_at, updated_at) VALUES ($1, $2, $3, $4, 'completed', $5, $6, NOW(), NOW());",
+        "options": {}
+      },
+      "id": "log-execution",
+      "name": "Log Execution",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1650, 200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-config",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  &quot;success&quot;: true,\n  &quot;document_id&quot;: &quot;={{ $json.document_id }}&quot;,\n  &quot;document_uuid&quot;: &quot;={{ $json.document_uuid }}&quot;,\n  &quot;original_filename&quot;: &quot;={{ $json.original_filename }}&quot;,\n  &quot;status&quot;: &quot;uploaded&quot;,\n  &quot;received_at&quot;: &quot;={{ $json.created_at }}&quot;\n}"
+      },
+      "id": "success-response",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1850, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  &quot;success&quot;: false,\n  &quot;error&quot;: &quot;MISSING_PARAMETERS&quot;,\n  &quot;message&quot;: &quot;client_id and file are required&quot;\n}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "error-missing-params",
+      "name": "Error: Missing Parameters",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [650, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  &quot;success&quot;: false,\n  &quot;error&quot;: &quot;INVALID_CLIENT&quot;,\n  &quot;message&quot;: &quot;Client not found or inactive&quot;\n}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "id": "error-invalid-client",
+      "name": "Error: Invalid Client",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  &quot;success&quot;: false,\n  &quot;error&quot;: &quot;PACK_DISABLED&quot;,\n  &quot;message&quot;: &quot;DOCS_v1 pack is not enabled for this client&quot;\n}",
+        "options": {
+          "responseCode": 403
+        }
+      },
+      "id": "error-pack-disabled",
+      "name": "Error: Pack Disabled",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1050, 400]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Lookup Client",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: Missing Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Client": {
+      "main": [
+        [
+          {
+            "node": "Check Pack Enabled",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: Invalid Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Pack Enabled": {
+      "main": [
+        [
+          {
+            "node": "Process File Info",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: Pack Disabled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process File Info": {
+      "main": [
+        [
+          {
+            "node": "Save File to Storage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save File to Storage": {
+      "main": [
+        [
+          {
+            "node": "Insert Document Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Document Record": {
+      "main": [
+        [
+          {
+            "node": "Log Execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Execution": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-01-15T10:00:00.000Z",
+      "updatedAt": "2024-01-15T10:00:00.000Z",
+      "id": "tag-docs-v1",
+      "name": "DOCS_v1"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-15T10:00:00.000Z",
+  "versionId": "1"
+}

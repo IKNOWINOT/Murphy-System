@@ -1,0 +1,1 @@
+export function simpleSaliency(pixels:number[][][]){ const H=pixels.length||0, W=(pixels[0]||[]).length||0; const cx=W/2, cy=H/2; let s=0,c=0; for(let y=0;y<H;y++){ for(let x=0;x<W;x++){ const dx=x-cx, dy=y-cy; const w = 1/Math.max(1, Math.sqrt(dx*dx+dy*dy)); s+=w; c++; } } return { center_weight: +(s/c).toFixed(3) }; }

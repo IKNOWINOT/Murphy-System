@@ -1,0 +1,21 @@
+1885:                <button onclick="closeMonitoringPanel()" class="close-btn">&times;</button>
+1931:                    <button class="btn btn-secondary" onclick="closeMonitoringPanel()">
+3243:                    ArtifactPanel.showGenerateDialog();
+3262:                        await ArtifactPanel.downloadArtifact(args[0]);
+3308:                await ArtifactPanel.selectArtifact(artifactId);
+3442:        function openMonitoringPanel() {
+3449:        function closeMonitoringPanel() {
+3781:                    openMonitoringPanel();
+4214:            window.librarianPanel = new LibrarianPanel(API_BASE);
+4215:            window.librarianPanel.init();
+4218:            window.planReviewPanel = new PlanReviewPanel(API_BASE);
+4219:            window.planReviewPanel.init();
+4222:            window.documentEditorPanel = new DocumentEditorPanel(API_BASE);
+4223:            window.documentEditorPanel.init();
+4226:            if (typeof ArtifactPanel !== 'undefined') {
+4227:                ArtifactPanel.init();
+4228:                window.ArtifactPanel = ArtifactPanel;
+4232:            window.shadowAgentPanel = new ShadowAgentPanel();
+4233:            window.shadowAgentPanel.init();
+4236:            window.monitoringPanel = new MonitoringPanel();
+4237:            window.monitoringPanel.init();

@@ -1,0 +1,41 @@
+                    
+                    // Generate connections for agent graph
+                    currentConnections = generateAgentConnections(currentAgents);
+                    
+                    addTerminalLog(`  Loaded ${currentAgents.length} agents`, 'info');
+                    addTerminalLog(`  Loaded ${currentStates.length} states`, 'info');
+                    
+                    // Refresh UI
+                    updateMetrics();
+                    updateAgentGraph(currentAgents, currentConnections);
+                    renderStateTree(currentStates);
+                    updateProcessFlow(currentStates);
+                    
+                    // Connect to Socket.IO for real-time updates
+                    connectWebSocket();
+                } else {
+                    addTerminalLog('\u2717 Initialization failed', 'error');
+                }
+            } catch (error) {
+                console.error('Initialization error:', error);
+                addTerminalLog(`\u2717 Error: ${error.message}`, 'error');
+            }
+        }
+
+                addTerminalLog('No agents available. Initialize system first.', 'warning');
+                return;
+            }
+            
+            currentAgents.forEach(agent => {
+                addTerminalLog(`  ${agent.id.padEnd(15)} - ${agent.name}`, 'info');
+            });
+        }
+
+        async function listStates() {
+            addTerminalLog('=== States ===', 'info');
+            
+            if (currentStates.length === 0) {
+                addTerminalLog('No states available. Initialize system first.', 'warning');
+                return;
+            }
+            

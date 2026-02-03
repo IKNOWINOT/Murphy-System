@@ -1,0 +1,11 @@
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ query })
+                            });
+                            const data = await response.json();
+                            if (data.results &amp;&amp; data.results.length > 0) {
+                                addTerminalLog(`✓ Found ${data.count} results:`, 'success');
+                                data.results.forEach((result, i) => {
+                                    addTerminalLog(`  ${i + 1}. [${result.type.toUpperCase()}] ${result.name}`, 'info');
+                                    addTerminalLog(`     ${result.description}`, 'info');
+                                });

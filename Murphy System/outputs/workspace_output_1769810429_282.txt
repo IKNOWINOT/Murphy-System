@@ -1,0 +1,4 @@
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   209  100   186  100    23    576     71 --:--:-- --:--:-- --:--:--   649
+{"response":"Hello. I'm Murphy, your AI assistant for the Murphy System business automation platform. How can I help you today?","success":true,"timestamp":"2026-01-30T22:00:30.050222"}

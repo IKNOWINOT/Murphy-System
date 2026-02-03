@@ -1,0 +1,62 @@
+    def analyze_request(self, request: str) -> Dict:
+        """Analyze request and determine domain coverage"""
+        # Extract keywords
+        keywords = self._extract_keywords(request.lower())
+        
+        # Match against existing domains
+        domain_matches = {}
+        for domain_name, domain in self.domains.items():
+            score = self._calculate_domain_match(keywords, domain)
+            if score > 0:
+                domain_matches[domain_name] = score
+        
+        # Calculate coverage
+        total_score = sum(domain_matches.values())
+        coverage = min(total_score / 10.0, 1.0)  # Normalize to 0-1
+        
+        return {
+            'coverage': coverage,
+            'matched_domains': domain_matches,
+            'needs_generative': coverage < 0.7,
+            'keywords': keywords
+        }
+    
+    def _extract_keywords(self, text: str) -> List[str]:
+        """Extract relevant keywords from text"""
+        # Simple keyword extraction (can be enhanced with NLP)
+        domain_keywords = {
+            'business': ['business', 'strategy', 'revenue', 'growth', 'market', 'competitive'],
+            'engineering': ['technical', 'engineering', 'development', 'architecture', 'system', 'software'],
+            'financial': ['financial', 'budget', 'cost', 'roi', 'investment', 'accounting'],
+            'legal': ['legal', 'compliance', 'regulatory', 'contract', 'liability', 'ip'],
+            'operations': ['operations', 'process', 'logistics', 'supply chain', 'quality'],
+            'marketing': ['marketing', 'brand', 'advertising', 'campaign', 'customer'],
+            'hr': ['hr', 'hiring', 'talent', 'employee', 'training', 'compensation'],
+            'sales': ['sales', 'revenue', 'customer', 'pricing', 'channel', 'account'],
+            'product': ['product', 'feature', 'roadmap', 'user', 'design', 'ux']
+        }
+        
+        found_keywords = []
+        for domain, keywords in domain_keywords.items():
+            for keyword in keywords:
+                if keyword in text:
+                    found_keywords.append(keyword)
+        
+        return found_keywords
+    
+    def _calculate_domain_match(self, keywords: List[str], domain: Domain) -> float:
+        """Calculate how well keywords match a domain"""
+        score = 0.0
+        domain_text = f"{domain.name} {domain.purpose} {' '.join(domain.sub_domains)}".lower()
+        
+        for keyword in keywords:
+            if keyword in domain_text:
+                score += 1.0
+        
+        return score
+    
+    def select_template(self, request: str, analysis: Dict) -> GenerativeDomainTemplate:
+        """Select appropriate template for generative domain"""
+        keywords = analysis['keywords']
+        
+        # Check for industry-specific terms

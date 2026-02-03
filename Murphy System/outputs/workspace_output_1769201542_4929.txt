@@ -1,0 +1,21 @@
+        
+        // Replace existing terminal handler with enhanced version
+        const terminalInput = document.getElementById('terminal-input');
+        if (terminalInput) {
+            // Clone the element to remove all old event listeners
+            const newTerminalInput = terminalInput.cloneNode(true);
+            terminalInput.parentNode.replaceChild(newTerminalInput, terminalInput);
+            
+            // Add enhanced handler to the new element
+            newTerminalInput.addEventListener('keydown', handleEnhancedTerminalKeyPress);
+            newTerminalInput.focus();
+        }
+        
+        // Expose addTerminalLog function for enhancements to use
+        if (typeof addLog === 'function') {
+            window.addTerminalLog = addLog;
+        } else if (typeof addTerminalLog === 'undefined') {
+            // Define addTerminalLog if addLog is not available
+            window.addTerminalLog = function(message, type = 'info') {
+                const terminalContent = document.getElementById('terminal-content');
+                if (!terminalContent) return;

@@ -1,0 +1,18 @@
+647:                const response = await fetch(`${API_BASE}/api/initialize`, {
+709:            const statesResponse = await fetch(`${API_BASE}/api/states`);
+715:            const agentsResponse = await fetch(`${API_BASE}/api/agents`);
+844:            const response = await fetch(`${API_BASE}/api/agents/${agentId}`);
+1040:            const response = await fetch(`${API_BASE}/api/states/${stateId}`);
+1073:                const response = await fetch(`${API_BASE}/api/states/${stateId}/evolve`, {
+1089:                const response = await fetch(`${API_BASE}/api/states/${stateId}/regenerate`, {
+1105:                const response = await fetch(`${API_BASE}/api/states/${stateId}/rollback`, {
+1251:        async function processCommand(cmdName, args) {
+1370:                const response = await fetch(`${API_BASE}/api/status`);
+1400:                const response = await fetch(`${API_BASE}/api/initialize`, {
+1456:        async function evolveStateCommand(stateId) {
+1460:                const response = await fetch(`${API_BASE}/api/states/${stateId}/evolve`, {
+1477:        async function regenerateStateCommand(stateId) {
+1481:                const response = await fetch(`${API_BASE}/api/states/${stateId}/regenerate`, {
+1498:        async function rollbackStateCommand(stateId) {
+1502:                const response = await fetch(`${API_BASE}/api/states/${stateId}/rollback`, {
+1628:                const response = await fetch(`${API_BASE}/api/status`);

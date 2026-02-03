@@ -1,0 +1,33 @@
+=== murphy_integrated/src/autonomous_systems/__init__.py ===
+
+=== murphy_integrated/src/autonomous_systems/autonomous_scheduler.py ===
+class TaskPriority(Enum):
+class TaskStatus(Enum):
+class Task:
+class ScheduleSlot:
+class ResourcePool:
+class DependencyGraph:
+class AutonomousScheduler:
+
+=== murphy_integrated/src/autonomous_systems/human_oversight_system.py ===
+class ApprovalStatus(Enum):
+class OversightLevel(Enum):
+class ApprovalRequest:
+class OversightEvent:
+class Intervention:
+class ApprovalQueue:
+class EventLogger:
+class InterventionManager:
+class HumanOversightSystem:
+
+=== murphy_integrated/src/autonomous_systems/risk_manager.py ===
+class RiskSeverity(Enum):
+class RiskCategory(Enum):
+class RiskFactor:
+class RiskAlert:
+class MitigationAction:
+class RiskAssessment:
+class RiskMonitor:
+class MitigationPlanner:
+class RiskManager:
+

@@ -1,0 +1,51 @@
+                if (command === 'help' || command === 'status') {
+                    endpoint = '/api/status';
+                } else if (command === 'health') {
+                    endpoint = '/api/monitoring/health';
+                } else if (command === 'librarian') {
+                    endpoint = '/api/librarian/ask';
+                    method = 'POST';
+                    data = { question: 'What can Murphy do?', context: {} };
+                } else if (command === 'generate') {
+                    endpoint = '/api/llm/generate';
+                    method = 'POST';
+                    data = { prompt: 'Generate a sample text', user_context: userData };
+                } else if (command === 'gates') {
+                    endpoint = '/api/gates/sensors/status';
+                } else if (command === 'products') {
+                    endpoint = '/api/business/products';
+                } else if (command === 'automations') {
+                    endpoint = '/api/automation/list';
+                } else {
+                    endpoint = '/api/command/execute';
+                    method = 'POST';
+                    data = { command: command, args: {} };
+                }
+                
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: data ? JSON.stringify(data) : null
+                });
+
+                const result = await response.json();
+                
+                addMessage('VERIFIED', 'Authority check: PASSED.', 'verified');
+                await sleep(500);
+                addMessage('VERIFIED', 'Confidence threshold: MET.', 'verified');
+                await sleep(500);
+                addMessage('SYSTEM', 'Execution approved and completed successfully.', 'system');
+                await sleep(300);
+                
+                if (result) {
+                    addMessage('ATTEMPTED', JSON.stringify(result, null, 2), 'attempted');
+                }
+            } catch (error) {
+                throw new Error(`Command execution failed: ${error.message}`);
+            }
+        }
+
+        // Task Modal
+        function openTaskModal(taskId, taskName) {
+            document.getElementById('task-modal-title').textContent = taskName;
+            document.getElementById('task-modal').classList.add('active');

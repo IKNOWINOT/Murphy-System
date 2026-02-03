@@ -1,0 +1,17 @@
+@app.route('/api/initialize', methods=['POST'])
+@require_auth(auth_system if AUTH_AVAILABLE else None)
+@validate_input(validate_init_request)
+def initialize_system():
+    """Initialize the system with demo data (REQUIRES AUTHENTICATION)"""
+    global system_initialized
+    
+    if system_initialized:
+        # Return current database statistics
+        if DB_AVAILABLE and db_manager:
+            stats = db_manager.get_statistics()
+            return jsonify({
+                'success': True,
+                'message': 'System already initialized',
+                'agents_count': stats['agents_count'],
+                'states_count': stats['states_count']
+            })

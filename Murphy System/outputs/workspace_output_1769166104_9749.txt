@@ -1,0 +1,13 @@
+        if hasattr(g, 'user'):
+            return jsonify({
+                'success': True,
+                'authenticated': True,
+                'user': g.user
+            })
+        else:
+            return jsonify({
+                'success': True,
+                'authenticated': False,
+                'message': 'No valid token provided'
+            })
+    except Exception as e:

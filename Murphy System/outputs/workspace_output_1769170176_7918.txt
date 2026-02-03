@@ -1,0 +1,10 @@
+7:from flask_socketio import SocketIO, emit
+23:socketio = SocketIO(app, cors_allowed_origins="*")
+330:        socketio.emit('system_initialized', {
+374:        if hasattr(socketio, 'emit'):
+375:            socketio.emit('state_evolved', {
+407:        if hasattr(socketio, 'emit'):
+408:            socketio.emit('state_regenerated', {
+438:        if hasattr(socketio, 'emit'):
+439:            socketio.emit('state_rolledback', {
+2014:@socketio.on('connect')

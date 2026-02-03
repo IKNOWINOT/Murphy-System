@@ -1,0 +1,47 @@
+
+@app.route('/api/llm/status', methods=['GET'])
+def llm_status():
+    """Get LLM system status."""
+    try:
+        if not LLM_AVAILABLE or not llm_manager:
+            return jsonify({
+                'success': False,
+                'available': False,
+                'providers': []
+            })
+        
+        status = llm_manager.get_status()
+        
+        return jsonify({
+            'success': True,
+            'available': True,
+            'total_providers': status['total_providers'],
+            'available_providers': status['available_providers'],
+            'providers': status['providers']
+        })
+    
+    except Exception as e:
+        logger.error(f"LLM status error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# SERVER STARTUP
+# ============================================================================
+
+if __name__ == '__main__':
+    logger.info("="*60)
+    logger.info("Murphy System Complete Backend Server v3.0")
+    logger.info("="*60)
+    logger.info(f"Monitoring: {'✓' if MONITORING_AVAILABLE else '✗'}")
+    logger.info(f"Artifacts: {'✓' if ARTIFACTS_AVAILABLE else '✗'}")
+    logger.info(f"Shadow Agents: {'✓' if SHADOW_AGENTS_AVAILABLE else '✗'}")
+    logger.info(f"Cooperative Swarm: {'✓' if COOPERATIVE_SWARM_AVAILABLE else '✗'}")
+    logger.info("="*60)
+    
+    logger.info(f"Command System: {'✓' if COMMAND_SYSTEM_AVAILABLE else '✗'}")
+    logger.info("="*60)
+    
+    socketio.run(app, host='0.0.0.0', port=3002, debug=True, allow_unsafe_werkzeug=True)

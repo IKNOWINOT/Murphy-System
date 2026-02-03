@@ -1,0 +1,7 @@
+1884:    <div id="shadow-agents-modal" class="detail-panel" style="display: none;">
+1926:    <div id="monitoring-panel-modal" class="detail-panel" style="display: none;">
+3461:            document.getElementById('shadow-agents-modal').style.display = 'block';
+3468:            document.getElementById('shadow-agents-modal').style.display = 'none';
+3472:            document.getElementById('monitoring-panel-modal').style.display = 'block';
+3479:            document.getElementById('monitoring-panel-modal').style.display = 'none';
+4011:                        modal.classList.add('hidden');

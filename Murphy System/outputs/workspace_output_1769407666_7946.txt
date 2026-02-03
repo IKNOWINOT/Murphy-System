@@ -1,0 +1,6 @@
+app = Flask(__name__)
+app.config['SECRET_KEY'] = os.getenv('MURPHY_SECRET_KEY', os.getenv('SECRET_KEY', 'murphy-backend-complete-secret'))
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+# Initialize rate limiter
+limiter = Limiter(

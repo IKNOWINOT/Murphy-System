@@ -1,0 +1,8 @@
+✓ Enhanced Runtime Orchestrator integrated into Murphy system
+
+New endpoints added:
+  POST /api/runtime/process
+  GET  /api/runtime/task/<task_id>
+  GET  /api/runtime/tasks
+  POST /api/runtime/capacity
+  GET  /api/runtime/status

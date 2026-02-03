@@ -1,0 +1,21 @@
+/workspace/librarian_panel.js:7:class LibrarianPanel {
+/workspace/plan_review_panel.js:8:class PlanReviewPanel {
+/workspace/document_editor_panel.js:8:class DocumentEditorPanel {
+/workspace/artifact_panel.js:5:const ArtifactPanel = {
+/workspace/artifact_panel.js:65:            <div class="artifact-item" data-id="${artifact.id}" onclick="ArtifactPanel.selectArtifact('${artifact.id}')">
+/workspace/artifact_panel.js:101:                <button onclick="ArtifactPanel.closeDetailModal()" class="close-btn">×</button>
+/workspace/artifact_panel.js:159:                    <button onclick="ArtifactPanel.downloadArtifact('${artifact.id}')" class="btn-primary">
+/workspace/artifact_panel.js:162:                    <button onclick="ArtifactPanel.showVersionHistory('${artifact.id}')" class="btn-secondary">
+/workspace/artifact_panel.js:165:                    <button onclick="ArtifactPanel.showConvertDialog('${artifact.id}')" class="btn-secondary">
+/workspace/artifact_panel.js:168:                    <button onclick="ArtifactPanel.deleteArtifact('${artifact.id}')" class="btn-danger">
+/workspace/artifact_panel.js:213:                <button onclick="ArtifactPanel.closeGenerateModal()" class="close-btn">×</button>
+/workspace/artifact_panel.js:265:                    <button onclick="ArtifactPanel.generateArtifact()" class="btn-primary">
+/workspace/artifact_panel.js:268:                    <button onclick="ArtifactPanel.closeGenerateModal()" class="btn-secondary">
+/workspace/artifact_panel.js:371:                    <button onclick="ArtifactPanel.closeVersionModal()" class="close-btn">×</button>
+/workspace/artifact_panel.js:419:                <button onclick="ArtifactPanel.closeConvertModal()" class="close-btn">×</button>
+/workspace/artifact_panel.js:434:                    <button onclick="ArtifactPanel.convertArtifact('${artifactId}')" class="btn-primary">
+/workspace/artifact_panel.js:437:                    <button onclick="ArtifactPanel.closeConvertModal()" class="btn-secondary">
+/workspace/artifact_panel.js:549:    document.addEventListener('DOMContentLoaded', () => ArtifactPanel.init());
+/workspace/artifact_panel.js:551:    ArtifactPanel.init();
+/workspace/shadow_agent_panel.js:6:class ShadowAgentPanel {
+/workspace/monitoring_panel.js:6:class MonitoringPanel {

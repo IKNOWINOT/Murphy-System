@@ -1,0 +1,2 @@
+2568:        let commandHistory = [];
+2569:        let historyIndex = -1;

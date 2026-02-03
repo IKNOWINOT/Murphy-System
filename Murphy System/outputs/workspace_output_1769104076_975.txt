@@ -1,0 +1,27 @@
+        .init-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+        }
+
+        .init-modal.hidden {
+            display: none;
+        }
+
+        .init-modal-content {
+            background: rgba(10, 14, 39, 0.98);
+            border: 2px solid #00ff41;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            max-width: 500px;
+        }
+
+        .init-modal-content h2 {

@@ -1,0 +1,11 @@
+except ImportError as e:
+    logger.error(f"✗ Failed to load Cooperative Swarm components: {e}")
+    COOPERATIVE_SWARM_AVAILABLE = False
+
+# Initialize Cooperative Swarm System
+cooperative_swarm = None
+handoff_manager = None
+workflow_orchestrator = None
+
+if COOPERATIVE_SWARM_AVAILABLE:
+    try:

@@ -1,0 +1,42 @@
+    <script>
+        class MurphyGenerativeSystem {
+            constructor() {
+                this.generationArea = document.getElementById('generationArea');
+                this.narratorText = document.getElementById('narratorText');
+                this.generationCursor = document.getElementById('generationCursor');
+                this.startButton = document.getElementById('startButton');
+                
+                this.functionsGenerated = 0;
+                this.validationsComplete = 0;
+                this.errorsDetected = 0;
+                this.supervisorEscalations = 0;
+                this.aiLearning = 0;
+                
+                this.businessComponents = {
+                    execDashboard: 0,
+                    marketingSales: 0,
+                    proposals: 0,
+                    financial: 0,
+                    operations: 0
+                };
+                
+                this.currentPhase = 'expansion';
+                this.phaseProgress = 0;
+                this.isGenerating = false;
+                this.generatedBlocks = [];
+                
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                this.startButton.addEventListener('click', () => this.startGeneration());
+                
+                document.getElementById('validateBtn').addEventListener('click', () => {
+                    this.handleValidation(true);
+                });
+                
+                document.getElementById('rejectBtn').addEventListener('click', () => {
+                    this.handleValidation(false);
+                });
+                
+                document.getElementById('closeBtn').addEventListener('click', () => {

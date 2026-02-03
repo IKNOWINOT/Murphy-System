@@ -1,0 +1,17 @@
+16:from swarm_knowledge_pipeline import (
+17:    initialize_knowledge_pipeline,
+1407:    if not knowledge_pipeline:
+1417:        librarian = knowledge_pipeline['librarian_commands']
+1442:    if not knowledge_pipeline:
+1453:        org_chart_lib = knowledge_pipeline['org_chart_library']
+1477:    if not knowledge_pipeline:
+1500:        verifier = knowledge_pipeline['block_verification']
+1530:    if not knowledge_pipeline:
+1541:        global_state = knowledge_pipeline['global_state']
+1570:    if not knowledge_pipeline:
+1581:        decider = knowledge_pipeline['info_decider']
+1612:    if not knowledge_pipeline:
+1622:        global_state = knowledge_pipeline['global_state']
+1623:        scheduler = knowledge_pipeline['master_scheduler']
+1653:    if not knowledge_pipeline:
+1657:        global_state = knowledge_pipeline['global_state']

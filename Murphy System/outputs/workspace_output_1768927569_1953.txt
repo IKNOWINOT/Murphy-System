@@ -1,0 +1,1 @@
+475:@app.route('/api/documents/<doc_id>/magnify', methods=['POST'])

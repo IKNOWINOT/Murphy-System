@@ -1,0 +1,137 @@
+================================================================================
+MURPHY UI SYSTEMATIC TESTING
+Testing EVERY function from user perspective
+================================================================================
+
+
+================================================================================
+PHASE 1: BACKEND AVAILABILITY
+================================================================================
+[00:53:05] [TEST] Test 1: Backend is running
+[00:53:05] [PASS] ✅ PASSED: Backend is running
+
+================================================================================
+PHASE 2: SYSTEM STATUS & INITIALIZATION
+================================================================================
+[00:53:05] [TEST] Test 2: Get system status
+[00:53:05] [PASS] ✅ PASSED: Get system status
+[00:53:05] [TEST] Test 3: Health check endpoint
+[00:53:05] [PASS] ✅ PASSED: Health check endpoint
+[00:53:05] [TEST] Test 4: Initialize system with user data
+[00:53:05] [PASS] ✅ PASSED: Initialize system with user data
+
+================================================================================
+PHASE 3: LLM & TEXT GENERATION
+================================================================================
+[00:53:05] [TEST] Test 5: LLM text generation
+[00:53:05] [PASS] ✅ PASSED: LLM text generation
+[00:53:05] [TEST] Test 6: LLM status and key rotation
+[00:53:05] [FAIL] ❌ FAILED: LLM status and key rotation
+
+================================================================================
+PHASE 4: COMMAND EXECUTION
+================================================================================
+[00:53:05] [TEST] Test 7: Execute help command
+[00:53:05] [PASS] ✅ PASSED: Execute help command
+[00:53:05] [TEST] Test 8: Execute status command
+[00:53:05] [PASS] ✅ PASSED: Execute status command
+
+================================================================================
+PHASE 5: LIBRARIAN & KNOWLEDGE
+================================================================================
+[00:53:05] [TEST] Test 9: Librarian knowledge query
+[00:53:06] [PASS] ✅ PASSED: Librarian knowledge query
+[00:53:06] [TEST] Test 10: Search commands in Librarian
+[00:53:06] [WARN] Expected 200, got 500
+[00:53:06] [FAIL] ❌ FAILED: Search commands in Librarian
+
+================================================================================
+PHASE 6: ARTIFACTS & GENERATION
+================================================================================
+[00:53:06] [TEST] Test 11: Generate artifact
+[00:53:06] [WARN] Expected 200, got 500
+[00:53:06] [FAIL] ❌ FAILED: Generate artifact
+[00:53:06] [TEST] Test 12: List all artifacts
+[00:53:06] [PASS] ✅ PASSED: List all artifacts
+
+================================================================================
+PHASE 7: SWARM & MULTI-AGENT
+================================================================================
+[00:53:06] [TEST] Test 13: Create swarm task
+[00:53:06] [WARN] Expected 200, got 500
+[00:53:06] [FAIL] ❌ FAILED: Create swarm task
+[00:53:06] [TEST] Test 14: List swarm tasks
+[00:53:06] [PASS] ✅ PASSED: List swarm tasks
+
+================================================================================
+PHASE 8: WORKFLOW ORCHESTRATION
+================================================================================
+[00:53:06] [TEST] Test 15: Create workflow
+[00:53:06] [WARN] Expected 200, got 500
+[00:53:06] [FAIL] ❌ FAILED: Create workflow
+
+================================================================================
+PHASE 9: GATES & DECISION MAKING
+================================================================================
+[00:53:06] [TEST] Test 16: Generate decision gates
+[00:53:06] [PASS] ✅ PASSED: Generate decision gates
+[00:53:06] [TEST] Test 17: Get gate sensors status
+[00:53:06] [PASS] ✅ PASSED: Get gate sensors status
+
+================================================================================
+PHASE 10: PIPELINE & KNOWLEDGE FLOW
+================================================================================
+[00:53:06] [TEST] Test 18: Explode vague request into plan
+[00:53:06] [WARN] Expected 200, got 500
+[00:53:06] [FAIL] ❌ FAILED: Explode vague request into plan
+[00:53:06] [TEST] Test 19: Get pipeline status
+[00:53:06] [WARN] Expected 200, got 500
+[00:53:06] [FAIL] ❌ FAILED: Get pipeline status
+
+================================================================================
+PHASE 11: BUSINESS AUTOMATION
+================================================================================
+[00:53:06] [TEST] Test 20: List business products
+[00:53:06] [PASS] ✅ PASSED: List business products
+
+================================================================================
+PHASE 12: AUTOMATION SCHEDULING
+================================================================================
+[00:53:06] [TEST] Test 21: List scheduled automations
+[00:53:06] [PASS] ✅ PASSED: List scheduled automations
+
+================================================================================
+TEST SUMMARY
+================================================================================
+
+Total Tests: 21
+Passed: 14 (66.7%)
+Failed: 7 (33.3%)
+
+❌ FAILED TESTS:
+  - LLM status and key rotation
+  - Search commands in Librarian
+  - Generate artifact
+  - Create swarm task
+  - Create workflow
+  - Explode vague request into plan
+  - Get pipeline status
+
+✅ PASSED TESTS:
+  - Backend is running
+  - Get system status
+  - Health check endpoint
+  - Initialize system with user data
+  - LLM text generation
+  - Execute help command
+  - Execute status command
+  - Librarian knowledge query
+  - List all artifacts
+  - List swarm tasks
+  - Generate decision gates
+  - Get gate sensors status
+  - List business products
+  - List scheduled automations
+
+================================================================================
+Results saved to test_results.json

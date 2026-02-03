@@ -1,0 +1,113 @@
+            socket.on('connect', function() {
+                addTerminalLog('✓ Connected to Murphy System via Socket.IO', 'success');
+            });
+            
+            socket.on('connected', function(data) {
+                addTerminalLog(`✓ ${data.message}`, 'success');
+            });
+            
+            socket.on('system_initialized', function(data) {
+                addTerminalLog('✓ System initialized via WebSocket', 'success');
+                addTerminalLog(`  System ID: ${data.system_id}`, 'info');
+                addTerminalLog(`  Agents: ${data.agents.length}`, 'info');
+                addTerminalLog(`  Gates: ${data.gates.length}`, 'info');
+                
+                // Update data
+                currentAgents = data.agents;
+                currentConnections = generateAgentConnections(currentAgents);
+                
+                // Refresh UI
+                updateAgentGraph(currentAgents, currentConnections);
+                updateMetrics();
+            });
+            
+            socket.on('state_updated', function(data) {
+                addTerminalLog(`✓ State updated: ${data.state_id}`, 'success');
+                
+                // Refresh states
+                fetch(`${API_BASE}/api/states`)
+                    .then(response => response.json())
+                    .then(data => {
+                        currentStates = data.states || [];
+                        renderStateTree(currentStates);
+                        updateProcessFlow(currentStates);
+                        updateMetrics();
+                    });
+            });
+            
+            socket.on('agent_updated', function(data) {
+                addTerminalLog(`✓ Agent updated: ${data.agent_id}`, 'success');
+                
+                // Refresh agents
+                fetch(`${API_BASE}/api/agents`)
+                    .then(response => response.json())
+                    .then(data => {
+                        currentAgents = data.agents || [];
+                        currentConnections = generateAgentConnections(currentAgents);
+                        updateAgentGraph(currentAgents, currentConnections);
+                        updateMetrics();
+                    });
+            });
+            
+            socket.on('state_evolved', function(data) {
+                addTerminalLog(`✓ State evolved via WebSocket: ${data.parent_id}`, 'success');
+                
+                // Refresh states
+                fetch(`${API_BASE}/api/states`)
+                    .then(response => response.json())
+                    .then(statesData => {
+                        currentStates = statesData.states || [];
+                        renderStateTree(currentStates);
+                        updateProcessFlow(currentStates);
+                        updateMetrics();
+                    });
+            });
+            
+            socket.on('state_regenerated', function(data) {
+                addTerminalLog(`✓ State regenerated via WebSocket: ${data.id}`, 'success');
+                
+                // Refresh states
+                fetch(`${API_BASE}/api/states`)
+                    .then(response => response.json())
+                    .then(statesData => {
+                        currentStates = statesData.states || [];
+                        renderStateTree(currentStates);
+                        updateProcessFlow(currentStates);
+                        updateMetrics();
+                    });
+            });
+            
+            socket.on('state_rolledback', function(data) {
+                addTerminalLog(`✓ State rolled back via WebSocket: ${data.state_id}`, 'success');
+                
+                // Refresh states
+                fetch(`${API_BASE}/api/states`)
+                    .then(response => response.json())
+                    .then(statesData => {
+                        currentStates = statesData.states || [];
+                        renderStateTree(currentStates);
+                        updateProcessFlow(currentStates);
+                        updateMetrics();
+                    });
+            });
+            
+            socket.on('gate_validated', function(data) {
+                addTerminalLog(`✓ Gate validated: ${data.gate_id}`, 'success');
+                updateMetrics();
+            });
+            
+            socket.on('error', function(data) {
+                addTerminalLog(`✗ Socket error: ${data.message}`, 'error');
+            });
+            
+            socket.on('disconnect', function() {
+                addTerminalLog('✗ Disconnected from Socket.IO', 'warning');
+            });
+            
+            socket.on('reconnect', function() {
+                addTerminalLog('✓ Reconnected to Socket.IO', 'success');
+            });
+            
+            // Store socket reference
+            window.murphySocket = socket;
+        }

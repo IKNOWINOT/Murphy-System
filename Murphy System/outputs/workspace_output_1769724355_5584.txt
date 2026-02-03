@@ -1,0 +1,10 @@
+1920: 
+1921: @app.route('/api/gates/generate', methods=['POST'])
+1922: def generate_gates_for_task():
+1923:     &quot;&quot;&quot;Generate decision gates dynamically for a task&quot;&quot;&quot;
+1924:     if not generative_gate_system:
+1925:         return jsonify({'success': False, 'error': 'Generative gate system not initialized'}), 503
+1926:     
+1927:     try:
+1928:         data = request.json
+1929:         task = data.get('task', {})

@@ -1,0 +1,32 @@
+class MurphySystemRuntime:
+    """Complete Murphy System Runtime"""
+    
+    def __init__(self):
+        self.initialized = False
+        self.living_documents = {}
+        self.states = []
+        self.artifacts = []
+        self.gates = []
+        self.swarms = []
+        self.org_chart = {}
+        self.llm_router = LLMRouter()
+        
+        # Counters
+        self.doc_counter = 0
+        self.state_counter = 0
+        self.artifact_counter = 0
+        
+        # Murphy components
+        if MURPHY_AVAILABLE:
+            self.mfgc_state = MFGCSystemState()
+            self.swarm_generator = AdvancedSwarmGenerator()
+            self.constraint_system = ConstraintSystem()
+            self.gate_builder = GateBuilder()
+            self.org_chart_system = OrganizationChart()
+    
+    def create_living_document(self, title: str, content: str, doc_type: str) -> LivingDocument:
+        """Create a new living document"""
+        doc_id = f"DOC-{self.doc_counter}"
+        self.doc_counter += 1
+        
+        doc = LivingDocument(doc_id, title, content, doc_type)

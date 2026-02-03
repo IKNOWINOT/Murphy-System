@@ -1,0 +1,100 @@
+-- Database Schema for Client-Facing Automation System
+-- Created: 2024-01-29
+-- Version: 1.0.0
+
+-- ============================================
+-- CORE CONFIGURATION TABLES
+-- ============================================
+
+-- Table: clients
+-- Purpose: Client master record with basic information and status
+CREATE TABLE IF NOT EXISTS clients (
+    client_id SERIAL PRIMARY KEY,
+    client_uuid UUID NOT NULL DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(100) NOT NULL UNIQUE,
+    status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'suspended', 'inactive')),
+    billing_provider VARCHAR(20) NOT NULL CHECK (billing_provider IN ('quickbooks', 'square')),
+    billing_customer_id VARCHAR(100),
+    timezone VARCHAR(50) NOT NULL DEFAULT 'America/New_York',
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- Indexes for clients
+CREATE INDEX idx_clients_status ON clients(status);
+CREATE INDEX idx_clients_slug ON clients(slug);
+
+-- ============================================
+-- Table: client_packs
+-- Purpose: Track which automation packs are enabled for each client
+CREATE TABLE IF NOT EXISTS client_packs (
+    client_pack_id SERIAL PRIMARY KEY,
+    client_id INTEGER NOT NULL REFERENCES clients(client_id) ON DELETE CASCADE,
+    pack_name VARCHAR(50) NOT NULL CHECK (pack_name IN ('INTAKE_v1', 'DOCS_v1', 'TASKS_v1')),
+    pack_version VARCHAR(20) NOT NULL DEFAULT '1.0.0',
+    enabled BOOLEAN NOT NULL DEFAULT true,
+    enabled_at TIMESTAMP,
+    enabled_by INTEGER,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    UNIQUE(client_id, pack_name)
+);
+
+-- Indexes for client_packs
+CREATE INDEX idx_client_packs_client_id ON client_packs(client_id);
+CREATE INDEX idx_client_packs_enabled ON client_packs(enabled);
+
+-- ============================================
+-- Table: client_config
+-- Purpose: Key-value store for client-specific configuration
+CREATE TABLE IF NOT EXISTS client_config (
+    config_id SERIAL PRIMARY KEY,
+    client_id INTEGER NOT NULL REFERENCES clients(client_id) ON DELETE CASCADE,
+    pack_name VARCHAR(50),
+    config_key VARCHAR(100) NOT NULL,
+    config_value JSONB NOT NULL,
+    value_type VARCHAR(20) NOT NULL DEFAULT 'string' CHECK (value_type IN ('string', 'boolean', 'number', 'json', 'array')),
+    description TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    UNIQUE(client_id, pack_name, config_key)
+);
+
+-- Indexes for client_config
+CREATE INDEX idx_client_config_client_id ON client_config(client_id);
+CREATE INDEX idx_client_config_pack_name ON client_config(pack_name);
+CREATE INDEX idx_client_config_key ON client_config(config_key);
+
+-- ============================================
+-- Table: client_integrations
+-- Purpose: Store credentials and endpoints for external services
+CREATE TABLE IF NOT EXISTS client_integrations (
+    integration_id SERIAL PRIMARY KEY,
+    client_id INTEGER NOT NULL REFERENCES clients(client_id) ON DELETE CASCADE,
+    integration_name VARCHAR(100) NOT NULL,
+    integration_type VARCHAR(50) NOT NULL,
+    auth_type VARCHAR(20) NOT NULL CHECK (auth_type IN ('api_key', 'oauth', 'basic', 'custom')),
+    credentials JSONB NOT NULL,
+    endpoint_url TEXT,
+    webhook_url TEXT,
+    enabled BOOLEAN NOT NULL DEFAULT true,
+    rate_limit_per_minute INTEGER,
+    last_verified_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    UNIQUE(client_id, integration_name)
+);
+
+-- Indexes for client_integrations
+CREATE INDEX idx_client_integrations_client_id ON client_integrations(client_id);
+CREATE INDEX idx_client_integrations_enabled ON client_integrations(enabled);
+
+-- ============================================
+-- Table: client_workflows
+-- Purpose: Track workflow instances and status per client
+CREATE TABLE IF NOT EXISTS client_workflows (
+    workflow_id SERIAL PRIMARY KEY,
+    client_id INTEGER NOT NULL REFERENCES clients(client_id) ON DELETE CASCADE,
+    pack_name VARCHAR(50) NOT NULL,
+    workflow_name VARCHAR(100) NOT NULL,

@@ -1,0 +1,4 @@
+root        7510  0.0  1.1  51128 45028 ?        S    09:38   0:00 python3 murphy_backend_complete.py
+root        7517  1.8  1.1 199808 46300 ?        Sl   09:38   0:44 /usr/local/bin/python3 murphy_backend_complete.py
+root       13202  0.0  0.0   2920   876 ?        Ss   10:19   0:00 timeout --preserve-status --signal=KILL 60s bash -lc { cd /workspace ; mkdir -p /workspace/outputs ; } { ps aux | grep python | grep -E "(murphy|backend|3002)" __ec=$? } >"/workspace/outputs/workspace_output_1769163554_100.txt" 2>&1 head -c 80000 "/workspace/outputs/workspace_output_1769163554_100.txt" ( exit "$__ec" )
+root       13203  0.0  0.0   4352  3064 ?        S    10:19   0:00 bash -lc { cd /workspace ; mkdir -p /workspace/outputs ; } { ps aux | grep python | grep -E "(murphy|backend|3002)" __ec=$? } >"/workspace/outputs/workspace_output_1769163554_100.txt" 2>&1 head -c 80000 "/workspace/outputs/workspace_output_1769163554_100.txt" ( exit "$__ec" )

@@ -1,0 +1,13 @@
+Last opening brace at line: 4349
+
+Context around last opening brace:
+    4345:             window.documentEditorPanel = new DocumentEditorPanel(API_BASE);
+    4346:             window.documentEditorPanel.init();
+    4347: 
+    4348:             // Initialize Artifact Panel
+>>> 4349:             if (typeof ArtifactPanel !== 'undefined') {
+    4350:                 ArtifactPanel.init();
+    4351:                 window.ArtifactPanel = ArtifactPanel;
+    4352:             }
+    4353: 
+    4354:             // Initialize Shadow Agent Panel

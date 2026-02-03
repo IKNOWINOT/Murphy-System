@@ -1,0 +1,15 @@
+✓ Groq clients: 9
+✓ Aristotle: Active
+✓ WebSocket: Enabled
+✓ State Management: Enabled
+✓ Interactive Components: Enabled
+============================================================
+
+Server starting on http://0.0.0.0:8000
+WebSocket endpoint: ws://0.0.0.0:8000
+
+
+ * Serving Flask app 'murphy_backend_v2'
+ * Debug mode: off
+Address already in use
+Port 8000 is in use by another program. Either identify and stop that program, or start the server with a different port.

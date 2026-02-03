@@ -1,0 +1,10 @@
+# Global system state
+system_initialized = False
+agents = []
+states = []
+components = []
+gates = []
+
+# Thread safety locks
+state_lock = threading.Lock()
+agents_lock = threading.Lock()

@@ -1,0 +1,1 @@
+# Right-click integration: wire OS context menu to send selection to a suggestion endpoint (TBD).

@@ -1,0 +1,71 @@
+=== CONVERSATION HANDLER ===
+class ConversationHandler:
+
+=== DOMAIN SWARMS ===
+class DomainSwarmGenerator:
+class SoftwareEngineeringSwarm(DomainSwarmGenerator):
+class BusinessStrategySwarm(DomainSwarmGenerator):
+class ScientificResearchSwarm(DomainSwarmGenerator):
+class DomainDetector:
+
+=== ADVANCED SWARM SYSTEM ===
+class SwarmType(Enum):
+class GenerationDomain(Enum):
+class SwarmCandidate:
+class SafetyGate:
+class AdvancedSwarmGenerator:
+
+=== TRUE SWARM SYSTEM ===
+class Phase(Enum):
+class ProfessionAtom(Enum):
+class ArtifactType(Enum):
+class Artifact:
+class GateProposal:
+class AgentInstance:
+class TypedGenerativeWorkspace:
+class SwarmMode(Enum):
+class BaseSwarmAgent(ABC):
+class ExplorationAgent(BaseSwarmAgent):
+class ControlAgent(BaseSwarmAgent):
+class SwarmSpawner:
+class GateCompiler:
+class TrueSwarmSystem:
+
+=== CONVERSATION MANAGER ===
+class ConversationMessage:
+class Conversation:
+class ConversationManager:
+def get_conversation_manager(
+
+=== COMMS PIPELINE ===
+class MessageIngestor:
+class IntentClassifier:
+class RedactionPipeline:
+class MessageStorage:
+class ThreadManager:
+class MessagePipeline:
+=== LLM INTEGRATION ===
+class LLMProvider(Enum):
+class LLMConfig:
+class OllamaLLM:
+class LLMEnhancedMFGC:
+def get_system_info() -> Dict[str, Any]:
+def print_installation_guide():
+
+=== REASONING ENGINE ===
+class ReasoningEngine:
+
+=== UNIFIED MFGC ===
+class ConfidenceBand(Enum):
+class SystemState:
+class UnifiedMFGC:
+
+=== MFGC CORE ===
+class Phase(Enum):
+class MFGCSystemState:
+class ConfidenceEngine:
+class AuthorityController:
+class MurphyIndexMonitor:
+class GateCompiler:
+class SwarmGenerator:
+class MFGCController:

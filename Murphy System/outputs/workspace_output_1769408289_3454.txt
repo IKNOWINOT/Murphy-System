@@ -1,0 +1,45 @@
+@app.route('/')
+def serve_frontend():
+    """Serve the frontend HTML page."""
+    try:
+        return send_file('/workspace/murphy_complete_v2.html')
+    except Exception as e:
+        logger.error(f"Error serving frontend: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/murphy_complete_v2.html')
+def serve_frontend_explicit():
+    """Serve the frontend HTML page explicitly."""
+    try:
+        return send_file('/workspace/murphy_complete_v2.html')
+    except Exception as e:
+        logger.error(f"Error serving frontend: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ============================================================================
+# EXISTING ENDPOINTS (from murphy_backend_v2.py)
+# ============================================================================
+
+@app.route('/api/status', methods=['GET'])
+def get_status():
+    """Get system status"""
+    return jsonify({
+        'success': True,
+        'message': 'Murphy System Complete Backend',
+        'version': '3.0.0',
+        'components': {
+            'monitoring': MONITORING_AVAILABLE,
+            'artifacts': ARTIFACTS_AVAILABLE,
+            'shadow_agents': SHADOW_AGENTS_AVAILABLE,
+            'cooperative_swarm': COOPERATIVE_SWARM_AVAILABLE,
+            'llm': LLM_AVAILABLE,
+            'librarian': LIBRARIAN_AVAILABLE,
+            'authentication': AUTH_AVAILABLE,
+            'database': DB_AVAILABLE,
+            'modules': MODULES_AVAILABLE,
+            'command_system': COMMAND_SYSTEM_AVAILABLE  # NEW
+        },
+        'systems_initialized': system_initialized,
+        'timestamp': datetime.now().isoformat()
+    })
+

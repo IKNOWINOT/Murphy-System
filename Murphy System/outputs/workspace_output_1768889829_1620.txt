@@ -1,0 +1,12 @@
+@app.route('/api/status', methods=['GET'])
+def get_status():
+    """Get system status"""
+    return jsonify({
+        "initialized": runtime.initialized,
+        "documents": len(runtime.living_documents),
+        "states": len(runtime.states),
+        "artifacts": len(runtime.artifacts),
+        "gates": len(runtime.gates),
+        "swarms": len(runtime.swarms)
+    })
+

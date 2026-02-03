@@ -1,0 +1,1 @@
+export function scoreLinear(ctx:any, weights:Record<string,number>){ let s=0; for (const k of Object.keys(weights)){ s += (ctx?.[k]||0) * weights[k]; } return s; }

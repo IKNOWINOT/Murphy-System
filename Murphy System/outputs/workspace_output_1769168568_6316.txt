@@ -1,0 +1,58 @@
+            'authentication': AUTH_AVAILABLE
+        },
+        'systems_initialized': system_initialized,
+        'timestamp': datetime.now().isoformat()
+    })
+
+@app.route('/api/initialize', methods=['POST'])
+@require_auth(auth_system if AUTH_AVAILABLE else None)
+@validate_input(validate_init_request)
+def initialize_system():
+    """Initialize the system with demo data (REQUIRES AUTHENTICATION)"""
+    global system_initialized, agents, states, components, gates
+    
+    if system_initialized:
+        return jsonify({
+            'success': True,
+            'message': 'System already initialized',
+            'agents_count': len(agents),
+            'states_count': len(states)
+        })
+    
+    try:
+        # Acquire locks for thread safety
+        with state_lock, agents_lock, components_lock, gates_lock:
+            # Create demo agents
+            agents = [
+                {'id': 'agent-1', 'name': 'Executive Agent', 'role': 'planning', 'status': 'active'},
+                {'id': 'agent-2', 'name': 'Engineering Agent', 'role': 'technical', 'status': 'active'},
+                {'id': 'agent-3', 'name': 'Financial Agent', 'role': 'finance', 'status': 'active'},
+                {'id': 'agent-4', 'name': 'Legal Agent', 'role': 'legal', 'status': 'active'},
+                {'id': 'agent-5', 'name': 'Operations Agent', 'role': 'operations', 'status': 'active'}
+            ]
+            
+            # Create initial state
+            states = [
+                {
+                    'id': 'state-1',
+                    'name': 'Initial State',
+                    'description': 'System initialization state',
+                    'confidence': 0.85,
+                    'parent_id': None,
+                    'children': [],
+                    'created_at': datetime.now().isoformat()
+                }
+            ]
+            
+            # Create components
+            components = [
+                {'id': 'comp-1', 'name': 'LLM Router', 'status': 'active'},
+                {'id': 'comp-2', 'name': 'State Machine', 'status': 'active'},
+                {'id': 'comp-3', 'name': 'Agent Manager', 'status': 'active'}
+            ]
+            
+            # Create gates
+            gates = [
+                {'id': 'gate-1', 'name': 'Safety Gate 1', 'status': 'active', 'threshold': 0.85},
+                {'id': 'gate-2', 'name': 'Quality Gate 1', 'status': 'active', 'threshold': 0.90}
+            ]

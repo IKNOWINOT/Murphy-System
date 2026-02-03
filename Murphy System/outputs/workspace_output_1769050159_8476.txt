@@ -1,0 +1,2 @@
+634:        let currentStates = [];
+635:        let currentAgents = [];

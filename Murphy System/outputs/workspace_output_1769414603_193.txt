@@ -1,0 +1,25 @@
+2741: [4 spaces]     enhanced_librarian_system = EnhancedLibrarianSystem()
+2742: [4 spaces]     executive_bot_manager = ExecutiveBotManager()
+2743: [4 spaces]     hybrid_command_system = HybridCommandSystem(
+2744: [8 spaces]         librarian_system=enhanced_librarian_system,
+2745: [8 spaces]         executive_bots=executive_bot_manager
+2746: [4 spaces]     )
+2747: [1 spaces] 
+2748: [1 spaces] 
+2749: [1 spaces] 
+2750: [8 spaces]         enhanced_librarian_system = EnhancedLibrarianSystem()
+2751: [4 spaces]     executive_bot_manager = ExecutiveBotManager()
+2752: [4 spaces]     hybrid_command_system = HybridCommandSystem(
+2753: [8 spaces]         librarian_system=enhanced_librarian_system,
+2754: [8 spaces]         executive_bots=executive_bot_manager
+2755: [4 spaces]     )
+2756: [4 spaces]     executive_bot_manager = ExecutiveBotManager(llm_client=llm_manager)
+2757: [4 spaces]     hybrid_command_system = HybridCommandSystem(
+2758: [8 spaces]         librarian_system=enhanced_librarian_system,
+2759: [8 spaces]         executive_bots=executive_bot_manager
+2760: [4 spaces]     )
+2761: [4 spaces]     logger.info("✓ Enhanced systems initialized with LLM support")
+2762: [4 spaces]     else:
+2763: [8 spaces]         enhanced_librarian_system = EnhancedLibrarianSystem()
+2764: [8 spaces]         executive_bot_manager = ExecutiveBotManager()
+2765: [8 spaces]         hybrid_command_system = HybridCommandSystem(

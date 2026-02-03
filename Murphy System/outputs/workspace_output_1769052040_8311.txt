@@ -1,0 +1,63 @@
+def evolve_state(state_id):
+    """Evolve a state into child states"""
+    parent_state = system_state['states'].get(state_id)
+    if not parent_state:
+        return jsonify({"error": "Parent state not found"}), 404
+    
+    # Create child states
+    children = []
+    for i in range(3):
+        child_state = create_state(
+            "document",
+            f"Child State {i+1}",
+            parent_id=state_id
+        )
+        children.append(child_state)
+    
+    # Broadcast via WebSocket
+    socketio.emit('state_evolved', {
+        'parent_id': state_id,
+        'children': children
+    })
+    
+    return jsonify({
+        "parent_id": state_id,
+        "children": children
+    })
+
+@app.route('/api/states/<state_id>/regenerate', methods=['POST'])
+def regenerate_state(state_id):
+    """Regenerate a state"""
+    state = system_state['states'].get(state_id)
+    if not state:
+        return jsonify({"error": "State not found"}), 404
+    
+    # Update state with new confidence
+    state['confidence'] = min(1.0, state['confidence'] + 0.05)
+    state['timestamp'] = datetime.now().isoformat()
+    
+    socketio.emit('state_regenerated', state)
+    
+    return jsonify(state)
+
+@app.route('/api/states/<state_id>/rollback', methods=['POST'])
+def rollback_state(state_id):
+    """Rollback a state to its parent"""
+    state = system_state['states'].get(state_id)
+    if not state:
+        return jsonify({"error": "State not found"}), 404
+    
+    if not state['parent_id']:
+        return jsonify({"error": "Cannot rollback root state"}), 400
+    
+    parent = system_state['states'].get(state['parent_id'])
+    if not parent:
+        return jsonify({"error": "Parent state not found"}), 404
+    
+    socketio.emit('state_rolledback', {
+        'state_id': state_id,
+        'parent_id': state['parent_id']
+    })
+    
+    return jsonify({
+        "rolled_back_from": state_id,

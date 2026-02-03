@@ -1,0 +1,38 @@
+def llm_generate():
+    """Generate LLM response."""
+    try:
+        data = request.get_json()
+        prompt = data.get('prompt', '')
+        
+        if not prompt:
+            return jsonify({
+                'success': False,
+                'error': 'No prompt provided'
+            }), 400
+        
+        if not LLM_AVAILABLE or not llm_manager:
+            return jsonify({
+                'success': False,
+                'error': 'LLM system not available'
+            }), 500
+        
+        result = llm_manager.generate(prompt)
+        
+        return jsonify({
+            'success': result['success'],
+            'response': result['response'],
+            'provider': result['provider'],
+            'demo_mode': result['demo_mode']
+        })
+    
+    except Exception as e:
+        logger.error(f"LLM generate error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/llm/status', methods=['GET'])
+def llm_status():
+    """Get LLM system status."""

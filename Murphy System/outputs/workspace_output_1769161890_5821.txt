@@ -1,0 +1,10 @@
+2642:        const terminalInput = document.getElementById('terminal-input');
+2644:        if (terminalInput) {
+2645:            terminalInput.addEventListener('keydown', handleTerminalKeyPress);
+2646:            terminalInput.focus();
+2649:        function handleTerminalKeyPress(event) {
+2651:                const command = terminalInput.value.trim();
+2656:                    terminalInput.value = '';
+2661:                    terminalInput.value = commandHistory[historyIndex];
+2667:                    terminalInput.value = commandHistory[historyIndex];
+2670:                    terminalInput.value = '';

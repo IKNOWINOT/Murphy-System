@@ -1,0 +1,23 @@
+    from command_system import (
+        get_command_registry,
+        execute_command
+    )
+    from librarian_adapter import get_librarian_adapter
+    
+    command_registry = get_command_registry()
+    librarian_adapter = get_librarian_adapter()
+    
+    # Initialize librarian
+    librarian_adapter.initialize()
+    
+    # Connect command registry with librarian
+    command_registry.librarian_adapter = librarian_adapter
+    
+    COMMAND_SYSTEM_AVAILABLE = True
+    logger.info("✓ Command System and Librarian loaded successfully")
+except ImportError as e:
+    logger.error(f"✗ Failed to load Command System: {e}")
+    COMMAND_SYSTEM_AVAILABLE = False
+    command_registry = None
+    librarian_adapter = None
+

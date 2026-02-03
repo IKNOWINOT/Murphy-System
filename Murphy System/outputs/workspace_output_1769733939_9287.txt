@@ -1,0 +1,101 @@
+        .modal-btn:hover {
+            background: #00d4ff;
+        }
+    </style>
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <div class="logo"></div>
+            <div class="title">Murphy System</div>
+        </div>
+        <div class="header-right">
+            <div class="stat">
+                <div class="stat-dot"></div>
+                <span>RAM: <span id="ram-status">Active</span></span>
+            </div>
+            <div class="stat">
+                <span>Modules: <span id="module-count">0</span></span>
+            </div>
+            <div class="stat">
+                <span>SHADOW AI: <span id="shadow-version">1.0</span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subtitle -->
+    <div class="subtitle">
+        The system is built on Murphy's Law - we anticipate and prepare for any failure scenario.
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Chat Area -->
+        <div class="chat-area">
+            <div class="tabs">
+                <div class="tab active" data-tab="chat">Chat</div>
+                <div class="tab" data-tab="commands">Commands</div>
+                <div class="tab" data-tab="modules">Modules</div>
+                <div class="tab" data-tab="metrics">Metrics</div>
+            </div>
+
+            <div class="messages" id="messages"></div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-title">Available Commands</div>
+            <div id="command-list"></div>
+        </div>
+    </div>
+
+    <!-- Input Area -->
+    <div class="input-area">
+        <input type="text" class="input-field" id="user-input" placeholder="Enter command or natural language...">
+        <button class="submit-btn" id="submit-btn">SUBMIT</button>
+    </div>
+
+    <!-- Onboarding Modal -->
+    <div class="modal" id="onboarding-modal">
+        <div class="modal-content">
+            <div class="modal-title">Welcome to Murphy System</div>
+            <div class="modal-text" id="onboarding-text"></div>
+            <div id="onboarding-inputs"></div>
+            <button class="modal-btn" id="onboarding-next">Continue</button>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE = window.location.hostname === 'localhost' 
+            ? 'http://localhost:3002' 
+            : window.location.protocol + '//' + window.location.hostname + ':3002';
+
+        // State
+        let socket = null;
+        let onboardingStep = 0;
+        let userData = {};
+
+        // Commands
+        const commands = [
+            { name: '/help', desc: 'Show available commands' },
+            { name: '/librarian', desc: 'System guidance' },
+            { name: '/status', desc: 'System details' },
+            { name: '/initialize', desc: 'Initialize system' },
+            { name: '/llm.generate', desc: 'Generate text' },
+            { name: '/monitor.health', desc: 'Run diagnostics' },
+            { name: '/artifact.create', desc: 'Create artifact' },
+            { name: '/business.products', desc: 'View products' }
+        ];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initSocket();
+            loadCommands();
+            checkInitialization();
+            setupEventListeners();
+        });
+
+        // Socket.IO

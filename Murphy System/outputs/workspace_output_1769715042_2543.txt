@@ -1,0 +1,195 @@
+Groq API error (key 0): Cannot run the event loop while another loop is running
+Groq API error (key 1): Cannot run the event loop while another loop is running
+Groq API error (key 2): Cannot run the event loop while another loop is running
+Groq API error (key 3): Cannot run the event loop while another loop is running
+Groq API error (key 4): Cannot run the event loop while another loop is running
+Groq API error (key 5): Cannot run the event loop while another loop is running
+Groq API error (key 6): Cannot run the event loop while another loop is running
+Groq API error (key 7): Cannot run the event loop while another loop is running
+Groq API error (key 8): Cannot run the event loop while another loop is running
+Groq API error (key 9): Cannot run the event loop while another loop is running
+Groq API error (key 10): Cannot run the event loop while another loop is running
+Groq API error (key 11): Cannot run the event loop while another loop is running
+Groq API error (key 12): Cannot run the event loop while another loop is running
+Groq API error (key 13): Cannot run the event loop while another loop is running
+Groq API error (key 14): Cannot run the event loop while another loop is running
+Groq API error (key 15): Cannot run the event loop while another loop is running
+/workspace/llm_providers_enhanced.py:200: RuntimeWarning: coroutine 'GroqClient.generate' was never awaited
+  return None
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+/workspace/llm_providers_enhanced.py:198: RuntimeWarning: coroutine 'GroqClient.generate' was never awaited
+  return self.generate_with_groq(prompt, key_index + 1)
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+Traceback (most recent call last):
+  File "/workspace/demo_enhanced_llm.py", line 280, in main
+    await demo_2_math_routing()
+  File "/workspace/demo_enhanced_llm.py", line 109, in demo_2_math_routing
+    print(f"  Routed to: {provider:12s} (Key: {key_info}) | Math detected: {math_task} | {correct}")
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: unsupported format string passed to NoneType.__format__
+
+================================================================================
+  MURPHY SYSTEM ENHANCED LLM PROVIDER DEMO
+================================================================================
+
+This demo showcases:
+  1. Key rotation (round-robin)
+  2. Math task routing to Aristotle
+  3. Parallel execution with load balancing
+  4. Book generation with maximum parallelization
+
+
+================================================================================
+  DEMO 1: Key Rotation Verification
+================================================================================
+
+Status: {'groq_keys_available': 16, 'aristotle_available': True, 'rotation_enabled': True, 'math_detection_enabled': True, 'rate_limiting_enabled': True, 'current_groq_key': 1, 'usage_stats': {'total_calls': 0, 'total_errors': 0, 'groq': {'total_keys': 16, 'total_calls': 0, 'total_errors': 0, 'current_rotation': 0, 'per_key': {0: {'calls': 0, 'errors': 0, 'last_used': None}, 1: {'calls': 0, 'errors': 0, 'last_used': None}, 2: {'calls': 0, 'errors': 0, 'last_used': None}, 3: {'calls': 0, 'errors': 0, 'last_used': None}, 4: {'calls': 0, 'errors': 0, 'last_used': None}, 5: {'calls': 0, 'errors': 0, 'last_used': None}, 6: {'calls': 0, 'errors': 0, 'last_used': None}, 7: {'calls': 0, 'errors': 0, 'last_used': None}, 8: {'calls': 0, 'errors': 0, 'last_used': None}, 9: {'calls': 0, 'errors': 0, 'last_used': None}, 10: {'calls': 0, 'errors': 0, 'last_used': None}, 11: {'calls': 0, 'errors': 0, 'last_used': None}, 12: {'calls': 0, 'errors': 0, 'last_used': None}, 13: {'calls': 0, 'errors': 0, 'last_used': None}, 14: {'calls': 0, 'errors': 0, 'last_used': None}, 15: {'calls': 0, 'errors': 0, 'last_used': None}}}, 'aristotle': {'calls': 0, 'errors': 0, 'last_used': None}, 'rate_limits': {'window_seconds': 60, 'max_calls_per_window': 30}}}
+
+Making 20 consecutive calls to verify rotation...
+--------------------------------------------------------------------------------
+Call  1: Aristotle    | Provider: aristotle    | ✓
+Call  2: Aristotle    | Provider: aristotle    | ✓
+Call  3: Aristotle    | Provider: aristotle    | ✓
+Call  4: Aristotle    | Provider: aristotle    | ✓
+Call  5: Aristotle    | Provider: aristotle    | ✓
+Call  6: Aristotle    | Provider: aristotle    | ✓
+Call  7: Aristotle    | Provider: aristotle    | ✓
+Call  8: Aristotle    | Provider: aristotle    | ✓
+Call  9: Aristotle    | Provider: aristotle    | ✓
+Call 10: Aristotle    | Provider: aristotle    | ✓
+Call 11: Aristotle    | Provider: aristotle    | ✓
+Call 12: Aristotle    | Provider: aristotle    | ✓
+Call 13: Aristotle    | Provider: aristotle    | ✓
+Call 14: Aristotle    | Provider: aristotle    | ✓
+Call 15: Aristotle    | Provider: aristotle    | ✓
+Call 16: Aristotle    | Provider: aristotle    | ✓
+Call 17: Aristotle    | Provider: aristotle    | ✓
+Call 18: Aristotle    | Provider: aristotle    | ✓
+Call 19: Aristotle    | Provider: aristotle    | ✓
+Call 20: Aristotle    | Provider: aristotle    | ✓
+
+--------------------------------------------------------------------------------
+Rotation Analysis:
+  Keys used: 0
+  Distribution: {}
+  ✗ Rotation may not be working - only used 0 keys
+
+Usage Statistics:
+{
+  "total_calls": 20,
+  "total_errors": 0,
+  "groq": {
+    "total_keys": 16,
+    "total_calls": 0,
+    "total_errors": 0,
+    "current_rotation": 0,
+    "per_key": {
+      "0": {
+        "calls": 0,
+        "errors": 0,
+        "last_used": null
+      },
+      "1": {
+        "calls": 0,
+        "errors": 0,
+        "last_used": null
+      },
+      "2": {
+        "calls": 0,
+        "errors": 0,
+        "last_used": null
+      },
+      "3": {
+        "calls": 0,
+        "errors": 0,
+        "last_used": null
+      },
+      "4": {
+        "calls": 0,
+        "errors": 0,
+        "last_used": null
+      },
+      "5": {
+        "calls": 0,
+        "errors": 0,
+        "last_used": null
+      },
+      "6": {
+        "calls": 0,
+        "errors": 0,
+        "last_used": null
+      },
+      "7": {
+        "calls": 0,
+        "errors": 0,
+        "last_used": null
+      },
+      "8": {
+        "calls": 0,
+        "errors": 0,
+        "last_used": null
+      },
+      "9": {
+        "calls": 0,
+        "errors": 0,
+        "last_used": null
+      },
+      "10": {
+        "calls": 0,
+        "errors": 0,
+        "last_used": null
+      },
+      "11": {
+        "calls": 0,
+        "errors": 0,
+        "last_used": null
+      },
+      "12": {
+        "calls": 0,
+        "errors": 0,
+        "last_used": null
+      },
+      "13": {
+        "calls": 0,
+        "errors": 0,
+        "last_used": null
+      },
+      "14": {
+        "calls": 0,
+        "errors": 0,
+        "last_used": null
+      },
+      "15": {
+        "calls": 0,
+        "errors": 0,
+        "last_used": null
+      }
+    }
+  },
+  "aristotle": {
+    "calls": 20,
+    "errors": 0,
+    "last_used": "2026-01-29T19:30:43.019174"
+  },
+  "rate_limits": {
+    "window_seconds": 60,
+    "max_calls_per_window": 30
+  }
+}
+
+================================================================================
+  DEMO 2: Math Task Routing
+================================================================================
+
+Testing routing with different prompt types...
+--------------------------------------------------------------------------------
+
+Math task   
+  Prompt: Calculate ROI of AI investment...
+  Routed to: aristotle    (Key: N/A) | Math detected: True | ✓
+
+General task
+  Prompt: Write marketing copy for product...
+
+
+❌ Demo failed with error: unsupported format string passed to NoneType.__format__

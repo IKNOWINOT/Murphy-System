@@ -1,0 +1,20 @@
+117:        .state-tree {
+121:        .state-tree ul {
+126:        .state-tree > ul {
+130:        .state-node {
+142:        .state-node:hover {
+147:        .state-node.selected {
+152:        .state-icon {
+156:        .state-label {
+160:        .state-confidence {
+690:        .empty-state {
+696:        .empty-state .hint {
+1809:            <div id="state-tree" class="state-tree">
+1811:                    Initialize system to view state tree
+1850:                    <div class="metric-value" id="metric-states">0</div>
+2049:            socket.on('state_updated', function(data) {
+2050:                addTerminalLog(`✓ State updated: ${data.state_id}`, 'success');
+2052:                // Refresh states
+2053:                fetch(`${API_BASE}/api/states`)
+2056:                        currentStates = data.states || [];
+2077:            socket.on('state_evolved', function(data) {

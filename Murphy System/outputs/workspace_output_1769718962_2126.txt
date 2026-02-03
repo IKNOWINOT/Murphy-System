@@ -1,0 +1,6 @@
+if __name__ == '__main__':
+    logger.info("=" * 60)
+    logger.info("Murphy Complete Integrated System")
+    logger.info("=" * 60)
+    logger.info("Systems Status:")
+    for system, available in SYSTEMS_AVAILABLE.items():

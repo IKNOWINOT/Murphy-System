@@ -1,0 +1,50 @@
+│              Terminal/Orchestrator                        │
+│         (Command Interpreter & Router)                   │
+└──────┬────────────────────────────────────┬─────────────┘
+       │                                    │
+┌──────▼─────────┐                 ┌────────▼──────────┐
+│  Command System│                 │   Librarian       │
+│  (help, exec)  │                 │  (Intent Mapper)  │
+└──────┬─────────┘                 └────────┬──────────┘
+       │                                    │
+       └──────────────┬─────────────────────┘
+                      │ Routes to
+┌─────────────────────▼──────────────────────────────┐
+│              Swarms (Agent Collectives)              │
+│                                                      │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐          │
+│  │Creative  │  │Analytical│  │  Hybrid  │          │
+│  │  Swarm   │  │  Swarm   │  │  Swarm   │          │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘          │
+│       │            │             │                   │
+│       └────────────┴─────────────┘                   │
+│                    │                                  │
+└────────────────────┼──────────────────────────────────┘
+                     │ Executes Through
+┌────────────────────▼──────────────────────────────────┐
+│              System Categories                         │
+│                                                      │
+--
+## 2. Command System (/help)
+
+### 2.1 Purpose
+
+A hierarchical command catalog that provides discoverable, executable system capabilities through the terminal interface. Commands are organized by module, with clear syntax, usage examples, and output classifications.
+
+### 2.2 Output Classification System
+
+| Output Type | Definition | Example | Classification |
+|-------------|------------|---------|----------------|
+| **Deterministic** | Calculator results verified by Aristotle LLM (math LLM, temp 0.1). Marked "verified" only when calculator and LLM results match exactly. | `calculate 23 * 45` → `1035 [VERIFIED]` | Deterministic Output |
+| **Unverified** | Calculator and LLM outputs differ, requiring human judgment. | `estimate project complexity` → `High complexity (calculator: medium, LLM: high)` | Unverified Output |
+| **System** | Hardcoded responses to specific commands. | `/status` → System operational metrics | System Output |
+| **Generative** | Natural language reasoning and explanations from Groq (temp 0.7). | `explain how swarm works` → Detailed explanation | Generative Output |
+| **Mixed** | Combination of system and generative responses. | `/help swarm` → System info + LLM explanation | Mixed Output |
+
+### 2.3 Command Hierarchy
+
+```
+/help
+├── System Commands
+--
+### 3.4 Interface with Terminal/Orchestrator

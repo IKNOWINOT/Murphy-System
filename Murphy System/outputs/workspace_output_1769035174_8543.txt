@@ -1,0 +1,15 @@
+{
+    "llms": {
+        "aristotle": {
+            "endpoint": "Aristotle API",
+            "status": "active"
+        },
+        "groq": {
+            "clients": 9,
+            "current_index": 0,
+            "status": "active"
+        },
+        "onboard": {
+            "status": "available"
+        }
+    },

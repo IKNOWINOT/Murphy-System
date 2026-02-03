@@ -1,0 +1,4 @@
+409:    def get_agent(self, agent_id: str) -> Optional[ShadowAgent]:
+461:    def get_pending_proposals(self) -> List[Dict]:
+500:    def get_active_automations(self) -> List[Dict]:
+513:    def get_statistics(self) -> Dict:

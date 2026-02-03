@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murphy System - Interactive Runtime Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #0f0;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .terminal-section {
+            flex: 1;
+            background: #000;
+            border-right: 2px solid #0f0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dashboard-section {
+            flex: 1;
+            background: #0a0a0a;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .terminal-header {
+            background: #0f0;
+            color: #000;
+            padding: 10px 20px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .terminal-output {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .terminal-input-area {
+            background: #111;
+            padding: 15px 20px;
+            border-top: 1px solid #0f0;
+            display: flex;
+            align-items: center;
+        }
+
+        .terminal-prompt {
+            color: #0f0;
+            margin-right: 10px;
+        }
+
+        .terminal-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .output-line {
+            margin-bottom: 8px;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .confidence-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            margin-left: 8px;
+            font-weight: bold;
+        }
+
+        .conf-high { background: #0f0; color: #000; }
+        .conf-medium { background: #ff0; color: #000; }
+        .conf-low { background: #f00; color: #fff; }
+
+        .tag-system { color: #00ffff; }
+        .tag-info { color: #0f0; }
+        .tag-verified { color: #00ff00; font-weight: bold; }
+        .tag-warning { color: #ffff00; }
+        .tag-error { color: #ff0000; }
+        .tag-generated { color: #00ff88; font-weight: bold; }
+
+        .dashboard-header {
+            color: #0f0;
+            font-size: 20px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #0f0;
+            padding-bottom: 10px;
+        }
+
+        .metric-card {
+            background: #111;
+            border: 1px solid #0f0;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+
+        .metric-title {
+            color: #0f0;
+            font-size: 14px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .metric-value {
+            color: #00ff88;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .confidence-bar {
+            width: 100%;
+            height: 20px;
+            background: #222;
+            border: 1px solid #0f0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f00, #ff0, #0f0);
+            transition: width 0.3s ease;
+        }
+
+        .agent-status {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-active { background: #0f0; animation: pulse 1.5s infinite; }
+        .status-idle { background: #666; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .approval-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #000;
+            border: 3px solid #0f0;
+            padding: 30px;
+            z-index: 1000;
+            min-width: 500px;
+            display: none;
+        }
+
+        .approval-modal.active {
+            display: block;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 999;
+            display: none;
+        }
+
+        .modal-overlay.active {
+            display: block;
+        }
+
+        .approval-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: 2px solid #0f0;
+            background: transparent;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #0f0;
+            color: #000;
+        }
+
+        .btn-danger {
+            border-color: #f00;
+            color: #f00;
+        }
+
+        .btn-danger:hover {
+            background: #f00;
+            color: #fff;
+        }
+
+        .help-text {
+            color: #666;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #111;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #0f0;
+            border-radius: 5px;
+        }
+
+        .artifact-preview {
+            background: #0a0a0a;
+            border: 1px solid #0f0;
+            padding: 15px;
+            margin: 10px 0;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Terminal Section -->
+        <div class="terminal-section">
+            <div class="terminal-header">
+                MURPHY SYSTEM RUNTIME v2.0 - INTERACTIVE TERMINAL
+            </div>
+            <div class="terminal-output" id="terminalOutput">
+                <div class="output-line">
+                    <span class="tag-system">[S]</span>
+                    <span>Murphy System initialized. Multi-LLM integration active.</span>
+                    <span class="confidence-badge conf-high">1.00</span>
+                </div>
+                <div class="output-line">
+                    <span class="tag-info">[I]</span>
+                    <span>Available commands: /demo, /spec, /help, or natural language queries</span>
+                    <span class="confidence-badge conf-high">1.00</span>
+                </div>
+            </div>
+            <div class="terminal-input-area">
+                <span class="terminal-prompt">murphy></span>
+                <input type="text" class="terminal-input" id="terminalInput" placeholder="Enter command or query..." autofocus>
+            </div>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div class="dashboard-section">
+            <div class="dashboard-header">MURPHY SYSTEM DASHBOARD</div>
+            
+            <div class="metric-card">
+                <div class="metric-title">SYSTEM CONFIDENCE</div>
+                <div class="metric-value" id="systemConfidence">0.95</div>
+                <div class="confidence-bar">
+                    <div class="confidence-fill" id="confidenceBar" style="width: 95%"></div>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-title">ACTIVE AGENTS</div>
+                <div class="agent-status">
+                    <div class="status-indicator status-active"></div>
+                    <span>Groq (Fast Inference)</span>
+                </div>
+                <div class="agent-status">
+                    <div class="status-indicator status-active"></div>
+                    <span>Aristotle (Reasoning)</span>
+                </div>
+                <div class="agent-status">
+                    <div class="status-indicator status-idle"></div>
+                    <span>Onboard LLM (Standby)</span>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-title">OPERATIONS</div>
+                <div class="metric-value" id="operationCount">0</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-title">ARTIFACTS GENERATED</div>
+                <div class="metric-value" id="artifactCount">0</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-title">CONSENSUS RATE</div>
+                <div class="metric-value" id="consensusRate">100%</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Approval Modal -->
+    <div class="modal-overlay" id="modalOverlay"></div>
+    <div class="approval-modal" id="approvalModal">
+        <div class="metric-title">HUMAN APPROVAL REQUIRED</div>
+        <div id="approvalContent"></div>
+        <div class="approval-buttons">
+            <button class="btn" id="approveBtn">APPROVE</button>
+            <button class="btn btn-danger" id="rejectBtn">REJECT</button>
+        </div>
+    </div>
+
+    <script>
+        // Murphy System Runtime
+        class MurphyRuntime {
+            constructor() {
+                this.terminalOutput = document.getElementById('terminalOutput');
+                this.terminalInput = document.getElementById('terminalInput');
+                this.operationCount = 0;
+                this.artifactCount = 0;
+                this.systemConfidence = 0.95;
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                this.terminalInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.processInput(this.terminalInput.value);
+                        this.terminalInput.value = '';
+                    }
+                });
+
+                document.getElementById('approveBtn').addEventListener('click', () => {
+                    this.handleApproval(true);
+                });
+
+                document.getElementById('rejectBtn').addEventListener('click', () => {
+                    this.handleApproval(false);
+                });
+            }
+
+            addOutput(tag, message, confidence) {
+                const line = document.createElement('div');
+                line.className = 'output-line';
+                
+                const tagSpan = document.createElement('span');
+                tagSpan.className = `tag-${tag.toLowerCase()}`;
+                tagSpan.textContent = `[${tag}]`;
+                
+                const messageSpan = document.createElement('span');
+                messageSpan.textContent = ` ${message}`;
+                
+                const confBadge = document.createElement('span');
+                confBadge.className = `confidence-badge ${this.getConfidenceClass(confidence)}`;
+                confBadge.textContent = confidence.toFixed(2);
+                
+                line.appendChild(tagSpan);
+                line.appendChild(messageSpan);
+                line.appendChild(confBadge);
+                
+                this.terminalOutput.appendChild(line);
+                this.terminalOutput.scrollTop = this.terminalOutput.scrollHeight;
+            }
+
+            getConfidenceClass(conf) {
+                if (conf >= 0.8) return 'conf-high';
+                if (conf >= 0.5) return 'conf-medium';
+                return 'conf-low';
+            }
+
+            updateMetrics() {
+                this.operationCount++;
+                document.getElementById('operationCount').textContent = this.operationCount;
+                document.getElementById('systemConfidence').textContent = this.systemConfidence.toFixed(2);
+                document.getElementById('confidenceBar').style.width = (this.systemConfidence * 100) + '%';
+            }
+
+            async processInput(input) {
+                if (!input.trim()) return;
+
+                this.addOutput('I', `User: ${input}`, 1.00);
+                this.updateMetrics();
+
+                if (input.startsWith('/')) {
+                    this.processCommand(input);
+                } else {
+                    this.processNaturalLanguage(input);
+                }
+            }
+
+            processCommand(cmd) {
+                const parts = cmd.split(' ');
+                const command = parts[0].toLowerCase();
+
+                switch(command) {
+                    case '/demo':
+                        this.runDemo(parts[1] || 'confidence_gating');
+                        break;
+                    case '/spec':
+                        this.generateSpec(parts[1] || 'auth');
+                        break;
+                    case '/help':
+                        this.showHelp();
+                        break;
+                    default:
+                        this.addOutput('E', `Unknown command: ${command}`, 0.00);
+                }
+            }
+
+            async processNaturalLanguage(query) {
+                this.addOutput('I', 'Consulting multi-LLM system...', 0.85);
+                
+                await this.sleep(800);
+                this.addOutput('I', 'Groq: Fast inference complete', 0.92);
+                
+                await this.sleep(600);
+                this.addOutput('I', 'Aristotle: Logic validation passed', 0.94);
+                
+                await this.sleep(400);
+                this.addOutput('V', 'Consensus achieved across agents', 0.96);
+                
+                await this.sleep(500);
+                this.addOutput('GV', `Response: Processing "${query}" with high confidence`, 0.96);
+            }
+
+            async runDemo(demoType) {
+                this.addOutput('S', `Starting demo: ${demoType}`, 1.00);
+
+                switch(demoType) {
+                    case 'confidence_gating':
+                        await this.demoConfidenceGating();
+                        break;
+                    case 'expert_disagreement':
+                        await this.demoExpertDisagreement();
+                        break;
+                    case 'escalation':
+                        await this.demoEscalation();
+                        break;
+                    default:
+                        this.addOutput('E', `Unknown demo: ${demoType}`, 0.00);
+                }
+            }
+
+            async demoConfidenceGating() {
+                await this.sleep(500);
+                this.addOutput('I', 'Task: Generate authentication specification', 0.75);
+                
+                await this.sleep(800);
+                this.addOutput('W', 'Confidence below threshold (0.75 < 0.80)', 0.75);
+                
+                await this.sleep(600);
+                this.addOutput('I', 'Consulting Aristotle for reasoning enhancement...', 0.75);
+                
+                await this.sleep(1000);
+                this.addOutput('V', 'Confidence improved after reasoning layer', 0.89);
+                
+                await this.sleep(500);
+                this.addOutput('GV', 'Specification generated and verified', 0.89);
+            }
+
+            async demoExpertDisagreement() {
+                await this.sleep(500);
+                this.addOutput('I', 'Task: Design rate limiting strategy', 0.88);
+                
+                await this.sleep(800);
+                this.addOutput('I', 'Groq suggests: Token bucket algorithm', 0.85);
+                
+                await this.sleep(800);
+                this.addOutput('I', 'Aristotle suggests: Sliding window algorithm', 0.87);
+                
+                await this.sleep(600);
+                this.addOutput('W', 'Expert disagreement detected', 0.70);
+                
+                await this.sleep(1000);
+                this.addOutput('I', 'Initiating consensus protocol...', 0.70);
+                
+                await this.sleep(1200);
+                this.addOutput('V', 'Consensus: Hybrid approach (token bucket + sliding window)', 0.92);
+                
+                await this.sleep(500);
+                this.addOutput('GV', 'Specification generated with consensus', 0.92);
+            }
+
+            async demoEscalation() {
+                await this.sleep(500);
+                this.addOutput('I', 'Task: Critical security policy decision', 0.65);
+                
+                await this.sleep(800);
+                this.addOutput('W', 'Low confidence detected (0.65 < 0.80)', 0.65);
+                
+                await this.sleep(600);
+                this.addOutput('I', 'Consulting all available agents...', 0.65);
+                
+                await this.sleep(1000);
+                this.addOutput('W', 'Consensus not achieved (variance > 0.15)', 0.68);
+                
+                await this.sleep(800);
+                this.addOutput('S', 'Escalating to human approval...', 0.68);
+                
+                await this.sleep(500);
+                this.showApprovalModal('Security Policy Decision', 
+                    'Implement OAuth 2.0 with PKCE flow for authentication.\n\nConfidence: 0.68\nReason: High-stakes security decision requires human validation.');
+            }
+
+            async generateSpec(specType) {
+                this.addOutput('S', `Generating ${specType} specification...`, 0.90);
+                
+                await this.sleep(1000);
+                this.addOutput('I', 'Groq: Initial draft generated', 0.88);
+                
+                await this.sleep(800);
+                this.addOutput('I', 'Aristotle: Logic validation in progress...', 0.88);
+                
+                await this.sleep(1200);
+                this.addOutput('V', 'Validation complete - specification verified', 0.94);
+                
+                await this.sleep(500);
+                
+                const spec = this.createSpecification(specType);
+                this.showApprovalModal(`${specType.toUpperCase()} Specification`, spec);
+            }
+
+            createSpecification(type) {
+                const specs = {
+                    auth: `# Authentication Specification
+
+## Overview
+OAuth 2.0 with PKCE flow implementation
+
+## Components
+- Authorization Server
+- Resource Server
+- Client Application
+
+## Flow
+1. Client initiates auth request
+2. User authenticates
+3. Authorization code returned
+4. Token exchange with PKCE
+5. Access token issued
+
+## Security
+- HTTPS required
+- Token expiration: 1 hour
+- Refresh token: 30 days
+- PKCE code challenge required`,
+
+                    rate_limiting: `# Rate Limiting Specification
+
+## Strategy
+Hybrid: Token Bucket + Sliding Window
+
+## Limits
+- 100 requests per minute per user
+- 1000 requests per hour per user
+- Burst allowance: 20 requests
+
+## Implementation
+- Redis for distributed counting
+- Exponential backoff on limit exceeded
+- 429 status code response
+
+## Monitoring
+- Track limit violations
+- Alert on sustained high usage`,
+
+                    architecture: `# System Architecture Specification
+
+## Components
+- API Gateway (Kong)
+- Service Mesh (Istio)
+- Database (PostgreSQL)
+- Cache (Redis)
+- Message Queue (RabbitMQ)
+
+## Patterns
+- Microservices architecture
+- Event-driven communication
+- CQRS for read/write separation
+
+## Scalability
+- Horizontal scaling for services
+- Database sharding strategy
+- CDN for static assets`
+                };
+
+                return specs[type] || 'Specification not found';
+            }
+
+            showApprovalModal(title, content) {
+                document.getElementById('approvalContent').innerHTML = `
+                    <div class="artifact-preview">
+                        <pre>${content}</pre>
+                    </div>
+                    <p style="margin-top: 15px; color: #0f0;">Do you concur with this specification?</p>
+                `;
+                document.getElementById('modalOverlay').classList.add('active');
+                document.getElementById('approvalModal').classList.add('active');
+            }
+
+            handleApproval(approved) {
+                document.getElementById('modalOverlay').classList.remove('active');
+                document.getElementById('approvalModal').classList.remove('active');
+
+                if (approved) {
+                    this.addOutput('V', 'Human approval received', 1.00);
+                    this.addOutput('GV', 'Artifact exported and saved', 1.00);
+                    this.artifactCount++;
+                    document.getElementById('artifactCount').textContent = this.artifactCount;
+                } else {
+                    this.addOutput('W', 'Human rejected specification', 0.00);
+                    this.addOutput('I', 'Returning to refinement phase...', 0.85);
+                }
+            }
+
+            showHelp() {
+                this.addOutput('I', 'Available Commands:', 1.00);
+                this.addOutput('I', '/demo [type] - Run demo (confidence_gating, expert_disagreement, escalation)', 1.00);
+                this.addOutput('I', '/spec [type] - Generate specification (auth, rate_limiting, architecture)', 1.00);
+                this.addOutput('I', '/help - Show this help message', 1.00);
+                this.addOutput('I', 'Or enter natural language queries', 1.00);
+            }
+
+            sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize Murphy System when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            const murphy = new MurphyRuntime();
+        });
+    </script>
+</body>
+</html>

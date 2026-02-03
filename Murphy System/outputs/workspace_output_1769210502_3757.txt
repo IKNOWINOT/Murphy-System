@@ -1,0 +1,6 @@
+2729:            const fullCommand = args.length > 0 && !args[0].startsWith('-') 
+2732:            const remainingArgs = args.length > 0 && !args[0].startsWith('-') ? args.slice(1) : args;
+3474:                        if (agents && agents.length > 0) {
+3497:                        if (observations && observations.length > 0) {
+3517:                        if (proposals && proposals.length > 0) {
+3538:                        if (automations && automations.length > 0) {

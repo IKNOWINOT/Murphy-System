@@ -1,0 +1,20 @@
+171:        /* Terminal */
+172:        .terminal {
+183:        .terminal-line {
+187:        .terminal-line.info { color: #00aaff; }
+188:        .terminal-line.success { color: #00ff41; }
+189:        .terminal-line.warning { color: #ffaa00; }
+190:        .terminal-line.error { color: #ff4141; }
+191:        .terminal-line.groq { color: #aa00ff; }
+192:        .terminal-line.aristotle { color: #00aaff; }
+194:        .terminal-prompt {
+527:        <!-- Center: Terminal & Visualization -->
+529:            <!-- Terminal -->
+530:            <div id="terminal" class="terminal">
+531:                <div class="terminal-line info">Murphy System v2.0 - Ready</div>
+532:                <div class="terminal-line">Waiting for initialization...</div>
+1173:            const terminal = document.getElementById('terminal');
+1177:            line.className = `terminal-line ${type}`;
+1178:            line.innerHTML = `<span style="color: #666;">[${timestamp}]</span> <span class="terminal-prompt">murphy></span> ${message}`;
+1180:            terminal.appendChild(line);
+1181:            terminal.scrollTop = terminal.scrollHeight;

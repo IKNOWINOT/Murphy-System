@@ -1,0 +1,11 @@
+        self.monitoring = monitoring_system
+        
+    def check_all_components(self) -> Dict[str, Any]:
+        """Check all system components"""
+        results = {
+            'timestamp': datetime.now().isoformat(),
+            'components': {}
+        }
+        
+        # Check backend server
+        results['components']['backend_server'] = self._check_backend_server()

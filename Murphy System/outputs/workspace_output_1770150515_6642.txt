@@ -1,0 +1,200 @@
+"""
+Murphy System - Comprehensive Command Registration
+Registers ALL commands from ALL integrated systems
+"""
+
+from command_system import CommandRegistry, Command, CommandCategory
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def register_llm_commands(registry: CommandRegistry):
+    """Register LLM system commands"""
+    commands = [
+        Command(
+            name="llm.generate",
+            description="Generate text using LLM",
+            category=CommandCategory.SYSTEM,
+            module="llm",
+            parameters=[
+                {"name": "prompt", "description": "Text prompt", "required": True},
+                {"name": "model", "description": "Model to use", "required": False},
+                {"name": "max_tokens", "description": "Max tokens", "required": False}
+            ],
+            examples=["/llm.generate Write a story about AI"]
+        ),
+        Command(
+            name="llm.chat",
+            description="Chat with LLM",
+            category=CommandCategory.SYSTEM,
+            module="llm",
+            parameters=[
+                {"name": "message", "description": "Chat message", "required": True}
+            ],
+            examples=["/llm.chat Hello, how are you?"]
+        ),
+        Command(
+            name="llm.models",
+            description="List available LLM models",
+            category=CommandCategory.SYSTEM,
+            module="llm",
+            examples=["/llm.models"]
+        ),
+        Command(
+            name="llm.stats",
+            description="Show LLM usage statistics",
+            category=CommandCategory.SYSTEM,
+            module="llm",
+            examples=["/llm.stats"]
+        )
+    ]
+    
+    for cmd in commands:
+        registry.register_command(cmd)
+    
+    logger.info(f"✓ Registered {len(commands)} LLM commands")
+
+
+def register_librarian_commands(registry: CommandRegistry):
+    """Register Librarian system commands"""
+    commands = [
+        Command(
+            name="librarian.store",
+            description="Store knowledge in Librarian",
+            category=CommandCategory.LIBRARIAN,
+            module="librarian",
+            parameters=[
+                {"name": "content", "description": "Content to store", "required": True},
+                {"name": "tags", "description": "Tags (comma-separated)", "required": False}
+            ],
+            examples=["/librarian.store This is important knowledge"]
+        ),
+        Command(
+            name="librarian.search",
+            description="Search Librarian knowledge base",
+            category=CommandCategory.LIBRARIAN,
+            module="librarian",
+            parameters=[
+                {"name": "query", "description": "Search query", "required": True},
+                {"name": "limit", "description": "Max results", "required": False}
+            ],
+            examples=["/librarian.search AI automation"]
+        ),
+        Command(
+            name="librarian.recall",
+            description="Recall specific knowledge by ID",
+            category=CommandCategory.LIBRARIAN,
+            module="librarian",
+            parameters=[
+                {"name": "id", "description": "Knowledge ID", "required": True}
+            ],
+            examples=["/librarian.recall 12345"]
+        ),
+        Command(
+            name="librarian.stats",
+            description="Show Librarian statistics",
+            category=CommandCategory.LIBRARIAN,
+            module="librarian",
+            examples=["/librarian.stats"]
+        ),
+        Command(
+            name="librarian.export",
+            description="Export knowledge base",
+            category=CommandCategory.LIBRARIAN,
+            module="librarian",
+            parameters=[
+                {"name": "format", "description": "Export format (json/csv)", "required": False}
+            ],
+            examples=["/librarian.export json"]
+        )
+    ]
+    
+    for cmd in commands:
+        registry.register_command(cmd)
+    
+    logger.info(f"✓ Registered {len(commands)} Librarian commands")
+
+
+def register_monitoring_commands(registry: CommandRegistry):
+    """Register Monitoring system commands"""
+    commands = [
+        Command(
+            name="monitor.health",
+            description="Check system health",
+            category=CommandCategory.MONITORING,
+            module="monitoring",
+            examples=["/monitor.health"]
+        ),
+        Command(
+            name="monitor.metrics",
+            description="View system metrics",
+            category=CommandCategory.MONITORING,
+            module="monitoring",
+            parameters=[
+                {"name": "component", "description": "Specific component", "required": False}
+            ],
+            examples=["/monitor.metrics", "/monitor.metrics llm"]
+        ),
+        Command(
+            name="monitor.alerts",
+            description="View active alerts",
+            category=CommandCategory.MONITORING,
+            module="monitoring",
+            examples=["/monitor.alerts"]
+        ),
+        Command(
+            name="monitor.anomalies",
+            description="Detect anomalies",
+            category=CommandCategory.MONITORING,
+            module="monitoring",
+            examples=["/monitor.anomalies"]
+        ),
+        Command(
+            name="monitor.logs",
+            description="View system logs",
+            category=CommandCategory.MONITORING,
+            module="monitoring",
+            parameters=[
+                {"name": "level", "description": "Log level", "required": False},
+                {"name": "limit", "description": "Max entries", "required": False}
+            ],
+            examples=["/monitor.logs", "/monitor.logs ERROR 50"]
+        ),
+        Command(
+            name="monitor.performance",
+            description="View performance metrics",
+            category=CommandCategory.MONITORING,
+            module="monitoring",
+            examples=["/monitor.performance"]
+        )
+    ]
+    
+    for cmd in commands:
+        registry.register_command(cmd)
+    
+    logger.info(f"✓ Registered {len(commands)} Monitoring commands")
+
+
+def register_artifact_commands(registry: CommandRegistry):
+    """Register Artifact system commands"""
+    commands = [
+        Command(
+            name="artifact.create",
+            description="Create new artifact",
+            category=CommandCategory.ARTIFACT,
+            module="artifacts",
+            parameters=[
+                {"name": "type", "description": "Artifact type", "required": True},
+                {"name": "content", "description": "Artifact content", "required": True}
+            ],
+            examples=["/artifact.create document My document content"]
+        ),
+        Command(
+            name="artifact.list",
+            description="List all artifacts",
+            category=CommandCategory.ARTIFACT,
+            module="artifacts",
+            parameters=[
+                {"name": "type", "description": "Filter by type", "required": False}
+            ],

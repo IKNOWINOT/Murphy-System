@@ -1,0 +1,1 @@
+✓ install.bat NOW has aiohttp

@@ -1,0 +1,16 @@
+        function closeDetailPanel() {
+            document.getElementById('detail-panel').classList.remove('active');
+        }
+
+        // Close modal on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeDetailPanel();
+            }
+        });
+
+        // ============================================
+        // METRICS
+        // ============================================
+        
+        function updateMetrics() {

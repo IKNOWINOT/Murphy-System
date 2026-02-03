@@ -1,0 +1,14 @@
+                });$
+                const initResult = await initResponse.json();$
+                $
+                if (initResult.message) {$
+                    addTerminalLog('M-bM-^\M-^S System initialized successfully', 'success');$
+                    $
+                    // Hide init modal$
+                    const modal = document.getElementById('init-modal');$
+                    if (modal) {$
+                        modal.classList.add('hidden');$
+                    }$
+                    $
+                    // Fetch actual data from backend$
+                    const [agentsResponse, statesResponse] = await Promise.all([$
