@@ -200,7 +200,7 @@ INFO: Starting server on port 3002...
 
 ---
 
-**QC Performed By:** SuperNinja AI Agent
+**QC Performed By:** Inoni LLC (Corey Post)
 **QC Method:** Automated pre-flight and post-flight checks
 **Files Verified:** 56/56 (100%)
 **Package Integrity:** Confirmed

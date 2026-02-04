@@ -160,5 +160,5 @@ The system now:
 ---
 
 **Date:** January 29, 2026
-**Fixed By:** SuperNinja AI Agent
+**Fixed By:** Inoni LLC (Corey Post)
 **Tested On:** Windows (via user report), Linux (sandbox)
