@@ -27,10 +27,10 @@ start_murphy_1.0.bat
 ```
 
 ### Step 3: Access Murphy
-- **API Documentation:** http://localhost:6666/docs
-- **Health Check:** http://localhost:6666/api/health
-- **System Status:** http://localhost:6666/api/status
-- **System Info:** http://localhost:6666/api/info
+- **API Documentation:** http://localhost:8000/docs
+- **Health Check:** http://localhost:8000/api/health
+- **System Status:** http://localhost:8000/api/status
+- **System Info:** http://localhost:8000/api/info
 
 ---
 
@@ -158,7 +158,7 @@ GET    /api/modules                    # List modules
 # Core Configuration
 MURPHY_VERSION=1.0.0
 MURPHY_ENV=production
-MURPHY_PORT=6666
+MURPHY_PORT=8000
 
 # Database
 DATABASE_URL=postgresql://user:pass@localhost:5432/murphy
@@ -185,7 +185,7 @@ ENCRYPTION_KEY=your_encryption_key
 
 ### Use Case 1: Automate Factory HVAC
 ```bash
-curl -X POST http://localhost:6666/api/execute \
+curl -X POST http://localhost:8000/api/execute \
   -H "Content-Type: application/json" \
   -d '{
     "task_description": "Monitor temperature sensors and adjust HVAC to maintain 72°F",
@@ -195,7 +195,7 @@ curl -X POST http://localhost:6666/api/execute \
 
 ### Use Case 2: Add Stripe Integration
 ```bash
-curl -X POST http://localhost:6666/api/integrations/add \
+curl -X POST http://localhost:8000/api/integrations/add \
   -H "Content-Type: application/json" \
   -d '{
     "source": "https://github.com/stripe/stripe-python",
@@ -204,14 +204,14 @@ curl -X POST http://localhost:6666/api/integrations/add \
 
 # Murphy will analyze and ask for approval
 # Then approve with:
-curl -X POST http://localhost:6666/api/integrations/{request_id}/approve \
+curl -X POST http://localhost:8000/api/integrations/{request_id}/approve \
   -H "Content-Type: application/json" \
   -d '{"approved_by": "admin"}'
 ```
 
 ### Use Case 3: Generate Sales Leads
 ```bash
-curl -X POST http://localhost:6666/api/automation/sales/generate_leads \
+curl -X POST http://localhost:8000/api/automation/sales/generate_leads \
   -H "Content-Type: application/json" \
   -d '{
     "parameters": {
@@ -224,7 +224,7 @@ curl -X POST http://localhost:6666/api/automation/sales/generate_leads \
 
 ### Use Case 4: Create Blog Post
 ```bash
-curl -X POST http://localhost:6666/api/automation/marketing/create_content \
+curl -X POST http://localhost:8000/api/automation/marketing/create_content \
   -H "Content-Type: application/json" \
   -d '{
     "parameters": {
@@ -263,7 +263,7 @@ curl -X POST http://localhost:6666/api/automation/marketing/create_content \
 
 ### System Status
 ```bash
-curl http://localhost:6666/api/status
+curl http://localhost:8000/api/status
 ```
 
 **Returns:**
@@ -287,7 +287,7 @@ curl http://localhost:6666/api/status
 
 ### Health Check
 ```bash
-curl http://localhost:6666/api/health
+curl http://localhost:8000/api/health
 ```
 
 ---
@@ -333,7 +333,7 @@ brew install python@3.11
 ### Complete Documentation
 - **MURPHY_SYSTEM_1.0_SPECIFICATION.md** - Complete system specification
 - **INTEGRATION_ENGINE_COMPLETE.md** - Integration engine documentation
-- **API Documentation** - http://localhost:6666/docs (when running)
+- **API Documentation** - http://localhost:8000/docs (when running)
 
 ### Architecture Documents
 - **COMPLETE_INTEGRATION_ANALYSIS.md** - Integration system analysis
@@ -362,13 +362,13 @@ brew install python@3.11
 ## 💡 Tips
 
 ### Tip 1: Use API Documentation
-Visit http://localhost:6666/docs for interactive API documentation with examples.
+Visit http://localhost:8000/docs for interactive API documentation with examples.
 
 ### Tip 2: Start Simple
 Begin with simple tasks and gradually increase complexity.
 
 ### Tip 3: Monitor System
-Regularly check http://localhost:6666/api/status to monitor system health.
+Regularly check http://localhost:8000/api/status to monitor system health.
 
 ### Tip 4: Review Integrations
 Always review integration approval requests carefully before approving.

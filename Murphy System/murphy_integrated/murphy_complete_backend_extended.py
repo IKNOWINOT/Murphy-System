@@ -483,6 +483,7 @@ def get_system_info():
 # ============================================================================
 
 if __name__ == '__main__':
+    port = int(os.getenv('MURPHY_PORT', 8000))
     print("=" * 60)
     print("Murphy System - Integrated Backend")
     print("=" * 60)
@@ -493,7 +494,7 @@ if __name__ == '__main__':
     print("Correction Capture: ✓")
     print("Shadow Agent: ✓")
     print("HITL Monitor: ✓")
-    print("Starting server on http://localhost:6666")
+    print(f"Starting server on http://localhost:{port}")
     print("=" * 60)
     
-    socketio.run(app, host='0.0.0.0', port=6666, debug=False, allow_unsafe_werkzeug=True)
+    socketio.run(app, host='0.0.0.0', port=port, debug=False, allow_unsafe_werkzeug=True)

@@ -9,13 +9,13 @@ cd murphy_integrated
 python murphy_complete_backend_extended.py
 ```
 
-The server will start on **http://localhost:6666**
+The server will start on **http://localhost:8000**
 
 ### 2. Open the Terminal UI
 
 Open your browser and navigate to:
 ```
-http://localhost:6666/terminal_integrated.html
+http://localhost:8000/terminal_integrated.html
 ```
 
 Or open the file directly:
@@ -95,7 +95,7 @@ The terminal includes quick-access buttons for common commands:
 
 **Via API:**
 ```bash
-curl -X POST http://localhost:6666/api/forms/task-execution \
+curl -X POST http://localhost:8000/api/forms/task-execution \
   -H "Content-Type: application/json" \
   -d '{
     "task_type": "analysis",
@@ -113,7 +113,7 @@ curl -X POST http://localhost:6666/api/forms/task-execution \
 
 **Via API:**
 ```bash
-curl -X POST http://localhost:6666/api/forms/validation \
+curl -X POST http://localhost:8000/api/forms/validation \
   -H "Content-Type: application/json" \
   -d '{
     "task_data": {
@@ -132,7 +132,7 @@ curl -X POST http://localhost:6666/api/forms/validation \
 
 **Via API:**
 ```bash
-curl -X POST http://localhost:6666/api/forms/correction \
+curl -X POST http://localhost:8000/api/forms/correction \
   -H "Content-Type: application/json" \
   -d '{
     "task_id": "task_12345",
@@ -153,26 +153,26 @@ curl -X POST http://localhost:6666/api/forms/correction \
 **Via API:**
 ```bash
 # Correction statistics
-curl http://localhost:6666/api/corrections/statistics
+curl http://localhost:8000/api/corrections/statistics
 
 # HITL statistics
-curl http://localhost:6666/api/hitl/statistics
+curl http://localhost:8000/api/hitl/statistics
 
 # System info
-curl http://localhost:6666/api/system/info
+curl http://localhost:8000/api/system/info
 ```
 
 ## Troubleshooting
 
 ### Server won't start
-- Check if port 6666 is already in use
+- Check if port 8000 is already in use
 - Verify all dependencies are installed: `pip install -r requirements.txt`
 - Check Python version (3.11+ recommended)
 
 ### Terminal shows "OFFLINE"
-- Verify server is running on http://localhost:6666
+- Verify server is running on http://localhost:8000
 - Check browser console for connection errors
-- Try: `curl http://localhost:6666/api/system/info`
+- Try: `curl http://localhost:8000/api/system/info`
 
 ### Import errors
 - Run the import test: `python tests/test_basic_imports.py`

@@ -34,8 +34,8 @@ cd murphy/murphy_integrated
 start_murphy_1.0.bat   # Windows
 
 # 3. Access Murphy
-# API: http://localhost:6666/docs
-# Status: http://localhost:6666/api/status
+# API: http://localhost:8000/docs
+# Status: http://localhost:8000/api/status
 ```
 
 **That's it!** Murphy is now running. 🎉
@@ -274,7 +274,7 @@ POST /api/integrations/add
 
 ```bash
 docker build -t murphy:1.0.0 .
-docker run -p 6666:6666 murphy:1.0.0
+docker run -p 8000:8000 murphy:1.0.0
 ```
 
 ### Docker Compose
@@ -298,7 +298,7 @@ kubectl apply -f k8s/
 | [Quick Start](MURPHY_1.0_QUICK_START.md) | Get started in 5 minutes |
 | [Specification](MURPHY_SYSTEM_1.0_SPECIFICATION.md) | Complete system spec |
 | [Integration Engine](INTEGRATION_ENGINE_COMPLETE.md) | Integration docs |
-| [API Docs](http://localhost:6666/docs) | Interactive API docs |
+| [API Docs](http://localhost:8000/docs) | Interactive API docs |
 
 * * *
 
@@ -430,7 +430,7 @@ cd murphy/murphy_integrated
 ./start_murphy_1.0.sh
 
 # 3. Use
-curl http://localhost:6666/api/status
+curl http://localhost:8000/api/status
 ```
 
 **Welcome to the future of AI automation!** 🚀

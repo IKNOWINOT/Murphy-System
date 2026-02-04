@@ -64,7 +64,7 @@ else
 fi
 
 # Set default port if not set
-export MURPHY_PORT=${MURPHY_PORT:-6666}
+export MURPHY_PORT=${MURPHY_PORT:-8000}
 echo -e "${GREEN}✓ Port: $MURPHY_PORT${NC}"
 echo ""
 

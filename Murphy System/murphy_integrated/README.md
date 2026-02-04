@@ -17,7 +17,7 @@ python tests/test_basic_imports.py
 python murphy_complete_backend_extended.py
 
 # 4. Open the UI
-# Navigate to: http://localhost:6666/murphy_ui_integrated.html
+# Navigate to: http://localhost:8000/murphy_ui_integrated.html
 ```
 
 **That's it!** The system is now running with all integrated features.
@@ -159,7 +159,7 @@ Results: 5/5 tests passed
 python murphy_complete_backend_extended.py
 ```
 
-Server starts on: **http://localhost:6666**
+Server starts on: **http://localhost:8000**
 
 ---
 
@@ -169,7 +169,7 @@ Server starts on: **http://localhost:6666**
 
 Open your browser and navigate to:
 ```
-http://localhost:6666/murphy_ui_integrated.html
+http://localhost:8000/murphy_ui_integrated.html
 ```
 
 The UI has 4 tabs:
@@ -183,7 +183,7 @@ The UI has 4 tabs:
 
 #### Execute a Task
 ```bash
-curl -X POST http://localhost:6666/api/forms/task-execution \
+curl -X POST http://localhost:8000/api/forms/task-execution \
   -H "Content-Type: application/json" \
   -d '{
     "task_type": "analysis",
@@ -194,7 +194,7 @@ curl -X POST http://localhost:6666/api/forms/task-execution \
 
 #### Validate a Task
 ```bash
-curl -X POST http://localhost:6666/api/forms/validation \
+curl -X POST http://localhost:8000/api/forms/validation \
   -H "Content-Type: application/json" \
   -d '{
     "task_data": {
@@ -206,7 +206,7 @@ curl -X POST http://localhost:6666/api/forms/validation \
 
 #### Submit a Correction
 ```bash
-curl -X POST http://localhost:6666/api/forms/correction \
+curl -X POST http://localhost:8000/api/forms/correction \
   -H "Content-Type: application/json" \
   -d '{
     "task_id": "task_12345",
@@ -273,7 +273,7 @@ See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed deployment instructi
 docker build -t murphy-system:latest .
 
 # Run container
-docker run -d -p 6666:6666 murphy-system:latest
+docker run -d -p 8000:8000 murphy-system:latest
 ```
 
 ---

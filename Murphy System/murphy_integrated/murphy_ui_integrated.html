@@ -434,7 +434,8 @@
     </div>
     
     <script>
-        const API_BASE = 'http://localhost:6666/api';
+        const apiOrigin = window.location.protocol === 'file:' ? 'http://localhost:8000' : window.location.origin;
+        const API_BASE = `${apiOrigin}/api`;
         
         function switchTab(tabName) {
             // Hide all tabs

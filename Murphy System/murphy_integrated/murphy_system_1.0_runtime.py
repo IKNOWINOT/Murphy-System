@@ -590,7 +590,7 @@ def main():
     app = create_app()
     
     # Run server
-    port = int(os.getenv('MURPHY_PORT', 6666))
+    port = int(os.getenv('MURPHY_PORT', 8000))
     
     print(f"\n🚀 Starting Murphy System 1.0 on port {port}...")
     print(f"📊 API Documentation: http://localhost:{port}/docs")
