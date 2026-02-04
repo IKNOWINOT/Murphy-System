@@ -7,12 +7,15 @@ from typing import Any, Dict
 from .jsonbot_schema import validate_json
 from .visualization_bot import VisualizationBot
 from .simulation_sandbox import simulate
-from .analysisbot import EngineeringBot  # simple placeholder
+try:
+    from .analysisbot import AnalysisBot as EngineeringBot  # Import with alias
+except ImportError:
+    EngineeringBot = None
 
 TOOL_ROUTER = {
-    "generate_chart": VisualizationBot.generate_chart if VisualizationBot else None,
+    "generate_chart": getattr(VisualizationBot, 'generate_chart', None) if VisualizationBot else None,
     "run_simulation": simulate,
-    "calculate_load": EngineeringBot.calculate_structural_load if EngineeringBot else None,
+    "calculate_load": getattr(EngineeringBot, 'calculate_structural_load', None) if EngineeringBot else None,
 }
 
 LOG_PATH = "logs/tool_calls.json"

@@ -6,9 +6,25 @@ from typing import Dict, Any, List
 from datetime import datetime
 from pathlib import Path
 import matplotlib.pyplot as plt
-from modern_arcana.gpt_oss_runner import GPTOSSRunner
-from modern_arcana.simulation_bot import SimulationBot
-from modern_arcana.cad_bot import CADBot
+
+# Optional imports - use if available
+try:
+    from modern_arcana.gpt_oss_runner import GPTOSSRunner
+    from modern_arcana.simulation_bot import SimulationBot
+    from modern_arcana.cad_bot import CADBot
+    HAS_MODERN_ARCANA = True
+except ImportError:
+    # Provide stub classes if module not available
+    class GPTOSSRunner:
+        def __init__(self, *args, **kwargs):
+            pass
+    class SimulationBot:
+        def __init__(self, *args, **kwargs):
+            pass
+    class CADBot:
+        def __init__(self, *args, **kwargs):
+            pass
+    HAS_MODERN_ARCANA = False
 
 VISUAL_DIR = Path("visuals")
 VISUAL_DIR.mkdir(exist_ok=True)
