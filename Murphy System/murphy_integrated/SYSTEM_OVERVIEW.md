@@ -260,7 +260,7 @@ murphy_integrated/
 
 | File | Purpose |
 |------|---------|
-| `murphy_ui_integrated.html` | Main web interface |
+| `murphy_ui_integrated.html` | Onboarding/Librarian setup UI |
 | `terminal_integrated.html` | Integrated terminal UI |
 | `terminal_architect.html` | Architect mode |
 | `terminal_enhanced.html` | Enhanced features |

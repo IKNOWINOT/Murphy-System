@@ -632,4 +632,4 @@ curl -X POST http://localhost:6666/api/forms/task-execution \
 For API issues or questions:
 - Check the START_INTEGRATED_SYSTEM.md guide
 - Review integration documentation
-- Test with the provided UI at murphy_ui_integrated.html
+- Test with the provided UI at http://localhost:8000/murphy_ui_integrated.html

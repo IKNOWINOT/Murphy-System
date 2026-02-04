@@ -80,12 +80,12 @@ Results: 5/5 tests passed
 python murphy_complete_backend_extended.py
 ```
 
-Server will start on: **http://localhost:6666**
+Server will start on: **http://localhost:8000**
 
 ### 5. Access the UI
 Open your browser and navigate to:
 ```
-http://localhost:6666/murphy_ui_integrated.html
+http://localhost:8000/murphy_ui_integrated.html
 ```
 
 ---
@@ -100,7 +100,7 @@ Create `config_production.py`:
 # Production configuration
 DEBUG = False
 HOST = '0.0.0.0'
-PORT = 6666
+PORT = 8000
 WORKERS = 4
 
 # Security
@@ -131,7 +131,7 @@ pip install gunicorn
 
 #### Start with Gunicorn
 ```bash
-gunicorn -w 4 -b 0.0.0.0:6666 \
+gunicorn -w 4 -b 0.0.0.0:8000 \
   --timeout 120 \
   --access-logfile /var/log/murphy/access.log \
   --error-logfile /var/log/murphy/error.log \
@@ -157,7 +157,7 @@ server {
     server_name yourdomain.com;
 
     location / {
-        proxy_pass http://127.0.0.1:6666;
+        proxy_pass http://127.0.0.1:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -217,7 +217,7 @@ WorkingDirectory=/opt/murphy_integrated
 Environment="PATH=/opt/murphy_integrated/venv/bin"
 ExecStart=/opt/murphy_integrated/venv/bin/gunicorn \
     -w 4 \
-    -b 127.0.0.1:6666 \
+    -b 127.0.0.1:8000 \
     --timeout 120 \
     --access-logfile /var/log/murphy/access.log \
     --error-logfile /var/log/murphy/error.log \
@@ -266,14 +266,14 @@ RUN useradd -m -u 1000 murphy && \
 USER murphy
 
 # Expose port
-EXPOSE 6666
+EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:6666/api/system/info')"
+    CMD python -c "import requests; requests.get('http://localhost:8000/api/system/info')"
 
 # Start application
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:6666", "--timeout", "120", "murphy_complete_backend_extended:app"]
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8000", "--timeout", "120", "murphy_complete_backend_extended:app"]
 ```
 
 ### 2. Create docker-compose.yml
@@ -284,7 +284,7 @@ services:
   murphy:
     build: .
     ports:
-      - "6666:6666"
+      - "8000:8000"
     environment:
       - MURPHY_ENV=production
       - MURPHY_SECRET_KEY=${MURPHY_SECRET_KEY}
@@ -293,7 +293,7 @@ services:
       - ./data:/app/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6666/api/system/info"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/system/info"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -358,7 +358,7 @@ spec:
       - name: murphy
         image: murphy-system:latest
         ports:
-        - containerPort: 6666
+        - containerPort: 8000
         env:
         - name: MURPHY_ENV
           value: "production"
@@ -377,13 +377,13 @@ spec:
         livenessProbe:
           httpGet:
             path: /api/system/info
-            port: 6666
+            port: 8000
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /api/system/info
-            port: 6666
+            port: 8000
           initialDelaySeconds: 5
           periodSeconds: 5
 ```
@@ -401,7 +401,7 @@ spec:
   ports:
   - protocol: TCP
     port: 80
-    targetPort: 6666
+    targetPort: 8000
   type: LoadBalancer
 ```
 
@@ -467,7 +467,7 @@ kubectl logs -f deployment/murphy-system -n murphy
 MURPHY_ENV=production|development
 MURPHY_DEBUG=false
 MURPHY_HOST=0.0.0.0
-MURPHY_PORT=6666
+MURPHY_PORT=8000
 
 # Security
 MURPHY_SECRET_KEY=your-secret-key
@@ -490,7 +490,7 @@ Create `config.yaml`:
 ```yaml
 server:
   host: 0.0.0.0
-  port: 6666
+  port: 8000
   workers: 4
   timeout: 120
 
@@ -520,13 +520,13 @@ features:
 ### 1. Health Checks
 ```bash
 # System info
-curl http://localhost:6666/api/system/info
+curl http://localhost:8000/api/system/info
 
 # Correction statistics
-curl http://localhost:6666/api/corrections/statistics
+curl http://localhost:8000/api/corrections/statistics
 
 # HITL statistics
-curl http://localhost:6666/api/hitl/statistics
+curl http://localhost:8000/api/hitl/statistics
 ```
 
 ### 2. Logging
@@ -562,7 +562,7 @@ def metrics():
 ### Server Won't Start
 ```bash
 # Check port availability
-sudo lsof -i :6666
+sudo lsof -i :8000
 
 # Check Python version
 python --version
@@ -655,4 +655,4 @@ For deployment issues:
 1. Check logs: `/var/log/murphy/murphy.log`
 2. Run diagnostics: `python tests/test_basic_imports.py`
 3. Review documentation: `API_DOCUMENTATION.md`
-4. Check system info: `curl http://localhost:6666/api/system/info`
+4. Check system info: `curl http://localhost:8000/api/system/info`

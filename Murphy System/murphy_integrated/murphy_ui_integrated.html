@@ -3,697 +3,887 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Murphy System - Integrated Interface</title>
+    <title>Murphy System - Complete Business Operating System</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #e0e0e0;
             overflow: hidden;
+            height: 100vh;
         }
-        
+
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-        
-        .header h1 {
-            font-size: 32px;
-            margin-bottom: 10px;
-        }
-        
-        .header p {
-            font-size: 16px;
-            opacity: 0.9;
-        }
-        
-        .tabs {
+            background: linear-gradient(90deg, #1a1f3a 0%, #2a2f4a 100%);
+            border-bottom: 3px solid #00ff41;
+            padding: 15px 30px;
             display: flex;
-            background: #f8f9fa;
-            border-bottom: 2px solid #e9ecef;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
         }
-        
-        .tab {
-            flex: 1;
-            padding: 20px;
-            text-align: center;
-            cursor: pointer;
-            border: none;
-            background: transparent;
-            font-size: 16px;
-            font-weight: 600;
-            color: #6c757d;
-            transition: all 0.3s;
+
+        .header h1 {
+            font-size: 24px;
+            color: #00ff41;
+            text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
         }
-        
-        .tab:hover {
-            background: #e9ecef;
+
+        .llm-status {
+            display: flex;
+            gap: 15px;
+            align-items: center;
         }
-        
-        .tab.active {
-            color: #667eea;
-            border-bottom: 3px solid #667eea;
-            background: white;
-        }
-        
-        .tab-content {
-            display: none;
-            padding: 30px;
-            animation: fadeIn 0.3s;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #495057;
-        }
-        
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e9ecef;
-            border-radius: 5px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-        
-        .form-group input:focus,
-        .form-group textarea:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        
-        .form-group textarea {
-            min-height: 120px;
-            resize: vertical;
-        }
-        
-        .btn {
-            padding: 12px 30px;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-        
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-        
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-        
-        .result-box {
-            margin-top: 20px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 5px;
-            border-left: 4px solid #667eea;
-        }
-        
-        .result-box.success {
-            background: #d4edda;
-            border-left-color: #28a745;
-        }
-        
-        .result-box.error {
-            background: #f8d7da;
-            border-left-color: #dc3545;
-        }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-        
-        .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        
-        .stat-card h3 {
-            font-size: 14px;
-            opacity: 0.9;
-            margin-bottom: 10px;
-        }
-        
-        .stat-card .value {
-            font-size: 32px;
-            font-weight: bold;
-        }
-        
-        .correction-list {
-            margin-top: 20px;
-        }
-        
-        .correction-item {
-            background: white;
-            border: 2px solid #e9ecef;
-            border-radius: 5px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-        
-        .correction-item h4 {
-            color: #667eea;
-            margin-bottom: 10px;
-        }
-        
-        .badge {
-            display: inline-block;
-            padding: 5px 10px;
-            border-radius: 3px;
+
+        .llm-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
             font-size: 12px;
-            font-weight: 600;
-            margin-right: 5px;
-        }
-        
-        .badge-success {
-            background: #28a745;
-            color: white;
-        }
-        
-        .badge-warning {
-            background: #ffc107;
-            color: #000;
-        }
-        
-        .badge-danger {
-            background: #dc3545;
-            color: white;
-        }
-        
-        .badge-info {
-            background: #17a2b8;
-            color: white;
-        }
-        
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 20px;
-        }
-        
-        .loading.active {
-            display: block;
-        }
-        
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .confidence-bar {
-            width: 100%;
-            height: 30px;
-            background: #e9ecef;
-            border-radius: 15px;
-            overflow: hidden;
-            margin-top: 10px;
-        }
-        
-        .confidence-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #28a745 0%, #ffc107 50%, #dc3545 100%);
-            transition: width 0.5s;
+            font-weight: bold;
             display: flex;
             align-items: center;
-            justify-content: center;
-            color: white;
+            gap: 8px;
+        }
+
+        .llm-badge.active {
+            background: linear-gradient(135deg, #00ff41 0%, #00cc33 100%);
+            color: #0a0e27;
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.5);
+        }
+
+        .llm-badge.inactive {
+            background: #2a2f4a;
+            color: #666;
+            border: 1px solid #444;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .main-container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+
+        .sidebar {
+            width: 320px;
+            background: #0f1420;
+            border-right: 2px solid #00ff41;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .sidebar h3 {
+            color: #00ff41;
+            font-size: 16px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #00ff41;
+        }
+
+        .center-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #0a0e27;
+        }
+
+        .living-document-editor {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .document-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1f3a 0%, #2a2f4a 100%);
+            border-radius: 10px;
+            border: 2px solid #00ff41;
+        }
+
+        .document-title {
+            font-size: 24px;
+            color: #00ff41;
+        }
+
+        .document-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
             font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00ff41 0%, #00cc33 100%);
+            color: #0a0e27;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 65, 0.4);
+        }
+
+        .btn-secondary {
+            background: #2a2f4a;
+            color: #00ff41;
+            border: 1px solid #00ff41;
+        }
+
+        .btn-secondary:hover {
+            background: #3a3f5a;
+        }
+
+        .document-stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #1a1f3a;
+            border-radius: 8px;
+        }
+
+        .stat {
+            flex: 1;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            color: #00ff41;
+            font-weight: bold;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #2a2f4a;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff41 0%, #00cc33 100%);
+            transition: width 0.3s;
+        }
+
+        .content-editor {
+            background: #1a1f3a;
+            border: 2px solid #00ff41;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 400px;
+            color: #e0e0e0;
+            font-size: 16px;
+            line-height: 1.8;
+        }
+
+        .content-editor[contenteditable="true"] {
+            outline: none;
+        }
+
+        .content-editor:focus {
+            border-color: #00ffff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+
+        .state-tree {
+            margin-top: 20px;
+        }
+
+        .state-node {
+            padding: 12px;
+            margin: 8px 0;
+            background: #1a1f3a;
+            border-left: 4px solid #00ff41;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .state-node:hover {
+            background: #2a2f4a;
+            transform: translateX(5px);
+        }
+
+        .state-node.active {
+            background: linear-gradient(90deg, #00ff41 0%, #00cc33 100%);
+            color: #0a0e27;
+            font-weight: bold;
+        }
+
+        .state-node.child {
+            margin-left: 20px;
+            border-left-color: #0088ff;
+        }
+
+        .swarm-visualizer {
+            margin-top: 20px;
+        }
+
+        .swarm-agent {
+            padding: 15px;
+            margin: 10px 0;
+            background: #1a1f3a;
+            border-radius: 8px;
+            border: 2px solid #00ff41;
+        }
+
+        .agent-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .agent-name {
+            font-size: 16px;
+            color: #00ff41;
+            font-weight: bold;
+        }
+
+        .agent-status {
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            background: #2a2f4a;
+        }
+
+        .agent-progress {
+            margin-top: 10px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1f3a 0%, #2a2f4a 100%);
+            border: 3px solid #00ff41;
+            border-radius: 15px;
+            padding: 40px;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 255, 65, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .modal-title {
+            font-size: 28px;
+            color: #00ff41;
+        }
+
+        .close-modal {
+            font-size: 32px;
+            color: #ff4444;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .close-modal:hover {
+            transform: scale(1.2);
+        }
+
+        .init-option {
+            padding: 20px;
+            margin: 15px 0;
+            background: #1a1f3a;
+            border: 2px solid #00ff41;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .init-option:hover {
+            background: #2a2f4a;
+            transform: translateX(10px);
+            box-shadow: 0 5px 20px rgba(0, 255, 65, 0.3);
+        }
+
+        .init-option h4 {
+            color: #00ff41;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .init-option p {
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        .demo-banner {
+            background: linear-gradient(135deg, #ff00ff 0%, #ff0088 100%);
+            color: white;
+            padding: 15px 30px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .demo-banner:hover {
+            background: linear-gradient(135deg, #ff0088 0%, #ff00ff 100%);
+            box-shadow: 0 5px 20px rgba(255, 0, 136, 0.5);
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0a0e27;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #00ff41 0%, #00cc33 100%);
+            border-radius: 5px;
         }
     </style>
 <script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🚀 Murphy System - Integrated Interface</h1>
-            <p>Form-Driven Task Execution with Murphy Validation</p>
-        </div>
-        
-        <div class="tabs">
-            <button class="tab active" onclick="switchTab('forms')">📝 Form Submission</button>
-            <button class="tab" onclick="switchTab('validation')">✓ Validation</button>
-            <button class="tab" onclick="switchTab('corrections')">🔧 Corrections</button>
-            <button class="tab" onclick="switchTab('monitoring')">📊 Monitoring</button>
-        </div>
-        
-        <!-- Form Submission Tab -->
-        <div id="forms" class="tab-content active">
-            <h2>Submit Task via Form</h2>
-            <p style="color: #6c757d; margin-bottom: 20px;">Execute tasks with automatic Murphy validation</p>
-            
-            <div class="form-group">
-                <label>Task Type</label>
-                <select id="taskType">
-                    <option value="general">General Task</option>
-                    <option value="data_processing">Data Processing</option>
-                    <option value="analysis">Analysis</option>
-                    <option value="generation">Content Generation</option>
-                </select>
+    <!-- Header -->
+    <div class="header">
+        <h1>⚡ MURPHY SYSTEM - Complete Business Operating System</h1>
+        <div class="llm-status">
+            <div class="llm-badge inactive" id="llm-groq">
+                <div class="status-dot"></div>
+                GROQ
             </div>
-            
-            <div class="form-group">
-                <label>Task Description</label>
-                <textarea id="taskDescription" placeholder="Describe what you want to accomplish..."></textarea>
+            <div class="llm-badge inactive" id="llm-aristotle">
+                <div class="status-dot"></div>
+                ARISTOTLE
             </div>
-            
-            <div class="form-group">
-                <label>Parameters (JSON)</label>
-                <textarea id="taskParameters" placeholder='{"key": "value"}'>{}</textarea>
+            <div class="llm-badge active" id="llm-onboard">
+                <div class="status-dot"></div>
+                ONBOARD
             </div>
-            
-            <button class="btn btn-primary" onclick="submitTask()">Execute Task</button>
-            
-            <div class="loading" id="taskLoading">
-                <div class="spinner"></div>
-                <p>Processing task...</p>
-            </div>
-            
-            <div id="taskResult"></div>
-        </div>
-        
-        <!-- Validation Tab -->
-        <div id="validation" class="tab-content">
-            <h2>Task Validation</h2>
-            <p style="color: #6c757d; margin-bottom: 20px;">Validate tasks without executing them</p>
-            
-            <div class="form-group">
-                <label>Task Data (JSON)</label>
-                <textarea id="validationData" placeholder='{"task_type": "general", "description": "..."}'></textarea>
-            </div>
-            
-            <button class="btn btn-primary" onclick="validateTask()">Validate</button>
-            
-            <div class="loading" id="validationLoading">
-                <div class="spinner"></div>
-                <p>Validating...</p>
-            </div>
-            
-            <div id="validationResult"></div>
-        </div>
-        
-        <!-- Corrections Tab -->
-        <div id="corrections" class="tab-content">
-            <h2>Submit Correction</h2>
-            <p style="color: #6c757d; margin-bottom: 20px;">Help Murphy learn from corrections</p>
-            
-            <div class="form-group">
-                <label>Task ID</label>
-                <input type="text" id="correctionTaskId" placeholder="task_12345">
-            </div>
-            
-            <div class="form-group">
-                <label>Correction Type</label>
-                <select id="correctionType">
-                    <option value="output_error">Output Error</option>
-                    <option value="parameter_adjustment">Parameter Adjustment</option>
-                    <option value="logic_correction">Logic Correction</option>
-                    <option value="validation_override">Validation Override</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label>Original Output</label>
-                <textarea id="originalOutput" placeholder="What Murphy produced..."></textarea>
-            </div>
-            
-            <div class="form-group">
-                <label>Corrected Output</label>
-                <textarea id="correctedOutput" placeholder="What it should have been..."></textarea>
-            </div>
-            
-            <div class="form-group">
-                <label>Explanation</label>
-                <textarea id="correctionExplanation" placeholder="Why this correction is needed..."></textarea>
-            </div>
-            
-            <button class="btn btn-primary" onclick="submitCorrection()">Submit Correction</button>
-            
-            <div class="loading" id="correctionLoading">
-                <div class="spinner"></div>
-                <p>Submitting correction...</p>
-            </div>
-            
-            <div id="correctionResult"></div>
-            
-            <h3 style="margin-top: 40px;">Recent Corrections</h3>
-            <div id="correctionsList"></div>
-        </div>
-        
-        <!-- Monitoring Tab -->
-        <div id="monitoring" class="tab-content">
-            <h2>System Monitoring</h2>
-            <p style="color: #6c757d; margin-bottom: 20px;">Real-time system statistics and performance</p>
-            
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3>Total Tasks</h3>
-                    <div class="value" id="statTotalTasks">0</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Corrections</h3>
-                    <div class="value" id="statCorrections">0</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Avg Confidence</h3>
-                    <div class="value" id="statConfidence">0%</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Success Rate</h3>
-                    <div class="value" id="statSuccessRate">0%</div>
-                </div>
-            </div>
-            
-            <button class="btn btn-secondary" onclick="refreshStats()" style="margin-top: 20px;">Refresh Statistics</button>
         </div>
     </div>
-    
+
+    <!-- Demo Banner -->
+    <div class="demo-banner" onclick="startFreeDemo()">
+        🎁 DEMO ON THE HOUSE - Try Murphy System FREE! Click Here
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Left Sidebar -->
+        <div class="sidebar">
+            <h3>📊 STATE EVOLUTION</h3>
+            <div class="state-tree" id="state-tree"></div>
+
+            <h3 style="margin-top: 30px;">🤖 ACTIVE SWARMS</h3>
+            <div class="swarm-visualizer" id="swarm-list"></div>
+        </div>
+
+        <!-- Center Panel -->
+        <div class="center-panel">
+            <div class="living-document-editor">
+                <div class="document-header">
+                    <div class="document-title" id="doc-title">Living Document</div>
+                    <div class="document-controls">
+                        <button class="btn btn-primary" onclick="magnifyDocument()">🔍 MAGNIFY</button>
+                        <button class="btn btn-primary" onclick="simplifyDocument()">📉 SIMPLIFY</button>
+                        <button class="btn btn-secondary" onclick="editDocument()">✏️ EDIT</button>
+                        <button class="btn btn-primary" onclick="solidifyDocument()">✅ SOLIDIFY</button>
+                    </div>
+                </div>
+
+                <div class="document-stats">
+                    <div class="stat">
+                        <div class="stat-label">Confidence</div>
+                        <div class="stat-value" id="stat-confidence">0.45</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-confidence" style="width: 45%"></div>
+                        </div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Domain Depth</div>
+                        <div class="stat-value" id="stat-domain">0%</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-domain" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">State</div>
+                        <div class="stat-value" id="stat-state">INITIAL</div>
+                    </div>
+                </div>
+
+                <div class="content-editor" id="content-editor" contenteditable="true">
+                    Click "Initialize System" to begin...
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="sidebar">
+            <h3>🎯 DOMAIN GATES</h3>
+            <div id="gates-list"></div>
+
+            <h3 style="margin-top: 30px;">📦 ARTIFACTS</h3>
+            <div id="artifacts-list"></div>
+        </div>
+    </div>
+
+    <!-- Initialization Modal -->
+    <div class="modal active" id="init-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Initialize Murphy System</div>
+                <div class="close-modal" onclick="closeModal('init-modal')">&times;</div>
+            </div>
+
+            <div class="init-option" onclick="initMode('company')">
+                <h4>🏢 I Know My Company Details</h4>
+                <p>Start with your organization structure and requirements</p>
+            </div>
+
+            <div class="init-option" onclick="initMode('demo')">
+                <h4>🎮 Load Demo Company</h4>
+                <p>Explore with a pre-configured example company</p>
+            </div>
+
+            <div class="init-option" onclick="initMode('problem')">
+                <h4>🎯 I Have a Specific Problem</h4>
+                <p>Start with your challenge and work backwards</p>
+            </div>
+
+            <div class="init-option" onclick="initMode('librarian')">
+                <h4>📚 Guide Me (Librarian)</h4>
+                <p>Let the system ask questions and build your setup</p>
+            </div>
+        </div>
+    </div>
+
     <script>
-        const apiOrigin = window.location.protocol === 'file:' ? 'http://localhost:8000' : window.location.origin;
-        const API_BASE = `${apiOrigin}/api`;
-        
-        function switchTab(tabName) {
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
+        // System State
+        let systemState = {
+            initialized: false,
+            currentDocument: null,
+            documents: {},
+            states: [],
+            swarms: [],
+            gates: [],
+            artifacts: []
+        };
+
+        // Initialize with mode
+        function initMode(mode) {
+            closeModal('init-modal');
             
-            // Show selected tab
-            document.getElementById(tabName).classList.add('active');
-            event.target.classList.add('active');
-            
-            // Load data for specific tabs
-            if (tabName === 'corrections') {
-                loadCorrections();
-            } else if (tabName === 'monitoring') {
-                refreshStats();
-            }
-        }
-        
-        async function submitTask() {
-            const taskType = document.getElementById('taskType').value;
-            const description = document.getElementById('taskDescription').value;
-            const parameters = document.getElementById('taskParameters').value;
-            
-            if (!description) {
-                showResult('taskResult', 'Please provide a task description', 'error');
-                return;
-            }
-            
-            let params = {};
-            try {
-                params = JSON.parse(parameters);
-            } catch (e) {
-                showResult('taskResult', 'Invalid JSON in parameters', 'error');
-                return;
-            }
-            
-            showLoading('taskLoading', true);
-            
-            try {
-                const response = await fetch(`${API_BASE}/forms/task-execution`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        task_type: taskType,
-                        description: description,
-                        parameters: params
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    let html = `
-                        <h3>Task Executed Successfully</h3>
-                        <p><strong>Task ID:</strong> ${data.task_id}</p>
-                        <p><strong>Status:</strong> <span class="badge badge-success">${data.status}</span></p>
-                        <p><strong>Confidence:</strong></p>
-                        <div class="confidence-bar">
-                            <div class="confidence-fill" style="width: ${data.confidence_report.combined_confidence * 100}%">
-                                ${(data.confidence_report.combined_confidence * 100).toFixed(1)}%
-                            </div>
-                        </div>
-                        <p style="margin-top: 15px;"><strong>Output:</strong></p>
-                        <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;">${JSON.stringify(data.output, null, 2)}</pre>
-                    `;
-                    showResult('taskResult', html, 'success');
-                } else {
-                    showResult('taskResult', `Error: ${data.error || data.reason}`, 'error');
-                }
-            } catch (error) {
-                showResult('taskResult', `Network error: ${error.message}`, 'error');
-            } finally {
-                showLoading('taskLoading', false);
-            }
-        }
-        
-        async function validateTask() {
-            const data = document.getElementById('validationData').value;
-            
-            if (!data) {
-                showResult('validationResult', 'Please provide task data', 'error');
-                return;
-            }
-            
-            let taskData = {};
-            try {
-                taskData = JSON.parse(data);
-            } catch (e) {
-                showResult('validationResult', 'Invalid JSON', 'error');
-                return;
-            }
-            
-            showLoading('validationLoading', true);
-            
-            try {
-                const response = await fetch(`${API_BASE}/forms/validation`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ task_data: taskData })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    let html = `
-                        <h3>Validation Result</h3>
-                        <p><strong>Approved:</strong> <span class="badge ${result.approved ? 'badge-success' : 'badge-danger'}">${result.approved ? 'YES' : 'NO'}</span></p>
-                        <p><strong>Combined Confidence:</strong></p>
-                        <div class="confidence-bar">
-                            <div class="confidence-fill" style="width: ${result.confidence * 100}%">
-                                ${(result.confidence * 100).toFixed(1)}%
-                            </div>
-                        </div>
-                        <p style="margin-top: 15px;"><strong>Uncertainty Scores:</strong></p>
-                        <ul>
-                            <li>Data (UD): ${(result.uncertainty_scores.UD * 100).toFixed(1)}%</li>
-                            <li>Authority (UA): ${(result.uncertainty_scores.UA * 100).toFixed(1)}%</li>
-                            <li>Information (UI): ${(result.uncertainty_scores.UI * 100).toFixed(1)}%</li>
-                            <li>Resources (UR): ${(result.uncertainty_scores.UR * 100).toFixed(1)}%</li>
-                            <li>Disagreement (UG): ${(result.uncertainty_scores.UG * 100).toFixed(1)}%</li>
-                        </ul>
-                        ${result.gate_result.reason ? `<p><strong>Reason:</strong> ${result.gate_result.reason}</p>` : ''}
-                    `;
-                    showResult('validationResult', html, result.approved ? 'success' : 'error');
-                } else {
-                    showResult('validationResult', `Error: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                showResult('validationResult', `Network error: ${error.message}`, 'error');
-            } finally {
-                showLoading('validationLoading', false);
-            }
-        }
-        
-        async function submitCorrection() {
-            const taskId = document.getElementById('correctionTaskId').value;
-            const correctionType = document.getElementById('correctionType').value;
-            const originalOutput = document.getElementById('originalOutput').value;
-            const correctedOutput = document.getElementById('correctedOutput').value;
-            const explanation = document.getElementById('correctionExplanation').value;
-            
-            if (!taskId || !originalOutput || !correctedOutput) {
-                showResult('correctionResult', 'Please fill in all required fields', 'error');
-                return;
-            }
-            
-            showLoading('correctionLoading', true);
-            
-            try {
-                const response = await fetch(`${API_BASE}/forms/correction`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        task_id: taskId,
-                        correction_type: correctionType,
-                        original_output: originalOutput,
-                        corrected_output: correctedOutput,
-                        explanation: explanation
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    let html = `
-                        <h3>Correction Submitted</h3>
-                        <p><strong>Correction ID:</strong> ${data.correction_id}</p>
-                        <p><strong>Task ID:</strong> ${data.task_id}</p>
-                        <p><strong>Patterns Extracted:</strong> ${data.patterns_extracted}</p>
-                        <p style="color: #28a745; margin-top: 10px;">✓ Murphy will learn from this correction</p>
-                    `;
-                    showResult('correctionResult', html, 'success');
-                    
-                    // Clear form
-                    document.getElementById('correctionTaskId').value = '';
-                    document.getElementById('originalOutput').value = '';
-                    document.getElementById('correctedOutput').value = '';
-                    document.getElementById('correctionExplanation').value = '';
-                    
-                    // Reload corrections list
-                    loadCorrections();
-                } else {
-                    showResult('correctionResult', `Error: ${data.error}`, 'error');
-                }
-            } catch (error) {
-                showResult('correctionResult', `Network error: ${error.message}`, 'error');
-            } finally {
-                showLoading('correctionLoading', false);
-            }
-        }
-        
-        async function loadCorrections() {
-            try {
-                const response = await fetch(`${API_BASE}/corrections/statistics`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    const stats = data.statistics;
-                    let html = '<div class="correction-list">';
-                    
-                    if (stats.total_corrections === 0) {
-                        html += '<p style="color: #6c757d;">No corrections yet. Submit your first correction above!</p>';
-                    } else {
-                        html += `<p>Total corrections: <strong>${stats.total_corrections}</strong></p>`;
-                        html += `<p>Patterns extracted: <strong>${stats.total_patterns}</strong></p>`;
-                    }
-                    
-                    html += '</div>';
-                    document.getElementById('correctionsList').innerHTML = html;
-                }
-            } catch (error) {
-                console.error('Error loading corrections:', error);
-            }
-        }
-        
-        async function refreshStats() {
-            try {
-                const [correctionsRes, hitlRes] = await Promise.all([
-                    fetch(`${API_BASE}/corrections/statistics`),
-                    fetch(`${API_BASE}/hitl/statistics`)
-                ]);
-                
-                const corrections = await correctionsRes.json();
-                const hitl = await hitlRes.json();
-                
-                if (corrections.success) {
-                    document.getElementById('statCorrections').textContent = corrections.statistics.total_corrections;
-                }
-                
-                // Update other stats (placeholder values for now)
-                document.getElementById('statTotalTasks').textContent = Math.floor(Math.random() * 100);
-                document.getElementById('statConfidence').textContent = '85%';
-                document.getElementById('statSuccessRate').textContent = '92%';
-            } catch (error) {
-                console.error('Error refreshing stats:', error);
-            }
-        }
-        
-        function showResult(elementId, content, type = '') {
-            const element = document.getElementById(elementId);
-            element.innerHTML = `<div class="result-box ${type}">${content}</div>`;
-        }
-        
-        function showLoading(elementId, show) {
-            const element = document.getElementById(elementId);
-            if (show) {
-                element.classList.add('active');
+            if (mode === 'librarian') {
+                startLibrarianGuide();
+            } else if (mode === 'demo') {
+                loadDemoCompany();
+            } else if (mode === 'problem') {
+                startWithProblem();
             } else {
-                element.classList.remove('active');
+                startWithCompany();
             }
         }
-        
-        // Load initial data
-        refreshStats();
+
+        // Librarian guided setup
+        function startLibrarianGuide() {
+            const content = document.getElementById('content-editor');
+            content.innerHTML = `
+                <h2>Welcome to Murphy System</h2>
+                <p>I'm the Librarian. I'll help you set up your system.</p>
+                <br>
+                <p><strong>Question 1:</strong> What type of business are you running?</p>
+                <input type="text" id="q1" placeholder="e.g., Manufacturing, Software, Consulting" style="width: 100%; padding: 10px; margin: 10px 0; background: #0a0e27; border: 1px solid #00ff41; color: #00ff41;">
+                <br><br>
+                <p><strong>Question 2:</strong> What's your primary goal right now?</p>
+                <input type="text" id="q2" placeholder="e.g., Build a facility, Launch a product, Improve operations" style="width: 100%; padding: 10px; margin: 10px 0; background: #0a0e27; border: 1px solid #00ff41; color: #00ff41;">
+                <br><br>
+                <button class="btn btn-primary" onclick="processLibrarianAnswers()">Continue</button>
+            `;
+        }
+
+        function processLibrarianAnswers() {
+            const q1 = document.getElementById('q1').value;
+            const q2 = document.getElementById('q2').value;
+            
+            createLivingDocument('Business Initiative', `
+                Business Type: ${q1}
+                Primary Goal: ${q2}
+                
+                We need to develop a comprehensive plan that addresses all aspects of this initiative,
+                including engineering, financial, regulatory, and operational considerations.
+            `);
+        }
+
+        // Load demo company
+        function loadDemoCompany() {
+            createLivingDocument('Manufacturing Facility Proposal', `
+                Project: Build a 50,000 sq ft manufacturing facility
+                
+                Requirements:
+                - Load capacity: 500 tons
+                - Crane system: 20-ton overhead
+                - Power: 480V 3-phase, 2000A service
+                - Compliance: FDA, OSHA, local building codes
+                - Budget: $5M
+                - Timeline: 18 months
+                
+                This facility will manufacture medical devices and must meet all regulatory requirements.
+            `);
+        }
+
+        // Start with problem
+        function startWithProblem() {
+            const content = document.getElementById('content-editor');
+            content.innerHTML = `
+                <h2>Describe Your Challenge</h2>
+                <p>Tell me what you're trying to accomplish:</p>
+                <textarea id="problem-input" style="width: 100%; height: 200px; padding: 15px; margin: 10px 0; background: #0a0e27; border: 2px solid #00ff41; color: #00ff41; font-size: 16px; border-radius: 5px;"></textarea>
+                <br><br>
+                <button class="btn btn-primary" onclick="processProblem()">Analyze & Create Plan</button>
+            `;
+        }
+
+        function processProblem() {
+            const problem = document.getElementById('problem-input').value;
+            createLivingDocument('Solution Plan', problem);
+        }
+
+        // Start with company
+        function startWithCompany() {
+            const content = document.getElementById('content-editor');
+            content.innerHTML = `
+                <h2>Company Information</h2>
+                <p><strong>Company Name:</strong></p>
+                <input type="text" id="company-name" style="width: 100%; padding: 10px; margin: 10px 0; background: #0a0e27; border: 1px solid #00ff41; color: #00ff41;">
+                
+                <p><strong>Industry:</strong></p>
+                <input type="text" id="company-industry" style="width: 100%; padding: 10px; margin: 10px 0; background: #0a0e27; border: 1px solid #00ff41; color: #00ff41;">
+                
+                <p><strong>Current Initiative:</strong></p>
+                <textarea id="company-initiative" style="width: 100%; height: 150px; padding: 15px; margin: 10px 0; background: #0a0e27; border: 2px solid #00ff41; color: #00ff41; font-size: 16px; border-radius: 5px;"></textarea>
+                <br><br>
+                <button class="btn btn-primary" onclick="processCompanyInfo()">Create Living Document</button>
+            `;
+        }
+
+        function processCompanyInfo() {
+            const name = document.getElementById('company-name').value;
+            const industry = document.getElementById('company-industry').value;
+            const initiative = document.getElementById('company-initiative').value;
+            
+            createLivingDocument(`${name} - ${industry} Initiative`, `
+                Company: ${name}
+                Industry: ${industry}
+                
+                Initiative:
+                ${initiative}
+            `);
+        }
+
+        // Create living document
+        function createLivingDocument(title, content) {
+            const doc = {
+                id: `DOC-${Date.now()}`,
+                title: title,
+                content: content,
+                state: 'INITIAL',
+                confidence: 0.45,
+                domainDepth: 0,
+                history: []
+            };
+            
+            systemState.currentDocument = doc;
+            systemState.documents[doc.id] = doc;
+            
+            updateDocumentDisplay();
+            addStateNode(doc.id, title, 'INITIAL', 0.45);
+        }
+
+        // Update document display
+        function updateDocumentDisplay() {
+            const doc = systemState.currentDocument;
+            if (!doc) return;
+            
+            document.getElementById('doc-title').textContent = doc.title;
+            document.getElementById('content-editor').innerHTML = doc.content.replace(/\n/g, '<br>');
+            document.getElementById('stat-confidence').textContent = doc.confidence.toFixed(2);
+            document.getElementById('stat-domain').textContent = doc.domainDepth + '%';
+            document.getElementById('stat-state').textContent = doc.state;
+            document.getElementById('progress-confidence').style.width = (doc.confidence * 100) + '%';
+            document.getElementById('progress-domain').style.width = doc.domainDepth + '%';
+        }
+
+        // Magnify document
+        function magnifyDocument() {
+            const doc = systemState.currentDocument;
+            if (!doc) return;
+            
+            doc.domainDepth = Math.min(100, doc.domainDepth + 15);
+            doc.confidence = Math.min(1.0, doc.confidence + 0.1);
+            doc.history.push({action: 'magnify', timestamp: new Date().toISOString()});
+            
+            updateDocumentDisplay();
+            addStateNode(doc.id, `${doc.title} (Magnified)`, 'MAGNIFIED', doc.confidence);
+        }
+
+        // Simplify document
+        function simplifyDocument() {
+            const doc = systemState.currentDocument;
+            if (!doc) return;
+            
+            doc.domainDepth = Math.max(0, doc.domainDepth - 10);
+            doc.confidence = Math.min(1.0, doc.confidence + 0.05);
+            doc.history.push({action: 'simplify', timestamp: new Date().toISOString()});
+            
+            updateDocumentDisplay();
+            addStateNode(doc.id, `${doc.title} (Simplified)`, 'SIMPLIFIED', doc.confidence);
+        }
+
+        // Edit document
+        function editDocument() {
+            const editor = document.getElementById('content-editor');
+            editor.contentEditable = true;
+            editor.focus();
+        }
+
+        // Solidify document
+        function solidifyDocument() {
+            const doc = systemState.currentDocument;
+            if (!doc) return;
+            
+            doc.state = 'SOLIDIFIED';
+            doc.confidence = Math.min(1.0, doc.confidence + 0.2);
+            
+            updateDocumentDisplay();
+            
+            // Generate prompts and start swarms
+            generatePromptsAndSwarms();
+        }
+
+        // Generate prompts and swarms
+        function generatePromptsAndSwarms() {
+            const domains = ['Engineering', 'Financial', 'Regulatory', 'Sales', 'Operations'];
+            
+            domains.forEach((domain, index) => {
+                setTimeout(() => {
+                    addSwarm(domain, `Analyzing ${domain.toLowerCase()} requirements`);
+                    generateDomainGates(domain);
+                }, index * 500);
+            });
+        }
+
+        // Add state node
+        function addStateNode(docId, title, state, confidence) {
+            const tree = document.getElementById('state-tree');
+            const node = document.createElement('div');
+            node.className = 'state-node';
+            node.innerHTML = `
+                <div>${title}</div>
+                <div style="font-size: 11px; opacity: 0.7; margin-top: 5px;">
+                    ${state} | Confidence: ${confidence.toFixed(2)}
+                </div>
+            `;
+            tree.appendChild(node);
+        }
+
+        // Add swarm
+        function addSwarm(domain, purpose) {
+            const swarm = {
+                id: `SWARM-${systemState.swarms.length}`,
+                domain: domain,
+                purpose: purpose,
+                progress: 0,
+                status: 'active'
+            };
+            
+            systemState.swarms.push(swarm);
+            renderSwarms();
+            
+            // Simulate progress
+            const interval = setInterval(() => {
+                swarm.progress += Math.random() * 15;
+                if (swarm.progress >= 100) {
+                    swarm.progress = 100;
+                    swarm.status = 'completed';
+                    clearInterval(interval);
+                    
+                    // Generate artifact
+                    addArtifact(domain, `${domain} Analysis Report`);
+                }
+                renderSwarms();
+            }, 1000);
+        }
+
+        // Render swarms
+        function renderSwarms() {
+            const list = document.getElementById('swarm-list');
+            list.innerHTML = '';
+            
+            systemState.swarms.forEach(swarm => {
+                const div = document.createElement('div');
+                div.className = 'swarm-agent';
+                div.innerHTML = `
+                    <div class="agent-header">
+                        <div class="agent-name">${swarm.domain}</div>
+                        <div class="agent-status">${swarm.status}</div>
+                    </div>
+                    <div style="font-size: 12px; opacity: 0.8;">${swarm.purpose}</div>
+                    <div class="agent-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${swarm.progress}%"></div>
+                        </div>
+                        <div style="font-size: 11px; margin-top: 5px;">${swarm.progress.toFixed(0)}%</div>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // Generate domain gates
+        function generateDomainGates(domain) {
+            const gateTemplates = {
+                'Engineering': ['Load Calculations', 'Code Compliance', 'Safety Factors'],
+                'Financial': ['Budget Constraint', 'ROI Threshold', 'Cash Flow'],
+                'Regulatory': ['FDA Compliance', 'OSHA Standards', 'Local Laws'],
+                'Sales': ['Market Validation', 'Pricing Strategy', 'Contract Terms'],
+                'Operations': ['Resource Availability', 'Timeline Feasibility', 'Quality Standards']
+            };
+            
+            const gates = gateTemplates[domain] || [];
+            gates.forEach(gateName => {
+                addGate(domain, gateName);
+            });
+        }
+
+        // Add gate
+        function addGate(domain, name) {
+            const gate = {
+                id: `GATE-${systemState.gates.length}`,
+                domain: domain,
+                name: name,
+                status: 'active'
+            };
+            
+            systemState.gates.push(gate);
+            renderGates();
+        }
+
+        // Render gates
+        function renderGates() {
+            const list = document.getElementById('gates-list');
+            list.innerHTML = '';
+            
+            systemState.gates.forEach(gate => {
+                const div = document.createElement('div');
+                div.className = 'state-node';
+                div.innerHTML = `
+                    <div style="font-size: 12px; font-weight: bold;">${gate.name}</div>
+                    <div style="font-size: 10px; opacity: 0.7; margin-top: 3px;">${gate.domain}</div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // Add artifact
+        function addArtifact(domain, name) {
+            const artifact = {
+                id: `ARTIFACT-${systemState.artifacts.length}`,
+                domain: domain,
+                name: name,
+                timestamp: new Date().toISOString()
+            };
+            
+            systemState.artifacts.push(artifact);
+            renderArtifacts();
+        }
+
+        // Render artifacts
+        function renderArtifacts() {
+            const list = document.getElementById('artifacts-list');
+            list.innerHTML = '';
+            
+            systemState.artifacts.forEach(artifact => {
+                const div = document.createElement('div');
+                div.className = 'state-node';
+                div.innerHTML = `
+                    <div style="font-size: 12px; font-weight: bold;">${artifact.name}</div>
+                    <div style="font-size: 10px; opacity: 0.7; margin-top: 3px;">${artifact.domain}</div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // Start free demo
+        function startFreeDemo() {
+            alert('🎁 Demo On The House activated! All features unlocked for this session.');
+            loadDemoCompany();
+        }
+
+        // Close modal
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Initialize on load
+        window.onload = () => {
+            console.log('Murphy System - Complete Business Operating System');
+        };
     </script>
 </body>
 </html>

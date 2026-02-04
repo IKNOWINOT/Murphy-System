@@ -120,7 +120,7 @@ murphy_integrated/
 │   │   └── integrated_hitl_monitor.py    # Integration class
 │   └── ... (original 272 files)
 ├── murphy_complete_backend_extended.py  # Integrated backend
-├── murphy_ui_integrated.html            # Modern web UI
+├── murphy_ui_integrated.html            # Onboarding/Librarian setup UI
 └── tests/                               # Test suite
 ```
 

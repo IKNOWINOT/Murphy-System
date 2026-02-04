@@ -100,7 +100,8 @@ except ImportError as e:
 # FastAPI for REST API
 try:
     from fastapi import FastAPI, HTTPException, Request
-    from fastapi.responses import JSONResponse
+    from fastapi.responses import JSONResponse, FileResponse
+    from fastapi.staticfiles import StaticFiles
     from fastapi.middleware.cors import CORSMiddleware
     import uvicorn
 except ImportError:
@@ -470,6 +471,17 @@ def create_app() -> FastAPI:
         description="Universal AI Automation System",
         version="1.0.0"
     )
+
+    base_dir = Path(__file__).parent
+    app.mount("/static", StaticFiles(directory=base_dir), name="static")
+
+    @app.get("/")
+    async def root():
+        return JSONResponse({"message": "Murphy System 1.0 API is running."})
+
+    @app.get("/murphy_ui_integrated.html")
+    async def integrated_ui():
+        return FileResponse(base_dir / "murphy_ui_integrated.html")
     
     # Add CORS middleware
     app.add_middleware(
