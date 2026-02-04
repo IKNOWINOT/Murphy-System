@@ -2,9 +2,10 @@
 # Copyright © 2020 Inoni Limited Liability Company
 # Creator: Corey Post
 # License: Apache License 2.0
+# 
+# NOTE: Requires Python 3.11 or higher (check version with: python --version)
 
 # ==================== Core Dependencies ====================
-python>=3.11
 
 # Web Framework
 fastapi>=0.104.0

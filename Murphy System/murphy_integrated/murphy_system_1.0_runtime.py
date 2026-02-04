@@ -30,23 +30,62 @@ from src.module_manager import module_manager
 from src.modular_runtime import ModularRuntime
 
 # Universal Control Plane
-from universal_control_plane import UniversalControlPlane
+try:
+    from universal_control_plane import UniversalControlPlane
+except ImportError as e:
+    print(f"⚠️  Warning: Could not import UniversalControlPlane: {e}")
+    UniversalControlPlane = None
 
 # Inoni Business Automation
-from inoni_business_automation import InoniBusinessAutomation
+try:
+    from inoni_business_automation import InoniBusinessAutomation
+except ImportError as e:
+    print(f"⚠️  Warning: Could not import InoniBusinessAutomation: {e}")
+    InoniBusinessAutomation = None
 
 # Integration Engine
-from src.integration_engine.unified_engine import UnifiedIntegrationEngine
+try:
+    from src.integration_engine.unified_engine import UnifiedIntegrationEngine
+except ImportError as e:
+    print(f"⚠️  Warning: Could not import UnifiedIntegrationEngine: {e}")
+    print(f"   This may be due to missing dependencies. Please ensure all requirements are installed.")
+    UnifiedIntegrationEngine = None
 
 # Two-Phase Orchestrator
-from two_phase_orchestrator import TwoPhaseOrchestrator
+try:
+    from two_phase_orchestrator import TwoPhaseOrchestrator
+except ImportError as e:
+    print(f"⚠️  Warning: Could not import TwoPhaseOrchestrator: {e}")
+    TwoPhaseOrchestrator = None
 
-# Phase 1-5 Components
-from src.form_intake.handlers import FormHandler
-from src.confidence_engine.unified_confidence_engine import UnifiedConfidenceEngine
-from src.execution_engine.integrated_form_executor import IntegratedFormExecutor
-from src.learning_engine.integrated_correction_system import IntegratedCorrectionSystem
-from src.supervisor_system.integrated_hitl_monitor import IntegratedHITLMonitor
+# Phase 1-5 Components (optional - may not all be available)
+try:
+    from src.form_intake.handlers import FormHandlerRegistry as FormHandler
+except ImportError:
+    try:
+        from src.form_intake.handlers import PlanUploadFormHandler as FormHandler
+    except ImportError:
+        FormHandler = None
+
+try:
+    from src.confidence_engine.unified_confidence_engine import UnifiedConfidenceEngine
+except ImportError:
+    UnifiedConfidenceEngine = None
+
+try:
+    from src.execution_engine.integrated_form_executor import IntegratedFormExecutor
+except ImportError:
+    IntegratedFormExecutor = None
+
+try:
+    from src.learning_engine.integrated_correction_system import IntegratedCorrectionSystem
+except ImportError:
+    IntegratedCorrectionSystem = None
+
+try:
+    from src.supervisor_system.integrated_hitl_monitor import IntegratedHITLMonitor
+except ImportError:
+    IntegratedHITLMonitor = None
 
 # Original Murphy Components
 try:
@@ -56,6 +95,7 @@ try:
     from src.telemetry_learning.ingestion import TelemetryIngester, TelemetryBus
 except ImportError as e:
     print(f"Warning: Some original Murphy components not available: {e}")
+    SystemLibrarian = TrueSwarmSystem = GovernanceScheduler = TelemetryIngester = TelemetryBus = None
 
 # FastAPI for REST API
 try:
@@ -102,37 +142,57 @@ class MurphySystem:
         self.modular_runtime = ModularRuntime()
         
         # Initialize Universal Control Plane
-        logger.info("Initializing Universal Control Plane...")
-        self.control_plane = UniversalControlPlane()
+        if UniversalControlPlane:
+            logger.info("Initializing Universal Control Plane...")
+            self.control_plane = UniversalControlPlane()
+        else:
+            logger.warning("Universal Control Plane not available")
+            self.control_plane = None
         
         # Initialize Inoni Business Automation
-        logger.info("Initializing Inoni Business Automation...")
-        self.inoni_automation = InoniBusinessAutomation()
+        if InoniBusinessAutomation:
+            logger.info("Initializing Inoni Business Automation...")
+            self.inoni_automation = InoniBusinessAutomation()
+        else:
+            logger.warning("Inoni Business Automation not available")
+            self.inoni_automation = None
         
         # Initialize Integration Engine
-        logger.info("Initializing Integration Engine...")
-        self.integration_engine = UnifiedIntegrationEngine()
+        if UnifiedIntegrationEngine:
+            logger.info("Initializing Integration Engine...")
+            self.integration_engine = UnifiedIntegrationEngine()
+        else:
+            logger.warning("Integration Engine not available (dependencies may be missing)")
+            self.integration_engine = None
         
         # Initialize Two-Phase Orchestrator
-        logger.info("Initializing Two-Phase Orchestrator...")
-        self.orchestrator = TwoPhaseOrchestrator()
+        if TwoPhaseOrchestrator:
+            logger.info("Initializing Two-Phase Orchestrator...")
+            self.orchestrator = TwoPhaseOrchestrator()
+        else:
+            logger.warning("Two-Phase Orchestrator not available")
+            self.orchestrator = None
         
         # Initialize Phase 1-5 Components
         logger.info("Initializing Phase 1-5 components...")
-        self.form_handler = FormHandler()
-        self.confidence_engine = UnifiedConfidenceEngine()
-        self.form_executor = IntegratedFormExecutor()
-        self.correction_system = IntegratedCorrectionSystem()
-        self.hitl_monitor = IntegratedHITLMonitor()
+        self.form_handler = FormHandler() if FormHandler else None
+        self.confidence_engine = UnifiedConfidenceEngine() if UnifiedConfidenceEngine else None
+        self.form_executor = IntegratedFormExecutor() if IntegratedFormExecutor else None
+        self.correction_system = IntegratedCorrectionSystem() if IntegratedCorrectionSystem else None
+        self.hitl_monitor = IntegratedHITLMonitor() if IntegratedHITLMonitor else None
         
         # Initialize Original Murphy Components (if available)
         logger.info("Initializing original Murphy components...")
         try:
-            self.librarian = SystemLibrarian()
-            self.swarm_system = TrueSwarmSystem()
-            self.governance_scheduler = GovernanceScheduler()
-            self.telemetry_bus = TelemetryBus()
-            self.telemetry_ingester = TelemetryIngester(self.telemetry_bus)
+            self.librarian = SystemLibrarian() if SystemLibrarian else None
+            self.swarm_system = TrueSwarmSystem() if TrueSwarmSystem else None
+            self.governance_scheduler = GovernanceScheduler() if GovernanceScheduler else None
+            if TelemetryBus and TelemetryIngester:
+                self.telemetry_bus = TelemetryBus()
+                self.telemetry_ingester = TelemetryIngester(self.telemetry_bus)
+            else:
+                self.telemetry_bus = None
+                self.telemetry_ingester = None
         except Exception as e:
             logger.warning(f"Some original components not available: {e}")
         

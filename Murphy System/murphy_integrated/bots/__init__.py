@@ -27,7 +27,10 @@ from .plugin_loader import load_plugin, load_plugins, reload_plugin
 from .composite_registry import load_composite_bots
 from .config_manager import ConfigManagerBot
 from .scheduler_ui import run_scheduler_ui
-from .simulation_bot import run_simulation
+try:
+    from .simulation_bot import run_simulation
+except Exception:  # pragma: no cover
+    run_simulation = None
 from .memory_manager_ttl import check_expired_stm, archive_to_ltm, deduplicate_ltm
 from .rcm_stability_core import RecursiveStabilityEngine
 from .metrics_exporter import start_metrics_server
@@ -60,9 +63,6 @@ try:
     from .simulation_sandbox import simulate
 except Exception:  # pragma: no cover - optional dependency
     simulate = None
-from .container_runner import ContainerTask, run_container
-from .hive_pipelines import predictive_scheduler, feedback_optimization_cycle
-
 try:  # optional heavy modules
     from .polyglot_bot import (
         translate,
@@ -72,6 +72,13 @@ try:  # optional heavy modules
     )
 except Exception:  # pragma: no cover
     translate = context_aware_translate = transpile_python_to_js = transpile_js_to_python = None
+
+try:
+    from .hive_pipelines import predictive_scheduler, feedback_optimization_cycle
+except Exception:  # pragma: no cover
+    predictive_scheduler = feedback_optimization_cycle = None
+
+from .container_runner import ContainerTask, run_container
 
 try:
     from .memory_manager_bot import (
