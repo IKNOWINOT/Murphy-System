@@ -29,7 +29,7 @@ env.bak/
 venv.bak/
 
 # IDEs
-.vscode/
+# .vscode/ - We want to keep VS Code configs for demos
 .idea/
 *.swp
 *.swo
