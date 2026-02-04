@@ -43,7 +43,7 @@ pip install -r requirements_murphy_1.0.txt 2>nul
 if errorlevel 1 (
     echo [WARNING] Some dependencies may have failed to install.
     echo [INFO] Attempting to install core dependencies...
-    pip install fastapi uvicorn pydantic aiohttp httpx --quiet
+    pip install fastapi uvicorn pydantic pydantic-settings aiohttp httpx --quiet
     echo [OK] Core dependencies installed
 ) else (
     echo [OK] Dependencies installed

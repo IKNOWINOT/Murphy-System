@@ -50,7 +50,7 @@ echo "📦 Checking dependencies..."
 python3 -c "import fastapi, uvicorn" 2>/dev/null
 if [ $? -ne 0 ]; then
     echo "⚠️  Some dependencies missing. Installing..."
-    pip install --quiet fastapi uvicorn pydantic aiohttp httpx matplotlib watchdog 2>&1 | grep -v "Requirement already satisfied" || true
+    pip install --quiet fastapi uvicorn pydantic pydantic-settings aiohttp httpx matplotlib watchdog 2>&1 | grep -v "Requirement already satisfied" || true
     echo "✅ Dependencies installed"
 else
     echo "✅ Dependencies OK"
