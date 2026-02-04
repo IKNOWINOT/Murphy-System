@@ -2,7 +2,12 @@ import os
 import json
 from typing import Optional
 from pathlib import Path
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+try:
+    from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+except ImportError:
+    AutoModelForCausalLM = None
+    AutoTokenizer = None
+    pipeline = None
 import torch
 
 

@@ -42,7 +42,7 @@ from src.integration_engine.unified_engine import UnifiedIntegrationEngine
 from two_phase_orchestrator import TwoPhaseOrchestrator
 
 # Phase 1-5 Components
-from src.form_intake.handlers import FormHandler
+from src.form_intake.handlers import FormHandlerRegistry as FormHandler
 from src.confidence_engine.unified_confidence_engine import UnifiedConfidenceEngine
 from src.execution_engine.integrated_form_executor import IntegratedFormExecutor
 from src.learning_engine.integrated_correction_system import IntegratedCorrectionSystem

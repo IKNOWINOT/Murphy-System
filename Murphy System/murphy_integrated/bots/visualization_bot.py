@@ -6,9 +6,18 @@ from typing import Dict, Any, List
 from datetime import datetime
 from pathlib import Path
 import matplotlib.pyplot as plt
-from modern_arcana.gpt_oss_runner import GPTOSSRunner
-from modern_arcana.simulation_bot import SimulationBot
-from modern_arcana.cad_bot import CADBot
+try:
+    from .gpt_oss_runner import GPTOSSRunner
+except ImportError:
+    GPTOSSRunner = None
+try:
+    from .simulation_bot import SimulationBot
+except ImportError:
+    SimulationBot = None
+try:
+    from .cad_bot import CADBot
+except ImportError:
+    CADBot = None
 
 VISUAL_DIR = Path("visuals")
 VISUAL_DIR.mkdir(exist_ok=True)

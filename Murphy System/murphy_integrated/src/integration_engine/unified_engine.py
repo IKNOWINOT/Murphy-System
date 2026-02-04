@@ -20,7 +20,11 @@ import json
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from bots.swisskiss_loader import SwissKissLoader
+try:
+    from bots.swisskiss_loader import SwissKissLoader
+except ImportError as e:
+    print(f"Warning: Could not import SwissKissLoader: {e}")
+    SwissKissLoader = None
 from src.module_manager import module_manager
 from src.integrations.integration_framework import IntegrationFramework
 from .capability_extractor import CapabilityExtractor
@@ -93,7 +97,7 @@ class UnifiedIntegrationEngine:
     """
     
     def __init__(self):
-        self.swisskiss = SwissKissLoader()
+        self.swisskiss = SwissKissLoader() if SwissKissLoader is not None else None
         self.capability_extractor = CapabilityExtractor()
         self.module_generator = ModuleGenerator()
         self.agent_generator = AgentGenerator()
