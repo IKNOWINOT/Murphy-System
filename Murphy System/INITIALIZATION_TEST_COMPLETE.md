@@ -179,7 +179,7 @@ All systems initialize correctly, all endpoints respond properly, and all tests 
 
 ---
 
-**Test Performed By:** SuperNinja AI Agent
+**Test Performed By:** Inoni LLC (Corey Post)
 **Environment:** Linux sandbox (Python 3.11)
 **Package Tested:** murphy_system_v1.0_FINAL.zip
 **Status:** ✅ READY FOR WINDOWS DEPLOYMENT

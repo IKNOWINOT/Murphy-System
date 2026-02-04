@@ -3,7 +3,7 @@
 ## Your Questions Answered
 
 ### 1. **Murphy created or you did?**
-**Answer:** I (SuperNinja) created the previous book with a SINGLE LLM call. Murphy provided the framework but didn't orchestrate multiple agents. **That's now fixed.**
+**Answer:** I (Inoni LLC) created the previous book with a SINGLE LLM call. Murphy provided the framework but didn't orchestrate multiple agents. **That's now fixed.**
 
 ### 2. **Did it break down into parts and extract to build manuscript?**
 **Answer:** NO - it was one monolithic call. **Now it does:**
