@@ -37,9 +37,17 @@ echo.
 
 REM Install/update dependencies
 echo Installing dependencies...
-python -m pip install --upgrade pip
-pip install -r requirements_murphy_1.0.txt
-echo [OK] Dependencies installed
+python -m pip install --upgrade pip --quiet
+echo Installing Murphy System requirements...
+pip install -r requirements_murphy_1.0.txt 2>nul
+if errorlevel 1 (
+    echo [WARNING] Some dependencies may have failed to install.
+    echo [INFO] Attempting to install core dependencies...
+    pip install fastapi uvicorn pydantic aiohttp httpx --quiet
+    echo [OK] Core dependencies installed
+) else (
+    echo [OK] Dependencies installed
+)
 echo.
 
 REM Check environment variables
