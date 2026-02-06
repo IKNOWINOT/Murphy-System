@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murphy Integrated System - Terminal Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #0f0;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 300px 1fr 350px;
+            grid-template-rows: 50px 1fr;
+            height: 100vh;
+            gap: 2px;
+            background: #000;
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            border-bottom: 2px solid #0f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+
+        .header-title {
+            font-size: 16px;
+            color: #0f0;
+            text-shadow: 0 0 10px #0f0;
+        }
+
+        .llm-controls {
+            display: flex;
+            gap: 15px;
+            font-size: 11px;
+        }
+
+        .llm-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            background: #0a0a0a;
+            border: 1px solid #0f0;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .llm-indicator:hover {
+            background: #0f0020;
+            box-shadow: 0 0 10px #0f0;
+        }
+
+        .llm-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .llm-active { background: #0f0; }
+        .llm-standby { background: #ff0; }
+        .llm-offline { background: #666; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .state-tree {
+            background: #0a0a0a;
+            border-right: 2px solid #0f0;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .tree-title {
+            color: #0f0;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #0f0;
+            padding-bottom: 5px;
+        }
+
+        .state-node {
+            background: #111;
+            border-left: 3px solid #0f0;
+            padding: 10px;
+            margin: 8px 0;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .state-node:hover {
+            background: #0f0020;
+            border-left-width: 5px;
+            box-shadow: 0 0 15px #0f0;
+        }
+
+        .state-node.active {
+            background: #0f0030;
+            border-left-color: #00ff00;
+            box-shadow: 0 0 20px #0f0;
+        }
+
+        .state-node.child {
+            margin-left: 20px;
+            border-left-color: #00ffff;
+        }
+
+        .state-node.child.child {
+            margin-left: 40px;
+            border-left-color: #ff00ff;
+        }
+
+        .node-title {
+            color: #0f0;
+            font-weight: bold;
+            font-size: 11px;
+            margin-bottom: 3px;
+        }
+
+        .node-status {
+            color: #888;
+            font-size: 9px;
+        }
+
+        .node-confidence {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #0f0;
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: bold;
+        }
+
+        .terminal-area {
+            background: #000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .terminal-header {
+            background: #0f0;
+            color: #000;
+            padding: 8px 15px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .terminal-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            background: #000;
+            color: #0f0;
+            border: none;
+            padding: 3px 10px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .action-btn:hover {
+            background: #0f0;
+            color: #000;
+        }
+
+        .terminal-output {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 1.8;
+        }
+
+        .terminal-input-area {
+            background: #111;
+            padding: 12px 15px;
+            border-top: 2px solid #0f0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .prompt {
+            color: #0f0;
+            font-weight: bold;
+        }
+
+        .terminal-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            outline: none;
+        }
+
+        .output-line {
+            margin-bottom: 6px;
+            display: flex;
+            align-items: flex-start;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-3px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 2px 6px;
+            margin-right: 8px;
+            border-radius: 2px;
+            font-weight: bold;
+            font-size: 9px;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .tag-system { background: #0f0; color: #000; }
+        .tag-swarm { background: #00ffff; color: #000; }
+        .tag-llm { background: #ff00ff; color: #000; }
+        .tag-gate { background: #ffff00; color: #000; }
+        .tag-state { background: #ff8800; color: #000; }
+        .tag-error { background: #ff0000; color: #fff; }
+        .tag-success { background: #00ff00; color: #000; }
+
+        .confidence {
+            display: inline-block;
+            padding: 1px 5px;
+            margin-left: 6px;
+            border-radius: 2px;
+            font-size: 9px;
+            font-weight: bold;
+        }
+
+        .conf-high { background: #0f0; color: #000; }
+        .conf-medium { background: #ff0; color: #000; }
+        .conf-low { background: #f00; color: #fff; }
+
+        .sidebar {
+            background: #0a0a0a;
+            border-left: 2px solid #0f0;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .sidebar-section {
+            margin-bottom: 20px;
+        }
+
+        .sidebar-title {
+            color: #0f0;
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #0f0;
+            padding-bottom: 4px;
+        }
+
+        .metric-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px;
+            background: #111;
+            margin: 4px 0;
+            font-size: 10px;
+        }
+
+        .metric-label {
+            color: #888;
+        }
+
+        .metric-value {
+            color: #0f0;
+            font-weight: bold;
+        }
+
+        .swarm-status {
+            background: #111;
+            padding: 8px;
+            margin: 5px 0;
+            border-left: 3px solid #00ffff;
+            font-size: 10px;
+        }
+
+        .swarm-type {
+            color: #00ffff;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .swarm-info {
+            color: #888;
+            font-size: 9px;
+        }
+
+        .artifact-box {
+            background: #111;
+            border: 1px solid #0f0;
+            padding: 10px;
+            margin: 8px 0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .artifact-box:hover {
+            background: #0f0020;
+            box-shadow: 0 0 15px #0f0;
+        }
+
+        .artifact-title {
+            color: #0f0;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 11px;
+        }
+
+        .artifact-stats {
+            color: #888;
+            font-size: 9px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #0f0;
+            border-radius: 3px;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 999;
+            display: none;
+        }
+
+        .modal-overlay.active {
+            display: block;
+        }
+
+        .detail-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #000;
+            border: 3px solid #0f0;
+            padding: 20px;
+            z-index: 1000;
+            min-width: 700px;
+            max-width: 90vw;
+            max-height: 85vh;
+            overflow-y: auto;
+            display: none;
+            box-shadow: 0 0 50px #0f0;
+        }
+
+        .detail-modal.active {
+            display: block;
+            animation: modalSlide 0.3s;
+        }
+
+        @keyframes modalSlide {
+            from { transform: translate(-50%, -60%); opacity: 0; }
+            to { transform: translate(-50%, -50%); opacity: 1; }
+        }
+
+        .modal-header {
+            color: #0f0;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #0f0;
+            padding-bottom: 8px;
+        }
+
+        .modal-content {
+            color: #888;
+            font-size: 11px;
+            line-height: 1.8;
+        }
+
+        .modal-section {
+            background: #0a0a0a;
+            padding: 12px;
+            margin: 10px 0;
+            border-left: 3px solid #0f0;
+        }
+
+        .section-header {
+            color: #0f0;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 8px 20px;
+            border: 2px solid #0f0;
+            background: transparent;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            font-size: 11px;
+        }
+
+        .btn:hover {
+            background: #0f0;
+            color: #000;
+            box-shadow: 0 0 20px #0f0;
+        }
+
+        .btn-danger {
+            border-color: #f00;
+            color: #f00;
+        }
+
+        .btn-danger:hover {
+            background: #f00;
+            color: #fff;
+        }
+
+        .start-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.98);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .start-title {
+            color: #0f0;
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px #0f0;
+            animation: titlePulse 2s infinite;
+        }
+
+        @keyframes titlePulse {
+            0%, 100% { text-shadow: 0 0 20px #0f0; }
+            50% { text-shadow: 0 0 40px #0f0; }
+        }
+
+        .start-button {
+            padding: 20px 50px;
+            background: #0f0;
+            color: #000;
+            border: none;
+            font-family: 'Courier New', monospace;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+            box-shadow: 0 0 40px #0f0;
+            animation: buttonPulse 2s infinite;
+        }
+
+        @keyframes buttonPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 40px #0f0; }
+            50% { transform: scale(1.05); box-shadow: 0 0 60px #0f0; }
+        }
+
+        .start-button:hover {
+            background: #00ff00;
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Start Overlay -->
+    <div class="start-overlay" id="startOverlay">
+        <div class="start-title">MURPHY INTEGRATED SYSTEM</div>
+        <button class="start-button" id="startButton">INITIALIZE</button>
+    </div>
+
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-title">⚡ MURPHY INTEGRATED TERMINAL</div>
+            <div class="llm-controls">
+                <div class="llm-indicator" id="groqIndicator">
+                    <div class="llm-dot llm-standby"></div>
+                    <span>GROQ</span>
+                </div>
+                <div class="llm-indicator" id="aristotleIndicator">
+                    <div class="llm-dot llm-standby"></div>
+                    <span>ARISTOTLE</span>
+                </div>
+                <div class="llm-indicator" id="onboardIndicator">
+                    <div class="llm-dot llm-standby"></div>
+                    <span>ONBOARD</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- State Tree -->
+        <div class="state-tree">
+            <div class="tree-title">🌳 State Evolution Tree</div>
+            <div id="stateTreeContainer">
+                <!-- States will be generated here -->
+            </div>
+        </div>
+
+        <!-- Terminal Area -->
+        <div class="terminal-area">
+            <div class="terminal-header">
+                <span id="terminalTitle">SYSTEM TERMINAL</span>
+                <div class="terminal-actions">
+                    <button class="action-btn" id="regenerateBtn">REGENERATE</button>
+                    <button class="action-btn" id="rollbackBtn">ROLLBACK</button>
+                    <button class="action-btn" id="clearBtn">CLEAR</button>
+                </div>
+            </div>
+            
+            <div class="terminal-output" id="terminalOutput">
+                <div class="output-line">
+                    <span class="tag tag-system">SYSTEM</span>
+                    <span>Murphy Integrated System initialized</span>
+                    <span class="confidence conf-high">1.00</span>
+                </div>
+            </div>
+
+            <div class="terminal-input-area">
+                <span class="prompt">murphy></span>
+                <input type="text" class="terminal-input" id="terminalInput" placeholder="Enter command...">
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title">📊 System Metrics</div>
+                <div class="metric-item">
+                    <span class="metric-label">States Generated</span>
+                    <span class="metric-value" id="statesGenerated">0</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Artifacts Created</span>
+                    <span class="metric-value" id="artifactsCreated">0</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Gates Active</span>
+                    <span class="metric-value" id="gatesActive">0</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Swarms Running</span>
+                    <span class="metric-value" id="swarmsRunning">0</span>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title">🐝 Active Swarms</div>
+                <div id="swarmsContainer">
+                    <div style="color: #666; font-size: 10px; padding: 8px;">No swarms active</div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title">📦 Generated Artifacts</div>
+                <div id="artifactsContainer">
+                    <div style="color: #666; font-size: 10px; padding: 8px;">No artifacts yet</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div class="modal-overlay" id="modalOverlay"></div>
+    <div class="detail-modal" id="detailModal">
+        <div class="modal-header" id="modalHeader"></div>
+        <div class="modal-content" id="modalContent"></div>
+        <div class="button-group">
+            <button class="btn" id="evolveBtn">EVOLVE STATE</button>
+            <button class="btn" id="regenerateModalBtn">REGENERATE</button>
+            <button class="btn btn-danger" id="closeModalBtn">CLOSE</button>
+        </div>
+    </div>
+
+    <script>
+        const UI_CONFIG = {
+            stateConfidenceBase: 0.85,
+            stateConfidenceVariation: 0.10,
+            artifactConfidenceBase: 0.88,
+            artifactConfidenceVariation: 0.10,
+            swarmProgressSteps: 5,
+            maxDisplayedArtifacts: 5,
+            confidenceHighThreshold: 0.8,
+            confidenceMediumThreshold: 0.5
+        };
+        const SWARM_PROGRESS_INCREMENT = 100 / UI_CONFIG.swarmProgressSteps;
+        class MurphyIntegratedSystem {
+            constructor() {
+                this.terminalOutput = document.getElementById('terminalOutput');
+                this.terminalInput = document.getElementById('terminalInput');
+                this.stateTreeContainer = document.getElementById('stateTreeContainer');
+                this.swarmsContainer = document.getElementById('swarmsContainer');
+                this.artifactsContainer = document.getElementById('artifactsContainer');
+                
+                this.states = [];
+                this.currentState = null;
+                this.artifacts = [];
+                this.swarms = [];
+                this.stateIdCounter = 0;
+                
+                this.metrics = {
+                    statesGenerated: 0,
+                    artifactsCreated: 0,
+                    gatesActive: 0,
+                    swarmsRunning: 0
+                };
+                
+                this.llmStatus = {
+                    groq: 'standby',
+                    aristotle: 'standby',
+                    onboard: 'standby'
+                };
+                
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                document.getElementById('startButton').addEventListener('click', () => {
+                    this.initialize();
+                });
+
+                this.terminalInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.processCommand(this.terminalInput.value);
+                        this.terminalInput.value = '';
+                    }
+                });
+
+                document.getElementById('regenerateBtn').addEventListener('click', () => {
+                    if (this.currentState) this.regenerateState(this.currentState);
+                });
+
+                document.getElementById('rollbackBtn').addEventListener('click', () => {
+                    this.rollbackState();
+                });
+
+                document.getElementById('clearBtn').addEventListener('click', () => {
+                    this.terminalOutput.innerHTML = '';
+                });
+
+                document.getElementById('closeModalBtn').addEventListener('click', () => {
+                    this.closeModal();
+                });
+
+                document.getElementById('evolveBtn').addEventListener('click', () => {
+                    if (this.currentState) this.evolveState(this.currentState);
+                });
+
+                document.getElementById('regenerateModalBtn').addEventListener('click', () => {
+                    if (this.currentState) {
+                        this.regenerateState(this.currentState);
+                        this.closeModal();
+                    }
+                });
+            }
+
+            async initialize() {
+                document.getElementById('startOverlay').style.display = 'none';
+                
+                this.addOutput('system', 'Initializing Murphy Integrated System...', 1.00);
+                await this.sleep(500);
+                
+                // Initialize LLMs
+                await this.initializeLLMs();
+                
+                // Create root state
+                await this.createRootState();
+                
+                this.addOutput('success', 'System ready. Type "help" for commands.', 1.00);
+            }
+
+            async initializeLLMs() {
+                this.addOutput('llm', 'Initializing LLM providers...', 0.95);
+                await this.sleep(800);
+                
+                // Groq
+                this.setLLMStatus('groq', 'active');
+                this.addOutput('llm', 'Groq LLM: Active (Fast Inference)', 0.98);
+                await this.sleep(500);
+                
+                // Aristotle
+                this.setLLMStatus('aristotle', 'active');
+                this.addOutput('llm', 'Aristotle LLM: Active (Reasoning)', 0.96);
+                await this.sleep(500);
+                
+                // Onboard
+                this.setLLMStatus('onboard', 'active');
+                this.addOutput('llm', 'Onboard LLM: Active (Fallback)', 0.94);
+                await this.sleep(500);
+            }
+
+            setLLMStatus(llm, status) {
+                this.llmStatus[llm] = status;
+                const indicator = document.getElementById(`${llm}Indicator`);
+                const dot = indicator.querySelector('.llm-dot');
+                dot.className = `llm-dot llm-${status}`;
+            }
+
+            async createRootState() {
+                const rootState = {
+                    id: this.stateIdCounter++,
+                    title: 'Business System Root',
+                    type: 'root',
+                    confidence: 1.00,
+                    parent: null,
+                    children: [],
+                    data: {
+                        description: 'Root state for business management system',
+                        components: ['Executive', 'Marketing', 'Sales', 'Operations', 'Finance'],
+                        status: 'initialized'
+                    }
+                };
+                
+                this.states.push(rootState);
+                this.currentState = rootState;
+                this.metrics.statesGenerated++;
+                this.updateMetrics();
+                
+                this.renderStateTree();
+                this.addOutput('state', `Created root state: ${rootState.title}`, rootState.confidence);
+                
+                // Auto-generate initial children
+                await this.sleep(1000);
+                await this.generateInitialStates(rootState);
+            }
+
+            async generateInitialStates(parentState) {
+                this.addOutput('swarm', 'Activating swarm generation for initial states...', 0.92);
+                
+                const swarmTypes = ['CREATIVE', 'ANALYTICAL', 'HYBRID'];
+                const initialStates = [
+                    { title: 'Executive Dashboard', type: 'component', swarm: 'ANALYTICAL' },
+                    { title: 'Marketing System', type: 'component', swarm: 'CREATIVE' },
+                    { title: 'Sales Pipeline', type: 'component', swarm: 'HYBRID' },
+                    { title: 'Operations Manager', type: 'component', swarm: 'ANALYTICAL' },
+                    { title: 'Financial Tracking', type: 'component', swarm: 'ANALYTICAL' }
+                ];
+                
+                for (const stateConfig of initialStates) {
+                    await this.sleep(600);
+                    const newState = await this.createChildState(parentState, stateConfig);
+                    this.activateSwarm(stateConfig.swarm, newState);
+                }
+                
+                this.addOutput('success', 'Initial state generation complete', 0.95);
+            }
+
+            async createChildState(parentState, config) {
+                const childState = {
+                    id: this.stateIdCounter++,
+                    title: config.title,
+                    type: config.type,
+                    confidence: UI_CONFIG.stateConfidenceBase + Math.random() * UI_CONFIG.stateConfidenceVariation,
+                    parent: parentState.id,
+                    children: [],
+                    data: {
+                        description: `Generated ${config.type}: ${config.title}`,
+                        swarmType: config.swarm,
+                        status: 'active',
+                        artifacts: []
+                    }
+                };
+                
+                this.states.push(childState);
+                parentState.children.push(childState.id);
+                this.metrics.statesGenerated++;
+                this.updateMetrics();
+                
+                this.renderStateTree();
+                this.addOutput('state', `Generated child state: ${childState.title}`, childState.confidence);
+                
+                return childState;
+            }
+
+            activateSwarm(type, state) {
+                const swarm = {
+                    id: `swarm-${this.swarms.length}`,
+                    type: type,
+                    stateId: state.id,
+                    status: 'active',
+                    progress: 0
+                };
+                
+                this.swarms.push(swarm);
+                this.metrics.swarmsRunning++;
+                this.updateMetrics();
+                this.renderSwarms();
+                
+                this.addOutput('swarm', `Activated ${type} swarm for ${state.title}`, 0.90);
+                
+                // Simulate swarm progress
+                this.simulateSwarmProgress(swarm, state);
+            }
+
+            async simulateSwarmProgress(swarm, state) {
+                for (let i = 0; i < UI_CONFIG.swarmProgressSteps; i++) {
+                    await this.sleep(1000);
+                    swarm.progress += SWARM_PROGRESS_INCREMENT;
+                    this.renderSwarms();
+                    
+                    if (swarm.progress >= 100) {
+                        this.generateArtifact(state, swarm.type);
+                        swarm.status = 'complete';
+                        this.metrics.swarmsRunning--;
+                        this.updateMetrics();
+                        this.renderSwarms();
+                    }
+                }
+            }
+
+            generateArtifact(state, swarmType) {
+                const artifact = {
+                    id: `artifact-${this.artifacts.length}`,
+                    title: `${state.title} Specification`,
+                    stateId: state.id,
+                    swarmType: swarmType,
+                    confidence: UI_CONFIG.artifactConfidenceBase + Math.random() * UI_CONFIG.artifactConfidenceVariation,
+                    data: {
+                        type: 'specification',
+                        content: `Generated by ${swarmType} swarm`,
+                        timestamp: new Date().toISOString()
+                    }
+                };
+                
+                this.artifacts.push(artifact);
+                state.data.artifacts.push(artifact.id);
+                this.metrics.artifactsCreated++;
+                this.updateMetrics();
+                this.renderArtifacts();
+                
+                this.addOutput('success', `Generated artifact: ${artifact.title}`, artifact.confidence);
+            }
+
+            renderStateTree() {
+                this.stateTreeContainer.innerHTML = '';
+                
+                const rootStates = this.states.filter(s => s.parent === null);
+                rootStates.forEach(state => {
+                    this.renderStateNode(state, 0);
+                });
+            }
+
+            renderStateNode(state, depth) {
+                const node = document.createElement('div');
+                node.className = 'state-node' + (depth > 0 ? ' child' : '');
+                if (this.currentState && this.currentState.id === state.id) {
+                    node.classList.add('active');
+                }
+                
+                node.innerHTML = `
+                    <div class="node-title">${state.title}</div>
+                    <div class="node-status">${state.type} • ${state.data.status}</div>
+                    <div class="node-confidence">${state.confidence.toFixed(2)}</div>
+                `;
+                
+                node.addEventListener('click', () => {
+                    this.selectState(state);
+                });
+                
+                this.stateTreeContainer.appendChild(node);
+                
+                // Render children
+                state.children.forEach(childId => {
+                    const childState = this.states.find(s => s.id === childId);
+                    if (childState) {
+                        this.renderStateNode(childState, depth + 1);
+                    }
+                });
+            }
+
+            selectState(state) {
+                this.currentState = state;
+                this.renderStateTree();
+                
+                // Show state details in terminal
+                this.terminalOutput.innerHTML = '';
+                this.addOutput('state', `Selected: ${state.title}`, state.confidence);
+                this.addOutput('system', `Type: ${state.type}`, null);
+                this.addOutput('system', `Status: ${state.data.status}`, null);
+                this.addOutput('system', `Artifacts: ${state.data.artifacts.length}`, null);
+                this.addOutput('system', `Children: ${state.children.length}`, null);
+                
+                // Show detailed modal
+                this.showStateDetails(state);
+            }
+
+            showStateDetails(state) {
+                document.getElementById('modalHeader').textContent = state.title;
+                
+                let content = `
+                    <div class="modal-section">
+                        <div class="section-header">State Information</div>
+                        <div>ID: ${state.id}</div>
+                        <div>Type: ${state.type}</div>
+                        <div>Confidence: ${state.confidence.toFixed(2)}</div>
+                        <div>Status: ${state.data.status}</div>
+                    </div>
+                    
+                    <div class="modal-section">
+                        <div class="section-header">Description</div>
+                        <div>${state.data.description}</div>
+                    </div>
+                    
+                    <div class="modal-section">
+                        <div class="section-header">Swarm Type</div>
+                        <div>${state.data.swarmType || 'None'}</div>
+                    </div>
+                    
+                    <div class="modal-section">
+                        <div class="section-header">Artifacts (${state.data.artifacts.length})</div>
+                `;
+                
+                state.data.artifacts.forEach(artifactId => {
+                    const artifact = this.artifacts.find(a => a.id === artifactId);
+                    if (artifact) {
+                        content += `<div>• ${artifact.title} (${artifact.confidence.toFixed(2)})</div>`;
+                    }
+                });
+                
+                content += `
+                    </div>
+                    
+                    <div class="modal-section">
+                        <div class="section-header">Child States (${state.children.length})</div>
+                `;
+                
+                state.children.forEach(childId => {
+                    const child = this.states.find(s => s.id === childId);
+                    if (child) {
+                        content += `<div>• ${child.title}</div>`;
+                    }
+                });
+                
+                content += `</div>`;
+                
+                document.getElementById('modalContent').innerHTML = content;
+                document.getElementById('modalOverlay').classList.add('active');
+                document.getElementById('detailModal').classList.add('active');
+            }
+
+            closeModal() {
+                document.getElementById('modalOverlay').classList.remove('active');
+                document.getElementById('detailModal').classList.remove('active');
+            }
+
+            async evolveState(state) {
+                this.closeModal();
+                this.addOutput('state', `Evolving state: ${state.title}...`, 0.90);
+                
+                await this.sleep(800);
+                
+                const childConfig = {
+                    title: `${state.title} - Enhanced`,
+                    type: 'evolution',
+                    swarm: 'HYBRID'
+                };
+                
+                const newState = await this.createChildState(state, childConfig);
+                this.activateSwarm('HYBRID', newState);
+                
+                this.addOutput('success', `State evolved successfully`, 0.92);
+            }
+
+            async regenerateState(state) {
+                this.addOutput('state', `Regenerating state: ${state.title}...`, 0.88);
+                
+                await this.sleep(1000);
+                
+                state.confidence = UI_CONFIG.stateConfidenceBase + Math.random() * UI_CONFIG.stateConfidenceVariation;
+                state.data.status = 'regenerated';
+                
+                this.renderStateTree();
+                this.addOutput('success', `State regenerated with confidence ${state.confidence.toFixed(2)}`, state.confidence);
+            }
+
+            rollbackState() {
+                if (!this.currentState || !this.currentState.parent) {
+                    this.addOutput('error', 'Cannot rollback root state', 0.00);
+                    return;
+                }
+                
+                const parentState = this.states.find(s => s.id === this.currentState.parent);
+                if (parentState) {
+                    this.selectState(parentState);
+                    this.addOutput('state', `Rolled back to: ${parentState.title}`, parentState.confidence);
+                }
+            }
+
+            renderSwarms() {
+                if (this.swarms.length === 0) {
+                    this.swarmsContainer.innerHTML = '<div style="color: #666; font-size: 10px; padding: 8px;">No swarms active</div>';
+                    return;
+                }
+                
+                this.swarmsContainer.innerHTML = '';
+                this.swarms.filter(s => s.status === 'active').forEach(swarm => {
+                    const state = this.states.find(s => s.id === swarm.stateId);
+                    const div = document.createElement('div');
+                    div.className = 'swarm-status';
+                    div.innerHTML = `
+                        <div class="swarm-type">${swarm.type}</div>
+                        <div class="swarm-info">${state ? state.title : 'Unknown'}</div>
+                        <div class="swarm-info">Progress: ${swarm.progress}%</div>
+                    `;
+                    this.swarmsContainer.appendChild(div);
+                });
+            }
+
+            renderArtifacts() {
+                if (this.artifacts.length === 0) {
+                    this.artifactsContainer.innerHTML = '<div style="color: #666; font-size: 10px; padding: 8px;">No artifacts yet</div>';
+                    return;
+                }
+                
+                this.artifactsContainer.innerHTML = '';
+                this.getLatestArtifactsForDisplay().forEach(artifact => {
+                    const div = document.createElement('div');
+                    div.className = 'artifact-box';
+                    div.innerHTML = `
+                        <div class="artifact-title">${artifact.title}</div>
+                        <div class="artifact-stats">Confidence: ${artifact.confidence.toFixed(2)} • ${artifact.swarmType}</div>
+                    `;
+                    div.addEventListener('click', () => {
+                        this.showArtifactDetails(artifact);
+                    });
+                    this.artifactsContainer.appendChild(div);
+                });
+            }
+
+            getLatestArtifactsForDisplay() {
+                return this.artifacts.slice(-UI_CONFIG.maxDisplayedArtifacts).reverse();
+            }
+
+            showArtifactDetails(artifact) {
+                const state = this.states.find(s => s.id === artifact.stateId);
+                this.addOutput('system', `Artifact: ${artifact.title}`, artifact.confidence);
+                this.addOutput('system', `State: ${state ? state.title : 'Unknown'}`, null);
+                this.addOutput('system', `Swarm: ${artifact.swarmType}`, null);
+                this.addOutput('system', `Type: ${artifact.data.type}`, null);
+            }
+
+            processCommand(cmd) {
+                const command = cmd.trim().toLowerCase();
+                
+                this.addOutput('system', `> ${cmd}`, null);
+                
+                if (command === 'help') {
+                    this.showHelp();
+                } else if (command === 'status') {
+                    this.showStatus();
+                } else if (command.startsWith('evolve')) {
+                    if (this.currentState) {
+                        this.evolveState(this.currentState);
+                    }
+                } else if (command.startsWith('regenerate')) {
+                    if (this.currentState) {
+                        this.regenerateState(this.currentState);
+                    }
+                } else if (command === 'rollback') {
+                    this.rollbackState();
+                } else {
+                    this.addOutput('error', 'Unknown command. Type "help" for available commands.', 0.00);
+                }
+            }
+
+            showHelp() {
+                this.addOutput('system', 'Available commands:', null);
+                this.addOutput('system', '  help       - Show this help', null);
+                this.addOutput('system', '  status     - Show system status', null);
+                this.addOutput('system', '  evolve     - Evolve current state', null);
+                this.addOutput('system', '  regenerate - Regenerate current state', null);
+                this.addOutput('system', '  rollback   - Rollback to parent state', null);
+            }
+
+            showStatus() {
+                this.addOutput('system', '=== SYSTEM STATUS ===', null);
+                this.addOutput('system', `States: ${this.metrics.statesGenerated}`, null);
+                this.addOutput('system', `Artifacts: ${this.metrics.artifactsCreated}`, null);
+                this.addOutput('system', `Active Swarms: ${this.metrics.swarmsRunning}`, null);
+                this.addOutput('system', `Current State: ${this.currentState ? this.currentState.title : 'None'}`, null);
+            }
+
+            addOutput(tag, message, confidence = null) {
+                const line = document.createElement('div');
+                line.className = 'output-line';
+                
+                const tagSpan = document.createElement('span');
+                tagSpan.className = `tag tag-${tag}`;
+                tagSpan.textContent = tag.toUpperCase();
+                
+                const messageSpan = document.createElement('span');
+                messageSpan.textContent = message;
+                
+                line.appendChild(tagSpan);
+                line.appendChild(messageSpan);
+                
+                if (confidence !== null) {
+                    const confSpan = document.createElement('span');
+                    confSpan.className = `confidence ${this.getConfidenceClass(confidence)}`;
+                    confSpan.textContent = confidence.toFixed(2);
+                    line.appendChild(confSpan);
+                }
+                
+                this.terminalOutput.appendChild(line);
+                this.terminalOutput.scrollTop = this.terminalOutput.scrollHeight;
+            }
+
+            getConfidenceClass(conf) {
+                if (conf >= UI_CONFIG.confidenceHighThreshold) return 'conf-high';
+                if (conf >= UI_CONFIG.confidenceMediumThreshold) return 'conf-medium';
+                return 'conf-low';
+            }
+
+            updateMetrics() {
+                document.getElementById('statesGenerated').textContent = this.metrics.statesGenerated;
+                document.getElementById('artifactsCreated').textContent = this.metrics.artifactsCreated;
+                document.getElementById('gatesActive').textContent = this.metrics.gatesActive;
+                document.getElementById('swarmsRunning').textContent = this.metrics.swarmsRunning;
+            }
+
+            sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize Murphy Integrated System when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            const murphySystem = new MurphyIntegratedSystem();
+            window.murphySystem = murphySystem;
+        });
+    </script>
+</body>
+</html>

@@ -179,6 +179,15 @@ The UI has 4 tabs:
 3. **🔧 Corrections** - Submit corrections to help Murphy learn
 4. **📊 Monitoring** - View system statistics and performance
 
+### UI Variants (Integrated)
+
+- **New to Murphy?** → `murphy_ui_integrated.html`
+- **Love terminals?** → `murphy_ui_integrated_terminal.html`
+- **Need power features?** → `terminal_architect.html`
+- **Want to multitask?** → `terminal_integrated.html`
+- **Just get work done?** → `terminal_worker.html`
+- **Power user balance?** → `terminal_enhanced.html`
+
 ### API Usage
 
 #### Execute a Task
@@ -222,6 +231,10 @@ curl -X POST http://localhost:8000/api/forms/correction \
 ## 📚 API Documentation
 
 See [API_DOCUMENTATION.md](API_DOCUMENTATION.md) for complete API reference.
+
+## 🧭 Backend Architecture Blueprint
+
+See [documentation/architecture/BACKEND_ARCHITECTURE_BLUEPRINT.md](documentation/architecture/BACKEND_ARCHITECTURE_BLUEPRINT.md) for the Bayesian backend architecture plan.
 
 ### Available Endpoints
 
