@@ -28,11 +28,13 @@ from .feedback_system import (
     FeedbackCategorizer,
     FeedbackValidator,
     FeedbackAnalytics,
-    Feedback
+    Feedback,
+    FeedbackSystem,
+    FeedbackStorage,
+    FeedbackAnalyzer,
+    FeedbackEntry,
+    FeedbackAnalysis
 )
-
-# Alias for backward compatibility
-FeedbackSystem = HumanFeedbackSystem
 
 from .adaptive_decision_engine import (
     AdaptiveDecisionEngine,

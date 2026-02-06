@@ -25,11 +25,12 @@ print("\nTesting math detection and routing...")
 print("-" * 80)
 
 for prompt, expected in test_cases:
-    result = llm.generate(prompt)
+    result = llm.generate_detailed(prompt)
     
-    provider = result['provider']
-    math_detected = result['math_task']
-    key_info = f"Key {result['key_index'] + 1}" if result['key_index'] else "N/A"
+    provider = result.get('provider', 'unavailable')
+    math_detected = result.get('math_task', False)
+    key_index = result.get('key_index')
+    key_info = f"Key {key_index + 1}" if key_index is not None else "N/A"
     
     # Check routing correctness
     if "Math task" in expected:

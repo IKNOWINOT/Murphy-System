@@ -156,6 +156,12 @@ class ComputeService:
             self.request_cache[request.request_id] = result
             if request.request_id in self.pending_requests:
                 del self.pending_requests[request.request_id]
+
+
+class DeterministicComputePlane(ComputeService):
+    """Compatibility alias for tests expecting DeterministicComputePlane."""
+
+    pass
     
     def _execute_sympy(self, request: ComputeRequest, normalized) -> ComputeResult:
         """Execute SymPy computation"""

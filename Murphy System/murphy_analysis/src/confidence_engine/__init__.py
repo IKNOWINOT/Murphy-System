@@ -21,6 +21,7 @@ from .confidence_calculator import ConfidenceCalculator
 from .murphy_calculator import MurphyCalculator
 from .authority_mapper import AuthorityMapper
 from .phase_controller import PhaseController
+from .confidence_engine import ConfidenceEngine
 
 __all__ = [
     'ArtifactNode',
@@ -37,5 +38,6 @@ __all__ = [
     'ConfidenceCalculator',
     'MurphyCalculator',
     'AuthorityMapper',
-    'PhaseController'
+    'PhaseController',
+    'ConfidenceEngine'
 ]

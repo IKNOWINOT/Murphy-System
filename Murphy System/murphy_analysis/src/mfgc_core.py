@@ -537,15 +537,15 @@ class MFGCController:
                 # Synthesize emergency gates
                 emergency_gates = self._synthesize_emergency_gates(state)
                 state.G_t.extend(emergency_gates)
-        
+
         state.log_event('execution_complete', {
             'final_confidence': state.c_t,
             'final_murphy_index': state.M_t,
             'total_gates': len(state.G_t)
         })
-        
+
         return state
-    
+
     def _execute_phase(self, state: MFGCSystemState):
         """Execute single phase"""
         phase = state.p_t
@@ -648,3 +648,6 @@ class MFGCController:
             'gates': state.G_t,
             'events': state.events
         }
+
+# Backwards-compatible alias for tests expecting SystemState
+SystemState = MFGCSystemState

@@ -5,6 +5,9 @@ Tests all critical fixes thoroughly
 """
 
 import time
+import pytest
+
+selenium = pytest.importorskip("selenium")
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait

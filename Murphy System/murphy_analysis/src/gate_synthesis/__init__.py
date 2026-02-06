@@ -20,6 +20,7 @@ from .failure_mode_enumerator import FailureModeEnumerator
 from .murphy_estimator import MurphyProbabilityEstimator
 from .gate_generator import GateGenerator
 from .gate_lifecycle_manager import GateLifecycleManager
+from .gate_synthesis import GateSynthesisEngine
 
 __all__ = [
     'Gate',
@@ -35,5 +36,6 @@ __all__ = [
     'FailureModeEnumerator',
     'MurphyProbabilityEstimator',
     'GateGenerator',
-    'GateLifecycleManager'
+    'GateLifecycleManager',
+    'GateSynthesisEngine'
 ]

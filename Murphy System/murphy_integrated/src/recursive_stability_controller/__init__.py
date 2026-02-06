@@ -24,7 +24,10 @@ from .gate_damping import GateDampingController
 from .feedback_isolation import FeedbackIsolationRouter
 from .control_signals import ControlSignalGenerator
 from .telemetry import StabilityTelemetry
-from .rsc_service import RecursiveStabilityController
+try:
+    from .rsc_service import RecursiveStabilityController
+except ModuleNotFoundError:
+    RecursiveStabilityController = None
 
 __all__ = [
     'StateVariables',

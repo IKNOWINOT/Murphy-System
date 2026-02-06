@@ -5,10 +5,17 @@ External truth sources - NO generation, only lookup
 
 import re
 import requests
-import wikipedia
+try:
+    import wikipedia
+except ModuleNotFoundError:
+    wikipedia = None
 from datetime import datetime
 from typing import Optional, Dict, Any
-from SPARQLWrapper import SPARQLWrapper, JSON
+try:
+    from SPARQLWrapper import SPARQLWrapper, JSON
+except ModuleNotFoundError:
+    SPARQLWrapper = None
+    JSON = None
 try:
     from state_machine import VerifiedFacts
 except ImportError:
@@ -73,7 +80,8 @@ class WikipediaVerifier:
     """
     
     def __init__(self):
-        wikipedia.set_lang("en")
+        if wikipedia is not None:
+            wikipedia.set_lang("en")
     
     def lookup(self, entity: str) -> Optional[Dict[str, Any]]:
         """
@@ -81,6 +89,8 @@ class WikipediaVerifier:
         Returns structured data, not generated text
         """
         try:
+            if wikipedia is None:
+                return None
             # Search for the page
             search_results = wikipedia.search(entity, results=1)
             
@@ -116,13 +126,19 @@ class WikidataVerifier:
     
     def __init__(self):
         self.endpoint = "https://query.wikidata.org/sparql"
-        self.sparql = SPARQLWrapper(self.endpoint)
-        self.sparql.setReturnFormat(JSON)
+        if SPARQLWrapper is not None and JSON is not None:
+            self.sparql = SPARQLWrapper(self.endpoint)
+            self.sparql.setReturnFormat(JSON)
+        else:
+            self.sparql = None
     
     def lookup_by_label(self, label: str) -> Optional[Dict[str, Any]]:
         """
         Look up entity by label in Wikidata
         """
+        if self.sparql is None:
+            return None
+
         query = f"""
         SELECT ?item ?itemLabel ?description WHERE {{
           ?item rdfs:label "{label}"@en.

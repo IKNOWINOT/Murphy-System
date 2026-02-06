@@ -23,6 +23,7 @@ from .determinism_enforcer import DeterminismEnforcer
 from .risk_bounder import RiskBounder
 from .packet_sealer import PacketSealer
 from .post_compilation_enforcer import PostCompilationEnforcer
+from .compiler import ExecutionPacketCompiler
 
 __all__ = [
     'ExecutionPacket',
@@ -41,5 +42,6 @@ __all__ = [
     'DeterminismEnforcer',
     'RiskBounder',
     'PacketSealer',
-    'PostCompilationEnforcer'
+    'PostCompilationEnforcer',
+    'ExecutionPacketCompiler'
 ]

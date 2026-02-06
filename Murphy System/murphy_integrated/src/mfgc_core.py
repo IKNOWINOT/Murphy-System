@@ -648,3 +648,7 @@ class MFGCController:
             'gates': state.G_t,
             'events': state.events
         }
+
+
+# Backwards-compatible alias for tests expecting SystemState
+SystemState = MFGCSystemState

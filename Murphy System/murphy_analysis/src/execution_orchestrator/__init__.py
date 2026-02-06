@@ -40,6 +40,7 @@ from .telemetry import TelemetryStreamer
 from .risk_monitor import RuntimeRiskMonitor
 from .rollback import RollbackEnforcer
 from .completion import CompletionCertifier
+from .orchestrator import ExecutionOrchestrator
 
 __all__ = [
     # Models
@@ -60,5 +61,6 @@ __all__ = [
     'TelemetryStreamer',
     'RuntimeRiskMonitor',
     'RollbackEnforcer',
-    'CompletionCertifier'
+    'CompletionCertifier',
+    'ExecutionOrchestrator'
 ]

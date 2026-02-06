@@ -25,7 +25,7 @@ print("\nTesting math detection and routing...")
 print("-" * 80)
 
 for prompt, expected in test_cases:
-    result = llm.generate(prompt)
+    result = llm.generate_detailed(prompt)
     
     provider = result['provider']
     math_detected = result['math_task']

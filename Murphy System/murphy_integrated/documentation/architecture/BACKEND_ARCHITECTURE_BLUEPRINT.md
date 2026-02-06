@@ -252,3 +252,7 @@ Decision: Continue (entropy > threshold)
 - Graph + ledger as core representation with templates for capability/goal separation.
 - FastAPI + PostgreSQL for integration and auditability.
 - Entropy-driven adaptive loop with HITL gating for safety.
+
+## Deterministic Engine Review
+
+See [DETERMINISTIC_ENGINE_WEAKNESSES.md](DETERMINISTIC_ENGINE_WEAKNESSES.md) for a focused list of inherent weaknesses and faulty assumptions.

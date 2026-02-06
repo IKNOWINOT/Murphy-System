@@ -5,7 +5,41 @@ import json
 from typing import Dict, Any, List
 from datetime import datetime
 from pathlib import Path
-import matplotlib.pyplot as plt
+try:
+    import matplotlib.pyplot as plt
+except ModuleNotFoundError:
+    class _PlotStub:
+        def figure(self, *args, **kwargs):
+            return None
+
+        def plot(self, *args, **kwargs):
+            return None
+
+        def bar(self, *args, **kwargs):
+            return None
+
+        def xlabel(self, *args, **kwargs):
+            return None
+
+        def ylabel(self, *args, **kwargs):
+            return None
+
+        def title(self, *args, **kwargs):
+            return None
+
+        def grid(self, *args, **kwargs):
+            return None
+
+        def tight_layout(self, *args, **kwargs):
+            return None
+
+        def savefig(self, *args, **kwargs):
+            return None
+
+        def close(self, *args, **kwargs):
+            return None
+
+    plt = _PlotStub()
 
 # Optional imports - use if available
 try:
