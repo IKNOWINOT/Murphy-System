@@ -39,6 +39,10 @@ The Murphy System Runtime is designed from the ground up to support enterprise-s
 ✅ **Compliance**: Support for regulatory requirements (HIPAA, PCI DSS, SOC2)  
 ✅ **Flexibility**: Customizable to fit enterprise workflows  
 
+### ML Automation Roadmap
+
+See [ML_AUTOMATION_ROADMAP.md](ML_AUTOMATION_ROADMAP.md) for the auditable plan to scale ML-driven automation across business functions.
+
 ---
 
 ## Enterprise Capabilities
