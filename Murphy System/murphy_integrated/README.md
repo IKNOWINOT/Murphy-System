@@ -236,6 +236,10 @@ See [API_DOCUMENTATION.md](API_DOCUMENTATION.md) for complete API reference.
 
 See [documentation/architecture/BACKEND_ARCHITECTURE_BLUEPRINT.md](documentation/architecture/BACKEND_ARCHITECTURE_BLUEPRINT.md) for the Bayesian backend architecture plan.
 
+## 💼 Sales Automation Flows
+
+See [documentation/enterprise/SALES_AUTOMATION_RESPONSE_FLOWS.md](documentation/enterprise/SALES_AUTOMATION_RESPONSE_FLOWS.md) for response flows that automate the business of selling Murphy.
+
 ### Available Endpoints
 
 **Form Endpoints:**
