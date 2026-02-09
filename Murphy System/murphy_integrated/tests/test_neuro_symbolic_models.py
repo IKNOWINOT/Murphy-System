@@ -6,7 +6,7 @@ Tests model architecture, training, inference, and integration.
 """
 
 import pytest
-import torch
+torch = pytest.importorskip("torch")
 import numpy as np
 from unittest.mock import Mock, patch
 

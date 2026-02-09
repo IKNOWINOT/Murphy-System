@@ -34,6 +34,12 @@ This document enumerates inherent weaknesses and faulty assumptions in the deter
 - **Weakness:** Mixing inferred and provided data collapses accountability.
 - **Mitigation:** Tag data by source type and gate inferred‑data usage.
 
+## Incomplete Sections (Planned)
+
+- **Domain-specific deterministic gates:** placeholder for industry-specific constraints tied to regulatory packs.
+- **Audit trail completeness metrics:** placeholder for quantitative audit coverage targets and validation checks.
+- **Failure mode baselines:** placeholder for minimal acceptable failure coverage per workflow type.
+
 ---
 
 ## Immediate Control Checklist

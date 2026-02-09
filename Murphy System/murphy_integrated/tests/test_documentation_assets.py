@@ -23,6 +23,7 @@ DOC_ASSETS = [
     BLUEPRINT_PATH,
     DOCS_DIR / 'enterprise' / 'SALES_AUTOMATION_RESPONSE_FLOWS.md',
     DOCS_DIR / 'enterprise' / 'ML_AUTOMATION_ROADMAP.md',
+    DOCS_DIR / 'architecture' / 'DETERMINISTIC_ENGINE_WEAKNESSES.md',
 ]
 
 REQUIRED_BLUEPRINT_HEADINGS = [
@@ -73,6 +74,19 @@ def validate_blueprint_headings_exist() -> bool:
     return True
 
 
+def validate_deterministic_engine_sections() -> bool:
+    deterministic_doc = DOCS_DIR / 'architecture' / 'DETERMINISTIC_ENGINE_WEAKNESSES.md'
+    if not deterministic_doc.exists():
+        print("✗ Deterministic engine weaknesses doc missing")
+        return False
+    content = deterministic_doc.read_text(encoding='utf-8')
+    if "Incomplete Sections" not in content:
+        print("✗ Deterministic engine doc missing 'Incomplete Sections' section")
+        return False
+    print("✓ Deterministic engine doc includes incomplete sections")
+    return True
+
+
 def main() -> int:
     print("=" * 60)
     print("Murphy System - Documentation Asset Tests")
@@ -82,6 +96,7 @@ def main() -> int:
         validate_ui_variants_exist,
         validate_documentation_assets_exist,
         validate_blueprint_headings_exist,
+        validate_deterministic_engine_sections,
     ]
 
     results = []

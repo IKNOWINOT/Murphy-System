@@ -39,6 +39,7 @@ from .injection_pipeline import FailureInjectionPipeline
 from .training_output import TrainingOutputGenerator
 from .test_modes import TestModeExecutor
 from .safety_enforcer import SafetyEnforcer
+from .synthetic_failure_generator import SyntheticFailureGenerator
 
 __all__ = [
     # Models
@@ -62,5 +63,6 @@ __all__ = [
     'FailureInjectionPipeline',
     'TrainingOutputGenerator',
     'TestModeExecutor',
-    'SafetyEnforcer'
+    'SafetyEnforcer',
+    'SyntheticFailureGenerator'
 ]
