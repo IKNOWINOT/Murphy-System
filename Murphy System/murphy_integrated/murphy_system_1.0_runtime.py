@@ -376,6 +376,8 @@ class MurphySystem:
         """Get complete system status"""
         
         uptime = (datetime.utcnow() - self.start_time).total_seconds()
+        self_operation_enabled = self.inoni_automation is not None
+        self_improvement_enabled = self.correction_system is not None
         
         return {
             'version': self.version,
@@ -398,6 +400,12 @@ class MurphySystem:
                 'active_automations': len(self.active_automations),
                 'pending_integrations': len(self.integration_engine.list_pending_integrations()),
                 'committed_integrations': len(self.integration_engine.list_committed_integrations())
+            },
+            'self_operation': {
+                'enabled': self_operation_enabled,
+                'can_work_on_self': self_operation_enabled and self_improvement_enabled,
+                'activation_required': True,
+                'state': 'active' if self_operation_enabled else 'unavailable'
             }
         }
     
@@ -415,7 +423,7 @@ class MurphySystem:
                 'Universal Automation (factory, content, data, system, agent, business)',
                 'Self-Integration (GitHub, APIs, hardware)',
                 'Self-Improvement (correction learning, shadow agent)',
-                'Self-Operation (Inoni business automation)',
+                'Self-Operation (runs maintenance & R&D tasks once activated)',
                 'Safety & Governance (HITL, Murphy validation)',
                 'Scalability (Kubernetes-ready)',
                 'Monitoring (Prometheus + Grafana)'
