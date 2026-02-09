@@ -1,4 +1,4 @@
-# Murphy System - Integrated Version 2.0
+# Murphy System - Integrated Runtime
 
 **A comprehensive AI agent system with form-driven task execution, Murphy validation, correction capture, and self-improving shadow agents.**
 
@@ -41,22 +41,22 @@ python murphy_complete_backend_extended.py
 
 ## 🎯 Overview
 
-Murphy System v2.0 is the integrated version that combines:
+Murphy System integrated runtime combines:
 
-- **Original Murphy Runtime** (272 files) - Proven execution engine with G/D/H confidence scoring
-- **Phase 1-5 Enhancements** (67 files) - Form-driven interface, Murphy validation, correction capture, shadow agent training
-- **Integration Layer** (4 bridge classes) - Seamlessly connects new and old systems
+- **Original Murphy Runtime** - Proven execution engine with G/D/H confidence scoring
+- **Phase 1-5 Enhancements** - Form-driven interface, Murphy validation, correction capture, shadow agent training
+- **Integration Layer** - Seamlessly connects new and old systems
 
-### What's New in v2.0
+### Integrated Enhancements
 
 ✅ **Form-Driven Interface** - Submit tasks via intuitive forms  
 ✅ **Enhanced Murphy Validation** - 5D uncertainty analysis (UD/UA/UI/UR/UG)  
 ✅ **Correction Capture** - Learn from human corrections  
 ✅ **Shadow Agent Training** - Self-improving AI that learns from mistakes  
 ✅ **Human-in-the-Loop** - Smart checkpoints for critical decisions  
-✅ **15+ New API Endpoints** - RESTful API for all features  
-✅ **Modern Web UI** - Beautiful, responsive interface  
-✅ **100% Backward Compatible** - All original features preserved  
+✅ **Additional API Endpoints** - RESTful API for integrated features  
+✅ **Modern Web UI** - Responsive interface  
+✅ **Backward Compatible** - Core original features preserved (verify for your deployment)  
 
 ---
 
@@ -103,22 +103,22 @@ Murphy System v2.0 is the integrated version that combines:
 ```
 murphy_integrated/
 ├── src/
-│   ├── form_intake/              # Form processing (6 files)
-│   ├── confidence_engine/        # Validation (+23 files)
+│   ├── form_intake/              # Form processing
+│   ├── confidence_engine/        # Validation
 │   │   ├── unified_confidence_engine.py  # Integration class
 │   │   ├── uncertainty_calculator.py     # 5D uncertainty
 │   │   ├── murphy_gate.py                # Threshold validation
 │   │   └── risk/                         # Risk assessment
-│   ├── execution_engine/         # Task execution (+8 files)
+│   ├── execution_engine/         # Task execution
 │   │   └── integrated_form_executor.py   # Integration class
-│   ├── learning_engine/          # Learning & corrections (+22 files)
+│   ├── learning_engine/          # Learning & corrections
 │   │   ├── integrated_correction_system.py  # Integration class
 │   │   ├── correction_capture.py            # Capture system
 │   │   ├── pattern_extraction.py            # Pattern mining
 │   │   └── shadow_agent.py                  # Self-improving AI
-│   ├── supervisor_system/        # HITL monitoring (+8 files)
+│   ├── supervisor_system/        # HITL monitoring
 │   │   └── integrated_hitl_monitor.py    # Integration class
-│   └── ... (original 272 files)
+│   └── ... (original runtime modules)
 ├── murphy_complete_backend_extended.py  # Integrated backend
 ├── murphy_ui_integrated.html            # Modern web UI
 └── tests/                               # Test suite
@@ -296,6 +296,6 @@ License: Apache License 2.0
 
 ---
 
-**Murphy System v2.0** - Intelligent, Self-Improving, Human-Centered AI
+**Murphy System Integrated Runtime** - Intelligent, Self-Improving, Human-Centered AI
 
 *Making AI agents smarter, one correction at a time.* 🚀

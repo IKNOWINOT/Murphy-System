@@ -8,7 +8,7 @@
 
 ## 🎯 What is Murphy?
 
-Murphy is a **complete, production-ready AI automation system** that can automate any business type, including its own operations.
+Murphy is a **complete, operational AI automation system** that can automate any business type, including its own operations. It requires security hardening before production deployment.
 
 ### Key Features
 
@@ -17,7 +17,7 @@ Murphy is a **complete, production-ready AI automation system** that can automat
 ✅ **Self-Improvement** - Learns from corrections, trains shadow agent  
 ✅ **Self-Operation** - Runs Inoni LLC autonomously  
 ✅ **Human-in-the-Loop** - Safety approval for all integrations  
-✅ **Production-Ready** - Docker, Kubernetes, monitoring included
+✅ **Deployment References** - Legacy Docker/Kubernetes examples available in archives (security hardening required)
 
 * * *
 
@@ -111,19 +111,19 @@ POST /api/corrections/submit
 # 4. Improve future performance ✅
 ```
 
-**Result:** 85-95% accuracy improvement over time.
+**Result:** Designed to improve over time as corrections accumulate (measured results vary by workflow).
 
 ### 4\. Self-Operation
 
 Murphy **runs Inoni LLC autonomously**:
 
-| Engine | Capabilities | Automation Level |
+| Engine | Capabilities | Notes |
 | --- | --- | --- |
-| **Sales** | Lead gen, qualification, outreach | 100% automated |
-| **Marketing** | Content, social media, SEO | 90% reduction in manual work |
-| **R&D** | Bug detection, fixes, deployment | <1 hour bug-to-fix |
-| **Business** | Finance, support, project mgmt | 95% reduction in overhead |
-| **Production** | Releases, QA, monitoring | 99.9% uptime |
+| **Sales** | Lead gen, qualification, outreach | Automated workflows included |
+| **Marketing** | Content, social media, SEO | Content automation support |
+| **R&D** | Bug detection, fixes, deployment | R&D automation hooks |
+| **Business** | Finance, support, project mgmt | Workflow templates included |
+| **Production** | Releases, QA, monitoring | Release/monitoring automation |
 
 **The Meta-Case:** Murphy improves Murphy (R&D engine fixes Murphy's bugs automatically).
 
@@ -164,12 +164,12 @@ Murphy **runs Inoni LLC autonomously**:
 
 ## 📦 What's Included
 
-### Complete System (2,000+ files)
+### Complete System (~1,500 files in murphy_integrated)
 
 | Component | Description | Files |
 | --- | --- | --- |
-| **Original Runtime** | Base Murphy system | 319 Python files |
-| **Phase 1-5** | Forms, validation, correction, learning | 67 files |
+| **Original Runtime** | Base Murphy system | Hundreds of Python files |
+| **Phase 1-5** | Forms, validation, correction, learning | Dozens of files |
 | **Control Plane** | Universal automation engine | 7 engines |
 | **Business Automation** | Inoni self-operation | 5 engines |
 | **Integration Engine** | GitHub ingestion with HITL | 6 components |
@@ -252,23 +252,23 @@ POST /api/integrations/add
 
 ### Compliance
 
--   ✅ GDPR ready
--   ✅ SOC 2 Type II ready
--   ✅ HIPAA ready
--   ✅ PCI DSS ready
+-   ✅ Includes GDPR-aligned controls (requires review)
+-   ✅ Includes SOC 2 Type II-aligned controls (requires review)
+-   ✅ Includes HIPAA-aligned controls (requires review)
+-   ✅ Includes PCI DSS-aligned controls (requires review)
 
 * * *
 
-## 📈 Performance
+## 📈 Performance (Design Targets)
 
 | Metric | Specification |
 | --- | --- |
-| **API Throughput** | 1,000+ req/s |
-| **Task Execution** | 100+ tasks/s |
-| **Integration Time** | <5 min per repo |
-| **API Latency** | <100ms p95 |
-| **Uptime Target** | 99.9% |
-| **Error Rate** | <1% |
+| **API Throughput** | Targeted 1,000+ req/s |
+| **Task Execution** | Targeted 100+ tasks/s |
+| **Integration Time** | Targeted <5 min per repo |
+| **API Latency** | Targeted <100ms p95 |
+| **Uptime Target** | 99.9% target |
+| **Error Rate** | Targeted <1% |
 
 * * *
 
@@ -280,24 +280,9 @@ POST /api/integrations/add
 ./start_murphy_1.0.sh
 ```
 
-### Docker
+### Containers & Kubernetes (Legacy Examples)
 
-```bash
-docker build -t murphy:1.0.0 .
-docker run -p 6666:6666 murphy:1.0.0
-```
-
-### Docker Compose
-
-```bash
-docker-compose up -d
-```
-
-### Kubernetes
-
-```bash
-kubectl apply -f k8s/
-```
+Deployment manifests live under `Murphy System/archive/legacy_versions/.../deployment/` for reference.
 
 * * *
 
@@ -315,8 +300,8 @@ kubectl apply -f k8s/
 ## 🧪 Testing
 
 ```bash
-# Run tests
-pytest
+# Run tests (some suites require optional dependencies like pydantic, numpy, torch)
+python -m pytest
 
 # Run integration tests
 pytest tests/integration/
@@ -360,38 +345,28 @@ See [LICENSE](LICENSE) for details.
 
 **Murphy runs Inoni LLC (the company that makes Murphy)**
 
--   **Sales:** 100% automated lead generation
--   **Marketing:** 90% reduction in manual work
--   **R&D:** <1 hour from bug to production fix
--   **Business:** 95% reduction in administrative overhead
--   **Production:** 99.9% uptime, zero-downtime deployments
+-   **Sales:** Lead generation automation workflows
+-   **Marketing:** Content and campaign automation support
+-   **R&D:** Bug triage and fix workflow automation
+-   **Business:** Finance/support workflow automation
+-   **Production:** Release and monitoring automation
 
 **The Ultimate Proof:** The product IS the proof.
 
 * * *
 
-## 🗺️ Roadmap
-
-### Version 1.1 (Q2 2025)
+## 🗺️ Roadmap (TBD)
 
 -   Multi-language support (JavaScript, Java, Go)
--   Enhanced shadow agent (95%+ accuracy)
+-   Enhanced shadow agent improvements
 -   Integration marketplace
 -   Advanced analytics
-
-### Version 1.2 (Q3 2025)
-
 -   Real-time collaboration
 -   Visual workflow builder
 -   Mobile app
 -   Enterprise features
-
-### Version 2.0 (Q4 2025)
-
 -   Multi-tenant architecture
 -   Global deployment
--   Advanced AI capabilities
--   5,000+ integrations
 
 * * *
 
@@ -417,15 +392,13 @@ See [LICENSE](LICENSE) for details.
 
 * * *
 
-## 📊 Stats
+## 📊 Stats (murphy_integrated, as of 2026-02-09)
 
--   **Files:** 2,000+ Python files
--   **Lines of Code:** 100,000+ lines
--   **Components:** 50+ subsystems
--   **Integrations:** Unlimited (self-integrating)
+-   **Total Files:** ~1,500 files
+-   **Python Files:** 554 files
+-   **Components:** Dozens of subsystems
+-   **Integrations:** Self-integrating (workflow-driven)
 -   **Automation Types:** 6 (factory, content, data, system, agent, business)
--   **Safety Score:** 0.85+ average
--   **Uptime:** 99.9% target
 
 * * *
 
@@ -449,8 +422,7 @@ curl http://localhost:6666/api/status
 
 ##  Contact
 
-- 
--   **Email:** [corey.gfc@gmail.com)
+-   **Email:** corey.gfc@gmail.com
 
 
 * * *

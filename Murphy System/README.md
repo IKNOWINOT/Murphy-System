@@ -1,19 +1,18 @@
-# Murphy System - Working Implementation
+# Murphy System - Minimal Working Implementation
 
 ## Overview
-The Murphy System is now fully functional with a clean, minimal backend and a responsive frontend dashboard.
+This directory contains a minimal Flask backend (`murphy_server.py`) and a static dashboard (`index.html`) for local demo purposes.
 
-## System Status
-✅ **Backend Server**: Running on port 3002
-✅ **Frontend Server**: Running on port 8090
-✅ **WebSocket**: Connected and ready
-✅ **API Endpoints**: All tested and working
+## Default Ports (Local)
+✅ **Backend Server**: http://localhost:3002
+✅ **Frontend Server**: http://localhost:8090
+✅ **WebSocket**: ws://localhost:3002
 
 ## Access URLs
-- **Frontend Dashboard**: https://8090-0e281fd4-a558-4e54-b1ea-6dc0c0ecb8fe.sandbox-service.public.prod.myninja.ai
-- **Backend API**: https://3002-0e281fd4-a558-4e54-b1ea-6dc0c0ecb8fe.sandbox-service.public.prod.myninja.ai
+- **Frontend Dashboard**: http://localhost:8090
+- **Backend API**: http://localhost:3002
 
-## Features Implemented
+## Features Implemented (Minimal Demo)
 
 ### Backend (murphy_server.py)
 - ✅ REST API endpoints
@@ -36,15 +35,21 @@ The Murphy System is now fully functional with a clean, minimal backend and a re
 
 ## How to Use
 
-1. **Access the Dashboard**
+1. **Start the Backend**
+   - `python3 murphy_server.py`
+
+2. **Start the Frontend**
+   - `python3 -m http.server 8090`
+
+3. **Access the Dashboard**
    - Open the frontend URL in your browser
    - Wait for the system to connect (green status indicator)
 
-2. **Initialize the System**
+4. **Initialize the System**
    - Click the "Initialize System" button
    - The system will create default agents and states
 
-3. **Explore Features**
+5. **Explore Features**
    - **Dashboard**: View system overview
    - **Agents**: See active agents and their roles
    - **States**: Track system states
@@ -129,7 +134,7 @@ index.html
 ## Troubleshooting
 
 ### Connection Issues
-- Check that both backend (port 3002) and frontend (port 8090) are running
+- Check that both backend (port 3002) and frontend (port 8090) are running locally
 - Verify the status indicator is green
 - Check browser console for errors
 
@@ -190,6 +195,10 @@ curl http://localhost:3002/api/agents
 - Modern web browser (Chrome, Firefox, Safari)
 - JavaScript enabled
 - WebSocket support
+
+## Related Systems
+
+- For the integrated runtime and full automation stack, see `Murphy System/murphy_integrated/README.md`.
 
 ## Future Enhancements
 
