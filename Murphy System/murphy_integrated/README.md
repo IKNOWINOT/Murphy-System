@@ -1,26 +1,20 @@
-# Murphy System - Integrated Runtime
+# Murphy System - Runtime 1.0 (Primary)
 
-**A comprehensive AI agent system with form-driven task execution, Murphy validation, correction capture, and self-improving shadow agents.**
+**A comprehensive AI automation runtime with task execution, validation modules, and optional form/correction components.**
 
 ---
 
 ## 🚀 Quick Start
 
 ```bash
-# 1. Install dependencies
-pip install -r requirements.txt
+# 1. Start runtime 1.0 (installs requirements_murphy_1.0.txt)
+./start_murphy_1.0.sh
 
-# 2. Verify installation
-python tests/test_basic_imports.py
-
-# 3. Start the server
-python murphy_complete_backend_extended.py
-
-# 4. Open the UI
-# Navigate to: http://localhost:6666/murphy_ui_integrated.html
+# 2. Verify the runtime
+curl http://localhost:6666/api/health
 ```
 
-**That's it!** The system is now running with all integrated features.
+**That's it!** Runtime 1.0 is now running.
 
 ---
 
@@ -41,7 +35,9 @@ python murphy_complete_backend_extended.py
 
 ## 🎯 Overview
 
-Murphy System integrated runtime combines:
+Runtime 1.0 is the only prepared runtime in this repository. References to v2/v3 are planning documents only.
+
+Runtime 1.0 combines:
 
 - **Original Murphy Runtime** - Proven execution engine with G/D/H confidence scoring
 - **Phase 1-5 Enhancements** - Form-driven interface, Murphy validation, correction capture, shadow agent training
@@ -49,26 +45,27 @@ Murphy System integrated runtime combines:
 
 ### Integrated Enhancements
 
-✅ **Form-Driven Interface** - Submit tasks via intuitive forms  
+✅ **Form Intake Modules** - Form handlers included (not wired to runtime 1.0 APIs by default)  
 ✅ **Enhanced Murphy Validation** - 5D uncertainty analysis (UD/UA/UI/UR/UG)  
 ✅ **Correction Capture** - Learn from human corrections  
 ✅ **Shadow Agent Training** - Self-improving AI that learns from mistakes  
 ✅ **Human-in-the-Loop** - Smart checkpoints for critical decisions  
 ✅ **Additional API Endpoints** - RESTful API for integrated features  
-✅ **Modern Web UI** - Responsive interface  
+✅ **Optional Web UI** - Static HTML interface (served separately)  
 ✅ **Backward Compatible** - Core original features preserved (verify for your deployment)  
 
 ---
+
+For a concise status summary, see [RUNTIME_1.0_STATUS.md](RUNTIME_1.0_STATUS.md).
 
 ## ✨ Features
 
 ### Core Capabilities
 
-#### 1. Form-Driven Task Execution
-- Submit tasks via forms (JSON, YAML, or natural language)
-- Automatic task decomposition
-- Dependency management
-- Async execution with progress tracking
+#### 1. Task Execution (Runtime 1.0)
+- Execute tasks via `/api/execute`
+- Orchestrates work through the control plane and two-phase workflow
+- Form intake modules are present but not exposed by default in runtime 1.0
 
 #### 2. Murphy Validation System
 - **Original G/D/H Formula** - Goodness, Domain, Hazard scoring
@@ -77,22 +74,20 @@ Murphy System integrated runtime combines:
 - **Confidence Reports** - Detailed validation results
 
 #### 3. Correction Capture & Learning
-- **4 Capture Methods** - Interactive, batch, API, inline
-- **Pattern Extraction** - Automatic learning from corrections
-- **Feedback System** - Collect and analyze human feedback
-- **Validation** - Conflict detection and quality scoring
+- Correction and learning modules are available in code
+- Runtime 1.0 does not expose dedicated correction endpoints by default
 
 #### 4. Shadow Agent Training
-- **Training Pipeline** - Automated data preparation and model training
-- **Continuous Learning** - Learns from every correction
-- **A/B Testing** - Compare shadow agent vs Murphy Gate
-- **Gradual Rollout** - Safe production deployment
+- Training pipeline modules are present
+- Requires integration work to run end-to-end in runtime 1.0
 
 #### 5. Human-in-the-Loop (HITL)
 - **Smart Checkpoints** - 6 checkpoint types for critical decisions
 - **Intervention Requests** - Automatic escalation when needed
 - **Approval Workflows** - Structured decision-making
 - **Statistics** - Track intervention patterns
+
+These modules are included but require configuration and wiring to specific workflows in runtime 1.0.
 
 ---
 
@@ -119,8 +114,8 @@ murphy_integrated/
 │   ├── supervisor_system/        # HITL monitoring
 │   │   └── integrated_hitl_monitor.py    # Integration class
 │   └── ... (original runtime modules)
-├── murphy_complete_backend_extended.py  # Integrated backend
-├── murphy_ui_integrated.html            # Modern web UI
+├── murphy_system_1.0_runtime.py         # Runtime 1.0 API server
+├── murphy_ui_integrated.html            # Optional static web UI
 └── tests/                               # Test suite
 ```
 
@@ -135,10 +130,10 @@ murphy_integrated/
 
 ### Step 1: Install Dependencies
 ```bash
-pip install -r requirements.txt
+pip install -r requirements_murphy_1.0.txt
 ```
 
-### Step 2: Verify Installation
+### Step 2: Verify Installation (Optional)
 ```bash
 python tests/test_basic_imports.py
 ```
@@ -156,7 +151,7 @@ Results: 5/5 tests passed
 
 ### Step 3: Start the Server
 ```bash
-python murphy_complete_backend_extended.py
+python murphy_system_1.0_runtime.py
 ```
 
 Server starts on: **http://localhost:6666**
@@ -165,56 +160,43 @@ Server starts on: **http://localhost:6666**
 
 ## 💻 Usage
 
-### Web UI
+### Optional Web UI
 
-Open your browser and navigate to:
+Serve the static UI with a simple HTTP server (not hosted by runtime 1.0):
+
+```bash
+python -m http.server 8090
 ```
-http://localhost:6666/murphy_ui_integrated.html
+
+Then open:
+
 ```
-
-The UI has 4 tabs:
-
-1. **📝 Form Submission** - Execute tasks with Murphy validation
-2. **✓ Validation** - Validate tasks without executing
-3. **🔧 Corrections** - Submit corrections to help Murphy learn
-4. **📊 Monitoring** - View system statistics and performance
+http://localhost:8090/murphy_ui_integrated.html
+```
 
 ### API Usage
 
 #### Execute a Task
 ```bash
-curl -X POST http://localhost:6666/api/forms/task-execution \
+curl -X POST http://localhost:6666/api/execute \
   -H "Content-Type: application/json" \
   -d '{
+    "task_description": "Analyze Q4 sales data",
     "task_type": "analysis",
-    "description": "Analyze Q4 sales data",
     "parameters": {"quarter": "Q4", "year": 2024}
   }'
 ```
 
-#### Validate a Task
+#### Check System Status
 ```bash
-curl -X POST http://localhost:6666/api/forms/validation \
-  -H "Content-Type: application/json" \
-  -d '{
-    "task_data": {
-      "task_type": "general",
-      "description": "Process customer data"
-    }
-  }'
+curl http://localhost:6666/api/status
 ```
 
-#### Submit a Correction
+#### Run Business Automation
 ```bash
-curl -X POST http://localhost:6666/api/forms/correction \
+curl -X POST http://localhost:6666/api/automation/sales/generate_leads \
   -H "Content-Type: application/json" \
-  -d '{
-    "task_id": "task_12345",
-    "correction_type": "output_error",
-    "original_output": "Wrong result",
-    "corrected_output": "Correct result",
-    "explanation": "Fixed calculation error"
-  }'
+  -d '{"parameters": {"target_industry": "SaaS"}}'
 ```
 
 ---
@@ -225,26 +207,20 @@ See [API_DOCUMENTATION.md](API_DOCUMENTATION.md) for complete API reference.
 
 ### Available Endpoints
 
-**Form Endpoints:**
-- `POST /api/forms/plan-upload` - Upload plan
-- `POST /api/forms/plan-generation` - Generate plan
-- `POST /api/forms/task-execution` - Execute task
-- `POST /api/forms/validation` - Validate task
-- `POST /api/forms/correction` - Submit correction
-- `GET /api/forms/submission/<id>` - Get submission status
+**Core Endpoints:**
+- `POST /api/execute` - Execute a task
+- `GET /api/status` - Get system status
+- `GET /api/info` - Get system information
+- `GET /api/health` - Health check
 
-**Correction Endpoints:**
-- `GET /api/corrections/patterns` - Get patterns
-- `GET /api/corrections/statistics` - Get statistics
-- `GET /api/corrections/training-data` - Get training data
+**Integration Endpoints:** (available when integration engine dependencies are installed)
+- `POST /api/integrations/add` - Submit integration request
+- `POST /api/integrations/{request_id}/approve` - Approve integration
+- `POST /api/integrations/{request_id}/reject` - Reject integration
+- `GET /api/integrations/{status}` - List integrations (`pending`, `committed`, `all`)
 
-**HITL Endpoints:**
-- `GET /api/hitl/interventions/pending` - Get pending interventions
-- `POST /api/hitl/interventions/<id>/respond` - Respond to intervention
-- `GET /api/hitl/statistics` - Get HITL statistics
-
-**System Endpoints:**
-- `GET /api/system/info` - Get system information
+**Automation Endpoints:**
+- `POST /api/automation/{engine_name}/{action}` - Run business automation action
 
 ---
 
@@ -252,29 +228,14 @@ See [API_DOCUMENTATION.md](API_DOCUMENTATION.md) for complete API reference.
 
 ### Running Tests
 ```bash
-# Import tests
-python tests/test_basic_imports.py
-
-# Integration tests (requires pytest)
-pip install pytest pytest-asyncio
-pytest tests/test_integration.py -v
+python -m pytest
 ```
 
 ---
 
 ## 🚀 Deployment
 
-See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed deployment instructions.
-
-### Quick Deploy with Docker
-
-```bash
-# Build image
-docker build -t murphy-system:latest .
-
-# Run container
-docker run -d -p 6666:6666 murphy-system:latest
-```
+See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for deployment notes. Docker and Kubernetes examples live in legacy archives.
 
 ---
 
