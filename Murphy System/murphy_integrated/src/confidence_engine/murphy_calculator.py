@@ -272,7 +272,7 @@ class MurphyCalculator:
 
 
 class MurphyIndexResult(float):
-    """Subclass of float for Murphy index with dict-style 'murphy_index' access and get()."""
+    """Float subclass wrapping Murphy index with backward-compatible dict-style access."""
     def __new__(cls, value: float) -> "MurphyIndexResult":
         return super().__new__(cls, value)
 
