@@ -23,24 +23,34 @@ Murphy is a **complete, production-ready AI automation system** that can automat
 
 ## 🚀 Quick Start
 
-```bash
-# 1. Clone repository
-git clone https://github.com/inoni-llc/murphy.git
-cd murphy/murphy_integrated
+### First Time Setup (10 minutes)
 
-# 2. Start Murphy
+```bash
+# 1. Navigate to Murphy
+cd "Murphy System/murphy_integrated"
+
+# 2. Run setup script
+./setup_murphy.sh  # Linux/Mac
+# OR
+setup_murphy.bat   # Windows
+
+# 3. Start Murphy
 ./start_murphy_1.0.sh  # Linux/Mac
 # OR
 start_murphy_1.0.bat   # Windows
 
-# 3. Access Murphy
+# 4. Access Murphy
 # API: http://localhost:6666/docs
 # Status: http://localhost:6666/api/status
 ```
 
-**That's it!** Murphy is now running. 🎉
+**⚠️ Important:** You need at least one API key (Groq recommended - free at https://console.groq.com)
 
-See [MURPHY\_1.0\_QUICK\_START.md](MURPHY_1.0_QUICK_START.md) for detailed instructions.
+**📚 Setup Documentation:**
+- **With Screenshots:** [VISUAL_SETUP_GUIDE_WITH_SCREENSHOTS.md](VISUAL_SETUP_GUIDE_WITH_SCREENSHOTS.md) - 11 images ⭐ BEST
+- **Quick Reference:** [QUICK_SETUP_REFERENCE.md](QUICK_SETUP_REFERENCE.md) - All commands on one page
+- **Text Guide:** [VISUAL_SETUP_GUIDE.md](VISUAL_SETUP_GUIDE.md) - Step-by-step with text outputs
+- **Complete Guide:** [GETTING_STARTED.md](GETTING_STARTED.md) - Comprehensive instructions
 
 * * *
 
