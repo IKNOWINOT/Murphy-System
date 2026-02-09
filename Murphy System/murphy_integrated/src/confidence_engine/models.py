@@ -386,6 +386,7 @@ class AuthorityState:
     """
     Authority state derived from confidence
     """
+    DEFAULT_PERMISSIONS = ["approve_onboarding", "access_systems"]
     authority_band: AuthorityBand
     confidence: float
     can_execute: bool
@@ -411,7 +412,7 @@ class AuthorityState:
                 'murphy_index': self.murphy_index,
                 'unknowns': self.unknowns
             },
-            'permissions': ["approve_onboarding", "access_systems"],
+            'permissions': self.DEFAULT_PERMISSIONS,
         }
 
     def __getitem__(self, key: str) -> Any:

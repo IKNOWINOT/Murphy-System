@@ -60,6 +60,7 @@ class MurphyCalculator:
         if phase is None:
             phase = Phase.EXECUTE
 
+        # Use confidence-only fallback when verification data is absent but confidence is high.
         if (
             confidence_state.confidence >= 0.8
             and confidence_state.total_artifacts > 0
@@ -271,6 +272,7 @@ class MurphyCalculator:
 
 
 class MurphyIndexResult(float):
+    """Float-like Murphy index with dict-style access for 'murphy_index'."""
     def __new__(cls, value: float) -> "MurphyIndexResult":
         return super().__new__(cls, value)
 
