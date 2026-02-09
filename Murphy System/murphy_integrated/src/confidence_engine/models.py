@@ -386,6 +386,8 @@ class AuthorityState:
     """
     Authority state derived from confidence. Provides legacy authority summary
     compatibility through DEFAULT_PERMISSIONS.
+    Dict-style access supports: authority_band, authority_level, confidence,
+    can_execute, phase, execution_criteria, and permissions.
     """
     DEFAULT_PERMISSIONS = (
         "approve_onboarding",
