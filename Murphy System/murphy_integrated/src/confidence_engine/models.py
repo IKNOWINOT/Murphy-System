@@ -386,7 +386,10 @@ class AuthorityState:
     """
     Authority state derived from confidence
     """
-    DEFAULT_PERMISSIONS = ("approve_onboarding", "access_systems")  # Baseline compatibility permissions.
+    DEFAULT_PERMISSIONS = (
+        "approve_onboarding",
+        "access_systems",
+    )  # Default permissions used by legacy authority summaries.
     authority_band: AuthorityBand
     confidence: float
     can_execute: bool
@@ -428,7 +431,7 @@ class AuthorityState:
             return default
 
     def _authority_level(self) -> str:
-        """Map authority bands to simple levels (EXECUTE->high, NEGOTIATE->medium, else low)."""
+        """Map authority bands to legacy levels (EXECUTE->high, NEGOTIATE->medium, else low)."""
         if self.authority_band == AuthorityBand.EXECUTE:
             return "high"
         if self.authority_band == AuthorityBand.NEGOTIATE:

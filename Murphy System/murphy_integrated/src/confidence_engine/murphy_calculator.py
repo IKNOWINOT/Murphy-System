@@ -280,3 +280,9 @@ class MurphyIndexResult(float):
         if key == "murphy_index":
             return float(self)
         raise KeyError(key)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        try:
+            return self[key]
+        except KeyError:
+            return default
