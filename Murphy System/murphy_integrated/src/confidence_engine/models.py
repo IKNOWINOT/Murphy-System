@@ -386,10 +386,11 @@ class AuthorityState:
     """
     Authority state derived from confidence
     """
+    # Default permissions used by legacy authority summaries.
     DEFAULT_PERMISSIONS = (
         "approve_onboarding",
         "access_systems",
-    )  # Default permissions used by legacy authority summaries.
+    )
     authority_band: AuthorityBand
     confidence: float
     can_execute: bool
