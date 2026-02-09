@@ -1,7 +1,7 @@
 # Murphy System - Minimal Working Implementation
 
 ## Overview
-This directory contains a minimal Flask backend (`murphy_server.py`) and a static dashboard (`index.html`) for local demo purposes.
+This directory contains a minimal Flask backend (`murphy_server.py`) and a static dashboard (`index.html`) for local demo purposes. It is **not** the primary runtime 1.0 release (see `murphy_integrated/`).
 
 ## Default Ports (Local)
 ✅ **Backend Server**: http://localhost:3002

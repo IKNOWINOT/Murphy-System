@@ -54,11 +54,20 @@ start_murphy_1.0.bat   # Windows
 
 * * *
 
+## ✅ Runtime 1.0 Status (Current Runnable System)
+
+- **Only runtime prepared:** `murphy_system_1.0_runtime.py` is the single runnable runtime today. References to v2/v3 are planning docs only.
+- **How to run:** `cd "Murphy System/murphy_integrated" && ./start_murphy_1.0.sh`
+- **What you can test:** `/api/health`, `/api/status`, `/api/info`, `/api/execute`, and automation endpoints under `/api/automation/...`
+- **Details:** see [Runtime 1.0 Status](Murphy%20System/murphy_integrated/RUNTIME_1.0_STATUS.md)
+
+* * *
+
 ## 📊 What Can Murphy Do?
 
 ### 1\. Universal Automation
 
-Murphy can automate **any business type**:
+Murphy can automate **any business type** once the relevant integrations/adapters are configured:
 
 | Type | Examples | Use Cases |
 | --- | --- | --- |
@@ -90,7 +99,9 @@ POST /api/integrations/add
 # 6. Load if approved ✅
 ```
 
-**Result:** Stripe integration ready in <5 minutes with full safety validation.
+**Result:** Integration time depends on repository size, dependencies, and safety review.
+
+**Note:** Integration endpoints require optional dependencies and external credentials to run end-to-end.
 
 ### 3\. Self-Improvement
 
@@ -115,7 +126,7 @@ POST /api/corrections/submit
 
 ### 4\. Self-Operation
 
-Murphy **runs Inoni LLC autonomously**:
+Murphy **runs Inoni LLC autonomously** via configurable automation templates:
 
 | Engine | Capabilities | Notes |
 | --- | --- | --- |
@@ -126,6 +137,8 @@ Murphy **runs Inoni LLC autonomously**:
 | **Production** | Releases, QA, monitoring | Release/monitoring automation |
 
 **The Meta-Case:** Murphy improves Murphy (R&D engine fixes Murphy's bugs automatically).
+
+**Automation reality:** Runtime 1.0 can automate workflows once integrations, credentials, and adapters are configured. Out-of-the-box it provides orchestration, templates, and safety gates rather than full autonomous operation.
 
 * * *
 
