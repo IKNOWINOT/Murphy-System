@@ -384,8 +384,8 @@ class ConfidenceState:
 @dataclass
 class AuthorityState:
     """
-    Authority state derived from confidence
-    Default permissions provide legacy authority summary compatibility.
+    Authority state derived from confidence. Provides legacy authority summary
+    compatibility through DEFAULT_PERMISSIONS.
     """
     DEFAULT_PERMISSIONS = (
         "approve_onboarding",
