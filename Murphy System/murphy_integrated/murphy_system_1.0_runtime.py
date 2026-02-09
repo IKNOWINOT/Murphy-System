@@ -377,7 +377,7 @@ class MurphySystem:
         
         uptime = (datetime.utcnow() - self.start_time).total_seconds()
         self_operation_enabled = self.inoni_automation is not None
-        self_improvement_enabled = self.correction_system is not None
+        correction_system_available = self.correction_system is not None
         
         return {
             'version': self.version,
@@ -403,7 +403,7 @@ class MurphySystem:
             },
             'self_operation': {
                 'enabled': self_operation_enabled,
-                'can_work_on_self': self_operation_enabled and self_improvement_enabled,
+                'can_work_on_self': self_operation_enabled and correction_system_available,
                 'activation_required': True,
                 'state': 'active' if self_operation_enabled else 'unavailable'
             }
