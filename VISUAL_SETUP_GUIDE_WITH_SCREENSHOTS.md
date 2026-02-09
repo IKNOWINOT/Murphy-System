@@ -264,7 +264,31 @@ curl -s http://localhost:6666/openapi.json | python3 -c "import json, sys; data 
 
 ---
 
-### Step 11: Access API Documentation in Browser
+### Step 11: Optional UI Access
+
+Runtime 1.0 does not serve a web UI by default. You can view the static UI for demonstration by serving the HTML file:
+
+```bash
+python -m http.server 8090
+```
+
+Then open:
+
+```
+http://localhost:8090/murphy_ui_integrated.html
+```
+
+![Runtime UI](docs/screenshots/12_ui_runtime.png)
+
+**What you'll see:**
+- Form submission screen with task type, description, and parameters
+- Tabs for validation, corrections, and monitoring
+
+**Note:** Some tabs may show errors unless optional form/corrections endpoints are wired to runtime 1.0.
+
+---
+
+### Step 12: Access API Documentation in Browser
 
 Open your browser and navigate to:
 
