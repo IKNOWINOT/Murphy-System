@@ -386,7 +386,7 @@ class AuthorityState:
     """
     Authority state derived from confidence
     """
-    DEFAULT_PERMISSIONS = ["approve_onboarding", "access_systems"]
+    DEFAULT_PERMISSIONS = ("approve_onboarding", "access_systems")
     authority_band: AuthorityBand
     confidence: float
     can_execute: bool
@@ -428,6 +428,7 @@ class AuthorityState:
             return default
 
     def _authority_level(self) -> str:
+        """Map authority bands to simple high/medium/low levels."""
         if self.authority_band == AuthorityBand.EXECUTE:
             return "high"
         if self.authority_band == AuthorityBand.NEGOTIATE:
