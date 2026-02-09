@@ -47,8 +47,9 @@ start_murphy_1.0.bat   # Windows
 **⚠️ Important:** You need at least one API key (Groq recommended - free at https://console.groq.com)
 
 **📚 Setup Documentation:**
+- **With Screenshots:** [VISUAL_SETUP_GUIDE_WITH_SCREENSHOTS.md](VISUAL_SETUP_GUIDE_WITH_SCREENSHOTS.md) - 11 images ⭐ BEST
 - **Quick Reference:** [QUICK_SETUP_REFERENCE.md](QUICK_SETUP_REFERENCE.md) - All commands on one page
-- **Visual Guide:** [VISUAL_SETUP_GUIDE.md](VISUAL_SETUP_GUIDE.md) - Step-by-step with outputs ⭐ RECOMMENDED
+- **Text Guide:** [VISUAL_SETUP_GUIDE.md](VISUAL_SETUP_GUIDE.md) - Step-by-step with text outputs
 - **Complete Guide:** [GETTING_STARTED.md](GETTING_STARTED.md) - Comprehensive instructions
 
 * * *
