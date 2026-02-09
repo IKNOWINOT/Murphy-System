@@ -33,7 +33,15 @@ class AdapterRuntime:
             adapter: Adapter instance
             public_key: Public key for signature verification
         """
-        self.adapter = adapter or type("StubAdapter", (), {"is_emergency_stopped": False, "manifest": type("M", (), {"replay_window_seconds": 60})()})()
+        class _StubAdapter:
+            is_emergency_stopped = False
+
+            class Manifest:
+                replay_window_seconds = 60
+
+            manifest = Manifest()
+
+        self.adapter = adapter or _StubAdapter()
         self.public_key = public_key
         self.seen_nonces: Set[str] = set()
         self.execution_log = []

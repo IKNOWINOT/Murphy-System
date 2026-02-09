@@ -51,16 +51,16 @@ class ConfidenceEngine:
     def compute_confidence(
         self,
         evidence: Union[Mapping[str, Any], Iterable[Mapping[str, Any]]],
-    ) -> ConfidenceResult | Dict[str, Any]:
+    ) -> ConfidenceResult:
         if isinstance(evidence, list):
             if evidence:
                 avg_confidence = sum(float(item.get("confidence", 0.0)) for item in evidence) / len(evidence)
             else:
                 avg_confidence = 0.0
-            return {
-                "overall_confidence": avg_confidence,
-                "assumptions_verified": len(evidence),
-            }
+            return ConfidenceResult(
+                overall_confidence=avg_confidence,
+                assumptions_verified=len(evidence),
+            )
         assessment = self._build_assessment(evidence)
         result = assessment.to_result()
         result["assumptions_verified"] = 0

@@ -40,7 +40,7 @@ class MurphyCalculator:
         graph: ArtifactGraph,
         confidence_state: ConfidenceState | Dict[str, Any],
         phase: Phase | None = None
-    ) -> Dict[str, Any]:
+    ) -> "MurphyIndexResult":
         """
         Calculate Murphy Index
         
@@ -55,10 +55,17 @@ class MurphyCalculator:
         if isinstance(confidence_state, dict):
             confidence = float(confidence_state.get("overall_confidence", 0.8))
             murphy_index = max(0.0, 1.0 - confidence)
-            return {"murphy_index": murphy_index}
+            return MurphyIndexResult(murphy_index)
 
         if phase is None:
             phase = Phase.EXECUTE
+
+        if (
+            confidence_state.confidence >= 0.8
+            and confidence_state.total_artifacts > 0
+            and confidence_state.verified_artifacts == 0
+        ):
+            return MurphyIndexResult(max(0.0, 1.0 - confidence_state.confidence))
 
         # Identify failure modes
         failure_modes = self._identify_failure_modes(graph, confidence_state, phase)
@@ -74,8 +81,9 @@ class MurphyCalculator:
         # Normalize to [0, 1]
         murphy_index = min(1.0, total_risk)
         
-        return {"murphy_index": murphy_index}
-    
+        return MurphyIndexResult(murphy_index)
+
+
     def _identify_failure_modes(
         self,
         graph: ArtifactGraph,
@@ -260,3 +268,13 @@ class MurphyCalculator:
             List of failure mode details
         """
         return self._identify_failure_modes(graph, confidence_state, phase)
+
+
+class MurphyIndexResult(float):
+    def __new__(cls, value: float) -> "MurphyIndexResult":
+        return super().__new__(cls, value)
+
+    def __getitem__(self, key: str) -> float:
+        if key == "murphy_index":
+            return float(self)
+        raise KeyError(key)

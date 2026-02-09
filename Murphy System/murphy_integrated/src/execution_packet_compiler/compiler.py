@@ -23,7 +23,10 @@ class ExecutionPacketCompiler:
     def compile(self, hypothesis: Dict[str, Any]) -> Dict[str, Any]:
         gates = hypothesis.get("gates", [])
         for gate in gates:
-            if gate.get("blocking") and not gate.get("verified", gate.get("current", 1) >= gate.get("threshold", 0)):
+            gate_verified = gate.get("verified")
+            if gate_verified is None:
+                gate_verified = gate.get("current", 1) >= gate.get("threshold", 0)
+            if gate.get("blocking") and not gate_verified:
                 gate_id = gate.get("gate_id")
                 return {
                     "success": False,

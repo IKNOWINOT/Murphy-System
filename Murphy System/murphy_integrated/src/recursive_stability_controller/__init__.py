@@ -37,6 +37,7 @@ except ModuleNotFoundError:
                 "confidence_computation": 80,
                 "gate_synthesis": 150,
                 "packet_execution": 40,
+                "stub": True,
             }
 
 __all__ = [

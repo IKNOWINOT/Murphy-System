@@ -46,7 +46,7 @@ class AuthorityMapper:
         gate_satisfaction: float = 0.0,
         unknowns: int = 0,
         **kwargs: Any,
-    ) -> Dict[str, Any] | AuthorityState:
+    ) -> AuthorityState:
         """
         Map confidence to authority band
         
@@ -61,16 +61,23 @@ class AuthorityMapper:
         """
         if isinstance(confidence_state, (int, float)):
             confidence = float(confidence_state)
-            if confidence >= 0.85:
-                authority_level = "high"
-            elif confidence >= 0.7:
-                authority_level = "medium"
-            else:
-                authority_level = "low"
-            return {
-                "authority_level": authority_level,
-                "permissions": ["approve_onboarding", "access_systems"],
-            }
+            authority_band = self._get_authority_band(confidence)
+            can_execute = self._check_execution_eligibility(
+                confidence,
+                murphy_index,
+                gate_satisfaction,
+                unknowns,
+                Phase.EXECUTE,
+            )
+            return AuthorityState(
+                authority_band=authority_band,
+                confidence=confidence,
+                can_execute=can_execute,
+                phase=Phase.EXECUTE,
+                gate_satisfaction=gate_satisfaction,
+                murphy_index=murphy_index,
+                unknowns=unknowns,
+            )
 
         confidence = confidence_state.confidence
         

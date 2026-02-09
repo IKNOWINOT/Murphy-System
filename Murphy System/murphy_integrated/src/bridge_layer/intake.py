@@ -338,7 +338,7 @@ class HypothesisIntakeService:
 
 
 class HypothesisIntake(HypothesisIntakeService):
-    pass
+    """Compatibility alias for legacy imports."""
     
     def _validate_schema(self, hypothesis: HypothesisArtifact) -> List[str]:
         """Validate hypothesis against schema"""

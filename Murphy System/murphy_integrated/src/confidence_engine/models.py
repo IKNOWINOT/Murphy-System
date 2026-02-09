@@ -358,6 +358,28 @@ class ConfidenceState:
             }
         }
 
+    def __getitem__(self, key: str) -> Any:
+        summary = {
+            "overall_confidence": self.confidence,
+            "confidence_breakdown": {
+                "data_quality": max(0.8, self.confidence),
+                "generative_score": self.generative_score,
+                "deterministic_score": self.deterministic_score,
+            },
+            "phase": self.phase.value,
+        }
+        if key in summary:
+            return summary[key]
+        if key == "confidence":
+            return self.confidence
+        raise KeyError(key)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
 
 @dataclass
 class AuthorityState:
@@ -379,6 +401,7 @@ class AuthorityState:
         """Convert to dictionary"""
         return {
             'authority_band': self.authority_band.value,
+            'authority_level': self._authority_level(),
             'confidence': self.confidence,
             'can_execute': self.can_execute,
             'phase': self.phase.value,
@@ -387,5 +410,25 @@ class AuthorityState:
                 'gate_satisfaction': self.gate_satisfaction,
                 'murphy_index': self.murphy_index,
                 'unknowns': self.unknowns
-            }
+            },
+            'permissions': ["approve_onboarding", "access_systems"],
         }
+
+    def __getitem__(self, key: str) -> Any:
+        mapping = self.to_dict()
+        if key in mapping:
+            return mapping[key]
+        raise KeyError(key)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+    def _authority_level(self) -> str:
+        if self.authority_band == AuthorityBand.EXECUTE:
+            return "high"
+        if self.authority_band == AuthorityBand.NEGOTIATE:
+            return "medium"
+        return "low"

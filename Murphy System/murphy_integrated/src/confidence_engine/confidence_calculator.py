@@ -35,7 +35,7 @@ class ConfidenceCalculator:
         phase: Phase | None = None,
         verification_evidence: List[VerificationEvidence] | None = None,
         trust_model: TrustModel | None = None,
-    ) -> Dict[str, Any]:
+    ) -> ConfidenceState:
         """
         Compute complete confidence state
         
@@ -98,15 +98,7 @@ class ConfidenceCalculator:
                                        if e.result == VerificationResult.PASS])
         state.total_artifacts = len(graph.nodes)
         
-        return {
-            "overall_confidence": state.confidence,
-            "confidence_breakdown": {
-                "data_quality": max(0.8, state.confidence),
-                "generative_score": state.generative_score,
-                "deterministic_score": state.deterministic_score,
-            },
-            "phase": state.phase.value,
-        }
+        return state
     
     def calculate_generative_adequacy(self, graph: ArtifactGraph) -> float:
         """
