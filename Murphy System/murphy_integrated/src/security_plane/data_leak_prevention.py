@@ -42,7 +42,7 @@ class DataSensitivityLevel(Enum):
 
 class DataCategory(Enum):
     """Categories of sensitive data"""
-    PII = "pii"  # Personally Identifiable Information
+    PII = "PII"  # Personally Identifiable Information
     CREDENTIALS = "credentials"  # Passwords, API keys, tokens
     FINANCIAL = "financial"  # Credit cards, bank accounts
     HEALTH = "health"  # Medical records, health data

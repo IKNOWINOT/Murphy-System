@@ -30,8 +30,9 @@ def test_add_integration():
     
     # This would be a real GitHub URL in production
     # For testing, we'll use a local path or mock
+    local_source = Path(__file__).parent
     result = engine.add_integration(
-        source="https://github.com/stripe/stripe-python",
+        source=str(local_source),
         integration_type='repository',
         category='payment-processing',
         generate_agent=False,
@@ -98,8 +99,9 @@ def test_auto_approve():
     engine = UnifiedIntegrationEngine()
     
     # Add with auto-approve
+    local_source = Path(__file__).parent
     result = engine.add_integration(
-        source="https://github.com/example/test-repo",
+        source=str(local_source),
         integration_type='repository',
         category='testing',
         generate_agent=False,

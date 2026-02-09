@@ -137,6 +137,12 @@ class MockDLPSystem:
         data_str = str(data).lower()
         categories = []
         
+        if any(key in data_str for key in ["password", "mfa_secret", "access_card_id"]):
+            return {
+                "sensitivity_level": "SECRET",
+                "categories": ["authentication", "credentials"],
+                "confidence": 0.95,
+            }
         if "ssn" in data_str or any(pattern in data_str for pattern in ["ssn", "social security"]):
             categories.append("pii")
         if "salary" in data_str or "financial" in data_str:
@@ -146,7 +152,7 @@ class MockDLPSystem:
         if "password" in data_str or "credential" in data_str:
             categories.append("authentication")
         
-        sensitivity = "PUBLIC"
+        sensitivity = "INTERNAL"
         if categories:
             if "pii" in categories or "financial" in categories:
                 sensitivity = "SECRET"

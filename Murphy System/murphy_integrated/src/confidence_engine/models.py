@@ -8,6 +8,7 @@ from typing import List, Dict, Any, Optional, Set
 from enum import Enum
 from datetime import datetime
 import hashlib
+import json
 
 
 class ArtifactType(Enum):
@@ -27,6 +28,7 @@ class ArtifactSource(Enum):
     API = "api"
     COMPUTE_PLANE = "compute_plane"
     SWARM = "swarm"
+    SYSTEM_A = "system_a"
 
 
 class VerificationResult(Enum):
@@ -92,15 +94,27 @@ class ArtifactNode:
     """
     id: str
     type: ArtifactType
-    source: ArtifactSource
-    content: Dict[str, Any]
+    source: ArtifactSource = ArtifactSource.LLM
+    content: Any = field(default_factory=dict)
     confidence_weight: float = 1.0
+    confidence: float = 1.0
     dependencies: List[str] = field(default_factory=list)
     timestamp: datetime = field(default_factory=datetime.now)
     metadata: Dict[str, Any] = field(default_factory=dict)
     
     def __post_init__(self):
         """Generate ID if not provided"""
+        if isinstance(self.type, str):
+            self.type = ArtifactType(self.type) if self.type in ArtifactType._value2member_map_ else ArtifactType.FACT
+        if isinstance(self.source, str):
+            self.source = ArtifactSource(self.source) if self.source in ArtifactSource._value2member_map_ else ArtifactSource.LLM
+        if isinstance(self.content, str):
+            try:
+                self.content = json.loads(self.content)
+            except Exception:
+                self.content = {"text": self.content}
+        if self.confidence_weight == 1.0 and self.confidence != 1.0:
+            self.confidence_weight = self.confidence
         if not self.id:
             content_str = str(self.content)
             self.id = hashlib.sha256(content_str.encode()).hexdigest()[:16]
@@ -125,6 +139,7 @@ class ArtifactGraph:
     DAG of artifacts
     Maintains relationships and validates structure
     """
+    id: str = ""
     nodes: Dict[str, ArtifactNode] = field(default_factory=dict)
     edges: Dict[str, List[str]] = field(default_factory=dict)  # node_id -> [dependent_ids]
     

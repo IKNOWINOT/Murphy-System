@@ -21,7 +21,17 @@ class ExecutionPacketCompiler:
     """
 
     def compile(self, hypothesis: Dict[str, Any]) -> Dict[str, Any]:
+        gates = hypothesis.get("gates", [])
+        for gate in gates:
+            if gate.get("blocking") and not gate.get("verified", gate.get("current", 1) >= gate.get("threshold", 0)):
+                gate_id = gate.get("gate_id")
+                return {
+                    "success": False,
+                    "error": f"Gate failed: {gate_id}",
+                    "failed_gate": gate_id,
+                }
         packet = self._build_packet(hypothesis.get("hypothesis_id", "hyp-unknown"), hypothesis)
+        packet["gates_satisfied"] = True
         return {"success": True, "execution_packet": packet}
 
     async def compile_packet(

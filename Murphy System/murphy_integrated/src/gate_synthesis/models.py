@@ -16,6 +16,7 @@ class GateType(Enum):
     VERIFICATION = "verification"       # Requires evidence before proceeding
     AUTHORITY = "authority"             # Limits authority level
     ISOLATION = "isolation"             # Enforces sandboxing
+    CONFIDENCE_THRESHOLD = "confidence_threshold"
 
 
 class GateCategory(Enum):
@@ -24,6 +25,7 @@ class GateCategory(Enum):
     VERIFICATION_REQUIRED = "verification_required"  # Forces deterministic checks
     AUTHORITY_DECAY = "authority_decay"           # Downgrades authority
     ISOLATION_REQUIRED = "isolation_required"     # Enforces sandboxing
+    SAFETY = "safety"
 
 
 class GateState(Enum):

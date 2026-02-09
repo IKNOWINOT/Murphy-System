@@ -311,6 +311,34 @@ class HypothesisIntakeService:
         )
         
         return result
+
+    def process_hypothesis(self, hypothesis_data: Dict[str, Any]) -> Dict[str, Any]:
+        if hypothesis_data.get("confidence") is not None:
+            return {"valid": False, "error": "sandbox confidence must be null"}
+        assumptions = []
+        summary = hypothesis_data.get("plan_summary", "")
+        if "Assumptions:" in summary:
+            assumptions_block = summary.split("Assumptions:")[-1]
+            assumptions = [
+                line.strip(" .")
+                for line in assumptions_block.strip().splitlines()
+                if line.strip().startswith(tuple(str(i) for i in range(1, 10)))
+            ]
+        elif "Assumes:" in summary:
+            assumptions = [a.strip() for a in summary.split("Assumes:")[-1].split(",") if a.strip()]
+        verification_requests = [
+            {"assumption": assumption, "status": "pending"} for assumption in assumptions
+        ]
+        return {
+            "valid": True,
+            "sandbox_constraints_enforced": True,
+            "assumptions": assumptions,
+            "verification_requests": verification_requests,
+        }
+
+
+class HypothesisIntake(HypothesisIntakeService):
+    pass
     
     def _validate_schema(self, hypothesis: HypothesisArtifact) -> List[str]:
         """Validate hypothesis against schema"""

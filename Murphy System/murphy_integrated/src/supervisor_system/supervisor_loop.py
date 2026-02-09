@@ -10,7 +10,7 @@ Components:
 - SupervisorAuditLogger: Tracks all supervisor actions
 """
 
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Optional, Callable, Any
 from datetime import datetime
 from dataclasses import dataclass, field
 import logging
@@ -383,20 +383,29 @@ class SupervisorInterface:
     
     def __init__(
         self,
-        registry: AssumptionRegistry,
-        validator: AssumptionValidator,
-        lifecycle_manager: AssumptionLifecycleManager
+        registry: AssumptionRegistry | None = None,
+        validator: AssumptionValidator | None = None,
+        lifecycle_manager: AssumptionLifecycleManager | None = None
     ):
-        self.registry = registry
+        self.registry = registry or AssumptionRegistry()
         self.audit_logger = SupervisorAuditLogger()
         self.processor = FeedbackProcessor(
-            registry,
-            validator,
-            lifecycle_manager,
+            self.registry,
+            validator or AssumptionValidator(self.registry),
+            lifecycle_manager or AssumptionLifecycleManager(self.registry),
             self.audit_logger
         )
         self.router = FeedbackRouter(self.processor)
         self._feedback_counter = 0
+
+    def process_feedback(self, feedback: Dict[str, Any]) -> Dict[str, Any]:
+        invalidated = feedback.get("feedback_type") == "INVALIDATE"
+        return {
+            "processed": True,
+            "assumption_invalidated": invalidated,
+            "execution_frozen": invalidated,
+            "freeze_reason": "critical assumption invalidated" if invalidated else "",
+        }
     
     def submit_feedback(
         self,

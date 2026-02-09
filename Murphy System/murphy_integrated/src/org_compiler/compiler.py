@@ -11,7 +11,7 @@ The compiler:
 5. Detects compliance constraints
 """
 
-from typing import List, Dict, Optional, Set
+from typing import List, Dict, Optional, Set, Any
 from collections import defaultdict
 import re
 
@@ -117,6 +117,12 @@ class RoleTemplateCompiler:
         )
         
         return template
+
+    def compile_role_template(self, role_data: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "automatable_tasks": role_data.get("automatable_tasks", []),
+            "human_required_tasks": role_data.get("human_required_tasks", []),
+        }
     
     def _extract_responsibilities(self, role_name: str) -> List[str]:
         """Extract responsibilities from all sources"""

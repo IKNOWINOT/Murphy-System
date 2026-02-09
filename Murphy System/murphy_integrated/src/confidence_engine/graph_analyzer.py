@@ -47,6 +47,14 @@ class GraphAnalyzer:
                 'check': self._check_circular_dependency
             }
         ]
+
+    def analyze_graph(self, graph: ArtifactGraph) -> Dict[str, Any]:
+        is_dag, errors = self.validate_dag(graph)
+        return {
+            "is_dag": is_dag,
+            "node_count": len(graph.nodes),
+            "errors": errors,
+        }
     
     def validate_dag(self, graph: ArtifactGraph) -> Tuple[bool, List[str]]:
         """

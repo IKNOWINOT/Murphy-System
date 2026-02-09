@@ -45,10 +45,14 @@ class GateGenerator:
     
     def generate_gates(
         self,
-        failure_modes: List[FailureMode],
-        current_phase: Phase,
-        current_authority: AuthorityBand,
-        murphy_probabilities: Dict[str, float]
+        failure_modes: List[FailureMode] | None = None,
+        current_phase: Phase | None = None,
+        current_authority: AuthorityBand | None = None,
+        murphy_probabilities: Dict[str, float] | None = None,
+        *,
+        murphy_index: float | None = None,
+        phase: str | None = None,
+        context: Optional[Dict[str, Any]] = None,
     ) -> List[Gate]:
         """
         Generate gates for all failure modes
@@ -62,9 +66,33 @@ class GateGenerator:
         Returns:
             List of generated gates
         """
+        if murphy_index is not None:
+            if murphy_index < 0.3:
+                count = 2
+            elif murphy_index < 0.7:
+                count = 4
+            else:
+                count = 6
+            return [
+                Gate(
+                    id=f"gate-{i}",
+                    type=GateType.VERIFICATION,
+                    category=GateCategory.VERIFICATION_REQUIRED,
+                    target="execution",
+                    trigger_condition={},
+                    enforcement_effect={"block": False},
+                    state=GateState.ACTIVE,
+                    created_at=datetime.now(),
+                    expires_at=datetime.now() + self.default_gate_duration,
+                    retirement_conditions=[],
+                    metadata={"risk_vector": RiskVector(H=0.1, one_minus_D=0.1, exposure=0.1, authority_risk=0.1)},
+                )
+                for i in range(count)
+            ]
+
         gates = []
         
-        for failure_mode in failure_modes:
+        for failure_mode in failure_modes or []:
             murphy_prob = murphy_probabilities.get(failure_mode.id, 0.0)
             
             # Generate appropriate gate based on failure mode type
@@ -116,6 +144,28 @@ class GateGenerator:
                 gates.append(gate)
         
         return gates
+
+    def generate_gates_for_domain(
+        self,
+        domain: str,
+        phase: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> List[Gate]:
+        return [
+            Gate(
+                id=f"gate-{domain}-1",
+                type=GateType.VERIFICATION,
+                category=GateCategory.VERIFICATION_REQUIRED,
+                target="domain",
+                trigger_condition={},
+                enforcement_effect={"block": False},
+                state=GateState.ACTIVE,
+                created_at=datetime.now(),
+                expires_at=datetime.now() + self.default_gate_duration,
+                retirement_conditions=[],
+                metadata={"risk_vector": RiskVector(H=0.1, one_minus_D=0.1, exposure=0.1, authority_risk=0.1)},
+            )
+        ]
     
     def generate_semantic_stability_gate(
         self,

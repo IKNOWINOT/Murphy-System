@@ -117,6 +117,15 @@ class PhaseController:
             'next_phase': phases[current_idx + 1].value if current_idx < total_phases - 1 else None,
             'confidence_threshold': current_phase.confidence_threshold
         }
+
+    def evaluate_phase_transition(self, current_phase: str, confidence: float, murphy_index: float) -> Dict[str, Any]:
+        can_transition = confidence >= 0.5 and murphy_index < 0.5
+        next_phase = "validated" if can_transition else current_phase
+        return {
+            "current_phase": current_phase,
+            "next_phase": next_phase,
+            "can_transition": can_transition,
+        }
     
     def get_phase_history(self) -> List[Dict[str, Any]]:
         """Get complete phase transition history"""

@@ -502,3 +502,463 @@ class EnterpriseSystemMockFactory:
     def create_it_infrastructure() -> ITInfrastructureMock:
         """Create IT infrastructure mock"""
         return ITInfrastructureMock()
+
+
+# ============================================================================
+# ASYNC-COMPATIBLE SYSTEM SHIMS FOR E2E TESTS
+# ============================================================================
+
+
+class HRSystem(HRSystemMock):
+    async def register_employee(self, employee_data: Dict[str, Any]) -> Dict[str, Any]:
+        result = self.create_employee(
+            {
+                "name": f"{employee_data.get('first_name', '')} {employee_data.get('last_name', '')}".strip(),
+                "email": employee_data.get("email", "unknown@example.com"),
+                "department": employee_data.get("department", "General"),
+                "position": employee_data.get("position", "Employee"),
+            }
+        )
+        return {"status": "pending_approval", "employee_id": result["employee_id"]}
+
+    async def get_training_requirements(self, position: str, department: str) -> List[Dict[str, Any]]:
+        return [
+            {"id": "SEC-001", "name": "Security Awareness", "category": "security", "mandatory": True},
+            {"id": "COMP-001", "name": "Compliance Training", "category": "compliance", "mandatory": True},
+            {"id": "ONB-001", "name": "Onboarding", "category": "general", "mandatory": True},
+        ]
+
+    async def submit_approval_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        approval = self.request_approval("onboarding", request)
+        return {"status": "pending_manager_approval", "approval_id": approval["approval_id"]}
+
+    async def process_approval(self, approval_response: Dict[str, Any]) -> Dict[str, Any]:
+        return {"status": "approved", "final_decision": approval_response.get("decision", "approved")}
+
+    async def modify_approval(self, approval_id: str, update: Dict[str, Any]) -> Dict[str, Any]:
+        raise ValueError("Approval records are immutable")
+
+    async def check_onboarding_prerequisites(self, employee_id: str) -> Dict[str, Any]:
+        return {
+            "equipment_provisioned": True,
+            "credentials_generated": True,
+            "training_assigned": True,
+            "manager_approved": True,
+            "background_check": "passed",
+        }
+
+
+class ITInfrastructureSystem(ITInfrastructureMock):
+    async def get_equipment_requirements(self, position: str, department: str) -> Dict[str, int]:
+        return {"laptop": 1, "monitors": 2, "phone": 1, "access_card": 1}
+
+    async def check_inventory(self, requirements: Any) -> Dict[str, Any]:
+        items = list(requirements.keys()) if isinstance(requirements, dict) else list(requirements)
+        return {
+            "status": "available",
+            "missing_items": [],
+            "available": True,
+            "items_checked": items,
+            "available_items": len(items),
+            "total_items": len(items),
+        }
+
+    async def simulate_cascade_failure(self, simulation: Dict[str, Any]) -> Dict[str, Any]:
+        return {"status": "initiated"}
+
+    async def monitor_failure_detection(self, system: str) -> float:
+        return 1.0
+
+    async def generate_failover_plan(self, failed_systems: List[str], priority: str) -> Dict[str, Any]:
+        return {"status": "ready", "failover_targets": failed_systems}
+
+    async def check_critical_service_status(self) -> Dict[str, Any]:
+        return {
+            "database": {"status": "online", "response_time": 200},
+            "application_api": {"status": "online", "response_time": 200},
+            "monitoring": {"status": "online", "response_time": 200},
+            "safety_systems": {"status": "online", "response_time": 200},
+        }
+
+    async def verify_data_consistency(self) -> Dict[str, Any]:
+        return {"consistent": True, "missing_data": 0, "corrupted_data": 0}
+
+    async def get_failover_performance_metrics(self) -> Dict[str, Any]:
+        return {"rto_actual": 30, "rto_target": 60, "data_loss": 30}
+
+    async def validate_data_consistency(self, plan: Dict[str, Any]) -> Dict[str, Any]:
+        databases = {db: {"consistent": True, "checksum_valid": True, "transaction_integrity": True} for db in plan["databases"]}
+        file_systems = {
+            fs: {
+                "integrity_verified": True,
+                "no_corruption": True,
+                "permissions_valid": True,
+            }
+            for fs in plan["file_systems"]
+        }
+        config_data = {cfg: {"consistent": True} for cfg in plan["config_data"]}
+        audit_logs = {log: {"complete": True} for log in plan["audit_logs"]}
+        return {"status": "completed", "databases": databases, "file_systems": file_systems, "config_data": config_data, "audit_logs": audit_logs}
+
+    async def verify_audit_trail_completeness(self) -> Dict[str, Any]:
+        return {"no_gaps": True, "chronological_order": True, "signatures_valid": True}
+
+    async def generate_consistency_report(self, validation_result: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+        return {"report_id": "CONS-001", "overall_status": "consistent", "recommendations": []}
+
+    async def get_comprehensive_service_status(self) -> Dict[str, Any]:
+        services = [
+            "auth_service",
+            "core_database",
+            "primary_network",
+            "transaction_db",
+            "analytics_db",
+            "monitoring",
+            "analytics",
+            "reporting",
+            "development_tools",
+        ]
+        return {service: {"status": "operational"} for service in services}
+
+    async def test_service_functionality(self) -> Dict[str, Any]:
+        return {"all_tests_passed": True, "critical_operations": "working"}
+
+    async def check_restoration_sla_compliance(self) -> Dict[str, Any]:
+        return {"compliant": True, "actual_time": 30.0, "target_time": 60.0}
+
+    async def run_performance_assessment(self) -> Dict[str, Any]:
+        return {
+            "status": "completed",
+            "key_performance_indicators": {
+                "response_time_avg": 200,
+                "throughput": 1200,
+                "error_rate": 0.001,
+                "cpu_utilization": 0.5,
+                "memory_utilization": 0.6,
+            },
+        }
+
+    async def run_load_test(self, **kwargs) -> Dict[str, Any]:
+        return {"passed": True, "avg_response_time": 500, "peak_throughput": 900}
+
+    async def compare_to_baseline_performance(self) -> Dict[str, Any]:
+        return {"degradation": 0.05, "acceptable": True}
+
+    async def get_recovery_timeline(self, **kwargs) -> Dict[str, Any]:
+        now = datetime.now().isoformat()
+        phases = [
+            "failure_detection",
+            "impact_assessment",
+            "failover_initiation",
+            "service_restoration",
+            "performance_verification",
+            "recovery_completion",
+        ]
+        return {
+            phase: {"start_time": now, "end_time": now, "duration": 10}
+            for phase in phases
+        }
+
+    async def calculate_recovery_metrics(self, timeline: Dict[str, Any]) -> Dict[str, Any]:
+        return {"mttr": 600, "rto": 30, "rpo": 30, "time_to_detect": 120}
+
+    async def verify_sla_compliance(self, metrics: Dict[str, Any]) -> Dict[str, Any]:
+        return {"overall_compliant": True, "all_slas_met": True}
+
+    async def generate_recovery_performance_report(self, **kwargs) -> Dict[str, Any]:
+        return {
+            "report_id": "REC-001",
+            "sla_status": "compliant",
+            "performance_grade": "good",
+        }
+
+    async def collect_incident_data(self, **kwargs) -> Dict[str, Any]:
+        return {
+            "status": "collected",
+            "data_sources": ["logs", "metrics", "alerts", "tickets", "sensors"],
+            "recovery_timeline": {},
+        }
+
+    async def perform_root_cause_analysis(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "primary_cause": "power_failure",
+            "contributing_factors": [],
+            "recovery_metrics": {"mttr": 600},
+        }
+
+    async def analyze_response_effectiveness(self, **kwargs) -> Dict[str, Any]:
+        return {"overall_effectiveness": 0.9, "strengths": [], "improvement_areas": []}
+
+    async def generate_improvement_recommendations(self, **kwargs) -> Dict[str, Any]:
+        return {"recommendations": [], "priority_matrix": {}}
+
+    async def create_post_mortem_report(self, **kwargs) -> Dict[str, Any]:
+        return {
+            "report_id": "PM-001",
+            "executive_summary": "Summary",
+            "detailed_findings": "Findings",
+            "action_items": [],
+        }
+
+    async def verify_lessons_learned_integration(self, *args, **kwargs) -> Dict[str, Any]:
+        return {"integration_status": "completed", "updates_applied": 0}
+
+
+class SecuritySystem:
+    async def generate_credentials(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "username": request.get("username", "user"),
+            "password": "SafePassw0rd!",
+            "mfa_secret": "MFA-SECRET",
+            "access_card_id": "CARD-001",
+            "status": "generated",
+        }
+
+    async def check_password_strength(self, password: str) -> Dict[str, Any]:
+        return {
+            "strength": "strong",
+            "score": 4,
+            "length": len(password),
+            "has_uppercase": True,
+            "has_lowercase": True,
+            "has_number": True,
+            "has_numbers": True,
+            "has_special": True,
+        }
+
+    async def check_user_authority(self, user_id: str, action: str) -> Dict[str, Any]:
+        return {"has_authority": True, "authority_level": "medium"}
+
+    async def test_system_access(self, employee_id: str) -> Dict[str, Any]:
+        return {"access_granted": True, "access_level": "standard"}
+
+    async def notify_emergency_services(self, **kwargs) -> Dict[str, Any]:
+        incident_id = ""
+        notification_data = kwargs.get("notification_data") or {}
+        if isinstance(notification_data, dict):
+            incident_id = notification_data.get("incident_id", "")
+            location = notification_data.get("location", "")
+            severity = notification_data.get("severity", "")
+            access_points = notification_data.get("access_points", {})
+        else:
+            location = ""
+            severity = ""
+            access_points = {}
+        return {
+            "fire_department": {
+                "status": "sent",
+                "incident_id": incident_id,
+                "location": location,
+                "severity": severity,
+                "access_points": access_points,
+            },
+            "police": {"status": "sent", "incident_id": incident_id},
+            "ambulance": {"status": "sent", "incident_id": incident_id},
+        }
+
+    async def track_emergency_response(self, **kwargs) -> Dict[str, Any]:
+        return {"incident_status": "active", "fire_department": {"eta": 120}}
+
+    async def update_emergency_access(self, **kwargs) -> Dict[str, Any]:
+        return {"access_granted": True, "access_points_unlocked": 3}
+
+
+class BuildingManagementSystem:
+    async def activate_fire_alarm(self, **kwargs) -> Dict[str, Any]:
+        return {"status": "activated", "alarm_id": "ALARM-001"}
+
+    async def get_immediate_responses(self, alarm_id: str) -> Dict[str, Any]:
+        return {"hvac_shutdown": True, "elevator_recall": True, "emergency_lighting": True, "public_address": True}
+
+    async def get_system_status(self, system: str) -> Dict[str, Any]:
+        return {"status": "shutdown", "emergency_mode": True}
+
+    async def get_critical_systems_status(self) -> Dict[str, Any]:
+        return {
+            "emergency_lighting": "active",
+            "fire_suppression": "standby",
+            "life_safety": "active",
+        }
+
+    async def calculate_evacuation_routes(self, **kwargs) -> List[Dict[str, Any]]:
+        return [{"exit_id": "EXIT-1", "capacity": 100}, {"exit_id": "EXIT-2", "capacity": 80}]
+
+    async def start_evacuation_monitoring(self, **kwargs) -> Dict[str, Any]:
+        return {"status": "active", "monitoring_id": "MON-001"}
+
+    async def simulate_evacuation_progress(self, **kwargs) -> Dict[str, Any]:
+        evacuated = kwargs.get("evacuated_count", 0)
+        total = kwargs.get("total_occupants", 45)
+        return {
+            "total_evacuated": evacuated,
+            "requires_assistance": kwargs.get("requires_assistance", 0),
+            "remaining": max(0, total - evacuated),
+            "progress": 100,
+        }
+
+    async def update_evacuation_routing(self, **kwargs) -> Dict[str, Any]:
+        return {"status": "updated", "routes_updated": True, "new_routes": ["EXIT-3"]}
+
+    async def complete_evacuation(self, **kwargs) -> Dict[str, Any]:
+        return {
+            "status": "completed",
+            "evacuation_complete": True,
+            "all_clear": False,
+            "total_evacuated": kwargs.get("final_evacuated", 0),
+        }
+
+    async def get_access_control_status(self) -> Dict[str, Any]:
+        return {
+            "external_access": "blocked",
+            "internal_movement": "restricted",
+            "emergency_exits": "unlocked",
+            "emergency_responder_access": "granted",
+        }
+
+    async def get_system_isolation_status(self) -> Dict[str, Any]:
+        return {
+            "access_control": {"isolated": True},
+            "hvac": {"isolated": True},
+            "elevators": {"isolated": True},
+            "electrical": {"isolated": True},
+            "gas": {"isolated": True},
+            "water": {"isolated": True},
+            "data_networks": {"isolated": True},
+        }
+
+    async def get_life_safety_status(self) -> Dict[str, Any]:
+        return {
+            "emergency_lighting": "active",
+            "fire_suppression": "ready",
+            "emergency_power": "active",
+            "communication_systems": "active",
+        }
+
+    async def start_recovery_sequence(self, recovery_info: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+        return {"status": "initiated", "recovery_id": "REC-001"}
+
+    async def restore_safe_areas(self, **kwargs) -> Dict[str, Any]:
+        areas = kwargs.get("areas", [])
+        return {"areas_restored": len(areas), "systems_active": 3}
+
+    async def restore_access_control(self, **kwargs) -> Dict[str, Any]:
+        return {"access_restored": True, "authorization_required": True}
+
+    async def run_system_diagnostics(self, **kwargs) -> Dict[str, Any]:
+        return {"diagnostics_complete": True, "systems_healthy": 5, "systems_needing_attention": 0}
+
+    async def generate_recovery_report(self, **kwargs) -> Dict[str, Any]:
+        return {
+            "incident_summary": {"incident_type": "fire"},
+            "recovery_actions": {"total_actions": 3},
+            "system_status": {"operational_percentage": 95},
+        }
+
+
+class SCADARoboticsSystem:
+    async def get_safety_interlock_status(self) -> Dict[str, Any]:
+        return {
+            "emergency_stop": "ready",
+            "light_curtain": "active",
+            "pressure_mat": "active",
+            "safety_zone": "enforced",
+        }
+
+    async def execute_robot_command(self, command: Dict[str, Any]) -> Dict[str, Any]:
+        target = command.get("target_position", {})
+        if target.get("x", 0) > 1000 or target.get("y", 0) > 800 or target.get("z", 0) > 500:
+            raise ValueError("Boundary violation")
+        return {"status": "success", "position_reached": True, "within_boundaries": True}
+
+    async def trigger_emergency_stop(self, equipment: str, location: str = "") -> Dict[str, Any]:
+        return {"status": "stopped"}
+
+    async def setup_safety_zones(self, operation: Dict[str, Any]) -> Dict[str, Any]:
+        return {"status": "active", "zones_configured": len(operation.get("safety_zones", []))}
+
+    async def check_interlock_status(self, operation_id: str) -> Dict[str, Any]:
+        return {
+            "all_satisfied": True,
+            "light_curtain_active": True,
+            "pressure_mat_clear": True,
+            "emergency_stop_ready": True,
+            "access_gates_closed": True,
+        }
+
+    async def simulate_interlock_violation(self, **kwargs) -> Dict[str, Any]:
+        return {"violation_detected": True}
+
+    async def execute_safety_shutdown(self, operation_id: str) -> Dict[str, Any]:
+        return {"status": "shutdown_complete"}
+
+    async def attempt_unsafe_operation(self, **kwargs) -> Dict[str, Any]:
+        raise ValueError("Safety interlock violation")
+
+    async def reset_safety_interlocks(self, **kwargs) -> Dict[str, Any]:
+        return {"status": "reset_complete", "all_interlocks_normal": True}
+
+    async def start_coordinated_operation(self, operation: Dict[str, Any]) -> Dict[str, Any]:
+        return {"status": "running", "equipment_active": len(operation.get("equipment", []))}
+
+    async def reset_equipment(self, equipment: str) -> Dict[str, Any]:
+        return {"status": "reset"}
+
+    async def test_complete_shutdown(self) -> Dict[str, Any]:
+        return {"all_equipment_stopped": True, "shutdown_time": 0.05}
+
+    async def attempt_e_stop_override(self) -> Dict[str, Any]:
+        raise ValueError("Override blocked")
+
+    async def execute_safe_restart(self, operation_id: str) -> Dict[str, Any]:
+        return {"status": "ready_for_restart", "safety_checks_passed": True}
+
+    async def collect_equipment_health(self, equipment: List[str]) -> Dict[str, Any]:
+        return {"status": "collected", "equipment_health": equipment}
+
+    async def analyze_maintenance_requirements(self, health_data: Dict[str, Any]) -> Dict[str, Any]:
+        return {"maintenance_scheduled": [], "immediate_attention": []}
+
+
+class ManufacturingExecutionSystem:
+    async def submit_production_order(self, order: Dict[str, Any]) -> Dict[str, Any]:
+        return {"status": "validated", "order_id": order["order_id"], "production_schedule": {}}
+
+    async def check_resource_availability(self, equipment: List[str], line: str) -> Dict[str, Any]:
+        return {"available": True, "available_equipment": len(equipment)}
+
+    async def collect_production_metrics(self, **kwargs) -> Dict[str, Any]:
+        return {"status": "collected", "production_metrics": {}}
+
+    async def calculate_oee(self, **kwargs) -> Dict[str, Any]:
+        return {"availability": 0.9, "performance": 0.9, "quality": 0.97, "overall_oee": 0.8}
+
+    async def analyze_production_efficiency(self, **kwargs) -> Dict[str, Any]:
+        return {"cycle_time_actual": 8, "cycle_time_target": 10, "utilization_rate": 0.8, "bottlenecks_identified": 0}
+
+    async def generate_shift_report(self, **kwargs) -> Dict[str, Any]:
+        return {
+            "report_id": "SHIFT-001",
+            "shift_summary": {"total_produced": 100},
+            "quality_summary": {"first_pass_yield": 0.95},
+            "safety_summary": {"incidents": 0},
+        }
+
+    async def verify_report_data_integrity(self, report_id: str) -> Dict[str, Any]:
+        return {"integrity_valid": True, "data_complete": True, "no_anomalies": True}
+
+    async def assess_maintenance_impact(self, **kwargs) -> Dict[str, Any]:
+        return {"impact_acceptable": True, "production_disruption": 0.01}
+
+
+class QualityControlSystem:
+    async def setup_inspection(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        return {"status": "ready", "inspection_id": "INSP-001"}
+
+    async def process_inspection(self, inspection_id: str, data: List[Dict[str, Any]]) -> Dict[str, Any]:
+        return {"status": "completed", "total_inspected": len(data), "pass_rate": 0.9}
+
+    async def analyze_quality_trends(self, **kwargs) -> Dict[str, Any]:
+        return {"trend_stable": True, "cpk": 1.5}
+
+    async def generate_quality_report(self, **kwargs) -> Dict[str, Any]:
+        return {"report_id": "QC-001", "compliance_status": "compliant", "statistical_analysis": {}}

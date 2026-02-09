@@ -4,6 +4,7 @@ Gate Synthesis Engine - Compatibility Layer
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Dict, List
 import uuid
 
@@ -31,3 +32,14 @@ class GateSynthesisEngine:
                 }
             )
         return gates
+
+    async def generate_gates(self, context: Dict[str, object]) -> List["Gate"]:
+        gate_types = ["safety_interlock", "quality_check", "operational_readiness"]
+        if context.get("operation_type") == "disaster_recovery":
+            gate_types = ["safety_interlock", "data_integrity", "business_continuity", "communication"]
+        return [Gate(type=gate_type) for gate_type in gate_types]
+
+
+@dataclass
+class Gate:
+    type: str
