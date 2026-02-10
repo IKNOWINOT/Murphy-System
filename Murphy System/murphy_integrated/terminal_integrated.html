@@ -253,7 +253,7 @@ Type 'api' to see new integrated endpoints
                 const response = await fetch(`${API_BASE}/system/info`);
                 const data = await response.json();
                 
-                if (response.ok && (data.success === undefined || data.success === true)) {
+                if (response.ok && (data.success !== false)) {
                     systemOnline = true;
                     document.getElementById('statusBadge').textContent = 'ONLINE';
                     document.getElementById('statusBadge').className = 'status-badge status-active';

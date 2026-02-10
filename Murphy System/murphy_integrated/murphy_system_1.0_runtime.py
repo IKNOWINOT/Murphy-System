@@ -388,6 +388,10 @@ class MurphySystem:
             and hasattr(self.orchestrator, "phase2_production_execution")
         )
 
+    @staticmethod
+    def _component_status(component_instance: Optional[Any]) -> str:
+        return "active" if component_instance else "inactive"
+
     def _record_execution(self, success: bool, duration: float) -> None:
         self.execution_metrics["total"] += 1
         if success:
@@ -752,23 +756,20 @@ class MurphySystem:
         if self.integration_engine:
             pending_integrations = len(self.integration_engine.list_pending_integrations())
             committed_integrations = len(self.integration_engine.list_committed_integrations())
-        def get_component_status(component_instance: Optional[Any]) -> str:
-            return "active" if component_instance else "inactive"
-        
         return {
             'version': self.version,
             'status': 'running',
             'uptime_seconds': uptime,
             'start_time': self.start_time.isoformat(),
             'components': {
-                'control_plane': get_component_status(self.control_plane),
-                'inoni_automation': get_component_status(self.inoni_automation),
-                'integration_engine': get_component_status(self.integration_engine),
-                'orchestrator': get_component_status(self.orchestrator),
-                'form_handler': get_component_status(self.form_handler),
-                'confidence_engine': get_component_status(self.confidence_engine),
-                'correction_system': get_component_status(self.correction_system),
-                'hitl_monitor': get_component_status(self.hitl_monitor)
+                'control_plane': self._component_status(self.control_plane),
+                'inoni_automation': self._component_status(self.inoni_automation),
+                'integration_engine': self._component_status(self.integration_engine),
+                'orchestrator': self._component_status(self.orchestrator),
+                'form_handler': self._component_status(self.form_handler),
+                'confidence_engine': self._component_status(self.confidence_engine),
+                'correction_system': self._component_status(self.correction_system),
+                'hitl_monitor': self._component_status(self.hitl_monitor)
             },
             'statistics': {
                 'sessions': len(self.sessions),
