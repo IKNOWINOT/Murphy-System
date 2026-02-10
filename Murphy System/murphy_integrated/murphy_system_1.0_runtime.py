@@ -695,13 +695,21 @@ class MurphySystem:
         session = self.chat_sessions.setdefault(session_id, {"stage_index": 0, "history": []})
         start = time.perf_counter()
         flow = self._advance_flow(session, message)
-        expected_keys = {"current_stage", "next_stage", "prompt"}
+        default_values = {
+            "current_stage": "unknown",
+            "next_stage": "next",
+            "prompt": "Continue with the next step."
+        }
+        expected_keys = set(default_values.keys())
         missing_keys = expected_keys.difference(flow.keys())
         if missing_keys:
-            logger.warning(f"Flow response missing keys: {sorted(missing_keys)}; applying defaults.")
-        current_stage = flow.get("current_stage", "unknown")
-        next_stage = flow.get("next_stage", "next")
-        prompt = flow.get("prompt", "Continue with the next step.")
+            applied_defaults = {key: default_values[key] for key in missing_keys}
+            logger.warning(
+                f"Flow response missing keys: {sorted(missing_keys)}; applying defaults {applied_defaults}."
+            )
+        current_stage = flow.get("current_stage", default_values["current_stage"])
+        next_stage = flow.get("next_stage", default_values["next_stage"])
+        prompt = flow.get("prompt", default_values["prompt"])
         response = (
             f"Captured {current_stage} details. "
             f"Next step ({next_stage}): {prompt}"
