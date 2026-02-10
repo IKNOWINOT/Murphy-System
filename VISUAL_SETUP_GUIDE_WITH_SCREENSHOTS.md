@@ -20,7 +20,8 @@
 10. [Integrated UI Walkthrough](#integrated-ui-walkthrough)
 11. [Terminal UI Walkthroughs](#terminal-ui-walkthroughs)
 12. [Available API Endpoints](#available-api-endpoints)
-13. [Next Steps](#next-steps)
+13. [Block Command Tree Walkthrough](#block-command-tree-walkthrough)
+14. [Next Steps](#next-steps)
 
 ---
 
@@ -388,6 +389,16 @@ http://localhost:6666/docs
 - ✅ Complete parameter documentation
 - ✅ Response examples
 - ✅ Authentication methods (if configured)
+
+---
+
+## Block Command Tree Walkthrough
+
+### Step 19: Architect Block Tree Expansion
+
+Open the architect terminal, run a high-level command, and use magnify/simplify/solidify to expand the block tree.
+
+![Architect Block Tree](docs/screenshots/19_ui_architect_block_tree.png)
 
 ---
 

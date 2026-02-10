@@ -461,6 +461,9 @@
             
             <button class="btn" onclick="executeTask()">▶️ EXECUTE TASK</button>
             <button class="btn btn-secondary" onclick="validateTask()">✓ VALIDATE ONLY</button>
+            <button class="btn btn-secondary" onclick="runBlockCommand('magnify')">🔍 MAGNIFY</button>
+            <button class="btn btn-secondary" onclick="runBlockCommand('simplify')">🧩 SIMPLIFY</button>
+            <button class="btn btn-secondary" onclick="runBlockCommand('solidify')">🧱 SOLIDIFY</button>
             
             <div class="output-box" id="executeOutput">
                 <div class="output-line output-info">&gt; Ready to execute tasks...</div>
@@ -602,6 +605,7 @@
         }
 
         const API_BASE = resolveApiHost();
+        let currentDocId = null;
         
         // Tab switching
         function switchTab(tabName) {
@@ -718,6 +722,10 @@
                 const data = await response.json();
                 addOutput('executeOutput', `SUCCESS: Task submitted with ID: ${data.submission_id || 'N/A'}`, 'success');
                 addOutput('executeOutput', JSON.stringify(data, null, 2), 'info');
+                currentDocId = data.doc_id || currentDocId;
+                if (data.block_tree) {
+                    addBlockTreeOutput(data.block_tree);
+                }
             } catch (error) {
                 addOutput('executeOutput', `ERROR: ${error.message}`, 'error');
             }
@@ -743,6 +751,42 @@
                 addOutput('executeOutput', `VALIDATION RESULT: ${data.valid ? 'PASSED' : 'FAILED'}`, data.valid ? 'success' : 'error');
                 if (data.errors) {
                     addOutput('executeOutput', `Errors: ${JSON.stringify(data.errors)}`, 'error');
+                }
+            } catch (error) {
+                addOutput('executeOutput', `ERROR: ${error.message}`, 'error');
+            }
+        }
+
+        function addBlockTreeOutput(blockTree) {
+            addOutput('executeOutput', 'BLOCK COMMAND TREE:', 'info');
+            addOutput('executeOutput', JSON.stringify(blockTree, null, 2), 'info');
+        }
+
+        async function runBlockCommand(action) {
+            if (!currentDocId) {
+                addOutput('executeOutput', 'ERROR: Run a task first to create a block tree.', 'error');
+                return;
+            }
+            let payload = {};
+            if (action === 'magnify') {
+                const domain = prompt('Magnify domain:', 'automation');
+                if (!domain) return;
+                payload.domain = domain;
+            }
+            try {
+                const response = await fetch(`${API_BASE}/api/documents/${currentDocId}/${action}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (data.success) {
+                    currentDocId = data.doc_id || currentDocId;
+                    if (data.block_tree) {
+                        addBlockTreeOutput(data.block_tree);
+                    }
+                } else {
+                    addOutput('executeOutput', `ERROR: ${data.error}`, 'error');
                 }
             } catch (error) {
                 addOutput('executeOutput', `ERROR: ${error.message}`, 'error');

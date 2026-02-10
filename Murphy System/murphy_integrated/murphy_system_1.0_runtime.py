@@ -117,6 +117,74 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+class LivingDocument:
+    """Represents a living document with magnify/simplify/solidify actions."""
+
+    def __init__(self, doc_id: str, title: str, content: str, doc_type: str):
+        self.doc_id = doc_id
+        self.title = title
+        self.content = content
+        self.doc_type = doc_type
+        self.state = "INITIAL"
+        self.confidence = 0.45
+        self.domain_depth = 0
+        self.history: List[Dict[str, Any]] = []
+        self.children: List[Dict[str, Any]] = []
+        self.parent_id: Optional[str] = None
+        self.created_at = datetime.utcnow().isoformat()
+        self.block_tree: Dict[str, Any] = {}
+        self.gates: List[Dict[str, Any]] = []
+        self.constraints: List[str] = []
+        self.generated_tasks: List[Dict[str, Any]] = []
+
+    def magnify(self, domain: str) -> Dict[str, Any]:
+        self.domain_depth += 15
+        self.confidence = min(1.0, self.confidence + 0.1)
+        self.history.append({
+            "action": "magnify",
+            "domain": domain,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+        return self.to_dict()
+
+    def simplify(self) -> Dict[str, Any]:
+        self.domain_depth = max(0, self.domain_depth - 10)
+        self.confidence = min(1.0, self.confidence + 0.05)
+        self.history.append({
+            "action": "simplify",
+            "timestamp": datetime.utcnow().isoformat()
+        })
+        return self.to_dict()
+
+    def solidify(self) -> Dict[str, Any]:
+        self.state = "SOLIDIFIED"
+        self.confidence = min(1.0, self.confidence + 0.2)
+        self.history.append({
+            "action": "solidify",
+            "timestamp": datetime.utcnow().isoformat()
+        })
+        return self.to_dict()
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "doc_id": self.doc_id,
+            "title": self.title,
+            "content": self.content,
+            "doc_type": self.doc_type,
+            "state": self.state,
+            "confidence": self.confidence,
+            "domain_depth": self.domain_depth,
+            "history": self.history,
+            "children": self.children,
+            "parent_id": self.parent_id,
+            "created_at": self.created_at,
+            "block_tree": self.block_tree,
+            "gates": self.gates,
+            "constraints": self.constraints,
+            "generated_tasks": self.generated_tasks
+        }
+
+
 class MurphySystem:
     """
     Murphy System 1.0 - Complete Runtime
@@ -205,6 +273,8 @@ class MurphySystem:
         self.form_submissions: Dict[str, Dict] = {}
         self.corrections: List[Dict] = []
         self.hitl_interventions: Dict[str, Dict] = {}
+        self.living_documents: Dict[str, LivingDocument] = {}
+        self.document_sessions: Dict[str, str] = {}
         self.execution_metrics = {"total": 0, "success": 0, "total_time": 0.0}
         self.chat_sessions: Dict[str, Dict] = {}
         self.mfgc_config = {
@@ -392,6 +462,114 @@ class MurphySystem:
     def _component_status(component_instance: Optional[Any]) -> str:
         return "active" if component_instance else "inactive"
 
+    def _create_document(self, title: str, content: str, doc_type: str, session_id: Optional[str] = None) -> LivingDocument:
+        doc = LivingDocument(uuid4().hex, title, content, doc_type)
+        self.living_documents[doc.doc_id] = doc
+        if session_id:
+            self.document_sessions[session_id] = doc.doc_id
+        self._update_document_tree(doc)
+        return doc
+
+    def _ensure_document(self, task_description: str, task_type: str, session_id: Optional[str]) -> LivingDocument:
+        if session_id:
+            doc_id = self.document_sessions.get(session_id)
+            if doc_id:
+                existing = self.living_documents.get(doc_id)
+                if existing:
+                    return existing
+        title = " ".join(task_description.split()[:6]) or "Untitled Task"
+        return self._create_document(title=title, content=task_description, doc_type=task_type, session_id=session_id)
+
+    def _generate_swarm_tasks(self) -> List[Dict[str, Any]]:
+        tasks = []
+        for step in self.flow_steps:
+            tasks.append({
+                "task_id": uuid4().hex,
+                "stage": step["stage"],
+                "description": step["prompt"]
+            })
+        return tasks
+
+    def _build_gate_chain(self, doc: LivingDocument) -> List[Dict[str, Any]]:
+        gate_templates = [
+            ("Magnify Gate", 0.5),
+            ("Simplify Gate", 0.6),
+            ("Solidify Gate", 0.7)
+        ]
+        gates = []
+        for name, threshold in gate_templates:
+            status = "open" if doc.confidence >= threshold else "blocked"
+            gates.append({
+                "name": name,
+                "threshold": threshold,
+                "status": status
+            })
+        return gates
+
+    def _build_block_tree(self, doc: LivingDocument) -> Dict[str, Any]:
+        root = {
+            "id": doc.doc_id,
+            "label": doc.title,
+            "state": doc.state,
+            "confidence": doc.confidence,
+            "constraints": doc.constraints,
+            "gates": doc.gates,
+            "children": []
+        }
+
+        history_actions = {entry["action"] for entry in doc.history}
+        for action in ("magnify", "simplify", "solidify"):
+            matching = [entry for entry in doc.history if entry["action"] == action]
+            if matching:
+                for entry in matching:
+                    label = entry["action"].title()
+                    if entry.get("domain"):
+                        label = f"{label} ({entry['domain']})"
+                    root["children"].append({
+                        "id": uuid4().hex,
+                        "label": label,
+                        "action": entry["action"],
+                        "status": "completed",
+                        "timestamp": entry.get("timestamp")
+                    })
+            else:
+                root["children"].append({
+                    "id": uuid4().hex,
+                    "label": action.title(),
+                    "action": action,
+                    "status": "pending"
+                })
+
+        if doc.generated_tasks:
+            task_node = {
+                "id": uuid4().hex,
+                "label": "Generated Swarm Tasks",
+                "action": "expand",
+                "status": "ready",
+                "children": []
+            }
+            for task in doc.generated_tasks:
+                task_node["children"].append({
+                    "id": task["task_id"],
+                    "label": task["stage"].replace("_", " ").title(),
+                    "action": "task",
+                    "status": "pending",
+                    "description": task["description"]
+                })
+            root["children"].append(task_node)
+
+        return root
+
+    def _update_document_tree(self, doc: LivingDocument) -> None:
+        doc.constraints = []
+        if doc.confidence < 0.6:
+            doc.constraints.append("Low confidence: run magnify or simplify before solidify.")
+        doc.gates = self._build_gate_chain(doc)
+        if doc.state == "SOLIDIFIED":
+            doc.generated_tasks = self._generate_swarm_tasks()
+            doc.children = doc.generated_tasks
+        doc.block_tree = self._build_block_tree(doc)
+
     def _record_execution(self, success: bool, duration: float) -> None:
         self.execution_metrics["total"] += 1
         if success:
@@ -516,11 +694,17 @@ class MurphySystem:
         )
         duration = time.perf_counter() - start
         self._record_execution(success=True, duration=duration)
+        doc = self._ensure_document(message, "conversation", session_id)
+        self._update_document_tree(doc)
         result = {
             "success": True,
             "session_id": session_id,
             "message": response,
-            "flow_stage": flow["next_stage"]
+            "flow_stage": flow["next_stage"],
+            "doc_id": doc.doc_id,
+            "block_tree": doc.block_tree,
+            "gates": doc.gates,
+            "constraints": doc.constraints
         }
         if use_mfgc:
             self.mfgc_config["enabled"] = True
@@ -533,17 +717,23 @@ class MurphySystem:
         task_type = data.get("task_type", "general")
         parameters = data.get("parameters") or {}
         submission = self._create_submission("task-execution", data)
+        doc = self._ensure_document(task_description, task_type, data.get("session_id"))
         confidence_report = self._build_confidence_report(task_description)
         result = await self.execute_task(task_description, task_type, parameters)
         submission["status"] = "completed" if result.get("success") else "failed"
         submission["result"] = result
+        self._update_document_tree(doc)
         return {
             "success": result.get("success", False),
             "submission_id": submission["id"],
             "task_id": submission["id"],
             "status": submission["status"],
+            "doc_id": doc.doc_id,
             "confidence_report": confidence_report,
             "output": result.get("result"),
+            "block_tree": doc.block_tree,
+            "gates": doc.gates,
+            "constraints": doc.constraints,
             "error": result.get("error")
         }
 
@@ -913,7 +1103,7 @@ def create_app() -> FastAPI:
     @app.get("/api/system/info")
     async def get_system_info():
         """Alias for system information (legacy UI compatibility)"""
-        return JSONResponse(murphy.get_system_info())
+        return JSONResponse({"success": True, "system": murphy.get_system_info()})
     
     @app.get("/api/health")
     async def health_check():
@@ -931,6 +1121,65 @@ def create_app() -> FastAPI:
             data = {}
         result = murphy.create_session(name=data.get("name"))
         return JSONResponse(result)
+
+    # ==================== DOCUMENT ENDPOINTS ====================
+
+    @app.post("/api/documents")
+    async def create_document(request: Request):
+        """Create a living document for block commands"""
+        data = await request.json()
+        title = data.get("title") or "Untitled"
+        content = data.get("content") or ""
+        doc_type = data.get("type") or data.get("doc_type") or "general"
+        doc = murphy._create_document(title=title, content=content, doc_type=doc_type, session_id=data.get("session_id"))
+        return JSONResponse({"success": True, **doc.to_dict()})
+
+    @app.get("/api/documents/{doc_id}")
+    async def get_document(doc_id: str):
+        """Fetch a living document"""
+        doc = murphy.living_documents.get(doc_id)
+        if not doc:
+            return JSONResponse({"success": False, "error": "Document not found"}, status_code=404)
+        return JSONResponse({"success": True, **doc.to_dict()})
+
+    @app.post("/api/documents/{doc_id}/magnify")
+    async def magnify_document(doc_id: str, request: Request):
+        """Magnify a document"""
+        data = await request.json()
+        doc = murphy.living_documents.get(doc_id)
+        if not doc:
+            return JSONResponse({"success": False, "error": "Document not found"}, status_code=404)
+        doc.magnify(data.get("domain", "general"))
+        murphy._update_document_tree(doc)
+        return JSONResponse({"success": True, **doc.to_dict()})
+
+    @app.post("/api/documents/{doc_id}/simplify")
+    async def simplify_document(doc_id: str):
+        """Simplify a document"""
+        doc = murphy.living_documents.get(doc_id)
+        if not doc:
+            return JSONResponse({"success": False, "error": "Document not found"}, status_code=404)
+        doc.simplify()
+        murphy._update_document_tree(doc)
+        return JSONResponse({"success": True, **doc.to_dict()})
+
+    @app.post("/api/documents/{doc_id}/solidify")
+    async def solidify_document(doc_id: str):
+        """Solidify a document"""
+        doc = murphy.living_documents.get(doc_id)
+        if not doc:
+            return JSONResponse({"success": False, "error": "Document not found"}, status_code=404)
+        doc.solidify()
+        murphy._update_document_tree(doc)
+        return JSONResponse({"success": True, **doc.to_dict()})
+
+    @app.get("/api/documents/{doc_id}/blocks")
+    async def document_blocks(doc_id: str):
+        """Fetch the block command tree for a document"""
+        doc = murphy.living_documents.get(doc_id)
+        if not doc:
+            return JSONResponse({"success": False, "error": "Document not found"}, status_code=404)
+        return JSONResponse({"success": True, "block_tree": doc.block_tree})
 
     # ==================== FORM ENDPOINTS ====================
 
