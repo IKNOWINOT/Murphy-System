@@ -24,6 +24,7 @@ This directory contains visual screenshots for the Murphy System setup process.
 | 16_ui_terminal_integrated_submit.png | Integrated terminal command submission | 1280x736 |
 | 17_ui_terminal_architect_flow.png | Architect terminal flow step | 1280x720 |
 | 18_ui_terminal_worker_status.png | Worker terminal status flow | 1280x722 |
+| 19_ui_architect_block_tree.png | Architect block command tree with magnify/simplify/solidify | 1280x720 |
 
 ## Usage
 
@@ -48,6 +49,6 @@ Screenshots were generated using Python PIL (Pillow) library to create terminal-
 
 ---
 
-**Total Screenshots:** 18  
-**Total Size:** ~795 KB  
+**Total Screenshots:** 19  
+**Total Size:** ~848 KB  
 **Created:** February 9, 2026

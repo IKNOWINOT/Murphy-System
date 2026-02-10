@@ -447,6 +447,7 @@
             total: 0,
             totalTime: 0
         };
+        let lastDocId = null;
 
         // DOM Elements
         const terminalOutput = document.getElementById('terminalOutput');
@@ -524,6 +525,13 @@
                         addLine(`  Gates: ${result.data.total_gates} | Time: ${result.data.execution_time.toFixed(3)}s`, 'info');
                     } else {
                         addLine(`✓ ${result.message}`, 'system');
+                    }
+                    if (result.doc_id) {
+                        lastDocId = result.doc_id;
+                        if (result.block_tree) {
+                            addLine('--- Block Commands ---', 'info');
+                            addLine(JSON.stringify(result.block_tree, null, 2), 'info');
+                        }
                     }
                     
                     document.getElementById('taskStatus').textContent = 'COMPLETE';

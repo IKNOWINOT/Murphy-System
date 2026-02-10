@@ -657,6 +657,7 @@
             <div class="state-section">
                 <div class="tabs">
                     <div class="tab active" onclick="switchTab('gates')">GATES</div>
+                    <div class="tab" onclick="switchTab('blocks')">BLOCKS</div>
                     <div class="tab" onclick="switchTab('config')">CONFIG</div>
                     <div class="tab" onclick="switchTab('events')">EVENTS</div>
                 </div>
@@ -668,6 +669,22 @@
                         <div class="gate-item">
                             <span class="gate-icon">●</span>
                             <span class="gate-type">No active gates</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Blocks Tab -->
+                <div class="tab-content" id="blocksTab">
+                    <div class="state-section-title">BLOCK COMMAND TREE</div>
+                    <div style="margin-bottom: 10px;">
+                        <button class="config-toggle" onclick="runBlockCommand('magnify')">Magnify</button>
+                        <button class="config-toggle" onclick="runBlockCommand('simplify')">Simplify</button>
+                        <button class="config-toggle" onclick="runBlockCommand('solidify')">Solidify</button>
+                    </div>
+                    <div class="gates-list" id="blocksList">
+                        <div class="gate-item">
+                            <span class="gate-icon">●</span>
+                            <span class="gate-type">No block tree loaded</span>
                         </div>
                     </div>
                 </div>
@@ -775,6 +792,7 @@
             emergency_gates: true,
             audit_trail: true
         };
+        let lastDocId = null;
 
         // DOM Elements
         const terminalOutput = document.getElementById('terminalOutput');
@@ -852,6 +870,12 @@
                     } else {
                         addLine(`✓ ${result.message}`, 'system');
                     }
+                    if (result.doc_id) {
+                        lastDocId = result.doc_id;
+                        if (result.block_tree) {
+                            updateBlockTree(result.block_tree);
+                        }
+                    }
                 } else {
                     addLine(`✗ Error: ${result.error}`, 'error');
                 }
@@ -882,6 +906,10 @@
                     addLine('  /config        - Show current configuration', 'system');
                     addLine('  /phases        - Show phase details', 'system');
                     addLine('  /gates         - Show active gates', 'system');
+                    addLine('  /blocks        - Show block command tree', 'system');
+                    addLine('  /magnify       - Magnify current block tree (optional domain)', 'system');
+                    addLine('  /simplify      - Simplify current block tree', 'system');
+                    addLine('  /solidify      - Solidify current block tree', 'system');
                     addLine('  /stats         - Show execution statistics', 'system');
                     addLine('  /events        - Show event log', 'system');
                     addLine('  /clear         - Clear terminal', 'system');
@@ -916,6 +944,22 @@
 
                 case '/gates':
                     await fetchGates();
+                    break;
+
+                case '/blocks':
+                    await fetchBlocks();
+                    break;
+
+                case '/magnify':
+                    await runBlockCommand('magnify', args[0]);
+                    break;
+
+                case '/simplify':
+                    await runBlockCommand('simplify');
+                    break;
+
+                case '/solidify':
+                    await runBlockCommand('solidify');
                     break;
 
                 case '/events':
@@ -989,6 +1033,50 @@
         async function fetchGates() {
             addLine('── ACTIVE GATES ──', 'system');
             addLine('  No active gates (execute a task to generate gates)', 'info');
+        }
+
+        async function fetchBlocks() {
+            if (!lastDocId) {
+                addLine('  No block tree available yet. Execute a task first.', 'warning');
+                return;
+            }
+            try {
+                const response = await fetch(`${API_BASE_URL}/documents/${lastDocId}/blocks`);
+                const result = await response.json();
+                if (result.success) {
+                    updateBlockTree(result.block_tree);
+                    switchTab('blocks');
+                }
+            } catch (error) {
+                addLine(`✗ Error fetching blocks: ${error.message}`, 'error');
+            }
+        }
+
+        async function runBlockCommand(action, domain) {
+            if (!lastDocId) {
+                addLine('  No block tree available yet. Execute a task first.', 'warning');
+                return;
+            }
+            let payload = {};
+            if (action === 'magnify') {
+                payload.domain = domain || 'automation';
+            }
+            try {
+                const response = await fetch(`${API_BASE_URL}/documents/${lastDocId}/${action}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    lastDocId = result.doc_id || lastDocId;
+                    updateBlockTree(result.block_tree);
+                } else {
+                    addLine(`✗ Block command failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                addLine(`✗ Block command error: ${error.message}`, 'error');
+            }
         }
 
         // Load config
@@ -1114,6 +1202,45 @@
                 `).join('');
             }
             document.getElementById('gatesGenerated').textContent = gates.length;
+        }
+
+        function updateBlockTree(blockTree) {
+            const blocksList = document.getElementById('blocksList');
+            blocksList.innerHTML = '';
+            if (!blockTree) {
+                blocksList.innerHTML = `
+                    <div class="gate-item">
+                        <span class="gate-icon">●</span>
+                        <span class="gate-type">No block tree available</span>
+                    </div>
+                `;
+                return;
+            }
+            appendBlockNode(blocksList, blockTree, 0);
+        }
+
+        function appendBlockNode(container, node, depth) {
+            const item = document.createElement('div');
+            item.className = 'gate-item';
+            item.style.marginLeft = `${depth * 12}px`;
+            const statusLabel = (node.status || 'pending').toUpperCase();
+            item.innerHTML = `
+                <span class="gate-icon">●</span>
+                <span class="gate-type">${node.label || node.action || node.id}</span>
+                <span class="gate-status ${node.status === 'blocked' ? 'triggered' : 'active'}">${statusLabel}</span>
+            `;
+            if (['magnify', 'simplify', 'solidify'].includes(node.action)) {
+                const btn = document.createElement('button');
+                btn.className = 'config-toggle';
+                btn.style.marginLeft = '8px';
+                btn.textContent = node.action.toUpperCase();
+                btn.onclick = () => runBlockCommand(node.action);
+                item.appendChild(btn);
+            }
+            container.appendChild(item);
+            if (node.children && node.children.length) {
+                node.children.forEach(child => appendBlockNode(container, child, depth + 1));
+            }
         }
 
         // Update confidence display

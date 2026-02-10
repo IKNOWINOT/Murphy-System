@@ -335,6 +335,17 @@
             </div>
             
             <div id="taskResult"></div>
+
+            <div id="blockCommands" style="display: none; margin-top: 25px;">
+                <h3>Block Commands</h3>
+                <p style="color: #6c757d;">Use magnify, simplify, or solidify to expand the command tree and resolve low-confidence steps.</p>
+                <div style="margin-bottom: 15px;">
+                    <button class="btn btn-secondary" onclick="runBlockCommand('magnify')">Magnify</button>
+                    <button class="btn btn-secondary" onclick="runBlockCommand('simplify')">Simplify</button>
+                    <button class="btn btn-secondary" onclick="runBlockCommand('solidify')">Solidify</button>
+                </div>
+                <div id="blockTree"></div>
+            </div>
         </div>
         
         <!-- Validation Tab -->
@@ -445,6 +456,7 @@
         }
 
         const API_BASE = resolveApiBase();
+        let currentDocId = null;
         
         function switchTab(tabName) {
             // Hide all tabs
@@ -515,6 +527,8 @@
                         <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;">${JSON.stringify(data.output, null, 2)}</pre>
                     `;
                     showResult('taskResult', html, 'success');
+                    currentDocId = data.doc_id || null;
+                    renderBlockTree(data.block_tree);
                 } else {
                     showResult('taskResult', `Error: ${data.error || data.reason}`, 'error');
                 }
@@ -522,6 +536,63 @@
                 showResult('taskResult', `Network error: ${error.message}`, 'error');
             } finally {
                 showLoading('taskLoading', false);
+            }
+        }
+
+        function renderBlockTree(blockTree) {
+            const container = document.getElementById('blockCommands');
+            const tree = document.getElementById('blockTree');
+            if (!blockTree) {
+                container.style.display = 'none';
+                tree.innerHTML = '';
+                return;
+            }
+            container.style.display = 'block';
+            tree.innerHTML = '';
+            const list = document.createElement('ul');
+            list.style.paddingLeft = '20px';
+            appendBlockNode(list, blockTree);
+            tree.appendChild(list);
+        }
+
+        function appendBlockNode(parent, node) {
+            const item = document.createElement('li');
+            item.textContent = node.label || node.action || node.id;
+            parent.appendChild(item);
+            if (node.children && node.children.length) {
+                const sub = document.createElement('ul');
+                sub.style.paddingLeft = '20px';
+                node.children.forEach(child => appendBlockNode(sub, child));
+                parent.appendChild(sub);
+            }
+        }
+
+        async function runBlockCommand(action) {
+            if (!currentDocId) {
+                showResult('taskResult', 'Run a task first to create a block tree.', 'error');
+                return;
+            }
+            let payload = {};
+            if (action === 'magnify') {
+                const domain = prompt('Magnify domain:', 'automation');
+                if (!domain) return;
+                payload.domain = domain;
+            }
+            try {
+                const response = await fetch(`${API_BASE}/documents/${currentDocId}/${action}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (data.success) {
+                    currentDocId = data.doc_id || currentDocId;
+                    renderBlockTree(data.block_tree);
+                } else {
+                    showResult('taskResult', `Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showResult('taskResult', `Error: ${error.message}`, 'error');
             }
         }
         
