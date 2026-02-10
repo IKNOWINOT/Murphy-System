@@ -281,6 +281,8 @@ Then open:
 http://localhost:8090/murphy_ui_integrated_terminal.html
 ```
 
+If you start the HTTP server from a different directory, adjust the URL path to match the served location of the HTML file.
+
 ![Terminal UI](docs/screenshots/12_ui_terminal.png)
 
 **What you'll see:**
