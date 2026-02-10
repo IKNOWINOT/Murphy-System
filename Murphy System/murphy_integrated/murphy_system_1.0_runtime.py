@@ -700,16 +700,20 @@ class MurphySystem:
             "next_stage": "next",
             "prompt": "Continue with the next step."
         }
-        expected_keys = set(default_values.keys())
-        missing_keys = expected_keys.difference(flow.keys())
-        if missing_keys:
-            applied_defaults = {key: default_values[key] for key in missing_keys}
-            logger.warning(
-                f"Flow response missing keys: {sorted(missing_keys)}; applying defaults {applied_defaults}."
-            )
         current_stage = flow.get("current_stage", default_values["current_stage"])
         next_stage = flow.get("next_stage", default_values["next_stage"])
         prompt = flow.get("prompt", default_values["prompt"])
+        applied_defaults = {
+            key: default_values[key]
+            for key in default_values
+            if key not in flow
+        }
+        if applied_defaults:
+            logger.warning(
+                "Flow response missing keys: %s; applying defaults %s.",
+                sorted(applied_defaults.keys()),
+                applied_defaults
+            )
         response = (
             f"Captured {current_stage} details. "
             f"Next step ({next_stage}): {prompt}"
@@ -1126,9 +1130,8 @@ def create_app() -> FastAPI:
     async def get_system_info():
         """Alias for system information (legacy UI compatibility)"""
         info = murphy.get_system_info()
-        response = {"success": True, "system": info}
         # Preserve legacy flat response shape for older clients.
-        response.update(info)
+        response = {**info, "success": True, "system": info}
         return JSONResponse(response)
     
     @app.get("/api/health")
