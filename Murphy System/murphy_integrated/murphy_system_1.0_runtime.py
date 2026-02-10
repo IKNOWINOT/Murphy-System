@@ -282,6 +282,7 @@ class MurphySystem:
             or not hasattr(self.orchestrator, "phase1_generative_setup")
             or not hasattr(self.orchestrator, "phase2_production_execution")
         ):
+            logger.warning("Two-Phase Orchestrator unavailable; using simulation mode.")
             return self._simulate_execution(task_description, task_type, parameters, session_id)
 
         try:
@@ -747,7 +748,8 @@ class MurphySystem:
         if self.integration_engine:
             pending_integrations = len(self.integration_engine.list_pending_integrations())
             committed_integrations = len(self.integration_engine.list_committed_integrations())
-        component_state = lambda component: "active" if component else "inactive"
+        def component_state(component: Optional[Any]) -> str:
+            return "active" if component else "inactive"
         
         return {
             'version': self.version,
