@@ -285,7 +285,7 @@ http://localhost:8090/murphy_ui_integrated_terminal.html
 
 If you start the HTTP server from a different directory, adjust the URL path to match the served location of the HTML file.
 
-**Browser note:** Some browsers block port 6666. If you run the API on a different port (e.g., 8000), open the UI with `?apiPort=8000` so it targets the correct port:
+**Browser note:** Some browsers block port 6666. If you run the API on a different port (e.g., 8000), append `?apiPort=8000` to any UI URL so it targets the correct port:
 
 ```
 http://localhost:8090/murphy_ui_integrated_terminal.html?apiPort=8000
