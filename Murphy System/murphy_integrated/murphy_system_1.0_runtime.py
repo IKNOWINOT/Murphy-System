@@ -695,9 +695,12 @@ class MurphySystem:
         session = self.chat_sessions.setdefault(session_id, {"stage_index": 0, "history": []})
         start = time.perf_counter()
         flow = self._advance_flow(session, message)
+        current_stage = flow.get("current_stage", "unknown")
+        next_stage = flow.get("next_stage", "next")
+        prompt = flow.get("prompt", "Continue with the next step.")
         response = (
-            f"Captured {flow['current_stage']} details. "
-            f"Next step ({flow['next_stage']}): {flow['prompt']}"
+            f"Captured {current_stage} details. "
+            f"Next step ({next_stage}): {prompt}"
         )
         duration = time.perf_counter() - start
         self._record_execution(success=True, duration=duration)
@@ -707,7 +710,7 @@ class MurphySystem:
             "success": True,
             "session_id": session_id,
             "message": response,
-            "flow_stage": flow["next_stage"],
+            "flow_stage": next_stage,
             "doc_id": doc.doc_id,
             "block_tree": doc.block_tree,
             "gates": doc.gates,

@@ -436,8 +436,8 @@ Type 'api' to see new integrated endpoints
                 
                 if (data.success) {
                     addOutput('=== System Status ===', 'info');
-                    addOutput('Name: ' + (data.system?.name || 'Murphy System'), 'success');
-                    addOutput('Version: ' + (data.system?.version || '1.0.0'), 'success');
+                    addOutput('Name: ' + (data.system?.name || data.name || 'Murphy System'), 'success');
+                    addOutput('Version: ' + (data.system?.version || data.version || '1.0.0'), 'success');
                     addOutput('');
                     addOutput('COMPONENTS:', 'info');
                     const components = data.system?.components || data.components || {};
