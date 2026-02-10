@@ -5,7 +5,10 @@ import os, re, json, yaml, shutil, subprocess
 try:
     import tomllib
 except ModuleNotFoundError:  # Python <3.11 fallback
-    tomllib = None
+    try:
+        import tomli as tomllib
+    except ModuleNotFoundError:
+        tomllib = None
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List
@@ -114,7 +117,7 @@ class SwissKissLoader:
             try:
                 if tomllib is None:
                     raise ModuleNotFoundError(
-                        "pyproject.toml parsing requires Python 3.11+ or a TOML parser (tomli/toml)"
+                        "pyproject.toml parsing requires Python 3.11+ or tomli (pip install tomli)"
                     )
                 data = tomllib.loads(pyproject.read_text(encoding="utf-8", errors="ignore"))
                 project_deps = data.get("project", {}).get("dependencies", [])
