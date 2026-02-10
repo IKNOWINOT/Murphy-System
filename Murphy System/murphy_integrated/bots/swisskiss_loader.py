@@ -138,7 +138,7 @@ class SwissKissLoader:
                                 "name": name,
                                 "spec": spec,
                                 "source": "pyproject.toml",
-                                "metadata": metadata  # empty metadata is expected when only version is provided
+                                "metadata": metadata  # empty metadata is expected when dict only contains version
                             })
             except Exception as exc:
                 deps["errors"].append(f"pyproject.toml parse error: {exc}")
