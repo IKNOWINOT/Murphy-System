@@ -89,7 +89,15 @@ class SwissKissLoader:
 
     def extract_dependencies(self, repo_path: Path) -> dict:
         """Extract dependency details for Python and Node ecosystems."""
-        deps = {"python": [], "node": []}
+        deps = {"python": [], "node": [], "errors": []}
+
+        def add_python_dep(spec: str, source: str) -> None:
+            name = re.split(r"[<=>!~]", spec, 1)[0].strip()
+            entry = {"name": name, "spec": spec, "source": source}
+            deps["python"].append(entry)
+
+        def add_node_dep(name: str, version: str, source: str) -> None:
+            deps["node"].append({"name": name, "spec": version, "source": source})
 
         req_file = repo_path / "requirements.txt"
         if req_file.exists():
@@ -97,20 +105,31 @@ class SwissKissLoader:
                 item = line.strip()
                 if not item or item.startswith("#") or item.startswith("-"):
                     continue
-                deps["python"].append(item.split("#", 1)[0].strip())
+                add_python_dep(item.split("#", 1)[0].strip(), "requirements.txt")
 
         pyproject = repo_path / "pyproject.toml"
         if pyproject.exists():
             try:
                 data = tomllib.loads(pyproject.read_text(encoding="utf-8", errors="ignore"))
                 project_deps = data.get("project", {}).get("dependencies", [])
-                deps["python"].extend(project_deps)
+                for dep in project_deps:
+                    add_python_dep(dep, "pyproject.toml")
                 poetry_deps = data.get("tool", {}).get("poetry", {}).get("dependencies", {})
                 for name, version in poetry_deps.items():
                     if name.lower() != "python":
-                        deps["python"].append(f"{name}{version if isinstance(version, str) else ''}")
-            except Exception:
-                pass
+                        if isinstance(version, str):
+                            add_python_dep(f"{name}{version}", "pyproject.toml")
+                        elif isinstance(version, dict):
+                            spec = version.get("version", "")
+                            extras = {k: v for k, v in version.items() if k != "version"}
+                            deps["python"].append({
+                                "name": name,
+                                "spec": spec,
+                                "source": "pyproject.toml",
+                                "metadata": extras
+                            })
+            except Exception as exc:
+                deps["errors"].append(f"pyproject.toml parse error: {exc}")
 
         package_json = repo_path / "package.json"
         if package_json.exists():
@@ -118,9 +137,9 @@ class SwissKissLoader:
                 data = json.loads(package_json.read_text(encoding="utf-8", errors="ignore"))
                 for section in ("dependencies", "devDependencies"):
                     for name, version in data.get(section, {}).items():
-                        deps["node"].append({"name": name, "version": version})
-            except Exception:
-                pass
+                        add_node_dep(name, version, f"package.json:{section}")
+            except Exception as exc:
+                deps["errors"].append(f"package.json parse error: {exc}")
 
         return deps
 
