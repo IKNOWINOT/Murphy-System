@@ -1103,7 +1103,10 @@ def create_app() -> FastAPI:
     @app.get("/api/system/info")
     async def get_system_info():
         """Alias for system information (legacy UI compatibility)"""
-        return JSONResponse({"success": True, "system": murphy.get_system_info()})
+        info = murphy.get_system_info()
+        response = {"success": True, "system": info}
+        response.update(info)
+        return JSONResponse(response)
     
     @app.get("/api/health")
     async def health_check():
