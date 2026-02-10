@@ -277,11 +277,7 @@ class MurphySystem:
         logger.info(f"EXECUTING TASK: {task_description}")
         logger.info(f"{'='*80}\n")
         
-        if (
-            not self.orchestrator
-            or not hasattr(self.orchestrator, "phase1_generative_setup")
-            or not hasattr(self.orchestrator, "phase2_production_execution")
-        ):
+        if not self._is_orchestrator_available():
             logger.warning("Two-Phase Orchestrator unavailable; using simulation mode.")
             return self._simulate_execution(task_description, task_type, parameters, session_id)
 
@@ -383,6 +379,13 @@ class MurphySystem:
                 "mode": "simulation"
             }
         }
+
+    def _is_orchestrator_available(self) -> bool:
+        return (
+            self.orchestrator is not None
+            and hasattr(self.orchestrator, "phase1_generative_setup")
+            and hasattr(self.orchestrator, "phase2_production_execution")
+        )
 
     def _record_execution(self, success: bool, duration: float) -> None:
         self.execution_metrics["total"] += 1
@@ -748,8 +751,8 @@ class MurphySystem:
         if self.integration_engine:
             pending_integrations = len(self.integration_engine.list_pending_integrations())
             committed_integrations = len(self.integration_engine.list_committed_integrations())
-        def component_status(component: Optional[Any]) -> str:
-            return "active" if component else "inactive"
+        def component_status(component_instance: Optional[Any]) -> str:
+            return "active" if component_instance else "inactive"
         
         return {
             'version': self.version,
