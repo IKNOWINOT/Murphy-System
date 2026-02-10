@@ -113,7 +113,9 @@ class SwissKissLoader:
         if pyproject.exists():
             try:
                 if tomllib is None:
-                    raise ModuleNotFoundError("toml parser not available for pyproject.toml")
+                    raise ModuleNotFoundError(
+                        "pyproject.toml parsing requires Python 3.11+ or a TOML parser (tomli/toml)"
+                    )
                 data = tomllib.loads(pyproject.read_text(encoding="utf-8", errors="ignore"))
                 project_deps = data.get("project", {}).get("dependencies", [])
                 for dep in project_deps:
@@ -127,6 +129,7 @@ class SwissKissLoader:
                             add_python_dep(name, version, "pyproject.toml")
                         elif isinstance(version, dict):
                             spec = version.get("version", "")
+                            # Poetry metadata may include keys like extras, optional, markers, path, git, etc.
                             metadata = {k: v for k, v in version.items() if k != "version"}
                             deps["python"].append({
                                 "name": name,
