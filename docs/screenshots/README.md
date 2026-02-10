@@ -18,6 +18,7 @@ This directory contains visual screenshots for the Murphy System setup process.
 | 10_endpoints.png | Available API endpoints list | 900x280 |
 | 11_api_docs.png | API documentation browser view | 1000x500 |
 | 12_ui_terminal.png | Integrated terminal UI dashboard | 1280x720 |
+| 13_ui_terminal_execute.png | Terminal UI execute task example | 1280x1019 |
 
 ## Usage
 
@@ -42,6 +43,6 @@ Screenshots were generated using Python PIL (Pillow) library to create terminal-
 
 ---
 
-**Total Screenshots:** 12  
-**Total Size:** ~244 KB  
+**Total Screenshots:** 13  
+**Total Size:** ~308 KB  
 **Created:** February 9, 2026
