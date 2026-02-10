@@ -270,7 +270,8 @@ class MurphySystem:
             session_id: Optional session ID (creates new if not provided)
         
         Returns:
-            Execution result dictionary
+            Execution result dictionary. Falls back to simulation mode when the
+            Two-Phase Orchestrator is unavailable.
         """
         
         logger.info(f"\n{'='*80}")
@@ -751,7 +752,7 @@ class MurphySystem:
         if self.integration_engine:
             pending_integrations = len(self.integration_engine.list_pending_integrations())
             committed_integrations = len(self.integration_engine.list_committed_integrations())
-        def component_status_label(component_instance: Optional[Any]) -> str:
+        def get_component_status(component_instance: Optional[Any]) -> str:
             return "active" if component_instance else "inactive"
         
         return {
@@ -760,14 +761,14 @@ class MurphySystem:
             'uptime_seconds': uptime,
             'start_time': self.start_time.isoformat(),
             'components': {
-                'control_plane': component_status_label(self.control_plane),
-                'inoni_automation': component_status_label(self.inoni_automation),
-                'integration_engine': component_status_label(self.integration_engine),
-                'orchestrator': component_status_label(self.orchestrator),
-                'form_handler': component_status_label(self.form_handler),
-                'confidence_engine': component_status_label(self.confidence_engine),
-                'correction_system': component_status_label(self.correction_system),
-                'hitl_monitor': component_status_label(self.hitl_monitor)
+                'control_plane': get_component_status(self.control_plane),
+                'inoni_automation': get_component_status(self.inoni_automation),
+                'integration_engine': get_component_status(self.integration_engine),
+                'orchestrator': get_component_status(self.orchestrator),
+                'form_handler': get_component_status(self.form_handler),
+                'confidence_engine': get_component_status(self.confidence_engine),
+                'correction_system': get_component_status(self.correction_system),
+                'hitl_monitor': get_component_status(self.hitl_monitor)
             },
             'statistics': {
                 'sessions': len(self.sessions),
