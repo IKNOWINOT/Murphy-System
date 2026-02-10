@@ -17,8 +17,8 @@ This directory contains visual screenshots for the Murphy System setup process.
 | 09_system_info.png | System information endpoint | 900x300 |
 | 10_endpoints.png | Available API endpoints list | 900x280 |
 | 11_api_docs.png | API documentation browser view | 1000x500 |
-| 12_ui_terminal.png | Integrated terminal UI dashboard | 1280x720 |
-| 13_ui_terminal_execute.png | Terminal UI execute task example | 1280x1019 |
+| 12_ui_terminal.png | Terminal UI dashboard | 1280x720 |
+| 13_ui_terminal_execute.png | Terminal UI task execution example | 1280x1019 |
 
 ## Usage
 

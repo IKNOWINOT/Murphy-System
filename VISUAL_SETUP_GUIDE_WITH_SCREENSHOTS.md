@@ -268,7 +268,7 @@ curl -s http://localhost:6666/openapi.json | python3 -c "import json, sys; data 
 
 ### Step 11: Optional UI Access (Terminal UI)
 
-Runtime 1.0 does not serve a web UI by default. To view the terminal UI, navigate to the `murphy_integrated` directory and serve the `murphy_ui_integrated_terminal.html` file locally:
+Runtime 1.0 does not serve a web UI by default. To view the terminal UI, navigate to `Murphy System/murphy_integrated` and serve the `murphy_ui_integrated_terminal.html` file locally:
 
 ```bash
 cd "Murphy System/murphy_integrated"
@@ -307,7 +307,7 @@ Then click **Execute Task** to send the request to `/api/execute`.
 - If the runtime is running, the status indicator should move from **OFFLINE** to **ACTIVE**.
 - The task result appears in the output pane.
 
-**If you stay OFFLINE:** start runtime 1.0 (`./start_murphy_1.0.sh`) so the UI can reach `http://localhost:6666/api/execute`.
+**If you stay OFFLINE:** from `Murphy System/murphy_integrated`, start runtime 1.0 (`./start_murphy_1.0.sh`) so the UI can reach `http://localhost:6666/api/execute`.
 
 ---
 
