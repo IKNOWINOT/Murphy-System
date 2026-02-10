@@ -695,8 +695,10 @@ class MurphySystem:
         session = self.chat_sessions.setdefault(session_id, {"stage_index": 0, "history": []})
         start = time.perf_counter()
         flow = self._advance_flow(session, message)
-        if not {"current_stage", "next_stage", "prompt"}.issubset(flow):
-            logger.warning("Flow response missing expected keys; applying defaults.")
+        expected_keys = {"current_stage", "next_stage", "prompt"}
+        missing_keys = expected_keys.difference(flow.keys())
+        if missing_keys:
+            logger.warning(f"Flow response missing keys: {sorted(missing_keys)}; applying defaults.")
         current_stage = flow.get("current_stage", "unknown")
         next_stage = flow.get("next_stage", "next")
         prompt = flow.get("prompt", "Continue with the next step.")
@@ -1117,6 +1119,7 @@ def create_app() -> FastAPI:
         """Alias for system information (legacy UI compatibility)"""
         info = murphy.get_system_info()
         response = {"success": True, "system": info}
+        # Preserve legacy flat response shape for older clients.
         response.update(info)
         return JSONResponse(response)
     
