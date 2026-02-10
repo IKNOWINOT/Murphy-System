@@ -132,13 +132,13 @@ class SwissKissLoader:
                             add_python_dep(name, version, "pyproject.toml")
                         elif isinstance(version, dict):
                             spec = version.get("version", "")
-                            # Poetry metadata is captured as-is (e.g., extras, optional, markers, path, git).
+                            # Poetry metadata (extras, optional, markers, path, git) is captured when dependency is a dict.
                             metadata = {k: v for k, v in version.items() if k != "version"}
                             deps["python"].append({
                                 "name": name,
                                 "spec": spec,
                                 "source": "pyproject.toml",
-                                "metadata": metadata
+                                "metadata": metadata  # empty metadata is expected when only version is provided
                             })
             except Exception as exc:
                 deps["errors"].append(f"pyproject.toml parse error: {exc}")
