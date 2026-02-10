@@ -15,9 +15,10 @@
 5. [System Configuration](#system-configuration)
 6. [Starting Murphy](#starting-murphy)
 7. [Verification & Testing](#verification-testing)
-8. [Optional UI Access](#optional-ui-access)
-9. [Available API Endpoints](#available-api-endpoints)
-10. [Next Steps](#next-steps)
+8. [Optional UI Access](#optional-ui-access-terminal-ui)
+9. [Execute a Task in the UI](#execute-a-task-in-the-ui)
+10. [Available API Endpoints](#available-api-endpoints)
+11. [Next Steps](#next-steps)
 
 ---
 
@@ -290,7 +291,27 @@ http://localhost:8090/murphy_ui_integrated_terminal.html
 
 ---
 
-### Step 12: Access API Documentation in Browser
+### Step 12: Execute a Task in the UI
+
+With the terminal UI open, use the **Execute** tab to submit a real task. Example prompt:
+
+```
+Generate a 3-step outreach plan for SaaS prospects and include follow-up timing.
+```
+
+Then click **Execute Task** to send the request to `/api/execute`.
+
+![Execute Task](docs/screenshots/13_ui_terminal_execute.png)
+
+**Expected behavior:**
+- If the runtime is running, the status indicator should move from **OFFLINE** to **ACTIVE**.
+- The task result appears in the output pane.
+
+**If you stay OFFLINE:** start runtime 1.0 (`./start_murphy_1.0.sh`) so the UI can reach `http://localhost:6666/api/execute`.
+
+---
+
+### Step 13: Access API Documentation in Browser
 
 Open your browser and navigate to:
 
