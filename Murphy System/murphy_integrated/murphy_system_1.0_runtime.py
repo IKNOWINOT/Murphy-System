@@ -748,7 +748,7 @@ class MurphySystem:
         if self.integration_engine:
             pending_integrations = len(self.integration_engine.list_pending_integrations())
             committed_integrations = len(self.integration_engine.list_committed_integrations())
-        def component_state(component: Optional[Any]) -> str:
+        def component_status_string(component: Optional[Any]) -> str:
             return "active" if component else "inactive"
         
         return {
@@ -757,14 +757,14 @@ class MurphySystem:
             'uptime_seconds': uptime,
             'start_time': self.start_time.isoformat(),
             'components': {
-                'control_plane': component_state(self.control_plane),
-                'inoni_automation': component_state(self.inoni_automation),
-                'integration_engine': component_state(self.integration_engine),
-                'orchestrator': component_state(self.orchestrator),
-                'form_handler': component_state(self.form_handler),
-                'confidence_engine': component_state(self.confidence_engine),
-                'correction_system': component_state(self.correction_system),
-                'hitl_monitor': component_state(self.hitl_monitor)
+                'control_plane': component_status_string(self.control_plane),
+                'inoni_automation': component_status_string(self.inoni_automation),
+                'integration_engine': component_status_string(self.integration_engine),
+                'orchestrator': component_status_string(self.orchestrator),
+                'form_handler': component_status_string(self.form_handler),
+                'confidence_engine': component_status_string(self.confidence_engine),
+                'correction_system': component_status_string(self.correction_system),
+                'hitl_monitor': component_status_string(self.hitl_monitor)
             },
             'statistics': {
                 'sessions': len(self.sessions),
