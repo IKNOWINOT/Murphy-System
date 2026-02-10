@@ -118,7 +118,14 @@ logger = logging.getLogger(__name__)
 
 
 class LivingDocument:
-    """Represents a living document with magnify/simplify/solidify actions."""
+    """
+    Living document model used for block-command workflows.
+
+    - magnify: expands domain depth to increase context coverage
+    - simplify: reduces complexity to improve clarity
+    - solidify: locks the document and triggers swarm task generation
+    - block_tree: hierarchical representation of pending/complete actions
+    """
 
     def __init__(self, doc_id: str, title: str, content: str, doc_type: str):
         self.doc_id = doc_id
@@ -1104,9 +1111,7 @@ def create_app() -> FastAPI:
     async def get_system_info():
         """Alias for system information (legacy UI compatibility)"""
         info = murphy.get_system_info()
-        response = {"success": True, "system": info}
-        response.update(info)
-        return JSONResponse(response)
+        return JSONResponse({"success": True, "system": info})
     
     @app.get("/api/health")
     async def health_check():
