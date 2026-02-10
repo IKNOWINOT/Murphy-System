@@ -17,8 +17,10 @@
 7. [Verification & Testing](#verification-testing)
 8. [Optional UI Access](#optional-ui-access-terminal-ui)
 9. [Execute a Task in the UI](#execute-a-task-in-the-ui)
-10. [Available API Endpoints](#available-api-endpoints)
-11. [Next Steps](#next-steps)
+10. [Integrated UI Walkthrough](#integrated-ui-walkthrough)
+11. [Terminal UI Walkthroughs](#terminal-ui-walkthroughs)
+12. [Available API Endpoints](#available-api-endpoints)
+13. [Next Steps](#next-steps)
 
 ---
 
@@ -283,6 +285,12 @@ http://localhost:8090/murphy_ui_integrated_terminal.html
 
 If you start the HTTP server from a different directory, adjust the URL path to match the served location of the HTML file.
 
+**Browser note:** Some browsers block port 6666. If you run the API on a different port (e.g., 8000), open the UI with `?apiPort=8000` so it targets the correct port:
+
+```
+http://localhost:8090/murphy_ui_integrated_terminal.html?apiPort=8000
+```
+
 ![Terminal UI](docs/screenshots/12_ui_terminal.png)
 
 **What you'll see:**
@@ -313,7 +321,53 @@ Then click **Execute Task** to send the request to `/api/execute`.
 
 ---
 
-### Step 13: Access API Documentation in Browser
+## Integrated UI Walkthrough
+
+### Step 13: Integrated UI Task Submission
+
+Use the form-driven UI to submit a full onboarding automation request.
+
+![Integrated UI Form Execution](docs/screenshots/14_ui_integrated_form_execution.png)
+
+**Observed behavior:** the system returns a task ID, confidence, and structured output for the onboarding flow.
+
+---
+
+## Terminal UI Walkthroughs
+
+### Step 14: Integrated Terminal Execute Tab
+
+Submit a task through the terminal-style execute tab.
+
+![Integrated Terminal Execute](docs/screenshots/15_ui_integrated_terminal_execute.png)
+
+---
+
+### Step 15: Integrated Terminal Command Flow
+
+Use the command interface to submit a task payload.
+
+![Terminal Integrated Submit](docs/screenshots/16_ui_terminal_integrated_submit.png)
+
+---
+
+### Step 16: Architect Terminal Flow Step
+
+Issue a high-level architecture command and observe the stage handoff.
+
+![Architect Terminal Flow](docs/screenshots/17_ui_terminal_architect_flow.png)
+
+---
+
+### Step 17: Worker Terminal Status Flow
+
+Run a worker status command and confirm the next-step prompt.
+
+![Worker Terminal Status](docs/screenshots/18_ui_terminal_worker_status.png)
+
+---
+
+### Step 18: Access API Documentation in Browser
 
 Open your browser and navigate to:
 

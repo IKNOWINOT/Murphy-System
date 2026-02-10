@@ -754,7 +754,17 @@
 
     <script>
         // Configuration
-        const API_BASE_URL = 'http://localhost:8062/api';
+        function resolveApiBase() {
+            const params = new URLSearchParams(window.location.search);
+            const overridePort = params.get('apiPort');
+            if (window.location.hostname === 'localhost') {
+                const port = overridePort || '6666';
+                return `http://localhost:${port}/api`;
+            }
+            return `${window.location.origin}/api`;
+        }
+
+        const API_BASE_URL = resolveApiBase();
         let mfgcEnabled = false;
         let currentConfig = {
             enabled: false,

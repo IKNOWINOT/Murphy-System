@@ -19,6 +19,11 @@ This directory contains visual screenshots for the Murphy System setup process.
 | 11_api_docs.png | API documentation browser view | 1000x500 |
 | 12_ui_terminal.png | Terminal UI dashboard | 1280x720 |
 | 13_ui_terminal_execute.png | Terminal UI task execution example | 1280x1019 |
+| 14_ui_integrated_form_execution.png | Integrated UI form execution example | 1280x1240 |
+| 15_ui_integrated_terminal_execute.png | Integrated terminal UI execute tab | 1280x1219 |
+| 16_ui_terminal_integrated_submit.png | Integrated terminal command submission | 1280x736 |
+| 17_ui_terminal_architect_flow.png | Architect terminal flow step | 1280x720 |
+| 18_ui_terminal_worker_status.png | Worker terminal status flow | 1280x722 |
 
 ## Usage
 
@@ -43,6 +48,6 @@ Screenshots were generated using Python PIL (Pillow) library to create terminal-
 
 ---
 
-**Total Screenshots:** 13  
-**Total Size:** ~308 KB  
+**Total Screenshots:** 18  
+**Total Size:** ~795 KB  
 **Created:** February 9, 2026
