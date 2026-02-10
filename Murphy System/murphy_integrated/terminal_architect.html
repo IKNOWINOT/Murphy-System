@@ -1224,6 +1224,11 @@
             item.className = 'gate-item';
             item.style.marginLeft = `${depth * 12}px`;
             const statusLabel = (node.status || 'pending').toUpperCase();
+            const statusClass = node.status === 'blocked'
+                ? 'triggered'
+                : node.status === 'completed'
+                    ? 'active'
+                    : 'active';
             const icon = document.createElement('span');
             icon.className = 'gate-icon';
             icon.textContent = '●';
@@ -1233,7 +1238,7 @@
             type.textContent = node.label || node.action || node.id;
 
             const status = document.createElement('span');
-            status.className = `gate-status ${node.status === 'blocked' ? 'triggered' : 'active'}`;
+            status.className = `gate-status ${statusClass}`;
             status.textContent = statusLabel;
 
             item.appendChild(icon);

@@ -436,14 +436,16 @@ Type 'api' to see new integrated endpoints
                 
                 if (data.success) {
                     addOutput('=== System Status ===', 'info');
-                    addOutput('Name: ' + (data.system?.name || data.name || 'Murphy System'), 'success');
-                    addOutput('Version: ' + (data.system?.version || data.version || '1.0.0'), 'success');
+                    const systemInfo = data.system || data;
+                    addOutput('Name: ' + (systemInfo?.name || 'Murphy System'), 'success');
+                    addOutput('Version: ' + (systemInfo?.version || '1.0.0'), 'success');
                     addOutput('');
                     addOutput('COMPONENTS:', 'info');
-                    const components = data.system?.components || data.components || {};
+                    const components = systemInfo?.components || {};
                     for (const [key, value] of Object.entries(components)) {
-                        const status = value === 'active' ? '✓' : '✗';
-                        const color = value === 'active' ? 'success' : 'error';
+                        const isActive = value === 'active' || value === true;
+                        const status = isActive ? '✓' : '✗';
+                        const color = isActive ? 'success' : 'error';
                         addOutput('  ' + status + ' ' + key, color);
                     }
                 } else {
