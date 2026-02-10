@@ -267,7 +267,7 @@ curl -s http://localhost:6666/openapi.json | python3 -c "import json, sys; data 
 
 ### Step 11: Optional UI Access (Terminal UI)
 
-Runtime 1.0 does not serve a web UI by default. To view the terminal UI located at `Murphy System/murphy_integrated/murphy_ui_integrated_terminal.html`, serve the file locally from the `murphy_integrated` directory:
+Runtime 1.0 does not serve a web UI by default. To view the terminal UI, navigate to the `murphy_integrated` directory and serve the `murphy_ui_integrated_terminal.html` file locally:
 
 ```bash
 cd "Murphy System/murphy_integrated"
