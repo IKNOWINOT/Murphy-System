@@ -436,13 +436,14 @@ Type 'api' to see new integrated endpoints
                 
                 if (data.success) {
                     addOutput('=== System Status ===', 'info');
-                    addOutput('Name: ' + data.system.name, 'success');
-                    addOutput('Version: ' + data.system.version, 'success');
+                    addOutput('Name: ' + (data.system?.name || 'Murphy System'), 'success');
+                    addOutput('Version: ' + (data.system?.version || '1.0.0'), 'success');
                     addOutput('');
                     addOutput('COMPONENTS:', 'info');
-                    for (const [key, value] of Object.entries(data.system.components)) {
-                        const status = value ? '✓' : '✗';
-                        const color = value ? 'success' : 'error';
+                    const components = data.system?.components || data.components || {};
+                    for (const [key, value] of Object.entries(components)) {
+                        const status = value === 'active' ? '✓' : '✗';
+                        const color = value === 'active' ? 'success' : 'error';
                         addOutput('  ' + status + ' ' + key, color);
                     }
                 } else {

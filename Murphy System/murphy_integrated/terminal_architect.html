@@ -1224,11 +1224,21 @@
             item.className = 'gate-item';
             item.style.marginLeft = `${depth * 12}px`;
             const statusLabel = (node.status || 'pending').toUpperCase();
-            item.innerHTML = `
-                <span class="gate-icon">●</span>
-                <span class="gate-type">${node.label || node.action || node.id}</span>
-                <span class="gate-status ${node.status === 'blocked' ? 'triggered' : 'active'}">${statusLabel}</span>
-            `;
+            const icon = document.createElement('span');
+            icon.className = 'gate-icon';
+            icon.textContent = '●';
+
+            const type = document.createElement('span');
+            type.className = 'gate-type';
+            type.textContent = node.label || node.action || node.id;
+
+            const status = document.createElement('span');
+            status.className = `gate-status ${node.status === 'blocked' ? 'triggered' : 'active'}`;
+            status.textContent = statusLabel;
+
+            item.appendChild(icon);
+            item.appendChild(type);
+            item.appendChild(status);
             if (['magnify', 'simplify', 'solidify'].includes(node.action)) {
                 const btn = document.createElement('button');
                 btn.className = 'config-toggle';
