@@ -591,9 +591,17 @@
     
     <script>
         // API Base URL
-        const API_BASE = window.location.hostname === 'localhost' 
-            ? 'http://localhost:6666' 
-            : 'https://murphybos-00116.app.super.myninja.ai';
+        function resolveApiHost() {
+            const params = new URLSearchParams(window.location.search);
+            const overridePort = params.get('apiPort');
+            if (window.location.hostname === 'localhost') {
+                const port = overridePort || '6666';
+                return `http://localhost:${port}`;
+            }
+            return window.location.origin;
+        }
+
+        const API_BASE = resolveApiHost();
         
         // Tab switching
         function switchTab(tabName) {

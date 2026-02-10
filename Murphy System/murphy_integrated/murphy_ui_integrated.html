@@ -434,7 +434,17 @@
     </div>
     
     <script>
-        const API_BASE = 'http://localhost:6666/api';
+        function resolveApiBase() {
+            const params = new URLSearchParams(window.location.search);
+            const overridePort = params.get('apiPort');
+            if (window.location.hostname === 'localhost') {
+                const port = overridePort || '6666';
+                return `http://localhost:${port}/api`;
+            }
+            return `${window.location.origin}/api`;
+        }
+
+        const API_BASE = resolveApiBase();
         
         function switchTab(tabName) {
             // Hide all tabs

@@ -229,7 +229,17 @@ Type 'api' to see new integrated endpoints
     </div>
     
     <script>
-        const API_BASE = 'http://localhost:6666/api';
+        function resolveApiBase() {
+            const params = new URLSearchParams(window.location.search);
+            const overridePort = params.get('apiPort');
+            if (window.location.hostname === 'localhost') {
+                const port = overridePort || '6666';
+                return `http://localhost:${port}/api`;
+            }
+            return `${window.location.origin}/api`;
+        }
+
+        const API_BASE = resolveApiBase();
         let systemOnline = false;
         
         // Check system status on load
@@ -243,7 +253,7 @@ Type 'api' to see new integrated endpoints
                 const response = await fetch(`${API_BASE}/system/info`);
                 const data = await response.json();
                 
-                if (data.success) {
+                if (response.ok) {
                     systemOnline = true;
                     document.getElementById('statusBadge').textContent = 'ONLINE';
                     document.getElementById('statusBadge').className = 'status-badge status-active';
@@ -303,7 +313,7 @@ Type 'api' to see new integrated endpoints
             const args = parts.slice(1).join(' ');
             
             if (!systemOnline && cmd !== 'help' && cmd !== 'clear') {
-                addOutput('✗ Backend offline. Start murphy_complete_backend_extended.py first.', 'error');
+                addOutput('✗ Backend offline. Start murphy_system_1.0_runtime.py first.', 'error');
                 return;
             }
             
