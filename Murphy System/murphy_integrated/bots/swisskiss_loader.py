@@ -132,13 +132,13 @@ class SwissKissLoader:
                             add_python_dep(name, version, "pyproject.toml")
                         elif isinstance(version, dict):
                             spec = version.get("version", "")
-                            # Poetry metadata (extras, optional, markers, path, git) is preserved when dependency is a dictionary.
+                            # Poetry dependency specs may be dictionaries; preserve metadata like extras, optional, markers, path, git.
                             metadata = {k: v for k, v in version.items() if k != "version"}
                             deps["python"].append({
                                 "name": name,
                                 "spec": spec,
                                 "source": "pyproject.toml",
-                                "metadata": metadata  # metadata dictionary excludes the version key
+                                "metadata": metadata
                             })
             except Exception as exc:
                 deps["errors"].append(f"pyproject.toml parse error: {exc}")
