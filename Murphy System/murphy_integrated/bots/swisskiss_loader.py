@@ -2,6 +2,10 @@
 from __future__ import annotations
 
 import os, re, json, yaml, shutil, subprocess
+try:
+    import tomllib
+except ModuleNotFoundError:  # Python <3.11 fallback
+    import toml as tomllib
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List
@@ -83,6 +87,43 @@ class SwissKissLoader:
                 reqs.append({"file": fname, "size": p.stat().st_size})
         return reqs
 
+    def extract_dependencies(self, repo_path: Path) -> dict:
+        """Extract dependency details for Python and Node ecosystems."""
+        deps = {"python": [], "node": []}
+
+        req_file = repo_path / "requirements.txt"
+        if req_file.exists():
+            for line in req_file.read_text(encoding="utf-8", errors="ignore").splitlines():
+                item = line.strip()
+                if not item or item.startswith("#") or item.startswith("-"):
+                    continue
+                deps["python"].append(item.split("#", 1)[0].strip())
+
+        pyproject = repo_path / "pyproject.toml"
+        if pyproject.exists():
+            try:
+                data = tomllib.loads(pyproject.read_text(encoding="utf-8", errors="ignore"))
+                project_deps = data.get("project", {}).get("dependencies", [])
+                deps["python"].extend(project_deps)
+                poetry_deps = data.get("tool", {}).get("poetry", {}).get("dependencies", {})
+                for name, version in poetry_deps.items():
+                    if name.lower() != "python":
+                        deps["python"].append(f"{name}{version if isinstance(version, str) else ''}")
+            except Exception:
+                pass
+
+        package_json = repo_path / "package.json"
+        if package_json.exists():
+            try:
+                data = json.loads(package_json.read_text(encoding="utf-8", errors="ignore"))
+                for section in ("dependencies", "devDependencies"):
+                    for name, version in data.get(section, {}).items():
+                        deps["node"].append({"name": name, "version": version})
+            except Exception:
+                pass
+
+        return deps
+
     def detect_languages(self, repo_path: Path) -> dict:
         counts: Dict[str, int] = {}
         ext_map = {
@@ -146,6 +187,7 @@ class SwissKissLoader:
         summary = self.analyze_module(repo_path)
         license_name = self.detect_license(repo_path)
         reqs = self.parse_requirements(repo_path)
+        deps = self.extract_dependencies(repo_path)
         langs = self.detect_languages(repo_path)
         risk = self.risk_scan(repo_path)
 
@@ -165,6 +207,7 @@ class SwissKissLoader:
             "license": license_name,
             "license_ok": license_name in ALLOWED_LICENSES,
             "requirements": reqs,
+            "dependencies": deps,
             "languages": langs,
             "risk_scan": risk,
             "summary": summary

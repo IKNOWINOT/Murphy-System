@@ -8,17 +8,23 @@
 - **Status:** ✅ Clone + analysis succeeded
 
 ## Extracted Metadata
-- **License detected:** MPL
+- **License detected:** MIT
 - **Requirements files:**
-  - `package.json` (size: 9,898 bytes)
+  - `package.json` (size: 9,734 bytes)
 - **Language counts (by file extension):**
-  - TypeScript: 3340
+  - TypeScript: 3359
   - Swift: 463
   - Kotlin: 63
   - Shell: 48
   - Go: 14
   - JavaScript: 12
   - Python: 11
+
+## Dependency Summary (extracted)
+
+- **Python dependencies:** None detected (no `requirements.txt` or `pyproject.toml`)
+- **Node dependencies:** 70+ packages listed in `package.json`
+  - Examples: `@agentclientprotocol/sdk`, `@aws-sdk/client-bedrock`, `express`, `playwright-core`, `typescript`, `vitest`, `zod`
 
 ## README Preview (first lines)
 ```
@@ -41,4 +47,5 @@
 
 ## Notes
 - The clone and analysis ran successfully in a temporary directory to avoid altering repository state.
+- The dependency extractor now captures Python/Node requirements from dependency files for downstream install planning.
 - The risk scan indicates standard packaging/build operations but should be reviewed before any automated execution.
