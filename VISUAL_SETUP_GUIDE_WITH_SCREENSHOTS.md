@@ -15,8 +15,9 @@
 5. [System Configuration](#system-configuration)
 6. [Starting Murphy](#starting-murphy)
 7. [Verification & Testing](#verification-testing)
-8. [Available API Endpoints](#available-api-endpoints)
-9. [Next Steps](#next-steps)
+8. [Optional UI Access](#optional-ui-access)
+9. [Available API Endpoints](#available-api-endpoints)
+10. [Next Steps](#next-steps)
 
 ---
 
@@ -264,9 +265,9 @@ curl -s http://localhost:6666/openapi.json | python3 -c "import json, sys; data 
 
 ---
 
-### Step 11: Optional UI Access
+### Step 11: Optional UI Access (Terminal UI)
 
-Runtime 1.0 does not serve a web UI by default. You can view the static UI for demonstration by serving the HTML file:
+Runtime 1.0 does not serve a web UI by default. To view the terminal UI from the provided package, serve the HTML file locally:
 
 ```bash
 python -m http.server 8090
@@ -275,16 +276,16 @@ python -m http.server 8090
 Then open:
 
 ```
-http://localhost:8090/murphy_ui_integrated.html
+http://localhost:8090/murphy_ui_integrated_terminal.html
 ```
 
-![Runtime UI](docs/screenshots/12_ui_runtime.png)
+![Terminal UI](docs/screenshots/12_ui_terminal.png)
 
 **What you'll see:**
-- Form submission screen with task type, description, and parameters
-- Tabs for validation, corrections, and monitoring
+- Terminal-styled dashboard with system status
+- Tabs for execute, forms, corrections, sessions, and integrations
 
-**Note:** Some tabs may show errors unless optional form/corrections endpoints are wired to runtime 1.0.
+**Note:** Some tabs may show errors unless optional endpoints are wired to runtime 1.0.
 
 ---
 
