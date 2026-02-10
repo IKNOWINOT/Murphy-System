@@ -5,7 +5,7 @@ import os, re, json, yaml, shutil, subprocess
 try:
     import tomllib
 except ModuleNotFoundError:  # Python <3.11 fallback
-    import toml as tomllib
+    tomllib = None
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List
@@ -91,8 +91,7 @@ class SwissKissLoader:
         """Extract dependency details for Python and Node ecosystems."""
         deps = {"python": [], "node": [], "errors": []}
 
-        def add_python_dep(spec: str, source: str) -> None:
-            name = re.split(r"[<=>!~]", spec, 1)[0].strip()
+        def add_python_dep(name: str, spec: str, source: str) -> None:
             entry = {"name": name, "spec": spec, "source": source}
             deps["python"].append(entry)
 
@@ -105,28 +104,35 @@ class SwissKissLoader:
                 item = line.strip()
                 if not item or item.startswith("#") or item.startswith("-"):
                     continue
-                add_python_dep(item.split("#", 1)[0].strip(), "requirements.txt")
+                spec = item.split("#", 1)[0].strip()
+                name = re.split(r"[<=>!~]", spec, 1)[0].strip()
+                constraint = spec[len(name):].strip()
+                add_python_dep(name, constraint, "requirements.txt")
 
         pyproject = repo_path / "pyproject.toml"
         if pyproject.exists():
             try:
+                if tomllib is None:
+                    raise ModuleNotFoundError("toml parser not available for pyproject.toml")
                 data = tomllib.loads(pyproject.read_text(encoding="utf-8", errors="ignore"))
                 project_deps = data.get("project", {}).get("dependencies", [])
                 for dep in project_deps:
-                    add_python_dep(dep, "pyproject.toml")
+                    name = re.split(r"[<=>!~]", dep, 1)[0].strip()
+                    constraint = dep[len(name):].strip()
+                    add_python_dep(name, constraint, "pyproject.toml")
                 poetry_deps = data.get("tool", {}).get("poetry", {}).get("dependencies", {})
                 for name, version in poetry_deps.items():
                     if name.lower() != "python":
                         if isinstance(version, str):
-                            add_python_dep(f"{name}{version}", "pyproject.toml")
+                            add_python_dep(name, version, "pyproject.toml")
                         elif isinstance(version, dict):
                             spec = version.get("version", "")
-                            extras = {k: v for k, v in version.items() if k != "version"}
+                            metadata = {k: v for k, v in version.items() if k != "version"}
                             deps["python"].append({
                                 "name": name,
                                 "spec": spec,
                                 "source": "pyproject.toml",
-                                "metadata": extras
+                                "metadata": metadata
                             })
             except Exception as exc:
                 deps["errors"].append(f"pyproject.toml parse error: {exc}")
