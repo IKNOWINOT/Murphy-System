@@ -695,6 +695,8 @@ class MurphySystem:
         session = self.chat_sessions.setdefault(session_id, {"stage_index": 0, "history": []})
         start = time.perf_counter()
         flow = self._advance_flow(session, message)
+        if not {"current_stage", "next_stage", "prompt"}.issubset(flow):
+            logger.warning("Flow response missing expected keys; applying defaults.")
         current_stage = flow.get("current_stage", "unknown")
         next_stage = flow.get("next_stage", "next")
         prompt = flow.get("prompt", "Continue with the next step.")
@@ -1114,7 +1116,9 @@ def create_app() -> FastAPI:
     async def get_system_info():
         """Alias for system information (legacy UI compatibility)"""
         info = murphy.get_system_info()
-        return JSONResponse({"success": True, "system": info})
+        response = {"success": True, "system": info}
+        response.update(info)
+        return JSONResponse(response)
     
     @app.get("/api/health")
     async def health_check():
