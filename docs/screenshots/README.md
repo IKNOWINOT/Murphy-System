@@ -25,7 +25,7 @@ This directory contains visual screenshots for the Murphy System setup process.
 | 17_ui_terminal_architect_flow.png | Architect terminal flow step | 1280x720 |
 | 18_ui_terminal_worker_status.png | Worker terminal status flow | 1280x722 |
 | 19_ui_architect_block_tree.png | Architect block command tree with magnify/simplify/solidify | 1280x720 |
-| 20_ui_activation_preview.png | Integrated UI activation preview for planned gates and swarms | 1280x2393 |
+| 20_ui_activation_preview.png | Integrated UI activation preview with capability alignment | 1280x2411 |
 
 ## Usage
 
@@ -51,5 +51,5 @@ Screenshots were generated using Python PIL (Pillow) library to create terminal-
 ---
 
 **Total Screenshots:** 20  
-**Total Size:** ~1.27 MB  
+**Total Size:** ~1.28 MB  
 **Created:** February 9, 2026

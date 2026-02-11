@@ -529,12 +529,18 @@
                     if (data.activation_preview) {
                         const subsystems = data.activation_preview.planned_subsystems || [];
                         const subsystemItems = subsystems
-                            .map(item => `<li>${item.id}: ${item.reason}</li>`)
+                            .map(item => `<li>${escapeHtml(item.id)}: ${escapeHtml(item.reason)}</li>`)
+                            .join('');
+                        const alignment = data.activation_preview.capability_alignment || [];
+                        const alignmentItems = alignment
+                            .map(item => `<li>${escapeHtml(item.id)}: ${escapeHtml(item.gap_reason)} (${escapeHtml(item.gap_action)})</li>`)
                             .join('');
                         html += `
                             <h4 style="margin-top: 20px;">Activation Preview</h4>
                             <p><strong>Planned Subsystems:</strong></p>
                             <ul>${subsystemItems}</ul>
+                            <p><strong>Capability Alignment:</strong></p>
+                            <ul>${alignmentItems}</ul>
                             <p><strong>Planned Gates:</strong></p>
                             <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;">${JSON.stringify(data.activation_preview.planned_gates, null, 2)}</pre>
                             <p><strong>Planned Swarm Tasks:</strong></p>
@@ -773,6 +779,18 @@
             }
         }
         
+        function escapeHtml(value) {
+            if (value === undefined || value === null) {
+                return '';
+            }
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         function showResult(elementId, content, type = '') {
             const element = document.getElementById(elementId);
             element.innerHTML = `<div class="result-box ${type}">${content}</div>`;
