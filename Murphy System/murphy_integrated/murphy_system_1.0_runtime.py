@@ -490,6 +490,7 @@ class MurphySystem:
         return self._create_document(title=title, content=task_description, doc_type=task_type, session_id=session_id)
 
     def _generate_swarm_tasks(self) -> List[Dict[str, Any]]:
+        """Generate default swarm tasks from onboarding flow steps."""
         tasks = []
         for step in self.flow_steps:
             tasks.append({
@@ -651,10 +652,12 @@ class MurphySystem:
         self._record_activation_usage([item["id"] for item in planned_subsystems])
 
         tasks_source = doc.generated_tasks or self._generate_swarm_tasks()
-        planned_swarm_tasks = [
-            {**task, "status": task.get("status", "pending")}
-            for task in tasks_source
-        ]
+        planned_swarm_tasks = []
+        for task in tasks_source:
+            if "status" in task:
+                planned_swarm_tasks.append(task)
+            else:
+                planned_swarm_tasks.append({**task, "status": "pending"})
 
         onboarding_questions = [
             {"stage": step["stage"], "prompt": step["prompt"]}
