@@ -655,7 +655,7 @@ class MurphySystem:
         try:
             from src.gate_synthesis import FailureMode, RiskVector, GateGenerator
             from src.gate_synthesis.models import FailureModeType
-            from src.confidence_engine.models import Phase as ConfidencePhase, AuthorityBand
+            from src.confidence_engine.models import Phase as GateSynthesisPhase, AuthorityBand
 
             risk_vector = RiskVector(
                 H=max(0.0, 1.0 - doc.confidence),
@@ -674,7 +674,7 @@ class MurphySystem:
             generator = GateGenerator()
             gates = generator.generate_gates(
                 [failure_mode],
-                ConfidencePhase.EXPAND,
+                GateSynthesisPhase.EXPAND,
                 AuthorityBand.PROPOSE,
                 {failure_mode.id: failure_mode.probability}
             )
@@ -696,7 +696,7 @@ class MurphySystem:
     def _attempt_domain_swarm(self, task_description: str, context: Dict[str, Any]) -> Dict[str, Any]:
         try:
             from src.domain_swarms import DomainDetector
-            from src.mfgc_core import Phase as MFGCPhase
+            from src.mfgc_core import Phase as DomainSwarmPhase
 
             detector = DomainDetector()
             domain = detector.detect_domain(task_description, context)
@@ -707,8 +707,15 @@ class MurphySystem:
                     "message": "No domain match; add domain-specific onboarding details."
                 }
             swarm = detector.get_swarm(domain)
-            candidates = swarm.generate_candidates(task_description, MFGCPhase.EXPAND, context)
+            candidates = swarm.generate_candidates(task_description, DomainSwarmPhase.EXPAND, context)
             gates = swarm.generate_gates(candidates, context)
+            if not gates:
+                return {
+                    "id": "domain_swarms",
+                    "status": "needs_info",
+                    "domain": domain,
+                    "message": "Domain gates not generated; refine onboarding details."
+                }
             return {
                 "id": "domain_swarms",
                 "status": "ok",
@@ -723,9 +730,9 @@ class MurphySystem:
         try:
             if not self.swarm_system:
                 return {"id": "true_swarm_system", "status": "not_initialized"}
-            from src.true_swarm_system import Phase as SwarmPhase
+            from src.true_swarm_system import Phase as TrueSwarmPhase
 
-            result = self.swarm_system.execute_phase(SwarmPhase.EXPAND, task_description, context)
+            result = self.swarm_system.execute_phase(TrueSwarmPhase.EXPAND, task_description, context)
             return {
                 "id": "true_swarm_system",
                 "status": "ok",
