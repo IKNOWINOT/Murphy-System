@@ -31,7 +31,7 @@ This returns availability and wiring status for each subsystem.
 1. **Block command expansion (magnify/simplify/solidify)**
    - Run a task, then expand the block tree in the architect UI.
 2. **Swarm task generation**
-   - Solidify a document to generate swarm tasks for signup → billing flow.
+   - Solidify a document to generate swarm tasks for signup -> billing flow.
 3. **Automation execution**
    - Submit a task via `/api/forms/task-execution` and validate the execution packet.
 4. **Integration workflow**
