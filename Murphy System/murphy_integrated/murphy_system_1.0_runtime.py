@@ -1046,9 +1046,8 @@ class MurphySystem:
         - modules: list of subsystem entries (id, name, path, wired, initialized,
           notes, available). The path field is returned as a string. The
           available field is computed at runtime based on path existence. The
-          initialized flag
-          reflects runtime instantiation when available (currently only
-          TrueSwarmSystem).
+          initialized flag reflects runtime instantiation when available
+          (currently only TrueSwarmSystem).
         """
         base_dir = Path(__file__).parent / "src"
         candidates = [
@@ -1126,7 +1125,7 @@ class MurphySystem:
             }
         ]
         for item in candidates:
-            exists = Path(item["path"]).exists()
+            exists = item["path"].exists()
             item["available"] = exists
             item["path"] = str(item["path"])
         available = sum(1 for item in candidates if item["available"])
