@@ -1038,7 +1038,15 @@ class MurphySystem:
         }
 
     def get_activation_audit(self) -> Dict[str, Any]:
-        """Return activation audit data for implemented but unwired subsystems."""
+        """
+        Return activation audit data for implemented but unwired subsystems.
+
+        Returns a dict with:
+        - summary: total/available/missing counts
+        - modules: list of subsystem entries (id, name, path, wired, initialized,
+          notes, available). The initialized flag reflects runtime instantiation
+          when available (currently only TrueSwarmSystem).
+        """
         base_dir = Path(__file__).parent / "src"
         candidates = [
             {
