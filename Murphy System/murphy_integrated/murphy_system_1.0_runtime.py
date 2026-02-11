@@ -1050,6 +1050,10 @@ class MurphySystem:
           (currently only TrueSwarmSystem).
         """
         base_dir = Path(__file__).parent / "src"
+        swarm_instance = getattr(self, "swarm_system", None)
+        swarm_initialized = swarm_instance is not None and (
+            TrueSwarmSystem is None or isinstance(swarm_instance, TrueSwarmSystem)
+        )
         candidates = [
             {
                 "id": "recursive_stability_controller",
@@ -1104,7 +1108,7 @@ class MurphySystem:
                 "name": "True Swarm System",
                 "path": base_dir / "true_swarm_system.py",
                 "wired": False,
-                "initialized": bool(getattr(self, "swarm_system", None)),
+                "initialized": swarm_initialized,
                 "notes": "Swarm system initializes but is not invoked by execute_task."
             },
             {
