@@ -26,6 +26,12 @@ GET /api/diagnostics/activation
 
 This returns availability and wiring status for each subsystem.
 
+To fetch the last activation preview captured during request processing:
+
+```
+GET /api/diagnostics/activation/last
+```
+
 ## Verification Checklist (Commissioned Behaviors)
 
 1. **Block command expansion (magnify/simplify/solidify)**

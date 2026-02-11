@@ -491,6 +491,10 @@ Type 'api' to see new integrated endpoints
                         addOutput('Output:', 'info');
                         addOutput(JSON.stringify(result.output, null, 2), 'json');
                     }
+                    if (result.activation_preview) {
+                        addOutput('Activation Preview:', 'info');
+                        addOutput(JSON.stringify(result.activation_preview, null, 2), 'json');
+                    }
                     if (result.block_tree) {
                         showBlockTree(result.block_tree);
                     }

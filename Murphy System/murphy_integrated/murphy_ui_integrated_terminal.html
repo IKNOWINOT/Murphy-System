@@ -785,6 +785,10 @@
                     if (data.block_tree) {
                         addBlockTreeOutput(data.block_tree);
                     }
+                    if (data.activation_preview) {
+                        addOutput('executeOutput', 'Activation Preview:', 'info');
+                        addOutput('executeOutput', JSON.stringify(data.activation_preview, null, 2), 'info');
+                    }
                 } else {
                     addOutput('executeOutput', `ERROR: ${data.error}`, 'error');
                 }

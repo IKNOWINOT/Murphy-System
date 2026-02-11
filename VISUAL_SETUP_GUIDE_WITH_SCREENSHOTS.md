@@ -402,6 +402,14 @@ Open the architect terminal, run a high-level command, and use magnify/simplify/
 
 ---
 
+### Step 20: Integrated Activation Preview
+
+Run a form task to see the planned subsystems, gates, and swarm tasks that will activate during onboarding.
+
+![Activation Preview](docs/screenshots/20_ui_activation_preview.png)
+
+---
+
 ## Available API Endpoints
 
 ### Complete Endpoint Reference
