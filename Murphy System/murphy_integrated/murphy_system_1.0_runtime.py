@@ -1051,9 +1051,9 @@ class MurphySystem:
         """
         base_dir = Path(__file__).parent / "src"
         swarm_instance = getattr(self, "swarm_system", None)
-        swarm_initialized = swarm_instance is not None and (
-            TrueSwarmSystem is None or isinstance(swarm_instance, TrueSwarmSystem)
-        )
+        swarm_initialized = False
+        if TrueSwarmSystem and swarm_instance is not None:
+            swarm_initialized = isinstance(swarm_instance, TrueSwarmSystem)
         candidates = [
             {
                 "id": "recursive_stability_controller",
@@ -1128,17 +1128,19 @@ class MurphySystem:
                 "notes": "Model wrappers are implemented without runtime integration."
             }
         ]
+        processed = []
         for item in candidates:
-            item["available"] = item["path"].exists()
-            item["path"] = str(item["path"])
-        available = sum(1 for item in candidates if item["available"])
+            path = item["path"]
+            available = path.exists()
+            processed.append({**item, "available": available, "path": str(path)})
+        available = sum(1 for item in processed if item["available"])
         return {
             "summary": {
                 "total": len(candidates),
                 "available": available,
                 "missing": len(candidates) - available
             },
-            "modules": candidates
+            "modules": processed
         }
     
     def list_modules(self) -> List[Dict]:
