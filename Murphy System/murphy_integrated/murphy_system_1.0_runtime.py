@@ -1053,11 +1053,10 @@ class MurphySystem:
         swarm_instance = getattr(self, "swarm_system", None)
         swarm_initialized = False
         if swarm_instance is not None:
-            swarm_initialized = (
-                isinstance(swarm_instance, TrueSwarmSystem)
-                if TrueSwarmSystem
-                else True
-            )
+            try:
+                swarm_initialized = isinstance(swarm_instance, TrueSwarmSystem)
+            except TypeError:
+                swarm_initialized = True
         candidates = [
             {
                 "id": "recursive_stability_controller",
@@ -1134,9 +1133,8 @@ class MurphySystem:
         ]
         processed = []
         for item in candidates:
-            path = Path(item["path"])
-            available = path.exists()
-            processed.append({**item, "available": available, "path": str(path)})
+            available = item["path"].exists()
+            processed.append({**item, "available": available, "path": str(item["path"])})
         available = sum(1 for item in processed if item["available"])
         return {
             "summary": {
