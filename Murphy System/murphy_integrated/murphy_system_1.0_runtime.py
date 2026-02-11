@@ -204,6 +204,8 @@ class MurphySystem:
     - Phase 1-5 Implementations (forms, validation, correction, learning)
     - Original Murphy Runtime (319 files)
     """
+    ACTIVATION_CONFIDENCE_THRESHOLD = 0.7
+    ACTIVATION_SOLIDIFIED_STATE = "SOLIDIFIED"
     
     def __init__(self):
         self.version = "1.0.0"
@@ -590,7 +592,7 @@ class MurphySystem:
         task_description: str,
         onboarding_context: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        text = task_description.lower()
+        text = task_description.lower()  # Normalize for keyword matching.
         candidates = [
             {
                 "id": "gate_synthesis",
@@ -634,12 +636,12 @@ class MurphySystem:
             if any(keyword in text for keyword in item["keywords"])
         ]
         if not planned_subsystems:
-            if doc.confidence < 0.7:
+            if doc.confidence < self.ACTIVATION_CONFIDENCE_THRESHOLD:
                 planned_subsystems.append({
                     "id": "gate_synthesis",
                     "reason": "Low confidence triggers gate checks."
                 })
-            if "automation" in text or doc.state == "SOLIDIFIED":
+            if "automation" in text or doc.state == self.ACTIVATION_SOLIDIFIED_STATE:
                 planned_subsystems.append({
                     "id": "true_swarm_system",
                     "reason": "Automation requests expand into swarm execution stages."
