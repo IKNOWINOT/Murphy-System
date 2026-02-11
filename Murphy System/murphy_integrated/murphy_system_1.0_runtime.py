@@ -283,7 +283,7 @@ class MurphySystem:
         self.living_documents: Dict[str, LivingDocument] = {}
         self.document_sessions: Dict[str, str] = {}
         self.activation_usage: Dict[str, int] = {}
-        self.last_activation_preview: Dict[str, Any] = {}
+        self.latest_activation_preview: Dict[str, Any] = {}
         self.execution_metrics = {"total": 0, "success": 0, "total_time": 0.0}
         self.chat_sessions: Dict[str, Dict] = {}
         self.mfgc_config = {
@@ -589,26 +589,55 @@ class MurphySystem:
         task_description: str,
         onboarding_context: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        planned_subsystems = [
+        text = task_description.lower()
+        candidates = [
             {
                 "id": "gate_synthesis",
-                "reason": "Translate onboarding intent into gate checks."
+                "reason": "Translate onboarding intent into gate checks.",
+                "keywords": ["gate", "risk", "compliance", "safety"]
             },
             {
                 "id": "true_swarm_system",
-                "reason": "Expand tasks into swarm execution stages."
+                "reason": "Expand tasks into swarm execution stages.",
+                "keywords": ["swarm", "automation", "workflow", "pipeline", "onboarding"]
             },
             {
                 "id": "domain_swarms",
-                "reason": "Select domain-specific swarm strategies."
+                "reason": "Select domain-specific swarm strategies.",
+                "keywords": ["domain", "industry", "software", "marketing", "sales", "finance"]
             },
             {
                 "id": "infinity_expansion_system",
-                "reason": "Expand initial request into deeper requirements."
+                "reason": "Expand initial request into deeper requirements.",
+                "keywords": ["expand", "discover", "requirements", "scope"]
+            },
+            {
+                "id": "compute_plane",
+                "reason": "Deterministic compute plane for symbolic/numeric processing.",
+                "keywords": ["calculate", "optimize", "compute", "formula"]
+            },
+            {
+                "id": "knowledge_gap_system",
+                "reason": "Detect gaps and generate clarifying questions.",
+                "keywords": ["gap", "clarify", "unknown", "assumption"]
+            },
+            {
+                "id": "recursive_stability_controller",
+                "reason": "Stability controls for complex automation feedback loops.",
+                "keywords": ["stability", "feedback", "drift", "control"]
             }
         ]
-        subsystem_ids = [item["id"] for item in planned_subsystems]
-        self._record_activation_usage(subsystem_ids)
+        planned_subsystems = [
+            {"id": item["id"], "reason": item["reason"]}
+            for item in candidates
+            if any(keyword in text for keyword in item["keywords"])
+        ]
+        if not planned_subsystems:
+            planned_subsystems = [
+                {"id": "gate_synthesis", "reason": "Translate onboarding intent into gate checks."},
+                {"id": "true_swarm_system", "reason": "Expand tasks into swarm execution stages."}
+            ]
+        self._record_activation_usage([item["id"] for item in planned_subsystems])
 
         planned_swarm_tasks = doc.generated_tasks or [
             {**task, "status": "pending"} for task in self._generate_swarm_tasks()
@@ -782,7 +811,7 @@ class MurphySystem:
             task_description=message,
             onboarding_context=flow
         )
-        self.last_activation_preview = activation_preview
+        self.latest_activation_preview = activation_preview
         result = {
             "success": True,
             "session_id": session_id,
@@ -812,7 +841,7 @@ class MurphySystem:
         submission["result"] = result
         self._update_document_tree(doc)
         activation_preview = self._build_activation_preview(doc, task_description=task_description)
-        self.last_activation_preview = activation_preview
+        self.latest_activation_preview = activation_preview
         return {
             "success": result.get("success", False),
             "submission_id": submission["id"],
@@ -1593,9 +1622,9 @@ def create_app() -> FastAPI:
         return JSONResponse(murphy.get_activation_audit())
 
     @app.get("/api/diagnostics/activation/last")
-    async def activation_preview():
+    async def get_last_activation_preview():
         """Get latest activation preview from request processing"""
-        preview = murphy.last_activation_preview
+        preview = murphy.latest_activation_preview
         return JSONResponse({"success": bool(preview), "preview": preview})
 
     return app
