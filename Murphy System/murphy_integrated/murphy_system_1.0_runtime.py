@@ -599,7 +599,7 @@ class MurphySystem:
             {
                 "id": "true_swarm_system",
                 "reason": "Expand tasks into swarm execution stages.",
-                "keywords": ["swarm", "automation", "workflow", "pipeline", "onboarding"]
+                "keywords": ["swarm", "automation", "workflow", "pipeline"]
             },
             {
                 "id": "domain_swarms",
@@ -633,15 +633,29 @@ class MurphySystem:
             if any(keyword in text for keyword in item["keywords"])
         ]
         if not planned_subsystems:
-            planned_subsystems = [
-                {"id": "gate_synthesis", "reason": "Translate onboarding intent into gate checks."},
-                {"id": "true_swarm_system", "reason": "Expand tasks into swarm execution stages."}
-            ]
+            if doc.confidence < 0.7:
+                planned_subsystems.append({
+                    "id": "gate_synthesis",
+                    "reason": "Low confidence triggers gate checks."
+                })
+            if "automation" in text or doc.state == "SOLIDIFIED":
+                planned_subsystems.append({
+                    "id": "true_swarm_system",
+                    "reason": "Automation requests expand into swarm execution stages."
+                })
+        if not planned_subsystems:
+            planned_subsystems.append({
+                "id": "gate_synthesis",
+                "reason": "Default gate checks ensure baseline safety."
+            })
         self._record_activation_usage([item["id"] for item in planned_subsystems])
 
-        planned_swarm_tasks = doc.generated_tasks or [
-            {**task, "status": "pending"} for task in self._generate_swarm_tasks()
-        ]
+        planned_swarm_tasks = []
+        for task in doc.generated_tasks or self._generate_swarm_tasks():
+            if "status" in task:
+                planned_swarm_tasks.append({**task})
+            else:
+                planned_swarm_tasks.append({**task, "status": "pending"})
 
         onboarding_questions = [
             {"stage": step["stage"], "prompt": step["prompt"]}
