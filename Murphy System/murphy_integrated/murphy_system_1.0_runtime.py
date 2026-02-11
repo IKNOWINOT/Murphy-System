@@ -492,7 +492,11 @@ class MurphySystem:
         return self._create_document(title=title, content=task_description, doc_type=task_type, session_id=session_id)
 
     def _generate_swarm_tasks(self) -> List[Dict[str, Any]]:
-        """Generate default swarm tasks from onboarding flow steps."""
+        """
+        Generate default swarm tasks from onboarding flow steps.
+
+        Returns a list of dicts with keys: task_id, stage, description.
+        """
         tasks = []
         for step in self.flow_steps:
             tasks.append({
@@ -586,6 +590,10 @@ class MurphySystem:
         for subsystem in subsystems:
             self.activation_usage[subsystem] = self.activation_usage.get(subsystem, 0) + 1
 
+    def _should_activate_swarm_system(self, text: str, doc: LivingDocument) -> bool:
+        """Decide when swarm expansion is needed for the request."""
+        return "automation" in text or doc.state == self.ACTIVATION_SOLIDIFIED_STATE
+
     def _build_activation_preview(
         self,
         doc: LivingDocument,
@@ -641,7 +649,7 @@ class MurphySystem:
                     "id": "gate_synthesis",
                     "reason": "Low confidence triggers gate checks."
                 })
-            if "automation" in text or doc.state == self.ACTIVATION_SOLIDIFIED_STATE:
+            if self._should_activate_swarm_system(text, doc):
                 planned_subsystems.append({
                     "id": "true_swarm_system",
                     "reason": "Automation requests expand into swarm execution stages."
