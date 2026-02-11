@@ -1052,8 +1052,12 @@ class MurphySystem:
         base_dir = Path(__file__).parent / "src"
         swarm_instance = getattr(self, "swarm_system", None)
         swarm_initialized = False
-        if TrueSwarmSystem and swarm_instance is not None:
-            swarm_initialized = isinstance(swarm_instance, TrueSwarmSystem)
+        if swarm_instance is not None:
+            swarm_initialized = (
+                isinstance(swarm_instance, TrueSwarmSystem)
+                if TrueSwarmSystem
+                else True
+            )
         candidates = [
             {
                 "id": "recursive_stability_controller",
@@ -1130,7 +1134,7 @@ class MurphySystem:
         ]
         processed = []
         for item in candidates:
-            path = item["path"]
+            path = Path(item["path"])
             available = path.exists()
             processed.append({**item, "available": available, "path": str(path)})
         available = sum(1 for item in processed if item["available"])
