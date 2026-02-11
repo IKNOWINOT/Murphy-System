@@ -650,7 +650,7 @@ class MurphySystem:
             })
         self._record_activation_usage([item["id"] for item in planned_subsystems])
 
-        tasks_source = doc.generated_tasks if doc.generated_tasks is not None else self._generate_swarm_tasks()
+        tasks_source = doc.generated_tasks or self._generate_swarm_tasks()
         planned_swarm_tasks = [
             {**task, "status": task.get("status", "pending")}
             for task in tasks_source
