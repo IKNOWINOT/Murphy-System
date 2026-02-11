@@ -33,6 +33,7 @@ GET /api/diagnostics/activation/last
 ```
 
 Activation previews include a `capability_alignment` array with gap reasons and actions to close gaps.
+For a step-by-step flow breakdown and UI attempt script, see [SYSTEM_FLOW_ANALYSIS.md](SYSTEM_FLOW_ANALYSIS.md).
 
 ## Verification Checklist (Commissioned Behaviors)
 
