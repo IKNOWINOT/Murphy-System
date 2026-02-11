@@ -418,6 +418,14 @@ Run the same request to see capability test errors and successful subsystem chec
 
 ---
 
+### Step 22: Self-Automation Loop Output
+
+Run the self-automation request to see the business automation loop results.
+
+![Automation Loop](docs/screenshots/22_ui_automation_loop.png)
+
+---
+
 ## Available API Endpoints
 
 ### Complete Endpoint Reference

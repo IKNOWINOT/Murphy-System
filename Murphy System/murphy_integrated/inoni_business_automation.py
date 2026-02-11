@@ -593,6 +593,70 @@ class InoniBusinessAutomation:
         self.business = BusinessManagementEngine()
         self.production = ProductionManagementEngine()
         
+    def execute_automation(
+        self,
+        engine_name: str,
+        action: str,
+        parameters: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Execute a specific automation action.
+        """
+        params = parameters or {}
+        engine_map = {
+            "sales": self.sales,
+            "marketing": self.marketing,
+            "rd": self.rd,
+            "business": self.business,
+            "production": self.production,
+            "self": self
+        }
+        engine = engine_map.get(engine_name)
+        if not engine:
+            return {"success": False, "error": "Unknown engine", "engine": engine_name}
+
+        if engine_name == "self" and action in {"run_daily_automation", "daily"}:
+            return {"success": True, "result": self.run_daily_automation()}
+
+        action_map = {
+            "sales": {
+                "generate_leads": lambda: self.sales.generate_leads(),
+                "qualify_leads": lambda: self.sales.qualify_leads(params.get("leads", self.sales.generate_leads())),
+                "automate_outreach": lambda: self.sales.automate_outreach(params.get("leads", self.sales.generate_leads())),
+                "schedule_demos": lambda: self.sales.schedule_demos()
+            },
+            "marketing": {
+                "create_content": lambda: self.marketing.create_content(params.get("topic", "Murphy System Case Studies")),
+                "automate_social_media": lambda: self.marketing.automate_social_media(),
+                "optimize_seo": lambda: self.marketing.optimize_seo(),
+                "generate_analytics_report": lambda: self.marketing.generate_analytics_report()
+            },
+            "rd": {
+                "detect_bugs": lambda: self.rd.detect_bugs(),
+                "generate_fixes": lambda: self.rd.generate_fixes(params.get("bugs", self.rd.detect_bugs())),
+                "run_tests": lambda: self.rd.run_tests(),
+                "deploy_updates": lambda: self.rd.deploy_updates()
+            },
+            "business": {
+                "automate_finance": lambda: self.business.automate_finance(),
+                "automate_support": lambda: self.business.automate_support(),
+                "automate_projects": lambda: self.business.automate_projects(),
+                "generate_documentation": lambda: self.business.generate_documentation()
+            },
+            "production": {
+                "manage_releases": lambda: self.production.manage_releases(),
+                "run_qa": lambda: self.production.run_qa(),
+                "deploy_to_production": lambda: self.production.deploy_to_production(),
+                "monitor_system": lambda: self.production.monitor_system()
+            }
+        }
+
+        handler = action_map.get(engine_name, {}).get(action)
+        if not handler:
+            return {"success": False, "error": "Unknown action", "engine": engine_name, "action": action}
+
+        return {"success": True, "result": handler()}
+
     def run_daily_automation(self):
         """
         Run daily automation cycle
@@ -605,40 +669,75 @@ class InoniBusinessAutomation:
         logger.info("\n1. SALES AUTOMATION")
         leads = self.sales.generate_leads()
         qualified = self.sales.qualify_leads(leads)
-        self.sales.automate_outreach(qualified)
-        self.sales.schedule_demos()
+        outreach = self.sales.automate_outreach(qualified)
+        demos = self.sales.schedule_demos()
         
         # Marketing
         logger.info("\n2. MARKETING AUTOMATION")
-        self.marketing.create_content("Murphy System Case Studies")
-        self.marketing.automate_social_media()
-        self.marketing.optimize_seo()
-        self.marketing.generate_analytics_report()
+        content = self.marketing.create_content("Murphy System Case Studies")
+        social = self.marketing.automate_social_media()
+        seo = self.marketing.optimize_seo()
+        analytics = self.marketing.generate_analytics_report()
         
         # R&D (Self-Improvement)
         logger.info("\n3. R&D AUTOMATION (Self-Improvement)")
         bugs = self.rd.detect_bugs()
+        fixes = []
+        test_results = {}
+        deployment = {}
         if bugs:
             fixes = self.rd.generate_fixes(bugs)
             test_results = self.rd.run_tests()
             if test_results.get('tests_passed', 0) > 0:
-                self.rd.deploy_updates()
+                deployment = self.rd.deploy_updates()
         
         # Business Management
         logger.info("\n4. BUSINESS MANAGEMENT")
-        self.business.automate_finance()
-        self.business.automate_support()
-        self.business.automate_projects()
-        self.business.generate_documentation()
+        finance = self.business.automate_finance()
+        support = self.business.automate_support()
+        projects = self.business.automate_projects()
+        docs = self.business.generate_documentation()
         
         # Production Management
         logger.info("\n5. PRODUCTION MANAGEMENT")
-        self.production.run_qa()
-        self.production.monitor_system()
+        qa = self.production.run_qa()
+        monitoring = self.production.monitor_system()
         
         logger.info("\n" + "=" * 80)
         logger.info("DAILY AUTOMATION CYCLE COMPLETE")
         logger.info("=" * 80)
+
+        return {
+            "timestamp": datetime.utcnow().isoformat(),
+            "sales": {
+                "leads": leads,
+                "qualified": qualified,
+                "outreach": outreach,
+                "demos": demos
+            },
+            "marketing": {
+                "content": content,
+                "social": social,
+                "seo": seo,
+                "analytics": analytics
+            },
+            "rd": {
+                "bugs": bugs,
+                "fixes": fixes,
+                "tests": test_results,
+                "deployment": deployment
+            },
+            "business": {
+                "finance": finance,
+                "support": support,
+                "projects": projects,
+                "documentation": docs
+            },
+            "production": {
+                "qa": qa,
+                "monitoring": monitoring
+            }
+        }
         
     def generate_case_study(self) -> str:
         """
