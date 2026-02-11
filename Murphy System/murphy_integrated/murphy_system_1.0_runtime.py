@@ -1044,9 +1044,10 @@ class MurphySystem:
         Returns a dict with:
         - summary: total/available/missing counts
         - modules: list of subsystem entries (id, name, path, wired, initialized,
-          notes). The available field is computed at runtime based on path
-          existence. The initialized flag reflects runtime instantiation when
-          available (currently only TrueSwarmSystem).
+          notes). The path field is returned as a string. The available field is
+          computed at runtime based on path existence. The initialized flag
+          reflects runtime instantiation when available (currently only
+          TrueSwarmSystem).
         """
         base_dir = Path(__file__).parent / "src"
         candidates = [
