@@ -282,6 +282,8 @@ class MurphySystem:
         self.hitl_interventions: Dict[str, Dict] = {}
         self.living_documents: Dict[str, LivingDocument] = {}
         self.document_sessions: Dict[str, str] = {}
+        self.activation_usage: Dict[str, int] = {}
+        self.last_activation_preview: Dict[str, Any] = {}
         self.execution_metrics = {"total": 0, "success": 0, "total_time": 0.0}
         self.chat_sessions: Dict[str, Dict] = {}
         self.mfgc_config = {
@@ -577,6 +579,59 @@ class MurphySystem:
             doc.children = doc.generated_tasks
         doc.block_tree = self._build_block_tree(doc)
 
+    def _record_activation_usage(self, subsystems: List[str]) -> None:
+        for subsystem in subsystems:
+            self.activation_usage[subsystem] = self.activation_usage.get(subsystem, 0) + 1
+
+    def _build_activation_preview(
+        self,
+        doc: LivingDocument,
+        task_description: str,
+        onboarding_context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        planned_subsystems = [
+            {
+                "id": "gate_synthesis",
+                "reason": "Translate onboarding intent into gate checks."
+            },
+            {
+                "id": "true_swarm_system",
+                "reason": "Expand tasks into swarm execution stages."
+            },
+            {
+                "id": "domain_swarms",
+                "reason": "Select domain-specific swarm strategies."
+            },
+            {
+                "id": "infinity_expansion_system",
+                "reason": "Expand initial request into deeper requirements."
+            }
+        ]
+        subsystem_ids = [item["id"] for item in planned_subsystems]
+        self._record_activation_usage(subsystem_ids)
+
+        planned_swarm_tasks = doc.generated_tasks or [
+            {**task, "status": "pending"} for task in self._generate_swarm_tasks()
+        ]
+
+        onboarding_questions = [
+            {"stage": step["stage"], "prompt": step["prompt"]}
+            for step in self.flow_steps
+        ]
+
+        preview = {
+            "request_summary": task_description,
+            "confidence": doc.confidence,
+            "planned_subsystems": planned_subsystems,
+            "planned_gates": doc.gates,
+            "planned_swarm_tasks": planned_swarm_tasks,
+            "onboarding_questions": onboarding_questions,
+            "constraints": doc.constraints
+        }
+        if onboarding_context:
+            preview["onboarding_context"] = onboarding_context
+        return preview
+
     def _record_execution(self, success: bool, duration: float) -> None:
         self.execution_metrics["total"] += 1
         if success:
@@ -722,6 +777,12 @@ class MurphySystem:
         self._record_execution(success=True, duration=duration)
         doc = self._ensure_document(message, "conversation", session_id)
         self._update_document_tree(doc)
+        activation_preview = self._build_activation_preview(
+            doc,
+            task_description=message,
+            onboarding_context=flow
+        )
+        self.last_activation_preview = activation_preview
         result = {
             "success": True,
             "session_id": session_id,
@@ -730,7 +791,8 @@ class MurphySystem:
             "doc_id": doc.doc_id,
             "block_tree": doc.block_tree,
             "gates": doc.gates,
-            "constraints": doc.constraints
+            "constraints": doc.constraints,
+            "activation_preview": activation_preview
         }
         if use_mfgc:
             self.mfgc_config["enabled"] = True
@@ -749,6 +811,8 @@ class MurphySystem:
         submission["status"] = "completed" if result.get("success") else "failed"
         submission["result"] = result
         self._update_document_tree(doc)
+        activation_preview = self._build_activation_preview(doc, task_description=task_description)
+        self.last_activation_preview = activation_preview
         return {
             "success": result.get("success", False),
             "submission_id": submission["id"],
@@ -760,6 +824,7 @@ class MurphySystem:
             "block_tree": doc.block_tree,
             "gates": doc.gates,
             "constraints": doc.constraints,
+            "activation_preview": activation_preview,
             "error": result.get("error")
         }
 
@@ -1044,10 +1109,10 @@ class MurphySystem:
         Returns a dict with:
         - summary: total/available/missing counts
         - modules: list of subsystem entries with fields: id, name, path, wired,
-          initialized, notes, available. The path field is returned as a string. The
-          available field is computed at runtime based on path existence. The
-          initialized flag reflects runtime instantiation when available
-          (currently only TrueSwarmSystem).
+          initialized, notes, available, activation_count, activated. The path
+          field is returned as a string. The available field is computed at
+          runtime based on path existence. The initialized flag reflects runtime
+          instantiation when available (currently only TrueSwarmSystem).
         """
         base_dir = Path(__file__).parent / "src"
         swarm_instance = getattr(self, "swarm_system", None)
@@ -1134,7 +1199,14 @@ class MurphySystem:
         processed = []
         for item in candidates:
             available = item["path"].exists()
-            processed.append({**item, "available": available, "path": str(item["path"])})
+            activation_count = self.activation_usage.get(item["id"], 0)
+            processed.append({
+                **item,
+                "available": available,
+                "path": str(item["path"]),
+                "activation_count": activation_count,
+                "activated": activation_count > 0
+            })
         available = sum(1 for item in processed if item["available"])
         return {
             "summary": {
@@ -1519,6 +1591,12 @@ def create_app() -> FastAPI:
     async def activation_audit():
         """List inactive subsystems and activation hints"""
         return JSONResponse(murphy.get_activation_audit())
+
+    @app.get("/api/diagnostics/activation/last")
+    async def activation_preview():
+        """Get latest activation preview from request processing"""
+        preview = murphy.last_activation_preview
+        return JSONResponse({"success": bool(preview), "preview": preview})
 
     return app
 
