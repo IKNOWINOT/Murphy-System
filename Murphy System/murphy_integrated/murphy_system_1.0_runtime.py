@@ -1043,7 +1043,7 @@ class MurphySystem:
 
         Returns a dict with:
         - summary: total/available/missing counts
-        - modules: list of subsystem entries in order: id, name, path, wired,
+        - modules: list of subsystem entries with fields: id, name, path, wired,
           initialized, notes, available. The path field is returned as a string. The
           available field is computed at runtime based on path existence. The
           initialized flag reflects runtime instantiation when available
@@ -1104,7 +1104,7 @@ class MurphySystem:
                 "name": "True Swarm System",
                 "path": base_dir / "true_swarm_system.py",
                 "wired": False,
-                "initialized": bool(self.swarm_system),
+                "initialized": bool(getattr(self, "swarm_system", None)),
                 "notes": "Swarm system initializes but is not invoked by execute_task."
             },
             {
