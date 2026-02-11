@@ -1036,6 +1036,91 @@ class MurphySystem:
                 'orchestrator': '2-phase execution (setup → execute)'
             }
         }
+
+    def get_activation_audit(self) -> Dict[str, Any]:
+        """List implemented subsystems that are not yet wired into runtime 1.0."""
+        base_dir = Path(__file__).parent / "src"
+        candidates = [
+            {
+                "id": "recursive_stability_controller",
+                "name": "Recursive Stability Controller",
+                "path": base_dir / "recursive_stability_controller",
+                "wired": False,
+                "notes": "Telemetry and stability services exist but are not started by runtime."
+            },
+            {
+                "id": "gate_synthesis",
+                "name": "Gate Synthesis Engine",
+                "path": base_dir / "gate_synthesis",
+                "wired": False,
+                "notes": "Gate synthesis APIs are implemented but not invoked from runtime flows."
+            },
+            {
+                "id": "compute_plane",
+                "name": "Compute Plane",
+                "path": base_dir / "compute_plane",
+                "wired": False,
+                "notes": "Symbolic/numeric solver service is available but not exposed in runtime."
+            },
+            {
+                "id": "infinity_expansion_system",
+                "name": "Infinity Expansion System",
+                "path": base_dir / "infinity_expansion_system.py",
+                "wired": False,
+                "notes": "Problem expansion logic is present but not hooked into execution."
+            },
+            {
+                "id": "advanced_swarm_system",
+                "name": "Advanced Swarm System",
+                "path": base_dir / "advanced_swarm_system.py",
+                "wired": False,
+                "notes": "Swarm candidate synthesis exists but is not wired into task execution."
+            },
+            {
+                "id": "domain_swarms",
+                "name": "Domain Swarms",
+                "path": base_dir / "domain_swarms.py",
+                "wired": False,
+                "notes": "Domain swarm generators are defined but unused in runtime."
+            },
+            {
+                "id": "true_swarm_system",
+                "name": "True Swarm System",
+                "path": base_dir / "true_swarm_system.py",
+                "wired": False,
+                "initialized": bool(self.swarm_system),
+                "notes": "Swarm system initializes but is not invoked by execute_task."
+            },
+            {
+                "id": "knowledge_gap_system",
+                "name": "Knowledge Gap System",
+                "path": base_dir / "knowledge_gap_system.py",
+                "wired": False,
+                "notes": "Gap detection logic exists but is not referenced."
+            },
+            {
+                "id": "neuro_symbolic_models",
+                "name": "Neuro-Symbolic Models",
+                "path": base_dir / "neuro_symbolic_models",
+                "wired": False,
+                "notes": "Model wrappers are implemented without runtime integration."
+            }
+        ]
+        available = 0
+        for item in candidates:
+            exists = Path(item["path"]).exists()
+            item["available"] = exists
+            item["path"] = str(item["path"])
+            if exists:
+                available += 1
+        return {
+            "summary": {
+                "total": len(candidates),
+                "available": available,
+                "missing": len(candidates) - available
+            },
+            "modules": candidates
+        }
     
     def list_modules(self) -> List[Dict]:
         """List all loaded modules"""
@@ -1406,7 +1491,12 @@ def create_app() -> FastAPI:
     async def list_modules():
         """List all modules"""
         return JSONResponse(murphy.list_modules())
-    
+
+    @app.get("/api/diagnostics/activation")
+    async def activation_audit():
+        """List inactive subsystems and activation hints"""
+        return JSONResponse(murphy.get_activation_audit())
+
     return app
 
 
