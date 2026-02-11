@@ -666,6 +666,7 @@ class MurphySystem:
         results.append(self._attempt_knowledge_gap(task_description, context))
         results.append(self._attempt_compute_plane())
         results.append(self._attempt_recursive_stability())
+        results.append(self._attempt_business_automation())
         return results
 
     def _attempt_gate_synthesis(self, task_description: str, doc: LivingDocument) -> Dict[str, Any]:
@@ -795,6 +796,15 @@ class MurphySystem:
         except Exception as exc:
             return {"id": "recursive_stability_controller", "status": "error", "error": str(exc)}
 
+    def _attempt_business_automation(self) -> Dict[str, Any]:
+        if not self.inoni_automation:
+            return {"id": "inoni_business_automation", "status": "not_initialized"}
+        try:
+            summary = self.inoni_automation.run_daily_automation()
+            return {"id": "inoni_business_automation", "status": "ok", "summary": summary}
+        except Exception as exc:
+            return {"id": "inoni_business_automation", "status": "error", "error": str(exc)}
+
     def _build_activation_preview(
         self,
         doc: LivingDocument,
@@ -807,6 +817,11 @@ class MurphySystem:
                 "id": "gate_synthesis",
                 "reason": "Translate onboarding intent into gate checks.",
                 "keywords": ["gate", "risk", "compliance", "safety"]
+            },
+            {
+                "id": "inoni_business_automation",
+                "reason": "Run self-automation loops for business operations.",
+                "keywords": ["business", "inoni", "self", "automation", "sales", "marketing", "production", "billing"]
             },
             {
                 "id": "true_swarm_system",
@@ -1381,6 +1396,14 @@ class MurphySystem:
             except TypeError:
                 swarm_initialized = True
         candidates = [
+            {
+                "id": "inoni_business_automation",
+                "name": "Inoni Business Automation",
+                "path": Path(__file__).parent / "inoni_business_automation.py",
+                "wired": True,
+                "initialized": bool(self.inoni_automation),
+                "notes": "Self-operation automation loop for business engines."
+            },
             {
                 "id": "recursive_stability_controller",
                 "name": "Recursive Stability Controller",
