@@ -650,12 +650,11 @@ class MurphySystem:
             })
         self._record_activation_usage([item["id"] for item in planned_subsystems])
 
-        planned_swarm_tasks = []
-        for task in doc.generated_tasks or self._generate_swarm_tasks():
-            if "status" in task:
-                planned_swarm_tasks.append({**task})
-            else:
-                planned_swarm_tasks.append({**task, "status": "pending"})
+        tasks_source = doc.generated_tasks if doc.generated_tasks is not None else self._generate_swarm_tasks()
+        planned_swarm_tasks = [
+            {**task, "status": task.get("status", "pending")}
+            for task in tasks_source
+        ]
 
         onboarding_questions = [
             {"stage": step["stage"], "prompt": step["prompt"]}
