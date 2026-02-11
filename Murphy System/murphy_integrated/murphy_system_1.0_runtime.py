@@ -607,6 +607,16 @@ class MurphySystem:
             return asdict(gate)
         return gate
 
+    def _summarize_gate(self, gate: Any) -> Dict[str, Any]:
+        return {
+            "id": getattr(gate, "id", None),
+            "type": getattr(getattr(gate, "type", None), "value", getattr(gate, "type", None)),
+            "category": getattr(getattr(gate, "category", None), "value", getattr(gate, "category", None)),
+            "state": getattr(getattr(gate, "state", None), "value", getattr(gate, "state", None)),
+            "target": getattr(gate, "target", None),
+            "reason": getattr(gate, "reason", None)
+        }
+
     def _suggest_gap_action(self, subsystem_id: str, entry: Optional[Dict[str, Any]]) -> str:
         if not entry or not entry.get("available"):
             return "Install or restore module files to enable this subsystem."
@@ -691,17 +701,7 @@ class MurphySystem:
                 AuthorityBand.PROPOSE,
                 {failure_mode.id: failure_mode.probability}
             )
-            gate_summaries = [
-                {
-                    "id": gate.id,
-                    "type": gate.type.value,
-                    "category": gate.category.value,
-                    "state": gate.state.value,
-                    "target": gate.target,
-                    "reason": gate.reason
-                }
-                for gate in gates
-            ]
+            gate_summaries = [self._summarize_gate(gate) for gate in gates]
             return {"id": "gate_synthesis", "status": "ok", "gates": gate_summaries}
         except Exception as exc:
             return {"id": "gate_synthesis", "status": "error", "error": str(exc)}
