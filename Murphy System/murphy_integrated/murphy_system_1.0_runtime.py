@@ -18,7 +18,7 @@ import sys
 import os
 from pathlib import Path
 from typing import Dict, List, Optional, Any
-from dataclasses import asdict
+from dataclasses import asdict, is_dataclass
 from datetime import datetime
 import logging
 import asyncio
@@ -597,6 +597,16 @@ class MurphySystem:
         """Decide when swarm expansion is needed for the request."""
         return "automation" in text or doc.state == self.ACTIVATION_SOLIDIFIED_STATE
 
+    def _truncate_description(self, text: str) -> str:
+        if len(text) <= self.MAX_FAILURE_MODE_DESC_LENGTH:
+            return text
+        return f"{text[:self.MAX_FAILURE_MODE_DESC_LENGTH]}..."
+
+    def _serialize_gate(self, gate: Any) -> Any:
+        if is_dataclass(gate):
+            return asdict(gate)
+        return gate
+
     def _suggest_gap_action(self, subsystem_id: str, entry: Optional[Dict[str, Any]]) -> str:
         if not entry or not entry.get("available"):
             return "Install or restore module files to enable this subsystem."
@@ -665,9 +675,7 @@ class MurphySystem:
                 exposure=0.3,
                 authority_risk=0.2
             )
-            desc = task_description
-            if len(desc) > self.MAX_FAILURE_MODE_DESC_LENGTH:
-                desc = f"{desc[:self.MAX_FAILURE_MODE_DESC_LENGTH]}..."
+            desc = self._truncate_description(task_description)
             failure_mode = FailureMode(
                 id=uuid4().hex,
                 type=FailureModeType.CONSTRAINT_VIOLATION,
@@ -721,12 +729,13 @@ class MurphySystem:
                     "domain": domain,
                     "message": "Domain gates not generated; refine onboarding details."
                 }
-            serial_gates = [str(gate) for gate in gates]
+            serial_gates = [self._serialize_gate(gate) for gate in gates]
             return {
                 "id": "domain_swarms",
                 "status": "ok",
                 "domain": domain,
                 "candidate_count": len(candidates),
+                # Limit sample gates to avoid response bloat.
                 "sample_gates": serial_gates[:self.MAX_SAMPLE_GATES]
             }
         except Exception as exc:
