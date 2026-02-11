@@ -683,16 +683,13 @@ class InoniBusinessAutomation:
         logger.info("\n3. R&D AUTOMATION (Self-Improvement)")
         bugs = self.rd.detect_bugs()
         fixes = []
-        test_results = {}
-        deployment = {}
+        test_results = {"skipped": True, "reason": "No bugs detected"}
+        deployment = {"skipped": True, "reason": "No fixes deployed"}
         if bugs:
             fixes = self.rd.generate_fixes(bugs)
             test_results = self.rd.run_tests()
             if test_results.get('tests_passed', 0) > 0:
                 deployment = self.rd.deploy_updates()
-        else:
-            test_results = {"skipped": True, "reason": "No bugs detected"}
-            deployment = {"skipped": True, "reason": "No fixes deployed"}
         
         # Business Management
         logger.info("\n4. BUSINESS MANAGEMENT")
