@@ -1043,8 +1043,8 @@ class MurphySystem:
 
         Returns a dict with:
         - summary: total/available/missing counts
-        - modules: list of subsystem entries (id, name, path, wired, initialized,
-          notes, available). The path field is returned as a string. The
+        - modules: list of subsystem entries in order: id, name, path, wired,
+          initialized, notes, available. The path field is returned as a string. The
           available field is computed at runtime based on path existence. The
           initialized flag reflects runtime instantiation when available
           (currently only TrueSwarmSystem).
@@ -1125,8 +1125,7 @@ class MurphySystem:
             }
         ]
         for item in candidates:
-            exists = item["path"].exists()
-            item["available"] = exists
+            item["available"] = item["path"].exists()
             item["path"] = str(item["path"])
         available = sum(1 for item in candidates if item["available"])
         return {
