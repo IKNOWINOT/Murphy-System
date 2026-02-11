@@ -57,6 +57,7 @@ Runtime 1.0 combines:
 ---
 
 For a concise status summary, see [RUNTIME_1.0_STATUS.md](RUNTIME_1.0_STATUS.md).
+For inactive subsystem inventory and verification steps, see [ACTIVATION_AUDIT.md](ACTIVATION_AUDIT.md).
 
 ## ✨ Features
 
