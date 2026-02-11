@@ -655,7 +655,7 @@ class MurphySystem:
         try:
             from src.gate_synthesis import FailureMode, RiskVector, GateGenerator
             from src.gate_synthesis.models import FailureModeType
-            from src.confidence_engine.models import Phase, AuthorityBand
+            from src.confidence_engine.models import Phase as ConfidencePhase, AuthorityBand
 
             risk_vector = RiskVector(
                 H=max(0.0, 1.0 - doc.confidence),
@@ -674,7 +674,7 @@ class MurphySystem:
             generator = GateGenerator()
             gates = generator.generate_gates(
                 [failure_mode],
-                Phase.EXPAND,
+                ConfidencePhase.EXPAND,
                 AuthorityBand.PROPOSE,
                 {failure_mode.id: failure_mode.probability}
             )
@@ -696,7 +696,7 @@ class MurphySystem:
     def _attempt_domain_swarm(self, task_description: str, context: Dict[str, Any]) -> Dict[str, Any]:
         try:
             from src.domain_swarms import DomainDetector
-            from src.mfgc_core import Phase
+            from src.mfgc_core import Phase as MFGCPhase
 
             detector = DomainDetector()
             domain = detector.detect_domain(task_description, context)
@@ -707,7 +707,7 @@ class MurphySystem:
                     "message": "No domain match; add domain-specific onboarding details."
                 }
             swarm = detector.get_swarm(domain)
-            candidates = swarm.generate_candidates(task_description, Phase.EXPAND, context)
+            candidates = swarm.generate_candidates(task_description, MFGCPhase.EXPAND, context)
             gates = swarm.generate_gates(candidates, context)
             return {
                 "id": "domain_swarms",
