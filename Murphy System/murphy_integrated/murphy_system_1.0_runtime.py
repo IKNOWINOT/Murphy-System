@@ -1106,13 +1106,11 @@ class MurphySystem:
                 "notes": "Model wrappers are implemented without runtime integration."
             }
         ]
-        available = 0
         for item in candidates:
             exists = Path(item["path"]).exists()
             item["available"] = exists
             item["path"] = str(item["path"])
-            if exists:
-                available += 1
+        available = sum(1 for item in candidates if item["available"])
         return {
             "summary": {
                 "total": len(candidates),
