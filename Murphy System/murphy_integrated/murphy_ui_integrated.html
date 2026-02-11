@@ -527,7 +527,7 @@
                         <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;">${JSON.stringify(data.output, null, 2)}</pre>
                     `;
                     if (data.activation_preview) {
-                        const subsystems = data.activation_preview?.planned_subsystems || [];
+                        const subsystems = data.activation_preview.planned_subsystems || [];
                         const subsystemItems = subsystems
                             .map(item => `<li>${item.id}: ${item.reason}</li>`)
                             .join('');
