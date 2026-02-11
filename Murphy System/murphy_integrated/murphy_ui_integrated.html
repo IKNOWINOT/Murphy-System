@@ -541,6 +541,8 @@
                             <ul>${subsystemItems}</ul>
                             <p><strong>Capability Alignment:</strong></p>
                             <ul>${alignmentItems}</ul>
+                            <p><strong>Capability Tests:</strong></p>
+                            <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;">${JSON.stringify(data.activation_preview.capability_tests || [], null, 2)}</pre>
                             <p><strong>Planned Gates:</strong></p>
                             <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;">${JSON.stringify(data.activation_preview.planned_gates, null, 2)}</pre>
                             <p><strong>Planned Swarm Tasks:</strong></p>
