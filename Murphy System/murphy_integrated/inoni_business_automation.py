@@ -683,7 +683,7 @@ class InoniBusinessAutomation:
         logger.info("\n3. R&D AUTOMATION (Self-Improvement)")
         bugs = self.rd.detect_bugs()
         fixes = []
-        # Default to skipped results when no bugs are detected.
+        # Defaults are overwritten when bugs are found; otherwise remain skipped.
         test_results = {"skipped": True, "reason": "No bugs detected"}
         deployment = {"skipped": True, "reason": "No fixes deployed"}
         if bugs:
@@ -709,6 +709,7 @@ class InoniBusinessAutomation:
         logger.info("=" * 80)
 
         return {
+            # Timezone-aware timestamp (Python 3.11+ requirement is already documented).
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "sales": {
                 "leads": leads,
