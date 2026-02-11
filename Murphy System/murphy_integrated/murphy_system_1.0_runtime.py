@@ -594,6 +594,45 @@ class MurphySystem:
         """Decide when swarm expansion is needed for the request."""
         return "automation" in text or doc.state == self.ACTIVATION_SOLIDIFIED_STATE
 
+    def _suggest_gap_action(self, subsystem_id: str, entry: Optional[Dict[str, Any]]) -> str:
+        if not entry or not entry.get("available"):
+            return "Install or restore module files to enable this subsystem."
+        if not entry.get("wired"):
+            return "Wire this subsystem into execute_task or form processing."
+        if not entry.get("initialized"):
+            return "Initialize subsystem during runtime startup."
+        return "No gap detected."
+
+    def _build_capability_alignment(self, planned_subsystems: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        audit = self.get_activation_audit()
+        module_lookup = {module["id"]: module for module in audit.get("modules", [])}
+        alignment = []
+        for subsystem in planned_subsystems:
+            entry = module_lookup.get(subsystem["id"])
+            available = bool(entry and entry.get("available"))
+            wired = bool(entry and entry.get("wired"))
+            initialized = bool(entry and entry.get("initialized"))
+            activated = bool(entry and entry.get("activated"))
+            capability_reflects = available and wired
+            gap_reason = "ready" if capability_reflects else "gap"
+            if not available:
+                gap_reason = "missing"
+            elif not wired:
+                gap_reason = "not_wired"
+            elif not initialized:
+                gap_reason = "not_initialized"
+            alignment.append({
+                "id": subsystem["id"],
+                "available": available,
+                "wired": wired,
+                "initialized": initialized,
+                "activated": activated,
+                "capability_reflects": capability_reflects,
+                "gap_reason": gap_reason,
+                "gap_action": self._suggest_gap_action(subsystem["id"], entry)
+            })
+        return alignment
+
     def _build_activation_preview(
         self,
         doc: LivingDocument,
@@ -660,6 +699,7 @@ class MurphySystem:
                 "reason": "Default gate checks ensure baseline safety."
             })
         self._record_activation_usage([item["id"] for item in planned_subsystems])
+        capability_alignment = self._build_capability_alignment(planned_subsystems)
 
         tasks_source = doc.generated_tasks or self._generate_swarm_tasks()
         planned_swarm_tasks = [
@@ -679,7 +719,8 @@ class MurphySystem:
             "planned_gates": doc.gates,
             "planned_swarm_tasks": planned_swarm_tasks,
             "onboarding_questions": onboarding_questions,
-            "constraints": doc.constraints
+            "constraints": doc.constraints,
+            "capability_alignment": capability_alignment
         }
         if onboarding_context:
             preview["onboarding_context"] = onboarding_context

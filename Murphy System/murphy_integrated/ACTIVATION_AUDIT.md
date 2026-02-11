@@ -32,6 +32,8 @@ To fetch the last activation preview captured during request processing:
 GET /api/diagnostics/activation/last
 ```
 
+Activation previews include a `capability_alignment` array with gap reasons and actions to close gaps.
+
 ## Verification Checklist (Commissioned Behaviors)
 
 1. **Block command expansion (magnify/simplify/solidify)**
