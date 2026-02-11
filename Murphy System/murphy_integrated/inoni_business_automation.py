@@ -690,6 +690,9 @@ class InoniBusinessAutomation:
             test_results = self.rd.run_tests()
             if test_results.get('tests_passed', 0) > 0:
                 deployment = self.rd.deploy_updates()
+        else:
+            test_results = {"skipped": True, "reason": "No bugs detected"}
+            deployment = {"skipped": True, "reason": "No fixes deployed"}
         
         # Business Management
         logger.info("\n4. BUSINESS MANAGEMENT")
