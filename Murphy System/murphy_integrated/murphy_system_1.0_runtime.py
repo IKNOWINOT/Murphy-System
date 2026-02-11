@@ -1038,7 +1038,7 @@ class MurphySystem:
         }
 
     def get_activation_audit(self) -> Dict[str, Any]:
-        """List implemented subsystems that are not yet wired into runtime 1.0."""
+        """Return activation audit data for implemented but unwired subsystems."""
         base_dir = Path(__file__).parent / "src"
         candidates = [
             {
@@ -1046,6 +1046,7 @@ class MurphySystem:
                 "name": "Recursive Stability Controller",
                 "path": base_dir / "recursive_stability_controller",
                 "wired": False,
+                "initialized": False,
                 "notes": "Telemetry and stability services exist but are not started by runtime."
             },
             {
@@ -1053,6 +1054,7 @@ class MurphySystem:
                 "name": "Gate Synthesis Engine",
                 "path": base_dir / "gate_synthesis",
                 "wired": False,
+                "initialized": False,
                 "notes": "Gate synthesis APIs are implemented but not invoked from runtime flows."
             },
             {
@@ -1060,6 +1062,7 @@ class MurphySystem:
                 "name": "Compute Plane",
                 "path": base_dir / "compute_plane",
                 "wired": False,
+                "initialized": False,
                 "notes": "Symbolic/numeric solver service is available but not exposed in runtime."
             },
             {
@@ -1067,6 +1070,7 @@ class MurphySystem:
                 "name": "Infinity Expansion System",
                 "path": base_dir / "infinity_expansion_system.py",
                 "wired": False,
+                "initialized": False,
                 "notes": "Problem expansion logic is present but not hooked into execution."
             },
             {
@@ -1074,6 +1078,7 @@ class MurphySystem:
                 "name": "Advanced Swarm System",
                 "path": base_dir / "advanced_swarm_system.py",
                 "wired": False,
+                "initialized": False,
                 "notes": "Swarm candidate synthesis exists but is not wired into task execution."
             },
             {
@@ -1081,6 +1086,7 @@ class MurphySystem:
                 "name": "Domain Swarms",
                 "path": base_dir / "domain_swarms.py",
                 "wired": False,
+                "initialized": False,
                 "notes": "Domain swarm generators are defined but unused in runtime."
             },
             {
@@ -1096,6 +1102,7 @@ class MurphySystem:
                 "name": "Knowledge Gap System",
                 "path": base_dir / "knowledge_gap_system.py",
                 "wired": False,
+                "initialized": False,
                 "notes": "Gap detection logic exists but is not referenced."
             },
             {
@@ -1103,16 +1110,15 @@ class MurphySystem:
                 "name": "Neuro-Symbolic Models",
                 "path": base_dir / "neuro_symbolic_models",
                 "wired": False,
+                "initialized": False,
                 "notes": "Model wrappers are implemented without runtime integration."
             }
         ]
-        available = 0
         for item in candidates:
             exists = Path(item["path"]).exists()
             item["available"] = exists
             item["path"] = str(item["path"])
-            if exists:
-                available += 1
+        available = sum(1 for item in candidates if item["available"])
         return {
             "summary": {
                 "total": len(candidates),
