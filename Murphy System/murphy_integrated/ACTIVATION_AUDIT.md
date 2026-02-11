@@ -12,7 +12,7 @@ This audit lists implemented subsystems that are not wired into the runtime 1.0 
 | Infinity Expansion System | Implemented, inactive | `src/infinity_expansion_system.py` expands problem space but is not called. |
 | Advanced Swarm System | Implemented, inactive | `src/advanced_swarm_system.py` defines swarm synthesis but is not used in runtime. |
 | Domain Swarms | Implemented, inactive | `src/domain_swarms.py` domain generators are not wired to task intake. |
-| True Swarm System | Initialized, inactive | `src/true_swarm_system.py` is instantiated but not called in `execute_task`. |
+| True Swarm System | Implemented, inactive | `src/true_swarm_system.py` is instantiated but not called in `execute_task`. |
 | Knowledge Gap System | Implemented, inactive | `src/knowledge_gap_system.py` exists without runtime integration. |
 | Neuro-Symbolic Models | Implemented, inactive | `src/neuro_symbolic_models/` not referenced in runtime. |
 
