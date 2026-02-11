@@ -20,7 +20,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 from universal_control_plane import (
@@ -711,7 +711,7 @@ class InoniBusinessAutomation:
         logger.info("=" * 80)
 
         return {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "sales": {
                 "leads": leads,
                 "qualified": qualified,
