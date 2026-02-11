@@ -410,6 +410,14 @@ Run a form task to see the planned subsystems, gates, swarm tasks, and capabilit
 
 ---
 
+### Step 21: Integrated Capability Tests
+
+Run the same request to see capability test errors and successful subsystem checks.
+
+![Activation Tests](docs/screenshots/21_ui_activation_tests.png)
+
+---
+
 ## Available API Endpoints
 
 ### Complete Endpoint Reference

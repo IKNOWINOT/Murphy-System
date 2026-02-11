@@ -32,7 +32,7 @@ To fetch the last activation preview captured during request processing:
 GET /api/diagnostics/activation/last
 ```
 
-Activation previews include a `capability_alignment` array with gap reasons and actions to close gaps.
+Activation previews include a `capability_alignment` array with gap reasons/actions and a `capability_tests` array showing wiring attempts and errors.
 For a step-by-step flow breakdown and UI attempt script, see [SYSTEM_FLOW_ANALYSIS.md](SYSTEM_FLOW_ANALYSIS.md).
 For recommended gap closure solutions, see [CAPABILITY_GAP_SOLUTIONS.md](CAPABILITY_GAP_SOLUTIONS.md).
 
