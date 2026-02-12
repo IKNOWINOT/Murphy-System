@@ -262,6 +262,11 @@ class MurphySystem:
         "mea": ["middle east", "africa", "mea"],
         "global": ["global", "worldwide", "international"]
     }
+    LLM_MODULE_CANDIDATES = (
+        "src.llm_integration",
+        "src.llm_controller",
+        "src.local_llm_fallback"
+    )
     EXTERNAL_SENSOR_CATALOG = {
         "marketing": [
             {
@@ -399,7 +404,12 @@ class MurphySystem:
     
     @classmethod
     def create_test_instance(cls) -> "MurphySystem":
-        """Lightweight instance factory for unit tests."""
+        """Lightweight instance factory for unit tests.
+
+        Initializes configuration defaults and leaves optional subsystems unset
+        (integration_engine, governance_scheduler, inoni_automation) so tests can
+        explicitly assert wiring behavior.
+        """
         instance = cls.__new__(cls)
         instance._initialize_configuration_defaults()
         instance.execution_metrics = {"total": 0, "success": 0, "total_time": 0.0}
@@ -1535,11 +1545,7 @@ class MurphySystem:
         return extensions
 
     def _check_llm_readiness(self) -> Dict[str, Any]:
-        candidates = [
-            "src.llm_integration",
-            "src.llm_controller",
-            "src.local_llm_fallback"
-        ]
+        candidates = self.LLM_MODULE_CANDIDATES
         available = []
         for name in candidates:
             try:
@@ -1549,6 +1555,11 @@ class MurphySystem:
                 continue
         status = "available" if available else "not_configured"
         return {"status": status, "modules": available}
+
+    def _calculate_success_rate(self, total: int, success: int) -> float:
+        if not total:
+            return 0.0
+        return (success / total) * 100
 
     def _build_capability_review(
         self,
@@ -1592,7 +1603,7 @@ class MurphySystem:
 
         metrics = getattr(self, "execution_metrics", {"total": 0, "success": 0, "total_time": 0.0})
         total = metrics.get("total", 0)
-        success_rate = (metrics.get("success", 0) / total) * 100 if total else 0.0
+        success_rate = self._calculate_success_rate(total, metrics.get("success", 0))
 
         deterministic_ready = len([test for test in capability_tests if test.get("status") == "ok"])
         llm_readiness = self._check_llm_readiness()
@@ -2013,7 +2024,7 @@ class MurphySystem:
             self.execution_metrics["success"] += 1
         self.execution_metrics["total_time"] += duration
         total = self.execution_metrics["total"]
-        success_rate = (self.execution_metrics["success"] / total) * 100 if total else 0.0
+        success_rate = self._calculate_success_rate(total, self.execution_metrics["success"])
         avg_time = self.execution_metrics["total_time"] / total if total else 0.0
         self.mfgc_statistics["total_executions"] = total
         self.mfgc_statistics["success_rate"] = f"{success_rate:.1f}%"
