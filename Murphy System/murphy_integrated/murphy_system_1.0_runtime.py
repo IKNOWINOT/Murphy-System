@@ -250,6 +250,7 @@ class MurphySystem:
     MAX_FAILURE_MODE_DESC_LENGTH = 80
     MAX_SAMPLE_GATES = 3
     GATE_OVERRIDE_VALUES = {"open", "blocked"}
+    DELIVERABLE_EXTRACTION_KEYS = ("description", "task", "name", "stage")
     ORG_CHART_FALLBACK_POSITIONS = 2
     REGION_ALIASES = {
         "north_america": ["north america", "usa", "us", "united states", "canada"],
@@ -903,7 +904,7 @@ class MurphySystem:
         deliverables: List[str] = []
         seen = set()
         for task in tasks:
-            for key in ("description", "task", "name", "stage"):
+            for key in self.DELIVERABLE_EXTRACTION_KEYS:
                 value = task.get(key)
                 if value:
                     text = str(value)
@@ -918,34 +919,52 @@ class MurphySystem:
         deliverables: List[str],
         positions: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
+        normalized_positions = []
+        for position in positions:
+            keywords = [
+                position.get("title", ""),
+                position.get("department", ""),
+                position.get("level", "")
+            ]
+            keywords.extend(position.get("knowledge_domains", []))
+            keywords.extend(position.get("skills", []))
+            keywords.extend(position.get("typical_tasks", []))
+            normalized_positions.append({
+                "title": position.get("title"),
+                "keywords": {keyword.lower() for keyword in keywords if keyword}
+            })
         coverage = []
         for deliverable in deliverables:
             deliverable_lower = deliverable.lower()
-            matched_positions = []
-            for position in positions:
-                keywords = [
-                    position.get("title", ""),
-                    position.get("department", ""),
-                    position.get("level", "")
-                ]
-                keywords.extend(position.get("knowledge_domains", []))
-                keywords.extend(position.get("skills", []))
-                keywords.extend(position.get("typical_tasks", []))
-                if any(keyword and keyword.lower() in deliverable_lower for keyword in keywords):
-                    matched_positions.append(position.get("title"))
+            matched_positions = [
+                position["title"]
+                for position in normalized_positions
+                if any(keyword in deliverable_lower for keyword in position["keywords"])
+            ]
+            mapping_method = "keyword"
             if not matched_positions and positions:
                 matched_positions = [
                     position.get("title")
                     for position in positions[:self.ORG_CHART_FALLBACK_POSITIONS]
                 ]
+                mapping_method = "fallback"
+                logger.warning(
+                    "Org chart fallback applied for deliverable '%s'",
+                    deliverable
+                )
             coverage.append({
                 "deliverable": deliverable,
                 "positions": matched_positions,
-                "status": "covered" if matched_positions else "unassigned"
+                "status": "covered" if matched_positions else "unassigned",
+                "mapping_method": mapping_method
             })
         return coverage
 
-    def _build_position_contracts(self, coverage: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _build_position_contracts(
+        self,
+        coverage: List[Dict[str, Any]],
+        total_deliverables: int
+    ) -> List[Dict[str, Any]]:
         contract_map: Dict[str, List[str]] = {}
         for item in coverage:
             for position in item.get("positions", []):
@@ -954,10 +973,13 @@ class MurphySystem:
                 contract_map.setdefault(position, []).append(item["deliverable"])
         contracts = []
         for position, obligations in contract_map.items():
+            coverage_status = "full" if total_deliverables and len(obligations) == total_deliverables else "partial"
+            coverage_ratio = len(obligations) / total_deliverables if total_deliverables else 0.0
             contracts.append({
                 "position": position,
                 "obligations": obligations,
-                "coverage": "full"
+                "coverage": coverage_status,
+                "coverage_ratio": round(coverage_ratio, 2)
             })
         return contracts
 
@@ -971,7 +993,7 @@ class MurphySystem:
         context = self.org_chart_system.get_knowledge_context_for_project(task_description)
         positions = context.get("required_positions", [])
         deliverable_coverage = self._map_deliverables_to_positions(deliverables, positions)
-        position_contracts = self._build_position_contracts(deliverable_coverage)
+        position_contracts = self._build_position_contracts(deliverable_coverage, len(deliverable_coverage))
         uncovered = [item for item in deliverable_coverage if item["status"] != "covered"]
         return {
             "status": "ready",
