@@ -431,6 +431,7 @@ class MurphySystem:
         instance.integration_engine = None
         instance.governance_scheduler = None
         instance.inoni_automation = None
+        instance.swarm_system = None
         return instance
 
     def _initialize_configuration_defaults(self) -> None:
@@ -1155,7 +1156,9 @@ class MurphySystem:
     ) -> Dict[str, Any]:
         requirements_profile = self._build_requirements_profile(task_description, onboarding_context)
         requirements_complete = requirements_profile["status"] == "complete"
-        loop_ready = requirements_complete and bool(self.swarm_system)
+        swarm_ready = bool(self.swarm_system)
+        # Loop readiness requires both complete requirements and an initialized swarm system.
+        loop_ready = requirements_complete and swarm_ready
         iteration_status = "queued" if loop_ready else "pending_setup"
         iterations = [
             {
@@ -1169,7 +1172,7 @@ class MurphySystem:
         if not requirements_complete:
             status = "needs_info"
             gap_action = "Provide missing onboarding answers to finalize requirements."
-        elif not loop_ready:
+        elif not swarm_ready:
             status = "needs_wiring"
             gap_action = "Initialize swarm system and persistence to run iterative learning loops."
         else:
