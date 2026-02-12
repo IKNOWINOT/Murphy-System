@@ -1567,7 +1567,7 @@ class MurphySystem:
 
     @staticmethod
     def _format_average_execution_time(total: int, total_time: float) -> str:
-        return f"{(total_time / total):.3f}s" if total else "--"
+        return f"{(total_time / total):.3f}s" if total else "0.000s"
 
     def _build_automation_execution_evaluation(
         self,
@@ -1579,7 +1579,7 @@ class MurphySystem:
         success_rate = self._calculate_success_rate(success, total)
         average_time = self._format_average_execution_time(total, metrics.get("total_time", 0.0))
         automation_loops_ready = bool(getattr(self, "inoni_automation", None))
-        business_signals = bool(business_summary)
+        business_signals = business_summary is not None and len(business_summary) > 0
         if total == 0:
             status = "not_executed"
             gap_action = "Run /api/forms/task-execution or /api/automation to log execution metrics."
@@ -1601,7 +1601,7 @@ class MurphySystem:
 
     @staticmethod
     def _build_competitive_comparison(automation_execution: Dict[str, Any]) -> Dict[str, Any]:
-        execution_status = automation_execution.get("status", "unknown")
+        execution_status = automation_execution.get("status") or "not_executed"
         status = "baseline_ready" if execution_status == "validated" else "advisory"
         note = (
             "Competitive comparisons are advisory until automation execution is validated."
