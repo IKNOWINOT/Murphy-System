@@ -248,6 +248,7 @@ class MurphySystem:
     - Original Murphy Runtime (319 files)
     """
     ACTIVATION_CONFIDENCE_THRESHOLD = 0.7
+    AUTOMATION_EXECUTION_SUCCESS_THRESHOLD = 70.0
     ACTIVATION_SOLIDIFIED_STATE = "SOLIDIFIED"
     GATE_OVERRIDE_VALUES = {"open", "blocked"}
     MAX_FAILURE_MODE_DESC_LENGTH = 80
@@ -1564,12 +1565,63 @@ class MurphySystem:
             success = total
         return (success / total) * 100
 
+    def _build_automation_execution_evaluation(
+        self,
+        metrics: Dict[str, Any],
+        business_summary: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        total = metrics.get("total", 0)
+        success = metrics.get("success", 0)
+        success_rate = self._calculate_success_rate(success, total)
+        average_time = metrics.get("total_time", 0.0) / total if total else 0.0
+        automation_loops_ready = bool(getattr(self, "inoni_automation", None))
+        business_signals = bool(business_summary)
+        if total == 0:
+            status = "not_executed"
+            gap_action = "Run /api/forms/task-execution or /api/automation to log execution metrics."
+        elif success_rate < self.AUTOMATION_EXECUTION_SUCCESS_THRESHOLD:
+            status = "needs_attention"
+            gap_action = "Review failed executions and adjust gates or workflows."
+        else:
+            status = "validated"
+            gap_action = "Execution success rate meets threshold."
+        return {
+            "status": status,
+            "total_executions": total,
+            "success_rate": f"{success_rate:.1f}%",
+            "average_execution_time": f"{average_time:.3f}s" if total else "--",
+            "automation_loops_ready": automation_loops_ready,
+            "business_summary_available": business_signals,
+            "gap_action": gap_action
+        }
+
+    @staticmethod
+    def _build_competitive_comparison(automation_execution: Dict[str, Any]) -> Dict[str, Any]:
+        execution_status = automation_execution.get("status", "unknown")
+        status = "baseline_ready" if execution_status == "validated" else "advisory"
+        note = (
+            "Competitive comparisons are advisory until automation execution is validated."
+            if status != "baseline_ready"
+            else "Execution metrics are validated; comparisons can be benchmarked."
+        )
+        return {
+            "status": status,
+            "targets": [
+                {"platform": "Zapier", "focus": "integration automation"},
+                {"platform": "Make", "focus": "visual workflow builders"},
+                {"platform": "n8n", "focus": "self-hosted automation"}
+            ],
+            "note": note,
+            "next_action": "Collect external benchmarks and compare execution metrics."
+        }
+
     def _build_capability_review(
         self,
         capability_tests: List[Dict[str, Any]],
         capability_alignment: List[Dict[str, Any]],
         org_chart_plan: Dict[str, Any],
-        sensor_plan: Dict[str, Any]
+        sensor_plan: Dict[str, Any],
+        business_summary: Dict[str, Any]
     ) -> Dict[str, Any]:
         status_counts = {
             "ok": 0,
@@ -1607,6 +1659,8 @@ class MurphySystem:
         metrics = getattr(self, "execution_metrics", {"total": 0, "success": 0, "total_time": 0.0})
         total = metrics.get("total", 0)
         success_rate = self._calculate_success_rate(metrics.get("success", 0), total)
+        automation_execution = self._build_automation_execution_evaluation(metrics, business_summary)
+        competitive_comparison = self._build_competitive_comparison(automation_execution)
 
         deterministic_ready_count = len([test for test in capability_tests if test.get("status") == "ok"])
         llm_readiness = self._check_llm_readiness()
@@ -1637,6 +1691,7 @@ class MurphySystem:
                     f"{(metrics.get('total_time', 0.0) / total):.3f}s" if total else "--"
                 )
             },
+            "automation_execution": automation_execution,
             "org_chart_coverage": org_chart_plan.get("coverage_summary", {}),
             "regulatory_scope": {
                 "region": sensor_plan.get("region"),
@@ -1645,6 +1700,7 @@ class MurphySystem:
             },
             "workload_balance": workload_balance,
             "automation_extensions": self._build_autonomy_extension_status(),
+            "competitive_comparison": competitive_comparison,
             "gaps": gap_entries
         }
 
@@ -1973,7 +2029,8 @@ class MurphySystem:
             capability_tests,
             capability_alignment,
             org_chart_plan,
-            sensor_plan
+            sensor_plan,
+            business_summary
         )
 
         preview = {
