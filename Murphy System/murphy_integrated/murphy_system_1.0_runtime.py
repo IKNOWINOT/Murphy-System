@@ -558,6 +558,7 @@ class MurphySystem:
             threshold = entry.get("threshold", 0.5)
             override = entry.get("status_override")
             if override not in {None, "open", "blocked"}:
+                logger.warning("Invalid gate override '%s' ignored for %s", override, name)
                 override = None
             # Manual overrides take precedence over confidence-based gating.
             status = override or ("open" if doc.confidence >= threshold else "blocked")
@@ -773,25 +774,31 @@ class MurphySystem:
         updates: List[Dict[str, Any]],
         confidence: Optional[float] = None
     ) -> None:
+        """Update gate policy entries and recompute gate statuses."""
         if confidence is not None:
             doc.confidence = max(0.0, min(1.0, confidence))
+        allowed_statuses = {"open", "blocked"}
         policy = doc.gate_policy or deepcopy(self.default_gate_policy)
         for update in updates:
             name = (update.get("name") or "").strip()
             if not name:
                 continue
-            matched_gate = next((gate for gate in policy if gate.get("name", "").lower() == name.lower()), None)
-            if not matched_gate:
-                matched_gate = {"name": name, "threshold": update.get("threshold", 0.5)}
-                policy.append(matched_gate)
+            existing_gate = next((gate for gate in policy if gate.get("name", "").lower() == name.lower()), None)
+            if not existing_gate:
+                existing_gate = {"name": name, "threshold": update.get("threshold", 0.5)}
+                policy.append(existing_gate)
             if "threshold" in update:
-                matched_gate["threshold"] = update["threshold"]
+                existing_gate["threshold"] = update["threshold"]
             if "status" in update or "status_override" in update:
-                matched_gate["status_override"] = update.get("status_override", update.get("status"))
+                override_value = update.get("status_override", update.get("status"))
+                if override_value in allowed_statuses:
+                    existing_gate["status_override"] = override_value
+                else:
+                    logger.warning("Invalid gate override '%s' ignored for %s", override_value, name)
             if update.get("clear_override"):
-                matched_gate.pop("status_override", None)
+                existing_gate.pop("status_override", None)
             if "stage" in update:
-                matched_gate["stage"] = update["stage"]
+                existing_gate["stage"] = update["stage"]
         doc.gate_policy = policy
         doc.capability_tests = []
         self._update_document_tree(doc)
