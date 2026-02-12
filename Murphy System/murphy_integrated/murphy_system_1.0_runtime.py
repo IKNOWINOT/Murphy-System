@@ -16,10 +16,11 @@ License: Apache License 2.0
 
 import sys
 import os
+from copy import deepcopy
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 from dataclasses import asdict, is_dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 import asyncio
 import time
@@ -94,11 +95,18 @@ except ImportError:
 try:
     from src.system_librarian import SystemLibrarian
     from src.true_swarm_system import TrueSwarmSystem
-    from src.governance_framework.scheduler import GovernanceScheduler
+    from src.governance_framework.scheduler import GovernanceScheduler, ScheduledAgent, PriorityLevel
+    from src.governance_framework.agent_descriptor_complete import (
+        AgentDescriptor,
+        AuthorityBand as GovernanceAuthorityBand,
+        ActionType as GovernanceActionType,
+        ActionSet
+    )
     from src.telemetry_learning.ingestion import TelemetryIngester, TelemetryBus
 except ImportError as e:
     print(f"Warning: Some original Murphy components not available: {e}")
     SystemLibrarian = TrueSwarmSystem = GovernanceScheduler = TelemetryIngester = TelemetryBus = None
+    ScheduledAgent = PriorityLevel = AgentDescriptor = GovernanceAuthorityBand = GovernanceActionType = ActionSet = None
 
 # FastAPI for REST API
 try:
@@ -147,6 +155,7 @@ class LivingDocument:
         self.gate_synthesis_gates: List[Dict[str, Any]] = []
         self.capability_tests: List[Dict[str, Any]] = []
         self.automation_summary: Dict[str, Any] = {}
+        self.gate_policy: List[Dict[str, Any]] = []
 
     def magnify(self, domain: str) -> Dict[str, Any]:
         self.domain_depth += 15
@@ -195,7 +204,8 @@ class LivingDocument:
             "generated_tasks": self.generated_tasks,
             "gate_synthesis_gates": self.gate_synthesis_gates,
             "capability_tests": self.capability_tests,
-            "automation_summary": self.automation_summary
+            "automation_summary": self.automation_summary,
+            "gate_policy": self.gate_policy
         }
 
 
@@ -219,6 +229,17 @@ class MurphySystem:
     def __init__(self):
         self.version = "1.0.0"
         self.start_time = datetime.utcnow()
+        self.default_gate_policy = [
+            {"name": "Magnify Gate", "threshold": 0.5, "stage": "discovery"},
+            {"name": "Simplify Gate", "threshold": 0.6, "stage": "clarity"},
+            {"name": "Solidify Gate", "threshold": 0.7, "stage": "commit"},
+            {"name": "Executive Review Gate", "threshold": 0.65, "stage": "executive"},
+            {"name": "Operations Director Gate", "threshold": 0.6, "stage": "operations"},
+            {"name": "Marketing Strategy Gate", "threshold": 0.6, "stage": "marketing"},
+            {"name": "QA Readiness Gate", "threshold": 0.75, "stage": "quality"},
+            {"name": "HITL Contract Gate", "threshold": 0.7, "stage": "contracting"},
+            {"name": "Execution Gate", "threshold": 0.8, "stage": "execution"}
+        ]
         
         logger.info("="*80)
         logger.info(f"MURPHY SYSTEM {self.version} - INITIALIZING")
@@ -484,6 +505,7 @@ class MurphySystem:
 
     def _create_document(self, title: str, content: str, doc_type: str, session_id: Optional[str] = None) -> LivingDocument:
         doc = LivingDocument(uuid4().hex, title, content, doc_type)
+        doc.gate_policy = deepcopy(self.default_gate_policy)
         self.living_documents[doc.doc_id] = doc
         if session_id:
             self.document_sessions[session_id] = doc.doc_id
@@ -516,19 +538,30 @@ class MurphySystem:
         return tasks
 
     def _build_gate_chain(self, doc: LivingDocument) -> List[Dict[str, Any]]:
-        gate_templates = [
-            ("Magnify Gate", 0.5),
-            ("Simplify Gate", 0.6),
-            ("Solidify Gate", 0.7)
-        ]
+        gate_templates = doc.gate_policy or deepcopy(self.default_gate_policy)
         gates = []
-        for name, threshold in gate_templates:
-            status = "open" if doc.confidence >= threshold else "blocked"
+        blocked_by = None
+        for entry in gate_templates:
+            name = entry.get("name", "Gate")
+            threshold = entry.get("threshold", 0.5)
+            override = entry.get("status_override")
+            status = override or ("open" if doc.confidence >= threshold else "blocked")
+            reason = None
+            if blocked_by:
+                status = "blocked"
+                reason = f"Blocked by {blocked_by}"
+            elif status == "blocked":
+                blocked_by = name
+                reason = "Confidence below threshold" if override is None else "Manual override"
             gates.append({
                 "name": name,
                 "threshold": threshold,
-                "status": status
+                "status": status,
+                "reason": reason,
+                "stage": entry.get("stage"),
+                "blocked_by": blocked_by if status == "blocked" else None
             })
+        doc.gate_policy = gate_templates
         return gates
 
     def _build_block_tree(self, doc: LivingDocument) -> Dict[str, Any]:
@@ -594,6 +627,159 @@ class MurphySystem:
             doc.generated_tasks = self._generate_swarm_tasks()
             doc.children = doc.generated_tasks
         doc.block_tree = self._build_block_tree(doc)
+
+    @staticmethod
+    def _result_status(record: Dict[str, Any]) -> str:
+        result = record.get("result", {})
+        results = result.get("results", []) if isinstance(result, dict) else []
+        if results:
+            return results[0].get("status", "unknown")
+        return "unknown"
+
+    def _summarize_business_automation(self, summary: Dict[str, Any]) -> Dict[str, Any]:
+        if not summary:
+            return {}
+        marketing = summary.get("marketing", {})
+        business = summary.get("business", {})
+        production = summary.get("production", {})
+        return {
+            "marketing": {
+                "content_generated": bool(marketing.get("content", {}).get("content_generated")),
+                "social_platforms": marketing.get("social", {}).get("platforms", []),
+                "seo_keywords": marketing.get("seo", {}).get("keywords_researched", 0),
+                "analytics_status": self._result_status(marketing.get("analytics", {}))
+            },
+            "operations_director": {
+                "finance_status": self._result_status(business.get("finance", {})),
+                "support_status": self._result_status(business.get("support", {})),
+                "projects_status": self._result_status(business.get("projects", {})),
+                "documentation_status": self._result_status(business.get("documentation", {}))
+            },
+            "qa": {
+                "qa_passed": production.get("qa", {}).get("qa_passed"),
+                "monitoring_uptime": production.get("monitoring", {}).get("uptime")
+            }
+        }
+
+    def _build_executive_branch_plan(self, doc: LivingDocument) -> Dict[str, Any]:
+        approvals = []
+        for gate in doc.gates:
+            name = gate.get("name", "")
+            if any(keyword in name for keyword in ["Executive", "Operations Director", "Marketing Strategy", "QA", "HITL", "Execution"]):
+                approvals.append({
+                    "gate": name,
+                    "status": gate.get("status"),
+                    "threshold": gate.get("threshold"),
+                    "stage": gate.get("stage"),
+                    "blocked_by": gate.get("blocked_by")
+                })
+        return {
+            "approvals": approvals,
+            "decision_sequence": [approval["gate"] for approval in approvals]
+        }
+
+    def _build_operations_plan(self, doc: LivingDocument) -> List[Dict[str, Any]]:
+        operations = []
+        for task in doc.generated_tasks:
+            stage = task.get("stage")
+            owner = "operations_director"
+            if stage in {"automation_design", "billing"}:
+                owner = "executive_branch"
+            elif stage == "automation_production":
+                owner = "quality_assurance"
+            operations.append({
+                "stage": stage,
+                "owner": owner,
+                "description": task.get("description"),
+                "status": task.get("status", "pending")
+            })
+        return operations
+
+    def _build_hitl_contract_plan(self, doc: LivingDocument) -> List[Dict[str, Any]]:
+        contracts = []
+        for gate in doc.gates:
+            if "HITL" in gate.get("name", "") or "Contract" in gate.get("name", ""):
+                contracts.append({
+                    "gate": gate.get("name"),
+                    "status": gate.get("status"),
+                    "required_action": "Human approval required before execution.",
+                    "blocked_by": gate.get("blocked_by")
+                })
+        return contracts
+
+    def _build_timer_trigger_plan(self, task_description: str) -> Dict[str, Any]:
+        if not (GovernanceScheduler and ScheduledAgent and AgentDescriptor and GovernanceAuthorityBand and GovernanceActionType and ActionSet):
+            return {"status": "unavailable"}
+        scheduler = GovernanceScheduler()
+        now = datetime.utcnow()
+        triggers = [
+            {"id": "marketing_cycle", "label": "Marketing cadence", "offset_min": 30},
+            {"id": "executive_review", "label": "Executive review", "offset_min": 60, "dependencies": ["marketing_cycle"]},
+            {"id": "operations_director", "label": "Operations director sync", "offset_min": 90, "dependencies": ["executive_review"]},
+            {"id": "qa_review", "label": "Quality assurance review", "offset_min": 120, "dependencies": ["operations_director"]},
+            {"id": "hitl_contract", "label": "HITL contract approval", "offset_min": 150, "dependencies": ["qa_review"]},
+            {"id": "execution_window", "label": "Execution window", "offset_min": 180, "dependencies": ["hitl_contract"]}
+        ]
+        schedule = []
+        for trigger in triggers:
+            descriptor = AgentDescriptor(
+                agent_id=trigger["id"],
+                version="1.0.0",
+                authority_band=GovernanceAuthorityBand.MEDIUM,
+                action_permissions=ActionSet(allowed_proposals=[GovernanceActionType.PROPOSE_ACTION])
+            )
+            scheduled_time = now + timedelta(minutes=trigger["offset_min"])
+            agent = ScheduledAgent(
+                agent_id=trigger["id"],
+                descriptor=descriptor,
+                priority=PriorityLevel.NORMAL,
+                scheduled_time=scheduled_time,
+                dependencies=trigger.get("dependencies", []),
+                resource_requirements={"cpu": 1, "memory": 256}
+            )
+            decision = scheduler.schedule_agent(agent)
+            schedule.append({
+                "id": trigger["id"],
+                "label": trigger["label"],
+                "scheduled_time": scheduled_time.isoformat(),
+                "decision": decision.value,
+                "dependencies": trigger.get("dependencies", [])
+            })
+        return {
+            "status": "scheduled",
+            "summary": scheduler.get_system_status(),
+            "triggers": schedule,
+            "request": task_description
+        }
+
+    def update_gate_policy(
+        self,
+        doc: LivingDocument,
+        updates: List[Dict[str, Any]],
+        confidence: Optional[float] = None
+    ) -> None:
+        if confidence is not None:
+            doc.confidence = max(0.0, min(1.0, confidence))
+        policy = doc.gate_policy or deepcopy(self.default_gate_policy)
+        for update in updates:
+            name = (update.get("name") or "").strip()
+            if not name:
+                continue
+            match = next((gate for gate in policy if gate.get("name", "").lower() == name.lower()), None)
+            if not match:
+                match = {"name": name, "threshold": update.get("threshold", 0.5)}
+                policy.append(match)
+            if "threshold" in update:
+                match["threshold"] = update["threshold"]
+            if "status" in update or "status_override" in update:
+                match["status_override"] = update.get("status_override", update.get("status"))
+            if update.get("clear_override"):
+                match.pop("status_override", None)
+            if "stage" in update:
+                match["stage"] = update["stage"]
+        doc.gate_policy = policy
+        doc.capability_tests = []
+        self._update_document_tree(doc)
 
     def _record_activation_usage(self, subsystems: List[str]) -> None:
         for subsystem in subsystems:
@@ -749,7 +935,9 @@ class MurphySystem:
 
             detector = DomainDetector()
             domain = detector.detect_domain(task_description, context)
-            if not domain and "business" in task_description.lower():
+            if not domain and any(keyword in task_description.lower() for keyword in [
+                "business", "marketing", "executive", "operations", "qa", "contract", "hitl"
+            ]):
                 domain = "business_strategy"
             if not domain:
                 return {
@@ -921,9 +1109,7 @@ class MurphySystem:
                 "id": "gate_synthesis",
                 "reason": "Default gate checks ensure baseline safety."
             })
-        self._record_activation_usage([item["id"] for item in planned_subsystems])
         self._apply_wired_capabilities(task_description, doc, onboarding_context)
-        capability_alignment = self._build_capability_alignment(planned_subsystems)
         capability_tests = self._run_gap_solution_attempts(task_description, doc, onboarding_context)
 
         tasks_source = doc.generated_tasks or self._generate_swarm_tasks()
@@ -937,6 +1123,24 @@ class MurphySystem:
             for step in self.flow_steps
         ]
 
+        business_summary = self._summarize_business_automation(doc.automation_summary)
+        executive_plan = self._build_executive_branch_plan(doc)
+        operations_plan = self._build_operations_plan(doc)
+        hitl_contracts = self._build_hitl_contract_plan(doc)
+        trigger_plan = self._build_timer_trigger_plan(task_description)
+        if trigger_plan.get("status") == "scheduled":
+            planned_subsystems.append({
+                "id": "governance_scheduler",
+                "reason": "Timer/trigger plan scheduled through governance scheduler."
+            })
+        if self.hitl_monitor:
+            planned_subsystems.append({
+                "id": "hitl_monitor",
+                "reason": "HITL approvals required for contracting and execution."
+            })
+        capability_alignment = self._build_capability_alignment(planned_subsystems)
+        self._record_activation_usage([item["id"] for item in planned_subsystems])
+
         preview = {
             "request_summary": task_description,
             "confidence": doc.confidence,
@@ -946,7 +1150,12 @@ class MurphySystem:
             "onboarding_questions": onboarding_questions,
             "constraints": doc.constraints,
             "capability_alignment": capability_alignment,
-            "capability_tests": capability_tests
+            "capability_tests": capability_tests,
+            "business_automation_summary": business_summary,
+            "executive_branch_plan": executive_plan,
+            "operations_plan": operations_plan,
+            "hitl_contracts": hitl_contracts,
+            "timer_triggers": trigger_plan
         }
         if onboarding_context:
             preview["onboarding_context"] = onboarding_context
@@ -1452,6 +1661,22 @@ class MurphySystem:
                 "notes": "Self-operation automation loop for business engines."
             },
             {
+                "id": "governance_scheduler",
+                "name": "Governance Scheduler",
+                "path": base_dir / "governance_framework" / "scheduler.py",
+                "wired": True,
+                "initialized": bool(self.governance_scheduler),
+                "notes": "Schedules timer/trigger execution plans."
+            },
+            {
+                "id": "hitl_monitor",
+                "name": "HITL Monitor",
+                "path": base_dir / "supervisor_system" / "integrated_hitl_monitor.py",
+                "wired": bool(self.hitl_monitor),
+                "initialized": bool(self.hitl_monitor),
+                "notes": "Tracks human-in-the-loop approvals and contracting."
+            },
+            {
                 "id": "recursive_stability_controller",
                 "name": "Recursive Stability Controller",
                 "path": base_dir / "recursive_stability_controller",
@@ -1709,6 +1934,26 @@ def create_app() -> FastAPI:
         doc.solidify()
         murphy._update_document_tree(doc)
         return JSONResponse({"success": True, **doc.to_dict()})
+
+    @app.post("/api/documents/{doc_id}/gates")
+    async def update_document_gates(doc_id: str, request: Request):
+        """Update gate policy for a document"""
+        data = await request.json()
+        doc = murphy.living_documents.get(doc_id)
+        if not doc:
+            return JSONResponse({"success": False, "error": "Document not found"}, status_code=404)
+        updates = data.get("gates", [])
+        murphy.update_gate_policy(doc, updates, confidence=data.get("confidence"))
+        murphy._apply_wired_capabilities(doc.content, doc, data.get("onboarding_context"))
+        preview = murphy._build_activation_preview(doc, doc.content, data.get("onboarding_context"))
+        return JSONResponse({
+            "success": True,
+            "doc_id": doc.doc_id,
+            "gates": doc.gates,
+            "block_tree": doc.block_tree,
+            "activation_preview": preview,
+            **doc.to_dict()
+        })
 
     @app.get("/api/documents/{doc_id}/blocks")
     async def document_blocks(doc_id: str):

@@ -28,6 +28,7 @@ This directory contains visual screenshots for the Murphy System setup process.
 | 20_ui_activation_preview.png | Integrated UI activation preview with capability alignment | 1280x2411 |
 | 21_ui_activation_tests.png | Integrated UI capability tests and error output | 1280x4154 |
 | 22_ui_automation_loop.png | Integrated UI showing self-automation loop execution | 1280x13349 |
+| 23_ui_gate_policy_update.png | Integrated UI showing gate policy updates and trigger plan | 1280x3541 |
 
 ## Usage
 
@@ -52,6 +53,6 @@ Screenshots were generated using Python PIL (Pillow) library to create terminal-
 
 ---
 
-**Total Screenshots:** 22  
-**Total Size:** ~3.62 MB  
+**Total Screenshots:** 23  
+**Total Size:** ~4.11 MB  
 **Created:** February 9, 2026
