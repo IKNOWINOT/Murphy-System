@@ -249,8 +249,11 @@ class MurphySystem:
     """
     ACTIVATION_CONFIDENCE_THRESHOLD = 0.7
     AUTOMATION_EXECUTION_SUCCESS_THRESHOLD = 70.0
+    REQUIREMENT_COVERAGE_TARGET = 0.99
     ACTIVATION_SOLIDIFIED_STATE = "SOLIDIFIED"
     GATE_OVERRIDE_VALUES = {"open", "blocked"}
+    COMPLIANCE_BLOCKED_STATES = {"blocked", "failed", "denied"}
+    COMPLIANCE_PENDING_STATES = {"pending", "review", "queued"}
     MAX_FAILURE_MODE_DESC_LENGTH = 80
     MAX_SAMPLE_GATES = 3
     DELIVERABLE_EXTRACTION_KEYS = ("description", "task", "name", "stage")  # Ordered keys for deliverable text.
@@ -908,6 +911,29 @@ class MurphySystem:
             "decision_sequence": [approval["gate"] for approval in approvals]
         }
 
+    def _build_executive_directive(
+        self,
+        task_description: str,
+        operations_plan: List[Dict[str, Any]],
+        delivery_readiness: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        priority_actions = [
+            task.get("description")
+            for task in operations_plan
+            if task.get("owner") == "executive_branch" and task.get("description")
+        ]
+        if not priority_actions:
+            priority_actions = [
+                task.get("description")
+                for task in operations_plan
+                if task.get("description")
+            ][:3]
+        return {
+            "directive_summary": self._truncate_description(task_description),
+            "priority_actions": priority_actions[:3],
+            "delivery_readiness": delivery_readiness.get("status", "unknown")
+        }
+
     def _build_operations_plan(self, doc: LivingDocument) -> List[Dict[str, Any]]:
         operations = []
         for task in doc.generated_tasks:
@@ -925,6 +951,23 @@ class MurphySystem:
             })
         return operations
 
+    @staticmethod
+    def _build_workload_distribution(operations_plan: List[Dict[str, Any]]) -> Dict[str, Any]:
+        totals: Dict[str, int] = {}
+        for task in operations_plan:
+            owner = task.get("owner", "unassigned")
+            totals[owner] = totals.get(owner, 0) + 1
+        total_tasks = len(operations_plan)
+        share = {
+            owner: round(count / total_tasks, 2) if total_tasks else 0.0
+            for owner, count in totals.items()
+        }
+        return {
+            "total_tasks": total_tasks,
+            "by_owner": totals,
+            "share": share
+        }
+
     def _build_hitl_contract_plan(self, doc: LivingDocument) -> List[Dict[str, Any]]:
         contracts = []
         for gate in doc.gates:
@@ -936,6 +979,59 @@ class MurphySystem:
                     "blocked_by": gate.get("blocked_by")
                 })
         return contracts
+
+    def _build_delivery_readiness(
+        self,
+        doc: LivingDocument,
+        org_chart_plan: Dict[str, Any],
+        learning_loop: Dict[str, Any],
+        sensor_plan: Dict[str, Any],
+        hitl_contracts: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        coverage_summary = org_chart_plan.get("coverage_summary", {})
+        total_deliverables = coverage_summary.get("total_deliverables", 0)
+        uncovered = coverage_summary.get("uncovered_deliverables", 0)
+        coverage_ratio = (total_deliverables - uncovered) / total_deliverables if total_deliverables else 0.0
+        coverage_percent = round(coverage_ratio * 100, 1)
+        requirements_profile = learning_loop.get("requirements_identification", {})
+        requirements_status = requirements_profile.get("status", "needs_info")
+        gate_states = [
+            (gate.get("status") or gate.get("state") or "").lower()
+            for gate in doc.gates
+        ]
+        blocked = any(state in self.COMPLIANCE_BLOCKED_STATES for state in gate_states)
+        pending = any(state in self.COMPLIANCE_PENDING_STATES for state in gate_states)
+        if blocked:
+            compliance_status = "blocked"
+        elif pending:
+            compliance_status = "pending"
+        else:
+            compliance_status = "clear"
+        meets_requirement_target = coverage_ratio >= self.REQUIREMENT_COVERAGE_TARGET
+        hitl_required = bool(hitl_contracts)
+        if requirements_status != "complete":
+            status = "needs_info"
+            gap_action = "Collect missing onboarding answers before delivery."
+        elif compliance_status != "clear":
+            status = "needs_compliance"
+            gap_action = "Resolve compliance gates before human review."
+        elif not meets_requirement_target:
+            status = "needs_coverage"
+            gap_action = "Expand deliverables or org chart coverage to reach target."
+        else:
+            status = "ready"
+            gap_action = "Ready for human review once HITL approvals are satisfied."
+        return {
+            "status": status,
+            "requirements_status": requirements_status,
+            "coverage_percent": coverage_percent,
+            "requirements_target_percent": int(self.REQUIREMENT_COVERAGE_TARGET * 100),
+            "meets_requirement_target": meets_requirement_target,
+            "compliance_status": compliance_status,
+            "hitl_required": hitl_required,
+            "regulatory_source": sensor_plan.get("primary_regulatory_source", {}).get("id"),
+            "gap_action": gap_action
+        }
 
     def _extract_deliverables(
         self,
@@ -1714,7 +1810,8 @@ class MurphySystem:
         org_chart_plan: Dict[str, Any],
         sensor_plan: Dict[str, Any],
         business_summary: Dict[str, Any],
-        learning_loop: Optional[Dict[str, Any]] = None
+        learning_loop: Optional[Dict[str, Any]] = None,
+        delivery_readiness: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         status_counts = {
             "ok": 0,
@@ -1772,6 +1869,7 @@ class MurphySystem:
             "gap_action": llm_gap_action
         }
         learning_loop = learning_loop or {}
+        delivery_readiness = delivery_readiness or {}
 
         return {
             "summary": {
@@ -1795,6 +1893,7 @@ class MurphySystem:
             },
             "workload_balance": workload_balance,
             "learning_loop": learning_loop,
+            "delivery_readiness": delivery_readiness,
             "automation_extensions": self._build_autonomy_extension_status(),
             "competitive_comparison": competitive_comparison,
             "gaps": gap_entries
@@ -2122,13 +2221,23 @@ class MurphySystem:
         librarian_context = self._build_librarian_context(doc, task_description, planned_subsystems)
         self_operation = self.get_system_status().get("self_operation")
         learning_loop = self._build_learning_loop_plan(task_description, onboarding_context, librarian_context)
+        delivery_readiness = self._build_delivery_readiness(
+            doc,
+            org_chart_plan,
+            learning_loop,
+            sensor_plan,
+            hitl_contracts
+        )
+        workload_distribution = self._build_workload_distribution(operations_plan)
+        executive_directive = self._build_executive_directive(task_description, operations_plan, delivery_readiness)
         capability_review = self._build_capability_review(
             capability_tests,
             capability_alignment,
             org_chart_plan,
             sensor_plan,
             business_summary,
-            learning_loop
+            learning_loop,
+            delivery_readiness=delivery_readiness
         )
 
         preview = {
@@ -2145,7 +2254,9 @@ class MurphySystem:
             "capability_tests": capability_tests,
             "business_automation_summary": business_summary,
             "executive_branch_plan": executive_plan,
+            "executive_directive": executive_directive,
             "operations_plan": operations_plan,
+            "workload_distribution": workload_distribution,
             "hitl_contracts": hitl_contracts,
             "timer_triggers": trigger_plan,
             "external_api_sensors": sensor_plan,
@@ -2158,6 +2269,7 @@ class MurphySystem:
             "org_chart_plan": org_chart_plan,
             "self_operation": self_operation,
             "learning_loop": learning_loop,
+            "delivery_readiness": delivery_readiness,
             "capability_review": capability_review
         }
         if onboarding_context:
