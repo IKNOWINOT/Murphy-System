@@ -683,7 +683,7 @@ class InoniBusinessAutomation:
         logger.info("\n3. R&D AUTOMATION (Self-Improvement)")
         bugs = self.rd.detect_bugs()
         fixes = []
-        # Default values are overwritten when bugs are found; otherwise remain skipped.
+        # Default values indicate skipped operations when no bugs are found; they are replaced when bugs require action.
         test_results = {"skipped": True, "reason": "No bugs detected"}
         deployment = {"skipped": True, "reason": "No fixes deployed"}
         if bugs:
@@ -709,7 +709,7 @@ class InoniBusinessAutomation:
         logger.info("=" * 80)
 
         return {
-            # Timezone-aware timestamp for consistent logs.
+            # Timezone-aware timestamp for consistent tracking across executions.
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "sales": {
                 "leads": leads,
