@@ -402,6 +402,20 @@ class MurphySystem:
             }
         ]
     }
+
+    OUTPUT_CHANNEL_TARGETS = [
+        {"id": "document", "label": "Document report"},
+        {"id": "email", "label": "Email summary"},
+        {"id": "chat", "label": "Chat response"},
+        {"id": "voice", "label": "Voice brief"},
+        {"id": "api", "label": "Structured JSON output"}
+    ]
+
+    LEARNING_LOOP_VARIANTS = [
+        {"id": "baseline", "focus": "Baseline requirements from onboarding"},
+        {"id": "compliance", "focus": "Regulatory-focused requirements variant"},
+        {"id": "growth", "focus": "Growth and marketing automation variant"}
+    ]
     
     @classmethod
     def create_test_instance(cls) -> "MurphySystem":
@@ -1105,6 +1119,73 @@ class MurphySystem:
             "approval_required": bool(conditions)
         }
 
+    def _build_requirements_profile(
+        self,
+        task_description: str,
+        onboarding_context: Optional[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        context = onboarding_context or {}
+        answers = context.get("answers", {})
+        identified = []
+        missing = []
+        for step in self.flow_steps:
+            stage = step.get("stage")
+            if not stage:
+                continue
+            response = answers.get(stage)
+            if response:
+                identified.append({"stage": stage, "response": response})
+            else:
+                missing.append({"stage": stage, "prompt": step.get("prompt")})
+        status = "complete" if not missing else "needs_info"
+        return {
+            "status": status,
+            "request_goal": self._truncate_description(task_description),
+            "identified": identified,
+            "missing": missing,
+            "identified_count": len(identified),
+            "missing_count": len(missing)
+        }
+
+    def _build_learning_loop_plan(
+        self,
+        task_description: str,
+        onboarding_context: Optional[Dict[str, Any]],
+        librarian_context: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        requirements_profile = self._build_requirements_profile(task_description, onboarding_context)
+        requirements_complete = requirements_profile["status"] == "complete"
+        loop_ready = requirements_complete and bool(self.swarm_system)
+        iteration_status = "queued" if loop_ready else "pending_setup"
+        iterations = [
+            {
+                "iteration": idx,
+                "variant": variant["id"],
+                "focus": variant["focus"],
+                "status": iteration_status
+            }
+            for idx, variant in enumerate(self.LEARNING_LOOP_VARIANTS, start=1)
+        ]
+        gap_action = (
+            "Provide missing onboarding answers to finalize requirements."
+            if not requirements_complete
+            else "Initialize swarm system and persistence to run iterative learning loops."
+        )
+        return {
+            "status": "ready" if loop_ready else "needs_info" if not requirements_complete else "needs_wiring",
+            "requirements_identification": requirements_profile,
+            "output_targets": self.OUTPUT_CHANNEL_TARGETS,
+            "iterations": iterations,
+            "librarian_conditions": librarian_context.get("recommended_conditions", []),
+            "guideline_profile": {
+                "confidence_mode": self.mfgc_config.get("confidence_mode"),
+                "authority_mode": self.mfgc_config.get("authority_mode"),
+                "gate_synthesis": self.mfgc_config.get("gate_synthesis"),
+                "audit_trail": self.mfgc_config.get("audit_trail")
+            },
+            "gap_action": gap_action
+        }
+
     def _build_timer_trigger_plan(self, task_description: str) -> Dict[str, Any]:
         if not GOVERNANCE_AVAILABLE:
             return {"status": "unavailable"}
@@ -1625,7 +1706,8 @@ class MurphySystem:
         capability_alignment: List[Dict[str, Any]],
         org_chart_plan: Dict[str, Any],
         sensor_plan: Dict[str, Any],
-        business_summary: Dict[str, Any]
+        business_summary: Dict[str, Any],
+        learning_loop: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         status_counts = {
             "ok": 0,
@@ -1682,6 +1764,7 @@ class MurphySystem:
             "llm_modules": llm_readiness["modules"],
             "gap_action": llm_gap_action
         }
+        learning_loop = learning_loop or {}
 
         return {
             "summary": {
@@ -1704,6 +1787,7 @@ class MurphySystem:
                 "sources": [source.get("id") for source in sensor_plan.get("regulatory_sources", [])]
             },
             "workload_balance": workload_balance,
+            "learning_loop": learning_loop,
             "automation_extensions": self._build_autonomy_extension_status(),
             "competitive_comparison": competitive_comparison,
             "gaps": gap_entries
@@ -2030,12 +2114,14 @@ class MurphySystem:
         self._record_activation_usage([item["id"] for item in planned_subsystems])
         librarian_context = self._build_librarian_context(doc, task_description, planned_subsystems)
         self_operation = self.get_system_status().get("self_operation")
+        learning_loop = self._build_learning_loop_plan(task_description, onboarding_context, librarian_context)
         capability_review = self._build_capability_review(
             capability_tests,
             capability_alignment,
             org_chart_plan,
             sensor_plan,
-            business_summary
+            business_summary,
+            learning_loop
         )
 
         preview = {
@@ -2064,6 +2150,7 @@ class MurphySystem:
             "librarian_context": librarian_context,
             "org_chart_plan": org_chart_plan,
             "self_operation": self_operation,
+            "learning_loop": learning_loop,
             "capability_review": capability_review
         }
         if onboarding_context:
