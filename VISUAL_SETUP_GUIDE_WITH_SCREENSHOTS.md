@@ -327,9 +327,11 @@ Submit a full onboarding automation request in the architect terminal input (mar
 
 ![Architect Terminal User Command](docs/screenshots/31_ui_architect_user_command.png)
 
+![Architect Terminal Compliance Readiness](docs/screenshots/32_ui_architect_compliance.png)
+
 ![Architect Terminal Preview](docs/screenshots/25_ui_architect_preview.png)
 
-**Observed behavior:** the terminal returns activation preview JSON showing gates, swarm tasks, governance plans, librarian conditions, and region-aware external API sensor plans sourced from the runtime response.
+**Observed behavior:** the terminal returns activation preview JSON showing gates, swarm tasks, governance plans, librarian conditions, delivery readiness (99% coverage target + compliance status), and region-aware external API sensor plans sourced from the runtime response.
 
 ---
 

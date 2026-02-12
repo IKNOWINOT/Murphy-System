@@ -22,6 +22,7 @@ def test_capability_review_highlights_gaps():
     murphy = runtime.MurphySystem.create_test_instance()
     murphy.execution_metrics = {"total": 2, "success": 1, "total_time": 1.4}
     murphy.flow_steps = [{"stage": "signup"}]
+    delivery_readiness = {"status": "needs_info", "requirements_target_percent": 99}
 
     capability_tests = [
         {"id": "gate_synthesis", "status": "ok"},
@@ -58,7 +59,8 @@ def test_capability_review_highlights_gaps():
         capability_alignment,
         org_chart_plan,
         sensor_plan,
-        business_summary
+        business_summary,
+        delivery_readiness=delivery_readiness
     )
 
     assert review["summary"]["ok"] == 1
@@ -66,6 +68,7 @@ def test_capability_review_highlights_gaps():
     assert review["execution_metrics"]["total_executions"] == 2
     assert review["automation_execution"]["status"] == "needs_attention"
     assert review["competitive_comparison"]["status"] == "advisory"
+    assert review["delivery_readiness"]["requirements_target_percent"] == 99
     assert any(gap["id"] == "true_swarm_system" for gap in review["gaps"])
 
 
@@ -81,13 +84,15 @@ def test_automation_execution_evaluation_validated():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
     murphy.execution_metrics = {"total": 3, "success": 3, "total_time": 1.2}
+    delivery_readiness = {"status": "ready", "requirements_target_percent": 99}
 
     review = murphy._build_capability_review(
         [],
         [],
         {"coverage_summary": {"status": "partial"}},
         {"region": "global", "regulatory_sources": []},
-        {"marketing": {"content_generated": True}}
+        {"marketing": {"content_generated": True}},
+        delivery_readiness=delivery_readiness
     )
 
     assert review["automation_execution"]["status"] == "validated"
@@ -98,13 +103,15 @@ def test_automation_execution_evaluation_not_executed():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
     murphy.execution_metrics = {"total": 0, "success": 0, "total_time": 0.0}
+    delivery_readiness = {"status": "needs_compliance", "requirements_target_percent": 99}
 
     review = murphy._build_capability_review(
         [],
         [],
         {"coverage_summary": {"status": "partial"}},
         {"region": "global", "regulatory_sources": []},
-        {}
+        {},
+        delivery_readiness=delivery_readiness
     )
 
     assert review["automation_execution"]["status"] == "not_executed"
@@ -156,3 +163,31 @@ def test_autonomy_extension_status_reflects_readiness():
     murphy.flow_steps = []
     extensions = {item["id"]: item for item in murphy._build_autonomy_extension_status()}
     assert extensions["self_service_onboarding"]["status"] == "needs_configuration"
+
+
+def test_delivery_readiness_tracks_coverage_and_compliance():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    doc = runtime.LivingDocument("doc-1", "Test", "content", "request")
+    doc.gates = [{"status": "pending"}]
+    org_chart_plan = {"coverage_summary": {"total_deliverables": 2, "uncovered_deliverables": 1}}
+    learning_loop = {"requirements_identification": {"status": "complete"}}
+    sensor_plan = {"primary_regulatory_source": {"id": "regulatory_source"}}
+
+    readiness = murphy._build_delivery_readiness(doc, org_chart_plan, learning_loop, sensor_plan, [])
+
+    assert readiness["status"] == "needs_compliance"
+    assert readiness["requirements_target_percent"] == 99
+
+
+def test_delivery_readiness_ready_when_targets_met():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    doc = runtime.LivingDocument("doc-2", "Test", "content", "request")
+    org_chart_plan = {"coverage_summary": {"total_deliverables": 100, "uncovered_deliverables": 1}}
+    learning_loop = {"requirements_identification": {"status": "complete"}}
+    sensor_plan = {"primary_regulatory_source": {"id": "regulatory_source"}}
+
+    readiness = murphy._build_delivery_readiness(doc, org_chart_plan, learning_loop, sensor_plan, [])
+
+    assert readiness["status"] == "ready"

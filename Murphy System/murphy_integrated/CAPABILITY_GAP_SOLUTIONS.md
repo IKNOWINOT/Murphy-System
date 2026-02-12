@@ -11,6 +11,7 @@ The runtime currently provides:
 - **Governance planning** (executive, operations, QA, HITL) and timer/trigger scheduling in previews.
 - **Business automation loop outputs** (marketing, operations, QA) through the Inoni automation engine.
 - **Capability review summaries** (execution metrics, workload balance, automation execution evaluation, competitive comparison readiness).
+- **Delivery readiness checks** combining compliance gate status, HITL requirements, and 99% coverage targets.
 - **Librarian context generation** with recommended conditions and approval-required guidance.
 - **Org chart coverage mapping** for deliverables → positions → contract coverage gaps.
 - **Regional compliance sensors** for regulatory sources tied to onboarding region data.
