@@ -18,14 +18,13 @@
 6. [Starting Murphy](#starting-murphy)
 7. [Verification & Testing](#verification-testing)
 8. [Optional UI Access](#optional-ui-access-terminal-ui)
-9. [Execute a Task in the UI](#execute-a-task-in-the-ui)
-10. [Production UI Walkthrough](#production-ui-walkthrough)
-11. [Terminal UI Walkthroughs](#terminal-ui-walkthroughs)
-12. [Available API Endpoints](#available-api-endpoints)
-13. [Block Command Tree Walkthrough](#block-command-tree-walkthrough)
-14. [Gate Policy Updates & Timers](#gate-policy-updates--timers)
-15. [Control Metrics Preview](#control-metrics-preview)
-16. [Next Steps](#next-steps)
+9. [Production UI Walkthrough](#production-ui-walkthrough)
+10. [Terminal UI Walkthroughs](#terminal-ui-walkthroughs)
+11. [Available API Endpoints](#available-api-endpoints)
+12. [Block Command Tree Walkthrough](#block-command-tree-walkthrough)
+13. [Gate Policy Updates & Timers](#gate-policy-updates--timers)
+14. [Control Metrics Preview](#control-metrics-preview)
+15. [Next Steps](#next-steps)
 
 ---
 
@@ -406,27 +405,27 @@ Open the architect terminal, run a high-level command, and use magnify/simplify/
 
 ---
 
-### Step 21: Integrated Activation Preview
+### Step 21: Production Activation Preview
 
-Run a form task to see the planned subsystems, gates, swarm tasks, and capability alignment gaps.
+Run a request in the production UI to see the planned subsystems, gates, swarm tasks, and capability alignment gaps.
 
-![Activation Preview](docs/screenshots/20_ui_activation_preview.png)
+![Production Activation Preview](docs/screenshots/25_ui_production_execution.png)
 
 ---
 
-### Step 22: Integrated Capability Tests
+### Step 22: Production Capability Tests
 
-Run the same request to see capability test errors and successful subsystem checks.
+Inspect the activation preview JSON in the production UI to see capability test errors and successful subsystem checks.
 
-![Activation Tests](docs/screenshots/21_ui_activation_tests.png)
+![Production Capability Tests](docs/screenshots/27_ui_production_control_metrics.png)
 
 ---
 
 ### Step 23: Self-Automation Loop Output
 
-Run the self-automation request to see the business automation loop results.
+Use the production UI execution output to confirm business automation loop results and self-operation status.
 
-![Automation Loop](docs/screenshots/22_ui_automation_loop.png)
+![Production Automation Loop](docs/screenshots/25_ui_production_execution.png)
 
 ---
 
@@ -436,7 +435,7 @@ Run the self-automation request to see the business automation loop results.
 
 Use **Update Gates** in the production UI to adjust gate thresholds (executive, operations, QA, HITL, execution) and immediately see the timer/trigger plan update.
 
-![Gate Policy Update](docs/screenshots/23_ui_gate_policy_update.png)
+![Gate Policy Update](docs/screenshots/26_ui_production_gate_update.png)
 
 ---
 
