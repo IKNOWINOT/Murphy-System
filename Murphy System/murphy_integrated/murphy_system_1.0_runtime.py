@@ -1065,7 +1065,7 @@ class MurphySystem:
 
     def _filter_sensors_for_region(self, sources: List[Dict[str, Any]], region: str) -> List[Dict[str, Any]]:
         return [
-            {**sensor, "region": region}
+            {**sensor, "matched_region": region}
             for sensor in sources
             if region in sensor.get("regions", []) or "global" in sensor.get("regions", [])
         ]
@@ -1218,10 +1218,10 @@ class MurphySystem:
         control_value = round(sensor_value * (1 - risk_factor), 3)
         sensor_plan = self._build_external_sensor_plan(profile["id"], task_description, onboarding_context)
         sensor_source = "generated_sensor"
-        if sensor_plan.get("primary_sensor"):
-            sensor_source = f"external_plan:{sensor_plan['primary_sensor']['id']}"
         if profile["id"] == "compliance" and sensor_plan.get("primary_regulatory_source"):
             sensor_source = f"regulatory_plan:{sensor_plan['primary_regulatory_source']['id']}"
+        elif sensor_plan.get("primary_sensor"):
+            sensor_source = f"external_plan:{sensor_plan['primary_sensor']['id']}"
         return {
             "domain": profile["id"],
             "control_metric": {
