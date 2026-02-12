@@ -566,7 +566,7 @@ class MurphySystem:
                 reason = f"Blocked by {blocked_by}"
             elif status == "blocked":
                 blocked_by = name
-                reason = "Confidence below threshold" if validated_override is None else "Manual override"
+                reason = "Manually blocked" if validated_override == "blocked" else "Confidence below threshold"
             gates.append({
                 "name": name,
                 "threshold": threshold,
@@ -1164,6 +1164,7 @@ class MurphySystem:
                 "reason": "HITL approvals required for contracting and execution."
             })
         capability_alignment = self._build_capability_alignment(planned_subsystems)
+        # Record after adding scheduler/HITL subsystems so metrics reflect full preview.
         self._record_activation_usage([item["id"] for item in planned_subsystems])
 
         preview = {
