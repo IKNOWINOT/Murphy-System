@@ -24,7 +24,7 @@ from datetime import datetime, timedelta
 import logging
 import asyncio
 import time
-import re
+import re  # Tokenize requests for librarian context matching.
 from uuid import uuid4
 
 # Add src to path
