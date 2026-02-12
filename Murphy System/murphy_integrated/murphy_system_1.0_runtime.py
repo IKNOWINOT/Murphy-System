@@ -237,6 +237,7 @@ class MurphySystem:
     ACTIVATION_SOLIDIFIED_STATE = "SOLIDIFIED"
     MAX_FAILURE_MODE_DESC_LENGTH = 80
     MAX_SAMPLE_GATES = 3
+    GATE_OVERRIDE_VALUES = {"open", "blocked"}
     
     def __init__(self):
         self.version = "1.0.0"
@@ -556,10 +557,7 @@ class MurphySystem:
         for entry in gate_templates:
             name = entry.get("name", "Gate")
             threshold = entry.get("threshold", 0.5)
-            override = entry.get("status_override")
-            if override not in {None, "open", "blocked"}:
-                logger.warning("Invalid gate override '%s' ignored for %s", override, name)
-                override = None
+            override = self._normalize_gate_override(entry.get("status_override"), name)
             # Manual overrides take precedence over confidence-based gating.
             status = override or ("open" if doc.confidence >= threshold else "blocked")
             reason = None
@@ -777,7 +775,6 @@ class MurphySystem:
         """Update gate policy entries and recompute gate statuses."""
         if confidence is not None:
             doc.confidence = max(0.0, min(1.0, confidence))
-        allowed_statuses = {"open", "blocked"}
         policy = doc.gate_policy or deepcopy(self.default_gate_policy)
         for update in updates:
             name = (update.get("name") or "").strip()
@@ -790,11 +787,12 @@ class MurphySystem:
             if "threshold" in update:
                 existing_gate["threshold"] = update["threshold"]
             if "status" in update or "status_override" in update:
-                override_value = update.get("status_override", update.get("status"))
-                if override_value in allowed_statuses:
+                override_value = self._normalize_gate_override(
+                    update.get("status_override", update.get("status")),
+                    name
+                )
+                if override_value:
                     existing_gate["status_override"] = override_value
-                else:
-                    logger.warning("Invalid gate override '%s' ignored for %s", override_value, name)
             if update.get("clear_override"):
                 existing_gate.pop("status_override", None)
             if "stage" in update:
@@ -815,6 +813,12 @@ class MurphySystem:
         if len(text) <= self.MAX_FAILURE_MODE_DESC_LENGTH:
             return text
         return f"{text[:self.MAX_FAILURE_MODE_DESC_LENGTH]}..."
+
+    def _normalize_gate_override(self, override: Optional[str], name: str) -> Optional[str]:
+        if override not in {None, *self.GATE_OVERRIDE_VALUES}:
+            logger.warning("Invalid gate override '%s' ignored for %s", override, name)
+            return None
+        return override
 
     def _summarize_gate(self, gate: Any) -> Dict[str, Any]:
         return {
