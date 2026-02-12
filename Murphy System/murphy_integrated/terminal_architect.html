@@ -406,6 +406,50 @@
             color: #FFFFFF;
         }
 
+        .gate-detail {
+            font-size: 8px;
+            color: #00AA00;
+        }
+
+        .data-source {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 10px;
+            color: #00AA00;
+        }
+
+        .data-status {
+            padding: 2px 6px;
+            border: 1px solid #00FF00;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .data-status.online {
+            background-color: #00FF00;
+            color: #000000;
+        }
+
+        .data-status.offline {
+            background-color: #330000;
+            color: #FF0000;
+            border-color: #FF0000;
+        }
+
+        .preview-output {
+            font-size: 9px;
+            color: #00FF00;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            max-height: 240px;
+            overflow-y: auto;
+            background-color: #000000;
+            border: 1px solid #003300;
+            padding: 8px;
+        }
+
         /* Configuration Panel */
         .config-panel {
             background-color: #001100;
@@ -529,6 +573,10 @@
             <div class="header-subtitle">Advanced Interface for System Architecture & Control</div>
         </div>
         <div class="header-controls">
+            <div class="data-source">
+                <span>API</span>
+                <span class="data-status offline" id="apiStatus">OFFLINE</span>
+            </div>
             <button class="header-btn" onclick="toggleMFGC()" id="mfgcToggle">MFGC: OFF</button>
             <button class="header-btn" onclick="setupProfile('production')">PROD</button>
             <button class="header-btn" onclick="setupProfile('certification')">CERT</button>
@@ -563,6 +611,24 @@
 
         <!-- State Panel -->
         <div class="state-panel">
+            <!-- Data Source -->
+            <div class="state-section">
+                <div class="state-section-title">LIVE DATA SOURCE</div>
+                <div class="config-panel">
+                    <div class="config-row">
+                        <span class="config-label">Connection</span>
+                        <span class="config-value" id="apiStatusDetail">OFFLINE</span>
+                    </div>
+                    <div class="config-row">
+                        <span class="config-label">Last Update</span>
+                        <span class="config-value" id="lastUpdate">--</span>
+                    </div>
+                    <div class="config-row">
+                        <span class="config-label">Document</span>
+                        <span class="config-value" id="lastDoc">--</span>
+                    </div>
+                </div>
+            </div>
             <!-- MFGC Control -->
             <div class="state-section">
                 <div class="state-section-title">MFGC 7-PHASE CONTROL</div>
@@ -658,6 +724,8 @@
                 <div class="tabs">
                     <div class="tab active" onclick="switchTab('gates')">GATES</div>
                     <div class="tab" onclick="switchTab('blocks')">BLOCKS</div>
+                    <div class="tab" onclick="switchTab('preview')">PREVIEW</div>
+                    <div class="tab" onclick="switchTab('librarian')">LIBRARIAN</div>
                     <div class="tab" onclick="switchTab('config')">CONFIG</div>
                     <div class="tab" onclick="switchTab('events')">EVENTS</div>
                 </div>
@@ -665,6 +733,9 @@
                 <!-- Gates Tab -->
                 <div class="tab-content active" id="gatesTab">
                     <div class="state-section-title">ACTIVE GATES</div>
+                    <div style="margin-bottom: 10px;">
+                        <button class="config-toggle" onclick="updateGatePolicy()">Update Gates</button>
+                    </div>
                     <div class="gates-list" id="gatesList">
                         <div class="gate-item">
                             <span class="gate-icon">●</span>
@@ -687,6 +758,18 @@
                             <span class="gate-type">No block tree loaded</span>
                         </div>
                     </div>
+                </div>
+
+                <!-- Preview Tab -->
+                <div class="tab-content" id="previewTab">
+                    <div class="state-section-title">ACTIVATION PREVIEW (LIVE)</div>
+                    <div class="preview-output" id="activationPreview">No activation preview loaded.</div>
+                </div>
+
+                <!-- Librarian Tab -->
+                <div class="tab-content" id="librarianTab">
+                    <div class="state-section-title">LIBRARIAN CONTEXT (LIVE)</div>
+                    <div class="preview-output" id="librarianPreview">No librarian context loaded.</div>
                 </div>
 
                 <!-- Config Tab -->
@@ -793,6 +876,8 @@
             audit_trail: true
         };
         let lastDocId = null;
+        let lastGateSnapshot = [];
+        let lastActivationPreview = null;
 
         // DOM Elements
         const terminalOutput = document.getElementById('terminalOutput');
@@ -876,12 +961,24 @@
                             updateBlockTree(result.block_tree);
                         }
                     }
+                    if (Array.isArray(result.gates)) {
+                        lastGateSnapshot = result.gates;
+                        updateGatesDisplay(lastGateSnapshot);
+                    }
+                    if (result.activation_preview) {
+                        lastActivationPreview = result.activation_preview;
+                        updateActivationPreview(lastActivationPreview);
+                        updateLibrarianContext(lastActivationPreview.librarian_context);
+                    }
+                    updateDataSource(true, result.doc_id);
                 } else {
                     addLine(`✗ Error: ${result.error}`, 'error');
+                    updateDataSource(false, null);
                 }
 
             } catch (error) {
                 addLine(`✗ Connection error: ${error.message}`, 'error');
+                updateDataSource(false, null);
             }
 
             messageInput.disabled = false;
@@ -906,7 +1003,10 @@
                     addLine('  /config        - Show current configuration', 'system');
                     addLine('  /phases        - Show phase details', 'system');
                     addLine('  /gates         - Show active gates', 'system');
+                    addLine('  /updategates   - Update gate policy for active document', 'system');
                     addLine('  /blocks        - Show block command tree', 'system');
+                    addLine('  /preview       - Show activation preview payload', 'system');
+                    addLine('  /librarian     - Show librarian context payload', 'system');
                     addLine('  /magnify       - Magnify current block tree (optional domain)', 'system');
                     addLine('  /simplify      - Simplify current block tree', 'system');
                     addLine('  /solidify      - Solidify current block tree', 'system');
@@ -946,8 +1046,20 @@
                     await fetchGates();
                     break;
 
+                case '/updategates':
+                    await updateGatePolicy();
+                    break;
+
                 case '/blocks':
                     await fetchBlocks();
+                    break;
+
+                case '/preview':
+                    switchTab('preview');
+                    break;
+
+                case '/librarian':
+                    switchTab('librarian');
                     break;
 
                 case '/magnify':
@@ -1023,15 +1135,22 @@
                     addLine(`  Total Executions: ${state.mfgc_statistics.total_executions}`, 'system');
                     addLine(`  Success Rate: ${state.mfgc_statistics.success_rate}`, 'system');
                     addLine(`  Avg Execution Time: ${state.mfgc_statistics.average_execution_time}`, 'system');
+                    updateDataSource(true, lastDocId);
                 }
             } catch (error) {
                 addLine(`✗ Error fetching status: ${error.message}`, 'error');
+                updateDataSource(false, null);
             }
         }
 
         // Fetch gates
         async function fetchGates() {
             addLine('── ACTIVE GATES ──', 'system');
+            if (lastGateSnapshot.length) {
+                updateGatesDisplay(lastGateSnapshot);
+                switchTab('gates');
+                return;
+            }
             addLine('  No active gates (execute a task to generate gates)', 'info');
         }
 
@@ -1193,15 +1312,92 @@
                     </div>
                 `;
             } else {
-                gatesList.innerHTML = gates.map((gate, index) => `
-                    <div class="gate-item">
-                        <span class="gate-icon">●</span>
-                        <span class="gate-type">${gate}</span>
-                        <span class="gate-status active">ACTIVE</span>
-                    </div>
-                `).join('');
+                gatesList.innerHTML = gates.map((gate) => {
+                    const gateName = typeof gate === 'string' ? gate : (gate.name || gate.id || 'Gate');
+                    const gateStatus = (typeof gate === 'object' && gate.status) ? gate.status : 'active';
+                    const threshold = (typeof gate === 'object' && gate.threshold !== undefined)
+                        ? ` · ${(gate.threshold * 100).toFixed(0)}%`
+                        : '';
+                    const statusClass = gateStatus === 'blocked' ? 'triggered' : 'active';
+                    return `
+                        <div class="gate-item">
+                            <span class="gate-icon">●</span>
+                            <span class="gate-type">${gateName}</span>
+                            <span class="gate-detail">${threshold}</span>
+                            <span class="gate-status ${statusClass}">${gateStatus.toUpperCase()}</span>
+                        </div>
+                    `;
+                }).join('');
             }
             document.getElementById('gatesGenerated').textContent = gates.length;
+        }
+
+        function renderJson(payload) {
+            if (!payload) {
+                return 'No data available.';
+            }
+            return JSON.stringify(payload, null, 2);
+        }
+
+        function updateActivationPreview(preview) {
+            const panel = document.getElementById('activationPreview');
+            panel.textContent = renderJson(preview);
+        }
+
+        function updateLibrarianContext(context) {
+            const panel = document.getElementById('librarianPreview');
+            panel.textContent = renderJson(context);
+        }
+
+        function updateDataSource(isOnline, docId) {
+            const status = document.getElementById('apiStatus');
+            const detail = document.getElementById('apiStatusDetail');
+            const lastUpdate = document.getElementById('lastUpdate');
+            const lastDoc = document.getElementById('lastDoc');
+            const timestamp = new Date().toLocaleTimeString();
+
+            status.textContent = isOnline ? 'ONLINE' : 'OFFLINE';
+            status.className = `data-status ${isOnline ? 'online' : 'offline'}`;
+            detail.textContent = isOnline ? 'ONLINE' : 'OFFLINE';
+            lastUpdate.textContent = isOnline ? timestamp : '--';
+            lastDoc.textContent = isOnline && docId ? docId : '--';
+        }
+
+        async function updateGatePolicy() {
+            if (!lastDocId) {
+                addLine('  No document loaded yet. Execute a task first.', 'warning');
+                return;
+            }
+            const defaultPayload = {
+                confidence: 0.7,
+                gates: lastGateSnapshot.map((gate) => ({
+                    name: gate.name || gate.id || 'Gate',
+                    threshold: gate.threshold ?? 0.7
+                }))
+            };
+            const input = prompt('Update gate policy (JSON):', JSON.stringify(defaultPayload, null, 2));
+            if (!input) return;
+            try {
+                const payload = JSON.parse(input);
+                const response = await fetch(`${API_BASE_URL}/documents/${lastDocId}/gates`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    lastGateSnapshot = result.gates || [];
+                    updateGatesDisplay(lastGateSnapshot);
+                    updateActivationPreview(result.activation_preview);
+                    updateLibrarianContext(result.activation_preview?.librarian_context);
+                    addLine('✓ Gate policy updated', 'system');
+                    switchTab('gates');
+                } else {
+                    addLine(`✗ Gate update failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                addLine(`✗ Gate update error: ${error.message}`, 'error');
+            }
         }
 
         function updateBlockTree(blockTree) {

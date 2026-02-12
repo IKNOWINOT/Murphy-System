@@ -29,10 +29,16 @@ This directory contains visual screenshots for the Murphy System setup process.
 | 21_ui_activation_tests.png | Legacy integrated UI capability tests and error output | 1280x4154 |
 | 22_ui_automation_loop.png | Legacy integrated UI showing self-automation loop execution | 1280x13349 |
 | 23_ui_gate_policy_update.png | Legacy integrated UI showing gate policy updates and trigger plan | 1280x3541 |
-| 24_ui_production_overview.png | Production UI overview (light theme) | 1280x720 |
-| 25_ui_production_execution.png | Production UI execution with activation preview | 1280x720 |
-| 26_ui_production_gate_update.png | Production UI gate policy update flow | 1280x720 |
-| 27_ui_production_control_metrics.png | Production UI activation preview with control metrics | 1280x720 |
+| 24_ui_architect_overview.png | Architect terminal UI overview | 1280x720 |
+| 25_ui_architect_preview.png | Architect terminal UI activation preview | 1280x720 |
+| 26_ui_architect_librarian.png | Architect terminal UI librarian context | 1280x720 |
+| 27_ui_architect_gate_update.png | Architect terminal UI gate policy update flow | 1280x720 |
+| 28_ui_architect_blocks.png | Architect terminal UI block command tree | 1280x720 |
+| 29_ui_architect_blocks_magnify.png | Architect terminal UI magnify expansion | 1280x720 |
+| 24_ui_production_overview.png | Legacy production UI overview (deprecated) | 1280x720 |
+| 25_ui_production_execution.png | Legacy production UI execution with activation preview | 1280x720 |
+| 26_ui_production_gate_update.png | Legacy production UI gate policy update flow | 1280x720 |
+| 27_ui_production_control_metrics.png | Legacy production UI activation preview with control metrics | 1280x720 |
 
 ## Usage
 

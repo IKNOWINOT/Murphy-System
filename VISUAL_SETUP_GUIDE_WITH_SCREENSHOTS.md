@@ -8,7 +8,7 @@
 
 ## 📋 Table of Contents
 
-**Why this UI?** The production web UI (light theme) is used for validation because it surfaces activation previews, gate edits, timer/trigger scheduling, and business automation summaries in one place. The terminal UI remains available for quick command execution, but the production UI provides the governance and execution visibility needed for production readiness.
+**Why this UI?** The architect terminal UI is used for validation because it surfaces activation previews, gate edits, timer/trigger scheduling, and business automation summaries in one place while matching the requested terminal-architect look and feel. The legacy integrated UIs remain available for quick command execution, but the architect UI provides the governance and execution visibility needed for production readiness.
 
 1. [Prerequisites Check](#prerequisites-check)
 2. [Initial Setup](#initial-setup)
@@ -18,7 +18,7 @@
 6. [Starting Murphy](#starting-murphy)
 7. [Verification & Testing](#verification-testing)
 8. [Optional UI Access](#optional-ui-access-terminal-ui)
-9. [Production UI Walkthrough](#production-ui-walkthrough)
+9. [Architect Terminal Walkthrough](#architect-terminal-walkthrough)
 10. [Terminal UI Walkthroughs](#terminal-ui-walkthroughs)
 11. [Available API Endpoints](#available-api-endpoints)
 12. [Block Command Tree Walkthrough](#block-command-tree-walkthrough)
@@ -305,41 +305,59 @@ http://localhost:8090/murphy_ui_integrated_terminal.html?apiPort=8000
 
 ---
 
-### Step 12: Open the Production UI (Light Theme)
+### Step 12: Open the Architect Terminal UI
 
-Launch the light-theme production UI and point it at the runtime port:
+Launch the architect terminal UI (the production UI redirect points here) and target the runtime port. Use `?legacy=true` if you must view the older light-theme UI.
 
 ```
-http://localhost:8090/murphy_production_ui.html?apiPort=8000
+http://localhost:8090/murphy_integrated/terminal_architect.html?apiPort=8000
 ```
 
-![Production UI Overview](docs/screenshots/24_ui_production_overview.png)
+![Architect Terminal Overview](docs/screenshots/24_ui_architect_overview.png)
 
 ---
 
-## Production UI Walkthrough
+## Architect Terminal Walkthrough
 
 ### Step 13: Run an Automation Request
 
-Use **Automation Builder** to submit a full onboarding automation request (marketing → executive → operations → QA → HITL → execution).
+Submit a full onboarding automation request in the architect terminal input (marketing → executive → operations → QA → HITL → execution).
 
-![Production UI Execution](docs/screenshots/25_ui_production_execution.png)
+![Architect Terminal Preview](docs/screenshots/25_ui_architect_preview.png)
 
-**Observed behavior:** the system returns a task ID, confidence, and structured activation preview showing gates, swarm tasks, and governance plans.
+**Observed behavior:** the terminal returns activation preview JSON showing gates, swarm tasks, governance plans, and librarian conditions sourced from the runtime response.
 
 ---
 
-### Step 14: Update Gate Policies in Real Time
+### Step 14: Review Librarian Context & Conditions
 
-Use **Update Gates** to adjust thresholds and immediately review the refreshed gate chain and trigger plan.
+Open the **LIBRARIAN** tab to see the live librarian context, matched knowledge topics, and approval-required conditions that inform gate synthesis.
 
-![Production UI Gate Update](docs/screenshots/26_ui_production_gate_update.png)
+![Architect Terminal Librarian](docs/screenshots/26_ui_architect_librarian.png)
+
+---
+
+### Step 15: Update Gate Policies in Real Time
+
+Use **Update Gates** in the Gates tab (or `/updategates`) to adjust thresholds and immediately review the refreshed gate chain and trigger plan.
+
+![Architect Terminal Gate Update](docs/screenshots/27_ui_architect_gate_update.png)
+
+---
+
+### Step 16: Inspect Block Command Tree and Magnify
+
+Switch to **BLOCKS** to inspect the generated block tree, then run **Magnify** to expand the request into deeper sub-tasks.
+
+![Architect Terminal Blocks](docs/screenshots/28_ui_architect_blocks.png)
+
+![Architect Terminal Magnify](docs/screenshots/29_ui_architect_blocks_magnify.png)
 
 ---
 
 ## Terminal UI Walkthroughs
 
-### Step 15: Integrated Terminal Execute Tab
+### Step 17: Integrated Terminal Execute Tab
 
 Submit a task through the terminal-style execute tab.
 
@@ -347,7 +365,7 @@ Submit a task through the terminal-style execute tab.
 
 ---
 
-### Step 16: Integrated Terminal Command Flow
+### Step 18: Integrated Terminal Command Flow
 
 Use the command interface to submit a task payload.
 
@@ -355,7 +373,7 @@ Use the command interface to submit a task payload.
 
 ---
 
-### Step 17: Architect Terminal Flow Step
+### Step 19: Architect Terminal Flow Step
 
 Issue a high-level architecture command and observe the stage handoff.
 
@@ -363,7 +381,7 @@ Issue a high-level architecture command and observe the stage handoff.
 
 ---
 
-### Step 18: Worker Terminal Status Flow
+### Step 20: Worker Terminal Status Flow
 
 Run a worker status command and confirm the next-step prompt.
 
@@ -371,7 +389,7 @@ Run a worker status command and confirm the next-step prompt.
 
 ---
 
-### Step 19: Access API Documentation in Browser
+### Step 21: Access API Documentation in Browser
 
 Open your browser and navigate to:
 
@@ -397,7 +415,7 @@ http://localhost:6666/docs
 
 ## Block Command Tree Walkthrough
 
-### Step 20: Architect Block Tree Expansion
+### Step 22: Architect Block Tree Expansion
 
 Open the architect terminal, run a high-level command, and use magnify/simplify/solidify to expand the block tree.
 
@@ -405,47 +423,47 @@ Open the architect terminal, run a high-level command, and use magnify/simplify/
 
 ---
 
-### Step 21: Production Activation Preview
+### Step 23: Legacy Integrated Activation Preview (Optional)
 
-Run a request in the production UI to see the planned subsystems, gates, swarm tasks, and capability alignment gaps.
+If you still need the legacy integrated UI, run a request there to see the planned subsystems, gates, swarm tasks, and capability alignment gaps. The architect UI already exposes the same activation preview.
 
-![Production Activation Preview](docs/screenshots/25_ui_production_execution.png)
-
----
-
-### Step 22: Production Capability Tests
-
-Inspect the activation preview JSON in the production UI to see capability test errors and successful subsystem checks.
-
-![Production Capability Tests](docs/screenshots/27_ui_production_control_metrics.png)
+![Legacy Activation Preview](docs/screenshots/25_ui_production_execution.png)
 
 ---
 
-### Step 23: Self-Automation Loop Output
+### Step 24: Legacy Integrated Capability Tests (Optional)
 
-Use the production UI execution output to confirm business automation loop results and self-operation status.
+Inspect the activation preview JSON in the legacy integrated UI to see capability test errors and successful subsystem checks.
 
-![Production Automation Loop](docs/screenshots/25_ui_production_execution.png)
+![Legacy Capability Tests](docs/screenshots/27_ui_production_control_metrics.png)
+
+---
+
+### Step 25: Legacy Integrated Self-Automation Loop Output (Optional)
+
+Use the legacy integrated UI execution output to confirm business automation loop results and self-operation status.
+
+![Legacy Automation Loop](docs/screenshots/25_ui_production_execution.png)
 
 ---
 
 ## Gate Policy Updates & Timers
 
-### Step 24: Update Gate Policies and Trigger Plans
+### Step 26: Update Gate Policies and Trigger Plans
 
-Use **Update Gates** in the production UI to adjust gate thresholds (executive, operations, QA, HITL, execution) and immediately see the timer/trigger plan update.
+Use **Update Gates** in the architect UI to adjust gate thresholds (executive, operations, QA, HITL, execution) and immediately see the timer/trigger plan update.
 
-![Gate Policy Update](docs/screenshots/26_ui_production_gate_update.png)
+![Gate Policy Update](docs/screenshots/27_ui_architect_gate_update.png)
 
 ---
 
 ## Control Metrics Preview
 
-### Step 25: Verify Control-Metric Gate Context
+### Step 27: Verify Control-Metric Gate Context (Optional)
 
-Run a request and confirm the gate synthesis output includes control metrics (setpoints, sensor feedback, control effect) aligned to the request domain.
+Run a request and confirm the gate synthesis output includes control metrics (setpoints, sensor feedback, control effect) aligned to the request domain. The legacy integrated UI screenshot below shows the control metrics format.
 
-![Production UI Control Metrics](docs/screenshots/27_ui_production_control_metrics.png)
+![Legacy Control Metrics](docs/screenshots/27_ui_production_control_metrics.png)
 
 ---
 

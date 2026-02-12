@@ -62,14 +62,14 @@ The Murphy System integration project has been **successfully completed**. All 5
 
 ### ✅ Phase 4: UI Integration (5/5 - 100%)
 - Created murphy_ui_integrated.html
-- Added murphy_production_ui.html (light theme)
+- Added murphy_production_ui.html (now redirects to architect terminal UI)
 - Added form submission interface
 - Added correction capture UI
 - Added shadow agent monitoring
 - Created usage guide
 
 **Deliverables:**
-- murphy_production_ui.html (light-theme web UI)
+- murphy_production_ui.html (redirects to architect terminal UI unless `?legacy=true`)
 - murphy_ui_integrated.html (legacy web UI)
 - START_INTEGRATED_SYSTEM.md
 

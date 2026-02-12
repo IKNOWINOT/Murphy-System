@@ -260,7 +260,7 @@ murphy_integrated/
 
 | File | Purpose |
 |------|---------|
-| `murphy_production_ui.html` | Main web interface (light theme) |
+| `murphy_production_ui.html` | Redirects to architect terminal UI unless `?legacy=true` |
 | `murphy_ui_integrated.html` | Legacy integrated UI |
 | `terminal_integrated.html` | Integrated terminal UI |
 | `terminal_architect.html` | Architect mode |
