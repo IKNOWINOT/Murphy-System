@@ -1157,7 +1157,7 @@ class MurphySystem:
         requirements_profile = self._build_requirements_profile(task_description, onboarding_context)
         requirements_complete = requirements_profile["status"] == "complete"
         swarm_ready = bool(self.swarm_system)
-        # Loop readiness requires both complete requirements and an initialized swarm system.
+        # Loop readiness requires complete requirements plus a non-None swarm instance.
         loop_ready = requirements_complete and swarm_ready
         iteration_status = "queued" if loop_ready else "pending_setup"
         iterations = [
