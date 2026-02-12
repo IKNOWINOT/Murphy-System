@@ -917,6 +917,7 @@ class MurphySystem:
         operations_plan: List[Dict[str, Any]],
         delivery_readiness: Dict[str, Any]
     ) -> Dict[str, Any]:
+        """Summarize executive-level priorities based on planned operations and readiness."""
         priority_actions = [
             task.get("description")
             for task in operations_plan
@@ -953,6 +954,7 @@ class MurphySystem:
 
     @staticmethod
     def _build_workload_distribution(operations_plan: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate task distribution across owners from the operations plan."""
         totals: Dict[str, int] = {}
         for task in operations_plan:
             owner = task.get("owner", "unassigned")
@@ -988,6 +990,7 @@ class MurphySystem:
         sensor_plan: Dict[str, Any],
         hitl_contracts: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
+        """Assess readiness for human review using coverage, compliance, and HITL status."""
         coverage_summary = org_chart_plan.get("coverage_summary", {})
         total_deliverables = coverage_summary.get("total_deliverables", 0)
         uncovered = coverage_summary.get("uncovered_deliverables", 0)
