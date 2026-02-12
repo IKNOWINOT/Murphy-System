@@ -41,9 +41,9 @@ In short:
 
 ## Optional UI
 
-Runtime 1.0 does not serve a web UI by default. A static UI (`murphy_ui_integrated.html`) can be served separately if desired:
+Runtime 1.0 does not serve a web UI by default. The light-theme production UI (`murphy_production_ui.html`) can be served separately if desired:
 
 ```bash
 python -m http.server 8090
-# open http://localhost:8090/murphy_ui_integrated.html
+# open http://localhost:8090/murphy_production_ui.html?apiPort=8000
 ```

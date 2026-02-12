@@ -83,9 +83,13 @@ python murphy_complete_backend_extended.py
 Server will start on: **http://localhost:6666**
 
 ### 5. Access the UI
-Open your browser and navigate to:
+Serve the static UI and open it in your browser:
 ```
-http://localhost:6666/murphy_ui_integrated.html
+python -m http.server 8090
+```
+
+```
+http://localhost:8090/murphy_production_ui.html?apiPort=6666
 ```
 
 ---

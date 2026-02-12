@@ -118,7 +118,8 @@ murphy_integrated/
 │   │   └── integrated_hitl_monitor.py    # Integration class
 │   └── ... (original runtime modules)
 ├── murphy_system_1.0_runtime.py         # Runtime 1.0 API server
-├── murphy_ui_integrated.html            # Optional static web UI
+├── murphy_production_ui.html            # Primary light-theme web UI
+├── murphy_ui_integrated.html            # Legacy integrated UI
 └── tests/                               # Test suite
 ```
 
@@ -163,7 +164,7 @@ Server starts on: **http://localhost:6666**
 
 ## 💻 Usage
 
-### Optional Web UI
+### Web UI
 
 Serve the static UI with a simple HTTP server (not hosted by runtime 1.0):
 
@@ -174,7 +175,7 @@ python -m http.server 8090
 Then open:
 
 ```
-http://localhost:8090/murphy_ui_integrated.html
+http://localhost:8090/murphy_production_ui.html?apiPort=8000
 ```
 
 ### API Usage

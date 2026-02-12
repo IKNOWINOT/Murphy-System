@@ -24,6 +24,7 @@ from datetime import datetime, timedelta
 import logging
 import asyncio
 import time
+import re
 from uuid import uuid4
 
 # Add src to path
@@ -168,6 +169,7 @@ class LivingDocument:
         self.capability_tests: List[Dict[str, Any]] = []
         self.automation_summary: Dict[str, Any] = {}
         self.gate_policy: List[Dict[str, Any]] = []
+        self.librarian_conditions: List[Dict[str, Any]] = []
 
     def magnify(self, domain: str) -> Dict[str, Any]:
         self.domain_depth += 15
@@ -217,7 +219,8 @@ class LivingDocument:
             "gate_synthesis_gates": self.gate_synthesis_gates,
             "capability_tests": self.capability_tests,
             "automation_summary": self.automation_summary,
-            "gate_policy": self.gate_policy
+            "gate_policy": self.gate_policy,
+            "librarian_conditions": self.librarian_conditions
         }
 
 
@@ -401,6 +404,19 @@ class MurphySystem:
         logger.info(f"\n{'='*80}")
         logger.info(f"EXECUTING TASK: {task_description}")
         logger.info(f"{'='*80}\n")
+
+        if self.librarian:
+            self.librarian.log_transcript(
+                module="runtime",
+                action="execute_task",
+                details={
+                    "task_description": task_description,
+                    "task_type": task_type,
+                    "parameters": parameters or {}
+                },
+                actor="user",
+                success=True
+            )
         
         if not self._is_orchestrator_available():
             logger.warning("Two-Phase Orchestrator unavailable; using simulation mode.")
@@ -720,6 +736,50 @@ class MurphySystem:
                 })
         return contracts
 
+    def _build_librarian_context(
+        self,
+        doc: LivingDocument,
+        task_description: str,
+        planned_subsystems: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        if not self.librarian:
+            return {"status": "unavailable", "reason": "System librarian not initialized"}
+        tokens = set(re.findall(r"[a-z]{4,}", task_description.lower()))
+        subsystem_ids = {item.get("id") for item in planned_subsystems}
+        matches = []
+        for knowledge in self.librarian.knowledge_base.values():
+            haystack = f"{knowledge.topic} {knowledge.description} {knowledge.category}".lower()
+            if tokens and any(token in haystack for token in tokens):
+                matches.append(knowledge)
+                continue
+            if subsystem_ids and any(module in subsystem_ids for module in knowledge.related_modules):
+                matches.append(knowledge)
+        unique = []
+        seen = set()
+        for knowledge in matches:
+            if knowledge.knowledge_id in seen:
+                continue
+            seen.add(knowledge.knowledge_id)
+            unique.append(knowledge)
+        selected = unique[:3]
+        conditions = []
+        for knowledge in selected:
+            conditions.append({
+                "id": knowledge.knowledge_id,
+                "topic": knowledge.topic,
+                "condition": f"Apply librarian guidance for {knowledge.topic}.",
+                "requires_approval": True,
+                "status": "proposed"
+            })
+        doc.librarian_conditions = conditions
+        return {
+            "status": "ready",
+            "matched_topics": [knowledge.topic for knowledge in selected],
+            "recommended_conditions": conditions,
+            "knowledge_sources": [knowledge.to_dict() for knowledge in selected],
+            "approval_required": bool(conditions)
+        }
+
     def _build_timer_trigger_plan(self, task_description: str) -> Dict[str, Any]:
         if not GOVERNANCE_AVAILABLE:
             return {"status": "unavailable"}
@@ -799,6 +859,18 @@ class MurphySystem:
         doc.gate_policy = policy
         doc.capability_tests = []
         self._update_document_tree(doc)
+        if self.librarian:
+            self.librarian.log_transcript(
+                module="governance",
+                action="update_gate_policy",
+                details={
+                    "doc_id": doc.doc_id,
+                    "updates": updates,
+                    "confidence": doc.confidence
+                },
+                actor="user",
+                success=True
+            )
 
     def _record_activation_usage(self, subsystems: List[str]) -> None:
         for subsystem in subsystems:
@@ -827,6 +899,107 @@ class MurphySystem:
             "state": getattr(getattr(gate, "state", None), "value", getattr(gate, "state", None)),
             "target": getattr(gate, "target", None),
             "reason": getattr(gate, "reason", None)
+        }
+
+    def _build_gate_control_data(self, task_description: str, doc: LivingDocument) -> Dict[str, Any]:
+        profiles = [
+            {
+                "id": "marketing",
+                "keywords": ["marketing", "campaign", "seo", "social", "brand"],
+                "metric": "conversion_rate",
+                "unit": "ratio",
+                "setpoint": 0.12,
+                "baseline": 0.08,
+                "sensor": "marketing_engagement_api",
+                "signal": "engagement_score"
+            },
+            {
+                "id": "operations",
+                "keywords": ["operations", "workflow", "logistics", "fulfillment"],
+                "metric": "cycle_time_minutes",
+                "unit": "minutes",
+                "setpoint": 45,
+                "baseline": 60,
+                "sensor": "ops_latency_sensor",
+                "signal": "cycle_time"
+            },
+            {
+                "id": "qa",
+                "keywords": ["qa", "quality", "defect", "test"],
+                "metric": "defect_rate",
+                "unit": "ratio",
+                "setpoint": 0.02,
+                "baseline": 0.05,
+                "sensor": "qa_audit_sensor",
+                "signal": "defect_rate"
+            },
+            {
+                "id": "executive",
+                "keywords": ["executive", "approval", "governance", "board"],
+                "metric": "decision_latency_hours",
+                "unit": "hours",
+                "setpoint": 24,
+                "baseline": 36,
+                "sensor": "approval_queue_sensor",
+                "signal": "decision_latency"
+            },
+            {
+                "id": "finance",
+                "keywords": ["billing", "finance", "revenue", "payments"],
+                "metric": "collection_rate",
+                "unit": "ratio",
+                "setpoint": 0.95,
+                "baseline": 0.88,
+                "sensor": "billing_gateway_api",
+                "signal": "collections_rate"
+            },
+            {
+                "id": "execution",
+                "keywords": ["automation", "execution", "deployment", "production"],
+                "metric": "automation_success_rate",
+                "unit": "ratio",
+                "setpoint": 0.9,
+                "baseline": 0.75,
+                "sensor": "runtime_success_sensor",
+                "signal": "execution_success"
+            }
+        ]
+        lower_text = task_description.lower()
+        profile = next(
+            (item for item in profiles if any(keyword in lower_text for keyword in item["keywords"])),
+            {
+                "id": "general",
+                "metric": "confidence_index",
+                "unit": "ratio",
+                "setpoint": 0.75,
+                "baseline": 0.55,
+                "sensor": "request_confidence_sensor",
+                "signal": "confidence_index"
+            }
+        )
+        risk_factor = round(max(0.0, 1.0 - doc.confidence), 3)
+        baseline = profile["baseline"]
+        setpoint = profile["setpoint"]
+        sensor_value = round(baseline + (setpoint - baseline) * doc.confidence, 3)
+        control_value = round(sensor_value * (1 - risk_factor), 3)
+        return {
+            "domain": profile["id"],
+            "control_metric": {
+                "name": profile["metric"],
+                "unit": profile["unit"],
+                "setpoint": setpoint,
+                "control_value": control_value,
+                "risk_factor": risk_factor,
+                "formula": f"{profile['signal']} * (1 - risk_factor)"
+            },
+            "sensor_feedback": {
+                "sensor": profile["sensor"],
+                "signal": profile["signal"],
+                "value": sensor_value,
+                "source": "generated_sensor",
+                "timestamp": datetime.utcnow().isoformat()
+            },
+            "control_effect": "If control_value < setpoint, magnify/simplify gates remain blocked."
         }
 
     def _apply_wired_capabilities(
@@ -948,7 +1121,12 @@ class MurphySystem:
                 AuthorityBand.PROPOSE,
                 {failure_mode.id: failure_mode.probability}
             )
-            gate_summaries = [self._summarize_gate(gate) for gate in gates]
+            control_data = self._build_gate_control_data(task_description, doc)
+            gate_summaries = []
+            for gate in gates:
+                summary = self._summarize_gate(gate)
+                summary.update(control_data)
+                gate_summaries.append(summary)
             return {"id": "gate_synthesis", "status": "ok", "gates": gate_summaries}
         except Exception as exc:
             return {"id": "gate_synthesis", "status": "error", "error": str(exc)}
@@ -1163,11 +1341,19 @@ class MurphySystem:
                 "id": "hitl_monitor",
                 "reason": "HITL approvals required for contracting and execution."
             })
+        if self.librarian:
+            planned_subsystems.append({
+                "id": "system_librarian",
+                "reason": "Librarian generates context and proposed conditions."
+            })
         capability_alignment = self._build_capability_alignment(planned_subsystems)
         # Record after adding scheduler/HITL subsystems so metrics reflect full preview.
         self._record_activation_usage([item["id"] for item in planned_subsystems])
+        librarian_context = self._build_librarian_context(doc, task_description, planned_subsystems)
+        self_operation = self.get_system_status().get("self_operation")
 
         preview = {
+            "document_id": doc.doc_id,
             "request_summary": task_description,
             "confidence": doc.confidence,
             "planned_subsystems": planned_subsystems,
@@ -1181,10 +1367,25 @@ class MurphySystem:
             "executive_branch_plan": executive_plan,
             "operations_plan": operations_plan,
             "hitl_contracts": hitl_contracts,
-            "timer_triggers": trigger_plan
+            "timer_triggers": trigger_plan,
+            "librarian_context": librarian_context,
+            "self_operation": self_operation
         }
         if onboarding_context:
             preview["onboarding_context"] = onboarding_context
+        if self.librarian:
+            self.librarian.log_transcript(
+                module="activation_preview",
+                action="generate_preview",
+                details={
+                    "doc_id": doc.doc_id,
+                    "request": task_description,
+                    "planned_subsystems": planned_subsystems,
+                    "conditions": librarian_context.get("recommended_conditions", [])
+                },
+                actor="user",
+                success=True
+            )
         return preview
 
     def _record_execution(self, success: bool, duration: float) -> None:
@@ -1717,6 +1918,14 @@ class MurphySystem:
                 "wired": True,
                 "initialized": True,
                 "notes": "Gate synthesis is invoked during activation previews."
+            },
+            {
+                "id": "system_librarian",
+                "name": "System Librarian",
+                "path": base_dir / "system_librarian.py",
+                "wired": True,
+                "initialized": bool(self.librarian),
+                "notes": "Librarian generates context and proposed conditions per request."
             },
             {
                 "id": "compute_plane",

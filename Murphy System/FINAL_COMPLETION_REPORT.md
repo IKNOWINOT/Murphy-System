@@ -62,13 +62,15 @@ The Murphy System integration project has been **successfully completed**. All 5
 
 ### ✅ Phase 4: UI Integration (5/5 - 100%)
 - Created murphy_ui_integrated.html
+- Added murphy_production_ui.html (light theme)
 - Added form submission interface
 - Added correction capture UI
 - Added shadow agent monitoring
 - Created usage guide
 
 **Deliverables:**
-- murphy_ui_integrated.html (modern web UI)
+- murphy_production_ui.html (light-theme web UI)
+- murphy_ui_integrated.html (legacy web UI)
 - START_INTEGRATED_SYSTEM.md
 
 ### ✅ Phase 5: Final Packaging (5/5 - 100%)
@@ -101,7 +103,8 @@ murphy_integrated/
 │   ├── supervisor_system/                  # 8 new + original
 │   └── ... (272 original files)
 ├── murphy_complete_backend_extended.py     # Integrated backend
-├── murphy_ui_integrated.html               # Modern web UI
+├── murphy_production_ui.html               # Light-theme web UI
+├── murphy_ui_integrated.html               # Legacy web UI
 ├── tests/                                  # Test suite
 │   ├── test_basic_imports.py
 │   └── test_integration.py

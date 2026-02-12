@@ -260,7 +260,8 @@ murphy_integrated/
 
 | File | Purpose |
 |------|---------|
-| `murphy_ui_integrated.html` | Main web interface |
+| `murphy_production_ui.html` | Main web interface (light theme) |
+| `murphy_ui_integrated.html` | Legacy integrated UI |
 | `terminal_integrated.html` | Integrated terminal UI |
 | `terminal_architect.html` | Architect mode |
 | `terminal_enhanced.html` | Enhanced features |
