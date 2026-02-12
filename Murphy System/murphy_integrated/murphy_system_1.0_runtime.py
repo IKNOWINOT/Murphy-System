@@ -557,6 +557,8 @@ class MurphySystem:
             name = entry.get("name", "Gate")
             threshold = entry.get("threshold", 0.5)
             override = entry.get("status_override")
+            if override not in {None, "open", "blocked"}:
+                override = None
             # Manual overrides take precedence over confidence-based gating.
             status = override or ("open" if doc.confidence >= threshold else "blocked")
             reason = None
@@ -778,18 +780,18 @@ class MurphySystem:
             name = (update.get("name") or "").strip()
             if not name:
                 continue
-            existing_gate = next((gate for gate in policy if gate.get("name", "").lower() == name.lower()), None)
-            if not existing_gate:
-                existing_gate = {"name": name, "threshold": update.get("threshold", 0.5)}
-                policy.append(existing_gate)
+            matched_gate = next((gate for gate in policy if gate.get("name", "").lower() == name.lower()), None)
+            if not matched_gate:
+                matched_gate = {"name": name, "threshold": update.get("threshold", 0.5)}
+                policy.append(matched_gate)
             if "threshold" in update:
-                existing_gate["threshold"] = update["threshold"]
+                matched_gate["threshold"] = update["threshold"]
             if "status" in update or "status_override" in update:
-                existing_gate["status_override"] = update.get("status_override", update.get("status"))
+                matched_gate["status_override"] = update.get("status_override", update.get("status"))
             if update.get("clear_override"):
-                existing_gate.pop("status_override", None)
+                matched_gate.pop("status_override", None)
             if "stage" in update:
-                existing_gate["stage"] = update["stage"]
+                matched_gate["stage"] = update["stage"]
         doc.gate_policy = policy
         doc.capability_tests = []
         self._update_document_tree(doc)
