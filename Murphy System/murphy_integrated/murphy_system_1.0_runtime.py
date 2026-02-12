@@ -783,6 +783,12 @@ class MurphySystem:
         try:
             if not self.swarm_system:
                 return {"id": "true_swarm_system", "status": "not_initialized"}
+            if not hasattr(self.swarm_system, "execute_full_cycle"):
+                return {
+                    "id": "true_swarm_system",
+                    "status": "error",
+                    "error": "TrueSwarmSystem missing execute_full_cycle"
+                }
             result = self.swarm_system.execute_full_cycle(task_description, context)
             return {
                 "id": "true_swarm_system",
