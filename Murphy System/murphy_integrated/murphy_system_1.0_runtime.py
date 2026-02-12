@@ -304,7 +304,7 @@ class MurphySystem:
         ],
         "operations": [
             {
-                "id": "open_meteo",
+                "id": "open_meteo_ops",
                 "metric": "weather_risk",
                 "source": "Open-Meteo API",
                 "url": "https://api.open-meteo.com/",
@@ -374,7 +374,7 @@ class MurphySystem:
         ],
         "general": [
             {
-                "id": "open_meteo",
+                "id": "open_meteo_general",
                 "metric": "environment_risk",
                 "source": "Open-Meteo API",
                 "url": "https://api.open-meteo.com/",
@@ -1055,9 +1055,25 @@ class MurphySystem:
         if normalized in self.REGION_ALIASES:
             return normalized
         for region, aliases in self.REGION_ALIASES.items():
-            if any(alias in normalized for alias in aliases):
-                return region
+            for alias in aliases:
+                if alias == normalized:
+                    return region
+                pattern = rf"\b{re.escape(alias)}\b"
+                if re.search(pattern, normalized):
+                    return region
         return "global"
+
+    def _filter_sensors_for_region(self, sources: List[Dict[str, Any]], region: str) -> List[Dict[str, Any]]:
+        return [
+            {**sensor, "region": region}
+            for sensor in sources
+            if region in sensor.get("regions", []) or "global" in sensor.get("regions", [])
+        ]
+
+    def _select_primary_sensor(self, sensors: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        if not sensors:
+            return None
+        return next((sensor for sensor in sensors if sensor.get("access") == "free"), sensors[0])
 
     def _extract_region_from_context(
         self,
@@ -1086,22 +1102,18 @@ class MurphySystem:
         domain_sources = self.EXTERNAL_SENSOR_CATALOG.get(domain, [])
         general_sources = self.EXTERNAL_SENSOR_CATALOG.get("general", [])
         compliance_sources = self.EXTERNAL_SENSOR_CATALOG.get("compliance", [])
-        sensors = [
-            {**sensor, "region": region}
-            for sensor in domain_sources + general_sources
-            if region in sensor.get("regions", []) or "global" in sensor.get("regions", [])
-        ]
-        regulatory_sources = [
-            {**sensor, "region": region}
-            for sensor in compliance_sources
-            if region in sensor.get("regions", []) or "global" in sensor.get("regions", [])
-        ]
+        sensors = self._filter_sensors_for_region(domain_sources + general_sources, region)
+        regulatory_sources = self._filter_sensors_for_region(compliance_sources, region)
+        primary_sensor = self._select_primary_sensor(sensors)
+        primary_regulatory = self._select_primary_sensor(regulatory_sources)
         return {
             "region": region,
             "region_source": region_info,
             "domain": domain,
             "sensors": sensors,
             "regulatory_sources": regulatory_sources,
+            "primary_sensor": primary_sensor,
+            "primary_regulatory_source": primary_regulatory,
             "notes": "Sources are public/free; some require free API keys."
         }
 
@@ -1206,10 +1218,10 @@ class MurphySystem:
         control_value = round(sensor_value * (1 - risk_factor), 3)
         sensor_plan = self._build_external_sensor_plan(profile["id"], task_description, onboarding_context)
         sensor_source = "generated_sensor"
-        if sensor_plan["sensors"]:
-            sensor_source = f"external_plan:{sensor_plan['sensors'][0]['id']}"
-        if profile["id"] == "compliance" and sensor_plan["regulatory_sources"]:
-            sensor_source = f"regulatory_plan:{sensor_plan['regulatory_sources'][0]['id']}"
+        if sensor_plan.get("primary_sensor"):
+            sensor_source = f"external_plan:{sensor_plan['primary_sensor']['id']}"
+        if profile["id"] == "compliance" and sensor_plan.get("primary_regulatory_source"):
+            sensor_source = f"regulatory_plan:{sensor_plan['primary_regulatory_source']['id']}"
         return {
             "domain": profile["id"],
             "control_metric": {
