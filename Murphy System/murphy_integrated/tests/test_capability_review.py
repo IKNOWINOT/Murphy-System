@@ -18,11 +18,8 @@ def load_runtime_module():
 
 def test_capability_review_highlights_gaps():
     runtime = load_runtime_module()
-    murphy = runtime.MurphySystem.__new__(runtime.MurphySystem)
+    murphy = runtime.MurphySystem.create_test_instance()
     murphy.execution_metrics = {"total": 2, "success": 1, "total_time": 1.4}
-    murphy.integration_engine = None
-    murphy.governance_scheduler = None
-    murphy.inoni_automation = None
     murphy.flow_steps = [{"stage": "signup"}]
 
     capability_tests = [
