@@ -1166,13 +1166,17 @@ class MurphySystem:
             }
             for idx, variant in enumerate(self.LEARNING_LOOP_VARIANTS, start=1)
         ]
-        gap_action = (
-            "Provide missing onboarding answers to finalize requirements."
-            if not requirements_complete
-            else "Initialize swarm system and persistence to run iterative learning loops."
-        )
+        if not requirements_complete:
+            status = "needs_info"
+            gap_action = "Provide missing onboarding answers to finalize requirements."
+        elif not loop_ready:
+            status = "needs_wiring"
+            gap_action = "Initialize swarm system and persistence to run iterative learning loops."
+        else:
+            status = "ready"
+            gap_action = "Learning loop ready; execute multi-project iterations."
         return {
-            "status": "ready" if loop_ready else "needs_info" if not requirements_complete else "needs_wiring",
+            "status": status,
             "requirements_identification": requirements_profile,
             "output_targets": self.OUTPUT_CHANNEL_TARGETS,
             "iterations": iterations,
