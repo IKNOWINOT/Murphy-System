@@ -125,6 +125,18 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+GOVERNANCE_AVAILABLE = all(
+    component is not None
+    for component in (
+        GovernanceScheduler,
+        ScheduledAgent,
+        AgentDescriptor,
+        GovernanceAuthorityBand,
+        GovernanceActionType,
+        ActionSet
+    )
+)
+
 
 class LivingDocument:
     """
@@ -545,6 +557,7 @@ class MurphySystem:
             name = entry.get("name", "Gate")
             threshold = entry.get("threshold", 0.5)
             override = entry.get("status_override")
+            # Manual overrides take precedence over confidence-based gating.
             status = override or ("open" if doc.confidence >= threshold else "blocked")
             reason = None
             if blocked_by:
@@ -708,7 +721,7 @@ class MurphySystem:
         return contracts
 
     def _build_timer_trigger_plan(self, task_description: str) -> Dict[str, Any]:
-        if not (GovernanceScheduler and ScheduledAgent and AgentDescriptor and GovernanceAuthorityBand and GovernanceActionType and ActionSet):
+        if not GOVERNANCE_AVAILABLE:
             return {"status": "unavailable"}
         scheduler = GovernanceScheduler()
         now = datetime.utcnow()
@@ -765,18 +778,18 @@ class MurphySystem:
             name = (update.get("name") or "").strip()
             if not name:
                 continue
-            match = next((gate for gate in policy if gate.get("name", "").lower() == name.lower()), None)
-            if not match:
-                match = {"name": name, "threshold": update.get("threshold", 0.5)}
-                policy.append(match)
+            existing_gate = next((gate for gate in policy if gate.get("name", "").lower() == name.lower()), None)
+            if not existing_gate:
+                existing_gate = {"name": name, "threshold": update.get("threshold", 0.5)}
+                policy.append(existing_gate)
             if "threshold" in update:
-                match["threshold"] = update["threshold"]
+                existing_gate["threshold"] = update["threshold"]
             if "status" in update or "status_override" in update:
-                match["status_override"] = update.get("status_override", update.get("status"))
+                existing_gate["status_override"] = update.get("status_override", update.get("status"))
             if update.get("clear_override"):
-                match.pop("status_override", None)
+                existing_gate.pop("status_override", None)
             if "stage" in update:
-                match["stage"] = update["stage"]
+                existing_gate["stage"] = update["stage"]
         doc.gate_policy = policy
         doc.capability_tests = []
         self._update_document_tree(doc)
