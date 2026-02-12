@@ -1559,7 +1559,9 @@ class MurphySystem:
     def _calculate_success_rate(self, success: int, total: int) -> float:
         if not total:
             return 0.0
-        success = min(success, total)
+        if success > total:
+            logger.warning("Success count exceeds total: %s > %s", success, total)
+            success = total
         return (success / total) * 100
 
     def _build_capability_review(
