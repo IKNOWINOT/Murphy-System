@@ -397,6 +397,17 @@ class MurphySystem:
         ]
     }
     
+    @classmethod
+    def create_test_instance(cls) -> "MurphySystem":
+        """Lightweight instance factory for unit tests."""
+        instance = cls.__new__(cls)
+        instance.execution_metrics = {"total": 0, "success": 0, "total_time": 0.0}
+        instance.integration_engine = None
+        instance.governance_scheduler = None
+        instance.inoni_automation = None
+        instance.flow_steps = []
+        return instance
+
     def __init__(self):
         self.version = "1.0.0"
         self.start_time = datetime.utcnow()
@@ -1526,7 +1537,13 @@ class MurphySystem:
             "src.llm_controller",
             "src.local_llm_fallback"
         ]
-        available = [name for name in candidates if importlib.util.find_spec(name)]
+        available = []
+        for name in candidates:
+            try:
+                if importlib.util.find_spec(name):
+                    available.append(name)
+            except (ModuleNotFoundError, ValueError):
+                continue
         status = "available" if available else "not_configured"
         return {"status": status, "modules": available}
 
@@ -1582,9 +1599,10 @@ class MurphySystem:
             if llm_status != "available"
             else "LLM adapters are available; wire them to workflow policies."
         )
+        llm_ready = len(llm_readiness["modules"])
         workload_balance = {
             "deterministic_ready": deterministic_ready,
-            "llm_ready": 0,
+            "llm_ready": llm_ready,
             "llm_status": llm_status,
             "llm_modules": llm_readiness["modules"],
             "gap_action": llm_gap_action
