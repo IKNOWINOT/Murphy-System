@@ -56,3 +56,30 @@ For recommended gap closure solutions, see [CAPABILITY_GAP_SOLUTIONS.md](CAPABIL
 - Wire compute plane into execution for symbolic reasoning tasks.
 - Connect gate synthesis engine to document solidification for automatic gate creation.
 - Integrate TrueSwarmSystem into execution to expand tasks into domain-specific swarms.
+
+## Remaining Critical Items to Examine (Readiness Checklist)
+
+These are the remaining areas that must be verified closely before declaring the runtime “working” end-to-end:
+
+1. **Orchestrator availability**
+   - Confirm the two-phase orchestrator is online and reachable (runtime logs should not fall back to simulation).
+2. **Gate synthesis wiring**
+   - Ensure generated gates affect execution decisions (policy changes should alter approvals and routing).
+3. **Swarm execution**
+   - Validate that TrueSwarmSystem + domain swarms run beyond previews and produce executable tasks.
+4. **Compute plane + stability controllers**
+   - Confirm deterministic compute requests hit the compute plane and stability controllers can dampen loops.
+5. **Librarian context**
+   - Verify onboarding answers are persisted, replayed in requests, and produce updated conditions/gates.
+6. **External sensor/regulatory sources**
+   - Validate region-based sensor plans, ensure source URLs are reachable, and confirm the output is used.
+7. **Timer/trigger scheduling**
+   - Confirm governance scheduler can register triggers and fire follow-up jobs.
+8. **Persistence and audit trail**
+   - Ensure LivingDocument and activation previews are stored and replayable across sessions.
+9. **Human-in-the-loop escalation**
+   - Validate that HITL queues are populated when gates fail and approvals are captured.
+10. **UI → API parity**
+    - Verify the architect UI drives the same APIs as the runtime and that error states are visible.
+
+> **Test environment note:** automated tests expect `pytest` to be available; the current environment reports it missing.
