@@ -247,11 +247,11 @@ class MurphySystem:
     """
     ACTIVATION_CONFIDENCE_THRESHOLD = 0.7
     ACTIVATION_SOLIDIFIED_STATE = "SOLIDIFIED"
-    MAX_FAILURE_MODE_DESC_LENGTH = 80
-    MAX_SAMPLE_GATES = 3
-    GATE_OVERRIDE_VALUES = {"open", "blocked"}
     DELIVERABLE_EXTRACTION_KEYS = ("description", "task", "name", "stage")
     ORG_CHART_FALLBACK_POSITIONS = 2
+    GATE_OVERRIDE_VALUES = {"open", "blocked"}
+    MAX_FAILURE_MODE_DESC_LENGTH = 80
+    MAX_SAMPLE_GATES = 3
     REGION_ALIASES = {
         "north_america": ["north america", "usa", "us", "united states", "canada"],
         "europe": ["europe", "eu", "european", "uk", "united kingdom", "britain"],
@@ -900,6 +900,7 @@ class MurphySystem:
         doc: LivingDocument,
         tasks_source: Optional[List[Dict[str, Any]]] = None
     ) -> List[str]:
+        """Extract deliverable text from tasks or fallback flow steps."""
         tasks = tasks_source or doc.generated_tasks or self._generate_swarm_tasks()
         deliverables: List[str] = []
         seen = set()
@@ -943,9 +944,10 @@ class MurphySystem:
             ]
             mapping_method = "keyword"
             if not matched_positions and positions:
+                fallback_source = sorted(positions, key=lambda item: item.get("title", ""))
                 fallback_positions = [
                     position.get("title")
-                    for position in positions[:self.ORG_CHART_FALLBACK_POSITIONS]
+                    for position in fallback_source[:self.ORG_CHART_FALLBACK_POSITIONS]
                 ]
                 mapping_method = "fallback"
                 matched_positions = fallback_positions
@@ -981,6 +983,7 @@ class MurphySystem:
             if total_deliverables and len(obligations) == total_deliverables
         )
         for position, obligations in contract_map.items():
+            # "full" means exactly one position covers all deliverables; overlap_full means multiple do.
             if total_deliverables and len(obligations) == total_deliverables:
                 coverage_status = "full" if full_coverage_positions == 1 else "overlap_full"
             else:
