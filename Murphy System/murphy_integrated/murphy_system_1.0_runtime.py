@@ -1052,9 +1052,12 @@ class MurphySystem:
         if not region_input:
             return "global"
         canonical = region_input.lower().strip()
+        normalized = re.sub(r"\s+", " ", canonical.replace("_", " ")).strip()
+        underscored = normalized.replace(" ", "_")
         if canonical in self.REGION_ALIASES:
             return canonical
-        normalized = re.sub(r"\s+", " ", canonical.replace("_", " ")).strip()
+        if underscored in self.REGION_ALIASES:
+            return underscored
         for region, aliases in self.REGION_ALIASES.items():
             for alias in aliases:
                 pattern = rf"\b{re.escape(alias)}\b"
@@ -1219,6 +1222,7 @@ class MurphySystem:
         setpoint = profile["setpoint"]
         sensor_value = round(baseline + (setpoint - baseline) * doc.confidence, 3)
         control_value = round(sensor_value * (1 - risk_factor), 3)
+        # Defensive fallback for call sites that don't precompute sensor plans.
         if sensor_plan is None:
             sensor_plan = self._build_external_sensor_plan(profile["id"], task_description, onboarding_context)
         sensor_source = "generated_sensor"
@@ -1737,8 +1741,8 @@ class MurphySystem:
         next_index = min(stage_index + 1, len(self.flow_steps) - 1)
         session["stage_index"] = next_index
         next_stage = self.flow_steps[next_index]
-        region_info = self._extract_region_from_context(message, {"answers": answers})
         region_input = answers.get("region")
+        region_info = self._extract_region_from_context(message, {"answers": answers, "region": region_input})
         region = region_info["region"]
         return {
             "current_stage": current_stage["stage"],
