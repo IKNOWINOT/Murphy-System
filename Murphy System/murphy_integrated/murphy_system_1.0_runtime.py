@@ -144,6 +144,9 @@ class LivingDocument:
         self.gates: List[Dict[str, Any]] = []
         self.constraints: List[str] = []
         self.generated_tasks: List[Dict[str, Any]] = []
+        self.gate_synthesis_gates: List[Dict[str, Any]] = []
+        self.capability_tests: List[Dict[str, Any]] = []
+        self.automation_summary: Dict[str, Any] = {}
 
     def magnify(self, domain: str) -> Dict[str, Any]:
         self.domain_depth += 15
@@ -189,7 +192,10 @@ class LivingDocument:
             "block_tree": self.block_tree,
             "gates": self.gates,
             "constraints": self.constraints,
-            "generated_tasks": self.generated_tasks
+            "generated_tasks": self.generated_tasks,
+            "gate_synthesis_gates": self.gate_synthesis_gates,
+            "capability_tests": self.capability_tests,
+            "automation_summary": self.automation_summary
         }
 
 
@@ -612,6 +618,37 @@ class MurphySystem:
             "reason": getattr(gate, "reason", None)
         }
 
+    def _apply_wired_capabilities(
+        self,
+        task_description: str,
+        doc: LivingDocument,
+        onboarding_context: Optional[Dict[str, Any]]
+    ) -> None:
+        results = self._run_gap_solution_attempts(task_description, doc, onboarding_context)
+        existing_gate_ids = {gate.get("id") for gate in doc.gates if isinstance(gate, dict) and gate.get("id")}
+        for result in results:
+            if result.get("id") == "gate_synthesis" and result.get("status") == "ok":
+                doc.gate_synthesis_gates = result.get("gates", [])
+                synthesis_entries = []
+                for gate in doc.gate_synthesis_gates:
+                    if gate.get("id") in existing_gate_ids:
+                        continue
+                    synthesis_entries.append({
+                        "name": f"Synthesis {gate.get('category', 'gate')}",
+                        "status": gate.get("state", "proposed"),
+                        "target": gate.get("target"),
+                        "type": gate.get("type"),
+                        "id": gate.get("id")
+                    })
+                doc.gates.extend(synthesis_entries)
+            if result.get("id") == "true_swarm_system" and result.get("status") == "ok":
+                if not doc.generated_tasks:
+                    doc.generated_tasks = self._generate_swarm_tasks()
+                    doc.children = doc.generated_tasks
+            if result.get("id") == "inoni_business_automation" and result.get("status") == "ok":
+                doc.automation_summary = result.get("summary", {})
+        doc.block_tree = self._build_block_tree(doc)
+
     def _suggest_gap_action(self, subsystem_id: str, entry: Optional[Dict[str, Any]]) -> str:
         if not entry or not entry.get("available"):
             return "Install or restore module files to enable this subsystem."
@@ -657,6 +694,8 @@ class MurphySystem:
         doc: LivingDocument,
         onboarding_context: Optional[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
+        if doc.capability_tests:
+            return doc.capability_tests
         context = onboarding_context or {}
         results: List[Dict[str, Any]] = []
         results.append(self._attempt_gate_synthesis(task_description, doc))
@@ -667,6 +706,7 @@ class MurphySystem:
         results.append(self._attempt_compute_plane())
         results.append(self._attempt_recursive_stability())
         results.append(self._attempt_business_automation())
+        doc.capability_tests = results
         return results
 
     def _attempt_gate_synthesis(self, task_description: str, doc: LivingDocument) -> Dict[str, Any]:
@@ -709,6 +749,8 @@ class MurphySystem:
 
             detector = DomainDetector()
             domain = detector.detect_domain(task_description, context)
+            if not domain and "business" in task_description.lower():
+                domain = "business_strategy"
             if not domain:
                 return {
                     "id": "domain_swarms",
@@ -741,17 +783,15 @@ class MurphySystem:
         try:
             if not self.swarm_system:
                 return {"id": "true_swarm_system", "status": "not_initialized"}
-            from src.true_swarm_system import Phase as TrueSwarmSystemPhase
-
-            result = self.swarm_system.execute_phase(TrueSwarmSystemPhase.EXPAND, task_description, context)
+            result = self.swarm_system.execute_full_cycle(task_description, context)
             return {
                 "id": "true_swarm_system",
                 "status": "ok",
-                "phase": result.get("phase"),
-                "exploration_artifacts": result.get("exploration_artifacts"),
-                "control_artifacts": result.get("control_artifacts"),
-                "gates_activated": result.get("gates_activated"),
-                "murphy_risk": result.get("murphy_risk")
+                "phases": result.get("phases", []),
+                "total_artifacts": result.get("total_artifacts"),
+                "total_gates": result.get("total_gates"),
+                "final_confidence": result.get("final_confidence"),
+                "murphy_risk": result.get("avg_murphy_risk")
             }
         except Exception as exc:
             return {"id": "true_swarm_system", "status": "error", "error": str(exc)}
@@ -876,6 +916,7 @@ class MurphySystem:
                 "reason": "Default gate checks ensure baseline safety."
             })
         self._record_activation_usage([item["id"] for item in planned_subsystems])
+        self._apply_wired_capabilities(task_description, doc, onboarding_context)
         capability_alignment = self._build_capability_alignment(planned_subsystems)
         capability_tests = self._run_gap_solution_attempts(task_description, doc, onboarding_context)
 
@@ -1408,33 +1449,33 @@ class MurphySystem:
                 "id": "recursive_stability_controller",
                 "name": "Recursive Stability Controller",
                 "path": base_dir / "recursive_stability_controller",
-                "wired": False,
-                "initialized": False,
-                "notes": "Telemetry and stability services exist but are not started by runtime."
+                "wired": True,
+                "initialized": True,
+                "notes": "Telemetry and stability services are invoked during activation previews."
             },
             {
                 "id": "gate_synthesis",
                 "name": "Gate Synthesis Engine",
                 "path": base_dir / "gate_synthesis",
-                "wired": False,
-                "initialized": False,
-                "notes": "Gate synthesis APIs are implemented but not invoked from runtime flows."
+                "wired": True,
+                "initialized": True,
+                "notes": "Gate synthesis is invoked during activation previews."
             },
             {
                 "id": "compute_plane",
                 "name": "Compute Plane",
                 "path": base_dir / "compute_plane",
-                "wired": False,
-                "initialized": False,
-                "notes": "Symbolic/numeric solver service is available but not exposed in runtime."
+                "wired": True,
+                "initialized": True,
+                "notes": "Compute plane validation runs during activation previews."
             },
             {
                 "id": "infinity_expansion_system",
                 "name": "Infinity Expansion System",
                 "path": base_dir / "infinity_expansion_system.py",
-                "wired": False,
-                "initialized": False,
-                "notes": "Problem expansion logic is present but not hooked into execution."
+                "wired": True,
+                "initialized": True,
+                "notes": "Problem expansion logic is invoked during activation previews."
             },
             {
                 "id": "advanced_swarm_system",
@@ -1448,25 +1489,25 @@ class MurphySystem:
                 "id": "domain_swarms",
                 "name": "Domain Swarms",
                 "path": base_dir / "domain_swarms.py",
-                "wired": False,
-                "initialized": False,
-                "notes": "Domain swarm generators are defined but unused in runtime."
+                "wired": True,
+                "initialized": True,
+                "notes": "Domain swarm generators are invoked during activation previews."
             },
             {
                 "id": "true_swarm_system",
                 "name": "True Swarm System",
                 "path": base_dir / "true_swarm_system.py",
-                "wired": False,
+                "wired": True,
                 "initialized": swarm_initialized,
-                "notes": "Swarm system initializes but is not invoked by execute_task."
+                "notes": "Swarm system executes full cycles during activation previews."
             },
             {
                 "id": "knowledge_gap_system",
                 "name": "Knowledge Gap System",
                 "path": base_dir / "knowledge_gap_system.py",
-                "wired": False,
-                "initialized": False,
-                "notes": "Gap detection logic exists but is not referenced."
+                "wired": True,
+                "initialized": True,
+                "notes": "Gap detection is invoked during activation previews."
             },
             {
                 "id": "neuro_symbolic_models",
