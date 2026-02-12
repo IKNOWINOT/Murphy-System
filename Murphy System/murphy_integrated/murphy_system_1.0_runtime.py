@@ -943,15 +943,17 @@ class MurphySystem:
             ]
             mapping_method = "keyword"
             if not matched_positions and positions:
-                matched_positions = [
+                fallback_positions = [
                     position.get("title")
                     for position in positions[:self.ORG_CHART_FALLBACK_POSITIONS]
                 ]
                 mapping_method = "fallback"
+                matched_positions = fallback_positions
                 logger.warning(
-                    "Org chart fallback applied for deliverable '%s' (positions=%d)",
+                    "Org chart fallback applied for deliverable '%s' (positions=%d, fallback=%d)",
                     deliverable,
-                    len(positions)
+                    len(positions),
+                    len(fallback_positions)
                 )
             coverage.append({
                 "deliverable": deliverable,
@@ -973,8 +975,16 @@ class MurphySystem:
                     continue
                 contract_map.setdefault(position, []).append(item["deliverable"])
         contracts = []
+        full_coverage_positions = sum(
+            1
+            for obligations in contract_map.values()
+            if total_deliverables and len(obligations) == total_deliverables
+        )
         for position, obligations in contract_map.items():
-            coverage_status = "full" if total_deliverables and len(obligations) == total_deliverables else "partial"
+            if total_deliverables and len(obligations) == total_deliverables:
+                coverage_status = "full" if full_coverage_positions == 1 else "overlap_full"
+            else:
+                coverage_status = "partial"
             coverage_ratio = len(obligations) / total_deliverables if total_deliverables else 0.0
             contracts.append({
                 "position": position,
@@ -1003,7 +1013,7 @@ class MurphySystem:
             "deliverable_coverage": deliverable_coverage,
             "position_contracts": position_contracts,
             "coverage_summary": {
-                "total_deliverables": len(deliverable_coverage),
+                "total_deliverables": len(deliverables),
                 "uncovered_deliverables": len(uncovered),
                 "positions_required": len(positions)
             }
