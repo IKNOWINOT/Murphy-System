@@ -36,6 +36,7 @@ This directory contains visual screenshots for the Murphy System setup process.
 | 28_ui_architect_blocks.png | Architect terminal UI block command tree | 1280x720 |
 | 29_ui_architect_blocks_magnify.png | Architect terminal UI magnify expansion | 1280x720 |
 | 30_ui_architect_user_inputs.png | Architect terminal UI user input and live activation preview | 1280x720 |
+| 31_ui_architect_user_command.png | Architect terminal UI user command with onboarding prompt | 1280x720 |
 | 24_ui_production_overview.png | Legacy production UI overview (deprecated) | 1280x720 |
 | 25_ui_production_execution.png | Legacy production UI execution with activation preview | 1280x720 |
 | 26_ui_production_gate_update.png | Legacy production UI gate policy update flow | 1280x720 |
@@ -64,6 +65,6 @@ Screenshots were generated using Python PIL (Pillow) library to create terminal-
 
 ---
 
-**Total Screenshots:** 35  
-**Total Size:** ~5.4 MB  
+**Total Screenshots:** 44  
+**Total Size:** ~5.5 MB  
 **Created:** February 9, 2026

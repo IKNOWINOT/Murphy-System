@@ -325,6 +325,8 @@ Submit a full onboarding automation request in the architect terminal input (mar
 
 ![Architect Terminal User Input](docs/screenshots/30_ui_architect_user_inputs.png)
 
+![Architect Terminal User Command](docs/screenshots/31_ui_architect_user_command.png)
+
 ![Architect Terminal Preview](docs/screenshots/25_ui_architect_preview.png)
 
 **Observed behavior:** the terminal returns activation preview JSON showing gates, swarm tasks, governance plans, librarian conditions, and region-aware external API sensor plans sourced from the runtime response.
