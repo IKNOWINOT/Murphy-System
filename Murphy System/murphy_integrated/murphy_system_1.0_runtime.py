@@ -401,16 +401,14 @@ class MurphySystem:
     def create_test_instance(cls) -> "MurphySystem":
         """Lightweight instance factory for unit tests."""
         instance = cls.__new__(cls)
+        instance._initialize_configuration_defaults()
         instance.execution_metrics = {"total": 0, "success": 0, "total_time": 0.0}
         instance.integration_engine = None
         instance.governance_scheduler = None
         instance.inoni_automation = None
-        instance.flow_steps = []
         return instance
 
-    def __init__(self):
-        self.version = "1.0.0"
-        self.start_time = datetime.utcnow()
+    def _initialize_configuration_defaults(self) -> None:
         self.default_gate_policy = [
             {"name": "Magnify Gate", "threshold": 0.5, "stage": "discovery"},
             {"name": "Simplify Gate", "threshold": 0.6, "stage": "clarity"},
@@ -422,6 +420,51 @@ class MurphySystem:
             {"name": "HITL Contract Gate", "threshold": 0.7, "stage": "contracting"},
             {"name": "Execution Gate", "threshold": 0.8, "stage": "execution"}
         ]
+        self.mfgc_config = {
+            "enabled": False,
+            "murphy_threshold": 0.3,
+            "confidence_mode": "phase_locked",
+            "authority_mode": "standard",
+            "gate_synthesis": True,
+            "emergency_gates": True,
+            "audit_trail": True
+        }
+        self.mfgc_statistics = {
+            "total_executions": 0,
+            "success_rate": "0.0%",
+            "average_execution_time": "0.000s"
+        }
+        self.flow_steps = [
+            {
+                "stage": "signup",
+                "prompt": "Collect signup details (company name, contact email, primary goal)."
+            },
+            {
+                "stage": "region",
+                "prompt": "Confirm the operating region/country for the automation. This is used for metric sensors."
+            },
+            {
+                "stage": "setup",
+                "prompt": "Gather setup requirements (data sources, integrations, auth requirements)."
+            },
+            {
+                "stage": "automation_design",
+                "prompt": "Define the automation workflow (trigger, actions, success criteria)."
+            },
+            {
+                "stage": "automation_production",
+                "prompt": "Confirm production rollout (monitoring, alerts, rollout window)."
+            },
+            {
+                "stage": "billing",
+                "prompt": "Select billing plan (usage tier, automation coverage, support level)."
+            }
+        ]
+
+    def __init__(self):
+        self.version = "1.0.0"
+        self.start_time = datetime.utcnow()
+        self._initialize_configuration_defaults()
         
         logger.info("="*80)
         logger.info(f"MURPHY SYSTEM {self.version} - INITIALIZING")
@@ -502,47 +545,7 @@ class MurphySystem:
         self.latest_activation_preview: Dict[str, Any] = {}
         self.execution_metrics = {"total": 0, "success": 0, "total_time": 0.0}
         self.chat_sessions: Dict[str, Dict] = {}
-        self.mfgc_config = {
-            "enabled": False,
-            "murphy_threshold": 0.3,
-            "confidence_mode": "phase_locked",
-            "authority_mode": "standard",
-            "gate_synthesis": True,
-            "emergency_gates": True,
-            "audit_trail": True
-        }
-        self.mfgc_statistics = {
-            "total_executions": 0,
-            "success_rate": "0.0%",
-            "average_execution_time": "0.000s"
-        }
-        self.flow_steps = [
-            {
-                "stage": "signup",
-                "prompt": "Collect signup details (company name, contact email, primary goal)."
-            },
-            {
-                "stage": "region",
-                "prompt": "Confirm the operating region/country for the automation. This is used for metric sensors."
-            },
-            {
-                "stage": "setup",
-                "prompt": "Gather setup requirements (data sources, integrations, auth requirements)."
-            },
-            {
-                "stage": "automation_design",
-                "prompt": "Define the automation workflow (trigger, actions, success criteria)."
-            },
-            {
-                "stage": "automation_production",
-                "prompt": "Confirm production rollout (monitoring, alerts, rollout window)."
-            },
-            {
-                "stage": "billing",
-                "prompt": "Select billing plan (usage tier, automation coverage, support level)."
-            }
-        ]
-        
+
         logger.info("="*80)
         logger.info(f"MURPHY SYSTEM {self.version} - READY")
         logger.info("="*80)
@@ -1597,7 +1600,7 @@ class MurphySystem:
         llm_gap_action = (
             "Bind LLM adapters into execution + ticketing flows."
             if llm_status != "available"
-            else "LLM adapters are available; wire them to workflow policies."
+            else "LLM adapters configured and ready."
         )
         llm_ready = len(llm_readiness["modules"])
         workload_balance = {
