@@ -250,6 +250,7 @@ class MurphySystem:
     MAX_FAILURE_MODE_DESC_LENGTH = 80
     MAX_SAMPLE_GATES = 3
     GATE_OVERRIDE_VALUES = {"open", "blocked"}
+    ORG_CHART_FALLBACK_POSITIONS = 2
     REGION_ALIASES = {
         "north_america": ["north america", "usa", "us", "united states", "canada"],
         "europe": ["europe", "eu", "european", "uk", "united kingdom", "britain"],
@@ -933,7 +934,10 @@ class MurphySystem:
                 if any(keyword and keyword.lower() in deliverable_lower for keyword in keywords):
                     matched_positions.append(position.get("title"))
             if not matched_positions and positions:
-                matched_positions = [position.get("title") for position in positions[:2]]
+                matched_positions = [
+                    position.get("title")
+                    for position in positions[:self.ORG_CHART_FALLBACK_POSITIONS]
+                ]
             coverage.append({
                 "deliverable": deliverable,
                 "positions": matched_positions,
@@ -953,7 +957,7 @@ class MurphySystem:
             contracts.append({
                 "position": position,
                 "obligations": obligations,
-                "coverage": "full" if obligations else "partial"
+                "coverage": "full"
             })
         return contracts
 
