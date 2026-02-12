@@ -497,7 +497,7 @@ class MurphySystem:
             },
             {
                 "stage": "region",
-                "prompt": "Confirm the operating region/country for the automation (used for metric sensors)."
+                "prompt": "Confirm the operating region/country for the automation. This is used for metric sensors."
             },
             {
                 "stage": "setup",
@@ -1051,9 +1051,10 @@ class MurphySystem:
     def _normalize_region(self, region_input: Optional[str]) -> str:
         if not region_input:
             return "global"
-        normalized = re.sub(r"\s+", " ", region_input.lower()).strip()
-        if normalized in self.REGION_ALIASES:
-            return normalized
+        canonical = region_input.lower().strip()
+        if canonical in self.REGION_ALIASES:
+            return canonical
+        normalized = re.sub(r"\s+", " ", canonical.replace("_", " ")).strip()
         for region, aliases in self.REGION_ALIASES.items():
             for alias in aliases:
                 pattern = rf"\b{re.escape(alias)}\b"
@@ -1589,11 +1590,6 @@ class MurphySystem:
         operations_plan = self._build_operations_plan(doc)
         hitl_contracts = self._build_hitl_contract_plan(doc)
         trigger_plan = self._build_timer_trigger_plan(task_description)
-        sensor_plan = sensor_plan or self._build_external_sensor_plan(
-            sensor_profile["id"],
-            task_description,
-            onboarding_context
-        )
         if trigger_plan.get("status") == "scheduled":
             planned_subsystems.append({
                 "id": "governance_scheduler",
@@ -1741,7 +1737,7 @@ class MurphySystem:
         next_index = min(stage_index + 1, len(self.flow_steps) - 1)
         session["stage_index"] = next_index
         next_stage = self.flow_steps[next_index]
-        region_info = self._extract_region_from_context(message, {"answers": dict(answers)})
+        region_info = self._extract_region_from_context(message, {"answers": answers})
         region_input = answers.get("region")
         region = region_info["region"]
         return {
