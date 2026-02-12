@@ -247,11 +247,11 @@ class MurphySystem:
     """
     ACTIVATION_CONFIDENCE_THRESHOLD = 0.7
     ACTIVATION_SOLIDIFIED_STATE = "SOLIDIFIED"
-    DELIVERABLE_EXTRACTION_KEYS = ("description", "task", "name", "stage")
-    ORG_CHART_FALLBACK_POSITIONS = 2
     GATE_OVERRIDE_VALUES = {"open", "blocked"}
     MAX_FAILURE_MODE_DESC_LENGTH = 80
     MAX_SAMPLE_GATES = 3
+    DELIVERABLE_EXTRACTION_KEYS = ("description", "task", "name", "stage")
+    ORG_CHART_FALLBACK_POSITIONS = 2
     REGION_ALIASES = {
         "north_america": ["north america", "usa", "us", "united states", "canada"],
         "europe": ["europe", "eu", "european", "uk", "united kingdom", "britain"],
@@ -970,6 +970,13 @@ class MurphySystem:
         coverage: List[Dict[str, Any]],
         total_deliverables: int
     ) -> List[Dict[str, Any]]:
+        """Build contract coverage for positions.
+
+        Coverage status:
+        - full: only one position covers all deliverables
+        - overlap_full: multiple positions each cover all deliverables
+        - partial: position covers a subset of deliverables
+        """
         contract_map: Dict[str, List[str]] = {}
         for item in coverage:
             for position in item.get("positions", []):
@@ -983,7 +990,6 @@ class MurphySystem:
             if total_deliverables and len(obligations) == total_deliverables
         )
         for position, obligations in contract_map.items():
-            # "full" means exactly one position covers all deliverables; overlap_full means multiple do.
             if total_deliverables and len(obligations) == total_deliverables:
                 coverage_status = "full" if full_coverage_positions == 1 else "overlap_full"
             else:
