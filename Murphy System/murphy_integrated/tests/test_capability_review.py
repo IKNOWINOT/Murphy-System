@@ -1,5 +1,6 @@
 import importlib.util
 from pathlib import Path
+from unittest.mock import patch
 
 
 def load_runtime_module():
@@ -75,20 +76,32 @@ def test_success_rate_helper_handles_zero_and_percentages():
 def test_llm_readiness_handles_missing_modules():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
-    original_find_spec = runtime.importlib.util.find_spec
 
     def fake_find_spec(name):
         if name == runtime.MurphySystem.LLM_MODULE_CANDIDATES[0]:
             raise ModuleNotFoundError("missing")
         return None
 
-    runtime.importlib.util.find_spec = fake_find_spec
-    try:
+    with patch.object(runtime.importlib.util, "find_spec", side_effect=fake_find_spec):
         readiness = murphy._check_llm_readiness()
         assert readiness["status"] == "not_configured"
         assert readiness["modules"] == []
-    finally:
-        runtime.importlib.util.find_spec = original_find_spec
+
+
+def test_llm_readiness_detects_available_modules():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    target_module = runtime.MurphySystem.LLM_MODULE_CANDIDATES[1]
+
+    def fake_find_spec(name):
+        if name == target_module:
+            return object()
+        return None
+
+    with patch.object(runtime.importlib.util, "find_spec", side_effect=fake_find_spec):
+        readiness = murphy._check_llm_readiness()
+        assert readiness["status"] == "available"
+        assert readiness["modules"] == [target_module]
 
 
 def test_autonomy_extension_status_reflects_readiness():
