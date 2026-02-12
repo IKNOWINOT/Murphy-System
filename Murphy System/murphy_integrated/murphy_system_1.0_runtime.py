@@ -1051,7 +1051,7 @@ class MurphySystem:
     def _normalize_region(self, region_input: Optional[str]) -> str:
         if not region_input:
             return "global"
-        normalized = re.sub(r"\s+", " ", region_input.lower().strip())
+        normalized = re.sub(r"\s+", " ", region_input.lower()).strip()
         if normalized in self.REGION_ALIASES:
             return normalized
         for region, aliases in self.REGION_ALIASES.items():
@@ -1080,7 +1080,11 @@ class MurphySystem:
     ) -> Dict[str, Any]:
         context = onboarding_context or {}
         answers = context.get("answers", {})
-        region_input = context.get("region_input") or context.get("region") or answers.get("region")
+        region_input = context.get("region_input")
+        if region_input is None:
+            region_input = context.get("region")
+        if region_input is None:
+            region_input = answers.get("region")
         source = "onboarding" if region_input else "request"
         region = self._normalize_region(region_input or task_description)
         return {
