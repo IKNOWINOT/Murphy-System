@@ -62,3 +62,46 @@ def test_capability_review_highlights_gaps():
     assert review["summary"]["error"] == 1
     assert review["execution_metrics"]["total_executions"] == 2
     assert any(gap["id"] == "true_swarm_system" for gap in review["gaps"])
+
+
+def test_success_rate_helper_handles_zero_and_percentages():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+
+    assert murphy._calculate_success_rate(0, 0) == 0.0
+    assert murphy._calculate_success_rate(1, 2) == 50.0
+
+
+def test_llm_readiness_handles_missing_modules():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    original_find_spec = runtime.importlib.util.find_spec
+
+    def fake_find_spec(name):
+        if name == runtime.MurphySystem.LLM_MODULE_CANDIDATES[0]:
+            raise ModuleNotFoundError("missing")
+        return None
+
+    runtime.importlib.util.find_spec = fake_find_spec
+    try:
+        readiness = murphy._check_llm_readiness()
+        assert readiness["status"] == "not_configured"
+        assert readiness["modules"] == []
+    finally:
+        runtime.importlib.util.find_spec = original_find_spec
+
+
+def test_autonomy_extension_status_reflects_readiness():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.integration_engine = object()
+    murphy.governance_scheduler = object()
+    murphy.inoni_automation = object()
+    extensions = {item["id"]: item for item in murphy._build_autonomy_extension_status()}
+
+    assert extensions["business_metrics_scaling"]["status"] == "available"
+    assert extensions["auto_patching"]["status"] == "partial"
+
+    murphy.flow_steps = []
+    extensions = {item["id"]: item for item in murphy._build_autonomy_extension_status()}
+    assert extensions["self_service_onboarding"]["status"] == "needs_configuration"
