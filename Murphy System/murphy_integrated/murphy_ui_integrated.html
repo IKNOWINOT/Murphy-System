@@ -78,6 +78,13 @@
             padding: 30px;
             animation: fadeIn 0.3s;
         }
+
+        .preview-json {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
         
         .tab-content.active {
             display: block;
@@ -543,21 +550,21 @@
                             <p><strong>Capability Alignment:</strong></p>
                             <ul>${alignmentItems}</ul>
                             <p><strong>Capability Tests:</strong></p>
-                            <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;">${JSON.stringify(data.activation_preview.capability_tests || [], null, 2)}</pre>
+                            <pre class="preview-json">${JSON.stringify(data.activation_preview.capability_tests || [], null, 2)}</pre>
                             <p><strong>Planned Gates:</strong></p>
-                            <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;">${JSON.stringify(data.activation_preview.planned_gates, null, 2)}</pre>
+                            <pre class="preview-json">${JSON.stringify(data.activation_preview.planned_gates, null, 2)}</pre>
                             <p><strong>Planned Swarm Tasks:</strong></p>
-                            <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;">${JSON.stringify(data.activation_preview.planned_swarm_tasks, null, 2)}</pre>
+                            <pre class="preview-json">${JSON.stringify(data.activation_preview.planned_swarm_tasks, null, 2)}</pre>
                             <p><strong>Business Automation Summary:</strong></p>
-                            <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;">${JSON.stringify(data.activation_preview.business_automation_summary || {}, null, 2)}</pre>
+                            <pre class="preview-json">${JSON.stringify(data.activation_preview.business_automation_summary || {}, null, 2)}</pre>
                             <p><strong>Executive Branch Plan:</strong></p>
-                            <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;">${JSON.stringify(data.activation_preview.executive_branch_plan || {}, null, 2)}</pre>
+                            <pre class="preview-json">${JSON.stringify(data.activation_preview.executive_branch_plan || {}, null, 2)}</pre>
                             <p><strong>Operations Plan:</strong></p>
-                            <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;">${JSON.stringify(data.activation_preview.operations_plan || [], null, 2)}</pre>
+                            <pre class="preview-json">${JSON.stringify(data.activation_preview.operations_plan || [], null, 2)}</pre>
                             <p><strong>HITL Contracts:</strong></p>
-                            <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;">${JSON.stringify(data.activation_preview.hitl_contracts || [], null, 2)}</pre>
+                            <pre class="preview-json">${JSON.stringify(data.activation_preview.hitl_contracts || [], null, 2)}</pre>
                             <p><strong>Timer & Trigger Plan:</strong></p>
-                            <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;">${JSON.stringify(data.activation_preview.timer_triggers || {}, null, 2)}</pre>
+                            <pre class="preview-json">${JSON.stringify(data.activation_preview.timer_triggers || {}, null, 2)}</pre>
                         `;
                     }
                     showResult('taskResult', html, 'success');
@@ -665,9 +672,9 @@
                         'taskResult',
                         `<h4>Gate Policy Updated</h4>
                          <p><strong>Planned Gates:</strong></p>
-                         <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;">${JSON.stringify(data.gates || [], null, 2)}</pre>
+                         <pre class="preview-json">${JSON.stringify(data.gates || [], null, 2)}</pre>
                          <p><strong>Timer & Trigger Plan:</strong></p>
-                         <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;">${JSON.stringify(data.activation_preview?.timer_triggers || {}, null, 2)}</pre>`,
+                         <pre class="preview-json">${JSON.stringify(data.activation_preview?.timer_triggers || {}, null, 2)}</pre>`,
                         'success'
                     );
                 } else {
