@@ -24,7 +24,7 @@ from datetime import datetime, timedelta
 import logging
 import asyncio
 import time
-import re  # Tokenize requests for librarian context matching.
+import re
 from uuid import uuid4
 
 # Add src to path
@@ -1051,13 +1051,11 @@ class MurphySystem:
     def _normalize_region(self, region_input: Optional[str]) -> str:
         if not region_input:
             return "global"
-        normalized = region_input.lower().strip()
+        normalized = re.sub(r"\s+", " ", region_input.lower().strip())
         if normalized in self.REGION_ALIASES:
             return normalized
         for region, aliases in self.REGION_ALIASES.items():
             for alias in aliases:
-                if alias == normalized:
-                    return region
                 pattern = rf"\b{re.escape(alias)}\b"
                 if re.search(pattern, normalized):
                     return region
