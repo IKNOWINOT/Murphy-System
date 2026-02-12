@@ -94,6 +94,23 @@ def test_automation_execution_evaluation_validated():
     assert review["competitive_comparison"]["status"] == "baseline_ready"
 
 
+def test_automation_execution_evaluation_not_executed():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.execution_metrics = {"total": 0, "success": 0, "total_time": 0.0}
+
+    review = murphy._build_capability_review(
+        [],
+        [],
+        {"coverage_summary": {"status": "partial"}},
+        {"region": "global", "regulatory_sources": []},
+        {}
+    )
+
+    assert review["automation_execution"]["status"] == "not_executed"
+    assert review["competitive_comparison"]["status"] == "advisory"
+
+
 def test_llm_readiness_handles_missing_modules():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()

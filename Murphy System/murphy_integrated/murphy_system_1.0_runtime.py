@@ -1565,6 +1565,10 @@ class MurphySystem:
             success = total
         return (success / total) * 100
 
+    @staticmethod
+    def _format_average_execution_time(total: int, total_time: float) -> str:
+        return f"{(total_time / total):.3f}s" if total else "--"
+
     def _build_automation_execution_evaluation(
         self,
         metrics: Dict[str, Any],
@@ -1573,7 +1577,7 @@ class MurphySystem:
         total = metrics.get("total", 0)
         success = metrics.get("success", 0)
         success_rate = self._calculate_success_rate(success, total)
-        average_time = metrics.get("total_time", 0.0) / total if total else 0.0
+        average_time = self._format_average_execution_time(total, metrics.get("total_time", 0.0))
         automation_loops_ready = bool(getattr(self, "inoni_automation", None))
         business_signals = bool(business_summary)
         if total == 0:
@@ -1589,7 +1593,7 @@ class MurphySystem:
             "status": status,
             "total_executions": total,
             "success_rate": f"{success_rate:.1f}%",
-            "average_execution_time": f"{average_time:.3f}s" if total else "--",
+            "average_execution_time": average_time,
             "automation_loops_ready": automation_loops_ready,
             "business_summary_available": business_signals,
             "gap_action": gap_action
@@ -1687,8 +1691,9 @@ class MurphySystem:
             "execution_metrics": {
                 "total_executions": total,
                 "success_rate": f"{success_rate:.1f}%",
-                "average_execution_time": (
-                    f"{(metrics.get('total_time', 0.0) / total):.3f}s" if total else "--"
+                "average_execution_time": self._format_average_execution_time(
+                    total,
+                    metrics.get("total_time", 0.0)
                 )
             },
             "automation_execution": automation_execution,
