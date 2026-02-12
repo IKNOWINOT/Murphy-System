@@ -709,7 +709,7 @@ class InoniBusinessAutomation:
         logger.info("=" * 80)
 
         return {
-            # Timezone-aware timestamp (Python 3.11+ requirement is already documented).
+            # Timezone-aware timestamp for consistent logs.
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "sales": {
                 "leads": leads,
