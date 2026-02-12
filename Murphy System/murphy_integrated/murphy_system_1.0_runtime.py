@@ -1077,8 +1077,8 @@ class MurphySystem:
 
     def _extract_region_from_context(
         self,
-        onboarding_context: Optional[Dict[str, Any]],
-        task_description: str
+        task_description: str,
+        onboarding_context: Optional[Dict[str, Any]]
     ) -> Dict[str, Any]:
         context = onboarding_context or {}
         answers = context.get("answers", {})
@@ -1087,8 +1087,7 @@ class MurphySystem:
         region = self._normalize_region(region_input or task_description)
         return {
             "region": region,
-            "source": source,
-            "raw_input": region_input
+            "source": source
         }
 
     def _build_external_sensor_plan(
@@ -1097,7 +1096,7 @@ class MurphySystem:
         task_description: str,
         onboarding_context: Optional[Dict[str, Any]]
     ) -> Dict[str, Any]:
-        region_info = self._extract_region_from_context(onboarding_context, task_description)
+        region_info = self._extract_region_from_context(task_description, onboarding_context)
         region = region_info["region"]
         domain_sources = self.EXTERNAL_SENSOR_CATALOG.get(domain, [])
         general_sources = self.EXTERNAL_SENSOR_CATALOG.get("general", [])
