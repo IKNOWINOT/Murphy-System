@@ -1545,7 +1545,7 @@ class MurphySystem:
             try:
                 if importlib.util.find_spec(name):
                     available.append(name)
-            except (ModuleNotFoundError, ValueError):
+            except (ModuleNotFoundError, ValueError, ImportError):
                 continue
         status = "available" if available else "not_configured"
         return {"status": status, "modules": available}
@@ -1626,7 +1626,7 @@ class MurphySystem:
             "org_chart_coverage": org_chart_plan.get("coverage_summary", {}),
             "regulatory_scope": {
                 "region": sensor_plan.get("region"),
-                "primary_source": (sensor_plan.get("primary_regulatory_source") or {}).get("id"),
+                "primary_source": sensor_plan.get("primary_regulatory_source", {}).get("id"),
                 "sources": [source.get("id") for source in sensor_plan.get("regulatory_sources", [])]
             },
             "workload_balance": workload_balance,
