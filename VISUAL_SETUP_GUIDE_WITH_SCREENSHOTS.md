@@ -8,6 +8,8 @@
 
 ## 📋 Table of Contents
 
+**Why this UI?** The integrated web UI is used for validation because it surfaces activation previews, gate edits, timer/trigger scheduling, and business automation summaries in one place. The terminal UI remains available for quick command execution, but the integrated UI provides the governance and execution visibility needed for production readiness.
+
 1. [Prerequisites Check](#prerequisites-check)
 2. [Initial Setup](#initial-setup)
 3. [Virtual Environment Configuration](#virtual-environment-configuration)
@@ -21,7 +23,8 @@
 11. [Terminal UI Walkthroughs](#terminal-ui-walkthroughs)
 12. [Available API Endpoints](#available-api-endpoints)
 13. [Block Command Tree Walkthrough](#block-command-tree-walkthrough)
-14. [Next Steps](#next-steps)
+14. [Gate Policy Updates & Timers](#gate-policy-updates--timers)
+15. [Next Steps](#next-steps)
 
 ---
 
@@ -426,6 +429,16 @@ Run the self-automation request to see the business automation loop results.
 
 ---
 
+## Gate Policy Updates & Timers
+
+### Step 23: Update Gate Policies and Trigger Plans
+
+Use **Update Gates** in the integrated UI to adjust gate thresholds (executive, operations, QA, HITL, execution) and immediately see the timer/trigger plan update.
+
+![Gate Policy Update](docs/screenshots/23_ui_gate_policy_update.png)
+
+---
+
 ## Available API Endpoints
 
 ### Complete Endpoint Reference
@@ -436,6 +449,7 @@ Run the self-automation request to see the business automation loop results.
 | GET | /api/status | System status |
 | GET | /api/info | System information |
 | POST | /api/execute | Execute a task |
+| POST | /api/documents/{doc_id}/gates | Update gate policies |
 | POST | /api/integrations/add | Add new integration |
 | POST | /api/integrations/{id}/approve | Approve integration |
 | POST | /api/integrations/{id}/reject | Reject integration |
