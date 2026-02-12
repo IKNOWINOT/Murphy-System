@@ -241,6 +241,148 @@ class MurphySystem:
     MAX_FAILURE_MODE_DESC_LENGTH = 80
     MAX_SAMPLE_GATES = 3
     GATE_OVERRIDE_VALUES = {"open", "blocked"}
+    REGION_ALIASES = {
+        "north_america": ["north america", "usa", "us", "united states", "canada"],
+        "europe": ["europe", "eu", "european", "uk", "united kingdom", "britain"],
+        "apac": ["apac", "asia", "australia", "japan", "india", "singapore"],
+        "latam": ["latam", "latin america", "brazil", "mexico"],
+        "mea": ["middle east", "africa", "mea"],
+        "global": ["global", "worldwide", "international"]
+    }
+    EXTERNAL_SENSOR_CATALOG = {
+        "marketing": [
+            {
+                "id": "gdelt_media_volume",
+                "metric": "media_volume_index",
+                "source": "GDELT 2.1 Events API",
+                "url": "https://api.gdeltproject.org/api/v2/doc/doc",
+                "regions": ["global"],
+                "access": "free"
+            },
+            {
+                "id": "wikimedia_pageviews",
+                "metric": "interest_score",
+                "source": "Wikimedia Pageviews API",
+                "url": "https://wikimedia.org/api/rest_v1/",
+                "regions": ["global"],
+                "access": "free"
+            }
+        ],
+        "finance": [
+            {
+                "id": "coingecko_prices",
+                "metric": "crypto_price_change",
+                "source": "CoinGecko API",
+                "url": "https://api.coingecko.com/api/v3/",
+                "regions": ["global"],
+                "access": "free"
+            },
+            {
+                "id": "stooq_equities",
+                "metric": "equity_price",
+                "source": "Stooq CSV API",
+                "url": "https://stooq.com/q/l/",
+                "regions": ["north_america", "europe", "global"],
+                "access": "free"
+            },
+            {
+                "id": "fred_macro_indicators",
+                "metric": "macro_indicator",
+                "source": "FRED API",
+                "url": "https://api.stlouisfed.org/fred/",
+                "regions": ["north_america"],
+                "access": "free_api_key"
+            },
+            {
+                "id": "ecb_fx_rates",
+                "metric": "fx_rate",
+                "source": "ECB SDW",
+                "url": "https://sdw.ecb.europa.eu/",
+                "regions": ["europe"],
+                "access": "free"
+            }
+        ],
+        "operations": [
+            {
+                "id": "open_meteo",
+                "metric": "weather_risk",
+                "source": "Open-Meteo API",
+                "url": "https://api.open-meteo.com/",
+                "regions": ["global"],
+                "access": "free"
+            },
+            {
+                "id": "world_bank_logistics",
+                "metric": "logistics_index",
+                "source": "World Bank API",
+                "url": "https://api.worldbank.org/v2/",
+                "regions": ["global"],
+                "access": "free"
+            }
+        ],
+        "qa": [
+            {
+                "id": "nvd_cve_feed",
+                "metric": "defect_risk",
+                "source": "NVD CVE API",
+                "url": "https://services.nvd.nist.gov/rest/json/cves/2.0",
+                "regions": ["global"],
+                "access": "free_api_key"
+            }
+        ],
+        "compliance": [
+            {
+                "id": "govinfo_federal_law",
+                "metric": "regulatory_update",
+                "source": "GovInfo API",
+                "url": "https://api.govinfo.gov/",
+                "regions": ["north_america"],
+                "access": "free_api_key"
+            },
+            {
+                "id": "eur_lex_legislation",
+                "metric": "regulatory_update",
+                "source": "EUR-Lex",
+                "url": "https://eur-lex.europa.eu/",
+                "regions": ["europe"],
+                "access": "free"
+            },
+            {
+                "id": "uk_legislation",
+                "metric": "regulatory_update",
+                "source": "UK Legislation API",
+                "url": "https://www.legislation.gov.uk/developer/",
+                "regions": ["europe"],
+                "access": "free"
+            },
+            {
+                "id": "open_sanctions",
+                "metric": "compliance_watchlist",
+                "source": "OpenSanctions",
+                "url": "https://www.opensanctions.org/",
+                "regions": ["global"],
+                "access": "free"
+            },
+            {
+                "id": "world_bank_reg_quality",
+                "metric": "regulatory_quality_index",
+                "source": "World Bank API",
+                "url": "https://api.worldbank.org/v2/",
+                "regions": ["global"],
+                "access": "free"
+            }
+        ],
+        "general": [
+            {
+                "id": "open_meteo",
+                "metric": "environment_risk",
+                "source": "Open-Meteo API",
+                "url": "https://api.open-meteo.com/",
+                "regions": ["global"],
+                "access": "free"
+            }
+        ]
+    }
     
     def __init__(self):
         self.version = "1.0.0"
@@ -352,6 +494,10 @@ class MurphySystem:
             {
                 "stage": "signup",
                 "prompt": "Collect signup details (company name, contact email, primary goal)."
+            },
+            {
+                "stage": "region",
+                "prompt": "Confirm the operating region/country for the automation (used for metric sensors)."
             },
             {
                 "stage": "setup",
@@ -902,7 +1048,64 @@ class MurphySystem:
             "reason": getattr(gate, "reason", None)
         }
 
-    def _build_gate_control_data(self, task_description: str, doc: LivingDocument) -> Dict[str, Any]:
+    def _normalize_region(self, region_input: Optional[str]) -> str:
+        if not region_input:
+            return "global"
+        normalized = region_input.lower().strip()
+        if normalized in self.REGION_ALIASES:
+            return normalized
+        for region, aliases in self.REGION_ALIASES.items():
+            if any(alias in normalized for alias in aliases):
+                return region
+        return "global"
+
+    def _extract_region_from_context(
+        self,
+        onboarding_context: Optional[Dict[str, Any]],
+        task_description: str
+    ) -> Dict[str, Any]:
+        context = onboarding_context or {}
+        answers = context.get("answers", {})
+        region_input = context.get("region_input") or context.get("region") or answers.get("region")
+        source = "onboarding" if region_input else "request"
+        region = self._normalize_region(region_input or task_description)
+        return {
+            "region": region,
+            "source": source,
+            "raw_input": region_input
+        }
+
+    def _build_external_sensor_plan(
+        self,
+        domain: str,
+        task_description: str,
+        onboarding_context: Optional[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        region_info = self._extract_region_from_context(onboarding_context, task_description)
+        region = region_info["region"]
+        domain_sources = self.EXTERNAL_SENSOR_CATALOG.get(domain, [])
+        general_sources = self.EXTERNAL_SENSOR_CATALOG.get("general", [])
+        compliance_sources = self.EXTERNAL_SENSOR_CATALOG.get("compliance", [])
+        sensors = [
+            {**sensor, "region": region}
+            for sensor in domain_sources + general_sources
+            if region in sensor.get("regions", []) or "global" in sensor.get("regions", [])
+        ]
+        regulatory_sources = [
+            {**sensor, "region": region}
+            for sensor in compliance_sources
+            if region in sensor.get("regions", []) or "global" in sensor.get("regions", [])
+        ]
+        return {
+            "region": region,
+            "region_source": region_info,
+            "domain": domain,
+            "sensors": sensors,
+            "regulatory_sources": regulatory_sources,
+            "notes": "Sources are public/free; some require free API keys."
+        }
+
+    def _select_control_profile(self, task_description: str) -> Dict[str, Any]:
         profiles = [
             {
                 "id": "marketing",
@@ -933,6 +1136,16 @@ class MurphySystem:
                 "baseline": 0.05,
                 "sensor": "qa_audit_sensor",
                 "signal": "defect_rate"
+            },
+            {
+                "id": "compliance",
+                "keywords": ["compliance", "regulation", "legal", "law", "tax", "building code"],
+                "metric": "compliance_risk",
+                "unit": "ratio",
+                "setpoint": 0.95,
+                "baseline": 0.82,
+                "sensor": "regulatory_compliance_api",
+                "signal": "compliance_index"
             },
             {
                 "id": "executive",
@@ -966,7 +1179,7 @@ class MurphySystem:
             }
         ]
         lower_text = task_description.lower()
-        profile = next(
+        return next(
             (item for item in profiles if any(keyword in lower_text for keyword in item["keywords"])),
             {
                 "id": "general",
@@ -978,11 +1191,25 @@ class MurphySystem:
                 "signal": "confidence_index"
             }
         )
+
+    def _build_gate_control_data(
+        self,
+        task_description: str,
+        doc: LivingDocument,
+        onboarding_context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        profile = self._select_control_profile(task_description)
         risk_factor = round(max(0.0, 1.0 - doc.confidence), 3)
         baseline = profile["baseline"]
         setpoint = profile["setpoint"]
         sensor_value = round(baseline + (setpoint - baseline) * doc.confidence, 3)
         control_value = round(sensor_value * (1 - risk_factor), 3)
+        sensor_plan = self._build_external_sensor_plan(profile["id"], task_description, onboarding_context)
+        sensor_source = "generated_sensor"
+        if sensor_plan["sensors"]:
+            sensor_source = f"external_plan:{sensor_plan['sensors'][0]['id']}"
+        if profile["id"] == "compliance" and sensor_plan["regulatory_sources"]:
+            sensor_source = f"regulatory_plan:{sensor_plan['regulatory_sources'][0]['id']}"
         return {
             "domain": profile["id"],
             "control_metric": {
@@ -997,9 +1224,10 @@ class MurphySystem:
                 "sensor": profile["sensor"],
                 "signal": profile["signal"],
                 "value": sensor_value,
-                "source": "generated_sensor",
+                "source": sensor_source,
                 "timestamp": datetime.utcnow().isoformat()
             },
+            "external_api_sensors": sensor_plan,
             "control_effect": "If control_value < setpoint, magnify/simplify gates remain blocked."
         }
 
@@ -1083,7 +1311,7 @@ class MurphySystem:
             return doc.capability_tests
         context = onboarding_context or {}
         results: List[Dict[str, Any]] = []
-        results.append(self._attempt_gate_synthesis(task_description, doc))
+        results.append(self._attempt_gate_synthesis(task_description, doc, onboarding_context))
         results.append(self._attempt_domain_swarm(task_description, context))
         results.append(self._attempt_true_swarm(task_description, context))
         results.append(self._attempt_infinity_expansion(task_description))
@@ -1094,7 +1322,12 @@ class MurphySystem:
         doc.capability_tests = results
         return results
 
-    def _attempt_gate_synthesis(self, task_description: str, doc: LivingDocument) -> Dict[str, Any]:
+    def _attempt_gate_synthesis(
+        self,
+        task_description: str,
+        doc: LivingDocument,
+        onboarding_context: Optional[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         try:
             from src.gate_synthesis import FailureMode, RiskVector, GateGenerator
             from src.gate_synthesis.models import FailureModeType
@@ -1122,7 +1355,7 @@ class MurphySystem:
                 AuthorityBand.PROPOSE,
                 {failure_mode.id: failure_mode.probability}
             )
-            control_data = self._build_gate_control_data(task_description, doc)
+            control_data = self._build_gate_control_data(task_description, doc, onboarding_context)
             gate_summaries = []
             for gate in gates:
                 summary = self._summarize_gate(gate)
@@ -1332,6 +1565,11 @@ class MurphySystem:
         operations_plan = self._build_operations_plan(doc)
         hitl_contracts = self._build_hitl_contract_plan(doc)
         trigger_plan = self._build_timer_trigger_plan(task_description)
+        sensor_plan = self._build_external_sensor_plan(
+            self._select_control_profile(task_description)["id"],
+            task_description,
+            onboarding_context
+        )
         if trigger_plan.get("status") == "scheduled":
             planned_subsystems.append({
                 "id": "governance_scheduler",
@@ -1362,6 +1600,7 @@ class MurphySystem:
             "planned_swarm_tasks": planned_swarm_tasks,
             "onboarding_questions": onboarding_questions,
             "constraints": doc.constraints,
+            "region": sensor_plan["region"],
             "capability_alignment": capability_alignment,
             "capability_tests": capability_tests,
             "business_automation_summary": business_summary,
@@ -1369,6 +1608,12 @@ class MurphySystem:
             "operations_plan": operations_plan,
             "hitl_contracts": hitl_contracts,
             "timer_triggers": trigger_plan,
+            "external_api_sensors": sensor_plan,
+            "regulatory_scope": {
+                "region": sensor_plan["region"],
+                "sources": sensor_plan["regulatory_sources"],
+                "notes": "Region-specific regulatory sources inform legal/compliance gate checks."
+            },
             "librarian_context": librarian_context,
             "self_operation": self_operation
         }
@@ -1459,25 +1704,34 @@ class MurphySystem:
         if "reset" in message.lower() or "start over" in message.lower():
             session["stage_index"] = 0
             session["history"] = []
+            session["answers"] = {}
         stage_index = session.get("stage_index", 0)
         current_stage = self.flow_steps[stage_index]
+        answers = session.setdefault("answers", {})
         session.setdefault("history", []).append({
             "stage": current_stage["stage"],
             "message": message,
             "timestamp": datetime.utcnow().isoformat()
         })
+        answers[current_stage["stage"]] = message
         next_index = min(stage_index + 1, len(self.flow_steps) - 1)
         session["stage_index"] = next_index
         next_stage = self.flow_steps[next_index]
+        region_input = answers.get("region")
+        region = self._normalize_region(region_input) if region_input else None
         return {
             "current_stage": current_stage["stage"],
             "next_stage": next_stage["stage"],
-            "prompt": next_stage["prompt"]
+            "prompt": next_stage["prompt"],
+            "answers": dict(answers),
+            "region": region,
+            "region_input": region_input
         }
 
     def _build_mfgc_payload(self, stage: str, duration: float) -> Dict[str, Any]:
         phase_map = {
             "signup": "expand",
+            "region": "scope",
             "setup": "type",
             "automation_design": "enumerate",
             "automation_production": "bind",
