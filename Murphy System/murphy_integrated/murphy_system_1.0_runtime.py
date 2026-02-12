@@ -109,6 +109,13 @@ except ImportError as e:
     SystemLibrarian = TrueSwarmSystem = GovernanceScheduler = TelemetryIngester = TelemetryBus = None
     ScheduledAgent = PriorityLevel = AgentDescriptor = GovernanceAuthorityBand = GovernanceActionType = ActionSet = None
 
+# Org Chart System
+try:
+    from src.organization_chart_system import OrganizationChart
+except ImportError as e:
+    print(f"Warning: Organization chart system not available: {e}")
+    OrganizationChart = None
+
 # FastAPI for REST API
 try:
     from fastapi import FastAPI, HTTPException, Request
@@ -170,6 +177,7 @@ class LivingDocument:
         self.automation_summary: Dict[str, Any] = {}
         self.gate_policy: List[Dict[str, Any]] = []
         self.librarian_conditions: List[Dict[str, Any]] = []
+        self.org_chart_plan: Dict[str, Any] = {}
 
     def magnify(self, domain: str) -> Dict[str, Any]:
         self.domain_depth += 15
@@ -220,7 +228,8 @@ class LivingDocument:
             "capability_tests": self.capability_tests,
             "automation_summary": self.automation_summary,
             "gate_policy": self.gate_policy,
-            "librarian_conditions": self.librarian_conditions
+            "librarian_conditions": self.librarian_conditions,
+            "org_chart_plan": self.org_chart_plan
         }
 
 
@@ -454,6 +463,7 @@ class MurphySystem:
             self.librarian = SystemLibrarian() if SystemLibrarian else None
             self.swarm_system = TrueSwarmSystem() if TrueSwarmSystem else None
             self.governance_scheduler = GovernanceScheduler() if GovernanceScheduler else None
+            self.org_chart_system = OrganizationChart() if OrganizationChart else None
             if TelemetryBus and TelemetryIngester:
                 self.telemetry_bus = TelemetryBus()
                 self.telemetry_ingester = TelemetryIngester(self.telemetry_bus)
@@ -462,6 +472,7 @@ class MurphySystem:
                 self.telemetry_ingester = None
         except Exception as e:
             logger.warning(f"Some original components not available: {e}")
+            self.org_chart_system = None
         
         # System state
         self.sessions: Dict[str, Dict] = {}
@@ -881,6 +892,95 @@ class MurphySystem:
                     "blocked_by": gate.get("blocked_by")
                 })
         return contracts
+
+    def _extract_deliverables(
+        self,
+        doc: LivingDocument,
+        tasks_source: Optional[List[Dict[str, Any]]] = None
+    ) -> List[str]:
+        tasks = tasks_source or doc.generated_tasks or self._generate_swarm_tasks()
+        deliverables: List[str] = []
+        seen = set()
+        for task in tasks:
+            for key in ("description", "task", "name", "stage"):
+                value = task.get(key)
+                if value:
+                    text = str(value)
+                    if text not in seen:
+                        seen.add(text)
+                        deliverables.append(text)
+                    break
+        return deliverables
+
+    def _map_deliverables_to_positions(
+        self,
+        deliverables: List[str],
+        positions: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        coverage = []
+        for deliverable in deliverables:
+            deliverable_lower = deliverable.lower()
+            matched_positions = []
+            for position in positions:
+                keywords = [
+                    position.get("title", ""),
+                    position.get("department", ""),
+                    position.get("level", "")
+                ]
+                keywords.extend(position.get("knowledge_domains", []))
+                keywords.extend(position.get("skills", []))
+                keywords.extend(position.get("typical_tasks", []))
+                if any(keyword and keyword.lower() in deliverable_lower for keyword in keywords):
+                    matched_positions.append(position.get("title"))
+            if not matched_positions and positions:
+                matched_positions = [position.get("title") for position in positions[:2]]
+            coverage.append({
+                "deliverable": deliverable,
+                "positions": matched_positions,
+                "status": "covered" if matched_positions else "unassigned"
+            })
+        return coverage
+
+    def _build_position_contracts(self, coverage: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        contract_map: Dict[str, List[str]] = {}
+        for item in coverage:
+            for position in item.get("positions", []):
+                if not position:
+                    continue
+                contract_map.setdefault(position, []).append(item["deliverable"])
+        contracts = []
+        for position, obligations in contract_map.items():
+            contracts.append({
+                "position": position,
+                "obligations": obligations,
+                "coverage": "full" if obligations else "partial"
+            })
+        return contracts
+
+    def _build_org_chart_plan(
+        self,
+        task_description: str,
+        deliverables: List[str]
+    ) -> Dict[str, Any]:
+        if not self.org_chart_system:
+            return {"status": "unavailable", "reason": "Organization chart system not initialized"}
+        context = self.org_chart_system.get_knowledge_context_for_project(task_description)
+        positions = context.get("required_positions", [])
+        deliverable_coverage = self._map_deliverables_to_positions(deliverables, positions)
+        position_contracts = self._build_position_contracts(deliverable_coverage)
+        uncovered = [item for item in deliverable_coverage if item["status"] != "covered"]
+        return {
+            "status": "ready",
+            "required_positions": positions,
+            "deliverables": deliverables,
+            "deliverable_coverage": deliverable_coverage,
+            "position_contracts": position_contracts,
+            "coverage_summary": {
+                "total_deliverables": len(deliverable_coverage),
+                "uncovered_deliverables": len(uncovered),
+                "positions_required": len(positions)
+            }
+        }
 
     def _build_librarian_context(
         self,
@@ -1338,6 +1438,7 @@ class MurphySystem:
         results.append(self._attempt_true_swarm(task_description, context))
         results.append(self._attempt_infinity_expansion(task_description))
         results.append(self._attempt_knowledge_gap(task_description, context))
+        results.append(self._attempt_org_chart(task_description, doc))
         results.append(self._attempt_compute_plane())
         results.append(self._attempt_recursive_stability())
         results.append(self._attempt_business_automation())
@@ -1490,6 +1591,21 @@ class MurphySystem:
         except Exception as exc:
             return {"id": "recursive_stability_controller", "status": "error", "error": str(exc)}
 
+    def _attempt_org_chart(self, task_description: str, doc: LivingDocument) -> Dict[str, Any]:
+        if not self.org_chart_system:
+            return {"id": "org_chart_system", "status": "not_initialized"}
+        try:
+            deliverables = self._extract_deliverables(doc)
+            plan = self._build_org_chart_plan(task_description, deliverables)
+            return {
+                "id": "org_chart_system",
+                "status": plan.get("status", "unknown"),
+                "positions_required": len(plan.get("required_positions", [])),
+                "coverage_summary": plan.get("coverage_summary", {})
+            }
+        except Exception as exc:
+            return {"id": "org_chart_system", "status": "error", "error": str(exc)}
+
     def _attempt_business_automation(self) -> Dict[str, Any]:
         if not self.inoni_automation:
             return {"id": "inoni_business_automation", "status": "not_initialized"}
@@ -1526,6 +1642,11 @@ class MurphySystem:
                 "id": "domain_swarms",
                 "reason": "Select domain-specific swarm strategies.",
                 "keywords": ["domain", "industry", "software", "marketing", "sales", "finance"]
+            },
+            {
+                "id": "org_chart_system",
+                "reason": "Map deliverables to positions and contract coverage.",
+                "keywords": ["org", "organization", "role", "position", "contract", "staff", "team", "executive"]
             },
             {
                 "id": "infinity_expansion_system",
@@ -1569,6 +1690,11 @@ class MurphySystem:
                 "id": "gate_synthesis",
                 "reason": "Default gate checks ensure baseline safety."
             })
+        if self.org_chart_system and not any(item["id"] == "org_chart_system" for item in planned_subsystems):
+            planned_subsystems.append({
+                "id": "org_chart_system",
+                "reason": "Org chart mapping ensures roles cover deliverables."
+            })
         sensor_profile = self._select_control_profile(task_description)
         sensor_plan = self._build_external_sensor_plan(
             sensor_profile["id"],
@@ -1583,6 +1709,9 @@ class MurphySystem:
             {**task, "status": task.get("status", "pending")}
             for task in tasks_source
         ]
+        deliverables = self._extract_deliverables(doc, tasks_source)
+        org_chart_plan = self._build_org_chart_plan(task_description, deliverables)
+        doc.org_chart_plan = org_chart_plan
 
         onboarding_questions = [
             {"stage": step["stage"], "prompt": step["prompt"]}
@@ -1639,6 +1768,7 @@ class MurphySystem:
                 "notes": "Region-specific regulatory sources inform legal/compliance gate checks."
             },
             "librarian_context": librarian_context,
+            "org_chart_plan": org_chart_plan,
             "self_operation": self_operation
         }
         if onboarding_context:
@@ -2206,6 +2336,14 @@ class MurphySystem:
                 "wired": True,
                 "initialized": bool(self.librarian),
                 "notes": "Librarian generates context and proposed conditions per request."
+            },
+            {
+                "id": "org_chart_system",
+                "name": "Organization Chart System",
+                "path": base_dir / "organization_chart_system.py",
+                "wired": True,
+                "initialized": bool(getattr(self, "org_chart_system", None)),
+                "notes": "Maps deliverables to positions and contract coverage."
             },
             {
                 "id": "compute_plane",
