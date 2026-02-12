@@ -71,15 +71,17 @@ These are the remaining areas that must be verified closely before declaring the
    - Confirm deterministic compute requests hit the compute plane and stability controllers can dampen loops.
 5. **Librarian context**
    - Verify onboarding answers are persisted, replayed in requests, and produce updated conditions/gates.
-6. **External sensor/regulatory sources**
+6. **Org chart position coverage**
+   - Validate deliverables map to role coverage and contract obligations in activation previews.
+7. **External sensor/regulatory sources**
    - Validate region-based sensor plans, ensure source URLs are reachable, and confirm the output is used.
-7. **Timer/trigger scheduling**
+8. **Timer/trigger scheduling**
    - Confirm governance scheduler can register triggers and fire follow-up jobs.
-8. **Persistence and audit trail**
+9. **Persistence and audit trail**
    - Ensure LivingDocument and activation previews are stored and replayable across sessions.
-9. **Human-in-the-loop escalation**
+10. **Human-in-the-loop escalation**
    - Validate that HITL queues are populated when gates fail and approvals are captured.
-10. **UI → API parity**
+11. **UI → API parity**
     - Verify the architect UI drives the same APIs as the runtime and that error states are visible.
 
 > **Test environment note:** automated tests expect `pytest` to be available; the current environment reports it missing.
