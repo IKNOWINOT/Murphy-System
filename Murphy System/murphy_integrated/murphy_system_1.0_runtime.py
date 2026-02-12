@@ -16,6 +16,7 @@ License: Apache License 2.0
 
 import sys
 import os
+import importlib.util
 from copy import deepcopy
 from pathlib import Path
 from typing import Dict, List, Optional, Any
@@ -1519,6 +1520,16 @@ class MurphySystem:
         ]
         return extensions
 
+    def _check_llm_readiness(self) -> Dict[str, Any]:
+        candidates = [
+            "src.llm_integration",
+            "src.llm_controller",
+            "src.local_llm_fallback"
+        ]
+        available = [name for name in candidates if importlib.util.find_spec(name)]
+        status = "available" if available else "not_configured"
+        return {"status": status, "modules": available}
+
     def _build_capability_review(
         self,
         capability_tests: List[Dict[str, Any]],
@@ -1564,12 +1575,19 @@ class MurphySystem:
         success_rate = (metrics.get("success", 0) / total) * 100 if total else 0.0
 
         deterministic_ready = len([test for test in capability_tests if test.get("status") == "ok"])
-        llm_status = "not_configured"
+        llm_readiness = self._check_llm_readiness()
+        llm_status = llm_readiness["status"]
+        llm_gap_action = (
+            "Bind LLM adapters into execution + ticketing flows."
+            if llm_status != "available"
+            else "LLM adapters are available; wire them to workflow policies."
+        )
         workload_balance = {
             "deterministic_ready": deterministic_ready,
             "llm_ready": 0,
             "llm_status": llm_status,
-            "gap_action": "Integrate LLM adapters for conversational reasoning and ticketing."
+            "llm_modules": llm_readiness["modules"],
+            "gap_action": llm_gap_action
         }
 
         return {

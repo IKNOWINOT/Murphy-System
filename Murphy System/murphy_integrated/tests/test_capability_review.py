@@ -3,7 +3,11 @@ from pathlib import Path
 
 
 def load_runtime_module():
-    module_path = Path(__file__).resolve().parents[1] / "murphy_system_1.0_runtime.py"
+    runtime_dir = Path(__file__).resolve().parents[1]
+    candidates = list(runtime_dir.glob("murphy_system_*_runtime.py"))
+    if not candidates:
+        raise RuntimeError("Unable to locate Murphy runtime module")
+    module_path = candidates[0]
     spec = importlib.util.spec_from_file_location("murphy_system_runtime", module_path)
     module = importlib.util.module_from_spec(spec)
     if spec.loader is None:
