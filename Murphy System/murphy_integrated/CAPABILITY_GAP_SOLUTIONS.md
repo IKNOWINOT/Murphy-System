@@ -91,4 +91,4 @@ Recommendations:
 - **Update/rollback automation:** Register patch playbooks with the governance scheduler and require executive gates.
 - **Self-service onboarding:** Expand onboarding prompts into templates that auto-generate gates, org charts, and contracts.
 
-> **Competitive readiness note:** compare capability coverage only after these integrations are live; until then, competitive scoring is advisory and should be validated through external benchmarks.
+> **Competitive readiness note:** compare capability coverage only after `capability_review.automation_execution.status` is `validated`; until then, `capability_review.competitive_comparison` is advisory and should be validated through external benchmarks.

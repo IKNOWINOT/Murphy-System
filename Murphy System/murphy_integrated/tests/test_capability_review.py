@@ -51,17 +51,21 @@ def test_capability_review_highlights_gaps():
     ]
     org_chart_plan = {"coverage_summary": {"status": "partial"}}
     sensor_plan = {"region": "global", "regulatory_sources": []}
+    business_summary = {"marketing": {"content_generated": True}}
 
     review = murphy._build_capability_review(
         capability_tests,
         capability_alignment,
         org_chart_plan,
-        sensor_plan
+        sensor_plan,
+        business_summary
     )
 
     assert review["summary"]["ok"] == 1
     assert review["summary"]["error"] == 1
     assert review["execution_metrics"]["total_executions"] == 2
+    assert review["automation_execution"]["status"] == "needs_attention"
+    assert review["competitive_comparison"]["status"] == "advisory"
     assert any(gap["id"] == "true_swarm_system" for gap in review["gaps"])
 
 
@@ -71,6 +75,23 @@ def test_success_rate_helper_handles_zero_and_percentages():
 
     assert murphy._calculate_success_rate(0, 0) == 0.0
     assert murphy._calculate_success_rate(1, 2) == 50.0
+
+
+def test_automation_execution_evaluation_validated():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.execution_metrics = {"total": 3, "success": 3, "total_time": 1.2}
+
+    review = murphy._build_capability_review(
+        [],
+        [],
+        {"coverage_summary": {"status": "partial"}},
+        {"region": "global", "regulatory_sources": []},
+        {"marketing": {"content_generated": True}}
+    )
+
+    assert review["automation_execution"]["status"] == "validated"
+    assert review["competitive_comparison"]["status"] == "baseline_ready"
 
 
 def test_llm_readiness_handles_missing_modules():
