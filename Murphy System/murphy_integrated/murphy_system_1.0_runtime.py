@@ -154,6 +154,7 @@ class LivingDocument:
     - simplify: reduces complexity to improve clarity
     - solidify: locks the document and triggers swarm task generation
     - block_tree: hierarchical representation of pending/complete actions
+    - org_chart_plan: populated by activation previews with position mappings
     """
 
     def __init__(self, doc_id: str, title: str, content: str, doc_type: str):
@@ -250,8 +251,8 @@ class MurphySystem:
     GATE_OVERRIDE_VALUES = {"open", "blocked"}
     MAX_FAILURE_MODE_DESC_LENGTH = 80
     MAX_SAMPLE_GATES = 3
-    DELIVERABLE_EXTRACTION_KEYS = ("description", "task", "name", "stage")
-    ORG_CHART_FALLBACK_POSITIONS = 2
+    DELIVERABLE_EXTRACTION_KEYS = ("description", "task", "name", "stage")  # Ordered keys for deliverable text.
+    ORG_CHART_FALLBACK_POSITIONS = 2  # Positions used when keyword matching fails.
     REGION_ALIASES = {
         "north_america": ["north america", "usa", "us", "united states", "canada"],
         "europe": ["europe", "eu", "european", "uk", "united kingdom", "britain"],
@@ -902,6 +903,8 @@ class MurphySystem:
     ) -> List[str]:
         """Extract deliverable text from tasks or fallback flow steps."""
         tasks = tasks_source or doc.generated_tasks or self._generate_swarm_tasks()
+        if not isinstance(tasks, list):
+            return []
         deliverables: List[str] = []
         seen = set()
         for task in tasks:
@@ -944,7 +947,10 @@ class MurphySystem:
             ]
             mapping_method = "keyword"
             if not matched_positions and positions:
-                fallback_source = sorted(positions, key=lambda item: item.get("title", ""))
+                fallback_source = sorted(
+                    positions,
+                    key=lambda item: (-len(item.get("skills", [])), item.get("title", ""))
+                )
                 fallback_positions = [
                     position.get("title")
                     for position in fallback_source[:self.ORG_CHART_FALLBACK_POSITIONS]

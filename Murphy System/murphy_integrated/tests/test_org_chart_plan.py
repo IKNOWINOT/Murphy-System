@@ -27,3 +27,12 @@ def test_org_chart_plan_builds_contract_positions():
     assert plan["deliverable_coverage"]
     assert plan["position_contracts"]
     assert plan["coverage_summary"]["total_deliverables"] == 2
+
+
+def test_org_chart_plan_unavailable():
+    runtime = load_runtime_module()
+    system = runtime.MurphySystem()
+    system.org_chart_system = None
+    plan = system._build_org_chart_plan("Test org chart coverage", ["Deliverable"])
+    assert plan["status"] == "unavailable"
+    assert "reason" in plan
