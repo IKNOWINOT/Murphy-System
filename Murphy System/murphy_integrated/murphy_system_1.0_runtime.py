@@ -408,7 +408,7 @@ class MurphySystem:
 
         Initializes configuration defaults and leaves optional subsystems unset
         (integration_engine, governance_scheduler, inoni_automation) so tests can
-        explicitly assert wiring behavior.
+        explicitly assert wiring behavior without running full initialization.
         """
         instance = cls.__new__(cls)
         instance._initialize_configuration_defaults()
@@ -1549,14 +1549,14 @@ class MurphySystem:
         available = []
         for name in candidates:
             try:
-                if importlib.util.find_spec(name):
+                if importlib.util.find_spec(name) is not None:
                     available.append(name)
             except (ModuleNotFoundError, ValueError, ImportError):
                 continue
         status = "available" if available else "not_configured"
         return {"status": status, "modules": available}
 
-    def _calculate_success_rate(self, total: int, success: int) -> float:
+    def _calculate_success_rate(self, success: int, total: int) -> float:
         if not total:
             return 0.0
         return (success / total) * 100
@@ -1603,7 +1603,7 @@ class MurphySystem:
 
         metrics = getattr(self, "execution_metrics", {"total": 0, "success": 0, "total_time": 0.0})
         total = metrics.get("total", 0)
-        success_rate = self._calculate_success_rate(total, metrics.get("success", 0))
+        success_rate = self._calculate_success_rate(metrics.get("success", 0), total)
 
         deterministic_ready = len([test for test in capability_tests if test.get("status") == "ok"])
         llm_readiness = self._check_llm_readiness()
@@ -2024,7 +2024,7 @@ class MurphySystem:
             self.execution_metrics["success"] += 1
         self.execution_metrics["total_time"] += duration
         total = self.execution_metrics["total"]
-        success_rate = self._calculate_success_rate(total, self.execution_metrics["success"])
+        success_rate = self._calculate_success_rate(self.execution_metrics["success"], total)
         avg_time = self.execution_metrics["total_time"] / total if total else 0.0
         self.mfgc_statistics["total_executions"] = total
         self.mfgc_statistics["success_rate"] = f"{success_rate:.1f}%"
