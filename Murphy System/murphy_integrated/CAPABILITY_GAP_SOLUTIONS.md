@@ -14,6 +14,10 @@ The runtime currently provides:
 - **Librarian context generation** with recommended conditions and approval-required guidance.
 - **Org chart coverage mapping** for deliverables → positions → contract coverage gaps.
 - **Regional compliance sensors** for regulatory sources tied to onboarding region data.
+- **User-tested onboarding prompts** that request operating region and surface gated next steps during architect terminal sessions.
+- **Gate policy edits + block commands** (magnify/simplify/solidify) that update previews in real time.
+
+These capabilities are currently **planning/preview oriented**: the system generates gate chains, swarms, and governance plans but does not yet execute external automations without additional wiring (see completion path below).
 
 ### Learning loop status
 
