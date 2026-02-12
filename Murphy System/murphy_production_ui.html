@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Murphy - Business Operating System</title>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        if (!params.has('legacy')) {
+            const target = `murphy_integrated/terminal_architect.html${window.location.search}`;
+            window.location.replace(target);
+        }
+    </script>
     <style>
         * {
             margin: 0;

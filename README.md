@@ -59,7 +59,7 @@ start_murphy_1.0.bat   # Windows
 - **Only runtime prepared:** `murphy_system_1.0_runtime.py` is the single runnable runtime today. References to v2/v3 are planning docs only.
 - **How to run:** `cd "Murphy System/murphy_integrated" && ./start_murphy_1.0.sh`
 - **What you can test:** `/api/health`, `/api/status`, `/api/info`, `/api/execute`, and automation endpoints under `/api/automation/...`
-- **Production UI:** serve `Murphy System/murphy_production_ui.html` with `python -m http.server 8090` and open `http://localhost:8090/murphy_production_ui.html?apiPort=6666`
+- **Architect UI:** serve `Murphy System/murphy_integrated/terminal_architect.html` (or `murphy_production_ui.html`, which redirects unless `?legacy=true`) with `python -m http.server 8090` and open `http://localhost:8090/murphy_integrated/terminal_architect.html?apiPort=6666`
 - **Details:** see [Runtime 1.0 Status](Murphy%20System/murphy_integrated/RUNTIME_1.0_STATUS.md)
 
 * * *
