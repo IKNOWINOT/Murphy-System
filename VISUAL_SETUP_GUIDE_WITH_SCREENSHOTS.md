@@ -323,6 +323,8 @@ http://localhost:8090/murphy_integrated/terminal_architect.html?apiPort=8000
 
 Submit a full onboarding automation request in the architect terminal input (marketing → executive → operations → QA → HITL → execution). Include the operating region so regulatory sources are selected.
 
+![Architect Terminal User Input](docs/screenshots/30_ui_architect_user_inputs.png)
+
 ![Architect Terminal Preview](docs/screenshots/25_ui_architect_preview.png)
 
 **Observed behavior:** the terminal returns activation preview JSON showing gates, swarm tasks, governance plans, librarian conditions, and region-aware external API sensor plans sourced from the runtime response.

@@ -2,6 +2,42 @@
 
 This document captures the best recommendations for closing the current capability gaps using the modules already present in the repository.
 
+## Current capabilities (runtime 1.0)
+
+The runtime currently provides:
+
+- **Activation previews** with gate policies, swarm task planning, org chart coverage, regulatory sensor plans, and learning-loop plans.
+- **Architect terminal UI** onboarding chat flow, block commands (magnify/simplify/solidify), gate updates, and preview/librarian panels.
+- **Governance planning** (executive, operations, QA, HITL) and timer/trigger scheduling in previews.
+- **Business automation loop outputs** (marketing, operations, QA) through the Inoni automation engine.
+- **Capability review summaries** (execution metrics, workload balance, automation execution evaluation, competitive comparison readiness).
+- **Librarian context generation** with recommended conditions and approval-required guidance.
+- **Org chart coverage mapping** for deliverables → positions → contract coverage gaps.
+- **Regional compliance sensors** for regulatory sources tied to onboarding region data.
+
+### Learning loop status
+
+The activation preview now includes a **learning loop plan** that:
+
+- Identifies missing onboarding requirements before iterative automation runs.
+- Lists output targets (document, email, chat, voice, API).
+- Schedules repeat project variants (baseline/compliance/growth) to show multi-project iteration.
+- Notes the exact wiring gaps required to move from planning to fully automated loops.
+
+## Current goals (target state)
+
+1. **Fully wired execution:** gate synthesis, swarm execution, compute plane, and persistence must drive live task execution.
+2. **Self-service automation:** onboarding, remote access, ticketing, and patch/rollback automation must be bound to real services.
+3. **Multi-channel delivery:** consistent adapters for documents, email, chat, and voice with audit trails.
+4. **Autonomous learning loops:** repeated project iterations with requirements identification and updated gate policies.
+
+## Completion path (from now → fully operational)
+
+1. Wire gate synthesis + swarm execution into `execute_task` and form handlers.
+2. Persist LivingDocument, librarian context, and gate history across sessions.
+3. Add channel adapters (documents/email/chat/voice) to the integration engine.
+4. Close the learning loop with iterative requirement variants and automated gate tuning.
+
 ## 1) Immediate wiring priorities (highest impact)
 
 ### A) Gate Synthesis → Execution
