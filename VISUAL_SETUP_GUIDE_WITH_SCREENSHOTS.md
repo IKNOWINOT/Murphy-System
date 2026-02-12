@@ -8,7 +8,7 @@
 
 ## 📋 Table of Contents
 
-**Why this UI?** The integrated web UI is used for validation because it surfaces activation previews, gate edits, timer/trigger scheduling, and business automation summaries in one place. The terminal UI remains available for quick command execution, but the integrated UI provides the governance and execution visibility needed for production readiness.
+**Why this UI?** The production web UI (light theme) is used for validation because it surfaces activation previews, gate edits, timer/trigger scheduling, and business automation summaries in one place. The terminal UI remains available for quick command execution, but the production UI provides the governance and execution visibility needed for production readiness.
 
 1. [Prerequisites Check](#prerequisites-check)
 2. [Initial Setup](#initial-setup)
@@ -19,12 +19,13 @@
 7. [Verification & Testing](#verification-testing)
 8. [Optional UI Access](#optional-ui-access-terminal-ui)
 9. [Execute a Task in the UI](#execute-a-task-in-the-ui)
-10. [Integrated UI Walkthrough](#integrated-ui-walkthrough)
+10. [Production UI Walkthrough](#production-ui-walkthrough)
 11. [Terminal UI Walkthroughs](#terminal-ui-walkthroughs)
 12. [Available API Endpoints](#available-api-endpoints)
 13. [Block Command Tree Walkthrough](#block-command-tree-walkthrough)
 14. [Gate Policy Updates & Timers](#gate-policy-updates--timers)
-15. [Next Steps](#next-steps)
+15. [Control Metrics Preview](#control-metrics-preview)
+16. [Next Steps](#next-steps)
 
 ---
 
@@ -305,41 +306,41 @@ http://localhost:8090/murphy_ui_integrated_terminal.html?apiPort=8000
 
 ---
 
-### Step 12: Execute a Task in the UI
+### Step 12: Open the Production UI (Light Theme)
 
-With the terminal UI open, use the **Execute** tab to submit a real task. Example prompt:
+Launch the light-theme production UI and point it at the runtime port:
 
 ```
-Generate a 3-step outreach plan for SaaS prospects and include follow-up timing.
+http://localhost:8090/murphy_production_ui.html?apiPort=8000
 ```
 
-Then click **Execute Task** to send the request to `/api/execute`.
-
-![Execute Task](docs/screenshots/13_ui_terminal_execute.png)
-
-**Expected behavior:**
-- If the runtime is running, the status indicator should move from **OFFLINE** to **ACTIVE**.
-- The task result appears in the output pane.
-
-**If you stay OFFLINE:** from `Murphy System/murphy_integrated`, start runtime 1.0 (`./start_murphy_1.0.sh`) so the UI can reach `http://localhost:6666/api/execute`.
+![Production UI Overview](docs/screenshots/24_ui_production_overview.png)
 
 ---
 
-## Integrated UI Walkthrough
+## Production UI Walkthrough
 
-### Step 13: Integrated UI Task Submission
+### Step 13: Run an Automation Request
 
-Use the form-driven UI to submit a full onboarding automation request.
+Use **Automation Builder** to submit a full onboarding automation request (marketing → executive → operations → QA → HITL → execution).
 
-![Integrated UI Form Execution](docs/screenshots/14_ui_integrated_form_execution.png)
+![Production UI Execution](docs/screenshots/25_ui_production_execution.png)
 
-**Observed behavior:** the system returns a task ID, confidence, and structured output for the onboarding flow.
+**Observed behavior:** the system returns a task ID, confidence, and structured activation preview showing gates, swarm tasks, and governance plans.
+
+---
+
+### Step 14: Update Gate Policies in Real Time
+
+Use **Update Gates** to adjust thresholds and immediately review the refreshed gate chain and trigger plan.
+
+![Production UI Gate Update](docs/screenshots/26_ui_production_gate_update.png)
 
 ---
 
 ## Terminal UI Walkthroughs
 
-### Step 14: Integrated Terminal Execute Tab
+### Step 15: Integrated Terminal Execute Tab
 
 Submit a task through the terminal-style execute tab.
 
@@ -347,7 +348,7 @@ Submit a task through the terminal-style execute tab.
 
 ---
 
-### Step 15: Integrated Terminal Command Flow
+### Step 16: Integrated Terminal Command Flow
 
 Use the command interface to submit a task payload.
 
@@ -355,7 +356,7 @@ Use the command interface to submit a task payload.
 
 ---
 
-### Step 16: Architect Terminal Flow Step
+### Step 17: Architect Terminal Flow Step
 
 Issue a high-level architecture command and observe the stage handoff.
 
@@ -363,7 +364,7 @@ Issue a high-level architecture command and observe the stage handoff.
 
 ---
 
-### Step 17: Worker Terminal Status Flow
+### Step 18: Worker Terminal Status Flow
 
 Run a worker status command and confirm the next-step prompt.
 
@@ -371,7 +372,7 @@ Run a worker status command and confirm the next-step prompt.
 
 ---
 
-### Step 18: Access API Documentation in Browser
+### Step 19: Access API Documentation in Browser
 
 Open your browser and navigate to:
 
@@ -397,7 +398,7 @@ http://localhost:6666/docs
 
 ## Block Command Tree Walkthrough
 
-### Step 19: Architect Block Tree Expansion
+### Step 20: Architect Block Tree Expansion
 
 Open the architect terminal, run a high-level command, and use magnify/simplify/solidify to expand the block tree.
 
@@ -405,7 +406,7 @@ Open the architect terminal, run a high-level command, and use magnify/simplify/
 
 ---
 
-### Step 20: Integrated Activation Preview
+### Step 21: Integrated Activation Preview
 
 Run a form task to see the planned subsystems, gates, swarm tasks, and capability alignment gaps.
 
@@ -413,7 +414,7 @@ Run a form task to see the planned subsystems, gates, swarm tasks, and capabilit
 
 ---
 
-### Step 21: Integrated Capability Tests
+### Step 22: Integrated Capability Tests
 
 Run the same request to see capability test errors and successful subsystem checks.
 
@@ -421,7 +422,7 @@ Run the same request to see capability test errors and successful subsystem chec
 
 ---
 
-### Step 22: Self-Automation Loop Output
+### Step 23: Self-Automation Loop Output
 
 Run the self-automation request to see the business automation loop results.
 
@@ -431,11 +432,21 @@ Run the self-automation request to see the business automation loop results.
 
 ## Gate Policy Updates & Timers
 
-### Step 23: Update Gate Policies and Trigger Plans
+### Step 24: Update Gate Policies and Trigger Plans
 
-Use **Update Gates** in the integrated UI to adjust gate thresholds (executive, operations, QA, HITL, execution) and immediately see the timer/trigger plan update.
+Use **Update Gates** in the production UI to adjust gate thresholds (executive, operations, QA, HITL, execution) and immediately see the timer/trigger plan update.
 
 ![Gate Policy Update](docs/screenshots/23_ui_gate_policy_update.png)
+
+---
+
+## Control Metrics Preview
+
+### Step 25: Verify Control-Metric Gate Context
+
+Run a request and confirm the gate synthesis output includes control metrics (setpoints, sensor feedback, control effect) aligned to the request domain.
+
+![Production UI Control Metrics](docs/screenshots/27_ui_production_control_metrics.png)
 
 ---
 
