@@ -1474,6 +1474,127 @@ class MurphySystem:
             })
         return alignment
 
+    def _build_autonomy_extension_status(self) -> List[Dict[str, Any]]:
+        integration_ready = bool(getattr(self, "integration_engine", None))
+        scheduler_ready = bool(getattr(self, "governance_scheduler", None))
+        business_ready = bool(getattr(self, "inoni_automation", None))
+        flow_ready = bool(getattr(self, "flow_steps", None))
+
+        extensions = [
+            {
+                "id": "remote_access_invite",
+                "name": "Remote access onboarding",
+                "status": "needs_integration",
+                "evidence": "No remote access adapter is wired in runtime 1.0.",
+                "gap_action": "Integrate secure access provisioning (SSO/VPN) and approval gates."
+            },
+            {
+                "id": "delphi_ticketing",
+                "name": "Delphi AI ticket management",
+                "status": "partial" if integration_ready else "needs_integration",
+                "evidence": "Integration engine available; no ticketing adapter configured." if integration_ready else "Integration engine unavailable.",
+                "gap_action": "Add a ticketing adapter and bind to librarian/HITL workflows."
+            },
+            {
+                "id": "auto_patching",
+                "name": "Update/rollback automation",
+                "status": "partial" if scheduler_ready else "needs_integration",
+                "evidence": "Scheduler can register triggers; patch orchestration not wired." if scheduler_ready else "Scheduler unavailable for patch triggers.",
+                "gap_action": "Wire patch orchestration + rollback playbooks into governance scheduler."
+            },
+            {
+                "id": "business_metrics_scaling",
+                "name": "Business metrics & scaling",
+                "status": "available" if business_ready else "needs_integration",
+                "evidence": "Inoni automation engine provides metrics summary." if business_ready else "Business automation engine not initialized.",
+                "gap_action": "Initialize automation engine and bind metrics to executive gates."
+            },
+            {
+                "id": "self_service_onboarding",
+                "name": "Self-service onboarding",
+                "status": "available" if flow_ready else "needs_configuration",
+                "evidence": "Onboarding flow stages are defined in runtime." if flow_ready else "Onboarding flow steps are missing.",
+                "gap_action": "Define onboarding questions and map them to gate policies."
+            }
+        ]
+        return extensions
+
+    def _build_capability_review(
+        self,
+        capability_tests: List[Dict[str, Any]],
+        capability_alignment: List[Dict[str, Any]],
+        org_chart_plan: Dict[str, Any],
+        sensor_plan: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        status_counts = {
+            "ok": 0,
+            "error": 0,
+            "needs_info": 0,
+            "not_initialized": 0,
+            "not_configured": 0,
+            "other": 0
+        }
+        gap_entries = []
+        for test in capability_tests:
+            status = test.get("status", "other")
+            if status in status_counts:
+                status_counts[status] += 1
+            else:
+                status_counts["other"] += 1
+            if status != "ok":
+                gap_entries.append({
+                    "id": test.get("id", "unknown"),
+                    "status": status,
+                    "issue": test.get("error") or test.get("message") or "Requires follow-up."
+                })
+
+        alignment_gaps = [
+            {
+                "id": entry["id"],
+                "gap_reason": entry.get("gap_reason"),
+                "gap_action": entry.get("gap_action")
+            }
+            for entry in capability_alignment
+            if not entry.get("capability_reflects")
+        ]
+        gap_entries.extend(alignment_gaps)
+
+        metrics = getattr(self, "execution_metrics", {"total": 0, "success": 0, "total_time": 0.0})
+        total = metrics.get("total", 0)
+        success_rate = (metrics.get("success", 0) / total) * 100 if total else 0.0
+
+        deterministic_ready = len([test for test in capability_tests if test.get("status") == "ok"])
+        llm_status = "not_configured"
+        workload_balance = {
+            "deterministic_ready": deterministic_ready,
+            "llm_ready": 0,
+            "llm_status": llm_status,
+            "gap_action": "Integrate LLM adapters for conversational reasoning and ticketing."
+        }
+
+        return {
+            "summary": {
+                "total": len(capability_tests),
+                **status_counts
+            },
+            "execution_metrics": {
+                "total_executions": total,
+                "success_rate": f"{success_rate:.1f}%",
+                "average_execution_time": (
+                    f"{(metrics.get('total_time', 0.0) / total):.3f}s" if total else "--"
+                )
+            },
+            "org_chart_coverage": org_chart_plan.get("coverage_summary", {}),
+            "regulatory_scope": {
+                "region": sensor_plan.get("region"),
+                "primary_source": (sensor_plan.get("primary_regulatory_source") or {}).get("id"),
+                "sources": [source.get("id") for source in sensor_plan.get("regulatory_sources", [])]
+            },
+            "workload_balance": workload_balance,
+            "automation_extensions": self._build_autonomy_extension_status(),
+            "gaps": gap_entries
+        }
+
     def _run_gap_solution_attempts(
         self,
         task_description: str,
@@ -1795,6 +1916,12 @@ class MurphySystem:
         self._record_activation_usage([item["id"] for item in planned_subsystems])
         librarian_context = self._build_librarian_context(doc, task_description, planned_subsystems)
         self_operation = self.get_system_status().get("self_operation")
+        capability_review = self._build_capability_review(
+            capability_tests,
+            capability_alignment,
+            org_chart_plan,
+            sensor_plan
+        )
 
         preview = {
             "document_id": doc.doc_id,
@@ -1821,7 +1948,8 @@ class MurphySystem:
             },
             "librarian_context": librarian_context,
             "org_chart_plan": org_chart_plan,
-            "self_operation": self_operation
+            "self_operation": self_operation,
+            "capability_review": capability_review
         }
         if onboarding_context:
             preview["onboarding_context"] = onboarding_context

@@ -79,3 +79,16 @@ Implementation:
 1. Wire Gate Synthesis + Swarm systems into execution.
 2. Add executive branch gate policies and onboarding schema.
 3. Re-run activation preview and confirm `capability_alignment` = ready.
+
+## 7) Customer operations & self-service automation (commercial readiness)
+
+**Gap:** Remote access invitations, ticket management, update/rollback automation, and self-service onboarding are not wired to production services.  
+**Solution:** Bind these workflows to the integration engine + governance scheduler, with explicit gates and audit trails.
+
+Recommendations:
+- **Remote access invites:** Integrate secure access provisioning (SSO/VPN) and log approvals via HITL gates.
+- **Ticket management (Delphi AI):** Add a ticketing adapter to the integration engine and sync with librarian transcripts.
+- **Update/rollback automation:** Register patch playbooks with the governance scheduler and require executive gates.
+- **Self-service onboarding:** Expand onboarding prompts into templates that auto-generate gates, org charts, and contracts.
+
+> **Competitive readiness note:** compare capability coverage only after these integrations are live; until then, competitive scoring is advisory and should be validated through external benchmarks.
