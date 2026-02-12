@@ -566,7 +566,7 @@ class MurphySystem:
                 reason = f"Blocked by {blocked_by}"
             elif status == "blocked":
                 blocked_by = name
-                reason = "Confidence below threshold" if override is None else "Manual override"
+                reason = "Confidence below threshold" if validated_override is None else "Manual override"
             gates.append({
                 "name": name,
                 "threshold": threshold,
@@ -575,7 +575,6 @@ class MurphySystem:
                 "stage": entry.get("stage"),
                 "blocked_by": blocked_by if status == "blocked" else None
             })
-        doc.gate_policy = gate_templates
         return gates
 
     def _build_block_tree(self, doc: LivingDocument) -> Dict[str, Any]:
