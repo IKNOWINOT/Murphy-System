@@ -92,3 +92,38 @@ Recommendations:
 - **Self-service onboarding:** Expand onboarding prompts into templates that auto-generate gates, org charts, and contracts.
 
 > **Competitive readiness note:** compare capability coverage only after `capability_review.automation_execution.status` is `validated`; until then, `capability_review.competitive_comparison` is advisory and should be validated through external benchmarks.
+
+## 8) Capability rating & dynamic comparison (current vs. target)
+
+**Current capability rating (Runtime 1.0):** **5/10**  
+This reflects that previews, governance gates, and automation planning are present, but full execution wiring is still partial (gate synthesis, swarms, compute plane, and persistence require further integration).
+
+**Dynamicity vs. full agentic runtime:**
+- **Current system:** predictable, policy-driven, and structured around deterministic gates with limited dynamic task execution (runtime previews are richer than execution paths).
+- **Target agentic runtime:** autonomous, event-driven, with self-updating memory and robust multi-channel execution (LLM + deterministic side are fully orchestrated).
+
+**Design changes I would make if building the agentic runtime end-to-end:**
+1. **Event-driven execution backbone:** move from request-response handlers to an event bus with durable queues.
+2. **Persistent task memory:** unify LivingDocument, librarian transcripts, and gate state into a single persistent store.
+3. **Runtime policy compiler:** compile governance rules into enforceable runtime constraints (not just previews).
+4. **Deterministic + LLM routing:** standardize skill routing (compute plane vs. LLM) based on task schema, not heuristics.
+5. **Multi-channel delivery adapters:** native adapters for email, chat, voice, and documents with uniform auditing.
+
+## 9) Multi-channel output gap assessment (text, email, voice, chat, docs)
+
+**Gap:** output is primarily JSON and HTML previews. There are no production adapters for email, chat, voice, or document generation.
+
+**Closure plan:**
+- **Document adapter:** add a report renderer (PDF/Markdown) tied to LivingDocument snapshots.
+- **Email adapter:** integrate an email sending service with approval gates + audit logs.
+- **Chat adapter:** publish to chat systems (Slack/Teams) with trigger hooks and escalation.
+- **Voice adapter:** add text-to-speech integration for alerts or operational summaries.
+- **Uniform dispatch layer:** register all adapters in the integration engine so each task can target multiple channels.
+
+## 10) Updated gap assessment to reach fully operational status
+
+1. **Execution wiring:** connect gate synthesis, TrueSwarmSystem, and compute plane to live execution.
+2. **Persistence:** ensure LivingDocument, librarian context, and gate history are stored and replayable.
+3. **Automation loop closure:** enable automated re-planning based on gate outcomes and HITL decisions.
+4. **Channel readiness:** complete multi-channel adapters with deterministic auditing.
+5. **Operational telemetry:** add system health + success metrics to validate real-world execution quality.
