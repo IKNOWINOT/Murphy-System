@@ -683,7 +683,7 @@ class InoniBusinessAutomation:
         logger.info("\n3. R&D AUTOMATION (Self-Improvement)")
         bugs = self.rd.detect_bugs()
         fixes = []
-        # Defaults are overwritten when bugs are found; otherwise remain skipped.
+        # Default values are overwritten when bugs are found; otherwise remain skipped.
         test_results = {"skipped": True, "reason": "No bugs detected"}
         deployment = {"skipped": True, "reason": "No fixes deployed"}
         if bugs:
