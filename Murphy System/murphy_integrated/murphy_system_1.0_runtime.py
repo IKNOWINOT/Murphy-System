@@ -1085,7 +1085,7 @@ class MurphySystem:
             region_input = context.get("region")
         if region_input is None:
             region_input = answers.get("region")
-        source = "onboarding" if region_input else "request"
+        source = "onboarding" if region_input else "task_description"
         region = self._normalize_region(region_input or task_description)
         return {
             "region": region,
@@ -1209,7 +1209,8 @@ class MurphySystem:
         self,
         task_description: str,
         doc: LivingDocument,
-        onboarding_context: Optional[Dict[str, Any]] = None
+        onboarding_context: Optional[Dict[str, Any]] = None,
+        sensor_plan: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         profile = self._select_control_profile(task_description)
         risk_factor = round(max(0.0, 1.0 - doc.confidence), 3)
@@ -1217,7 +1218,8 @@ class MurphySystem:
         setpoint = profile["setpoint"]
         sensor_value = round(baseline + (setpoint - baseline) * doc.confidence, 3)
         control_value = round(sensor_value * (1 - risk_factor), 3)
-        sensor_plan = self._build_external_sensor_plan(profile["id"], task_description, onboarding_context)
+        if sensor_plan is None:
+            sensor_plan = self._build_external_sensor_plan(profile["id"], task_description, onboarding_context)
         sensor_source = "generated_sensor"
         if profile["id"] == "compliance" and sensor_plan.get("primary_regulatory_source"):
             sensor_source = f"regulatory_plan:{sensor_plan['primary_regulatory_source']['id']}"
@@ -1248,9 +1250,10 @@ class MurphySystem:
         self,
         task_description: str,
         doc: LivingDocument,
-        onboarding_context: Optional[Dict[str, Any]]
+        onboarding_context: Optional[Dict[str, Any]],
+        sensor_plan: Optional[Dict[str, Any]] = None
     ) -> None:
-        results = self._run_gap_solution_attempts(task_description, doc, onboarding_context)
+        results = self._run_gap_solution_attempts(task_description, doc, onboarding_context, sensor_plan)
         existing_gate_ids = {gate.get("id") for gate in doc.gates if isinstance(gate, dict) and gate.get("id")}
         for result in results:
             if result.get("id") == "gate_synthesis" and result.get("status") == "ok":
@@ -1318,13 +1321,14 @@ class MurphySystem:
         self,
         task_description: str,
         doc: LivingDocument,
-        onboarding_context: Optional[Dict[str, Any]]
+        onboarding_context: Optional[Dict[str, Any]],
+        sensor_plan: Optional[Dict[str, Any]] = None
     ) -> List[Dict[str, Any]]:
         if doc.capability_tests:
             return doc.capability_tests
         context = onboarding_context or {}
         results: List[Dict[str, Any]] = []
-        results.append(self._attempt_gate_synthesis(task_description, doc, onboarding_context))
+        results.append(self._attempt_gate_synthesis(task_description, doc, onboarding_context, sensor_plan))
         results.append(self._attempt_domain_swarm(task_description, context))
         results.append(self._attempt_true_swarm(task_description, context))
         results.append(self._attempt_infinity_expansion(task_description))
@@ -1339,7 +1343,8 @@ class MurphySystem:
         self,
         task_description: str,
         doc: LivingDocument,
-        onboarding_context: Optional[Dict[str, Any]]
+        onboarding_context: Optional[Dict[str, Any]],
+        sensor_plan: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         try:
             from src.gate_synthesis import FailureMode, RiskVector, GateGenerator
@@ -1368,7 +1373,7 @@ class MurphySystem:
                 AuthorityBand.PROPOSE,
                 {failure_mode.id: failure_mode.probability}
             )
-            control_data = self._build_gate_control_data(task_description, doc, onboarding_context)
+            control_data = self._build_gate_control_data(task_description, doc, onboarding_context, sensor_plan)
             gate_summaries = []
             for gate in gates:
                 summary = self._summarize_gate(gate)
@@ -1559,8 +1564,14 @@ class MurphySystem:
                 "id": "gate_synthesis",
                 "reason": "Default gate checks ensure baseline safety."
             })
-        self._apply_wired_capabilities(task_description, doc, onboarding_context)
-        capability_tests = self._run_gap_solution_attempts(task_description, doc, onboarding_context)
+        sensor_profile = self._select_control_profile(task_description)
+        sensor_plan = self._build_external_sensor_plan(
+            sensor_profile["id"],
+            task_description,
+            onboarding_context
+        )
+        self._apply_wired_capabilities(task_description, doc, onboarding_context, sensor_plan)
+        capability_tests = self._run_gap_solution_attempts(task_description, doc, onboarding_context, sensor_plan)
 
         tasks_source = doc.generated_tasks or self._generate_swarm_tasks()
         planned_swarm_tasks = [
@@ -1578,8 +1589,8 @@ class MurphySystem:
         operations_plan = self._build_operations_plan(doc)
         hitl_contracts = self._build_hitl_contract_plan(doc)
         trigger_plan = self._build_timer_trigger_plan(task_description)
-        sensor_plan = self._build_external_sensor_plan(
-            self._select_control_profile(task_description)["id"],
+        sensor_plan = sensor_plan or self._build_external_sensor_plan(
+            sensor_profile["id"],
             task_description,
             onboarding_context
         )
@@ -1730,8 +1741,9 @@ class MurphySystem:
         next_index = min(stage_index + 1, len(self.flow_steps) - 1)
         session["stage_index"] = next_index
         next_stage = self.flow_steps[next_index]
+        region_info = self._extract_region_from_context(message, {"answers": dict(answers)})
         region_input = answers.get("region")
-        region = self._normalize_region(region_input) if region_input else None
+        region = region_info["region"]
         return {
             "current_stage": current_stage["stage"],
             "next_stage": next_stage["stage"],
