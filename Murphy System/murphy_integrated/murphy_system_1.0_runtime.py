@@ -917,7 +917,16 @@ class MurphySystem:
         operations_plan: List[Dict[str, Any]],
         delivery_readiness: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Summarize executive-level priorities based on planned operations and readiness."""
+        """Summarize executive priorities.
+
+        Args:
+            task_description: The originating request summary.
+            operations_plan: Planned operational tasks with assigned owners.
+            delivery_readiness: Delivery readiness snapshot used for executive status.
+
+        Returns:
+            Dict with directive_summary, priority_actions, and delivery_readiness fields.
+        """
         priority_actions = [
             task.get("description")
             for task in operations_plan
@@ -954,7 +963,14 @@ class MurphySystem:
 
     @staticmethod
     def _build_workload_distribution(operations_plan: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Calculate task distribution across owners from the operations plan."""
+        """Calculate task distribution across owners.
+
+        Args:
+            operations_plan: List of task dicts with owner assignments.
+
+        Returns:
+            Dict with total_tasks, by_owner counts, and share (ratio per owner).
+        """
         totals: Dict[str, int] = {}
         for task in operations_plan:
             owner = task.get("owner", "unassigned")
