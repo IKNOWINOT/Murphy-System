@@ -557,9 +557,9 @@ class MurphySystem:
         for entry in gate_templates:
             name = entry.get("name", "Gate")
             threshold = entry.get("threshold", 0.5)
-            override = self._normalize_gate_override(entry.get("status_override"), name)
+            validated_override = self._normalize_gate_override(entry.get("status_override"), name)
             # Manual overrides take precedence over confidence-based gating.
-            status = override or ("open" if doc.confidence >= threshold else "blocked")
+            status = validated_override or ("open" if doc.confidence >= threshold else "blocked")
             reason = None
             if blocked_by:
                 status = "blocked"
