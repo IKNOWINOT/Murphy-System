@@ -744,6 +744,7 @@ class MurphySystem:
     ) -> Dict[str, Any]:
         if not self.librarian:
             return {"status": "unavailable", "reason": "System librarian not initialized"}
+        # Filter to 4+ character tokens to reduce noise in librarian matching.
         tokens = set(re.findall(r"[a-z]{4,}", task_description.lower()))
         subsystem_ids = {item.get("id") for item in planned_subsystems}
         matches = []

@@ -891,6 +891,7 @@
 
     <script>
         const apiPort = new URLSearchParams(window.location.search).get('apiPort') || '8000';
+        // Default to 8000 for local overrides; docs still reference 6666 unless apiPort is supplied.
         const apiBase = `http://localhost:${apiPort}`;
         let lastDocumentId = null;
 
@@ -953,6 +954,7 @@
             try {
                 parameters = JSON.parse(rawParams);
             } catch (error) {
+                alert('Parameters must be valid JSON.');
                 renderJson('execution-summary', { error: 'Parameters must be valid JSON.' });
                 return;
             }
