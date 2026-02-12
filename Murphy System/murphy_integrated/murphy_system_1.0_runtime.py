@@ -1605,7 +1605,7 @@ class MurphySystem:
         total = metrics.get("total", 0)
         success_rate = self._calculate_success_rate(metrics.get("success", 0), total)
 
-        deterministic_ready = len([test for test in capability_tests if test.get("status") == "ok"])
+        deterministic_ready_count = len([test for test in capability_tests if test.get("status") == "ok"])
         llm_readiness = self._check_llm_readiness()
         llm_status = llm_readiness["status"]
         llm_gap_action = (
@@ -1613,10 +1613,10 @@ class MurphySystem:
             if llm_status != "available"
             else "LLM adapters configured and ready."
         )
-        llm_ready = len(llm_readiness["modules"])
+        llm_ready_count = len(llm_readiness["modules"])
         workload_balance = {
-            "deterministic_ready": deterministic_ready,
-            "llm_ready": llm_ready,
+            "deterministic_ready_count": deterministic_ready_count,
+            "llm_ready_count": llm_ready_count,
             "llm_status": llm_status,
             "llm_modules": llm_readiness["modules"],
             "gap_action": llm_gap_action
