@@ -949,8 +949,9 @@ class MurphySystem:
                 ]
                 mapping_method = "fallback"
                 logger.warning(
-                    "Org chart fallback applied for deliverable '%s'",
-                    deliverable
+                    "Org chart fallback applied for deliverable '%s' (positions=%d)",
+                    deliverable,
+                    len(positions)
                 )
             coverage.append({
                 "deliverable": deliverable,
@@ -993,7 +994,7 @@ class MurphySystem:
         context = self.org_chart_system.get_knowledge_context_for_project(task_description)
         positions = context.get("required_positions", [])
         deliverable_coverage = self._map_deliverables_to_positions(deliverables, positions)
-        position_contracts = self._build_position_contracts(deliverable_coverage, len(deliverable_coverage))
+        position_contracts = self._build_position_contracts(deliverable_coverage, len(deliverables))
         uncovered = [item for item in deliverable_coverage if item["status"] != "covered"]
         return {
             "status": "ready",
