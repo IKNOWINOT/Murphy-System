@@ -1494,14 +1494,11 @@ class MurphySystem:
             execution_strategy = "simulation"
         requirements_stage_status = "complete" if requirements_status == "complete" else "needs_info"
         workload_status = "ready" if operations_plan else "pending"
-        if requirements_stage_status != "complete":
-            automation_loop_status = "needs_info"
-        elif execution_strategy == "simulation":
-            automation_loop_status = "needs_wiring"
-        elif learning_loop.get("status") != "ready":
-            automation_loop_status = learning_loop.get("status", "pending")
-        else:
-            automation_loop_status = "ready"
+        automation_loop_status = self._determine_automation_loop_status(
+            requirements_stage_status,
+            execution_strategy,
+            learning_loop
+        )
         trigger_plan_status = trigger_plan.get("status") if trigger_plan else None
         if trigger_plan_status == "scheduled":
             trigger_status = "ready"
@@ -1633,6 +1630,21 @@ class MurphySystem:
             "next_actions": unique_actions,
             "request_summary": self._truncate_description(task_description)
         }
+
+    @staticmethod
+    def _determine_automation_loop_status(
+        requirements_stage_status: str,
+        execution_strategy: str,
+        learning_loop: Dict[str, Any]
+    ) -> str:
+        if requirements_stage_status != "complete":
+            return "needs_info"
+        if execution_strategy == "simulation":
+            return "needs_wiring"
+        loop_status = learning_loop.get("status")
+        if loop_status and loop_status != "ready":
+            return loop_status
+        return "ready"
 
     def _build_timer_trigger_plan(self, task_description: str) -> Dict[str, Any]:
         if not GOVERNANCE_AVAILABLE:
