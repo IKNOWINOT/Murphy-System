@@ -19,7 +19,7 @@ import os
 import importlib.util
 from copy import deepcopy
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import asdict, is_dataclass
 from datetime import datetime, timedelta
 import logging
@@ -503,15 +503,16 @@ class MurphySystem:
     def _build_mfgc_adapter_config(self) -> Optional["MFGCConfig"]:
         if not MFGCConfig:
             return None
+        config_values = getattr(self, "mfgc_config", {}) or {}
         return MFGCConfig(
-            enabled=bool(self.mfgc_config.get("enabled")),
-            murphy_threshold=self.mfgc_config.get("murphy_threshold", 0.3),
-            confidence_mode=self.mfgc_config.get("confidence_mode", "phase_locked"),
-            authority_mode=self.mfgc_config.get("authority_mode", "standard"),
-            gate_synthesis=self.mfgc_config.get("gate_synthesis", True),
-            emergency_gates=self.mfgc_config.get("emergency_gates", True),
-            phase_verbosity=self.mfgc_config.get("phase_verbosity", 1),
-            audit_trail=self.mfgc_config.get("audit_trail", True)
+            enabled=bool(config_values.get("enabled", False)),
+            murphy_threshold=config_values.get("murphy_threshold", 0.3),
+            confidence_mode=config_values.get("confidence_mode", "phase_locked"),
+            authority_mode=config_values.get("authority_mode", "standard"),
+            gate_synthesis=config_values.get("gate_synthesis", True),
+            emergency_gates=config_values.get("emergency_gates", True),
+            phase_verbosity=config_values.get("phase_verbosity", 1),
+            audit_trail=config_values.get("audit_trail", True)
         )
 
     def __init__(self):
@@ -627,7 +628,7 @@ class MurphySystem:
         task_type: str,
         session_id: Optional[str],
         parameters: Optional[Dict[str, Any]]
-    ) -> tuple[LivingDocument, Dict[str, Any]]:
+    ) -> Tuple[LivingDocument, Dict[str, Any]]:
         doc = self._ensure_document(task_description, task_type, session_id)
         self._update_document_tree(doc)
         onboarding_context = None
@@ -835,18 +836,17 @@ class MurphySystem:
         if not self.mfgc_adapter:
             return None
         try:
+            if hasattr(self, "mfgc_config"):
+                self.mfgc_config["enabled"] = True
             config = self._build_mfgc_adapter_config()
             if config:
-                config.enabled = True
                 self.mfgc_adapter.update_config(config)
-                self.mfgc_config["enabled"] = True
             result = self.mfgc_adapter.execute_with_mfgc(
                 user_input=task_description,
                 request_type=task_type,
                 parameters=parameters
             )
-            if config:
-                self.mfgc_statistics = self.mfgc_adapter.get_statistics()
+            self.mfgc_statistics = self.mfgc_adapter.get_statistics()
             return result.to_dict(phase_verbosity=config.phase_verbosity if config else 1)
         except Exception as exc:
             logger.warning("MFGC adapter execution failed: %s", exc)
