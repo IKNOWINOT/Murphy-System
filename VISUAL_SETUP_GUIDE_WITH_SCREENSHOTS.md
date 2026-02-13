@@ -331,7 +331,11 @@ Submit a full onboarding automation request in the architect terminal input (mar
 
 ![Architect Terminal Preview](docs/screenshots/25_ui_architect_preview.png)
 
+![Architect Terminal Dynamic Implementation](docs/screenshots/33_ui_architect_dynamic_implementation.png)
+
 **Observed behavior:** the terminal returns activation preview JSON showing gates, swarm tasks, governance plans, librarian conditions, delivery readiness (99% coverage target + compliance status), and region-aware external API sensor plans sourced from the runtime response.
+
+**Dynamic implementation check:** the preview includes a dynamic implementation plan that stages requirements capture, gate alignment, workload distribution, execution strategy, and human release status so the system can iterate across multiple projects.
 
 ---
 
