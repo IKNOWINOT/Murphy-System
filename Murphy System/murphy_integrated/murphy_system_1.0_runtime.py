@@ -644,6 +644,20 @@ class MurphySystem:
         )
         self.latest_activation_preview = activation_preview
         return doc, activation_preview
+
+    def _build_mfgc_fallback_response(self, task_description: str, success: bool) -> Dict[str, Any]:
+        return {
+            "request_id": "mfgc_fallback",
+            "success": success,
+            "data": {
+                "summary": "MFGC execution completed without integrator response.",
+                "task": task_description
+            },
+            "message": "MFGC execution completed with a fallback response payload.",
+            "warnings": ["Integrator response unavailable; using fallback payload."],
+            "triggers": [],
+            "timestamp": datetime.utcnow().isoformat()
+        }
     
     async def execute_task(
         self,
@@ -695,7 +709,7 @@ class MurphySystem:
             )
         
         if not self._is_orchestrator_available():
-            logger.warning("Two-Phase Orchestrator unavailable; using simulation mode.")
+            logger.warning("Two-Phase Orchestrator unavailable; using MFGC fallback or simulation mode.")
             fallback = self._simulate_execution(task_description, task_type, parameters, session_id)
             fallback["activation_preview"] = activation_preview
             fallback["doc_id"] = doc.doc_id
@@ -779,24 +793,18 @@ class MurphySystem:
         mfgc_payload = self._execute_with_mfgc_adapter(task_description, task_type, parameters)
         if mfgc_payload:
             execution_time = mfgc_payload.get("execution_time")
-            try:
-                duration = float(execution_time) if execution_time is not None else 0.0
-            except (TypeError, ValueError):
-                duration = 0.0
+            duration = 0.0
+            if execution_time is not None:
+                try:
+                    duration = float(execution_time)
+                except (TypeError, ValueError):
+                    duration = 0.0
             success = bool(mfgc_payload.get("success"))
             self._record_execution(success=success, duration=duration)
-            response_payload = mfgc_payload.get("integrator_response") or {
-                "request_id": "mfgc_fallback",
-                "success": success,
-                "data": {
-                    "summary": "MFGC execution completed without integrator response.",
-                    "task": task_description
-                },
-                "message": "MFGC execution completed with a fallback response payload.",
-                "warnings": ["Integrator response unavailable; using fallback payload."],
-                "triggers": [],
-                "timestamp": datetime.utcnow().isoformat()
-            }
+            response_payload = (
+                mfgc_payload.get("integrator_response")
+                or self._build_mfgc_fallback_response(task_description, success)
+            )
             return {
                 "success": success,
                 "session_id": session_id or self.create_session().get("session_id"),
