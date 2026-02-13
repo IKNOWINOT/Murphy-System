@@ -500,10 +500,12 @@ class MurphySystem:
             }
         ]
 
-    def _build_mfgc_adapter_config(self) -> Optional["MFGCConfig"]:
+    def _create_mfgc_config(self, enabled_override: Optional[bool] = None) -> Optional["MFGCConfig"]:
         if not MFGCConfig:
             return None
         config_values = getattr(self, "mfgc_config", {}) or {}
+        if enabled_override is not None:
+            config_values = {**config_values, "enabled": enabled_override}
         return MFGCConfig(
             enabled=bool(config_values.get("enabled", False)),
             murphy_threshold=config_values.get("murphy_threshold", 0.3),
@@ -591,7 +593,7 @@ class MurphySystem:
             logger.info("Initializing MFGC adapter...")
             try:
                 self.system_integrator = SystemIntegrator()
-                config = self._build_mfgc_adapter_config()
+                config = self._create_mfgc_config()
                 self.mfgc_adapter = MFGCAdapter(self.system_integrator, config)
             except Exception as exc:
                 logger.warning("MFGC adapter initialization failed: %s", exc)
@@ -836,11 +838,11 @@ class MurphySystem:
         if not self.mfgc_adapter:
             return None
         try:
-            if hasattr(self, "mfgc_config"):
-                self.mfgc_config["enabled"] = True
-            config = self._build_mfgc_adapter_config()
+            config = self._create_mfgc_config(enabled_override=True)
             if config:
                 self.mfgc_adapter.update_config(config)
+                if hasattr(self, "mfgc_config"):
+                    self.mfgc_config = {**self.mfgc_config, "enabled": config.enabled}
             result = self.mfgc_adapter.execute_with_mfgc(
                 user_input=task_description,
                 request_type=task_type,
