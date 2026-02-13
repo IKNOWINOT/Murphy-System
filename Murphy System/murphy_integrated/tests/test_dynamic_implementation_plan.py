@@ -32,6 +32,7 @@ def test_dynamic_implementation_plan_requires_requirements():
     doc.generated_tasks = [{"stage": "automation_design", "description": "Design automation"}]
     operations_plan = murphy._build_operations_plan(doc)
     learning_loop = murphy._build_learning_loop_plan("Test request", {}, {})
+    trigger_plan = {"status": "unavailable"}
     org_chart_plan = {"coverage_summary": {"status": "partial"}}
     sensor_plan = {"region": "global", "primary_regulatory_source": {"id": "regulatory_source"}}
     delivery_readiness = murphy._build_delivery_readiness(doc, org_chart_plan, learning_loop, sensor_plan, [])
@@ -45,7 +46,8 @@ def test_dynamic_implementation_plan_requires_requirements():
         delivery_readiness,
         [],
         sensor_plan,
-        org_chart_plan
+        org_chart_plan,
+        trigger_plan
     )
 
     assert plan["status"] == "needs_info"
@@ -53,6 +55,9 @@ def test_dynamic_implementation_plan_requires_requirements():
     stages = {stage["id"]: stage for stage in plan["stages"]}
     assert stages["requirements_identification"]["status"] == "needs_info"
     assert stages["gate_alignment"]["status"] == "blocked"
+    assert stages["automation_loop"]["status"] == "needs_info"
+    assert stages["trigger_schedule"]["status"] == "needs_wiring"
+    assert stages["monitoring_feedback"]["status"] == "ready"
 
 
 def test_dynamic_implementation_plan_ready_with_orchestrator():
@@ -61,11 +66,13 @@ def test_dynamic_implementation_plan_ready_with_orchestrator():
 
     murphy.orchestrator = DummyOrchestrator()
     murphy.flow_steps = []
+    murphy.swarm_system = object()
     doc = runtime.LivingDocument("doc-2", "Test", "content", "request")
     doc.gates = [{"status": "open"}]
     doc.generated_tasks = [{"stage": "automation_design", "description": "Design automation"}]
     operations_plan = murphy._build_operations_plan(doc)
     learning_loop = murphy._build_learning_loop_plan("Automation", {"answers": {}}, {})
+    trigger_plan = {"status": "scheduled"}
     org_chart_plan = {"coverage_summary": {"total_deliverables": 100, "uncovered_deliverables": 0}}
     sensor_plan = {"region": "global", "primary_regulatory_source": {"id": "regulatory_source"}}
     delivery_readiness = murphy._build_delivery_readiness(doc, org_chart_plan, learning_loop, sensor_plan, [])
@@ -79,8 +86,13 @@ def test_dynamic_implementation_plan_ready_with_orchestrator():
         delivery_readiness,
         [],
         sensor_plan,
-        org_chart_plan
+        org_chart_plan,
+        trigger_plan
     )
 
     assert plan["execution_strategy"] == "orchestrator"
     assert plan["status"] == "ready"
+    stage_map = {stage["id"]: stage for stage in plan["stages"]}
+    assert stage_map["automation_loop"]["status"] == "ready"
+    assert stage_map["trigger_schedule"]["status"] == "ready"
+    assert stage_map["monitoring_feedback"]["status"] == "ready"
