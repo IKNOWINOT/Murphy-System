@@ -110,6 +110,14 @@ except ImportError as e:
     SystemLibrarian = TrueSwarmSystem = GovernanceScheduler = TelemetryIngester = TelemetryBus = None
     ScheduledAgent = PriorityLevel = AgentDescriptor = GovernanceAuthorityBand = GovernanceActionType = ActionSet = None
 
+# MFGC Adapter
+try:
+    from src.mfgc_adapter import MFGCAdapter, MFGCConfig
+    from src.system_integrator import SystemIntegrator
+except ImportError as e:
+    print(f"Warning: MFGC adapter not available: {e}")
+    MFGCAdapter = MFGCConfig = SystemIntegrator = None
+
 # Org Chart System
 try:
     from src.organization_chart_system import OrganizationChart
@@ -435,6 +443,8 @@ class MurphySystem:
         instance.governance_scheduler = None
         instance.inoni_automation = None
         instance.swarm_system = None
+        instance.system_integrator = None
+        instance.mfgc_adapter = None
         return instance
 
     def _initialize_configuration_defaults(self) -> None:
@@ -489,6 +499,19 @@ class MurphySystem:
                 "prompt": "Select billing plan (usage tier, automation coverage, support level)."
             }
         ]
+
+    def _build_mfgc_adapter_config(self) -> Optional["MFGCConfig"]:
+        if not MFGCConfig:
+            return None
+        return MFGCConfig(
+            enabled=bool(self.mfgc_config.get("enabled")),
+            murphy_threshold=self.mfgc_config.get("murphy_threshold", 0.3),
+            confidence_mode=self.mfgc_config.get("confidence_mode", "phase_locked"),
+            authority_mode=self.mfgc_config.get("authority_mode", "standard"),
+            gate_synthesis=self.mfgc_config.get("gate_synthesis", True),
+            emergency_gates=self.mfgc_config.get("emergency_gates", True),
+            audit_trail=self.mfgc_config.get("audit_trail", True)
+        )
 
     def __init__(self):
         self.version = "1.0.0"
@@ -560,6 +583,22 @@ class MurphySystem:
         except Exception as e:
             logger.warning(f"Some original components not available: {e}")
             self.org_chart_system = None
+
+        # Initialize MFGC adapter for execution wiring
+        if MFGCAdapter and SystemIntegrator:
+            logger.info("Initializing MFGC adapter...")
+            try:
+                self.system_integrator = SystemIntegrator()
+                config = self._build_mfgc_adapter_config()
+                self.mfgc_adapter = MFGCAdapter(self.system_integrator, config)
+            except Exception as exc:
+                logger.warning("MFGC adapter initialization failed: %s", exc)
+                self.system_integrator = None
+                self.mfgc_adapter = None
+        else:
+            logger.warning("MFGC adapter not available")
+            self.system_integrator = None
+            self.mfgc_adapter = None
         
         # System state
         self.sessions: Dict[str, Dict] = {}
@@ -609,6 +648,18 @@ class MurphySystem:
         logger.info(f"EXECUTING TASK: {task_description}")
         logger.info(f"{'='*80}\n")
 
+        doc = self._ensure_document(task_description, task_type, session_id)
+        self._update_document_tree(doc)
+        onboarding_context = None
+        if isinstance(parameters, dict):
+            onboarding_context = parameters.get("onboarding_context")
+        activation_preview = self._build_activation_preview(
+            doc,
+            task_description=task_description,
+            onboarding_context=onboarding_context
+        )
+        self.latest_activation_preview = activation_preview
+
         if self.librarian:
             self.librarian.log_transcript(
                 module="runtime",
@@ -624,7 +675,10 @@ class MurphySystem:
         
         if not self._is_orchestrator_available():
             logger.warning("Two-Phase Orchestrator unavailable; using simulation mode.")
-            return self._simulate_execution(task_description, task_type, parameters, session_id)
+            fallback = self._simulate_execution(task_description, task_type, parameters, session_id)
+            fallback["activation_preview"] = activation_preview
+            fallback["doc_id"] = doc.doc_id
+            return fallback
 
         try:
             # Phase 1: Generative Setup
@@ -672,6 +726,8 @@ class MurphySystem:
                 'execution_packet': execution_packet,
                 'result': execution_result.get('result'),
                 'deliverables': execution_result.get('deliverables', []),
+                'doc_id': doc.doc_id,
+                'activation_preview': activation_preview,
                 'metadata': {
                     'task_description': task_description,
                     'task_type': task_type,
@@ -699,6 +755,28 @@ class MurphySystem:
     ) -> Dict:
         """Fallback execution when orchestrator is unavailable."""
         start = time.perf_counter()
+        mfgc_payload = self._execute_with_mfgc_adapter(task_description, task_type, parameters)
+        if mfgc_payload:
+            duration = float(mfgc_payload.get("execution_time", 0.0))
+            success = bool(mfgc_payload.get("success"))
+            self._record_execution(success=success, duration=duration)
+            response_payload = mfgc_payload.get("integrator_response") or {
+                "summary": "MFGC execution completed without integrator response.",
+                "task": task_description
+            }
+            return {
+                "success": success,
+                "session_id": session_id or self.create_session().get("session_id"),
+                "result": response_payload,
+                "deliverables": [],
+                "mfgc_execution": mfgc_payload,
+                "metadata": {
+                    "task_description": task_description,
+                    "task_type": task_type,
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "mode": "mfgc_fallback"
+                }
+            }
         summary = {
             "summary": "Simulation mode: orchestrator unavailable",
             "task": task_description,
@@ -731,6 +809,32 @@ class MurphySystem:
             and hasattr(self.orchestrator, "phase1_generative_setup")
             and hasattr(self.orchestrator, "phase2_production_execution")
         )
+
+    def _execute_with_mfgc_adapter(
+        self,
+        task_description: str,
+        task_type: str,
+        parameters: Optional[Dict[str, Any]]
+    ) -> Optional[Dict[str, Any]]:
+        if not self.mfgc_adapter:
+            return None
+        try:
+            config = self._build_mfgc_adapter_config()
+            if config:
+                config.enabled = True
+                self.mfgc_adapter.update_config(config)
+                self.mfgc_config["enabled"] = True
+            result = self.mfgc_adapter.execute_with_mfgc(
+                user_input=task_description,
+                request_type=task_type,
+                parameters=parameters
+            )
+            if config:
+                self.mfgc_statistics = self.mfgc_adapter.get_statistics()
+            return result.to_dict(phase_verbosity=config.phase_verbosity if config else 1)
+        except Exception as exc:
+            logger.warning("MFGC adapter execution failed: %s", exc)
+            return None
 
     @staticmethod
     def _component_status(component_instance: Optional[Any]) -> str:
@@ -2491,9 +2595,10 @@ class MurphySystem:
         task_type = data.get("task_type", "general")
         parameters = data.get("parameters") or {}
         submission = self._create_submission("task-execution", data)
-        doc = self._ensure_document(task_description, task_type, data.get("session_id"))
+        session_id = data.get("session_id")
+        doc = self._ensure_document(task_description, task_type, session_id)
         confidence_report = self._build_confidence_report(task_description)
-        result = await self.execute_task(task_description, task_type, parameters)
+        result = await self.execute_task(task_description, task_type, parameters, session_id=session_id)
         submission["status"] = "completed" if result.get("success") else "failed"
         submission["result"] = result
         self._update_document_tree(doc)
