@@ -264,6 +264,7 @@ class MurphySystem:
     COMPLIANCE_PENDING_STATES = {"pending", "review", "queued"}
     MAX_FAILURE_MODE_DESC_LENGTH = 80
     MAX_SAMPLE_GATES = 3
+    DEFAULT_PHASE_VERBOSITY = 1
     DELIVERABLE_EXTRACTION_KEYS = ("description", "task", "name", "stage")  # Ordered keys for deliverable text.
     ORG_CHART_FALLBACK_POSITIONS = 2  # Positions used when keyword matching fails.
     REGION_ALIASES = {
@@ -513,7 +514,7 @@ class MurphySystem:
             authority_mode=config_values.get("authority_mode", "standard"),
             gate_synthesis=config_values.get("gate_synthesis", True),
             emergency_gates=config_values.get("emergency_gates", True),
-            phase_verbosity=config_values.get("phase_verbosity", 1),
+            phase_verbosity=config_values.get("phase_verbosity", self.DEFAULT_PHASE_VERBOSITY),
             audit_trail=config_values.get("audit_trail", True)
         )
 
@@ -672,6 +673,7 @@ class MurphySystem:
         logger.info(f"EXECUTING TASK: {task_description}")
         logger.info(f"{'='*80}\n")
 
+        # Activation preview is returned for both orchestrator and fallback responses.
         doc, activation_preview = self._prepare_activation_preview(
             task_description,
             task_type,
@@ -781,8 +783,16 @@ class MurphySystem:
             success = bool(mfgc_payload.get("success"))
             self._record_execution(success=success, duration=duration)
             response_payload = mfgc_payload.get("integrator_response") or {
-                "summary": "MFGC execution completed without integrator response.",
-                "task": task_description
+                "request_id": "mfgc_fallback",
+                "success": success,
+                "data": {
+                    "summary": "MFGC execution completed without integrator response.",
+                    "task": task_description
+                },
+                "message": "MFGC execution completed with a fallback response payload.",
+                "warnings": ["Integrator response unavailable; using fallback payload."],
+                "triggers": [],
+                "timestamp": datetime.utcnow().isoformat()
             }
             return {
                 "success": success,
@@ -848,7 +858,7 @@ class MurphySystem:
                 parameters=parameters
             )
             self.mfgc_statistics = self.mfgc_adapter.get_statistics()
-            phase_verbosity = config.phase_verbosity if config else 1
+            phase_verbosity = config.phase_verbosity if config else self.DEFAULT_PHASE_VERBOSITY
             return result.to_dict(phase_verbosity=phase_verbosity)
         except Exception as exc:
             logger.warning("MFGC adapter execution failed: %s", exc)
