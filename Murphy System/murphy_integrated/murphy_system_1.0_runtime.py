@@ -510,6 +510,7 @@ class MurphySystem:
             authority_mode=self.mfgc_config.get("authority_mode", "standard"),
             gate_synthesis=self.mfgc_config.get("gate_synthesis", True),
             emergency_gates=self.mfgc_config.get("emergency_gates", True),
+            phase_verbosity=self.mfgc_config.get("phase_verbosity", 1),
             audit_trail=self.mfgc_config.get("audit_trail", True)
         )
 
@@ -619,6 +620,26 @@ class MurphySystem:
         logger.info("="*80)
     
     # ==================== CORE EXECUTION ====================
+
+    def _prepare_activation_preview(
+        self,
+        task_description: str,
+        task_type: str,
+        session_id: Optional[str],
+        parameters: Optional[Dict[str, Any]]
+    ) -> tuple[LivingDocument, Dict[str, Any]]:
+        doc = self._ensure_document(task_description, task_type, session_id)
+        self._update_document_tree(doc)
+        onboarding_context = None
+        if isinstance(parameters, dict):
+            onboarding_context = parameters.get("onboarding_context")
+        activation_preview = self._build_activation_preview(
+            doc,
+            task_description=task_description,
+            onboarding_context=onboarding_context
+        )
+        self.latest_activation_preview = activation_preview
+        return doc, activation_preview
     
     async def execute_task(
         self,
@@ -648,17 +669,12 @@ class MurphySystem:
         logger.info(f"EXECUTING TASK: {task_description}")
         logger.info(f"{'='*80}\n")
 
-        doc = self._ensure_document(task_description, task_type, session_id)
-        self._update_document_tree(doc)
-        onboarding_context = None
-        if isinstance(parameters, dict):
-            onboarding_context = parameters.get("onboarding_context")
-        activation_preview = self._build_activation_preview(
-            doc,
-            task_description=task_description,
-            onboarding_context=onboarding_context
+        doc, activation_preview = self._prepare_activation_preview(
+            task_description,
+            task_type,
+            session_id,
+            parameters
         )
-        self.latest_activation_preview = activation_preview
 
         if self.librarian:
             self.librarian.log_transcript(
