@@ -35,6 +35,7 @@ GET /api/diagnostics/activation/last
 Activation previews include a `capability_alignment` array with gap reasons/actions, a `capability_tests` array showing wiring attempts and errors, and a `capability_review` summary that highlights success/failure counts plus automation-extension gaps, automation execution evaluation, competitive comparison readiness, and delivery-readiness checks (99% coverage target + compliance gates).
 For a step-by-step flow breakdown and UI attempt script, see [SYSTEM_FLOW_ANALYSIS.md](SYSTEM_FLOW_ANALYSIS.md).
 For recommended gap closure solutions, capability ratings, and multi-channel output plans, see [CAPABILITY_GAP_SOLUTIONS.md](CAPABILITY_GAP_SOLUTIONS.md).
+For a full system assessment and finishing plan, see [FULL_SYSTEM_ASSESSMENT.md](FULL_SYSTEM_ASSESSMENT.md).
 
 ## Verification Checklist (Commissioned Behaviors)
 
