@@ -1494,13 +1494,14 @@ class MurphySystem:
             execution_strategy = "simulation"
         requirements_stage_status = "complete" if requirements_status == "complete" else "needs_info"
         workload_status = "ready" if operations_plan else "pending"
-        automation_loop_status = "ready"
         if requirements_stage_status != "complete":
             automation_loop_status = "needs_info"
         elif execution_strategy == "simulation":
             automation_loop_status = "needs_wiring"
         elif learning_loop.get("status") != "ready":
             automation_loop_status = learning_loop.get("status", "pending")
+        else:
+            automation_loop_status = "ready"
         trigger_plan_status = trigger_plan.get("status") if trigger_plan else None
         if trigger_plan_status == "scheduled":
             trigger_status = "ready"
@@ -1625,7 +1626,7 @@ class MurphySystem:
                 },
                 {
                     "id": "regional_sensors",
-                    "description": "Edit region/regulatory sensors for monitoring context.",
+                    "description": "Edit region/regulatory sources for monitoring context.",
                     "status": monitoring_status
                 }
             ],
