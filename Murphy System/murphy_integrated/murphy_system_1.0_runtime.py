@@ -434,6 +434,9 @@ class MurphySystem:
         {"id": "gate_alignment", "label": "Gate alignment & compliance", "owner": "governance"},
         {"id": "workload_distribution", "label": "Workload distribution", "owner": "operations_director"},
         {"id": "execution_plan", "label": "Execution planning", "owner": "automation_engine"},
+        {"id": "automation_loop", "label": "Automation loop setup", "owner": "automation_engine"},
+        {"id": "trigger_schedule", "label": "Timer & trigger schedule", "owner": "governance"},
+        {"id": "monitoring_feedback", "label": "Monitoring & feedback", "owner": "operations_director"},
         {"id": "deliverable_review", "label": "Deliverable review", "owner": "quality_assurance"},
         {"id": "human_release", "label": "Human release & publishing", "owner": "hitl_manager"}
     ]
@@ -1471,7 +1474,8 @@ class MurphySystem:
         delivery_readiness: Dict[str, Any],
         hitl_contracts: List[Dict[str, Any]],
         sensor_plan: Dict[str, Any],
-        org_chart_plan: Dict[str, Any]
+        org_chart_plan: Dict[str, Any],
+        trigger_plan: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         requirements_profile = learning_loop.get("requirements_identification", {})
         requirements_status = requirements_profile.get("status", "needs_info")
@@ -1490,6 +1494,25 @@ class MurphySystem:
             execution_strategy = "simulation"
         requirements_stage_status = "complete" if requirements_status == "complete" else "needs_info"
         workload_status = "ready" if operations_plan else "pending"
+        automation_loop_status = "ready"
+        if requirements_stage_status != "complete":
+            automation_loop_status = "needs_info"
+        elif execution_strategy == "simulation":
+            automation_loop_status = "needs_wiring"
+        elif learning_loop.get("status") != "ready":
+            automation_loop_status = learning_loop.get("status", "pending")
+        trigger_plan_status = trigger_plan.get("status") if trigger_plan else None
+        if trigger_plan_status == "scheduled":
+            trigger_status = "ready"
+        elif trigger_plan_status in {"unavailable", "disabled"}:
+            trigger_status = "needs_wiring"
+        else:
+            trigger_status = "pending"
+        monitoring_status = (
+            "ready"
+            if sensor_plan.get("primary_sensor") or sensor_plan.get("primary_regulatory_source")
+            else "needs_info"
+        )
         if execution_strategy == "simulation":
             execution_status = "needs_wiring"
         elif requirements_stage_status != "complete" or gate_status != "ready":
@@ -1507,6 +1530,9 @@ class MurphySystem:
             "gate_alignment": gate_status,
             "workload_distribution": workload_status,
             "execution_plan": execution_status,
+            "automation_loop": automation_loop_status,
+            "trigger_schedule": trigger_status,
+            "monitoring_feedback": monitoring_status,
             "deliverable_review": deliverable_status,
             "human_release": human_release_status
         }
@@ -1526,6 +1552,12 @@ class MurphySystem:
             next_actions.append("Review and update gate policy to clear compliance.")
         if execution_strategy == "simulation":
             next_actions.append("Wire the Two-Phase Orchestrator or MFGC adapter for live execution.")
+        if automation_loop_status != "ready":
+            next_actions.append("Configure multi-project automation loop iterations.")
+        if trigger_status != "ready":
+            next_actions.append("Schedule governance timers/triggers for automated delivery.")
+        if monitoring_status != "ready":
+            next_actions.append("Attach monitoring sensors for feedback and compliance signals.")
         if deliverable_status != "ready":
             next_actions.append(delivery_readiness.get("gap_action", "Resolve delivery readiness gaps."))
         if hitl_contracts:
@@ -1546,6 +1578,12 @@ class MurphySystem:
             overall_status = "pending_compliance"
         elif execution_strategy == "simulation":
             overall_status = "needs_wiring"
+        elif automation_loop_status in {"needs_wiring", "needs_info"}:
+            overall_status = automation_loop_status
+        elif trigger_status == "needs_wiring":
+            overall_status = "needs_wiring"
+        elif monitoring_status == "needs_info":
+            overall_status = "needs_info"
         elif deliverable_status != "ready":
             overall_status = deliverable_status
         else:
@@ -1571,14 +1609,24 @@ class MurphySystem:
                     "status": gate_status
                 },
                 {
+                    "id": "automation_loop",
+                    "description": "Adjust learning loop variants and iteration scope.",
+                    "status": automation_loop_status
+                },
+                {
+                    "id": "trigger_schedule",
+                    "description": "Update timer/trigger schedule for automated delivery windows.",
+                    "status": trigger_status
+                },
+                {
                     "id": "org_chart_roles",
                     "description": "Adjust org chart coverage and contract positions.",
                     "status": org_chart_plan.get("coverage_summary", {}).get("status", "unknown")
                 },
                 {
                     "id": "regional_sensors",
-                    "description": "Edit region/regulatory sources for compliance context.",
-                    "status": sensor_plan.get("region", "global")
+                    "description": "Edit region/regulatory sensors for monitoring context.",
+                    "status": monitoring_status
                 }
             ],
             "next_actions": unique_actions,
@@ -2544,7 +2592,8 @@ class MurphySystem:
             delivery_readiness,
             hitl_contracts,
             sensor_plan,
-            org_chart_plan
+            org_chart_plan,
+            trigger_plan
         )
 
         preview = {
