@@ -60,6 +60,7 @@ For a concise status summary, see [RUNTIME_1.0_STATUS.md](RUNTIME_1.0_STATUS.md)
 For inactive subsystem inventory and verification steps, see [ACTIVATION_AUDIT.md](ACTIVATION_AUDIT.md).
 For a full flow analysis and UI attempt script, see [SYSTEM_FLOW_ANALYSIS.md](SYSTEM_FLOW_ANALYSIS.md).
 For gap closure recommendations, see [CAPABILITY_GAP_SOLUTIONS.md](CAPABILITY_GAP_SOLUTIONS.md).
+For a full system assessment and finishing plan, see [FULL_SYSTEM_ASSESSMENT.md](FULL_SYSTEM_ASSESSMENT.md).
 
 ## ✨ Features
 
