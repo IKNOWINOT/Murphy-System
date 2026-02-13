@@ -16,6 +16,14 @@ def load_runtime_module():
     return module
 
 
+class DummyOrchestrator:
+    async def phase1_generative_setup(self):
+        return {}
+
+    async def phase2_production_execution(self):
+        return {}
+
+
 def test_dynamic_implementation_plan_requires_requirements():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
@@ -50,13 +58,6 @@ def test_dynamic_implementation_plan_requires_requirements():
 def test_dynamic_implementation_plan_ready_with_orchestrator():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
-
-    class DummyOrchestrator:
-        async def phase1_generative_setup(self):
-            return {}
-
-        async def phase2_production_execution(self):
-            return {}
 
     murphy.orchestrator = DummyOrchestrator()
     murphy.flow_steps = []
