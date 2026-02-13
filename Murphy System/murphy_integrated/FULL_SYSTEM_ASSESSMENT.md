@@ -11,6 +11,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 ## 2) What the system does well today
 
 - **Requirements capture & planning:** activation previews enumerate gates, governance policies, org chart coverage, and compliance sensors.
+- **MFGC fallback execution:** when the two-phase orchestrator is unavailable, the runtime now executes tasks through the MFGC adapter to synthesize gates and swarm candidates.
 - **Governance enforcement planning:** executive/operations/QA/HITL gates appear in previews and policy overrides can be tested.
 - **Business automation planning:** Inoni automation loop outputs outline marketing, operations, and QA flows.
 - **Librarian context:** curated conditions and approval requirements are generated for each request.
@@ -19,7 +20,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 ## 3) Critical execution gaps (must close)
 
 1. **Gate synthesis + swarm execution wiring**  
-   Current gates and swarm plans are preview-only; they must be executed in `execute_task` and form workflows.
+   MFGC fallback now executes gate synthesis/swarm candidates, but full orchestrator execution still needs wiring in `execute_task` and form workflows.
 2. **Compute plane + stability controllers**  
    Deterministic reasoning exists but is not invoked for tagged tasks.
 3. **Persistence + audit trails**  

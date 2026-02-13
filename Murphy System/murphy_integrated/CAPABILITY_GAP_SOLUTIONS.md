@@ -10,6 +10,7 @@ The runtime currently provides:
 - **Architect terminal UI** onboarding chat flow, block commands (magnify/simplify/solidify), gate updates, and preview/librarian panels.
 - **Governance planning** (executive, operations, QA, HITL) and timer/trigger scheduling in previews.
 - **Business automation loop outputs** (marketing, operations, QA) through the Inoni automation engine.
+- **MFGC fallback execution path** that synthesizes gates and swarm candidates when the two-phase orchestrator is unavailable.
 - **Capability review summaries** (execution metrics, workload balance, automation execution evaluation, competitive comparison readiness).
 - **Delivery readiness checks** combining compliance gate status, HITL requirements, and 99% coverage targets.
 - **Librarian context generation** with recommended conditions and approval-required guidance.
