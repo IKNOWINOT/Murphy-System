@@ -779,7 +779,10 @@ class MurphySystem:
         mfgc_payload = self._execute_with_mfgc_adapter(task_description, task_type, parameters)
         if mfgc_payload:
             execution_time = mfgc_payload.get("execution_time")
-            duration = float(execution_time) if execution_time is not None else 0.0
+            try:
+                duration = float(execution_time) if execution_time is not None else 0.0
+            except (TypeError, ValueError):
+                duration = 0.0
             success = bool(mfgc_payload.get("success"))
             self._record_execution(success=success, duration=duration)
             response_payload = mfgc_payload.get("integrator_response") or {
@@ -852,13 +855,13 @@ class MurphySystem:
             config = self._create_mfgc_config(enabled_override=True)
             if config:
                 self.mfgc_adapter.update_config(config)
+            phase_verbosity = config.phase_verbosity if config else self.DEFAULT_PHASE_VERBOSITY
             result = self.mfgc_adapter.execute_with_mfgc(
                 user_input=task_description,
                 request_type=task_type,
                 parameters=parameters
             )
             self.mfgc_statistics = self.mfgc_adapter.get_statistics()
-            phase_verbosity = config.phase_verbosity if config else self.DEFAULT_PHASE_VERBOSITY
             return result.to_dict(phase_verbosity=phase_verbosity)
         except Exception as exc:
             logger.warning("MFGC adapter execution failed: %s", exc)
