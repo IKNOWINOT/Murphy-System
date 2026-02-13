@@ -503,7 +503,7 @@ class MurphySystem:
     def _create_mfgc_config(self, enabled_override: Optional[bool] = None) -> Optional["MFGCConfig"]:
         if not MFGCConfig:
             return None
-        config_values = getattr(self, "mfgc_config", {}) or {}
+        config_values = getattr(self, "mfgc_config", {})
         if enabled_override is not None:
             config_values = {**config_values, "enabled": enabled_override}
         return MFGCConfig(
@@ -776,7 +776,8 @@ class MurphySystem:
         start = time.perf_counter()
         mfgc_payload = self._execute_with_mfgc_adapter(task_description, task_type, parameters)
         if mfgc_payload:
-            duration = float(mfgc_payload.get("execution_time") or 0.0)
+            execution_time = mfgc_payload.get("execution_time")
+            duration = float(execution_time) if execution_time is not None else 0.0
             success = bool(mfgc_payload.get("success"))
             self._record_execution(success=success, duration=duration)
             response_payload = mfgc_payload.get("integrator_response") or {
@@ -841,8 +842,6 @@ class MurphySystem:
             config = self._create_mfgc_config(enabled_override=True)
             if config:
                 self.mfgc_adapter.update_config(config)
-                if hasattr(self, "mfgc_config"):
-                    self.mfgc_config = {**self.mfgc_config, "enabled": config.enabled}
             result = self.mfgc_adapter.execute_with_mfgc(
                 user_input=task_description,
                 request_type=task_type,
