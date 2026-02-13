@@ -428,6 +428,15 @@ class MurphySystem:
         {"id": "compliance", "focus": "Regulatory-focused requirements variant"},
         {"id": "growth", "focus": "Growth and marketing automation variant"}
     ]
+
+    DYNAMIC_IMPLEMENTATION_STAGES = [
+        {"id": "requirements_identification", "label": "Requirements identification", "owner": "executive_branch"},
+        {"id": "gate_alignment", "label": "Gate alignment & compliance", "owner": "governance"},
+        {"id": "workload_distribution", "label": "Workload distribution", "owner": "operations_director"},
+        {"id": "execution_plan", "label": "Execution planning", "owner": "automation_engine"},
+        {"id": "deliverable_review", "label": "Deliverable review", "owner": "quality_assurance"},
+        {"id": "human_release", "label": "Human release & publishing", "owner": "hitl_manager"}
+    ]
     
     @classmethod
     def create_test_instance(cls) -> "MurphySystem":
@@ -443,6 +452,7 @@ class MurphySystem:
         instance.integration_engine = None
         instance.governance_scheduler = None
         instance.inoni_automation = None
+        instance.orchestrator = None
         instance.swarm_system = None
         instance.system_integrator = None
         instance.mfgc_adapter = None
@@ -1446,9 +1456,133 @@ class MurphySystem:
                 "confidence_mode": self.mfgc_config.get("confidence_mode"),
                 "authority_mode": self.mfgc_config.get("authority_mode"),
                 "gate_synthesis": self.mfgc_config.get("gate_synthesis"),
-                "audit_trail": self.mfgc_config.get("audit_trail")
-            },
-            "gap_action": gap_action
+            "audit_trail": self.mfgc_config.get("audit_trail")
+        },
+        "gap_action": gap_action
+    }
+
+    def _build_dynamic_implementation_plan(
+        self,
+        doc: LivingDocument,
+        task_description: str,
+        planned_subsystems: List[Dict[str, Any]],
+        learning_loop: Dict[str, Any],
+        operations_plan: List[Dict[str, Any]],
+        delivery_readiness: Dict[str, Any],
+        hitl_contracts: List[Dict[str, Any]],
+        sensor_plan: Dict[str, Any],
+        org_chart_plan: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        requirements_profile = learning_loop.get("requirements_identification", {})
+        requirements_status = requirements_profile.get("status", "needs_info")
+        gate_states = [
+            (gate.get("status") or gate.get("state") or "").lower()
+            for gate in doc.gates
+        ]
+        blocked = any(state in self.COMPLIANCE_BLOCKED_STATES for state in gate_states)
+        pending = any(state in self.COMPLIANCE_PENDING_STATES for state in gate_states)
+        gate_status = "blocked" if blocked else "pending" if pending else "ready"
+        if self._is_orchestrator_available():
+            execution_strategy = "orchestrator"
+        elif self.mfgc_adapter:
+            execution_strategy = "mfgc_fallback"
+        else:
+            execution_strategy = "simulation"
+        requirements_stage_status = "complete" if requirements_status == "complete" else "needs_info"
+        workload_status = "ready" if operations_plan else "pending"
+        if execution_strategy == "simulation":
+            execution_status = "needs_wiring"
+        elif requirements_stage_status != "complete" or gate_status != "ready":
+            execution_status = "blocked"
+        else:
+            execution_status = "ready"
+        deliverable_status = delivery_readiness.get("status", "unknown")
+        human_release_status = (
+            "pending_approval"
+            if hitl_contracts
+            else ("ready" if deliverable_status == "ready" else "blocked")
+        )
+        stage_statuses = {
+            "requirements_identification": requirements_stage_status,
+            "gate_alignment": gate_status,
+            "workload_distribution": workload_status,
+            "execution_plan": execution_status,
+            "deliverable_review": deliverable_status,
+            "human_release": human_release_status
+        }
+        stages = [
+            {
+                "id": stage["id"],
+                "label": stage["label"],
+                "owner": stage["owner"],
+                "status": stage_statuses.get(stage["id"], "pending")
+            }
+            for stage in self.DYNAMIC_IMPLEMENTATION_STAGES
+        ]
+        next_actions = []
+        if requirements_status != "complete":
+            next_actions.append("Collect missing onboarding answers to lock requirements.")
+        if gate_status in {"blocked", "pending"}:
+            next_actions.append("Review and update gate policy to clear compliance.")
+        if execution_strategy == "simulation":
+            next_actions.append("Wire the Two-Phase Orchestrator or MFGC adapter for live execution.")
+        if deliverable_status != "ready":
+            next_actions.append(delivery_readiness.get("gap_action", "Resolve delivery readiness gaps."))
+        if hitl_contracts:
+            next_actions.append("Collect HITL approvals for contract gates.")
+        unique_actions = list(dict.fromkeys(next_actions))
+        llm_readiness = self._check_llm_readiness()
+        deterministic_planned = any(item.get("id") == "compute_plane" for item in planned_subsystems)
+        processing_balance = {
+            "deterministic": "planned" if deterministic_planned else "not_requested",
+            "llm": llm_readiness.get("status", "not_configured"),
+            "summary": "balanced" if deterministic_planned and llm_readiness.get("status") == "available" else "partial"
+        }
+        if requirements_status != "complete":
+            overall_status = "needs_info"
+        elif gate_status == "blocked":
+            overall_status = "blocked"
+        elif gate_status == "pending":
+            overall_status = "pending_compliance"
+        elif execution_strategy == "simulation":
+            overall_status = "needs_wiring"
+        elif deliverable_status != "ready":
+            overall_status = deliverable_status
+        else:
+            overall_status = "ready"
+        return {
+            "status": overall_status,
+            "execution_strategy": execution_strategy,
+            "requirements_status": requirements_status,
+            "gate_status": gate_status,
+            "delivery_status": deliverable_status,
+            "processing_balance": processing_balance,
+            "loop_iterations": learning_loop.get("iterations", []),
+            "stages": stages,
+            "edit_points": [
+                {
+                    "id": "onboarding_answers",
+                    "description": "Update onboarding answers to refine requirements.",
+                    "status": requirements_status
+                },
+                {
+                    "id": "gate_policy",
+                    "description": "Update gate thresholds or overrides to adjust compliance.",
+                    "status": gate_status
+                },
+                {
+                    "id": "org_chart_roles",
+                    "description": "Adjust org chart coverage and contract positions.",
+                    "status": org_chart_plan.get("coverage_summary", {}).get("status", "unknown")
+                },
+                {
+                    "id": "regional_sensors",
+                    "description": "Edit region/regulatory sources for compliance context.",
+                    "status": sensor_plan.get("region", "global")
+                }
+            ],
+            "next_actions": unique_actions,
+            "request_summary": self._truncate_description(task_description)
         }
 
     def _build_timer_trigger_plan(self, task_description: str) -> Dict[str, Any]:
@@ -2401,6 +2535,17 @@ class MurphySystem:
             learning_loop,
             delivery_readiness=delivery_readiness
         )
+        dynamic_implementation = self._build_dynamic_implementation_plan(
+            doc,
+            task_description,
+            planned_subsystems,
+            learning_loop,
+            operations_plan,
+            delivery_readiness,
+            hitl_contracts,
+            sensor_plan,
+            org_chart_plan
+        )
 
         preview = {
             "document_id": doc.doc_id,
@@ -2432,7 +2577,8 @@ class MurphySystem:
             "self_operation": self_operation,
             "learning_loop": learning_loop,
             "delivery_readiness": delivery_readiness,
-            "capability_review": capability_review
+            "capability_review": capability_review,
+            "dynamic_implementation": dynamic_implementation
         }
         if onboarding_context:
             preview["onboarding_context"] = onboarding_context
