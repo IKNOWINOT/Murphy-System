@@ -57,10 +57,15 @@ def test_dynamic_implementation_plan_requires_requirements():
     assert stages["gate_alignment"]["status"] == "blocked"
     assert stages["gate_sequencing"]["status"] == "blocked"
     assert stages["compliance_review"]["status"] == "blocked"
+    assert stages["integration_wiring"]["status"] == "needs_wiring"
     assert stages["automation_loop"]["status"] == "needs_info"
     assert stages["multi_loop_schedule"]["status"] == "needs_info"
     assert stages["trigger_schedule"]["status"] == "needs_wiring"
     assert stages["monitoring_feedback"]["status"] == "ready"
+    assert stages["output_delivery"]["status"] == "needs_info"
+    assert stages["rollback_plan"]["status"] == "needs_wiring"
+    assert plan["chain_plan"]["mode"] == "adaptive"
+    assert "requirements_identification" in plan["chain_plan"]["control_points"]
 
 
 def test_dynamic_implementation_plan_ready_with_orchestrator():
@@ -70,6 +75,7 @@ def test_dynamic_implementation_plan_ready_with_orchestrator():
     murphy.orchestrator = DummyOrchestrator()
     murphy.flow_steps = []
     murphy.swarm_system = object()
+    murphy.integration_engine = object()
     doc = runtime.LivingDocument("doc-2", "Test", "content", "request")
     doc.gates = [{"status": "open"}]
     doc.generated_tasks = [{"stage": "automation_design", "description": "Design automation"}]
@@ -99,7 +105,11 @@ def test_dynamic_implementation_plan_ready_with_orchestrator():
     assert stage_map["gate_alignment"]["status"] == "ready"
     assert stage_map["gate_sequencing"]["status"] == "ready"
     assert stage_map["compliance_review"]["status"] == "ready"
+    assert stage_map["integration_wiring"]["status"] == "ready"
     assert stage_map["automation_loop"]["status"] == "ready"
     assert stage_map["multi_loop_schedule"]["status"] == "ready"
     assert stage_map["trigger_schedule"]["status"] == "ready"
     assert stage_map["monitoring_feedback"]["status"] == "ready"
+    assert stage_map["output_delivery"]["status"] == "ready"
+    assert stage_map["rollback_plan"]["status"] == "ready"
+    assert plan["chain_plan"]["mode"] == "adaptive"

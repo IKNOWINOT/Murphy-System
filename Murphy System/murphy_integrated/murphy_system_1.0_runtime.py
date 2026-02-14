@@ -436,12 +436,22 @@ class MurphySystem:
         {"id": "compliance_review", "label": "Compliance review", "owner": "quality_assurance"},
         {"id": "workload_distribution", "label": "Workload distribution", "owner": "operations_director"},
         {"id": "execution_plan", "label": "Execution planning", "owner": "automation_engine"},
+        {"id": "integration_wiring", "label": "Integration wiring", "owner": "integration_engine"},
         {"id": "automation_loop", "label": "Automation loop setup", "owner": "automation_engine"},
         {"id": "multi_loop_schedule", "label": "Multi-loop scheduling", "owner": "automation_engine"},
         {"id": "trigger_schedule", "label": "Timer & trigger schedule", "owner": "governance"},
         {"id": "monitoring_feedback", "label": "Monitoring & feedback", "owner": "operations_director"},
+        {"id": "output_delivery", "label": "Output channel delivery", "owner": "delivery_engine"},
         {"id": "deliverable_review", "label": "Deliverable review", "owner": "quality_assurance"},
+        {"id": "rollback_plan", "label": "Rollback & recovery", "owner": "operations_director"},
         {"id": "human_release", "label": "Human release & publishing", "owner": "hitl_manager"}
+    ]
+
+    DYNAMIC_IMPLEMENTATION_FLEX_LINKS = [
+        ("monitoring_feedback", "compliance_review"),
+        ("trigger_schedule", "automation_loop"),
+        ("output_delivery", "deliverable_review"),
+        ("rollback_plan", "human_release")
     ]
     
     @classmethod
@@ -1505,6 +1515,11 @@ class MurphySystem:
             execution_strategy = "simulation"
         requirements_stage_status = "complete" if requirements_status == "complete" else "needs_info"
         workload_status = "ready" if operations_plan else "pending"
+        integration_status = (
+            "ready"
+            if self.system_integrator or self.integration_engine
+            else "needs_wiring"
+        )
         automation_loop_status = self._determine_automation_loop_status(
             requirements_stage_status,
             execution_strategy,
@@ -1549,6 +1564,22 @@ class MurphySystem:
             if hitl_contracts
             else ("ready" if deliverable_status == "ready" else "blocked")
         )
+        if deliverable_status == "ready":
+            output_status = "ready"
+        elif requirements_stage_status != "complete" or deliverable_status in {
+            "needs_info",
+            "needs_coverage",
+            "needs_compliance"
+        }:
+            output_status = "needs_info"
+        else:
+            output_status = "pending"
+        if execution_strategy == "simulation":
+            rollback_status = "needs_wiring"
+        elif trigger_status == "ready":
+            rollback_status = "ready"
+        else:
+            rollback_status = "pending"
         if automation_loop_status == "needs_wiring":
             multi_loop_status = "needs_wiring"
         elif requirements_stage_status != "complete":
@@ -1566,11 +1597,14 @@ class MurphySystem:
             "compliance_review": compliance_review_status,
             "workload_distribution": workload_status,
             "execution_plan": execution_status,
+            "integration_wiring": integration_status,
             "automation_loop": automation_loop_status,
             "multi_loop_schedule": multi_loop_status,
             "trigger_schedule": trigger_status,
             "monitoring_feedback": monitoring_status,
+            "output_delivery": output_status,
             "deliverable_review": deliverable_status,
+            "rollback_plan": rollback_status,
             "human_release": human_release_status
         }
         stages = [
@@ -1581,6 +1615,13 @@ class MurphySystem:
                 "status": stage_statuses.get(stage["id"], "pending")
             }
             for stage in self.DYNAMIC_IMPLEMENTATION_STAGES
+        ]
+        chain_plan = self._build_dynamic_chain_plan(stage_statuses)
+        loop_chain = [
+            {"id": "automation_loop", "status": automation_loop_status},
+            {"id": "multi_loop_schedule", "status": multi_loop_status},
+            {"id": "trigger_schedule", "status": trigger_status},
+            {"id": "monitoring_feedback", "status": monitoring_status}
         ]
         next_actions = []
         if requirements_status != "complete":
@@ -1593,6 +1634,8 @@ class MurphySystem:
             next_actions.append("Complete compliance review and attach regulatory evidence.")
         if execution_strategy == "simulation":
             next_actions.append("Wire the Two-Phase Orchestrator or MFGC adapter for live execution.")
+        if integration_status != "ready":
+            next_actions.append("Wire integration engine connectors for external system handoff.")
         if automation_loop_status != "ready":
             next_actions.append("Configure multi-project automation loop iterations.")
         if multi_loop_status != "ready":
@@ -1601,8 +1644,12 @@ class MurphySystem:
             next_actions.append("Schedule governance timers/triggers for automated delivery.")
         if monitoring_status != "ready":
             next_actions.append("Attach monitoring sensors for feedback and compliance signals.")
+        if output_status != "ready":
+            next_actions.append("Confirm output channel mapping and delivery templates.")
         if deliverable_status != "ready":
             next_actions.append(delivery_readiness.get("gap_action", "Resolve delivery readiness gaps."))
+        if rollback_status != "ready":
+            next_actions.append("Define rollback/recovery plan and release checkpoints.")
         if hitl_contracts:
             next_actions.append("Collect HITL approvals for contract gates.")
         unique_actions = list(dict.fromkeys(next_actions))
@@ -1629,6 +1676,8 @@ class MurphySystem:
             overall_status = "needs_info"
         elif execution_strategy == "simulation":
             overall_status = "needs_wiring"
+        elif integration_status == "needs_wiring":
+            overall_status = "needs_wiring"
         elif automation_loop_status in {"needs_wiring", "needs_info"}:
             overall_status = automation_loop_status
         elif multi_loop_status == "needs_wiring":
@@ -1639,6 +1688,10 @@ class MurphySystem:
             overall_status = "needs_wiring"
         elif monitoring_status == "needs_info":
             overall_status = "needs_info"
+        elif output_status == "needs_info":
+            overall_status = "needs_info"
+        elif rollback_status == "needs_wiring":
+            overall_status = "needs_wiring"
         elif deliverable_status != "ready":
             overall_status = deliverable_status
         else:
@@ -1652,6 +1705,8 @@ class MurphySystem:
             "processing_balance": processing_balance,
             "loop_iterations": iterations,
             "stages": stages,
+            "chain_plan": chain_plan,
+            "loop_chain": loop_chain,
             "edit_points": [
                 {
                     "id": "onboarding_answers",
@@ -1679,6 +1734,11 @@ class MurphySystem:
                     "status": automation_loop_status
                 },
                 {
+                    "id": "integration_wiring",
+                    "description": "Configure integration connectors and handoff targets.",
+                    "status": integration_status
+                },
+                {
                     "id": "multi_loop_schedule",
                     "description": "Define multi-project automation loop cadence.",
                     "status": multi_loop_status
@@ -1689,6 +1749,11 @@ class MurphySystem:
                     "status": trigger_status
                 },
                 {
+                    "id": "output_delivery",
+                    "description": "Configure output channels and delivery templates.",
+                    "status": output_status
+                },
+                {
                     "id": "org_chart_roles",
                     "description": "Adjust org chart coverage and contract positions.",
                     "status": org_chart_plan.get("coverage_summary", {}).get("status", "unknown")
@@ -1697,10 +1762,47 @@ class MurphySystem:
                     "id": "regional_sensors",
                     "description": "Edit region/regulatory sources for monitoring context.",
                     "status": monitoring_status
+                },
+                {
+                    "id": "rollback_plan",
+                    "description": "Update rollback and recovery plan checkpoints.",
+                    "status": rollback_status
                 }
             ],
             "next_actions": unique_actions,
             "request_summary": self._truncate_description(task_description)
+        }
+
+    def _build_dynamic_chain_plan(self, stage_statuses: Dict[str, str]) -> Dict[str, Any]:
+        stage_ids = [stage["id"] for stage in self.DYNAMIC_IMPLEMENTATION_STAGES]
+        control_points = [
+            stage_id
+            for stage_id in stage_ids
+            if stage_statuses.get(stage_id) not in {"ready", "complete"}
+        ]
+        links = []
+        for index, stage_id in enumerate(stage_ids[:-1]):
+            next_id = stage_ids[index + 1]
+            status = "open" if stage_statuses.get(stage_id) in {"ready", "complete"} else "gated"
+            links.append({
+                "from": stage_id,
+                "to": next_id,
+                "mode": "sequential",
+                "status": status
+            })
+        for source, target in self.DYNAMIC_IMPLEMENTATION_FLEX_LINKS:
+            if source in stage_statuses and target in stage_statuses:
+                links.append({
+                    "from": source,
+                    "to": target,
+                    "mode": "adaptive",
+                    "status": "open" if stage_statuses.get(source) == "ready" else "gated"
+                })
+        return {
+            "mode": "adaptive",
+            "primary_sequence": stage_ids,
+            "control_points": control_points,
+            "links": links
         }
 
     @staticmethod
