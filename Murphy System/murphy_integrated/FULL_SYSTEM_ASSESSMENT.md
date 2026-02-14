@@ -83,4 +83,14 @@ This assessment consolidates the current state, capability gaps, and a finishing
 
 ---
 
+## 8) Completion checklist (what remains to be complete)
+
+- **Dynamic execution wiring:** gate synthesis, dynamic swarm generation, and chain execution must run through the main runtime paths (no preview-only paths).
+- **Deterministic + LLM routing:** compute plane and LLM orchestration must both be wired with clear task routing rules.
+- **Persistence & replay:** store LivingDocument, gate history, librarian context, and automation plans with replay support.
+- **Multi-channel delivery:** document/email/chat/voice adapters with governance approvals and audit trails.
+- **Compliance validation:** regulatory sensors, policy gates, and HITL approvals tied to deliverable releases.
+- **Operations automation:** remote access invites, ticketing, patch/rollback automation, and production telemetry.
+- **Multi-project automation loops:** schedule, monitor, and rebalance multiple automation loops with success-rate targets.
+
 **Bottom line:** Runtime 1.0 is a strong planning/preview engine. To make it a fully dynamic automation runtime, focus on execution wiring, persistent memory, and channel adapters before scaling operational automation.
