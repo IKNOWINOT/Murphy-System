@@ -1613,7 +1613,9 @@ class MurphySystem:
             for stage in self.DYNAMIC_IMPLEMENTATION_STAGES
         ]
         # Wiring gaps indicate missing infrastructure/connection wiring. Info gaps indicate
-        # missing configuration or input data once the infrastructure exists.
+        # missing configuration or input data once the infrastructure exists. Some stages
+        # (ex: trigger_schedule, monitoring_feedback) can surface either gap type depending
+        # on whether the scheduler/sensors are wired or just missing configuration.
         wiring_reason_map = {
             "execution_plan": "Wire the orchestrator or MFGC adapter for live execution.",
             "swarm_generation": "Initialize the swarm system and seed swarm tasks.",
