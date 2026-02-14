@@ -1628,8 +1628,8 @@ class MurphySystem:
             "workload_distribution": "Allocate workload across org roles and contracts.",
             "automation_loop": "Define learning loop iterations and variants.",
             "multi_loop_schedule": "Set multi-project loop cadence and dependencies.",
-            "trigger_schedule": "Provide trigger schedule details.",
-            "monitoring_feedback": "Attach monitoring sensors for compliance feedback.",
+            "trigger_schedule": "Define trigger schedule details after scheduler wiring.",
+            "monitoring_feedback": "Specify monitoring metrics after sensors are connected.",
             "output_delivery": "Specify output channel templates and delivery rules.",
             "deliverable_review": "Collect deliverable review evidence.",
             "human_release": "Collect HITL approvals for release."
