@@ -55,7 +55,10 @@ def test_dynamic_implementation_plan_requires_requirements():
     stages = {stage["id"]: stage for stage in plan["stages"]}
     assert stages["requirements_identification"]["status"] == "needs_info"
     assert stages["gate_alignment"]["status"] == "blocked"
+    assert stages["gate_sequencing"]["status"] == "blocked"
+    assert stages["compliance_review"]["status"] == "blocked"
     assert stages["automation_loop"]["status"] == "needs_info"
+    assert stages["multi_loop_schedule"]["status"] == "needs_info"
     assert stages["trigger_schedule"]["status"] == "needs_wiring"
     assert stages["monitoring_feedback"]["status"] == "ready"
 
@@ -93,6 +96,10 @@ def test_dynamic_implementation_plan_ready_with_orchestrator():
     assert plan["execution_strategy"] == "orchestrator"
     assert plan["status"] == "ready"
     stage_map = {stage["id"]: stage for stage in plan["stages"]}
+    assert stage_map["gate_alignment"]["status"] == "ready"
+    assert stage_map["gate_sequencing"]["status"] == "ready"
+    assert stage_map["compliance_review"]["status"] == "ready"
     assert stage_map["automation_loop"]["status"] == "ready"
+    assert stage_map["multi_loop_schedule"]["status"] == "ready"
     assert stage_map["trigger_schedule"]["status"] == "ready"
     assert stage_map["monitoring_feedback"]["status"] == "ready"
