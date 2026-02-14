@@ -1306,6 +1306,7 @@ class MurphySystem:
         coverage_percent = round(coverage_ratio * 100, 1)
         requirements_profile = learning_loop.get("requirements_identification", {})
         requirements_status = requirements_profile.get("status", "needs_info")
+        # Minimum confidence required before HITL approval can release execution.
         confidence_threshold = self.HIGH_CONFIDENCE_THRESHOLD
         hitl_required = bool(hitl_contracts)
         if doc.confidence < confidence_threshold:
@@ -1827,10 +1828,8 @@ class MurphySystem:
         }
         if requirements_status != "complete":
             overall_status = "needs_info"
-        elif approval_status == "needs_info":
-            overall_status = "needs_info"
-        elif approval_status == "pending_approval":
-            overall_status = "pending_approval"
+        elif approval_status in {"needs_info", "pending_approval"}:
+            overall_status = approval_status
         elif gate_status == "blocked":
             overall_status = "blocked"
         elif gate_status == "pending":
