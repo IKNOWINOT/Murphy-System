@@ -432,9 +432,12 @@ class MurphySystem:
     DYNAMIC_IMPLEMENTATION_STAGES = [
         {"id": "requirements_identification", "label": "Requirements identification", "owner": "executive_branch"},
         {"id": "gate_alignment", "label": "Gate alignment & compliance", "owner": "governance"},
+        {"id": "gate_sequencing", "label": "Gate sequencing & dependencies", "owner": "governance"},
+        {"id": "compliance_review", "label": "Compliance review", "owner": "quality_assurance"},
         {"id": "workload_distribution", "label": "Workload distribution", "owner": "operations_director"},
         {"id": "execution_plan", "label": "Execution planning", "owner": "automation_engine"},
         {"id": "automation_loop", "label": "Automation loop setup", "owner": "automation_engine"},
+        {"id": "multi_loop_schedule", "label": "Multi-loop scheduling", "owner": "automation_engine"},
         {"id": "trigger_schedule", "label": "Timer & trigger schedule", "owner": "governance"},
         {"id": "monitoring_feedback", "label": "Monitoring & feedback", "owner": "operations_director"},
         {"id": "deliverable_review", "label": "Deliverable review", "owner": "quality_assurance"},
@@ -1483,9 +1486,17 @@ class MurphySystem:
             (gate.get("status") or gate.get("state") or "").lower()
             for gate in doc.gates
         ]
+        has_gates = bool(doc.gates)
         blocked = any(state in self.COMPLIANCE_BLOCKED_STATES for state in gate_states)
         pending = any(state in self.COMPLIANCE_PENDING_STATES for state in gate_states)
-        gate_status = "blocked" if blocked else "pending" if pending else "ready"
+        if blocked:
+            gate_status = "blocked"
+        elif pending:
+            gate_status = "pending"
+        elif not has_gates:
+            gate_status = "needs_info"
+        else:
+            gate_status = "ready"
         if self._is_orchestrator_available():
             execution_strategy = "orchestrator"
         elif self.mfgc_adapter:
@@ -1499,6 +1510,15 @@ class MurphySystem:
             execution_strategy,
             learning_loop
         )
+        iterations = learning_loop.get("iterations", [])
+        if not has_gates:
+            gate_sequence_status = "needs_info"
+        elif gate_status == "blocked":
+            gate_sequence_status = "blocked"
+        elif gate_status == "pending":
+            gate_sequence_status = "pending"
+        else:
+            gate_sequence_status = "ready"
         trigger_plan_status = trigger_plan.get("status") if trigger_plan else None
         if trigger_plan_status == "scheduled":
             trigger_status = "ready"
@@ -1511,6 +1531,12 @@ class MurphySystem:
             if sensor_plan.get("primary_sensor") or sensor_plan.get("primary_regulatory_source")
             else "needs_info"
         )
+        if gate_status in {"blocked", "pending"}:
+            compliance_review_status = gate_status
+        elif monitoring_status == "needs_info":
+            compliance_review_status = "needs_info"
+        else:
+            compliance_review_status = "ready"
         if execution_strategy == "simulation":
             execution_status = "needs_wiring"
         elif requirements_stage_status != "complete" or gate_status != "ready":
@@ -1523,12 +1549,25 @@ class MurphySystem:
             if hitl_contracts
             else ("ready" if deliverable_status == "ready" else "blocked")
         )
+        if automation_loop_status == "needs_wiring":
+            multi_loop_status = "needs_wiring"
+        elif requirements_stage_status != "complete":
+            multi_loop_status = "needs_info"
+        elif automation_loop_status != "ready":
+            multi_loop_status = automation_loop_status
+        elif len(iterations) <= 1:
+            multi_loop_status = "pending"
+        else:
+            multi_loop_status = "ready"
         stage_statuses = {
             "requirements_identification": requirements_stage_status,
             "gate_alignment": gate_status,
+            "gate_sequencing": gate_sequence_status,
+            "compliance_review": compliance_review_status,
             "workload_distribution": workload_status,
             "execution_plan": execution_status,
             "automation_loop": automation_loop_status,
+            "multi_loop_schedule": multi_loop_status,
             "trigger_schedule": trigger_status,
             "monitoring_feedback": monitoring_status,
             "deliverable_review": deliverable_status,
@@ -1548,10 +1587,16 @@ class MurphySystem:
             next_actions.append("Collect missing onboarding answers to lock requirements.")
         if gate_status in {"blocked", "pending"}:
             next_actions.append("Review and update gate policy to clear compliance.")
+        if gate_sequence_status == "needs_info":
+            next_actions.append("Define the gate chain sequence and dependencies.")
+        if compliance_review_status != "ready":
+            next_actions.append("Complete compliance review and attach regulatory evidence.")
         if execution_strategy == "simulation":
             next_actions.append("Wire the Two-Phase Orchestrator or MFGC adapter for live execution.")
         if automation_loop_status != "ready":
             next_actions.append("Configure multi-project automation loop iterations.")
+        if multi_loop_status != "ready":
+            next_actions.append("Define multi-loop scheduling and cross-project feedback cadence.")
         if trigger_status != "ready":
             next_actions.append("Schedule governance timers/triggers for automated delivery.")
         if monitoring_status != "ready":
@@ -1574,10 +1619,22 @@ class MurphySystem:
             overall_status = "blocked"
         elif gate_status == "pending":
             overall_status = "pending_compliance"
+        elif gate_sequence_status == "needs_info":
+            overall_status = "needs_info"
+        elif compliance_review_status == "blocked":
+            overall_status = "blocked"
+        elif compliance_review_status == "pending":
+            overall_status = "pending_compliance"
+        elif compliance_review_status == "needs_info":
+            overall_status = "needs_info"
         elif execution_strategy == "simulation":
             overall_status = "needs_wiring"
         elif automation_loop_status in {"needs_wiring", "needs_info"}:
             overall_status = automation_loop_status
+        elif multi_loop_status == "needs_wiring":
+            overall_status = "needs_wiring"
+        elif multi_loop_status in {"needs_info", "pending"}:
+            overall_status = "needs_info"
         elif trigger_status == "needs_wiring":
             overall_status = "needs_wiring"
         elif monitoring_status == "needs_info":
@@ -1593,7 +1650,7 @@ class MurphySystem:
             "gate_status": gate_status,
             "delivery_status": deliverable_status,
             "processing_balance": processing_balance,
-            "loop_iterations": learning_loop.get("iterations", []),
+            "loop_iterations": iterations,
             "stages": stages,
             "edit_points": [
                 {
@@ -1607,9 +1664,24 @@ class MurphySystem:
                     "status": gate_status
                 },
                 {
+                    "id": "gate_sequence",
+                    "description": "Adjust gate ordering and dependencies for compliance review.",
+                    "status": gate_sequence_status
+                },
+                {
+                    "id": "compliance_review",
+                    "description": "Add regulatory evidence and QA sign-off checkpoints.",
+                    "status": compliance_review_status
+                },
+                {
                     "id": "automation_loop",
                     "description": "Adjust learning loop variants and iteration scope.",
                     "status": automation_loop_status
+                },
+                {
+                    "id": "multi_loop_schedule",
+                    "description": "Define multi-project automation loop cadence.",
+                    "status": multi_loop_status
                 },
                 {
                     "id": "trigger_schedule",

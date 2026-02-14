@@ -335,9 +335,11 @@ Submit a full onboarding automation request in the architect terminal input (mar
 
 ![Architect Terminal Dynamic Implementation Details](docs/screenshots/34_ui_architect_dynamic_implementation_details.png)
 
-**Observed behavior:** the terminal returns activation preview JSON showing gates, swarm tasks, governance plans, librarian conditions, delivery readiness (99% coverage target + compliance status), and region-aware external API sensor plans sourced from the runtime response. The expanded dynamic implementation stages include automation loop, trigger schedule, and monitoring feedback.
+![Architect Terminal Gate Sequencing](docs/screenshots/35_ui_architect_dynamic_gate_sequence.png)
 
-**Dynamic implementation check:** the preview includes a dynamic implementation plan that stages requirements capture, gate alignment, workload distribution, execution strategy, and human release status so the system can iterate across multiple projects.
+**Observed behavior:** the terminal returns activation preview JSON showing gates, swarm tasks, governance plans, librarian conditions, delivery readiness (99% coverage target + compliance status), and region-aware external API sensor plans sourced from the runtime response. The expanded dynamic implementation stages include gate sequencing, compliance review, automation loop, multi-loop scheduling, trigger schedule, and monitoring feedback.
+
+**Dynamic implementation check:** the preview includes a dynamic implementation plan that stages requirements capture, gate alignment, compliance sequencing, workload distribution, execution strategy, and human release status so the system can iterate across multiple projects.
 
 ---
 
