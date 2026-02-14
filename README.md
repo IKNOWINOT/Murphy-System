@@ -19,6 +19,16 @@ Murphy is a **complete, production-ready AI automation system** that can automat
 ✅ **Human-in-the-Loop** - Safety approval for all integrations  
 ✅ **Production-Ready** - Docker, Kubernetes, monitoring included
 
+### System Definition (Short Answer)
+
+Murphy System 1.0 is a **universal AI automation platform** that orchestrates specialized engines and agents to plan, execute, and improve end-to-end workflows. It exposes an API-driven runtime with human-in-the-loop safety for integrating software, data sources, and hardware.
+
+**At a glance, Murphy can:**
+- Automate workflows across factory/IoT, content, data, system, agent, and business domains.
+- Integrate external repositories, APIs, and tools with safety validation and approval gates.
+- Learn from corrections to improve output quality and reliability over time.
+- Run autonomous business engines (sales, marketing, R&D, production) with monitoring.
+
 * * *
 
 ## 🚀 Quick Start
