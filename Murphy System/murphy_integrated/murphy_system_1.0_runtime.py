@@ -1559,9 +1559,7 @@ class MurphySystem:
             execution_status = "blocked"
         else:
             execution_status = "ready"
-        swarm_tasks = doc.generated_tasks or (
-            self._generate_swarm_tasks() if hasattr(self, "_generate_swarm_tasks") else []
-        )
+        swarm_tasks = doc.generated_tasks or self._generate_swarm_tasks()
         if not self.swarm_system:
             swarm_status = "needs_wiring"
         elif swarm_tasks:
@@ -1795,6 +1793,13 @@ class MurphySystem:
             logger.warning("Invalid dynamic chain links detected: %s", invalid_links)
         if len(stage_ids) < 2:
             # A minimum of two stages required to form sequential chain links.
+            if stage_ids:
+                logger.warning(
+                    "Dynamic chain plan has %s stage(s); sequential links disabled.",
+                    len(stage_ids)
+                )
+            else:
+                logger.warning("Dynamic chain plan has no stages; sequential links disabled.")
             return {
                 "mode": "adaptive",
                 "primary_sequence": stage_ids,
