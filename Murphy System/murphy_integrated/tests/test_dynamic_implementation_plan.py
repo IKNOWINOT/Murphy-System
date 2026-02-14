@@ -71,8 +71,16 @@ def test_dynamic_implementation_plan_requires_requirements():
     assert {"execution_plan", "swarm_generation", "integration_wiring", "trigger_schedule", "rollback_plan"}.issubset(
         wiring_ids
     )
+    execution_gap = next(gap for gap in plan["wiring_gaps"] if gap["id"] == "execution_plan")
+    assert execution_gap["label"] == "Execution planning"
+    assert execution_gap["owner"] == "automation_engine"
+    assert "orchestrator" in execution_gap["reason"].lower()
     info_ids = {gap["id"] for gap in plan["information_gaps"]}
     assert {"requirements_identification", "output_delivery"}.issubset(info_ids)
+    requirements_gap = next(gap for gap in plan["information_gaps"] if gap["id"] == "requirements_identification")
+    assert requirements_gap["label"] == "Requirements identification"
+    assert requirements_gap["owner"] == "executive_branch"
+    assert "onboarding" in requirements_gap["reason"].lower()
 
 
 def test_dynamic_implementation_plan_ready_with_orchestrator():
