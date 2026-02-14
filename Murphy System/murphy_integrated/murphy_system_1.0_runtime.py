@@ -1612,6 +1612,26 @@ class MurphySystem:
             }
             for stage in self.DYNAMIC_IMPLEMENTATION_STAGES
         ]
+        wiring_gaps = [
+            {
+                "id": stage["id"],
+                "label": stage["label"],
+                "owner": stage["owner"],
+                "status": stage_statuses.get(stage["id"], "pending")
+            }
+            for stage in self.DYNAMIC_IMPLEMENTATION_STAGES
+            if stage_statuses.get(stage["id"]) == "needs_wiring"
+        ]
+        information_gaps = [
+            {
+                "id": stage["id"],
+                "label": stage["label"],
+                "owner": stage["owner"],
+                "status": stage_statuses.get(stage["id"], "pending")
+            }
+            for stage in self.DYNAMIC_IMPLEMENTATION_STAGES
+            if stage_statuses.get(stage["id"]) == "needs_info"
+        ]
         chain_plan = self._build_dynamic_chain_plan(stage_statuses)
         loop_chain = [
             {"id": stage["id"], "status": stage["status"]}
@@ -1704,6 +1724,8 @@ class MurphySystem:
             "stages": stages,
             "chain_plan": chain_plan,
             "loop_chain": loop_chain,
+            "wiring_gaps": wiring_gaps,
+            "information_gaps": information_gaps,
             "edit_points": [
                 {
                     "id": "onboarding_answers",
