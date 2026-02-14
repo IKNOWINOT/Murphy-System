@@ -90,6 +90,10 @@ def test_dynamic_implementation_plan_requires_requirements():
         pattern["confidence"] >= training["threshold"]
         for pattern in training["high_confidence_paths"]
     )
+    execution_routes = plan["chain_plan"]["execution_routes"]
+    assert len(execution_routes["priority_sequence"]) == len(plan["stages"])
+    assert execution_routes["summary"]["blocked"] > 0
+    assert len(execution_routes["adaptive_routes"]) == len(plan["chain_plan"]["links"])
     graphing = training["graphing"]
     assert "executive_branch" in graphing["subjects"]
     subject_summary = {entry["subject"]: entry for entry in graphing["subject_summary"]}
@@ -161,5 +165,8 @@ def test_dynamic_implementation_plan_ready_with_orchestrator():
     assert len(training["high_confidence_paths"]) == len(training["patterns"])
     graphing = training["graphing"]
     assert graphing["graphs"][1]["paths"] == training["high_confidence_paths"]
+    execution_routes = plan["chain_plan"]["execution_routes"]
+    assert execution_routes["summary"]["blocked"] == 0
+    assert execution_routes["summary"]["ready"] == len(plan["stages"])
     summary = {entry["subject"]: entry for entry in graphing["subject_summary"]}
     assert summary["automation_engine"]["average_seconds"] >= 0
