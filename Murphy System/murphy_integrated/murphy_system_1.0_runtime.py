@@ -1373,6 +1373,7 @@ class MurphySystem:
             "compliance_status": compliance_status,
             "hitl_required": hitl_required,
             "regulatory_source": sensor_plan.get("primary_regulatory_source", {}).get("id"),
+            "approval_policy": approval_policy,
             "gap_action": gap_action
         }
 
@@ -1647,6 +1648,8 @@ class MurphySystem:
     ) -> Dict[str, Any]:
         requirements_profile = learning_loop.get("requirements_identification", {})
         requirements_status = requirements_profile.get("status", "needs_info")
+        approval_policy = delivery_readiness.get("approval_policy", {})
+        approval_status = approval_policy.get("status", "needs_info")
         gate_states = [
             (gate.get("status") or gate.get("state") or "").lower()
             for gate in doc.gates
@@ -1999,6 +2002,7 @@ class MurphySystem:
             else:
                 logger.warning("Dynamic chain plan has no stages; sequential links disabled.")
             training_patterns = self._build_training_patterns(stage_statuses, links)
+            execution_routes = self._build_dynamic_chain_execution(stage_statuses, links)
             return {
                 "mode": "adaptive",
                 "primary_sequence": stage_ids,
@@ -2006,7 +2010,8 @@ class MurphySystem:
                 "links": links,
                 "invalid_links": invalid_links,
                 "duplicate_links": [],
-                "training_patterns": training_patterns
+                "training_patterns": training_patterns,
+                "execution_routes": execution_routes
             }
         link_pairs = set()
         for stage_id, next_id in zip(stage_ids, stage_ids[1:]):
@@ -2032,6 +2037,7 @@ class MurphySystem:
                     "status": self._determine_chain_link_status(stage_statuses, source)
                 })
         training_patterns = self._build_training_patterns(stage_statuses, links)
+        execution_routes = self._build_dynamic_chain_execution(stage_statuses, links)
         return {
             "mode": "adaptive",
             "primary_sequence": stage_ids,
@@ -2039,7 +2045,61 @@ class MurphySystem:
             "links": links,
             "invalid_links": invalid_links,
             "duplicate_links": duplicate_links,
-            "training_patterns": training_patterns
+            "training_patterns": training_patterns,
+            "execution_routes": execution_routes
+        }
+
+    def _build_dynamic_chain_execution(
+        self,
+        stage_statuses: Dict[str, str],
+        links: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        stage_metrics = []
+        for stage in self.DYNAMIC_IMPLEMENTATION_STAGES:
+            stage_id = stage["id"]
+            status = stage_statuses.get(stage_id, "pending")
+            confidence = self.STAGE_CONFIDENCE_SCORES.get(status, 0.4)
+            estimated_seconds = self.STAGE_TIME_ESTIMATES.get(status, 35)
+            priority_score = confidence / max(estimated_seconds, 1)
+            stage_metrics.append({
+                "id": stage_id,
+                "status": status,
+                "confidence": round(confidence, self.CONFIDENCE_DISPLAY_PRECISION),
+                "estimated_seconds": estimated_seconds,
+                "priority_score": round(priority_score, self.CONFIDENCE_DISPLAY_PRECISION)
+            })
+        priority_sequence = sorted(
+            stage_metrics,
+            key=lambda item: (-item["confidence"], item["estimated_seconds"])
+        )
+        ready_sequence = [
+            item for item in priority_sequence if item["status"] in {"ready", "complete"}
+        ]
+        blocked_sequence = [
+            item for item in stage_metrics if item["status"] not in {"ready", "complete"}
+        ]
+        adaptive_routes = [
+            {
+                "from": link["from"],
+                "to": link["to"],
+                "status": link["status"],
+                "confidence": next(
+                    (metric["confidence"] for metric in stage_metrics if metric["id"] == link["from"]),
+                    self.STAGE_CONFIDENCE_SCORES.get("pending", 0.4)
+                )
+            }
+            for link in links
+        ]
+        return {
+            "priority_sequence": priority_sequence,
+            "ready_sequence": ready_sequence,
+            "blocked_sequence": blocked_sequence,
+            "adaptive_routes": adaptive_routes,
+            "summary": {
+                "ready": len(ready_sequence),
+                "blocked": len(blocked_sequence),
+                "high_confidence_threshold": self.HIGH_CONFIDENCE_THRESHOLD
+            }
         }
 
     def _build_training_patterns(
