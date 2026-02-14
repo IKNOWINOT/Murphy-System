@@ -430,22 +430,110 @@ class MurphySystem:
     ]
 
     DYNAMIC_IMPLEMENTATION_STAGES = [
-        {"id": "requirements_identification", "label": "Requirements identification", "owner": "executive_branch"},
-        {"id": "gate_alignment", "label": "Gate alignment & compliance", "owner": "governance"},
-        {"id": "gate_sequencing", "label": "Gate sequencing & dependencies", "owner": "governance"},
-        {"id": "compliance_review", "label": "Compliance review", "owner": "quality_assurance"},
-        {"id": "workload_distribution", "label": "Workload distribution", "owner": "operations_director"},
-        {"id": "execution_plan", "label": "Execution planning", "owner": "automation_engine"},
-        {"id": "swarm_generation", "label": "Swarm generation", "owner": "swarm_system"},
-        {"id": "integration_wiring", "label": "Integration wiring", "owner": "integration_engine"},
-        {"id": "automation_loop", "label": "Automation loop setup", "owner": "automation_engine", "loop": True},
-        {"id": "multi_loop_schedule", "label": "Multi-loop scheduling", "owner": "automation_engine", "loop": True},
-        {"id": "trigger_schedule", "label": "Timer & trigger schedule", "owner": "governance", "loop": True},
-        {"id": "monitoring_feedback", "label": "Monitoring & feedback", "owner": "operations_director", "loop": True},
-        {"id": "output_delivery", "label": "Output channel delivery", "owner": "delivery_engine"},
-        {"id": "deliverable_review", "label": "Deliverable review", "owner": "quality_assurance"},
-        {"id": "rollback_plan", "label": "Rollback & recovery", "owner": "operations_director"},
-        {"id": "human_release", "label": "Human release & publishing", "owner": "hitl_manager"}
+        {
+            "id": "requirements_identification",
+            "label": "Requirements identification",
+            "owner": "executive_branch",
+            "info_reason": "Collect onboarding answers to finalize requirements."
+        },
+        {
+            "id": "gate_alignment",
+            "label": "Gate alignment & compliance",
+            "owner": "governance",
+            "info_reason": "Provide gate thresholds and compliance evidence."
+        },
+        {
+            "id": "gate_sequencing",
+            "label": "Gate sequencing & dependencies",
+            "owner": "governance",
+            "info_reason": "Define gate ordering and dependencies."
+        },
+        {
+            "id": "compliance_review",
+            "label": "Compliance review",
+            "owner": "quality_assurance",
+            "info_reason": "Attach regulatory evidence and QA sign-off checkpoints."
+        },
+        {
+            "id": "workload_distribution",
+            "label": "Workload distribution",
+            "owner": "operations_director",
+            "info_reason": "Allocate workload across org roles and contracts."
+        },
+        {
+            "id": "execution_plan",
+            "label": "Execution planning",
+            "owner": "automation_engine",
+            "wiring_reason": "Wire the orchestrator or MFGC adapter for live execution."
+        },
+        {
+            "id": "swarm_generation",
+            "label": "Swarm generation",
+            "owner": "swarm_system",
+            "wiring_reason": "Initialize the swarm system and seed swarm tasks."
+        },
+        {
+            "id": "integration_wiring",
+            "label": "Integration wiring",
+            "owner": "integration_engine",
+            "wiring_reason": "Configure integration engine connectors and handoff targets."
+        },
+        {
+            "id": "automation_loop",
+            "label": "Automation loop setup",
+            "owner": "automation_engine",
+            "loop": True,
+            "wiring_reason": "Configure automation loop engine state and iteration storage.",
+            "info_reason": "Define learning loop iterations and variants."
+        },
+        {
+            "id": "multi_loop_schedule",
+            "label": "Multi-loop scheduling",
+            "owner": "automation_engine",
+            "loop": True,
+            "wiring_reason": "Wire multi-project scheduling and coordination service.",
+            "info_reason": "Set multi-project loop cadence and dependencies."
+        },
+        {
+            "id": "trigger_schedule",
+            "label": "Timer & trigger schedule",
+            "owner": "governance",
+            "loop": True,
+            "wiring_reason": "Connect the governance scheduler for timer/trigger automation.",
+            "info_reason": "Specify trigger intervals, conditions, and automation rules."
+        },
+        {
+            "id": "monitoring_feedback",
+            "label": "Monitoring & feedback",
+            "owner": "operations_director",
+            "loop": True,
+            "wiring_reason": "Attach monitoring sensors and compliance signals.",
+            "info_reason": "Define monitoring metrics, thresholds, and alert rules."
+        },
+        {
+            "id": "output_delivery",
+            "label": "Output channel delivery",
+            "owner": "delivery_engine",
+            "info_reason": "Specify output channel templates and delivery rules."
+        },
+        {
+            "id": "deliverable_review",
+            "label": "Deliverable review",
+            "owner": "quality_assurance",
+            "info_reason": "Collect deliverable review evidence."
+        },
+        {
+            "id": "rollback_plan",
+            "label": "Rollback & recovery",
+            "owner": "operations_director",
+            "wiring_reason": "Define rollback and recovery automation steps."
+        },
+        {
+            "id": "human_release",
+            "label": "Human release & publishing",
+            "owner": "hitl_manager",
+            "info_reason": "Collect HITL approvals for release."
+        }
     ]
 
     DYNAMIC_IMPLEMENTATION_FLEX_LINKS = [
@@ -1613,33 +1701,7 @@ class MurphySystem:
             for stage in self.DYNAMIC_IMPLEMENTATION_STAGES
         ]
         # Wiring gaps indicate missing infrastructure/connection wiring. Info gaps indicate
-        # missing configuration or input data once the infrastructure exists. Some stages
-        # (trigger_schedule, monitoring_feedback) can surface either gap type depending
-        # on whether the scheduler/sensors are wired or just missing configuration.
-        wiring_reason_map = {
-            "execution_plan": "Wire the orchestrator or MFGC adapter for live execution.",
-            "swarm_generation": "Initialize the swarm system and seed swarm tasks.",
-            "integration_wiring": "Configure integration engine connectors and handoff targets.",
-            "automation_loop": "Configure automation loop engine state and iteration storage.",
-            "multi_loop_schedule": "Wire multi-project scheduling and coordination service.",
-            "trigger_schedule": "Connect the governance scheduler for timer/trigger automation.",
-            "monitoring_feedback": "Attach monitoring sensors and compliance signals.",
-            "rollback_plan": "Define rollback and recovery automation steps."
-        }
-        info_reason_map = {
-            "requirements_identification": "Collect onboarding answers to finalize requirements.",
-            "gate_alignment": "Provide gate thresholds and compliance evidence.",
-            "gate_sequencing": "Define gate ordering and dependencies.",
-            "compliance_review": "Attach regulatory evidence and QA sign-off checkpoints.",
-            "workload_distribution": "Allocate workload across org roles and contracts.",
-            "automation_loop": "Define learning loop iterations and variants.",
-            "multi_loop_schedule": "Set multi-project loop cadence and dependencies.",
-            "trigger_schedule": "Specify trigger intervals, conditions, and automation rules.",
-            "monitoring_feedback": "Define monitoring metrics, thresholds, and alert rules.",
-            "output_delivery": "Specify output channel templates and delivery rules.",
-            "deliverable_review": "Collect deliverable review evidence.",
-            "human_release": "Collect HITL approvals for release."
-        }
+        # missing configuration or input data once the infrastructure exists.
         wiring_gaps = []
         information_gaps = []
         for stage in self.DYNAMIC_IMPLEMENTATION_STAGES:
@@ -1650,14 +1712,14 @@ class MurphySystem:
                     "id": stage_id,
                     "label": stage["label"],
                     "owner": stage["owner"],
-                    "reason": wiring_reason_map.get(stage_id, "Wire subsystem support for this stage.")
+                    "reason": stage.get("wiring_reason", "Wire subsystem support for this stage.")
                 })
             elif status == "needs_info":
                 information_gaps.append({
                     "id": stage_id,
                     "label": stage["label"],
                     "owner": stage["owner"],
-                    "reason": info_reason_map.get(stage_id, "Collect required inputs for this stage.")
+                    "reason": stage.get("info_reason", "Collect required inputs for this stage.")
                 })
         chain_plan = self._build_dynamic_chain_plan(stage_statuses)
         loop_chain = [
