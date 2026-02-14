@@ -1320,9 +1320,7 @@ class MurphySystem:
                     confidence_value_raw
                 )
         hitl_required = bool(hitl_contracts)
-        if confidence_value is None:
-            approval_status = "needs_info"
-        elif confidence_value < confidence_threshold:
+        if confidence_value is None or confidence_value < confidence_threshold:
             approval_status = "needs_info"
         elif hitl_required:
             # HITL approval is still required even when confidence meets the threshold.
@@ -1805,6 +1803,7 @@ class MurphySystem:
             next_actions.append("Increase confidence with supporting evidence and validation.")
         elif approval_status == "pending_approval":
             next_actions.append("Collect HITL approval before execution.")
+        # When ready, no additional approval action is required.
         if gate_status in {"blocked", "pending"}:
             next_actions.append("Review and update gate policy to clear compliance.")
         if gate_sequence_status == "needs_info":
@@ -1843,10 +1842,9 @@ class MurphySystem:
         }
         if requirements_status != "complete":
             overall_status = "needs_info"
-        elif approval_status == "needs_info":
-            overall_status = "needs_info"
-        elif approval_status == "pending_approval":
-            overall_status = "pending_approval"
+        elif approval_status in {"needs_info", "pending_approval"}:
+            # Only block readiness when approval steps remain.
+            overall_status = approval_status
         elif gate_status == "blocked":
             overall_status = "blocked"
         elif gate_status == "pending":
