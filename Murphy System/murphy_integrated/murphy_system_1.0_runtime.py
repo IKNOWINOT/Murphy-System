@@ -436,6 +436,7 @@ class MurphySystem:
         {"id": "compliance_review", "label": "Compliance review", "owner": "quality_assurance"},
         {"id": "workload_distribution", "label": "Workload distribution", "owner": "operations_director"},
         {"id": "execution_plan", "label": "Execution planning", "owner": "automation_engine"},
+        {"id": "swarm_generation", "label": "Swarm generation", "owner": "swarm_system"},
         {"id": "integration_wiring", "label": "Integration wiring", "owner": "integration_engine"},
         {"id": "automation_loop", "label": "Automation loop setup", "owner": "automation_engine", "loop": True},
         {"id": "multi_loop_schedule", "label": "Multi-loop scheduling", "owner": "automation_engine", "loop": True},
@@ -1558,6 +1559,13 @@ class MurphySystem:
             execution_status = "blocked"
         else:
             execution_status = "ready"
+        swarm_tasks = doc.generated_tasks or self._generate_swarm_tasks()
+        if not self.swarm_system:
+            swarm_status = "needs_wiring"
+        elif swarm_tasks:
+            swarm_status = "ready"
+        else:
+            swarm_status = "needs_info"
         deliverable_status = delivery_readiness.get("status", "unknown")
         human_release_status = (
             "pending_approval"
@@ -1583,6 +1591,7 @@ class MurphySystem:
             "compliance_review": compliance_review_status,
             "workload_distribution": workload_status,
             "execution_plan": execution_status,
+            "swarm_generation": swarm_status,
             "integration_wiring": integration_status,
             "automation_loop": automation_loop_status,
             "multi_loop_schedule": multi_loop_status,
@@ -1620,6 +1629,8 @@ class MurphySystem:
             next_actions.append("Complete compliance review and attach regulatory evidence.")
         if execution_strategy == "simulation":
             next_actions.append("Wire the Two-Phase Orchestrator or MFGC adapter for live execution.")
+        if swarm_status != "ready":
+            next_actions.append("Initialize swarm system and seed swarm tasks.")
         if integration_status != "ready":
             next_actions.append("Wire integration engine connectors for external system handoff.")
         if automation_loop_status != "ready":
@@ -1718,6 +1729,11 @@ class MurphySystem:
                     "id": "automation_loop",
                     "description": "Adjust learning loop variants and iteration scope.",
                     "status": automation_loop_status
+                },
+                {
+                    "id": "swarm_generation",
+                    "description": "Adjust swarm generation inputs and task seeding.",
+                    "status": swarm_status
                 },
                 {
                     "id": "integration_wiring",
