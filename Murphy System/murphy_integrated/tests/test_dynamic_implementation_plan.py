@@ -81,6 +81,22 @@ def test_dynamic_implementation_plan_requires_requirements():
     assert requirements_gap["label"] == "Requirements identification"
     assert requirements_gap["owner"] == "executive_branch"
     assert requirements_gap["reason"] == "Collect onboarding answers to finalize requirements."
+    training = plan["chain_plan"]["training_patterns"]
+    assert training["threshold"] == murphy.HIGH_CONFIDENCE_THRESHOLD
+    assert len(training["patterns"]) == len(plan["chain_plan"]["links"])
+    assert all(
+        pattern["confidence"] >= training["threshold"]
+        for pattern in training["high_confidence_paths"]
+    )
+    graphing = training["graphing"]
+    assert "executive_branch" in graphing["subjects"]
+    graph_ids = [graph["id"] for graph in graphing["graphs"]]
+    assert graph_ids == ["all_paths", "high_confidence", "fastest_paths", "subject_condensation"]
+    assert graphing["graphs"][0]["paths"] == training["patterns"]
+    condensation = graphing["graphs"][3]
+    assert condensation["axes"]["humidity"] == "load_index"
+    assert len(condensation["points"]) == len(training["patterns"])
+    assert "subject matter" in condensation["purpose"].lower()
 
 
 def test_dynamic_implementation_plan_ready_with_orchestrator():
@@ -131,3 +147,9 @@ def test_dynamic_implementation_plan_ready_with_orchestrator():
     assert plan["chain_plan"]["mode"] == "adaptive"
     assert plan["wiring_gaps"] == []
     assert plan["information_gaps"] == []
+    training = plan["chain_plan"]["training_patterns"]
+    assert training["threshold"] == murphy.HIGH_CONFIDENCE_THRESHOLD
+    assert len(training["patterns"]) == len(plan["chain_plan"]["links"])
+    assert len(training["high_confidence_paths"]) == len(training["patterns"])
+    graphing = training["graphing"]
+    assert graphing["graphs"][1]["paths"] == training["high_confidence_paths"]

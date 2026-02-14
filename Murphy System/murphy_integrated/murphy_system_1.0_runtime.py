@@ -542,6 +542,34 @@ class MurphySystem:
         ("output_delivery", "deliverable_review"),
         ("rollback_plan", "human_release")
     ]
+
+    HIGH_CONFIDENCE_THRESHOLD = 0.75
+    STAGE_CONFIDENCE_SCORES = {
+        "ready": 0.9,
+        "complete": 0.95,
+        "pending": 0.5,
+        "pending_approval": 0.45,
+        "needs_info": 0.35,
+        "needs_wiring": 0.25,
+        "pending_compliance": 0.2,
+        "blocked": 0.1,
+        "needs_coverage": 0.3,
+        "needs_compliance": 0.25,
+        "unknown": 0.4
+    }
+    STAGE_TIME_ESTIMATES = {
+        "ready": 5,
+        "complete": 3,
+        "pending": 30,
+        "pending_approval": 40,
+        "needs_info": 55,
+        "needs_wiring": 65,
+        "pending_compliance": 45,
+        "blocked": 90,
+        "needs_coverage": 50,
+        "needs_compliance": 60,
+        "unknown": 35
+    }
     
     @classmethod
     def create_test_instance(cls) -> "MurphySystem":
@@ -1917,13 +1945,15 @@ class MurphySystem:
                 )
             else:
                 logger.warning("Dynamic chain plan has no stages; sequential links disabled.")
+            training_patterns = self._build_training_patterns(stage_statuses, links)
             return {
                 "mode": "adaptive",
                 "primary_sequence": stage_ids,
                 "control_points": control_points,
                 "links": links,
                 "invalid_links": invalid_links,
-                "duplicate_links": []
+                "duplicate_links": [],
+                "training_patterns": training_patterns
             }
         link_pairs = set()
         for stage_id, next_id in zip(stage_ids, stage_ids[1:]):
@@ -1948,14 +1978,111 @@ class MurphySystem:
                     "mode": "adaptive",
                     "status": self._determine_chain_link_status(stage_statuses, source)
                 })
+        training_patterns = self._build_training_patterns(stage_statuses, links)
         return {
             "mode": "adaptive",
             "primary_sequence": stage_ids,
             "control_points": control_points,
             "links": links,
             "invalid_links": invalid_links,
-            "duplicate_links": duplicate_links
+            "duplicate_links": duplicate_links,
+            "training_patterns": training_patterns
         }
+
+    def _build_training_patterns(
+        self,
+        stage_statuses: Dict[str, str],
+        links: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        owner_map = {stage["id"]: stage["owner"] for stage in self.DYNAMIC_IMPLEMENTATION_STAGES}
+        patterns = []
+        for link in links:
+            source = link["from"]
+            status = stage_statuses.get(source, "pending")
+            confidence = self._map_stage_confidence(status)
+            estimated_seconds = self._estimate_stage_duration(status)
+            patterns.append({
+                "from": source,
+                "to": link["to"],
+                "mode": link["mode"],
+                "status": status,
+                "confidence": confidence,
+                "estimated_seconds": estimated_seconds,
+                "subject": owner_map.get(source, "unknown")
+            })
+        high_confidence = [
+            pattern for pattern in patterns if pattern["confidence"] >= self.HIGH_CONFIDENCE_THRESHOLD
+        ]
+        sorted_by_speed = sorted(patterns, key=lambda item: item["estimated_seconds"])
+        fastest_paths = sorted_by_speed[: max(1, len(sorted_by_speed) // 3)] if sorted_by_speed else []
+        subject_ids = sorted({stage["owner"] for stage in self.DYNAMIC_IMPLEMENTATION_STAGES})
+        avg_confidence = (
+            sum(pattern["confidence"] for pattern in patterns) / len(patterns)
+            if patterns
+            else 0.0
+        )
+        total_time = sum(pattern["estimated_seconds"] for pattern in patterns)
+        max_time = max((pattern["estimated_seconds"] for pattern in patterns), default=1)
+        psychrometric_points = [
+            {
+                "id": f"{pattern['from']}→{pattern['to']}",
+                "from": pattern["from"],
+                "to": pattern["to"],
+                "subject": pattern["subject"],
+                "confidence": pattern["confidence"],
+                "estimated_seconds": pattern["estimated_seconds"],
+                "load_index": round(pattern["estimated_seconds"] / max_time, 3)
+            }
+            for pattern in patterns
+        ]
+        return {
+            "model": "causal_path_confidence",
+            "threshold": self.HIGH_CONFIDENCE_THRESHOLD,
+            "patterns": patterns,
+            "high_confidence_paths": high_confidence,
+            "graphing": {
+                "subjects": subject_ids,
+                "time_unit": "seconds",
+                "graphs": [
+                    {
+                        "id": "all_paths",
+                        "label": "All chain paths",
+                        "paths": patterns,
+                        "average_confidence": round(avg_confidence, 3),
+                        "estimated_total_seconds": total_time
+                    },
+                    {
+                        "id": "high_confidence",
+                        "label": "High-confidence paths",
+                        "paths": high_confidence,
+                        "threshold": self.HIGH_CONFIDENCE_THRESHOLD
+                    },
+                    {
+                        "id": "fastest_paths",
+                        "label": "Fastest estimated paths",
+                        "paths": fastest_paths,
+                        "criteria": "lowest_estimated_seconds"
+                    },
+                    {
+                        "id": "subject_condensation",
+                        "label": "Subject condensation map",
+                        "purpose": "Condense subject matter across multiple subjects; chart style is optional.",
+                        "axes": {
+                            "x": "estimated_seconds",
+                            "y": "confidence",
+                            "humidity": "load_index"
+                        },
+                        "points": psychrometric_points
+                    }
+                ]
+            }
+        }
+
+    def _map_stage_confidence(self, status: str) -> float:
+        return self.STAGE_CONFIDENCE_SCORES.get(status, 0.4)
+
+    def _estimate_stage_duration(self, status: str) -> int:
+        return self.STAGE_TIME_ESTIMATES.get(status, 35)
 
     @staticmethod
     def _determine_chain_link_status(stage_statuses: Dict[str, str], stage_id: str) -> str:
