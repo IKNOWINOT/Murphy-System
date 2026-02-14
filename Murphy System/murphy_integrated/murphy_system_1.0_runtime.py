@@ -1564,13 +1564,11 @@ class MurphySystem:
             if hitl_contracts
             else ("ready" if deliverable_status == "ready" else "blocked")
         )
-        if deliverable_status == "ready":
+        if requirements_stage_status != "complete":
+            output_status = "needs_info"
+        elif deliverable_status == "ready":
             output_status = "ready"
-        elif requirements_stage_status != "complete" or deliverable_status in {
-            "needs_info",
-            "needs_coverage",
-            "needs_compliance"
-        }:
+        elif deliverable_status in {"needs_info", "needs_coverage", "needs_compliance"}:
             output_status = "needs_info"
         else:
             output_status = "pending"
@@ -1617,11 +1615,11 @@ class MurphySystem:
             for stage in self.DYNAMIC_IMPLEMENTATION_STAGES
         ]
         chain_plan = self._build_dynamic_chain_plan(stage_statuses)
+        loop_ids = {"automation_loop", "multi_loop_schedule", "trigger_schedule", "monitoring_feedback"}
         loop_chain = [
-            {"id": "automation_loop", "status": automation_loop_status},
-            {"id": "multi_loop_schedule", "status": multi_loop_status},
-            {"id": "trigger_schedule", "status": trigger_status},
-            {"id": "monitoring_feedback", "status": monitoring_status}
+            {"id": stage["id"], "status": stage["status"]}
+            for stage in stages
+            if stage["id"] in loop_ids
         ]
         next_actions = []
         if requirements_status != "complete":
@@ -1781,8 +1779,7 @@ class MurphySystem:
             if stage_statuses.get(stage_id) not in {"ready", "complete"}
         ]
         links = []
-        for index, stage_id in enumerate(stage_ids[:-1]):
-            next_id = stage_ids[index + 1]
+        for stage_id, next_id in zip(stage_ids, stage_ids[1:]):
             status = "open" if stage_statuses.get(stage_id) in {"ready", "complete"} else "gated"
             links.append({
                 "from": stage_id,
