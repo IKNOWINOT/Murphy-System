@@ -1712,14 +1712,20 @@ class MurphySystem:
                     "id": stage_id,
                     "label": stage["label"],
                     "owner": stage["owner"],
-                    "reason": stage.get("wiring_reason", "Wire subsystem support for this stage.")
+                    "reason": stage.get(
+                        "wiring_reason",
+                        "Missing wiring guidance; update stage definition."
+                    )
                 })
             elif status == "needs_info":
                 information_gaps.append({
                     "id": stage_id,
                     "label": stage["label"],
                     "owner": stage["owner"],
-                    "reason": stage.get("info_reason", "Collect required inputs for this stage.")
+                    "reason": stage.get(
+                        "info_reason",
+                        "Missing information guidance; update stage definition."
+                    )
                 })
         chain_plan = self._build_dynamic_chain_plan(stage_statuses)
         loop_chain = [
