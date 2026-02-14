@@ -1773,24 +1773,34 @@ class MurphySystem:
             for source, target in self.DYNAMIC_IMPLEMENTATION_FLEX_LINKS
             if source not in stage_id_set or target not in stage_id_set
         ]
+        if invalid_links:
+            logger.warning("Invalid dynamic chain links detected: %s", invalid_links)
         if len(stage_ids) < 2:
+            # Single stage chain: no sequential links to generate.
             return {
                 "mode": "adaptive",
                 "primary_sequence": stage_ids,
                 "control_points": control_points,
                 "links": links,
-                "invalid_links": invalid_links
+                "invalid_links": invalid_links,
+                "duplicate_links": []
             }
+        link_pairs = set()
         for stage_id, next_id in zip(stage_ids, stage_ids[1:]):
             status = self._determine_chain_link_status(stage_statuses, stage_id)
+            link_pairs.add((stage_id, next_id))
             links.append({
                 "from": stage_id,
                 "to": next_id,
                 "mode": "sequential",
                 "status": status
             })
+        duplicate_links = []
         for source, target in self.DYNAMIC_IMPLEMENTATION_FLEX_LINKS:
             if source in stage_id_set and target in stage_id_set:
+                if (source, target) in link_pairs:
+                    duplicate_links.append({"from": source, "to": target})
+                    continue
                 links.append({
                     "from": source,
                     "to": target,
@@ -1802,7 +1812,8 @@ class MurphySystem:
             "primary_sequence": stage_ids,
             "control_points": control_points,
             "links": links,
-            "invalid_links": invalid_links
+            "invalid_links": invalid_links,
+            "duplicate_links": duplicate_links
         }
 
     @staticmethod
