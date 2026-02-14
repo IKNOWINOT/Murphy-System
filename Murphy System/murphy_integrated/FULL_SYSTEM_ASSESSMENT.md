@@ -94,3 +94,49 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **Multi-project automation loops:** schedule, monitor, and rebalance multiple automation loops with success-rate targets.
 
 **Bottom line:** Runtime 1.0 is a strong planning/preview engine. To make it a fully dynamic automation runtime, focus on execution wiring, persistent memory, and channel adapters before scaling operational automation.
+
+---
+
+## 9) Implementation plan to finish remaining work
+
+### Step 1 — Activate execution wiring
+1. Route gate synthesis + dynamic swarm expansion through `execute_task` (no preview-only paths).
+2. Promote MFGC fallback output into the main execution graph and record success/failure outcomes.
+3. Enforce deterministic vs. LLM routing by task tag (compute plane + LLM orchestration in one flow).
+
+### Step 2 — Persistence + replay
+1. Persist LivingDocument, activation previews, librarian context, and dynamic chain plans.
+2. Add replay endpoints for approval flows (HITL + QA gates).
+3. Store gate policy overrides and audit metadata per session.
+
+### Step 3 — Multi-channel deliverables
+1. Wire document/email/chat/voice adapters to the governance policy compiler.
+2. Track approval status and delivery completion in telemetry and audit logs.
+
+### Step 4 — Operations + customer automation
+1. Wire ticketing, remote access invites, and patch/rollback automation.
+2. Attach operational SLOs (success rate, latency, approval ratio) to each automation loop.
+
+### Step 5 — Multi-project automation loops
+1. Enable scheduler-driven multi-project execution with load balancing.
+2. Validate compliance sensors against region-specific requirements before delivery.
+
+---
+
+## 10) Machine learning plan for screenshot-driven chain evaluation
+
+1. **Dataset capture**
+   - For each user session, collect screenshots plus the request, gate plan, and dynamic chain output.
+   - Label screenshots with outcome status (pass/fail), chain stage, and required fixes.
+2. **Capability grading**
+   - Score each chain stage on coverage, compliance checks, and deliverable readiness.
+   - Highlight low-confidence stages for magnify/simplify/solidify refinement.
+3. **Training targets**
+   - Train classifiers to predict missing gate wiring, compliance gaps, or incorrect chain ordering.
+   - Train ranking models to select the highest-confidence chain path under constraints.
+4. **Looped evaluation**
+   - Run repeated task variants; compare execution plans and update confidence scores.
+   - Feed graded results back into chain planning to promote high-confidence routes.
+5. **Operationalizing**
+   - Store training feedback alongside session data and gate overrides.
+   - Use feedback to auto-suggest gate edits and compliance checks before delivery.
