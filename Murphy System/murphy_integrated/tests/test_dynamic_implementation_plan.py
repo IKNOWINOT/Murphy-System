@@ -67,6 +67,12 @@ def test_dynamic_implementation_plan_requires_requirements():
     assert stages["rollback_plan"]["status"] == "needs_wiring"
     assert plan["chain_plan"]["mode"] == "adaptive"
     assert "requirements_identification" in plan["chain_plan"]["control_points"]
+    wiring_ids = {gap["id"] for gap in plan["wiring_gaps"]}
+    assert {"execution_plan", "swarm_generation", "integration_wiring", "trigger_schedule", "rollback_plan"}.issubset(
+        wiring_ids
+    )
+    info_ids = {gap["id"] for gap in plan["information_gaps"]}
+    assert {"requirements_identification", "output_delivery"}.issubset(info_ids)
 
 
 def test_dynamic_implementation_plan_ready_with_orchestrator():
@@ -115,3 +121,5 @@ def test_dynamic_implementation_plan_ready_with_orchestrator():
     assert stage_map["output_delivery"]["status"] == "ready"
     assert stage_map["rollback_plan"]["status"] == "ready"
     assert plan["chain_plan"]["mode"] == "adaptive"
+    assert plan["wiring_gaps"] == []
+    assert plan["information_gaps"] == []
