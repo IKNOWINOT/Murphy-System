@@ -1306,9 +1306,11 @@ class MurphySystem:
         coverage_percent = round(coverage_ratio * 100, 1)
         requirements_profile = learning_loop.get("requirements_identification", {})
         requirements_status = requirements_profile.get("status", "needs_info")
+        hitl_contracts = hitl_contracts or []
         # Minimum confidence required before HITL approval can release execution.
         # Defined as a class-level constant on MurphySystem.
-        confidence_threshold = self.HIGH_CONFIDENCE_THRESHOLD
+        confidence_threshold = getattr(self, "HIGH_CONFIDENCE_THRESHOLD", 0.75)
+        logger = logging.getLogger(__name__)
         confidence_value_raw = getattr(doc, "confidence", None)
         confidence_value = None
         if confidence_value_raw is not None:
