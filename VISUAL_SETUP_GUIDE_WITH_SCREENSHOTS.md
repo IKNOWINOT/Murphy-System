@@ -10,6 +10,8 @@
 
 **Why this UI?** The architect terminal UI is used for validation because it surfaces activation previews, gate edits, timer/trigger scheduling, and business automation summaries in one place while matching the requested terminal-architect look and feel. The legacy integrated UIs remain available for quick command execution, but the architect UI provides the governance and execution visibility needed for production readiness.
 
+**Why the screenshots?** Each capture records operator inputs and system responses so the team can grade capability coverage and feed the results back into the learning loop that tunes automation behavior.
+
 1. [Prerequisites Check](#prerequisites-check)
 2. [Initial Setup](#initial-setup)
 3. [Virtual Environment Configuration](#virtual-environment-configuration)
