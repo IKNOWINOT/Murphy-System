@@ -1776,7 +1776,7 @@ class MurphySystem:
         if invalid_links:
             logger.warning("Invalid dynamic chain links detected: %s", invalid_links)
         if len(stage_ids) < 2:
-            # Single stage chain: no sequential links to generate.
+            # Single-stage chain: no sequential links to generate.
             return {
                 "mode": "adaptive",
                 "primary_sequence": stage_ids,
@@ -1787,6 +1787,7 @@ class MurphySystem:
             }
         link_pairs = set()
         for stage_id, next_id in zip(stage_ids, stage_ids[1:]):
+            # Link readiness is driven by the source stage state in the chain.
             status = self._determine_chain_link_status(stage_statuses, stage_id)
             link_pairs.add((stage_id, next_id))
             links.append({
@@ -1826,6 +1827,7 @@ class MurphySystem:
             return "needs_info"
         if deliverable_status == "ready":
             return "ready"
+        # Treat explicit deliverable gaps as needs_info even when requirements are complete.
         if deliverable_status in {"needs_info", "needs_coverage", "needs_compliance"}:
             return "needs_info"
         return "pending"
