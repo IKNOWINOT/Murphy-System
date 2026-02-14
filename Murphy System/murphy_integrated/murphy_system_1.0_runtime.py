@@ -2035,6 +2035,21 @@ class MurphySystem:
             }
             for pattern in patterns
         ]
+        subject_summary = []
+        for subject in subject_ids:
+            subject_patterns = [pattern for pattern in patterns if pattern["subject"] == subject]
+            if subject_patterns:
+                avg_subject_confidence = sum(p["confidence"] for p in subject_patterns) / len(subject_patterns)
+                avg_subject_time = sum(p["estimated_seconds"] for p in subject_patterns) / len(subject_patterns)
+            else:
+                avg_subject_confidence = 0.0
+                avg_subject_time = 0.0
+            subject_summary.append({
+                "subject": subject,
+                "paths": len(subject_patterns),
+                "average_confidence": round(avg_subject_confidence, 3),
+                "average_seconds": round(avg_subject_time, 1)
+            })
         return {
             "model": "causal_path_confidence",
             "threshold": self.HIGH_CONFIDENCE_THRESHOLD,
@@ -2042,6 +2057,7 @@ class MurphySystem:
             "high_confidence_paths": high_confidence,
             "graphing": {
                 "subjects": subject_ids,
+                "subject_summary": subject_summary,
                 "time_unit": "seconds",
                 "graphs": [
                     {
