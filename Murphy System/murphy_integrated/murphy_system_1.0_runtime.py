@@ -1309,16 +1309,19 @@ class MurphySystem:
         # Minimum confidence required before HITL approval can release execution.
         # Defined as a class-level constant on MurphySystem.
         confidence_threshold = self.HIGH_CONFIDENCE_THRESHOLD
-        confidence_value = getattr(doc, "confidence", 0.0)
+        confidence_value = getattr(doc, "confidence", None)
         hitl_required = bool(hitl_contracts)
-        if confidence_value < confidence_threshold:
+        if confidence_value is None:
+            approval_status = "needs_info"
+        elif confidence_value < confidence_threshold:
             approval_status = "needs_info"
         elif hitl_required:
+            # HITL approval is still required even when confidence meets the threshold.
             approval_status = "pending_approval"
         else:
             approval_status = "ready"
         approval_policy = {
-            "confidence": round(confidence_value, 3),
+            "confidence": round(confidence_value, 3) if confidence_value is not None else None,
             "threshold": confidence_threshold,
             "hitl_required": hitl_required,
             "status": approval_status
