@@ -1638,26 +1638,25 @@ class MurphySystem:
             "deliverable_review": "Collect deliverable review evidence.",
             "human_release": "Collect HITL approvals for release."
         }
-        wiring_gaps = [
-            {
-                "id": stage["id"],
-                "label": stage["label"],
-                "owner": stage["owner"],
-                "reason": wiring_reason_map.get(stage["id"], "Wire subsystem support for this stage.")
-            }
-            for stage in self.DYNAMIC_IMPLEMENTATION_STAGES
-            if stage_statuses.get(stage["id"]) == "needs_wiring"
-        ]
-        information_gaps = [
-            {
-                "id": stage["id"],
-                "label": stage["label"],
-                "owner": stage["owner"],
-                "reason": info_reason_map.get(stage["id"], "Collect required inputs for this stage.")
-            }
-            for stage in self.DYNAMIC_IMPLEMENTATION_STAGES
-            if stage_statuses.get(stage["id"]) == "needs_info"
-        ]
+        wiring_gaps = []
+        information_gaps = []
+        for stage in self.DYNAMIC_IMPLEMENTATION_STAGES:
+            stage_id = stage["id"]
+            status = stage_statuses.get(stage_id, "pending")
+            if status == "needs_wiring":
+                wiring_gaps.append({
+                    "id": stage_id,
+                    "label": stage["label"],
+                    "owner": stage["owner"],
+                    "reason": wiring_reason_map.get(stage_id, "Wire subsystem support for this stage.")
+                })
+            elif status == "needs_info":
+                information_gaps.append({
+                    "id": stage_id,
+                    "label": stage["label"],
+                    "owner": stage["owner"],
+                    "reason": info_reason_map.get(stage_id, "Collect required inputs for this stage.")
+                })
         chain_plan = self._build_dynamic_chain_plan(stage_statuses)
         loop_chain = [
             {"id": stage["id"], "status": stage["status"]}
