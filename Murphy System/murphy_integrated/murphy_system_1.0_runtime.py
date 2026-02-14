@@ -437,10 +437,10 @@ class MurphySystem:
         {"id": "workload_distribution", "label": "Workload distribution", "owner": "operations_director"},
         {"id": "execution_plan", "label": "Execution planning", "owner": "automation_engine"},
         {"id": "integration_wiring", "label": "Integration wiring", "owner": "integration_engine"},
-        {"id": "automation_loop", "label": "Automation loop setup", "owner": "automation_engine"},
-        {"id": "multi_loop_schedule", "label": "Multi-loop scheduling", "owner": "automation_engine"},
-        {"id": "trigger_schedule", "label": "Timer & trigger schedule", "owner": "governance"},
-        {"id": "monitoring_feedback", "label": "Monitoring & feedback", "owner": "operations_director"},
+        {"id": "automation_loop", "label": "Automation loop setup", "owner": "automation_engine", "loop": True},
+        {"id": "multi_loop_schedule", "label": "Multi-loop scheduling", "owner": "automation_engine", "loop": True},
+        {"id": "trigger_schedule", "label": "Timer & trigger schedule", "owner": "governance", "loop": True},
+        {"id": "monitoring_feedback", "label": "Monitoring & feedback", "owner": "operations_director", "loop": True},
         {"id": "output_delivery", "label": "Output channel delivery", "owner": "delivery_engine"},
         {"id": "deliverable_review", "label": "Deliverable review", "owner": "quality_assurance"},
         {"id": "rollback_plan", "label": "Rollback & recovery", "owner": "operations_director"},
@@ -1564,20 +1564,8 @@ class MurphySystem:
             if hitl_contracts
             else ("ready" if deliverable_status == "ready" else "blocked")
         )
-        if requirements_stage_status != "complete":
-            output_status = "needs_info"
-        elif deliverable_status == "ready":
-            output_status = "ready"
-        elif deliverable_status in {"needs_info", "needs_coverage", "needs_compliance"}:
-            output_status = "needs_info"
-        else:
-            output_status = "pending"
-        if execution_strategy == "simulation":
-            rollback_status = "needs_wiring"
-        elif trigger_status == "ready":
-            rollback_status = "ready"
-        else:
-            rollback_status = "pending"
+        output_status = self._determine_output_status(requirements_stage_status, deliverable_status)
+        rollback_status = self._determine_rollback_status(execution_strategy, trigger_status)
         if automation_loop_status == "needs_wiring":
             multi_loop_status = "needs_wiring"
         elif requirements_stage_status != "complete":
@@ -1610,16 +1598,16 @@ class MurphySystem:
                 "id": stage["id"],
                 "label": stage["label"],
                 "owner": stage["owner"],
-                "status": stage_statuses.get(stage["id"], "pending")
+                "status": stage_statuses.get(stage["id"], "pending"),
+                "loop": stage.get("loop", False)
             }
             for stage in self.DYNAMIC_IMPLEMENTATION_STAGES
         ]
         chain_plan = self._build_dynamic_chain_plan(stage_statuses)
-        loop_ids = {"automation_loop", "multi_loop_schedule", "trigger_schedule", "monitoring_feedback"}
         loop_chain = [
             {"id": stage["id"], "status": stage["status"]}
             for stage in stages
-            if stage["id"] in loop_ids
+            if stage.get("loop")
         ]
         next_actions = []
         if requirements_status != "complete":
@@ -1780,7 +1768,7 @@ class MurphySystem:
         ]
         links = []
         for stage_id, next_id in zip(stage_ids, stage_ids[1:]):
-            status = "open" if stage_statuses.get(stage_id) in {"ready", "complete"} else "gated"
+            status = self._determine_chain_link_status(stage_statuses, stage_id)
             links.append({
                 "from": stage_id,
                 "to": next_id,
@@ -1793,7 +1781,7 @@ class MurphySystem:
                     "from": source,
                     "to": target,
                     "mode": "adaptive",
-                    "status": "open" if stage_statuses.get(source) == "ready" else "gated"
+                    "status": self._determine_chain_link_status(stage_statuses, source)
                 })
         return {
             "mode": "adaptive",
@@ -1801,6 +1789,28 @@ class MurphySystem:
             "control_points": control_points,
             "links": links
         }
+
+    @staticmethod
+    def _determine_chain_link_status(stage_statuses: Dict[str, str], stage_id: str) -> str:
+        return "open" if stage_statuses.get(stage_id) in {"ready", "complete"} else "gated"
+
+    @staticmethod
+    def _determine_output_status(requirements_stage_status: str, deliverable_status: str) -> str:
+        if requirements_stage_status != "complete":
+            return "needs_info"
+        if deliverable_status == "ready":
+            return "ready"
+        if deliverable_status in {"needs_info", "needs_coverage", "needs_compliance"}:
+            return "needs_info"
+        return "pending"
+
+    @staticmethod
+    def _determine_rollback_status(execution_strategy: str, trigger_status: str) -> str:
+        if execution_strategy == "simulation":
+            return "needs_wiring"
+        if trigger_status == "ready":
+            return "ready"
+        return "pending"
 
     @staticmethod
     def _determine_automation_loop_status(
