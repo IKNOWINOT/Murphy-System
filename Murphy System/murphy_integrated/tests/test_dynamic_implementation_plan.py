@@ -97,6 +97,8 @@ def test_dynamic_implementation_plan_requires_requirements():
     assert condensation["axes"]["humidity"] == "load_index"
     assert len(condensation["points"]) == len(training["patterns"])
     assert "subject matter" in condensation["purpose"].lower()
+    subjects = {point["subject"] for point in condensation["points"]}
+    assert subjects.issubset(set(graphing["subjects"]))
 
 
 def test_dynamic_implementation_plan_ready_with_orchestrator():
