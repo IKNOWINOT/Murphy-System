@@ -1612,12 +1612,34 @@ class MurphySystem:
             }
             for stage in self.DYNAMIC_IMPLEMENTATION_STAGES
         ]
+        wiring_reason_map = {
+            "execution_plan": "Wire the orchestrator or MFGC adapter for live execution.",
+            "swarm_generation": "Initialize the swarm system and seed swarm tasks.",
+            "integration_wiring": "Configure integration engine connectors and handoff targets.",
+            "trigger_schedule": "Connect the governance scheduler for timer/trigger automation.",
+            "monitoring_feedback": "Attach monitoring sensors and compliance signals.",
+            "rollback_plan": "Define rollback and recovery automation steps."
+        }
+        info_reason_map = {
+            "requirements_identification": "Collect onboarding answers to finalize requirements.",
+            "gate_alignment": "Provide gate thresholds and compliance evidence.",
+            "gate_sequencing": "Define gate ordering and dependencies.",
+            "compliance_review": "Attach regulatory evidence and QA sign-off checkpoints.",
+            "workload_distribution": "Allocate workload across org roles and contracts.",
+            "automation_loop": "Define learning loop iterations and variants.",
+            "multi_loop_schedule": "Set multi-project loop cadence and dependencies.",
+            "trigger_schedule": "Provide trigger schedule details.",
+            "monitoring_feedback": "Attach monitoring sensors for compliance feedback.",
+            "output_delivery": "Specify output channel templates and delivery rules.",
+            "deliverable_review": "Collect deliverable review evidence.",
+            "human_release": "Collect HITL approvals for release."
+        }
         wiring_gaps = [
             {
                 "id": stage["id"],
                 "label": stage["label"],
                 "owner": stage["owner"],
-                "reason": "Wire subsystem support for this stage."
+                "reason": wiring_reason_map.get(stage["id"], "Wire subsystem support for this stage.")
             }
             for stage in self.DYNAMIC_IMPLEMENTATION_STAGES
             if stage_statuses.get(stage["id"]) == "needs_wiring"
@@ -1627,7 +1649,7 @@ class MurphySystem:
                 "id": stage["id"],
                 "label": stage["label"],
                 "owner": stage["owner"],
-                "reason": "Collect required inputs for this stage."
+                "reason": info_reason_map.get(stage["id"], "Collect required inputs for this stage.")
             }
             for stage in self.DYNAMIC_IMPLEMENTATION_STAGES
             if stage_statuses.get(stage["id"]) == "needs_info"
