@@ -1316,7 +1316,7 @@ class MurphySystem:
             try:
                 confidence_value = float(confidence_value_raw)
             except (TypeError, ValueError):
-                logger.warning("Invalid confidence value '%s' defaulting to None.", confidence_value_raw)
+                logger.warning("Invalid confidence value '%s', defaulting to None.", confidence_value_raw)
                 confidence_value = None
         hitl_required = bool(hitl_contracts)
         if confidence_value is None:
@@ -1328,8 +1328,9 @@ class MurphySystem:
             approval_status = "pending_approval"
         else:
             approval_status = "ready"
+        confidence_display = None if confidence_value is None else round(confidence_value, 3)
         approval_policy = {
-            "confidence": round(confidence_value, 3) if confidence_value is not None else None,
+            "confidence": confidence_display,
             "threshold": confidence_threshold,
             "hitl_required": hitl_required,
             "status": approval_status
