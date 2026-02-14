@@ -1617,7 +1617,7 @@ class MurphySystem:
                 "id": stage["id"],
                 "label": stage["label"],
                 "owner": stage["owner"],
-                "status": stage_statuses.get(stage["id"], "pending")
+                "reason": "Wire subsystem support for this stage."
             }
             for stage in self.DYNAMIC_IMPLEMENTATION_STAGES
             if stage_statuses.get(stage["id"]) == "needs_wiring"
@@ -1627,7 +1627,7 @@ class MurphySystem:
                 "id": stage["id"],
                 "label": stage["label"],
                 "owner": stage["owner"],
-                "status": stage_statuses.get(stage["id"], "pending")
+                "reason": "Collect required inputs for this stage."
             }
             for stage in self.DYNAMIC_IMPLEMENTATION_STAGES
             if stage_statuses.get(stage["id"]) == "needs_info"
