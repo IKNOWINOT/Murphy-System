@@ -1310,14 +1310,15 @@ class MurphySystem:
         # Defined as a class-level constant on MurphySystem.
         confidence_threshold = self.HIGH_CONFIDENCE_THRESHOLD
         confidence_value_raw = getattr(doc, "confidence", None)
-        if confidence_value_raw is None:
-            confidence_value = None
-        else:
+        confidence_value = None
+        if confidence_value_raw is not None:
             try:
                 confidence_value = float(confidence_value_raw)
             except (TypeError, ValueError):
-                logger.warning("Invalid confidence value '%s', defaulting to None.", confidence_value_raw)
-                confidence_value = None
+                logger.warning(
+                    "Invalid confidence value '%s' (expected float), defaulting to None.",
+                    confidence_value_raw
+                )
         hitl_required = bool(hitl_contracts)
         if confidence_value is None:
             approval_status = "needs_info"
