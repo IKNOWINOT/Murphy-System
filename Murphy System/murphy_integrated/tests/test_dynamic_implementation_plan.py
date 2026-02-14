@@ -54,6 +54,7 @@ def test_dynamic_implementation_plan_requires_requirements():
     assert plan["execution_strategy"] == "simulation"
     stages = {stage["id"]: stage for stage in plan["stages"]}
     assert stages["requirements_identification"]["status"] == "needs_info"
+    assert stages["confidence_approval"]["status"] == "needs_info"
     assert stages["gate_alignment"]["status"] == "blocked"
     assert stages["gate_sequencing"]["status"] == "blocked"
     assert stages["compliance_review"]["status"] == "blocked"
@@ -77,6 +78,7 @@ def test_dynamic_implementation_plan_requires_requirements():
     assert execution_gap["reason"] == "Wire the orchestrator or MFGC adapter for live execution."
     info_ids = {gap["id"] for gap in plan["information_gaps"]}
     assert {"requirements_identification", "output_delivery"}.issubset(info_ids)
+    assert "confidence_approval" in info_ids
     requirements_gap = next(gap for gap in plan["information_gaps"] if gap["id"] == "requirements_identification")
     assert requirements_gap["label"] == "Requirements identification"
     assert requirements_gap["owner"] == "executive_branch"
@@ -112,6 +114,7 @@ def test_dynamic_implementation_plan_ready_with_orchestrator():
     murphy.swarm_system = object()
     murphy.integration_engine = object()
     doc = runtime.LivingDocument("doc-2", "Test", "content", "request")
+    doc.confidence = 0.9
     doc.gates = [{"status": "open"}]
     doc.generated_tasks = [{"stage": "automation_design", "description": "Design automation"}]
     operations_plan = murphy._build_operations_plan(doc)
@@ -140,6 +143,7 @@ def test_dynamic_implementation_plan_ready_with_orchestrator():
     assert stage_map["gate_alignment"]["status"] == "ready"
     assert stage_map["gate_sequencing"]["status"] == "ready"
     assert stage_map["compliance_review"]["status"] == "ready"
+    assert stage_map["confidence_approval"]["status"] == "ready"
     assert stage_map["swarm_generation"]["status"] == "ready"
     assert stage_map["integration_wiring"]["status"] == "ready"
     assert stage_map["automation_loop"]["status"] == "ready"
