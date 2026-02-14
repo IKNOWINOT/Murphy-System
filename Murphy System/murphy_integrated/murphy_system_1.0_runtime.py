@@ -1565,7 +1565,7 @@ class MurphySystem:
             else ("ready" if deliverable_status == "ready" else "blocked")
         )
         output_status = self._determine_output_status(requirements_stage_status, deliverable_status)
-        rollback_status = self._determine_rollback_status(execution_strategy, trigger_status)
+        rollback_status = self._determine_rollback_status(execution_strategy, deliverable_status)
         if automation_loop_status == "needs_wiring":
             multi_loop_status = "needs_wiring"
         elif requirements_stage_status != "complete":
@@ -1761,12 +1761,26 @@ class MurphySystem:
 
     def _build_dynamic_chain_plan(self, stage_statuses: Dict[str, str]) -> Dict[str, Any]:
         stage_ids = [stage["id"] for stage in self.DYNAMIC_IMPLEMENTATION_STAGES]
+        stage_id_set = set(stage_ids)
         control_points = [
             stage_id
             for stage_id in stage_ids
             if stage_statuses.get(stage_id) not in {"ready", "complete"}
         ]
         links = []
+        invalid_links = [
+            {"from": source, "to": target}
+            for source, target in self.DYNAMIC_IMPLEMENTATION_FLEX_LINKS
+            if source not in stage_id_set or target not in stage_id_set
+        ]
+        if len(stage_ids) < 2:
+            return {
+                "mode": "adaptive",
+                "primary_sequence": stage_ids,
+                "control_points": control_points,
+                "links": links,
+                "invalid_links": invalid_links
+            }
         for stage_id, next_id in zip(stage_ids, stage_ids[1:]):
             status = self._determine_chain_link_status(stage_statuses, stage_id)
             links.append({
@@ -1776,7 +1790,7 @@ class MurphySystem:
                 "status": status
             })
         for source, target in self.DYNAMIC_IMPLEMENTATION_FLEX_LINKS:
-            if source in stage_statuses and target in stage_statuses:
+            if source in stage_id_set and target in stage_id_set:
                 links.append({
                     "from": source,
                     "to": target,
@@ -1787,7 +1801,8 @@ class MurphySystem:
             "mode": "adaptive",
             "primary_sequence": stage_ids,
             "control_points": control_points,
-            "links": links
+            "links": links,
+            "invalid_links": invalid_links
         }
 
     @staticmethod
@@ -1805,10 +1820,10 @@ class MurphySystem:
         return "pending"
 
     @staticmethod
-    def _determine_rollback_status(execution_strategy: str, trigger_status: str) -> str:
+    def _determine_rollback_status(execution_strategy: str, deliverable_status: str) -> str:
         if execution_strategy == "simulation":
             return "needs_wiring"
-        if trigger_status == "ready":
+        if deliverable_status == "ready":
             return "ready"
         return "pending"
 
