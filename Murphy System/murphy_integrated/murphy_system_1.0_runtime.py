@@ -1310,7 +1310,7 @@ class MurphySystem:
         hitl_contract_list = hitl_contracts or []
         # Minimum confidence required before HITL approval can release execution.
         # Defined as a class-level constant on this runtime.
-        confidence_threshold = getattr(type(self), "HIGH_CONFIDENCE_THRESHOLD", 0.75)
+        confidence_threshold = type(self).HIGH_CONFIDENCE_THRESHOLD
         logger = logging.getLogger(__name__)
         confidence_value_raw = getattr(doc, "confidence", None)
         confidence_value = None
@@ -1330,7 +1330,7 @@ class MurphySystem:
             approval_status = "pending_approval"
         else:
             approval_status = "ready"
-        precision = getattr(type(self), "CONFIDENCE_DISPLAY_PRECISION", 3)
+        precision = type(self).CONFIDENCE_DISPLAY_PRECISION
         confidence_display = None if confidence_value is None else round(confidence_value, precision)
         approval_policy = {
             "confidence": confidence_display,
