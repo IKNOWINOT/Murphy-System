@@ -90,6 +90,8 @@ def test_dynamic_implementation_plan_requires_requirements():
     )
     graphing = training["graphing"]
     assert "executive_branch" in graphing["subjects"]
+    subject_summary = {entry["subject"]: entry for entry in graphing["subject_summary"]}
+    assert subject_summary["executive_branch"]["paths"] >= 1
     graph_ids = [graph["id"] for graph in graphing["graphs"]]
     assert graph_ids == ["all_paths", "high_confidence", "fastest_paths", "subject_condensation"]
     assert graphing["graphs"][0]["paths"] == training["patterns"]
@@ -155,3 +157,5 @@ def test_dynamic_implementation_plan_ready_with_orchestrator():
     assert len(training["high_confidence_paths"]) == len(training["patterns"])
     graphing = training["graphing"]
     assert graphing["graphs"][1]["paths"] == training["high_confidence_paths"]
+    summary = {entry["subject"]: entry for entry in graphing["subject_summary"]}
+    assert summary["automation_engine"]["average_seconds"] >= 0
