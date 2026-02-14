@@ -437,6 +437,12 @@ class MurphySystem:
             "info_reason": "Collect onboarding answers to finalize requirements."
         },
         {
+            "id": "confidence_approval",
+            "label": "Confidence & HITL approval",
+            "owner": "hitl_manager",
+            "info_reason": "Raise confidence or provide validation evidence; collect HITL approval."
+        },
+        {
             "id": "gate_alignment",
             "label": "Gate alignment & compliance",
             "owner": "governance",
@@ -1300,6 +1306,20 @@ class MurphySystem:
         coverage_percent = round(coverage_ratio * 100, 1)
         requirements_profile = learning_loop.get("requirements_identification", {})
         requirements_status = requirements_profile.get("status", "needs_info")
+        confidence_threshold = self.HIGH_CONFIDENCE_THRESHOLD
+        hitl_required = bool(hitl_contracts)
+        if doc.confidence < confidence_threshold:
+            approval_status = "needs_info"
+        elif hitl_required:
+            approval_status = "pending_approval"
+        else:
+            approval_status = "ready"
+        approval_policy = {
+            "confidence": round(doc.confidence, 3),
+            "threshold": confidence_threshold,
+            "hitl_required": hitl_required,
+            "status": approval_status
+        }
         gate_states = [
             (gate.get("status") or gate.get("state") or "").lower()
             for gate in doc.gates
@@ -1702,6 +1722,7 @@ class MurphySystem:
             multi_loop_status = "ready"
         stage_statuses = {
             "requirements_identification": requirements_stage_status,
+            "confidence_approval": approval_status,
             "gate_alignment": gate_status,
             "gate_sequencing": gate_sequence_status,
             "compliance_review": compliance_review_status,
@@ -1764,6 +1785,10 @@ class MurphySystem:
         next_actions = []
         if requirements_status != "complete":
             next_actions.append("Collect missing onboarding answers to lock requirements.")
+        if approval_status == "needs_info":
+            next_actions.append("Increase confidence with supporting evidence and validation.")
+        elif approval_status == "pending_approval":
+            next_actions.append("Collect HITL approval before execution.")
         if gate_status in {"blocked", "pending"}:
             next_actions.append("Review and update gate policy to clear compliance.")
         if gate_sequence_status == "needs_info":
@@ -1802,6 +1827,10 @@ class MurphySystem:
         }
         if requirements_status != "complete":
             overall_status = "needs_info"
+        elif approval_status == "needs_info":
+            overall_status = "needs_info"
+        elif approval_status == "pending_approval":
+            overall_status = "pending_approval"
         elif gate_status == "blocked":
             overall_status = "blocked"
         elif gate_status == "pending":
@@ -1840,6 +1869,7 @@ class MurphySystem:
             "status": overall_status,
             "execution_strategy": execution_strategy,
             "requirements_status": requirements_status,
+            "approval_policy": approval_policy,
             "gate_status": gate_status,
             "delivery_status": deliverable_status,
             "processing_balance": processing_balance,
@@ -1854,6 +1884,11 @@ class MurphySystem:
                     "id": "onboarding_answers",
                     "description": "Update onboarding answers to refine requirements.",
                     "status": requirements_status
+                },
+                {
+                    "id": "confidence_approval",
+                    "description": "Raise confidence and confirm HITL approval for execution.",
+                    "status": approval_status
                 },
                 {
                     "id": "gate_policy",
