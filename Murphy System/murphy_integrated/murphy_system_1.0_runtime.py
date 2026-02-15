@@ -19,7 +19,7 @@ import os
 import importlib.util
 from copy import deepcopy
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple, Literal
+from typing import Dict, List, Optional, Any, Tuple, Literal, Set
 from dataclasses import asdict, is_dataclass
 from datetime import datetime, timedelta
 import logging
@@ -1134,7 +1134,7 @@ class MurphySystem:
             module_paths.update(self._collect_module_paths(package_dir, package_dir.name))
         return sorted(module_paths)
 
-    def _collect_root_module_paths(self, root: Path) -> set[str]:
+    def _collect_root_module_paths(self, root: Path) -> Set[str]:
         module_paths: set[str] = set()
         for py_file in root.glob("*.py"):
             if py_file.name == "__init__.py":
