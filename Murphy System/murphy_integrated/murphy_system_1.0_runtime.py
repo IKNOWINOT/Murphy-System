@@ -2832,7 +2832,8 @@ class MurphySystem:
                 module_name = adapter["module"]
                 try:
                     self._adapter_availability[module_name] = importlib.util.find_spec(module_name) is not None
-                except (AttributeError, ImportError, ModuleNotFoundError, TypeError, ValueError):
+                except (AttributeError, ImportError, ModuleNotFoundError, TypeError, ValueError) as exc:
+                    logger.warning("Adapter availability check failed for %s: %s", module_name, exc)
                     self._adapter_availability[module_name] = False
         return self._adapter_availability
 
