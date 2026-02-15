@@ -97,7 +97,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 
 ---
 
-## 9) Production readiness tracker (estimated completion %)
+## 9) Production readiness tracker (estimated completion percentages)
 
 These percentages are **current estimates** based on wired functionality vs. planned scope. Update after each release and attach a screenshot-verified test run to justify progress.
 

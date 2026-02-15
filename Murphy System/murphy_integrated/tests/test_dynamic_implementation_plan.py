@@ -114,6 +114,7 @@ def test_dynamic_implementation_plan_ready_with_orchestrator():
     murphy = runtime.MurphySystem.create_test_instance()
 
     murphy.orchestrator = DummyOrchestrator()
+    # Keep flow steps empty to avoid onboarding prompts shifting requirements status.
     murphy.flow_steps = []
     murphy.swarm_system = object()
     murphy.integration_engine = object()
