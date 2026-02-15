@@ -118,6 +118,13 @@ except ImportError as e:
     print(f"Warning: MFGC adapter not available: {e}")
     MFGCAdapter = MFGCConfig = SystemIntegrator = None
 
+# Adapter Framework
+try:
+    from src.adapter_framework.adapter_runtime import AdapterRuntime
+except ImportError as e:
+    print(f"Warning: Adapter runtime not available: {e}")
+    AdapterRuntime = None
+
 # Org Chart System
 try:
     from src.organization_chart_system import OrganizationChart
@@ -262,6 +269,7 @@ class MurphySystem:
     GATE_OVERRIDE_VALUES = {"open", "blocked"}
     COMPLIANCE_BLOCKED_STATES = {"blocked", "failed", "denied"}
     COMPLIANCE_PENDING_STATES = {"pending", "review", "queued"}
+    APPROVAL_BLOCKING_STATUSES = {"needs_info", "pending_approval"}
     MAX_FAILURE_MODE_DESC_LENGTH = 80
     MAX_SAMPLE_GATES = 3
     DEFAULT_PHASE_VERBOSITY = 1
@@ -280,6 +288,82 @@ class MurphySystem:
         "src.llm_controller",
         "src.local_llm_fallback"
     )
+    INTEGRATION_CONNECTOR_CATALOG = [
+        {
+            "id": "document_delivery",
+            "label": "Document delivery adapter",
+            "channel": "document",
+            "requires": "adapter_runtime"
+        },
+        {
+            "id": "email_delivery",
+            "label": "Email delivery adapter",
+            "channel": "email",
+            "requires": "adapter_runtime"
+        },
+        {
+            "id": "chat_delivery",
+            "label": "Chat delivery adapter",
+            "channel": "chat",
+            "requires": "adapter_runtime"
+        },
+        {
+            "id": "voice_delivery",
+            "label": "Voice delivery adapter",
+            "channel": "voice",
+            "requires": "adapter_runtime"
+        },
+        {
+            "id": "ticketing_integration",
+            "label": "Ticketing/CRM integration",
+            "channel": "ticketing",
+            "requires": "integration_engine"
+        },
+        {
+            "id": "remote_access",
+            "label": "Remote access onboarding",
+            "channel": "remote_access",
+            "requires": "integration_engine"
+        },
+        {
+            "id": "patch_rollback",
+            "label": "Patch and rollback automation",
+            "channel": "operations",
+            "requires": "governance_scheduler"
+        }
+    ]
+    CORE_ADAPTER_CANDIDATES = [
+        {
+            "id": "telemetry_adapter",
+            "label": "Telemetry adapter",
+            "module": "src.telemetry_adapter",
+            "channel": "telemetry"
+        },
+        {
+            "id": "module_compiler_adapter",
+            "label": "Module compiler adapter",
+            "module": "src.module_compiler_adapter",
+            "channel": "module_compiler"
+        },
+        {
+            "id": "librarian_adapter",
+            "label": "Librarian adapter",
+            "module": "src.librarian_adapter",
+            "channel": "librarian"
+        },
+        {
+            "id": "neuro_symbolic_adapter",
+            "label": "Neuro-symbolic adapter",
+            "module": "src.neuro_symbolic_adapter",
+            "channel": "neuro_symbolic"
+        },
+        {
+            "id": "security_plane_adapter",
+            "label": "Security plane adapter",
+            "module": "src.security_plane_adapter",
+            "channel": "security"
+        }
+    ]
     EXTERNAL_SENSOR_CATALOG = {
         "marketing": [
             {
@@ -596,6 +680,7 @@ class MurphySystem:
         instance.swarm_system = None
         instance.system_integrator = None
         instance.mfgc_adapter = None
+        instance.integration_connectors = {}
         return instance
 
     def _initialize_configuration_defaults(self) -> None:
@@ -765,6 +850,7 @@ class MurphySystem:
         self.living_documents: Dict[str, LivingDocument] = {}
         self.document_sessions: Dict[str, str] = {}
         self.activation_usage: Dict[str, int] = {}
+        self.integration_connectors: Dict[str, Dict[str, Any]] = {}
         self.latest_activation_preview: Dict[str, Any] = {}
         self.execution_metrics = {"total": 0, "success": 0, "total_time": 0.0}
         self.chat_sessions: Dict[str, Dict] = {}
@@ -800,8 +886,8 @@ class MurphySystem:
         dynamic_implementation: Optional[Dict[str, Any]],
         parameters: Optional[Dict[str, Any]]
     ) -> Dict[str, Any]:
-        policy_parameters = parameters or {}
-        enforce_policy = policy_parameters.get("enforce_policy", True)
+        params = parameters or {}
+        enforce_policy = params.get("enforce_policy", True)
         if not dynamic_implementation:
             return {
                 "status": "unavailable",
@@ -814,7 +900,7 @@ class MurphySystem:
         gate_status = dynamic_implementation.get("gate_status", "needs_info")
         execution_strategy = dynamic_implementation.get("execution_strategy", "simulation")
         overall_status = dynamic_implementation.get("status", "needs_info")
-        approval_required = approval_status in {"needs_info", "pending_approval"}
+        approval_required = approval_status in self.APPROVAL_BLOCKING_STATUSES
         if overall_status == "ready" and approval_status == "ready":
             status = "ready"
             reason = None
@@ -2689,6 +2775,51 @@ class MurphySystem:
                 doc.automation_summary = result.get("summary", {})
         doc.block_tree = self._build_block_tree(doc)
 
+    def _build_integration_capabilities(self) -> Dict[str, Any]:
+        connectors = []
+        for entry in self.INTEGRATION_CONNECTOR_CATALOG:
+            requirement = entry.get("requires")
+            available = False
+            if requirement == "integration_engine":
+                available = bool(self.integration_engine)
+            elif requirement == "adapter_runtime":
+                available = AdapterRuntime is not None
+            elif requirement == "governance_scheduler":
+                available = bool(self.governance_scheduler)
+            registered = self.integration_connectors.get(entry["id"])
+            if registered:
+                status = registered.get("status", "configured")
+            else:
+                status = "available" if available else "needs_integration"
+            connectors.append({
+                **entry,
+                "available": available,
+                "status": status,
+                "configured": bool(registered)
+            })
+        for adapter in self.CORE_ADAPTER_CANDIDATES:
+            module_name = adapter["module"]
+            available = importlib.util.find_spec(module_name) is not None
+            connectors.append({
+                "id": adapter["id"],
+                "label": adapter["label"],
+                "channel": adapter["channel"],
+                "requires": "module_available",
+                "available": available,
+                "configured": False,
+                "status": "available" if available else "needs_integration",
+                "module": module_name
+            })
+        ready_count = len([item for item in connectors if item["status"] in {"available", "configured"}])
+        return {
+            "summary": {
+                "total": len(connectors),
+                "ready": ready_count,
+                "needs_integration": len(connectors) - ready_count
+            },
+            "connectors": connectors
+        }
+
     def _suggest_gap_action(self, subsystem_id: str, entry: Optional[Dict[str, Any]]) -> str:
         if not entry or not entry.get("available"):
             return "Install or restore module files to enable this subsystem."
@@ -3327,7 +3458,8 @@ class MurphySystem:
             "learning_loop": learning_loop,
             "delivery_readiness": delivery_readiness,
             "capability_review": capability_review,
-            "dynamic_implementation": dynamic_implementation
+            "dynamic_implementation": dynamic_implementation,
+            "integration_capabilities": self._build_integration_capabilities()
         }
         if onboarding_context:
             preview["onboarding_context"] = onboarding_context
