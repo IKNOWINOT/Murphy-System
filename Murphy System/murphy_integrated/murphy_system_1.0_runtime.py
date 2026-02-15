@@ -1385,6 +1385,41 @@ class MurphySystem:
             "triggers": [],
             "timestamp": datetime.utcnow().isoformat()
         }
+
+    def _execute_compute_plane_validation(
+        self,
+        parameters: Optional[Dict[str, Any]]
+    ) -> Optional[Dict[str, Any]]:
+        """Run deterministic compute-plane validation when compute inputs are provided."""
+        compute_request = (parameters or {}).get("compute_request")
+        if not compute_request:
+            return None
+        expression = compute_request.get("expression")
+        language = compute_request.get("language", "sympy")
+        if not expression:
+            return {"status": "error", "language": language, "error": "Missing compute expression."}
+        try:
+            from src.compute_plane.service import ComputeService
+        except ImportError as exc:
+            return {
+                "status": "unavailable",
+                "language": language,
+                "error": f"Compute plane unavailable: {exc}"
+            }
+        try:
+            service = ComputeService(enable_caching=False)
+            validation = service.validate_expression(expression, language)
+            validation_payload = (
+                validation.to_dict() if hasattr(validation, "to_dict") else validation
+            )
+            status = "validated" if validation_payload.get("is_valid") else "invalid"
+            return {
+                "status": status,
+                "language": language,
+                "validation": validation_payload
+            }
+        except Exception as exc:
+            return {"status": "error", "language": language, "error": str(exc)}
     
     async def execute_task(
         self,
@@ -1449,6 +1484,25 @@ class MurphySystem:
                 actor="user",
                 success=True
             )
+
+        compute_plane_result = self._execute_compute_plane_validation(parameters)
+        if compute_plane_result:
+            status = compute_plane_result.get("status", "error")
+            return {
+                "success": status == "validated",
+                "status": status,
+                "session_id": session_id or self.create_session().get("session_id"),
+                "doc_id": doc.doc_id,
+                "activation_preview": activation_preview,
+                "execution_policy": execution_policy,
+                "compute_plane": compute_plane_result,
+                "metadata": {
+                    "task_description": task_description,
+                    "task_type": task_type,
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "mode": "compute_plane_validation"
+                }
+            }
         
         if not self._is_orchestrator_available():
             logger.warning("Two-Phase Orchestrator unavailable; using MFGC fallback or simulation mode.")
