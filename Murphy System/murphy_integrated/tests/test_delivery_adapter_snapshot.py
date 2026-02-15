@@ -16,15 +16,18 @@ def load_runtime_module():
     return module
 
 
+def build_onboarding_answers(murphy):
+    stages = [step["stage"] for step in murphy.flow_steps if step.get("stage")]
+    return {stage: f"{stage}_ok" for stage in stages}
+
+
 def test_delivery_adapter_snapshot_in_preview():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
     doc = runtime.LivingDocument("doc-1", "Test", "content", "request")
     doc.confidence = 0.92
     murphy._update_document_tree(doc)
-    stages = [step["stage"] for step in murphy.flow_steps if step.get("stage")]
-    answers = {stage: f"{stage}_ok" for stage in stages}
-    onboarding_context = {"answers": answers}
+    onboarding_context = {"answers": build_onboarding_answers(murphy)}
 
     preview = murphy._build_activation_preview(doc, "Deliver automation outputs", onboarding_context)
 
@@ -34,7 +37,7 @@ def test_delivery_adapter_snapshot_in_preview():
     adapter_entries = {adapter["id"]: adapter for adapter in adapters["adapters"]}
     assert summary["total"] == len(murphy.DELIVERY_ADAPTER_CANDIDATES)
     assert summary["configured"] == 0
-    assert summary["needs_integration"] == summary["total"] - summary["configured"]
+    assert summary["unconfigured"] == summary["total"] - summary["configured"]
     assert delivery_readiness["status"] in {"needs_wiring", "needs_coverage"}
     assert set(adapter_entries.keys()) == {
         candidate["id"] for candidate in murphy.DELIVERY_ADAPTER_CANDIDATES
@@ -56,8 +59,11 @@ def test_delivery_adapter_snapshot_marks_configured_entries():
     doc = runtime.LivingDocument("doc-2", "Configured", "content", "request")
     doc.confidence = 0.92
     murphy._update_document_tree(doc)
-    answers = {step["stage"]: f"{step['stage']}_ok" for step in murphy.flow_steps if step.get("stage")}
-    preview = murphy._build_activation_preview(doc, "Deliver automation outputs", {"answers": answers})
+    preview = murphy._build_activation_preview(
+        doc,
+        "Deliver automation outputs",
+        {"answers": build_onboarding_answers(murphy)}
+    )
 
     delivery_readiness = preview["delivery_readiness"]
     summary = delivery_readiness["delivery_adapters"]["summary"]

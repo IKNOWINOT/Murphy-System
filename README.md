@@ -64,7 +64,7 @@ start_murphy_1.0.bat   # Windows
 - **Wingman protocol:** activation previews include executor/validator pairing metadata in dynamic chain training patterns for deterministic output verification.
 - **Persistence snapshots:** set `MURPHY_PERSISTENCE_DIR` to store activation previews + execution results for replay analysis.
 - **Observability snapshot:** activation previews and `/api/status` include telemetry bus + ingestion stats when telemetry components are available.
-- **Delivery adapter snapshot:** activation previews include document/email/chat/voice adapter readiness; summary counts show configured, available, and overall unconfigured (needs-integration) adapters, and delivery readiness passes through `needs_wiring`/`needs_coverage` when adapters or org chart coverage are incomplete.
+- **Delivery adapter snapshot:** activation previews include document/email/chat/voice adapter readiness; summary counts show configured, available, and unconfigured adapters, and delivery readiness passes through `needs_wiring`/`needs_coverage` when adapters or org chart coverage are incomplete.
 - **Delivery adapter test:** `tests/test_delivery_adapter_snapshot.py` validates readiness status and adapter summary output.
 - **Architect UI:** serve `Murphy System/murphy_integrated/terminal_architect.html` (or `murphy_production_ui.html`, which redirects unless `?legacy=true`) with `python -m http.server 8090` and open `http://localhost:8090/murphy_integrated/terminal_architect.html?apiPort=6666`
 - **Details:** see [Runtime 1.0 Status](<Murphy System/murphy_integrated/RUNTIME_1.0_STATUS.md>)
