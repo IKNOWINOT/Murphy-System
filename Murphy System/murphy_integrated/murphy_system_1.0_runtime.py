@@ -1880,6 +1880,17 @@ class MurphySystem:
             and hasattr(orchestrator, "run_automation")
         )
 
+    def _resolve_orchestrator_session_id(self, session_id: Optional[str]) -> Optional[str]:
+        if session_id:
+            return session_id
+        payload = self.create_session()
+        if not payload or not payload.get("session_id"):
+            logger.warning(
+                "Two-Phase Orchestrator session creation failed; falling back to automation_id."
+            )
+            return None
+        return payload["session_id"]
+
     def _is_orchestrator_available(self) -> bool:
         return self._supports_async_orchestrator() or self._supports_two_phase_orchestrator()
 
@@ -1896,6 +1907,7 @@ class MurphySystem:
         persistence_snapshot: Optional[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """Execute the legacy two-phase orchestrator path (create + run automation)."""
+        # If the domain is not provided, default to task_type (validated by tests).
         requested_domain = (parameters or {}).get("domain")
         orchestration_domain = requested_domain or task_type
         try:
@@ -1904,7 +1916,7 @@ class MurphySystem:
                 raise RuntimeError("Orchestrator unavailable for two-phase execution.")
             automation_id = orchestrator.create_automation(task_description, orchestration_domain)
             run_result = orchestrator.run_automation(automation_id)
-            response_session = session_id or self.create_session().get("session_id")
+            response_session = self._resolve_orchestrator_session_id(session_id) or automation_id
             return {
                 "success": True,
                 "automation_id": automation_id,
