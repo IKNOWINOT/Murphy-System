@@ -67,6 +67,8 @@ def test_module_registry_summary_reports_core_modules():
 def test_module_registry_summary_handles_empty_category_tag():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
+    summary_before = murphy._build_module_registry_summary()
+    unknown_before = summary_before["category_counts"].get("unknown", 0)
     murphy.module_manager.register_module(
         name="empty_category_module",
         module_path="fake.empty",
@@ -74,8 +76,7 @@ def test_module_registry_summary_handles_empty_category_tag():
         capabilities=[f"{runtime.MurphySystem.MODULE_CATEGORY_PREFIX}"]
     )
     summary = murphy._build_module_registry_summary()
-
-    assert summary["category_counts"].get("unknown", 0) >= 1
+    assert summary["category_counts"].get("unknown", 0) == unknown_before + 1
 
 
 def test_module_registry_includes_src_inventory():
