@@ -4,7 +4,7 @@
 
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/inoni-llc/murphy) [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.11+-yellow.svg)](https://www.python.org/)
 
-* * *
+---
 
 ## 🎯 What is Murphy?
 
@@ -19,7 +19,7 @@ Murphy is a **complete, operational AI automation system** that can automate any
 ✅ **Human-in-the-Loop** - Safety approval for all integrations  
 ✅ **Deployment References** - Legacy Docker/Kubernetes examples available in archives (security hardening required)
 
-* * *
+---
 
 ## 🚀 Quick Start
 
@@ -52,7 +52,7 @@ start_murphy_1.0.bat   # Windows
 - **Text Guide:** [VISUAL_SETUP_GUIDE.md](VISUAL_SETUP_GUIDE.md) - Step-by-step with text outputs
 - **Complete Guide:** [GETTING_STARTED.md](GETTING_STARTED.md) - Comprehensive instructions
 
-* * *
+---
 
 ## ✅ Runtime 1.0 Status (Current Runnable System)
 
@@ -61,7 +61,7 @@ start_murphy_1.0.bat   # Windows
 - **What you can test:** `/api/health`, `/api/status`, `/api/info`, `/api/execute`, and automation endpoints under `/api/automation/...`
 - **Architect UI:** serve `Murphy System/murphy_integrated/terminal_architect.html` (or `murphy_production_ui.html`, which redirects unless `?legacy=true`) with `python -m http.server 8090` and open `http://localhost:8090/murphy_integrated/terminal_architect.html?apiPort=6666`
 - **Details:** see [Runtime 1.0 Status](Murphy%20System/murphy_integrated/RUNTIME_1.0_STATUS.md)
-* * *
+---
 
 ## 🗃️ Repository Index (Database-Style Reference)
 
@@ -95,7 +95,7 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 **Progress tracking:** update completion percentages and screenshot-based validation in
 `Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md`.
 
-* * *
+---
 
 ## 📊 What Can Murphy Do?
 
@@ -174,7 +174,7 @@ Murphy **runs Inoni LLC autonomously** via configurable automation templates:
 
 **Automation reality:** Runtime 1.0 can automate workflows once integrations, credentials, and adapters are configured. Out-of-the-box it provides orchestration, templates, and safety gates rather than full autonomous operation.
 
-* * *
+---
 
 ## 🏗️ Architecture
 
@@ -207,7 +207,7 @@ Murphy **runs Inoni LLC autonomously** via configurable automation templates:
 └─────────────────────────────────────────────────┘
 ```
 
-* * *
+---
 
 ## 📦 What's Included
 
@@ -230,7 +230,7 @@ Murphy **runs Inoni LLC autonomously** via configurable automation templates:
 -   **INTEGRATION\_ENGINE\_COMPLETE.md** - Integration documentation
 -   **API Documentation** - Interactive docs at /docs
 
-* * *
+---
 
 ## 🎯 Use Cases
 
@@ -279,7 +279,7 @@ POST /api/integrations/add
 }
 ```
 
-* * *
+---
 
 ## 🛡️ Safety & Governance
 
@@ -304,7 +304,7 @@ POST /api/integrations/add
 -   ✅ Includes HIPAA-aligned controls (requires review)
 -   ✅ Includes PCI DSS-aligned controls (requires review)
 
-* * *
+---
 
 ## 📈 Performance (Design Targets)
 
@@ -317,7 +317,7 @@ POST /api/integrations/add
 | **Uptime Target** | 99.9% target |
 | **Error Rate** | Targeted <1% |
 
-* * *
+---
 
 ## 🚀 Deployment
 
@@ -331,7 +331,7 @@ POST /api/integrations/add
 
 Deployment manifests live under `Murphy System/archive/legacy_versions/.../deployment/` for reference.
 
-* * *
+---
 
 ## 📚 Documentation
 
@@ -342,7 +342,7 @@ Deployment manifests live under `Murphy System/archive/legacy_versions/.../deplo
 | [Integration Engine](INTEGRATION_ENGINE_COMPLETE.md) | Integration docs |
 | [API Docs](http://localhost:6666/docs) | Interactive API docs |
 
-* * *
+---
 
 ## 🧪 Testing
 
@@ -357,13 +357,13 @@ pytest tests/integration/
 k6 run tests/performance/load-test.js
 ```
 
-* * *
+---
 
 ## 🤝 Contributing
 
 We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-* * *
+---
 
 ## 📄 License
 
@@ -374,7 +374,7 @@ Creator: Corey Post
 
 See [LICENSE](LICENSE) for details.
 
-* * *
+---
 
 ## 🆘 Support
 
@@ -384,7 +384,7 @@ See [LICENSE](LICENSE) for details.
 -   Documentation
 -   Examples
 
-* * *
+---
 
 ## 🎉 Success Stories
 
@@ -400,7 +400,7 @@ See [LICENSE](LICENSE) for details.
 
 **The Ultimate Proof:** The product IS the proof.
 
-* * *
+---
 
 ## 🗺️ Roadmap (TBD)
 
@@ -415,7 +415,7 @@ See [LICENSE](LICENSE) for details.
 -   Multi-tenant architecture
 -   Global deployment
 
-* * *
+---
 
 ## 🌟 Why Murphy?
 
@@ -437,7 +437,7 @@ See [LICENSE](LICENSE) for details.
 -   **Murphy:** AI-powered, minutes per integration
 -   **Advantage:** No manual work
 
-* * *
+---
 
 ## 📊 Stats (murphy_integrated, as of 2026-02-09)
 
@@ -447,7 +447,7 @@ See [LICENSE](LICENSE) for details.
 -   **Integrations:** Self-integrating (workflow-driven)
 -   **Automation Types:** 6 (factory, content, data, system, agent, business)
 
-* * *
+---
 
 ## 🎯 Get Started Now
 
@@ -465,13 +465,13 @@ curl http://localhost:6666/api/status
 
 **Welcome to the future of AI automation!** 🚀
 
-* * *
+---
 
 ##  Contact
 
 -   **Email:** corey.gfc@gmail.com
 
 
-* * *
+---
 
 **Murphy System 1.0 - Automate Everything** ™
