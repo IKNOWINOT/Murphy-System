@@ -1894,7 +1894,8 @@ class MurphySystem:
         persistence_snapshot: Optional[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """Execute the legacy two-phase orchestrator path (create + run automation)."""
-        orchestration_domain = (parameters or {}).get("domain") or task_type
+        requested_domain = (parameters or {}).get("domain")
+        orchestration_domain = requested_domain if requested_domain else task_type
         try:
             orchestrator = self._get_orchestrator()
             if orchestrator is None:
