@@ -16,6 +16,7 @@ License: Apache License 2.0
 
 import sys
 import os
+import json
 import importlib.util
 from copy import deepcopy
 from pathlib import Path
@@ -275,6 +276,8 @@ class MurphySystem:
     GATE_OVERRIDE_VALUES = {"open", "blocked"}
     COMPLIANCE_BLOCKED_STATES = {"blocked", "failed", "denied"}
     COMPLIANCE_PENDING_STATES = {"pending", "review", "queued"}
+    PERSISTENCE_DIR_ENV = "MURPHY_PERSISTENCE_DIR"
+    PERSISTENCE_SNAPSHOT_PREFIX = "activation_snapshot"
     MAX_FAILURE_MODE_DESC_LENGTH = 80
     MAX_SAMPLE_GATES = 3
     DEFAULT_PHASE_VERBOSITY = 1
@@ -1403,6 +1406,53 @@ class MurphySystem:
             "reason": reason
         }
 
+    def _get_persistence_dir(self) -> Optional[Path]:
+        persistence_dir = os.getenv(self.PERSISTENCE_DIR_ENV)
+        if not persistence_dir:
+            return None
+        return Path(persistence_dir)
+
+    def _build_persistence_status(self) -> Dict[str, Any]:
+        persistence_dir = self._get_persistence_dir()
+        if not persistence_dir:
+            return {
+                "status": "disabled",
+                "reason": f"Set {self.PERSISTENCE_DIR_ENV} to enable persistence snapshots."
+            }
+        return {
+            "status": "configured",
+            "path": str(persistence_dir)
+        }
+
+    def _persist_execution_snapshot(
+        self,
+        doc: LivingDocument,
+        activation_preview: Dict[str, Any],
+        metadata: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        persistence_dir = self._get_persistence_dir()
+        if not persistence_dir:
+            return {
+                "status": "disabled",
+                "reason": f"Set {self.PERSISTENCE_DIR_ENV} to enable persistence snapshots."
+            }
+        timestamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+        snapshot_id = f"{self.PERSISTENCE_SNAPSHOT_PREFIX}_{doc.doc_id}_{timestamp}.json"
+        snapshot_path = persistence_dir / snapshot_id
+        snapshot = {
+            "snapshot_id": snapshot_id,
+            "timestamp": datetime.utcnow().isoformat(),
+            "document": doc.to_dict(),
+            "activation_preview": activation_preview,
+            "metadata": metadata
+        }
+        try:
+            persistence_dir.mkdir(parents=True, exist_ok=True)
+            snapshot_path.write_text(json.dumps(snapshot, indent=2))
+        except Exception as exc:
+            return {"status": "error", "error": str(exc)}
+        return {"status": "stored", "path": str(snapshot_path), "snapshot_id": snapshot_id}
+
     def _build_mfgc_fallback_response(self, task_description: str, success: bool) -> Dict[str, Any]:
         return {
             "request_id": "mfgc_fallback",
@@ -1518,6 +1568,17 @@ class MurphySystem:
             session_id,
             parameters
         )
+        persistence_snapshot = self._persist_execution_snapshot(
+            doc,
+            activation_preview,
+            {
+                "task_description": task_description,
+                "task_type": task_type,
+                "session_id": session_id
+            }
+        )
+        if isinstance(activation_preview.get("persistence"), dict):
+            activation_preview["persistence"]["snapshot"] = persistence_snapshot
         execution_wiring = activation_preview.get("execution_wiring")
         execution_policy = self._build_execution_policy(
             activation_preview.get("dynamic_implementation"),
@@ -1533,6 +1594,7 @@ class MurphySystem:
                 "activation_preview": activation_preview,
                 "execution_wiring": execution_wiring,
                 "execution_policy": execution_policy,
+                "persistence_snapshot": persistence_snapshot,
                 "error": execution_policy.get("reason") or "Execution policy blocked."
             }
 
@@ -1588,6 +1650,7 @@ class MurphySystem:
                 "activation_preview": activation_preview,
                 "execution_wiring": execution_wiring,
                 "execution_policy": execution_policy,
+                "persistence_snapshot": persistence_snapshot,
                 "compute_plane": compute_plane_result,
                 "metadata": {
                     "task_description": task_description,
@@ -1604,6 +1667,7 @@ class MurphySystem:
             fallback["doc_id"] = doc.doc_id
             fallback["execution_wiring"] = execution_wiring
             fallback["execution_policy"] = execution_policy
+            fallback["persistence_snapshot"] = persistence_snapshot
             return fallback
 
         try:
@@ -1656,6 +1720,7 @@ class MurphySystem:
                 'activation_preview': activation_preview,
                 'execution_wiring': execution_wiring,
                 'execution_policy': execution_policy,
+                'persistence_snapshot': persistence_snapshot,
                 'metadata': {
                     'task_description': task_description,
                     'task_type': task_type,
@@ -4126,6 +4191,7 @@ class MurphySystem:
             integration_capabilities
         )
         execution_wiring = self._build_execution_wiring_snapshot(doc)
+        persistence_status = self._build_persistence_status()
         preview = {
             "document_id": doc.doc_id,
             "request_summary": task_description,
@@ -4161,6 +4227,7 @@ class MurphySystem:
             "capability_review": capability_review,
             "dynamic_implementation": dynamic_implementation,
             "execution_wiring": execution_wiring,
+            "persistence": persistence_status,
             "integration_capabilities": integration_capabilities,
             "competitive_feature_alignment": competitive_feature_alignment
         }
