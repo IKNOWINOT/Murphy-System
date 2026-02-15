@@ -36,3 +36,16 @@ def test_gate_chain_open_reason():
     assert gates
     assert gates[0]["status"] == "open"
     assert gates[0]["reason"] == "Confidence meets threshold"
+
+
+def test_gate_chain_blocked_reason():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    doc = runtime.LivingDocument("doc-2", "Test", "content", "general")
+    doc.confidence = 0.4
+    doc.gate_policy = murphy.default_gate_policy
+    gates = murphy._build_gate_chain(doc)
+    assert gates[0]["status"] == "blocked"
+    assert gates[0]["reason"] == "Confidence below threshold"
+    assert gates[1]["status"] == "blocked"
+    assert gates[1]["reason"] == "Blocked by Magnify Gate"
