@@ -34,6 +34,7 @@ def test_delivery_adapter_snapshot_in_preview():
     adapter_entries = {adapter["id"]: adapter for adapter in adapters["adapters"]}
     assert summary["total"] == len(murphy.DELIVERY_ADAPTER_CANDIDATES)
     assert summary["configured"] == 0
+    assert summary["needs_integration"] == summary["total"] - summary["configured"]
     assert delivery_readiness["status"] in {"needs_wiring", "needs_coverage"}
     assert set(adapter_entries.keys()) == {
         candidate["id"] for candidate in murphy.DELIVERY_ADAPTER_CANDIDATES
@@ -46,3 +47,18 @@ def test_delivery_adapter_snapshot_in_preview():
         stage for stage in preview["dynamic_implementation"]["stages"] if stage["id"] == "output_delivery"
     )
     assert output_stage["status"] in {"needs_wiring", "needs_coverage"}
+
+
+def test_delivery_adapter_snapshot_marks_configured_entries():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.integration_connectors["document_delivery"] = {"status": "configured"}
+    doc = runtime.LivingDocument("doc-2", "Configured", "content", "request")
+    doc.confidence = 0.92
+    murphy._update_document_tree(doc)
+    answers = {step["stage"]: f"{step['stage']}_ok" for step in murphy.flow_steps if step.get("stage")}
+    preview = murphy._build_activation_preview(doc, "Deliver automation outputs", {"answers": answers})
+
+    delivery_readiness = preview["delivery_readiness"]
+    summary = delivery_readiness["delivery_adapters"]["summary"]
+    assert summary["configured"] == 1
