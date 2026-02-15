@@ -61,6 +61,20 @@ def test_module_registry_summary_reports_core_modules():
     assert any(value > 0 for value in summary["category_counts"].values())
 
 
+def test_module_registry_summary_handles_empty_category_tag():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.module_manager.register_module(
+        name="empty_category_module",
+        module_path="fake.empty",
+        description="Empty category module",
+        capabilities=[f"{runtime.MurphySystem.MODULE_CATEGORY_PREFIX}"]
+    )
+    summary = murphy._build_module_registry_summary()
+
+    assert summary["category_counts"].get("unknown", 0) >= 1
+
+
 def test_module_registry_includes_src_inventory():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
