@@ -1,6 +1,7 @@
 import asyncio
 import importlib.util
 from pathlib import Path
+from typing import Any, Dict
 
 
 def load_runtime_module():
@@ -26,7 +27,7 @@ class StubTwoPhaseOrchestrator:
         self.calls.append(("create", request, domain))
         return "automation-123"
 
-    def run_automation(self, automation_id: str):
+    def run_automation(self, automation_id: str) -> Dict[str, Any]:
         self.calls.append(("run", automation_id))
         return {
             "automation_id": automation_id,
