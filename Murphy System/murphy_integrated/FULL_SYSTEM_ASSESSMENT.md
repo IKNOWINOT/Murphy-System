@@ -21,6 +21,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **Persistence snapshots:** execution previews and results can be persisted when `MURPHY_PERSISTENCE_DIR` is configured.
 - **Observability snapshot:** telemetry bus + ingester stats are exposed in activation previews and system status.
 - **Delivery adapter snapshot:** activation previews include document/email/chat/voice adapter readiness.
+- **Delivery adapter test coverage:** snapshot tests validate configured vs. unconfigured adapters and output status handling.
 
 ## 3) Critical execution gaps (must close)
 

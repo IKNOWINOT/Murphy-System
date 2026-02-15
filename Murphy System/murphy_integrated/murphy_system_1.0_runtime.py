@@ -991,6 +991,7 @@ class MurphySystem:
         "needs_compliance": 60,
         "unknown": 35
     }
+    # Pass-through statuses exclude "ready" so readiness can still short-circuit below.
     OUTPUT_STATUS_PASSTHROUGH = {
         "needs_wiring",
         "needs_coverage",
@@ -3141,6 +3142,7 @@ class MurphySystem:
         if deliverable_status == "ready":
             return "ready"
         # Treat explicit deliverable gaps as needs_info even when requirements are complete.
+        # This keeps the status explicit even though it is not part of the passthrough set.
         if deliverable_status == "needs_info":
             return "needs_info"
         return "pending"
@@ -3621,8 +3623,13 @@ class MurphySystem:
                 "configured": configured,
                 "status": status
             })
-        ready_count = len([adapter for adapter in adapters if adapter["status"] == "configured"])
-        available_count = len([adapter for adapter in adapters if adapter["status"] == "available"])
+        ready_count = 0
+        available_count = 0
+        for adapter in adapters:
+            if adapter["status"] == "configured":
+                ready_count += 1
+            elif adapter["status"] == "available":
+                available_count += 1
         total = len(adapters)
         return {
             "summary": {
