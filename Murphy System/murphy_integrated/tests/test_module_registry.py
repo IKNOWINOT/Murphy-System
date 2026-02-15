@@ -41,3 +41,19 @@ def test_module_registry_contains_gate_synthesis():
     for module_name in expected_modules:
         assert module_name in status["modules"]
         assert status["modules"][module_name]["status"] == "available"
+
+
+def test_module_registry_includes_src_inventory():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    status = murphy.module_manager.get_module_status()
+
+    module_name = "src.command_system"
+    assert module_name in status["modules"]
+    capabilities = status["modules"][module_name]["capabilities"]
+    assert runtime.MurphySystem.MODULE_AUTO_SCAN_TAG in capabilities
+    assert f"{runtime.MurphySystem.MODULE_PATH_PREFIX}{module_name}" in capabilities
+    assert any(
+        capability.startswith(runtime.MurphySystem.MODULE_CATEGORY_PREFIX)
+        for capability in capabilities
+    )

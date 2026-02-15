@@ -457,6 +457,10 @@ class MurphySystem:
             "capabilities": ["security"]
         }
     ]
+    MODULE_SCAN_EXCLUDED_DIRS = {"__pycache__", "tests", "test", "docs", "documentation", "examples"}
+    MODULE_AUTO_SCAN_TAG = "auto_registered"
+    MODULE_CATEGORY_PREFIX = "category:"
+    MODULE_PATH_PREFIX = "module:"
     INTEGRATION_CONNECTOR_CATALOG = [
         {
             "id": "document_delivery",
@@ -1068,6 +1072,51 @@ class MurphySystem:
                 description=module["description"],
                 capabilities=module["capabilities"]
             )
+        self._register_src_inventory_modules()
+
+    def _register_src_inventory_modules(self) -> None:
+        if not getattr(self, "module_manager", None):
+            return
+        src_root = Path(__file__).parent / "src"
+        if not src_root.exists():
+            return
+        for module_path in self._collect_src_module_paths(src_root):
+            if module_path in self.module_manager.available_modules:
+                continue
+            parts = module_path.split(".")
+            category = parts[1] if len(parts) > 1 else "misc"
+            capabilities = [
+                self.MODULE_AUTO_SCAN_TAG,
+                f"{self.MODULE_CATEGORY_PREFIX}{category}",
+                f"{self.MODULE_PATH_PREFIX}{module_path}"
+            ]
+            self.module_manager.register_module(
+                name=module_path,
+                module_path=module_path,
+                description=f"Auto-registered src module ({category})",
+                capabilities=capabilities
+            )
+
+    def _collect_src_module_paths(self, src_root: Path) -> List[str]:
+        module_paths: set[str] = set()
+        for init_file in src_root.rglob("__init__.py"):
+            if init_file == src_root / "__init__.py":
+                continue
+            rel = init_file.parent.relative_to(src_root)
+            if self._should_skip_module_path(rel.parts):
+                continue
+            module_paths.add("src." + ".".join(rel.parts))
+        for py_file in src_root.rglob("*.py"):
+            if py_file.name == "__init__.py":
+                continue
+            rel = py_file.relative_to(src_root).with_suffix("")
+            if self._should_skip_module_path(rel.parts):
+                continue
+            module_paths.add("src." + ".".join(rel.parts))
+        return sorted(module_paths)
+
+    def _should_skip_module_path(self, parts: Tuple[str, ...]) -> bool:
+        return any(part.startswith("__") or part in self.MODULE_SCAN_EXCLUDED_DIRS for part in parts)
 
     def _build_execution_policy(
         self,
