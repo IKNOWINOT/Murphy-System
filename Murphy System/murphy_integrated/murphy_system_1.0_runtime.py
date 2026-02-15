@@ -458,6 +458,7 @@ class MurphySystem:
         }
     ]
     MODULE_SCAN_EXCLUDED_DIRS = {"__pycache__", "tests", "test", "docs", "documentation", "examples"}
+    MODULE_LOCAL_SCAN_EXCLUDED_DIRS = MODULE_SCAN_EXCLUDED_DIRS | {"src"}
     MODULE_AUTO_SCAN_TAG = "auto_registered"
     MODULE_CATEGORY_PREFIX = "category:"
     MODULE_PATH_PREFIX = "module:"
@@ -1073,6 +1074,7 @@ class MurphySystem:
                 capabilities=module["capabilities"]
             )
         self._register_src_inventory_modules()
+        self._register_local_inventory_modules()
 
     def _register_src_inventory_modules(self) -> None:
         if not getattr(self, "module_manager", None):
@@ -1096,6 +1098,26 @@ class MurphySystem:
                 description=f"Auto-registered src module ({category})",
                 capabilities=capabilities
             )
+    
+    def _register_local_inventory_modules(self) -> None:
+        if not getattr(self, "module_manager", None):
+            return
+        root = Path(__file__).parent
+        for module_path in self._collect_local_module_paths(root):
+            if module_path in self.module_manager.available_modules:
+                continue
+            category = module_path.split(".")[0]
+            capabilities = [
+                self.MODULE_AUTO_SCAN_TAG,
+                f"{self.MODULE_CATEGORY_PREFIX}{category}",
+                f"{self.MODULE_PATH_PREFIX}{module_path}"
+            ]
+            self.module_manager.register_module(
+                name=module_path,
+                module_path=module_path,
+                description=f"Auto-registered local module ({category})",
+                capabilities=capabilities
+            )
 
     def _collect_src_module_paths(self, src_root: Path) -> List[str]:
         module_paths: set[str] = set()
@@ -1113,6 +1135,42 @@ class MurphySystem:
             if self._should_skip_module_path(rel.parts):
                 continue
             module_paths.add("src." + ".".join(rel.parts))
+        return sorted(module_paths)
+
+    def _collect_local_module_paths(self, root: Path) -> List[str]:
+        module_paths: set[str] = set()
+        for py_file in root.glob("*.py"):
+            if py_file.name == "__init__.py":
+                continue
+            if "." in py_file.stem:
+                continue
+            module_paths.add(py_file.stem)
+        for package_dir in root.iterdir():
+            if not package_dir.is_dir():
+                continue
+            if package_dir.name in self.MODULE_LOCAL_SCAN_EXCLUDED_DIRS:
+                continue
+            if not (package_dir / "__init__.py").exists():
+                continue
+            module_paths.update(self._collect_package_module_paths(package_dir, package_dir.name))
+        return sorted(module_paths)
+
+    def _collect_package_module_paths(self, package_root: Path, base_package: str) -> List[str]:
+        module_paths: set[str] = set()
+        for init_file in package_root.rglob("__init__.py"):
+            if init_file == package_root / "__init__.py":
+                continue
+            rel = init_file.parent.relative_to(package_root)
+            if self._should_skip_module_path(rel.parts):
+                continue
+            module_paths.add(f"{base_package}." + ".".join(rel.parts))
+        for py_file in package_root.rglob("*.py"):
+            if py_file.name == "__init__.py":
+                continue
+            rel = py_file.relative_to(package_root).with_suffix("")
+            if self._should_skip_module_path(rel.parts):
+                continue
+            module_paths.add(f"{base_package}." + ".".join(rel.parts))
         return sorted(module_paths)
 
     def _should_skip_module_path(self, parts: Tuple[str, ...]) -> bool:
