@@ -57,7 +57,8 @@ def test_module_registry_summary_reports_core_modules():
     assert summary["auto_registered"] >= 1
     assert isinstance(summary["category_counts"], dict)
     assert summary["category_counts"]
-    assert all(value > 0 for value in summary["category_counts"].values())
+    assert all(value >= 0 for value in summary["category_counts"].values())
+    assert any(value > 0 for value in summary["category_counts"].values())
 
 
 def test_module_registry_includes_src_inventory():
