@@ -1886,7 +1886,7 @@ class MurphySystem:
         payload = self.create_session()
         if not payload or not payload.get("session_id"):
             logger.warning(
-                "Two-Phase Orchestrator session creation failed; automation_id will be used as a fallback identifier."
+                "Two-Phase Orchestrator session creation failed; will fall back to automation_id for session tracking."
             )
             return None
         return payload["session_id"]
