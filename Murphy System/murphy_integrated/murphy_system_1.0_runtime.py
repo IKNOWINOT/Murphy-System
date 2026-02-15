@@ -1123,13 +1123,7 @@ class MurphySystem:
         return self._collect_module_paths(src_root, "src")
 
     def _collect_local_module_paths(self, root: Path) -> List[str]:
-        module_paths: set[str] = set()
-        for py_file in root.glob("*.py"):
-            if py_file.name == "__init__.py":
-                continue
-            if "." in py_file.stem:
-                continue
-            module_paths.add(py_file.stem)
+        module_paths: set[str] = set(self._collect_root_module_paths(root))
         for package_dir in root.iterdir():
             if not package_dir.is_dir():
                 continue
@@ -1138,6 +1132,16 @@ class MurphySystem:
             if not (package_dir / "__init__.py").exists():
                 continue
             module_paths.update(self._collect_module_paths(package_dir, package_dir.name))
+        return sorted(module_paths)
+
+    def _collect_root_module_paths(self, root: Path) -> List[str]:
+        module_paths: set[str] = set()
+        for py_file in root.glob("*.py"):
+            if py_file.name == "__init__.py":
+                continue
+            if "." in py_file.stem:
+                continue
+            module_paths.add(py_file.stem)
         return sorted(module_paths)
 
     def _collect_module_paths(self, root: Path, prefix: str) -> List[str]:
