@@ -3141,8 +3141,8 @@ class MurphySystem:
             return deliverable_status
         if deliverable_status == "ready":
             return "ready"
-        # Treat explicit deliverable gaps as needs_info when requirements are complete but
-        # delivery readiness still lacks additional info (separate from gate/policy wiring).
+        # Treat the needs_info deliverable gap explicitly when requirements are complete but
+        # delivery readiness still lacks supporting info (other gaps flow via passthrough set).
         if deliverable_status == "needs_info":
             return "needs_info"
         return "pending"
