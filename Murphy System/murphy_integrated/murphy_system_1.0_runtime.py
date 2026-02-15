@@ -464,6 +464,70 @@ class MurphySystem:
     MODULE_CATEGORY_PREFIX = "category:"
     MODULE_PATH_PREFIX = "module:"
     MODULE_CATEGORY_UNKNOWN = "unknown"
+    COMPETITIVE_STATUS_AVAILABLE = "available"
+    COMPETITIVE_STATUS_PARTIAL = "partial"
+    COMPETITIVE_STATUS_MISSING = "missing"
+    COMPETITIVE_FEATURE_STATUS_VALUES = {
+        COMPETITIVE_STATUS_AVAILABLE,
+        COMPETITIVE_STATUS_PARTIAL,
+        COMPETITIVE_STATUS_MISSING
+    }
+    COMPETITIVE_FEATURES = [
+        {
+            "id": "workflow_orchestration",
+            "label": "Workflow orchestration",
+            "capabilities": ["orchestration", "handoff", "execution"],
+            "description": "Coordinate multi-phase workflows across execution paths."
+        },
+        {
+            "id": "event_driven_automation",
+            "label": "Event-driven automation",
+            "capabilities": ["scheduling", "governance"],
+            "description": "Trigger automations from schedules and governance policies."
+        },
+        {
+            "id": "connector_ecosystem",
+            "label": "Connector ecosystem",
+            "capabilities": ["integrations", "adapter_runtime"],
+            "description": "Integrate external systems, adapters, and delivery channels."
+        },
+        {
+            "id": "governance_policy",
+            "label": "Governance + HITL policy",
+            "capabilities": ["governance", "hitl", "validation"],
+            "description": "Enforce approvals and safety policies before execution."
+        },
+        {
+            "id": "audit_compliance",
+            "label": "Audit + compliance",
+            "capabilities": ["telemetry", "risk", "compliance"],
+            "description": "Audit automation actions with compliance gates and telemetry."
+        },
+        {
+            "id": "monitoring_analytics",
+            "label": "Monitoring + analytics",
+            "capabilities": ["telemetry", "analytics"],
+            "description": "Track execution metrics and performance analytics."
+        },
+        {
+            "id": "self_improvement",
+            "label": "Self-improvement",
+            "capabilities": ["learning", "correction"],
+            "description": "Learn from feedback to improve future runs."
+        },
+        {
+            "id": "swarm_expansion",
+            "label": "Dynamic swarm expansion",
+            "capabilities": ["swarm", "task_expansion"],
+            "description": "Expand tasks into parallel execution swarms."
+        },
+        {
+            "id": "security_hardening",
+            "label": "Security hardening",
+            "capabilities": ["security"],
+            "description": "Protect automation runs with security controls."
+        }
+    ]
     INTEGRATION_CONNECTOR_CATALOG = [
         {
             "id": "document_delivery",
@@ -3145,6 +3209,61 @@ class MurphySystem:
             "connectors": connectors
         }
 
+    def _build_competitive_feature_alignment(
+        self,
+        integration_capabilities: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        status = self.module_manager.get_module_status()
+        modules = status.get("modules", {})
+        capability_set = {
+            capability
+            for info in modules.values()
+            for capability in info.get("capabilities", [])
+        }
+        alignment = []
+        for feature in self.COMPETITIVE_FEATURES:
+            required = feature.get("capabilities", [])
+            available = [cap for cap in required if cap in capability_set]
+            missing = [cap for cap in required if cap not in capability_set]
+            coverage = len(available) / len(required) if required else 1.0
+            status_value = self.COMPETITIVE_STATUS_PARTIAL
+            if coverage == 1.0:
+                status_value = self.COMPETITIVE_STATUS_AVAILABLE
+            elif coverage == 0.0:
+                status_value = self.COMPETITIVE_STATUS_MISSING
+            entry = {
+                "id": feature["id"],
+                "label": feature["label"],
+                "description": feature["description"],
+                "status": status_value,
+                "coverage": round(coverage, 2),
+                "required_capabilities": required,
+                "available_capabilities": available,
+                "missing_capabilities": missing
+            }
+            if feature["id"] == "connector_ecosystem":
+                integration_capabilities = integration_capabilities or self._build_integration_capabilities()
+                summary = integration_capabilities.get("summary", {})
+                ready = summary.get("ready", 0)
+                total = summary.get("total", 0)
+                entry["integration_summary"] = summary
+                if total:
+                    entry["coverage"] = round(ready / total, 2)
+                    if ready == total:
+                        entry["status"] = self.COMPETITIVE_STATUS_AVAILABLE
+                    elif ready == 0:
+                        entry["status"] = self.COMPETITIVE_STATUS_MISSING
+                    else:
+                        entry["status"] = self.COMPETITIVE_STATUS_PARTIAL
+            alignment.append(entry)
+        summary = {
+            "total": len(alignment),
+            "available": len([f for f in alignment if f["status"] == self.COMPETITIVE_STATUS_AVAILABLE]),
+            "partial": len([f for f in alignment if f["status"] == self.COMPETITIVE_STATUS_PARTIAL]),
+            "missing": len([f for f in alignment if f["status"] == self.COMPETITIVE_STATUS_MISSING])
+        }
+        return {"summary": summary, "features": alignment}
+
     def _get_adapter_availability(self) -> Dict[str, bool]:
         if self._adapter_availability is None:
             self._adapter_availability = {}
@@ -3764,6 +3883,10 @@ class MurphySystem:
             trigger_plan
         )
 
+        integration_capabilities = self._build_integration_capabilities()
+        competitive_feature_alignment = self._build_competitive_feature_alignment(
+            integration_capabilities
+        )
         preview = {
             "document_id": doc.doc_id,
             "request_summary": task_description,
@@ -3798,7 +3921,8 @@ class MurphySystem:
             "delivery_readiness": delivery_readiness,
             "capability_review": capability_review,
             "dynamic_implementation": dynamic_implementation,
-            "integration_capabilities": self._build_integration_capabilities()
+            "integration_capabilities": integration_capabilities,
+            "competitive_feature_alignment": competitive_feature_alignment
         }
         if onboarding_context:
             preview["onboarding_context"] = onboarding_context

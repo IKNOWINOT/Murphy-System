@@ -44,6 +44,23 @@ This assessment consolidates the current state, capability gaps, and a finishing
 5. **Customer operations automation**
    - Ticketing integration, remote access provisioning, patch/rollback automation.
 
+## 4.1) Competitive feature baseline (industry expectations)
+
+Industry orchestration platforms emphasize **workflow orchestration, event-driven automation, connector ecosystems, governance/audit, and monitoring** as table-stakes capabilities. References: IBM, BMC, Resolve, Redwood, and other workflow orchestration analyses.
+
+| Competitive feature | Industry expectation | Murphy alignment | Status |
+| --- | --- | --- | --- |
+| Workflow orchestration | Multi-stage workflows across systems | `two_phase_orchestrator`, `execution_engine` | **Available** (core modules present, execution wiring partial) |
+| Event-driven automation | Scheduled + triggered workflows | `governance_framework`, `scheduler` | **Partial** (trigger execution wiring pending) |
+| Connector ecosystem | Prebuilt connectors + adapters | `integration_engine`, `adapter_framework`, delivery adapters | **Partial** (delivery adapters not wired) |
+| Governance & HITL | Role-based approvals + policy checks | `governance_framework`, `hitl_monitor`, gate policies | **Available** (policy enforcement in planning) |
+| Audit & compliance | Audit trails + compliance gates | `telemetry_ingestion`, `gate_synthesis` | **Partial** (persistence/audit store not wired) |
+| Monitoring & analytics | Execution dashboards + analytics | `telemetry_ingestion`, telemetry adapter | **Partial** (dashboards not wired) |
+| Self-improvement loops | Learning + correction | `learning_engine`, corrections flow | **Partial** (needs persisted training loop) |
+| Dynamic swarm expansion | Task decomposition into swarms | `true_swarm_system`, `domain_swarms` | **Partial** (execution wiring pending) |
+
+**Applied in runtime:** activation previews now include `competitive_feature_alignment` derived from module capabilities and integration readiness.
+
 ## 5) Finishing plan (systematic path to full operation)
 
 ### Phase 1 — Execution readiness (foundational)
@@ -118,6 +135,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 - Store user-script screenshots in `docs/screenshots/` (repository root).
 - Reference the new screenshots in `VISUAL_SETUP_GUIDE_WITH_SCREENSHOTS.md` (repository root).
 - Record the matching pytest command/output in this assessment entry whenever a percentage changes.
+- Validate README.md internal links after each update and fix any broken paths.
 
 ---
 

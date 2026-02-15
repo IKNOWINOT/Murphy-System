@@ -116,3 +116,24 @@ def test_module_registry_includes_local_packages():
 
     assert_package_registered("bots.")
     assert_package_registered("modern_arcana.")
+
+
+def test_competitive_feature_alignment_summary():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    integration_capabilities = murphy._build_integration_capabilities()
+    alignment = murphy._build_competitive_feature_alignment(integration_capabilities)
+
+    assert "summary" in alignment
+    assert "features" in alignment
+    assert alignment["summary"]["total"] == len(alignment["features"])
+    assert alignment["features"]
+    assert all(
+        feature["status"] in runtime.MurphySystem.COMPETITIVE_FEATURE_STATUS_VALUES
+        for feature in alignment["features"]
+    )
+    connector_feature = next(
+        feature for feature in alignment["features"]
+        if feature["id"] == "connector_ecosystem"
+    )
+    assert connector_feature["integration_summary"] == integration_capabilities["summary"]

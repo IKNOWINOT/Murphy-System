@@ -60,7 +60,7 @@ start_murphy_1.0.bat   # Windows
 - **How to run:** `cd "Murphy System/murphy_integrated" && ./start_murphy_1.0.sh`
 - **What you can test:** `/api/health`, `/api/status`, `/api/info`, `/api/execute`, and automation endpoints under `/api/automation/...`
 - **Architect UI:** serve `Murphy System/murphy_integrated/terminal_architect.html` (or `murphy_production_ui.html`, which redirects unless `?legacy=true`) with `python -m http.server 8090` and open `http://localhost:8090/murphy_integrated/terminal_architect.html?apiPort=6666`
-- **Details:** see [Runtime 1.0 Status](Murphy%20System/murphy_integrated/RUNTIME_1.0_STATUS.md)
+- **Details:** see [Runtime 1.0 Status](<Murphy System/murphy_integrated/RUNTIME_1.0_STATUS.md>)
 ---
 
 ## 🗃️ Repository Index (Database-Style Reference)
@@ -339,8 +339,8 @@ Deployment manifests live under `Murphy System/archive/legacy_versions/.../deplo
 | Document | Description |
 | --- | --- |
 | [Quick Start](MURPHY_1.0_QUICK_START.md) | Get started in 5 minutes |
-| [Specification](MURPHY_SYSTEM_1.0_SPECIFICATION.md) | Complete system spec |
-| [Integration Engine](INTEGRATION_ENGINE_COMPLETE.md) | Integration docs |
+| [Specification](<Murphy System/murphy_integrated/MURPHY_SYSTEM_1.0_SPECIFICATION.md>) | Complete system spec |
+| [Integration Engine](<Murphy System/murphy_integrated/INTEGRATION_ENGINE_COMPLETE.md>) | Integration docs |
 | [API Docs](http://localhost:6666/docs) | Interactive API docs |
 
 ---
@@ -362,7 +362,7 @@ k6 run tests/performance/load-test.js
 
 ## 🤝 Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+We welcome contributions! See the [documentation index](<Murphy System/murphy_integrated/documentation/README.md>) for guidelines.
 
 ---
 
