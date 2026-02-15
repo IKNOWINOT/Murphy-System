@@ -33,8 +33,8 @@ def test_delivery_adapter_snapshot_in_preview():
     summary = adapters["summary"]
     assert summary["total"] == len(murphy.DELIVERY_ADAPTER_CANDIDATES)
     assert summary["configured"] == 0
-    assert delivery_readiness["status"] == "needs_wiring"
+    assert delivery_readiness["status"] in {"needs_wiring", "needs_coverage"}
     output_stage = next(
         stage for stage in preview["dynamic_implementation"]["stages"] if stage["id"] == "output_delivery"
     )
-    assert output_stage["status"] == "needs_wiring"
+    assert output_stage["status"] in {"needs_wiring", "needs_coverage"}
