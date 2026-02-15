@@ -1396,16 +1396,13 @@ class MurphySystem:
 
     def _get_compute_service(self) -> Optional[ComputeServiceType]:
         """Return a cached compute service instance, or None if unavailable."""
-        if self._compute_service is not None:
-            return self._compute_service
         with self._compute_service_lock:
-            if self._compute_service is not None:
-                return self._compute_service
-            try:
-                from src.compute_plane.service import ComputeService
-            except ImportError:
-                return None
-            self._compute_service = ComputeService(enable_caching=True)
+            if self._compute_service is None:
+                try:
+                    from src.compute_plane.service import ComputeService
+                except ImportError:
+                    return None
+                self._compute_service = ComputeService(enable_caching=True)
             return self._compute_service
 
     def _execute_compute_plane_validation(
@@ -1513,13 +1510,21 @@ class MurphySystem:
         if compute_plane_result:
             status = compute_plane_result.get("status", "error")
             session_payload = None
-            if not session_id:
+            resolved_session = session_id
+            if resolved_session and resolved_session not in self.sessions:
+                logger.warning(
+                    "Unknown session_id '%s' supplied for compute-plane validation; creating new session.",
+                    resolved_session
+                )
+                resolved_session = None
+            if resolved_session is None:
                 session_payload = self.create_session()
                 if session_payload is None:
                     logger.warning(
                         "Compute-plane validation session creation failed; results will not be linked to a session."
                     )
-            resolved_session = session_id or (session_payload or {}).get("session_id")
+                else:
+                    resolved_session = session_payload.get("session_id")
             if status == "validated" and resolved_session:
                 previous_doc = self.document_sessions.get(resolved_session)
                 if previous_doc == doc.doc_id:
