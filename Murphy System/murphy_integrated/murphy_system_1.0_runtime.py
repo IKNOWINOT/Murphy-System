@@ -2830,7 +2830,7 @@ class MurphySystem:
                 module_name = adapter["module"]
                 try:
                     self._adapter_availability[module_name] = importlib.util.find_spec(module_name) is not None
-                except (ImportError, ModuleNotFoundError, ValueError):
+                except (AttributeError, ImportError, ModuleNotFoundError, TypeError, ValueError):
                     self._adapter_availability[module_name] = False
         return self._adapter_availability
 
