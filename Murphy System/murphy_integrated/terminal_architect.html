@@ -374,6 +374,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            flex-wrap: wrap;
         }
 
         .gate-item:last-child {
@@ -409,6 +410,13 @@
         .gate-detail {
             font-size: 8px;
             color: #00AA00;
+        }
+
+        .gate-reason {
+            width: 100%;
+            font-size: 8px;
+            color: #00AA00;
+            margin-left: 18px;
         }
 
         .data-source {
@@ -1190,6 +1198,15 @@
                 if (result.success) {
                     lastDocId = result.doc_id || lastDocId;
                     updateBlockTree(result.block_tree);
+                    if (Array.isArray(result.gates)) {
+                        lastGateSnapshot = result.gates;
+                        updateGatesDisplay(lastGateSnapshot);
+                    }
+                    if (result.activation_preview) {
+                        lastActivationPreview = result.activation_preview;
+                        updateActivationPreview(lastActivationPreview);
+                        updateLibrarianContext(lastActivationPreview.librarian_context);
+                    }
                 } else {
                     addLine(`✗ Block command failed: ${result.error}`, 'error');
                 }
@@ -1318,13 +1335,20 @@
                     const threshold = (typeof gate === 'object' && gate.threshold !== undefined)
                         ? ` · ${(gate.threshold * 100).toFixed(0)}%`
                         : '';
+                    const stage = (typeof gate === 'object' && gate.stage)
+                        ? ` · ${gate.stage}`
+                        : '';
+                    const reason = (typeof gate === 'object' && gate.reason)
+                        ? `<span class="gate-reason">${gate.reason}</span>`
+                        : '';
                     const statusClass = gateStatus === 'blocked' ? 'triggered' : 'active';
                     return `
                         <div class="gate-item">
                             <span class="gate-icon">●</span>
                             <span class="gate-type">${gateName}</span>
-                            <span class="gate-detail">${threshold}</span>
+                            <span class="gate-detail">${threshold}${stage}</span>
                             <span class="gate-status ${statusClass}">${gateStatus.toUpperCase()}</span>
+                            ${reason}
                         </div>
                     `;
                 }).join('');

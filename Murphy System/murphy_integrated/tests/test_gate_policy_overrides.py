@@ -24,3 +24,15 @@ def test_normalize_gate_override(override, expected):
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.__new__(runtime.MurphySystem)
     assert murphy._normalize_gate_override(override, "Test Gate") == expected
+
+
+def test_gate_chain_open_reason():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    doc = runtime.LivingDocument("doc-1", "Test", "content", "general")
+    doc.confidence = 0.85
+    doc.gate_policy = murphy.default_gate_policy
+    gates = murphy._build_gate_chain(doc)
+    assert gates
+    assert gates[0]["status"] == "open"
+    assert gates[0]["reason"] == "Confidence meets threshold"

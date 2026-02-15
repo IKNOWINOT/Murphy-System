@@ -1080,6 +1080,8 @@ class MurphySystem:
             elif status == "blocked":
                 blocked_by = name
                 reason = "Manually blocked" if validated_override == "blocked" else "Confidence below threshold"
+            elif status == "open":
+                reason = "Manual override" if validated_override == "open" else "Confidence meets threshold"
             gates.append({
                 "name": name,
                 "threshold": threshold,

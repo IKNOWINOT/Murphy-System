@@ -339,9 +339,11 @@ Submit a full onboarding automation request in the architect terminal input (mar
 
 ![Architect Terminal Gate Sequencing](docs/screenshots/35_ui_architect_dynamic_gate_sequence.png)
 
+![Architect Terminal Scripted Gates](docs/screenshots/36_ui_architect_scripted_gates.png)
+
 **Observed behavior:** the terminal returns activation preview JSON showing gates, swarm tasks, governance plans, librarian conditions, delivery readiness (99% coverage target + compliance status), and region-aware external API sensor plans sourced from the runtime response. The expanded dynamic implementation stages include gate sequencing, compliance review, automation loop, multi-loop scheduling, trigger schedule, and monitoring feedback.
 
-**Dynamic implementation check:** the preview includes a dynamic implementation plan that stages requirements capture, gate alignment, compliance sequencing, workload distribution, execution strategy, and human release status so the system can iterate across multiple projects. The `wiring_gaps` and `information_gaps` fields highlight what still needs dynamic wiring or additional input for capability grading and learning, while `chain_plan.training_patterns.graphing` provides multi-graph summaries (all paths, high-confidence paths, fastest paths) with time-based estimates plus a subject-condensation map and per-subject summaries so the system can reason about workload and confidence across owners rather than any particular chart style.
+**Dynamic implementation check:** the preview includes a dynamic implementation plan that stages requirements capture, gate alignment, compliance sequencing, workload distribution, execution strategy, and human release status so the system can iterate across multiple projects. The scripted prompt capture above shows gate statuses and reasons updating in real time (open vs blocked) as the confidence path shifts. The `wiring_gaps` and `information_gaps` fields highlight what still needs dynamic wiring or additional input for capability grading and learning, while `chain_plan.training_patterns.graphing` provides multi-graph summaries (all paths, high-confidence paths, fastest paths) with time-based estimates plus a subject-condensation map and per-subject summaries so the system can reason about workload and confidence across owners rather than any particular chart style.
 
 ---
 
