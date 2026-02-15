@@ -991,7 +991,7 @@ class MurphySystem:
         "needs_compliance": 60,
         "unknown": 35
     }
-    # Pass-through statuses exclude "ready" so readiness can still short-circuit below.
+    # Pass-through statuses reflect incomplete/blocked delivery states that should propagate directly.
     OUTPUT_STATUS_PASSTHROUGH = {
         "needs_wiring",
         "needs_coverage",
@@ -3141,8 +3141,8 @@ class MurphySystem:
             return deliverable_status
         if deliverable_status == "ready":
             return "ready"
-        # Treat explicit deliverable gaps as needs_info even when requirements are complete.
-        # This keeps the status explicit even though it is not part of the passthrough set.
+        # Treat explicit deliverable gaps as needs_info when requirements are complete but
+        # delivery readiness still lacks additional info (separate from gate/policy wiring).
         if deliverable_status == "needs_info":
             return "needs_info"
         return "pending"
