@@ -1139,7 +1139,7 @@ class MurphySystem:
         for py_file in root.glob("*.py"):
             if py_file.name == "__init__.py":
                 continue
-            if re.search(r"_\d+\.\d+$", py_file.stem):
+            if re.search(r"_\d+\.\d+_", py_file.stem):
                 # Skip versioned module filenames (e.g., murphy_system_1.0_runtime.py).
                 continue
             module_path_set.add(py_file.stem)
@@ -1154,14 +1154,14 @@ class MurphySystem:
             rel = init_file.parent.relative_to(root)
             if self._should_skip_module_path(rel.parts):
                 continue
-            module_path_set.add(f"{prefix}." + ".".join(rel.parts))
+            module_path_set.add(f"{prefix}.{'.'.join(rel.parts)}")
         for py_file in root.rglob("*.py"):
             if py_file.name == "__init__.py":
                 continue
             rel = py_file.relative_to(root).with_suffix("")
             if self._should_skip_module_path(rel.parts):
                 continue
-            module_path_set.add(f"{prefix}." + ".".join(rel.parts))
+            module_path_set.add(f"{prefix}.{'.'.join(rel.parts)}")
         return sorted(module_path_set)
 
     def _should_skip_module_path(self, parts: Tuple[str, ...]) -> bool:
