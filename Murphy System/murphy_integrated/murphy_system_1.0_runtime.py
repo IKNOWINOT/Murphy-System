@@ -269,7 +269,7 @@ class MurphySystem:
     GATE_OVERRIDE_VALUES = {"open", "blocked"}
     COMPLIANCE_BLOCKED_STATES = {"blocked", "failed", "denied"}
     COMPLIANCE_PENDING_STATES = {"pending", "review", "queued"}
-    APPROVAL_BLOCKING_STATUSES = {"needs_info", "pending_approval"}
+    STATUSES_REQUIRING_APPROVAL = {"needs_info", "pending_approval"}
     MAX_FAILURE_MODE_DESC_LENGTH = 80
     MAX_SAMPLE_GATES = 3
     DEFAULT_PHASE_VERBOSITY = 1
@@ -907,7 +907,7 @@ class MurphySystem:
             reason = None
         elif execution_strategy == "simulation":
             status = "needs_wiring"
-            reason = "Execution wiring unavailable; enable orchestrator or MFGC fallback."
+            reason = "Execution wiring unavailable; enable the orchestrator or MFGC fallback."
         elif approval_status == "needs_info":
             status = "needs_info"
             reason = "Approval confidence below threshold; supply additional evidence."
@@ -920,7 +920,7 @@ class MurphySystem:
         else:
             status = overall_status
             reason = f"Execution policy blocked by {overall_status} status."
-        approval_required = status in self.APPROVAL_BLOCKING_STATUSES
+        approval_required = status in self.STATUSES_REQUIRING_APPROVAL
         return {
             "status": status,
             "enforced": enforce_policy,
@@ -2826,10 +2826,13 @@ class MurphySystem:
     def _get_adapter_availability(self) -> Dict[str, bool]:
         cache = self._adapter_availability
         if cache is None:
-            cache = {
-                adapter["module"]: importlib.util.find_spec(adapter["module"]) is not None
-                for adapter in self.CORE_ADAPTER_CANDIDATES
-            }
+            cache = {}
+            for adapter in self.CORE_ADAPTER_CANDIDATES:
+                module_name = adapter["module"]
+                try:
+                    cache[module_name] = importlib.util.find_spec(module_name) is not None
+                except (ImportError, ModuleNotFoundError, ValueError):
+                    cache[module_name] = False
             self._adapter_availability = cache
         return cache
 
