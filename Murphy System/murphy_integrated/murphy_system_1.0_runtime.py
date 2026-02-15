@@ -3629,7 +3629,7 @@ class MurphySystem:
                 "total": total,
                 "configured": ready_count,
                 "available": available_count,
-                "needs_integration": total - ready_count
+                "needs_integration": total - ready_count - available_count
             },
             "adapters": adapters
         }
