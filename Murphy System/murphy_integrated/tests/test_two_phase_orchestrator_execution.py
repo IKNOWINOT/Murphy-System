@@ -51,6 +51,8 @@ def test_execute_task_uses_two_phase_orchestrator():
 
     assert response["success"] is True
     assert response["automation_id"] == "automation-123"
+    assert response["session_id"] is not None
+    assert response["session_id"] != response["automation_id"]
     assert response["deliverables"] == ["report.pdf"]
     assert response["metadata"]["mode"] == "two_phase_orchestrator"
     assert ("create", "Generate a compliance report", "compliance") in stub.calls
