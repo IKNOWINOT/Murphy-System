@@ -60,6 +60,7 @@ logs/
 murphy_integrated/__pycache__/
 murphy_v3/__pycache__/
 *.pyc
+_workspace_*.zip
 
 # Bytecode caches (repo has nested folders)
 **/__pycache__/

@@ -53,10 +53,15 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 | Workflow orchestration | Multi-stage workflows across systems | `two_phase_orchestrator`, `execution_engine` | **Available** (core modules present, execution wiring partial) |
 | Event-driven automation | Scheduled + triggered workflows | `governance_framework`, `scheduler` | **Partial** (trigger execution wiring pending) |
 | Connector ecosystem | Prebuilt connectors + adapters | `integration_engine`, `adapter_framework`, delivery adapters | **Partial** (delivery adapters not wired) |
+| Connector marketplace | Compile + package adapters for reuse | `module_compiler_adapter`, `adapter_framework` | **Partial** (execution packaging not wired) |
 | Governance & HITL | Role-based approvals + policy checks | `governance_framework`, `hitl_monitor`, gate policies | **Available** (policy enforcement in planning) |
+| Policy-as-code | Codified compliance + approval rules | `governance_framework`, `gate_synthesis` | **Partial** (runtime enforcement pending) |
 | Audit & compliance | Audit trails + compliance gates | `telemetry_ingestion`, `gate_synthesis` | **Partial** (persistence/audit store not wired) |
+| Observability + AIOps | Runtime telemetry + feedback | `telemetry_ingestion`, `recursive_stability_controller` | **Partial** (dashboards not wired) |
 | Monitoring & analytics | Execution dashboards + analytics | `telemetry_ingestion`, telemetry adapter | **Partial** (dashboards not wired) |
+| Self-healing automation | Rollbacks + stabilization loops | `recursive_stability_controller`, governance gates | **Partial** (rollback wiring pending) |
 | Self-improvement loops | Learning + correction | `learning_engine`, corrections flow | **Partial** (needs persisted training loop) |
+| Knowledge + RAG | Curated context + conditions | `system_librarian`, `learning_engine` | **Partial** (persistence + retrieval tuning pending) |
 | Dynamic swarm expansion | Task decomposition into swarms | `true_swarm_system`, `domain_swarms` | **Partial** (execution wiring pending) |
 
 **Runtime behavior:** activation previews now include `competitive_feature_alignment` derived from module capabilities and integration readiness.
@@ -142,7 +147,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 ## 10) File system cleanup plan
 
 1. **Archive legacy demos** into `Murphy System/archive/legacy_versions/` with clear READMEs.
-2. **Remove build artifacts** (`__pycache__`, logs, temp files) via `.gitignore` and pre-commit hooks.
+2. **Remove build artifacts** (`__pycache__`, logs, temp files) via `.gitignore` and pre-commit hooks (including `_workspace_*.zip` for transient UI packages).
 3. **Role-based UIs**: keep `terminal_architect.html` (architect), `terminal_integrated.html` (ops),
    and `terminal_worker.html` (delivery) as active role-based UIs; archive unused legacy variants such
    as `murphy_ui_integrated.html` and `murphy_ui_integrated_terminal.html` under

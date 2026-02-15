@@ -493,6 +493,12 @@ class MurphySystem:
             "description": "Integrate external systems, adapters, and delivery channels."
         },
         {
+            "id": "policy_as_code",
+            "label": "Policy-as-code governance",
+            "capabilities": ["governance", "compliance"],
+            "description": "Encode governance policy checks and compliance assertions."
+        },
+        {
             "id": "governance_policy",
             "label": "Governance + HITL policy",
             "capabilities": ["governance", "hitl", "validation"],
@@ -505,10 +511,22 @@ class MurphySystem:
             "description": "Audit automation actions with compliance gates and telemetry."
         },
         {
+            "id": "observability_aiops",
+            "label": "Observability + AIOps",
+            "capabilities": ["telemetry", "analytics", "feedback"],
+            "description": "Monitor runtime health with telemetry and feedback loops."
+        },
+        {
             "id": "monitoring_analytics",
             "label": "Monitoring + analytics",
             "capabilities": ["telemetry", "analytics"],
             "description": "Track execution metrics and performance analytics."
+        },
+        {
+            "id": "self_healing",
+            "label": "Self-healing automation",
+            "capabilities": ["stability", "feedback", "governance"],
+            "description": "Recover from failures with rollback and stabilization logic."
         },
         {
             "id": "self_improvement",
@@ -517,10 +535,22 @@ class MurphySystem:
             "description": "Learn from feedback to improve future runs."
         },
         {
+            "id": "knowledge_rag",
+            "label": "Knowledge + RAG automation",
+            "capabilities": ["librarian", "conditions", "learning"],
+            "description": "Ground automation decisions in curated knowledge and conditions."
+        },
+        {
             "id": "swarm_expansion",
             "label": "Dynamic swarm expansion",
             "capabilities": ["swarm", "task_expansion"],
             "description": "Expand tasks into parallel execution swarms."
+        },
+        {
+            "id": "connector_marketplace",
+            "label": "Connector marketplace readiness",
+            "capabilities": ["adapter_runtime", "module_compiler", "integrations"],
+            "description": "Compose adapters and connectors for marketplace-grade integrations."
         },
         {
             "id": "security_hardening",
