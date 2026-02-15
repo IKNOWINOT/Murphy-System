@@ -9,7 +9,7 @@ def load_runtime_module():
         candidates = list(runtime_dir.glob("murphy_system_*_runtime.py"))
         if not candidates:
             raise RuntimeError("Unable to locate Murphy runtime module")
-        module_path = candidates[0]
+        raise RuntimeError(f"Expected runtime 1.0 module missing. Found: {candidates}")
     spec = importlib.util.spec_from_file_location("murphy_system_runtime", module_path)
     module = importlib.util.module_from_spec(spec)
     if spec.loader is None:

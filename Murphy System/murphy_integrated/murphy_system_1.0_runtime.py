@@ -1007,6 +1007,7 @@ class MurphySystem:
             "success_rate": "0.0%",
             "average_execution_time": "0.000s"
         }
+        self._compute_service = None
         self.flow_steps = [
             {
                 "stage": "signup",
@@ -1386,6 +1387,16 @@ class MurphySystem:
             "timestamp": datetime.utcnow().isoformat()
         }
 
+    def _get_compute_service(self) -> Optional["ComputeService"]:
+        if self._compute_service is not None:
+            return self._compute_service
+        try:
+            from src.compute_plane.service import ComputeService
+        except ImportError:
+            return None
+        self._compute_service = ComputeService(enable_caching=True)
+        return self._compute_service
+
     def _execute_compute_plane_validation(
         self,
         parameters: Optional[Dict[str, Any]]
@@ -1398,16 +1409,14 @@ class MurphySystem:
         language = compute_request.get("language", "sympy")
         if not expression:
             return {"status": "error", "language": language, "error": "Missing compute expression."}
-        try:
-            from src.compute_plane.service import ComputeService
-        except ImportError as exc:
+        service = self._get_compute_service()
+        if service is None:
             return {
                 "status": "unavailable",
                 "language": language,
-                "error": f"Compute plane unavailable: {exc}"
+                "error": "Compute plane unavailable: service not initialized."
             }
         try:
-            service = ComputeService(enable_caching=False)
             validation = service.validate_expression(expression, language)
             validation_payload = (
                 validation.to_dict() if hasattr(validation, "to_dict") else validation
@@ -1489,7 +1498,7 @@ class MurphySystem:
         if compute_plane_result:
             status = compute_plane_result.get("status", "error")
             resolved_session = session_id or self.create_session().get("session_id")
-            if session_id is None and resolved_session:
+            if resolved_session and resolved_session not in self.document_sessions:
                 self.document_sessions[resolved_session] = doc.doc_id
             return {
                 "success": status == "validated",
