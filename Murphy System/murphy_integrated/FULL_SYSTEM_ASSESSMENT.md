@@ -89,6 +89,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **Deterministic + LLM routing:** compute plane and LLM orchestration must both be wired with clear task routing rules.
 - **Persistence & replay:** store LivingDocument, gate history, librarian context, and automation plans with replay support.
 - **Multi-channel delivery:** document/email/chat/voice adapters with governance approvals and audit trails.
+- **Module registry standardization:** keep `module_manager` catalog aligned with `murphy_integrated/src` modules.
 - **Adapter framework integration:** register telemetry, module compiler, librarian, and security adapters for execution telemetry.
 - **Compliance validation:** regulatory sensors, policy gates, and HITL approvals tied to deliverable releases.
 - **Operations automation:** remote access invites, ticketing, patch/rollback automation, and production telemetry.
