@@ -212,3 +212,7 @@ def test_dynamic_implementation_plan_partial_wiring():
     assert stage_map["integration_wiring"]["status"] == "needs_wiring"
     wiring_ids = {gap["id"] for gap in plan["wiring_gaps"]}
     assert {"swarm_generation", "integration_wiring"}.issubset(wiring_ids)
+    swarm_gap = next(gap for gap in plan["wiring_gaps"] if gap["id"] == "swarm_generation")
+    integration_gap = next(gap for gap in plan["wiring_gaps"] if gap["id"] == "integration_wiring")
+    assert "swarm" in swarm_gap["reason"].lower()
+    assert "integration" in integration_gap["reason"].lower()
