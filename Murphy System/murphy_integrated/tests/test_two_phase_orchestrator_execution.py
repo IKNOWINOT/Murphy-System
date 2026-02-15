@@ -35,7 +35,7 @@ class StubTwoPhaseOrchestrator:
         }
 
 
-def test_execute_task_routes_to_two_phase_orchestrator_with_domain_fallback():
+def test_execute_task_routes_to_two_phase_orchestrator():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
     stub = StubTwoPhaseOrchestrator()
@@ -57,3 +57,21 @@ def test_execute_task_routes_to_two_phase_orchestrator_with_domain_fallback():
     assert response["metadata"]["mode"] == "two_phase_orchestrator"
     assert ("create", "Generate a compliance report", "compliance") in stub.calls
     assert ("run", "automation-123") in stub.calls
+
+
+def test_two_phase_orchestrator_defaults_domain_to_task_type():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    stub = StubTwoPhaseOrchestrator()
+    murphy.orchestrator = stub
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Draft a response letter",
+            "operations",
+            {"enforce_policy": False}
+        )
+    )
+
+    assert response["success"] is True
+    assert ("create", "Draft a response letter", "operations") in stub.calls
