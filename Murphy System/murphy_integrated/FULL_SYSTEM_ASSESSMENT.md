@@ -97,7 +97,46 @@ This assessment consolidates the current state, capability gaps, and a finishing
 
 ---
 
-## 9) Implementation plan to finish remaining work
+## 9) Production readiness tracker (estimated completion %)
+
+These percentages are **current estimates** based on wired functionality vs. planned scope. Update after each release and attach a screenshot-verified test run to justify progress.
+
+| Area | Estimated completion | Evidence to update |
+| --- | --- | --- |
+| Execution wiring (gate + swarm + orchestrator) | 45% | MFGC fallback wired, orchestrator wiring still partial |
+| Deterministic + LLM routing | 40% | Routing heuristics exist; compute plane not invoked end-to-end |
+| Persistence + replay | 15% | No durable storage yet |
+| Multi-channel delivery | 10% | No document/email/chat/voice adapters |
+| Compliance validation | 35% | Regional sensors + gate policies defined, enforcement incomplete |
+| Operational automation | 20% | Planning templates exist; ticketing/remote access not wired |
+| UI + user testing | 70% | Architect UI + scripted screenshots now in place |
+| Test coverage for dynamic chains | 55% | Dynamic plan tests exist; execution/integration tests still pending |
+
+**Progress update protocol:** attach user-script screenshots + test results for every percentage change.
+
+---
+
+## 10) File system cleanup plan
+
+1. **Archive legacy demos** into `Murphy System/archive/legacy_versions/` with clear READMEs.
+2. **Remove build artifacts** (`__pycache__`, logs, temp files) via `.gitignore` and pre-commit hooks.
+3. **Deduplicate UIs**: keep `terminal_architect.html` as primary; keep legacy UI only for reference.
+4. **Consolidate docs**: move outdated specs to `archive/` and keep a single index in the root README.
+5. **Tag active runtimes**: ensure only `murphy_system_1.0_runtime.py` is runnable; mark others as archived.
+
+---
+
+## 11) Testing expansion plan (dynamic combinations + actions)
+
+1. **Execution wiring tests**: orchestrator + MFGC fallback with live task execution results.
+2. **Gate chain sequencing tests**: verify dynamic chain control points under mixed gate states.
+3. **Multi-loop scheduling tests**: validate trigger schedules across concurrent automation loops.
+4. **Compliance + delivery tests**: assert approval gating before release of documents/email/chat.
+5. **Persistence + replay tests**: verify stored session data, replayed approvals, and rollback.
+
+---
+
+## 12) Implementation plan to finish remaining work
 
 ### Step 1 — Activate execution wiring
 1. Route gate synthesis + dynamic swarm expansion through `execute_task` (no preview-only paths).
@@ -123,7 +162,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 
 ---
 
-## 10) Machine learning plan for screenshot-driven chain evaluation
+## 13) Machine learning plan for screenshot-driven chain evaluation
 
 1. **Dataset capture**
    - For each user session, collect screenshots plus the request, gate plan, and dynamic chain output.

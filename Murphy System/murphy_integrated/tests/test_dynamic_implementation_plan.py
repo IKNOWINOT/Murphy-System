@@ -170,3 +170,45 @@ def test_dynamic_implementation_plan_ready_with_orchestrator():
     assert execution_routes["summary"]["ready"] == len(plan["stages"])
     summary = {entry["subject"]: entry for entry in graphing["subject_summary"]}
     assert summary["automation_engine"]["average_seconds"] >= 0
+
+
+def test_dynamic_implementation_plan_partial_wiring():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+
+    murphy.orchestrator = DummyOrchestrator()
+    murphy.flow_steps = []
+    murphy.swarm_system = None
+    murphy.integration_engine = None
+    doc = runtime.LivingDocument("doc-3", "Test", "content", "request")
+    doc.confidence = 0.92
+    doc.gates = [{"status": "open"}]
+    doc.generated_tasks = [{"stage": "automation_design", "description": "Design automation"}]
+    operations_plan = murphy._build_operations_plan(doc)
+    learning_loop = murphy._build_learning_loop_plan("Automation", {"answers": {"goal": "automate"}}, {})
+    trigger_plan = {"status": "scheduled"}
+    org_chart_plan = {"coverage_summary": {"total_deliverables": 2, "uncovered_deliverables": 0}}
+    sensor_plan = {"region": "global", "primary_regulatory_source": {"id": "regulatory_source"}}
+    delivery_readiness = murphy._build_delivery_readiness(doc, org_chart_plan, learning_loop, sensor_plan, [])
+
+    plan = murphy._build_dynamic_implementation_plan(
+        doc,
+        "Automation",
+        [{"id": "compute_plane"}],
+        learning_loop,
+        operations_plan,
+        delivery_readiness,
+        [],
+        sensor_plan,
+        org_chart_plan,
+        trigger_plan
+    )
+
+    assert plan["execution_strategy"] == "orchestrator"
+    assert plan["status"] == "needs_wiring"
+    stage_map = {stage["id"]: stage for stage in plan["stages"]}
+    assert stage_map["execution_plan"]["status"] == "ready"
+    assert stage_map["swarm_generation"]["status"] == "needs_wiring"
+    assert stage_map["integration_wiring"]["status"] == "needs_wiring"
+    wiring_ids = {gap["id"] for gap in plan["wiring_gaps"]}
+    assert {"swarm_generation", "integration_wiring"}.issubset(wiring_ids)
