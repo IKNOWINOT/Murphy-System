@@ -459,6 +459,7 @@ class MurphySystem:
     ]
     MODULE_SCAN_EXCLUDED_DIRS = {"__pycache__", "tests", "test", "docs", "documentation", "examples"}
     MODULE_LOCAL_SCAN_EXCLUDED_DIRS = MODULE_SCAN_EXCLUDED_DIRS | {"src"}
+    MODULE_VERSIONED_FILENAME_RE = re.compile(r"_\d+\.\d+(?:\.\d+)?_runtime$")
     MODULE_AUTO_SCAN_TAG = "auto_registered"
     MODULE_CATEGORY_PREFIX = "category:"
     MODULE_PATH_PREFIX = "module:"
@@ -1139,7 +1140,7 @@ class MurphySystem:
         for py_file in root.glob("*.py"):
             if py_file.name == "__init__.py":
                 continue
-            if re.search(r"_\d+\.\d+(?:\.\d+)?", py_file.stem):
+            if self.MODULE_VERSIONED_FILENAME_RE.search(py_file.stem):
                 # Skip versioned module filenames (e.g., murphy_system_1.0_runtime.py).
                 continue
             module_path_set.add(py_file.stem)
