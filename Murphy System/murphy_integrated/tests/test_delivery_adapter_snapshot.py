@@ -22,9 +22,9 @@ def test_delivery_adapter_snapshot_in_preview():
     doc = runtime.LivingDocument("doc-1", "Test", "content", "request")
     doc.confidence = 0.92
     murphy._update_document_tree(doc)
-    onboarding_context = {
-        "answers": {step["stage"]: "ok" for step in murphy.flow_steps if step.get("stage")}
-    }
+    stages = [step["stage"] for step in murphy.flow_steps if step.get("stage")]
+    answers = {stage: f"{stage}_ok" for stage in stages}
+    onboarding_context = {"answers": answers}
 
     preview = murphy._build_activation_preview(doc, "Deliver automation outputs", onboarding_context)
 
