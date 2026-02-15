@@ -73,7 +73,7 @@ def test_module_registry_summary_handles_empty_category_tag():
         name="empty_category_module",
         module_path="fake.empty",
         description="Empty category module",
-        capabilities=[f"{runtime.MurphySystem.MODULE_CATEGORY_PREFIX}"]
+        capabilities=[f"{runtime.MurphySystem.MODULE_CATEGORY_PREFIX} "]
     )
     assert "empty_category_module" in murphy.module_manager.get_module_status()["modules"]
     summary = murphy._build_module_registry_summary()
