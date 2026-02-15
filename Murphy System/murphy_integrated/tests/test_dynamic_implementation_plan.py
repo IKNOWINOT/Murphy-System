@@ -97,6 +97,11 @@ def test_dynamic_implementation_plan_requires_requirements():
         pattern["confidence"] >= training["threshold"]
         for pattern in training["high_confidence_paths"]
     )
+    wingman = training["wingman_protocol"]
+    assert wingman["status"] == "needs_info"
+    assert wingman["action_side"]["role"] == "primary_executor"
+    assert wingman["validator_side"]["role"] == "deterministic_validator"
+    assert "compute_plane_validation" in wingman["deterministic_checks"]
     execution_routes = plan["chain_plan"]["execution_routes"]
     assert len(execution_routes["priority_sequence"]) == len(plan["stages"])
     assert execution_routes["summary"]["blocked"] > 0
@@ -177,6 +182,10 @@ def test_dynamic_implementation_plan_ready_with_orchestrator():
     assert training["threshold"] == murphy.HIGH_CONFIDENCE_THRESHOLD
     assert len(training["patterns"]) == len(plan["chain_plan"]["links"])
     assert len(training["high_confidence_paths"]) == len(training["patterns"])
+    wingman = training["wingman_protocol"]
+    assert wingman["status"] == "ready"
+    assert wingman["action_side"]["subjects"]
+    assert wingman["validator_side"]["subjects"]
     graphing = training["graphing"]
     assert graphing["graphs"][1]["paths"] == training["high_confidence_paths"]
     execution_routes = plan["chain_plan"]["execution_routes"]
