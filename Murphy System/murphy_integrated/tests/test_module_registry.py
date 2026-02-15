@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 
+# Sample a few modules to keep assertions lightweight while verifying tags.
 SAMPLE_MODULE_LIMIT = 3
 
 
