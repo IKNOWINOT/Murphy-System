@@ -3141,7 +3141,7 @@ class MurphySystem:
         if deliverable_status == "ready":
             return "ready"
         # Treat explicit deliverable gaps as needs_info even when requirements are complete.
-        if deliverable_status in {"needs_info"}:
+        if deliverable_status == "needs_info":
             return "needs_info"
         return "pending"
 
@@ -3629,7 +3629,7 @@ class MurphySystem:
                 "total": total,
                 "configured": ready_count,
                 "available": available_count,
-                "needs_integration": total - ready_count - available_count
+                "needs_integration": total - ready_count
             },
             "adapters": adapters
         }
