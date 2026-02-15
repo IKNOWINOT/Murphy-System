@@ -177,6 +177,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 4. **Compliance + delivery tests**: assert approval gating before release of documents/email/chat.
 5. **Persistence + replay tests**: verify stored session data, replayed approvals, and rollback.
 6. **Wingman protocol tests**: validate executor/validator pairing and deterministic checks per subject.
+7. **Delivery adapter snapshot tests**: `test_delivery_adapter_snapshot.py` verifies delivery readiness status and adapter availability outputs.
 
 ---
 
