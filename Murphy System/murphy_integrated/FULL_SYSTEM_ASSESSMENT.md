@@ -113,7 +113,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 | Test coverage for dynamic chains | 55% | Dynamic plan tests exist; execution/integration tests still pending |
 
 **Progress update protocol:** store user-script screenshots in `docs/screenshots/` (repository root) and reference them in
-`VISUAL_SETUP_GUIDE_WITH_SCREENSHOTS.md`. Record the matching pytest command/output in this assessment
+`VISUAL_SETUP_GUIDE_WITH_SCREENSHOTS.md` (repository root). Record the matching pytest command/output in this assessment
 entry whenever a percentage changes.
 
 ---
