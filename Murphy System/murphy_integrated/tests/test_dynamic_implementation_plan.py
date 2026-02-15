@@ -56,6 +56,7 @@ def test_dynamic_implementation_plan_requires_requirements():
     assert policy["enforced"] is True
     assert policy["status"] == "needs_wiring"
     assert policy["approval_required"] is False
+    assert policy["execution_blocked"] is True
     relaxed_policy = murphy._build_execution_policy(plan, {"enforce_policy": False})
     assert relaxed_policy["enforced"] is False
     stages = {stage["id"]: stage for stage in plan["stages"]}
@@ -155,6 +156,7 @@ def test_dynamic_implementation_plan_ready_with_orchestrator():
     policy = murphy._build_execution_policy(plan, {})
     assert policy["status"] == "ready"
     assert policy["approval_required"] is False
+    assert policy["execution_blocked"] is False
     stage_map = {stage["id"]: stage for stage in plan["stages"]}
     assert stage_map["gate_alignment"]["status"] == "ready"
     assert stage_map["gate_sequencing"]["status"] == "ready"
