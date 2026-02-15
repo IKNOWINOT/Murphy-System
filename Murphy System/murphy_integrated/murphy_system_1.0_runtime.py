@@ -3234,7 +3234,7 @@ class MurphySystem:
                 status_value = self.COMPETITIVE_STATUS_MISSING
                 error = (
                     "Configuration error: No required capabilities defined for feature "
-                    f"\"{feature['id']}\". Define capabilities in COMPETITIVE_FEATURES."
+                    f"\"{feature['id']}\". Add a \"capabilities\" list in COMPETITIVE_FEATURES."
                 )
             else:
                 coverage = len(available) / len(required)
