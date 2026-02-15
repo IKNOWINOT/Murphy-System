@@ -795,6 +795,54 @@ class MurphySystem:
         self.latest_activation_preview = activation_preview
         return doc, activation_preview
 
+    def _build_execution_policy(
+        self,
+        dynamic_implementation: Optional[Dict[str, Any]],
+        parameters: Optional[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        policy_parameters = parameters or {}
+        enforce_policy = policy_parameters.get("enforce_policy", True)
+        if not dynamic_implementation:
+            return {
+                "status": "unavailable",
+                "enforced": enforce_policy,
+                "approval_required": False,
+                "reason": "Dynamic implementation plan unavailable."
+            }
+        approval_policy = dynamic_implementation.get("approval_policy", {})
+        approval_status = approval_policy.get("status", "needs_info")
+        gate_status = dynamic_implementation.get("gate_status", "needs_info")
+        execution_strategy = dynamic_implementation.get("execution_strategy", "simulation")
+        overall_status = dynamic_implementation.get("status", "needs_info")
+        approval_required = approval_status in {"needs_info", "pending_approval"}
+        if overall_status == "ready" and approval_status == "ready":
+            status = "ready"
+            reason = None
+        elif execution_strategy == "simulation":
+            status = "needs_wiring"
+            reason = "Execution wiring unavailable; enable orchestrator or MFGC fallback."
+        elif approval_status == "needs_info":
+            status = "needs_info"
+            reason = "Approval confidence below threshold; supply additional evidence."
+        elif approval_status == "pending_approval":
+            status = "pending_approval"
+            reason = "HITL approval required before execution."
+        elif gate_status in {"blocked", "pending"}:
+            status = gate_status
+            reason = "Compliance gates not cleared for execution."
+        else:
+            status = overall_status
+            reason = f"Execution policy blocked by {overall_status} status."
+        return {
+            "status": status,
+            "enforced": enforce_policy,
+            "approval_required": approval_required,
+            "approval_status": approval_status,
+            "gate_status": gate_status,
+            "execution_strategy": execution_strategy,
+            "reason": reason
+        }
+
     def _build_mfgc_fallback_response(self, task_description: str, success: bool) -> Dict[str, Any]:
         return {
             "request_id": "mfgc_fallback",
@@ -844,6 +892,21 @@ class MurphySystem:
             session_id,
             parameters
         )
+        execution_policy = self._build_execution_policy(
+            activation_preview.get("dynamic_implementation"),
+            parameters
+        )
+        if execution_policy["enforced"] and execution_policy["status"] != "ready":
+            blocked_session = session_id or self.create_session().get("session_id")
+            return {
+                "success": False,
+                "status": "blocked",
+                "session_id": blocked_session,
+                "doc_id": doc.doc_id,
+                "activation_preview": activation_preview,
+                "execution_policy": execution_policy,
+                "error": execution_policy.get("reason") or "Execution policy blocked."
+            }
 
         if self.librarian:
             self.librarian.log_transcript(
@@ -863,6 +926,7 @@ class MurphySystem:
             fallback = self._simulate_execution(task_description, task_type, parameters, session_id)
             fallback["activation_preview"] = activation_preview
             fallback["doc_id"] = doc.doc_id
+            fallback["execution_policy"] = execution_policy
             return fallback
 
         try:
@@ -913,6 +977,7 @@ class MurphySystem:
                 'deliverables': execution_result.get('deliverables', []),
                 'doc_id': doc.doc_id,
                 'activation_preview': activation_preview,
+                'execution_policy': execution_policy,
                 'metadata': {
                     'task_description': task_description,
                     'task_type': task_type,

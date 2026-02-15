@@ -52,6 +52,13 @@ def test_dynamic_implementation_plan_requires_requirements():
 
     assert plan["status"] == "needs_info"
     assert plan["execution_strategy"] == "simulation"
+    policy = murphy._build_execution_policy(plan, {})
+    assert policy["enforced"] is True
+    assert policy["status"] == "needs_wiring"
+    assert "execution wiring" in (policy["reason"] or "").lower()
+    assert policy["approval_required"] is True
+    relaxed_policy = murphy._build_execution_policy(plan, {"enforce_policy": False})
+    assert relaxed_policy["enforced"] is False
     stages = {stage["id"]: stage for stage in plan["stages"]}
     assert stages["requirements_identification"]["status"] == "needs_info"
     assert stages["confidence_approval"]["status"] == "needs_info"
@@ -146,6 +153,9 @@ def test_dynamic_implementation_plan_ready_with_orchestrator():
     assert plan["execution_strategy"] == "orchestrator"
     # Ready-state transition is validated in test_dynamic_implementation_plan_ready_with_orchestrator.
     assert plan["status"] == "ready"
+    policy = murphy._build_execution_policy(plan, {})
+    assert policy["status"] == "ready"
+    assert policy["approval_required"] is False
     stage_map = {stage["id"]: stage for stage in plan["stages"]}
     assert stage_map["gate_alignment"]["status"] == "ready"
     assert stage_map["gate_sequencing"]["status"] == "ready"
