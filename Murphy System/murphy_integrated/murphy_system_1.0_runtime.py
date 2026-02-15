@@ -1098,7 +1098,7 @@ class MurphySystem:
                 description=f"Auto-registered src module ({category})",
                 capabilities=capabilities
             )
-    
+
     def _register_local_inventory_modules(self) -> None:
         if not getattr(self, "module_manager", None):
             return
@@ -1120,22 +1120,7 @@ class MurphySystem:
             )
 
     def _collect_src_module_paths(self, src_root: Path) -> List[str]:
-        module_paths: set[str] = set()
-        for init_file in src_root.rglob("__init__.py"):
-            if init_file == src_root / "__init__.py":
-                continue
-            rel = init_file.parent.relative_to(src_root)
-            if self._should_skip_module_path(rel.parts):
-                continue
-            module_paths.add("src." + ".".join(rel.parts))
-        for py_file in src_root.rglob("*.py"):
-            if py_file.name == "__init__.py":
-                continue
-            rel = py_file.relative_to(src_root).with_suffix("")
-            if self._should_skip_module_path(rel.parts):
-                continue
-            module_paths.add("src." + ".".join(rel.parts))
-        return sorted(module_paths)
+        return self._collect_module_paths(src_root, "src")
 
     def _collect_local_module_paths(self, root: Path) -> List[str]:
         module_paths: set[str] = set()
@@ -1152,25 +1137,26 @@ class MurphySystem:
                 continue
             if not (package_dir / "__init__.py").exists():
                 continue
-            module_paths.update(self._collect_package_module_paths(package_dir, package_dir.name))
+            module_paths.update(self._collect_module_paths(package_dir, package_dir.name))
         return sorted(module_paths)
 
-    def _collect_package_module_paths(self, package_root: Path, base_package: str) -> List[str]:
+    def _collect_module_paths(self, root: Path, prefix: str) -> List[str]:
         module_paths: set[str] = set()
-        for init_file in package_root.rglob("__init__.py"):
-            if init_file == package_root / "__init__.py":
+        root_init = root / "__init__.py"
+        for init_file in root.rglob("__init__.py"):
+            if init_file == root_init:
                 continue
-            rel = init_file.parent.relative_to(package_root)
+            rel = init_file.parent.relative_to(root)
             if self._should_skip_module_path(rel.parts):
                 continue
-            module_paths.add(f"{base_package}." + ".".join(rel.parts))
-        for py_file in package_root.rglob("*.py"):
+            module_paths.add(f"{prefix}." + ".".join(rel.parts))
+        for py_file in root.rglob("*.py"):
             if py_file.name == "__init__.py":
                 continue
-            rel = py_file.relative_to(package_root).with_suffix("")
+            rel = py_file.relative_to(root).with_suffix("")
             if self._should_skip_module_path(rel.parts):
                 continue
-            module_paths.add(f"{base_package}." + ".".join(rel.parts))
+            module_paths.add(f"{prefix}." + ".".join(rel.parts))
         return sorted(module_paths)
 
     def _should_skip_module_path(self, parts: Tuple[str, ...]) -> bool:
