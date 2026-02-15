@@ -59,7 +59,7 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 | Self-improvement loops | Learning + correction | `learning_engine`, corrections flow | **Partial** (needs persisted training loop) |
 | Dynamic swarm expansion | Task decomposition into swarms | `true_swarm_system`, `domain_swarms` | **Partial** (execution wiring pending) |
 
-**Applied in runtime:** activation previews now include `competitive_feature_alignment` derived from module capabilities and integration readiness.
+**Runtime behavior:** activation previews now include `competitive_feature_alignment` derived from module capabilities and integration readiness.
 
 ## 5) Finishing plan (systematic path to full operation)
 
