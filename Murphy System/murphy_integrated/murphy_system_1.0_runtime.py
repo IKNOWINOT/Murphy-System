@@ -1073,12 +1073,14 @@ class MurphySystem:
             validated_override = self._normalize_gate_override(entry.get("status_override"), name)
             # Manual overrides take precedence over confidence-based gating.
             status = validated_override or ("open" if doc.confidence >= threshold else "blocked")
-            previous_blocking_gate = blocked_by
-            if previous_blocking_gate:
+            if blocked_by:
                 status = "blocked"
+                reason = self._determine_gate_reason(status, validated_override, blocked_by)
             elif status == "blocked":
+                reason = self._determine_gate_reason(status, validated_override, None)
                 blocked_by = name
-            reason = self._determine_gate_reason(status, validated_override, previous_blocking_gate)
+            else:
+                reason = self._determine_gate_reason(status, validated_override, None)
             gates.append({
                 "name": name,
                 "threshold": threshold,

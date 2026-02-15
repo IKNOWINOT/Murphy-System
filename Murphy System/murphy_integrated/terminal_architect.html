@@ -372,8 +372,10 @@
             margin-bottom: 5px;
             border-bottom: 1px solid #003300;
             display: grid;
-            /* icon | gate name | detail (threshold + stage) | status */
             grid-template-columns: auto 1fr auto auto;
+            grid-template-areas:
+                "icon type detail status"
+                "reason reason reason reason";
             column-gap: 8px;
             row-gap: 2px;
             align-items: center;
@@ -385,18 +387,20 @@
 
         .gate-icon {
             color: #00FF00;
+            grid-area: icon;
         }
 
         .gate-type {
             color: #00FFFF;
             font-weight: bold;
-            flex: 1;
+            grid-area: type;
         }
 
         .gate-status {
             font-size: 8px;
             padding: 2px 6px;
             border-radius: 2px;
+            grid-area: status;
         }
 
         .gate-status.active {
@@ -412,10 +416,12 @@
         .gate-detail {
             font-size: 8px;
             color: #00AA00;
+            grid-area: detail;
         }
 
         .gate-reason {
             grid-column: 1 / -1;
+            grid-area: reason;
             font-size: 8px;
             color: #00AA00;
             margin-left: 18px;
@@ -1332,17 +1338,18 @@
                 `;
             } else {
                 gatesList.innerHTML = gates.map((gate) => {
-                    const gateName = typeof gate === 'string' ? gate : (gate.name || gate.id || 'Gate');
-                    const gateStatus = (typeof gate === 'object' && gate.status) ? gate.status : 'active';
+                    const isObject = gate && typeof gate === 'object';
+                    const gateName = isObject ? (gate.name || gate.id || 'Gate') : gate;
+                    const gateStatus = isObject && gate.status ? gate.status : 'active';
                     const detailParts = [];
-                    if (typeof gate === 'object' && gate.threshold !== undefined) {
+                    if (isObject && gate.threshold !== undefined) {
                         detailParts.push(`${(gate.threshold * 100).toFixed(0)}%`);
                     }
-                    if (typeof gate === 'object' && gate.stage) {
+                    if (isObject && gate.stage) {
                         detailParts.push(gate.stage);
                     }
                     const detail = detailParts.length ? ` · ${detailParts.join(' · ')}` : '';
-                    const reason = (typeof gate === 'object' && gate.reason)
+                    const reason = isObject && gate.reason
                         ? `<span class="gate-reason">${gate.reason}</span>`
                         : '';
                     const statusClass = gateStatus === 'blocked' ? 'triggered' : 'active';
