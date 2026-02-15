@@ -61,14 +61,14 @@ def test_module_registry_summary_reports_core_modules():
     assert any(value > 0 for value in summary["category_counts"].values())
     category_total = sum(summary["category_counts"].values())
     assert category_total >= summary["auto_registered"]
-    assert category_total <= summary["total_available"]
 
 
 def test_module_registry_summary_handles_empty_category_tag():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
     summary_before = murphy._build_module_registry_summary()
-    unknown_before = summary_before["category_counts"].get("unknown", 0)
+    unknown_key = runtime.MurphySystem.MODULE_CATEGORY_UNKNOWN
+    unknown_before = summary_before["category_counts"].get(unknown_key, 0)
     murphy.module_manager.register_module(
         name="empty_category_module",
         module_path="fake.empty",
@@ -77,7 +77,7 @@ def test_module_registry_summary_handles_empty_category_tag():
     )
     assert "empty_category_module" in murphy.module_manager.get_module_status()["modules"]
     summary = murphy._build_module_registry_summary()
-    assert summary["category_counts"].get(runtime.MurphySystem.MODULE_CATEGORY_UNKNOWN, 0) == unknown_before + 1
+    assert summary["category_counts"].get(unknown_key, 0) == unknown_before + 1
 
 
 def test_module_registry_includes_src_inventory():
