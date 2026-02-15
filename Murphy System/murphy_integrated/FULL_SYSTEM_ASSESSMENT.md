@@ -44,7 +44,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 5. **Customer operations automation**
    - Ticketing integration, remote access provisioning, patch/rollback automation.
 
-## 4.1) Competitive feature baseline (industry expectations)
+### 4.1) Competitive feature baseline (industry expectations)
 
 Industry orchestration platforms emphasize **workflow orchestration, event-driven automation, connector ecosystems, governance/audit, and monitoring** as table-stakes capabilities. References: IBM, BMC, Resolve, Redwood, and other workflow orchestration analyses.
 

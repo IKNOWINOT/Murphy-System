@@ -132,18 +132,18 @@ def test_competitive_feature_alignment_summary():
         feature["status"] in runtime.MurphySystem.COMPETITIVE_FEATURE_STATUS_VALUES
         for feature in alignment["features"]
     )
-    connector_feature_id = next(
+    integration_metrics_feature_id = next(
         (
             feature["id"] for feature in runtime.MurphySystem.COMPETITIVE_FEATURES
             if feature.get("includes_integration_metrics")
         ),
         None
     )
-    assert connector_feature_id is not None
+    assert integration_metrics_feature_id is not None
     connector_feature = next(
         (
             feature for feature in alignment["features"]
-            if feature["id"] == connector_feature_id
+            if feature["id"] == integration_metrics_feature_id
         ),
         None
     )
