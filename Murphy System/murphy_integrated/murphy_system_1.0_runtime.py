@@ -1139,7 +1139,7 @@ class MurphySystem:
         for py_file in root.glob("*.py"):
             if py_file.name == "__init__.py":
                 continue
-            if re.search(r"_\d+\.\d+(?:\.\d+)?_", py_file.stem):
+            if re.search(r"_\d+\.\d+(?:\.\d+)?", py_file.stem):
                 # Skip versioned module filenames (e.g., murphy_system_1.0_runtime.py).
                 continue
             module_path_set.add(py_file.stem)
