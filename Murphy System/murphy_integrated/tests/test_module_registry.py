@@ -75,8 +75,9 @@ def test_module_registry_summary_handles_empty_category_tag():
         description="Empty category module",
         capabilities=[f"{runtime.MurphySystem.MODULE_CATEGORY_PREFIX}"]
     )
+    assert "empty_category_module" in murphy.module_manager.get_module_status()["modules"]
     summary = murphy._build_module_registry_summary()
-    assert summary["category_counts"].get("unknown", 0) == unknown_before + 1
+    assert summary["category_counts"].get(runtime.MurphySystem.MODULE_CATEGORY_UNKNOWN, 0) == unknown_before + 1
 
 
 def test_module_registry_includes_src_inventory():

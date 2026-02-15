@@ -463,6 +463,7 @@ class MurphySystem:
     MODULE_AUTO_SCAN_TAG = "auto_registered"
     MODULE_CATEGORY_PREFIX = "category:"
     MODULE_PATH_PREFIX = "module:"
+    MODULE_CATEGORY_UNKNOWN = "unknown"
     INTEGRATION_CONNECTOR_CATALOG = [
         {
             "id": "document_delivery",
@@ -1179,7 +1180,7 @@ class MurphySystem:
                 if capability.startswith(self.MODULE_CATEGORY_PREFIX):
                     parts = capability.split(":", 1)
                     stripped = parts[1].strip() if len(parts) > 1 else ""
-                    category = stripped or "unknown"
+                    category = stripped or self.MODULE_CATEGORY_UNKNOWN
                     category_counts[category] = category_counts.get(category, 0) + 1
         core_names = {module["name"] for module in self.MODULE_CATALOG}
         missing_core = sorted(core_names - modules.keys())
