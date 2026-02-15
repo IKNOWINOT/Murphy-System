@@ -371,10 +371,11 @@
             padding: 5px;
             margin-bottom: 5px;
             border-bottom: 1px solid #003300;
-            display: flex;
+            display: grid;
+            grid-template-columns: auto 1fr auto auto;
+            column-gap: 8px;
+            row-gap: 2px;
             align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
         }
 
         .gate-item:last-child {
@@ -413,7 +414,7 @@
         }
 
         .gate-reason {
-            width: 100%;
+            grid-column: 1 / -1;
             font-size: 8px;
             color: #00AA00;
             margin-left: 18px;
@@ -1332,12 +1333,14 @@
                 gatesList.innerHTML = gates.map((gate) => {
                     const gateName = typeof gate === 'string' ? gate : (gate.name || gate.id || 'Gate');
                     const gateStatus = (typeof gate === 'object' && gate.status) ? gate.status : 'active';
-                    const threshold = (typeof gate === 'object' && gate.threshold !== undefined)
-                        ? ` · ${(gate.threshold * 100).toFixed(0)}%`
-                        : '';
-                    const stage = (typeof gate === 'object' && gate.stage)
-                        ? ` · ${gate.stage}`
-                        : '';
+                    const detailParts = [];
+                    if (typeof gate === 'object' && gate.threshold !== undefined) {
+                        detailParts.push(`${(gate.threshold * 100).toFixed(0)}%`);
+                    }
+                    if (typeof gate === 'object' && gate.stage) {
+                        detailParts.push(gate.stage);
+                    }
+                    const detail = detailParts.length ? ` · ${detailParts.join(' · ')}` : '';
                     const reason = (typeof gate === 'object' && gate.reason)
                         ? `<span class="gate-reason">${gate.reason}</span>`
                         : '';
@@ -1346,7 +1349,7 @@
                         <div class="gate-item">
                             <span class="gate-icon">●</span>
                             <span class="gate-type">${gateName}</span>
-                            <span class="gate-detail">${threshold}${stage}</span>
+                            <span class="gate-detail">${detail}</span>
                             <span class="gate-status ${statusClass}">${gateStatus.toUpperCase()}</span>
                             ${reason}
                         </div>
