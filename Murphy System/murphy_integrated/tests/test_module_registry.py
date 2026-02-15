@@ -133,7 +133,11 @@ def test_competitive_feature_alignment_summary():
         for feature in alignment["features"]
     )
     connector_feature = next(
-        feature for feature in alignment["features"]
-        if feature["id"] == "connector_ecosystem"
+        (
+            feature for feature in alignment["features"]
+            if feature["id"] == "connector_ecosystem"
+        ),
+        None
     )
+    assert connector_feature is not None
     assert connector_feature["integration_summary"] == integration_capabilities["summary"]
