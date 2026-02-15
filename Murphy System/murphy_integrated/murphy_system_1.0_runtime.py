@@ -1015,6 +1015,7 @@ class MurphySystem:
         }
         self._compute_service: Optional[ComputeServiceType] = None
         self._compute_service_lock = Lock()
+        self._session_lock = Lock()
         self.flow_steps = [
             {
                 "stage": "signup",
@@ -1405,6 +1406,24 @@ class MurphySystem:
                 self._compute_service = ComputeService(enable_caching=True)
             return self._compute_service
 
+    def _resolve_compute_session(self, session_id: Optional[str]) -> Optional[str]:
+        """Resolve a valid session ID for compute-plane validation."""
+        with self._session_lock:
+            if session_id and session_id in self.sessions:
+                return session_id
+            if session_id:
+                logger.warning(
+                    "Unknown session_id '%s' supplied for compute-plane validation; creating new session.",
+                    session_id
+                )
+            session_payload = self.create_session()
+            if session_payload is None:
+                logger.warning(
+                    "Compute-plane validation session creation failed; results will not be linked to a session."
+                )
+                return None
+            return session_payload.get("session_id")
+
     def _execute_compute_plane_validation(
         self,
         parameters: Optional[Dict[str, Any]]
@@ -1506,52 +1525,41 @@ class MurphySystem:
                 success=True
             )
 
+        compute_request = (parameters or {}).get("compute_request")
+        resolved_compute_session = None
+        if compute_request:
+            resolved_compute_session = self._resolve_compute_session(session_id)
         compute_plane_result = self._execute_compute_plane_validation(parameters)
         if compute_plane_result:
             status = compute_plane_result.get("status", "error")
-            session_payload = None
-            resolved_session = session_id
-            if resolved_session and resolved_session not in self.sessions:
-                logger.warning(
-                    "Unknown session_id '%s' supplied for compute-plane validation; creating new session.",
-                    resolved_session
-                )
-                resolved_session = None
-            if resolved_session is None:
-                session_payload = self.create_session()
-                if session_payload is None:
-                    logger.warning(
-                        "Compute-plane validation session creation failed; results will not be linked to a session."
-                    )
-                else:
-                    resolved_session = session_payload.get("session_id")
-            if status == "validated" and resolved_session:
-                previous_doc = self.document_sessions.get(resolved_session)
-                if previous_doc == doc.doc_id:
-                    logger.debug(
-                        "Compute-plane session %s already mapped to document %s",
-                        resolved_session,
-                        doc.doc_id
-                    )
-                else:
-                    self.document_sessions[resolved_session] = doc.doc_id
-                    if previous_doc:
-                        logger.info(
-                            "Updated compute-plane session mapping %s: %s -> %s",
-                            resolved_session,
-                            previous_doc,
+            if status == "validated" and resolved_compute_session:
+                with self._session_lock:
+                    previous_doc = self.document_sessions.get(resolved_compute_session)
+                    if previous_doc == doc.doc_id:
+                        logger.debug(
+                            "Compute-plane session %s already mapped to document %s",
+                            resolved_compute_session,
                             doc.doc_id
                         )
                     else:
-                        logger.info(
-                            "Mapped compute-plane session %s to document %s",
-                            resolved_session,
-                            doc.doc_id
-                        )
+                        self.document_sessions[resolved_compute_session] = doc.doc_id
+                        if previous_doc:
+                            logger.info(
+                                "Updated compute-plane session mapping %s: %s -> %s",
+                                resolved_compute_session,
+                                previous_doc,
+                                doc.doc_id
+                            )
+                        else:
+                            logger.info(
+                                "Mapped compute-plane session %s to document %s",
+                                resolved_compute_session,
+                                doc.doc_id
+                            )
             return {
                 "success": status == "validated",
                 "status": status,
-                "session_id": resolved_session,
+                "session_id": resolved_compute_session,
                 "doc_id": doc.doc_id,
                 "activation_preview": activation_preview,
                 "execution_policy": execution_policy,
