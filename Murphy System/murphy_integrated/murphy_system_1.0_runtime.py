@@ -27,6 +27,7 @@ import asyncio
 import time
 import re
 from uuid import uuid4
+from threading import Lock
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -1012,7 +1013,8 @@ class MurphySystem:
             "success_rate": "0.0%",
             "average_execution_time": "0.000s"
         }
-        self._compute_service = None
+        self._compute_service: Optional[ComputeServiceType] = None
+        self._compute_service_lock = Lock()
         self.flow_steps = [
             {
                 "stage": "signup",
@@ -1396,12 +1398,15 @@ class MurphySystem:
         """Return a cached compute service instance, or None if unavailable."""
         if self._compute_service is not None:
             return self._compute_service
-        try:
-            from src.compute_plane.service import ComputeService
-        except ImportError:
-            return None
-        self._compute_service = ComputeService(enable_caching=True)
-        return self._compute_service
+        with self._compute_service_lock:
+            if self._compute_service is not None:
+                return self._compute_service
+            try:
+                from src.compute_plane.service import ComputeService
+            except ImportError:
+                return None
+            self._compute_service = ComputeService(enable_caching=True)
+            return self._compute_service
 
     def _execute_compute_plane_validation(
         self,
