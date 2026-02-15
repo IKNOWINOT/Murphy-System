@@ -287,6 +287,92 @@ class MurphySystem:
         "src.llm_controller",
         "src.local_llm_fallback"
     )
+    MODULE_CATALOG = [
+        {
+            "name": "gate_synthesis",
+            "path": "src.gate_synthesis",
+            "description": "Gate synthesis engine",
+            "capabilities": ["gates", "risk", "compliance"]
+        },
+        {
+            "name": "true_swarm_system",
+            "path": "src.true_swarm_system",
+            "description": "Swarm execution planner",
+            "capabilities": ["swarm", "task_expansion"]
+        },
+        {
+            "name": "domain_swarms",
+            "path": "src.domain_swarms",
+            "description": "Domain swarm selection",
+            "capabilities": ["domain_detection", "swarm_candidates"]
+        },
+        {
+            "name": "system_librarian",
+            "path": "src.system_librarian",
+            "description": "Librarian knowledge and conditions",
+            "capabilities": ["librarian", "conditions"]
+        },
+        {
+            "name": "organization_chart_system",
+            "path": "src.organization_chart_system",
+            "description": "Org chart coverage and contracts",
+            "capabilities": ["org_chart", "contracts"]
+        },
+        {
+            "name": "compute_plane",
+            "path": "src.compute_plane.service",
+            "description": "Deterministic compute plane",
+            "capabilities": ["deterministic_compute"]
+        },
+        {
+            "name": "recursive_stability_controller",
+            "path": "src.recursive_stability_controller.rsc_service",
+            "description": "Recursive stability control",
+            "capabilities": ["stability", "feedback"]
+        },
+        {
+            "name": "integration_engine",
+            "path": "src.integration_engine.unified_engine",
+            "description": "Integration engine",
+            "capabilities": ["integrations", "handoff"]
+        },
+        {
+            "name": "adapter_framework",
+            "path": "src.adapter_framework.adapter_runtime",
+            "description": "Adapter execution runtime",
+            "capabilities": ["adapter_runtime", "device_execution"]
+        },
+        {
+            "name": "telemetry_adapter",
+            "path": "src.telemetry_adapter",
+            "description": "Telemetry adapter",
+            "capabilities": ["telemetry"]
+        },
+        {
+            "name": "module_compiler_adapter",
+            "path": "src.module_compiler_adapter",
+            "description": "Module compiler adapter",
+            "capabilities": ["module_compiler"]
+        },
+        {
+            "name": "librarian_adapter",
+            "path": "src.librarian_adapter",
+            "description": "Librarian adapter",
+            "capabilities": ["librarian_adapter"]
+        },
+        {
+            "name": "neuro_symbolic_adapter",
+            "path": "src.neuro_symbolic_adapter",
+            "description": "Neuro-symbolic adapter",
+            "capabilities": ["neuro_symbolic"]
+        },
+        {
+            "name": "security_plane_adapter",
+            "path": "src.security_plane_adapter",
+            "description": "Security plane adapter",
+            "capabilities": ["security"]
+        }
+    ]
     INTEGRATION_CONNECTOR_CATALOG = [
         {
             "id": "document_delivery",
@@ -672,6 +758,7 @@ class MurphySystem:
         instance = cls.__new__(cls)
         instance._initialize_configuration_defaults()
         instance.execution_metrics = {"total": 0, "success": 0, "total_time": 0.0}
+        instance.module_manager = module_manager
         instance.integration_engine = None
         instance.governance_scheduler = None
         instance.inoni_automation = None
@@ -681,6 +768,7 @@ class MurphySystem:
         instance.mfgc_adapter = None
         instance.integration_connectors = {}
         instance._adapter_availability = None
+        instance._register_core_modules()
         return instance
 
     def _initialize_configuration_defaults(self) -> None:
@@ -766,6 +854,7 @@ class MurphySystem:
         logger.info("Initializing core components...")
         self.module_manager = module_manager
         self.modular_runtime = ModularRuntime()
+        self._register_core_modules()
         
         # Initialize Universal Control Plane
         if UniversalControlPlane:
@@ -881,6 +970,20 @@ class MurphySystem:
         )
         self.latest_activation_preview = activation_preview
         return doc, activation_preview
+
+    def _register_core_modules(self) -> None:
+        if not getattr(self, "module_manager", None):
+            return
+        for module in self.MODULE_CATALOG:
+            name = module["name"]
+            if name in self.module_manager.available_modules:
+                continue
+            self.module_manager.register_module(
+                name=name,
+                module_path=module["path"],
+                description=module["description"],
+                capabilities=module["capabilities"]
+            )
 
     def _build_execution_policy(
         self,
@@ -3454,6 +3557,7 @@ class MurphySystem:
             "onboarding_questions": onboarding_questions,
             "constraints": doc.constraints,
             "region": sensor_plan["region"],
+            "module_registry": self.module_manager.get_module_status(),
             "capability_alignment": capability_alignment,
             "capability_tests": capability_tests,
             "business_automation_summary": business_summary,
@@ -3939,6 +4043,7 @@ class MurphySystem:
                     else 0.0
                 )
             },
+            'module_registry': self.module_manager.get_module_status(),
             'self_operation': {
                 'enabled': self_operation_enabled,
                 'can_work_on_self': self_operation_enabled and correction_system_available,
