@@ -71,7 +71,8 @@ def test_module_registry_includes_local_packages():
             if name.startswith(prefix)
         ]
         assert package_modules, f"Expected auto-registered modules under {prefix}"
-        for module_name in package_modules[:3]:
+        sample_limit = 3  # Sample a few modules to keep assertions lightweight.
+        for module_name in package_modules[:sample_limit]:
             capabilities = modules[module_name]["capabilities"]
             assert runtime.MurphySystem.MODULE_AUTO_SCAN_TAG in capabilities
             assert f"{runtime.MurphySystem.MODULE_PATH_PREFIX}{module_name}" in capabilities
