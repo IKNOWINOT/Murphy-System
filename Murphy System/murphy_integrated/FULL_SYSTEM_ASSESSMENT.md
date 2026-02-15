@@ -124,7 +124,8 @@ entry whenever a percentage changes.
 2. **Remove build artifacts** (`__pycache__`, logs, temp files) via `.gitignore` and pre-commit hooks.
 3. **Role-based UIs**: keep `terminal_architect.html` (architect), `terminal_integrated.html` (ops),
    and `terminal_worker.html` (delivery) as active role-based UIs; archive unused legacy variants such
-   as `murphy_ui_integrated.html` and `murphy_ui_integrated_terminal.html`.
+   as `murphy_ui_integrated.html` and `murphy_ui_integrated_terminal.html` under
+   `Murphy System/archive/legacy_versions/` once references are captured.
 4. **Consolidate docs**: move outdated specs to `archive/` and keep a single index in the root README.
 5. **Tag active runtimes**: ensure only `murphy_system_1.0_runtime.py` is runnable; mark others as archived.
 

@@ -73,7 +73,8 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **Role-based UIs** | `Murphy System/murphy_integrated/terminal_architect.html` | Architect planning + gate review UI | `python -m http.server 8090`, `?apiPort=6666` |
 | **Operations UI** | `Murphy System/murphy_integrated/terminal_integrated.html` | Operations execution UI | `python -m http.server 8090`, `?apiPort=6666` |
 | **Worker UI** | `Murphy System/murphy_integrated/terminal_worker.html` | Delivery worker UI | `python -m http.server 8090`, `?apiPort=6666` |
-| **Legacy UI** | `Murphy System/murphy_integrated/murphy_ui_integrated.html` | Legacy UI reference | `murphy_production_ui.html?legacy=true` |
+| **Legacy UI Redirect** | `Murphy System/murphy_integrated/murphy_production_ui.html` | Redirects to architect UI; legacy toggle | `murphy_production_ui.html?legacy=true` |
+| **Legacy UI Assets** | `Murphy System/murphy_integrated/murphy_ui_integrated.html` | Legacy UI assets (scheduled for archive) | Open directly for reference |
 | **Activation Audit** | `Murphy System/murphy_integrated/ACTIVATION_AUDIT.md` | Inactive subsystem inventory + verification | Review before wiring |
 | **Flow Analysis** | `Murphy System/murphy_integrated/SYSTEM_FLOW_ANALYSIS.md` | User-scripted flow + gate checklist | Use for screenshot testing |
 | **Capability Gaps** | `Murphy System/murphy_integrated/CAPABILITY_GAP_SOLUTIONS.md` | Gaps + closure recommendations | Track upgrades |
