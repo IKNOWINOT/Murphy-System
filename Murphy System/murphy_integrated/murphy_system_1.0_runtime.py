@@ -3234,7 +3234,7 @@ class MurphySystem:
                 status_value = self.COMPETITIVE_STATUS_MISSING
                 error = (
                     "Configuration error: No required capabilities defined for feature "
-                    f"\"{feature['id']}\"."
+                    f"\"{feature['id']}\". Define capabilities in COMPETITIVE_FEATURES."
                 )
             else:
                 coverage = len(available) / len(required)
@@ -3256,7 +3256,7 @@ class MurphySystem:
             }
             if error:
                 entry["error"] = error
-                log.warning("Competitive feature configuration issue for %s: %s", feature["id"], error)
+                log.warning("Feature configuration error for %s: %s", feature["id"], error)
             if feature.get("includes_integration_metrics"):
                 summary = integration_capabilities.get("summary", {})
                 ready = summary.get("ready", 0)
