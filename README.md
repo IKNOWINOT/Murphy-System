@@ -64,6 +64,37 @@ start_murphy_1.0.bat   # Windows
 
 * * *
 
+## 🗃️ Repository Index (Database-Style Reference)
+
+Use this table as the primary lookup for active modules, docs, and entry points.
+
+| Domain | Location | Purpose | Entry Points |
+| --- | --- | --- | --- |
+| **Runtime API** | `Murphy System/murphy_integrated/murphy_system_1.0_runtime.py` | Runtime 1.0 API server | `./start_murphy_1.0.sh`, `GET /api/status` |
+| **Architect UI** | `Murphy System/murphy_integrated/terminal_architect.html` | Primary UI for planning + gate review | `python -m http.server 8090`, `?apiPort=6666` |
+| **Legacy UI** | `Murphy System/murphy_integrated/murphy_ui_integrated.html` | Legacy UI reference | `murphy_production_ui.html?legacy=true` |
+| **Activation Audit** | `Murphy System/murphy_integrated/ACTIVATION_AUDIT.md` | Inactive subsystem inventory + verification | Review before wiring |
+| **Flow Analysis** | `Murphy System/murphy_integrated/SYSTEM_FLOW_ANALYSIS.md` | User-scripted flow + gate checklist | Use for screenshot testing |
+| **Capability Gaps** | `Murphy System/murphy_integrated/CAPABILITY_GAP_SOLUTIONS.md` | Gaps + closure recommendations | Track upgrades |
+| **Full Assessment** | `Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md` | Completion tracker + finishing plan | Update % completion here |
+| **Tests** | `Murphy System/murphy_integrated/tests/` | Dynamic chain, gate, and capability tests | `python -m pytest` |
+| **Legacy Archives** | `Murphy System/archive/legacy_versions/` | Historical runtimes + deployments | Read-only reference |
+
+### Subsystem Lookup
+
+| Subsystem | Primary Module | Notes |
+| --- | --- | --- |
+| **Gate + Confidence** | `src/confidence_engine/` | G/D/H + 5D uncertainty |
+| **Learning + Corrections** | `src/learning_engine/` | Shadow agent training pipeline |
+| **Integration Engine** | `src/integration_engine/` | GitHub ingestion + HITL approvals |
+| **Swarm System** | `src/true_swarm_system.py` | Dynamic swarm generation (wiring ongoing) |
+| **Governance** | `src/governance_framework/` | Scheduler + authority bands |
+
+**Progress tracking:** update completion percentages and screenshot-based validation in
+`Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md`.
+
+* * *
+
 ## 📊 What Can Murphy Do?
 
 ### 1\. Universal Automation
