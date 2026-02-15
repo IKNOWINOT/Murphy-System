@@ -3226,14 +3226,19 @@ class MurphySystem:
             required = feature.get("capabilities", [])
             available = [cap for cap in required if cap in capability_set]
             missing = [cap for cap in required if cap not in capability_set]
-            coverage = len(available) / len(required) if required else 0.0
-            status_value = self.COMPETITIVE_STATUS_PARTIAL
+            error = None
             if not required:
+                coverage = 0.0
                 status_value = self.COMPETITIVE_STATUS_MISSING
-            elif coverage == 1.0:
-                status_value = self.COMPETITIVE_STATUS_AVAILABLE
-            elif coverage == 0.0:
-                status_value = self.COMPETITIVE_STATUS_MISSING
+                error = "Configuration error: No required capabilities defined for this feature."
+            else:
+                coverage = len(available) / len(required)
+                if coverage == 1.0:
+                    status_value = self.COMPETITIVE_STATUS_AVAILABLE
+                elif coverage == 0.0:
+                    status_value = self.COMPETITIVE_STATUS_MISSING
+                else:
+                    status_value = self.COMPETITIVE_STATUS_PARTIAL
             entry = {
                 "id": feature["id"],
                 "label": feature["label"],
@@ -3242,10 +3247,9 @@ class MurphySystem:
                 "coverage": round(coverage, 2),
                 "required_capabilities": required,
                 "available_capabilities": available,
-                "missing_capabilities": missing
+                "missing_capabilities": missing,
+                "error": error
             }
-            if not required:
-                entry["error"] = "Configuration error: No required capabilities defined for this feature."
             if feature["id"] == "connector_ecosystem":
                 summary = integration_capabilities.get("summary", {})
                 ready = summary.get("ready", 0)
