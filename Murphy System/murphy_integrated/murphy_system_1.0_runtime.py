@@ -3237,13 +3237,12 @@ class MurphySystem:
                 "description": feature["description"],
                 "status": status_value,
                 "coverage": round(coverage, 2),
-                "capability_coverage": round(coverage, 2),
                 "required_capabilities": required,
                 "available_capabilities": available,
                 "missing_capabilities": missing
             }
             if not required:
-                entry["error"] = "missing_capability_mapping"
+                entry["error"] = "no_required_capabilities_defined"
             if feature["id"] == "connector_ecosystem":
                 integration_capabilities = integration_capabilities or self._build_integration_capabilities()
                 summary = integration_capabilities.get("summary", {})
