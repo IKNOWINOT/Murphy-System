@@ -1106,7 +1106,7 @@ class MurphySystem:
         for module_path in self._collect_local_module_paths(root):
             if module_path in self.module_manager.available_modules:
                 continue
-            category = module_path.split(".")[0]
+            category = module_path.split(".")[0] if "." in module_path else "root"
             capabilities = [
                 self.MODULE_AUTO_SCAN_TAG,
                 f"{self.MODULE_CATEGORY_PREFIX}{category}",
@@ -1139,7 +1139,7 @@ class MurphySystem:
         for py_file in root.glob("*.py"):
             if py_file.name == "__init__.py":
                 continue
-            if re.search(r"_\d+\.\d+_", py_file.stem):
+            if re.search(r"_\d+\.\d+(?:\.\d+)?_", py_file.stem):
                 # Skip versioned module filenames (e.g., murphy_system_1.0_runtime.py).
                 continue
             module_path_set.add(py_file.stem)
