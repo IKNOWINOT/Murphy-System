@@ -61,6 +61,7 @@ start_murphy_1.0.bat   # Windows
 - **What you can test:** `/api/health`, `/api/status`, `/api/info`, `/api/execute`, and automation endpoints under `/api/automation/...`
 - **Architect UI:** serve `Murphy System/murphy_integrated/terminal_architect.html` (or `murphy_production_ui.html`, which redirects unless `?legacy=true`) with `python -m http.server 8090` and open `http://localhost:8090/murphy_integrated/terminal_architect.html?apiPort=6666`
 - **Details:** see [Runtime 1.0 Status](<Murphy System/murphy_integrated/RUNTIME_1.0_STATUS.md>)
+- **Competitive alignment:** activation previews now include `competitive_feature_alignment` and `module_registry_summary` so readiness gaps are measurable.
 ---
 
 ## 🗃️ Repository Index (Database-Style Reference)
