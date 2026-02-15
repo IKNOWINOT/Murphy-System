@@ -1340,7 +1340,7 @@
                 gatesList.innerHTML = gates.map((gate) => {
                     const isObject = gate && typeof gate === 'object';
                     const gateName = isObject ? (gate.name || gate.id || 'Gate') : gate;
-                    const gateStatus = isObject && gate.status ? gate.status : 'active';
+                    const gateStatus = isObject ? (gate.status || 'active') : 'active';
                     const detailParts = [];
                     if (isObject && gate.threshold !== undefined) {
                         detailParts.push(`${(gate.threshold * 100).toFixed(0)}%`);

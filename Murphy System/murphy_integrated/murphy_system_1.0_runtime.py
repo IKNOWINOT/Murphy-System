@@ -19,7 +19,7 @@ import os
 import importlib.util
 from copy import deepcopy
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any, Tuple, Literal
 from dataclasses import asdict, is_dataclass
 from datetime import datetime, timedelta
 import logging
@@ -1093,7 +1093,7 @@ class MurphySystem:
 
     @staticmethod
     def _determine_gate_reason(
-        status: str,
+        status: Literal["open", "blocked"],
         override: Optional[str],
         blocked_by: Optional[str]
     ) -> Optional[str]:
