@@ -59,6 +59,9 @@ def test_module_registry_summary_reports_core_modules():
     assert summary["category_counts"]
     assert all(value >= 0 for value in summary["category_counts"].values())
     assert any(value > 0 for value in summary["category_counts"].values())
+    category_total = sum(summary["category_counts"].values())
+    assert category_total >= summary["auto_registered"]
+    assert category_total <= summary["total_available"]
 
 
 def test_module_registry_summary_handles_empty_category_tag():
