@@ -1135,18 +1135,18 @@ class MurphySystem:
         return sorted(module_paths)
 
     def _collect_root_module_paths(self, root: Path) -> Set[str]:
-        module_paths: set[str] = set()
+        module_path_set: Set[str] = set()
         for py_file in root.glob("*.py"):
             if py_file.name == "__init__.py":
                 continue
             if "." in py_file.stem:
                 # Skip versioned module filenames (e.g., murphy_system_1.0_runtime.py)
                 continue
-            module_paths.add(py_file.stem)
-        return module_paths
+            module_path_set.add(py_file.stem)
+        return module_path_set
 
     def _collect_module_paths(self, root: Path, prefix: str) -> List[str]:
-        module_paths: set[str] = set()
+        module_path_set: Set[str] = set()
         root_init = root / "__init__.py"
         for init_file in root.rglob("__init__.py"):
             if init_file == root_init:
@@ -1154,15 +1154,15 @@ class MurphySystem:
             rel = init_file.parent.relative_to(root)
             if self._should_skip_module_path(rel.parts):
                 continue
-            module_paths.add(f"{prefix}." + ".".join(rel.parts))
+            module_path_set.add(f"{prefix}." + ".".join(rel.parts))
         for py_file in root.rglob("*.py"):
             if py_file.name == "__init__.py":
                 continue
             rel = py_file.relative_to(root).with_suffix("")
             if self._should_skip_module_path(rel.parts):
                 continue
-            module_paths.add(f"{prefix}." + ".".join(rel.parts))
-        return sorted(module_paths)
+            module_path_set.add(f"{prefix}." + ".".join(rel.parts))
+        return sorted(module_path_set)
 
     def _should_skip_module_path(self, parts: Tuple[str, ...]) -> bool:
         return any(part.startswith("__") or part in self.MODULE_SCAN_EXCLUDED_DIRS for part in parts)
