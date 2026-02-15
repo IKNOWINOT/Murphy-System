@@ -60,6 +60,7 @@ start_murphy_1.0.bat   # Windows
 - **How to run:** `cd "Murphy System/murphy_integrated" && ./start_murphy_1.0.sh`
 - **What you can test:** `/api/health`, `/api/status`, `/api/info`, `/api/execute`, and automation endpoints under `/api/automation/...`
 - **Deterministic validation:** supply `compute_request` (expression + language) to `/api/execute` for cached compute plane checks (thread-safe shared service instance); session/doc tracking attaches once validation succeeds, and invalid session IDs trigger a new session warning before validation.
+- **Execution wiring:** activation previews and `/api/execute` responses now include `execution_wiring` with gate synthesis + swarm task readiness summaries.
 - **Architect UI:** serve `Murphy System/murphy_integrated/terminal_architect.html` (or `murphy_production_ui.html`, which redirects unless `?legacy=true`) with `python -m http.server 8090` and open `http://localhost:8090/murphy_integrated/terminal_architect.html?apiPort=6666`
 - **Details:** see [Runtime 1.0 Status](<Murphy System/murphy_integrated/RUNTIME_1.0_STATUS.md>)
 - **Competitive alignment:** activation previews now include `competitive_feature_alignment` and `module_registry_summary` so readiness gaps are measurable.

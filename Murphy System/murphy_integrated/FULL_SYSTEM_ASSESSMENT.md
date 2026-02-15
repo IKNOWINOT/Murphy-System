@@ -17,6 +17,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **Librarian context:** curated conditions and approval requirements are generated for each request.
 - **Learning-loop plan:** iterative requirement variants are listed with expected output targets.
 - **Compute plane validation path:** deterministic compute requests can now be validated through the runtime for structured checks.
+- **Execution wiring snapshot:** execute responses now include gate synthesis + swarm task readiness summaries for runtime execution checks.
 
 ## 3) Critical execution gaps (must close)
 

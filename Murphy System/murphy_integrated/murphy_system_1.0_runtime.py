@@ -972,18 +972,40 @@ class MurphySystem:
         explicitly assert wiring behavior without running full initialization.
         """
         instance = cls.__new__(cls)
+        instance.version = "1.0.0"
+        instance.start_time = datetime.utcnow()
         instance._initialize_configuration_defaults()
         instance.execution_metrics = {"total": 0, "success": 0, "total_time": 0.0}
         instance.module_manager = module_manager
+        instance.control_plane = None
         instance.integration_engine = None
         instance.governance_scheduler = None
         instance.inoni_automation = None
         instance.orchestrator = None
+        instance.form_handler = None
+        instance.confidence_engine = None
+        instance.form_executor = None
+        instance.correction_system = None
         instance.swarm_system = None
+        instance.org_chart_system = None
+        instance.hitl_monitor = None
+        instance.librarian = None
+        instance.telemetry_bus = None
+        instance.telemetry_ingester = None
         instance.system_integrator = None
         instance.mfgc_adapter = None
         instance.integration_connectors = {}
         instance._adapter_availability = None
+        instance.activation_usage = {}
+        instance.sessions = {}
+        instance.repositories = {}
+        instance.active_automations = {}
+        instance.form_submissions = {}
+        instance.corrections = []
+        instance.hitl_interventions = {}
+        instance.chat_sessions = {}
+        instance.living_documents = {}
+        instance.document_sessions = {}
         instance._register_core_modules()
         return instance
 
@@ -1496,6 +1518,7 @@ class MurphySystem:
             session_id,
             parameters
         )
+        execution_wiring = activation_preview.get("execution_wiring")
         execution_policy = self._build_execution_policy(
             activation_preview.get("dynamic_implementation"),
             parameters
@@ -1508,6 +1531,7 @@ class MurphySystem:
                 "session_id": blocked_session,
                 "doc_id": doc.doc_id,
                 "activation_preview": activation_preview,
+                "execution_wiring": execution_wiring,
                 "execution_policy": execution_policy,
                 "error": execution_policy.get("reason") or "Execution policy blocked."
             }
@@ -1562,6 +1586,7 @@ class MurphySystem:
                 "session_id": resolved_compute_session,
                 "doc_id": doc.doc_id,
                 "activation_preview": activation_preview,
+                "execution_wiring": execution_wiring,
                 "execution_policy": execution_policy,
                 "compute_plane": compute_plane_result,
                 "metadata": {
@@ -1577,6 +1602,7 @@ class MurphySystem:
             fallback = self._simulate_execution(task_description, task_type, parameters, session_id)
             fallback["activation_preview"] = activation_preview
             fallback["doc_id"] = doc.doc_id
+            fallback["execution_wiring"] = execution_wiring
             fallback["execution_policy"] = execution_policy
             return fallback
 
@@ -1628,6 +1654,7 @@ class MurphySystem:
                 'deliverables': execution_result.get('deliverables', []),
                 'doc_id': doc.doc_id,
                 'activation_preview': activation_preview,
+                'execution_wiring': execution_wiring,
                 'execution_policy': execution_policy,
                 'metadata': {
                     'task_description': task_description,
@@ -3340,6 +3367,26 @@ class MurphySystem:
                 doc.automation_summary = result.get("summary", {})
         doc.block_tree = self._build_block_tree(doc)
 
+    def _build_execution_wiring_snapshot(self, doc: LivingDocument) -> Dict[str, Any]:
+        gate_synthesis = doc.gate_synthesis_gates or []
+        swarm_tasks = doc.generated_tasks or []
+        swarm_ready = bool(getattr(self, "swarm_system", None))
+        return {
+            "gate_synthesis": {
+                "status": "ready" if gate_synthesis else "needs_wiring",
+                "total_gates": len(gate_synthesis)
+            },
+            "swarm_tasks": {
+                "status": "ready" if swarm_tasks else "needs_info",
+                "total_tasks": len(swarm_tasks)
+            },
+            "swarm_system": {
+                "status": "ready" if swarm_ready else "needs_wiring",
+                "initialized": swarm_ready
+            },
+            "execution_ready": bool(gate_synthesis) and bool(swarm_tasks) and swarm_ready
+        }
+
     def _build_integration_capabilities(self) -> Dict[str, Any]:
         connectors = []
         for entry in self.INTEGRATION_CONNECTOR_CATALOG:
@@ -4078,6 +4125,7 @@ class MurphySystem:
         competitive_feature_alignment = self._build_competitive_feature_alignment(
             integration_capabilities
         )
+        execution_wiring = self._build_execution_wiring_snapshot(doc)
         preview = {
             "document_id": doc.doc_id,
             "request_summary": task_description,
@@ -4112,6 +4160,7 @@ class MurphySystem:
             "delivery_readiness": delivery_readiness,
             "capability_review": capability_review,
             "dynamic_implementation": dynamic_implementation,
+            "execution_wiring": execution_wiring,
             "integration_capabilities": integration_capabilities,
             "competitive_feature_alignment": competitive_feature_alignment
         }
