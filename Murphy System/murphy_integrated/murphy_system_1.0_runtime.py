@@ -1488,10 +1488,13 @@ class MurphySystem:
         compute_plane_result = self._execute_compute_plane_validation(parameters)
         if compute_plane_result:
             status = compute_plane_result.get("status", "error")
+            resolved_session = session_id or self.create_session().get("session_id")
+            if session_id is None and resolved_session:
+                self.document_sessions[resolved_session] = doc.doc_id
             return {
                 "success": status == "validated",
                 "status": status,
-                "session_id": session_id or self.create_session().get("session_id"),
+                "session_id": resolved_session,
                 "doc_id": doc.doc_id,
                 "activation_preview": activation_preview,
                 "execution_policy": execution_policy,
