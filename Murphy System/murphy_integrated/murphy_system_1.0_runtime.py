@@ -991,6 +991,13 @@ class MurphySystem:
         "needs_compliance": 60,
         "unknown": 35
     }
+    OUTPUT_STATUS_PASSTHROUGH = {
+        "needs_wiring",
+        "needs_coverage",
+        "needs_compliance",
+        "pending_compliance",
+        "blocked"
+    }
     
     @classmethod
     def create_test_instance(cls) -> "MurphySystem":
@@ -3129,13 +3136,7 @@ class MurphySystem:
     def _determine_output_status(requirements_stage_status: str, deliverable_status: str) -> str:
         if requirements_stage_status != "complete":
             return "needs_info"
-        if deliverable_status in {
-            "needs_wiring",
-            "needs_coverage",
-            "needs_compliance",
-            "pending_compliance",
-            "blocked"
-        }:
+        if deliverable_status in MurphySystem.OUTPUT_STATUS_PASSTHROUGH:
             return deliverable_status
         if deliverable_status == "ready":
             return "ready"
@@ -3605,7 +3606,7 @@ class MurphySystem:
             available = False
             try:
                 available = importlib.util.find_spec(module_name) is not None
-            except (AttributeError, ImportError, ModuleNotFoundError, TypeError, ValueError):
+            except (AttributeError, ImportError, ModuleNotFoundError):
                 available = False
             configured = adapter["id"] in configured_ids
             if configured:
