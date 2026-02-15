@@ -1180,6 +1180,7 @@ class MurphySystem:
                     parts = capability.split(":", 1)
                     category = parts[1] if len(parts) > 1 else "unknown"
                     if not category:
+                        # Handle edge case where category tag is empty (e.g. "category:").
                         category = "unknown"
                     category_counts[category] = category_counts.get(category, 0) + 1
         core_names = {module["name"] for module in self.MODULE_CATALOG}
