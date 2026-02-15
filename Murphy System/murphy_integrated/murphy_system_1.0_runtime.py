@@ -1510,25 +1510,34 @@ class MurphySystem:
             session_payload = None
             if not session_id:
                 session_payload = self.create_session()
+                if session_payload is None:
+                    logger.warning(
+                        "Compute-plane validation session creation failed; results will not be linked to a session."
+                    )
             resolved_session = session_id or (session_payload or {}).get("session_id")
-            if not session_id and session_payload is None:
-                logger.warning("Compute-plane validation session creation failed.")
             if status == "validated" and resolved_session:
                 previous_doc = self.document_sessions.get(resolved_session)
-                self.document_sessions[resolved_session] = doc.doc_id
-                if previous_doc and previous_doc != doc.doc_id:
-                    logger.info(
-                        "Updated compute-plane session mapping %s: %s -> %s",
+                if previous_doc == doc.doc_id:
+                    logger.debug(
+                        "Compute-plane session %s already mapped to document %s",
                         resolved_session,
-                        previous_doc,
                         doc.doc_id
                     )
                 else:
-                    logger.info(
-                        "Mapped compute-plane session %s to document %s",
-                        resolved_session,
-                        doc.doc_id
-                    )
+                    self.document_sessions[resolved_session] = doc.doc_id
+                    if previous_doc:
+                        logger.info(
+                            "Updated compute-plane session mapping %s: %s -> %s",
+                            resolved_session,
+                            previous_doc,
+                            doc.doc_id
+                        )
+                    else:
+                        logger.info(
+                            "Mapped compute-plane session %s to document %s",
+                            resolved_session,
+                            doc.doc_id
+                        )
             return {
                 "success": status == "validated",
                 "status": status,
