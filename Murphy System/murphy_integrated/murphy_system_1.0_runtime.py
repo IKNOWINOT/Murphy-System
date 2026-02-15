@@ -1721,6 +1721,7 @@ class MurphySystem:
                 task_description,
                 task_type,
                 parameters,
+                session_id,
                 doc,
                 activation_preview,
                 execution_wiring,
@@ -1887,6 +1888,7 @@ class MurphySystem:
         task_description: str,
         task_type: str,
         parameters: Optional[Dict[str, Any]],
+        session_id: Optional[str],
         doc: LivingDocument,
         activation_preview: Dict[str, Any],
         execution_wiring: Optional[Dict[str, Any]],
@@ -1894,17 +1896,19 @@ class MurphySystem:
         persistence_snapshot: Optional[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """Execute the legacy two-phase orchestrator path (create + run automation)."""
-        orchestration_domain = (parameters or {}).get("domain") or task_type
+        requested_domain = (parameters or {}).get("domain")
+        orchestration_domain = task_type if requested_domain is None else requested_domain
         try:
             orchestrator = self._get_orchestrator()
             if orchestrator is None:
                 raise RuntimeError("Orchestrator unavailable for two-phase execution.")
             automation_id = orchestrator.create_automation(task_description, orchestration_domain)
             run_result = orchestrator.run_automation(automation_id)
+            response_session = session_id or self.create_session().get("session_id")
             return {
                 "success": True,
                 "automation_id": automation_id,
-                "session_id": automation_id,
+                "session_id": response_session,
                 "result": run_result,
                 "deliverables": run_result.get("deliverables", []),
                 "doc_id": doc.doc_id,
