@@ -25,6 +25,10 @@ def test_integration_capabilities_include_core_adapters():
     expected = {adapter["id"] for adapter in murphy.CORE_ADAPTER_CANDIDATES}
     assert expected.issubset(connector_ids)
 
-    telemetry = next(item for item in capabilities["connectors"] if item["id"] == "telemetry_adapter")
+    telemetry = next(
+        (item for item in capabilities["connectors"] if item["id"] == "telemetry_adapter"),
+        None
+    )
+    assert telemetry is not None
     assert telemetry["module"] == "src.telemetry_adapter"
     assert telemetry["status"] in {"available", "needs_integration"}
