@@ -1178,7 +1178,8 @@ class MurphySystem:
             for capability in info.get("capabilities", []):
                 if capability.startswith(self.MODULE_CATEGORY_PREFIX):
                     parts = capability.split(":", 1)
-                    category = parts[1].strip() if len(parts) > 1 and parts[1].strip() else "unknown"
+                    category_value = parts[1].strip() if len(parts) > 1 else ""
+                    category = category_value if category_value else "unknown"
                     category_counts[category] = category_counts.get(category, 0) + 1
         core_names = {module["name"] for module in self.MODULE_CATALOG}
         missing_core = sorted(core_names - modules.keys())
