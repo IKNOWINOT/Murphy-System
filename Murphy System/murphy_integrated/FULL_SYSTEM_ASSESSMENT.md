@@ -18,6 +18,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **Learning-loop plan:** iterative requirement variants are listed with expected output targets.
 - **Compute plane validation path:** deterministic compute requests can now be validated through the runtime for structured checks.
 - **Execution wiring snapshot:** execute responses now include gate synthesis + swarm task readiness summaries for runtime execution checks.
+- **Persistence snapshots:** execution previews and results can be persisted when `MURPHY_PERSISTENCE_DIR` is configured.
 
 ## 3) Critical execution gaps (must close)
 
@@ -26,7 +27,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 2. **Compute plane + stability controllers**  
    Deterministic reasoning exists but is not invoked for tagged tasks.
 3. **Persistence + audit trails**  
-   LivingDocument, activation previews, and librarian context are not persisted across sessions.
+   Snapshot persistence is available when configured, but durable replay/audit storage is still missing.
 4. **Multi-channel delivery adapters**  
    There are no production adapters for document/email/chat/voice output.
 5. **Operational services**  
@@ -135,7 +136,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 | --- | --- | --- |
 | Execution wiring (gate + swarm + orchestrator) | 45% | MFGC fallback wired, orchestrator wiring still partial |
 | Deterministic + LLM routing | 40% | Routing heuristics exist; compute plane not invoked end-to-end |
-| Persistence + replay | 15% | No durable storage yet |
+| Persistence + replay | 20% | Snapshot persistence available; durable storage not wired |
 | Multi-channel delivery | 10% | No document/email/chat/voice adapters |
 | Compliance validation | 35% | Regional sensors + gate policies defined, enforcement incomplete |
 | Operational automation | 20% | Planning templates exist; ticketing/remote access not wired |
@@ -181,7 +182,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 3. Enforce deterministic vs. LLM routing by task tag (compute plane + LLM orchestration in one flow).
 
 ### Step 2 — Persistence + replay
-1. Persist LivingDocument, activation previews, librarian context, and dynamic chain plans.
+1. Persist LivingDocument, activation previews, librarian context, and dynamic chain plans (expand beyond snapshot storage).
 2. Add replay endpoints for approval flows (HITL + QA gates).
 3. Store gate policy overrides and audit metadata per session.
 
