@@ -668,6 +668,32 @@ class MurphySystem:
             "channel": "security"
         }
     ]
+    DELIVERY_ADAPTER_CANDIDATES = [
+        {
+            "id": "document_delivery",
+            "label": "Document delivery adapter",
+            "channel": "document",
+            "module": "src.adapter_framework.adapters.http_adapter"
+        },
+        {
+            "id": "email_delivery",
+            "label": "Email delivery adapter",
+            "channel": "email",
+            "module": "src.adapter_framework.adapters.http_adapter"
+        },
+        {
+            "id": "chat_delivery",
+            "label": "Chat delivery adapter",
+            "channel": "chat",
+            "module": "src.adapter_framework.adapters.http_adapter"
+        },
+        {
+            "id": "voice_delivery",
+            "label": "Voice delivery adapter",
+            "channel": "voice",
+            "module": "src.adapter_framework.adapters.http_adapter"
+        }
+    ]
     EXTERNAL_SENSOR_CATALOG = {
         "marketing": [
             {
@@ -2201,6 +2227,11 @@ class MurphySystem:
         else:
             status = "ready"
             gap_action = "Ready for human review once HITL approvals are satisfied."
+        delivery_adapters = self._build_delivery_adapter_snapshot()
+        adapter_summary = delivery_adapters.get("summary", {})
+        if status == "ready" and adapter_summary.get("configured", 0) < adapter_summary.get("total", 0):
+            status = "needs_wiring"
+            gap_action = "Configure delivery adapters for document/email/chat/voice outputs."
         return {
             "status": status,
             "requirements_status": requirements_status,
@@ -2211,7 +2242,8 @@ class MurphySystem:
             "hitl_required": hitl_required,
             "regulatory_source": sensor_plan.get("primary_regulatory_source", {}).get("id"),
             "approval_policy": approval_policy,
-            "gap_action": gap_action
+            "gap_action": gap_action,
+            "delivery_adapters": delivery_adapters
         }
 
     def _extract_deliverables(
@@ -3097,10 +3129,18 @@ class MurphySystem:
     def _determine_output_status(requirements_stage_status: str, deliverable_status: str) -> str:
         if requirements_stage_status != "complete":
             return "needs_info"
+        if deliverable_status in {
+            "needs_wiring",
+            "needs_coverage",
+            "needs_compliance",
+            "pending_compliance",
+            "blocked"
+        }:
+            return deliverable_status
         if deliverable_status == "ready":
             return "ready"
         # Treat explicit deliverable gaps as needs_info even when requirements are complete.
-        if deliverable_status in {"needs_info", "needs_coverage", "needs_compliance"}:
+        if deliverable_status in {"needs_info"}:
             return "needs_info"
         return "pending"
 
@@ -3547,6 +3587,50 @@ class MurphySystem:
                 "needs_integration": len(connectors) - ready_count
             },
             "connectors": connectors
+        }
+
+    def _build_delivery_adapter_snapshot(
+        self,
+        integration_capabilities: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        integration_capabilities = integration_capabilities or self._build_integration_capabilities()
+        configured_ids = {
+            connector_id
+            for connector_id, connector in self.integration_connectors.items()
+            if connector.get("status") == "configured"
+        }
+        adapters = []
+        for adapter in self.DELIVERY_ADAPTER_CANDIDATES:
+            module_name = adapter["module"]
+            available = False
+            try:
+                available = importlib.util.find_spec(module_name) is not None
+            except (AttributeError, ImportError, ModuleNotFoundError, TypeError, ValueError):
+                available = False
+            configured = adapter["id"] in configured_ids
+            if configured:
+                status = "configured"
+            elif available:
+                status = "available"
+            else:
+                status = "needs_integration"
+            adapters.append({
+                **adapter,
+                "available": available,
+                "configured": configured,
+                "status": status
+            })
+        ready_count = len([adapter for adapter in adapters if adapter["status"] == "configured"])
+        available_count = len([adapter for adapter in adapters if adapter["status"] == "available"])
+        total = len(adapters)
+        return {
+            "summary": {
+                "total": total,
+                "configured": ready_count,
+                "available": available_count,
+                "needs_integration": total - ready_count - available_count
+            },
+            "adapters": adapters
         }
 
     def _build_competitive_feature_alignment(

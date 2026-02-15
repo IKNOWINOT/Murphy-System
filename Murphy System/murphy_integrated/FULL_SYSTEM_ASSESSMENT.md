@@ -20,6 +20,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **Execution wiring snapshot:** execute responses now include gate synthesis + swarm task readiness summaries for runtime execution checks.
 - **Persistence snapshots:** execution previews and results can be persisted when `MURPHY_PERSISTENCE_DIR` is configured.
 - **Observability snapshot:** telemetry bus + ingester stats are exposed in activation previews and system status.
+- **Delivery adapter snapshot:** activation previews include document/email/chat/voice adapter readiness.
 
 ## 3) Critical execution gaps (must close)
 
@@ -120,6 +121,7 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 - **Deterministic + LLM routing:** compute plane and LLM orchestration must both be wired with clear task routing rules.
 - **Persistence & replay:** store LivingDocument, gate history, librarian context, and automation plans with replay support.
 - **Multi-channel delivery:** document/email/chat/voice adapters with governance approvals and audit trails.
+- **Delivery adapter wiring:** snapshot is available, but adapters remain unconfigured (needs integration).
 - **Module registry standardization:** auto-register `murphy_integrated/src` modules plus local packages (bots, modern_arcana) into the `module_manager` catalog alongside core runtime entries (control plane, orchestration, intake, confidence, execution, learning, governance, telemetry, MFGC).
 - **Adapter framework integration:** register telemetry, module compiler, librarian, and security adapters for execution telemetry.
 - **Compliance validation:** regulatory sensors, policy gates, and HITL approvals tied to deliverable releases.
