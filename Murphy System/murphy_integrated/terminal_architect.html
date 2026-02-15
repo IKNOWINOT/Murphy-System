@@ -1327,6 +1327,20 @@
             }
         }
 
+        function formatGateDetail(gate) {
+            if (!gate || typeof gate !== 'object') {
+                return '';
+            }
+            const detailParts = [];
+            if (gate.threshold !== undefined) {
+                detailParts.push(`${(gate.threshold * 100).toFixed(0)}%`);
+            }
+            if (gate.stage) {
+                detailParts.push(gate.stage);
+            }
+            return detailParts.length ? ` · ${detailParts.join(' · ')}` : '';
+        }
+
         // Update gates display
         function updateGatesDisplay(gates) {
             const gatesList = document.getElementById('gatesList');
@@ -1342,14 +1356,7 @@
                     const isObject = gate && typeof gate === 'object';
                     const gateName = isObject ? (gate.name || gate.id || 'Gate') : gate;
                     const gateStatus = isObject ? (gate.status || 'active') : 'active';
-                    const detailParts = [];
-                    if (isObject && gate.threshold !== undefined) {
-                        detailParts.push(`${(gate.threshold * 100).toFixed(0)}%`);
-                    }
-                    if (isObject && gate.stage) {
-                        detailParts.push(gate.stage);
-                    }
-                    const detail = detailParts.length ? ` · ${detailParts.join(' · ')}` : '';
+                    const detail = formatGateDetail(gate);
                     const reason = isObject && gate.reason
                         ? `<span class="gate-reason">${gate.reason}</span>`
                         : '';
