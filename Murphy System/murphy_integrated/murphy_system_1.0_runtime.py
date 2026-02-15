@@ -3221,6 +3221,7 @@ class MurphySystem:
             for capability in info.get("capabilities", [])
         }
         alignment = []
+        integration_capabilities = integration_capabilities or self._build_integration_capabilities()
         for feature in self.COMPETITIVE_FEATURES:
             required = feature.get("capabilities", [])
             available = [cap for cap in required if cap in capability_set]
@@ -3242,9 +3243,8 @@ class MurphySystem:
                 "missing_capabilities": missing
             }
             if not required:
-                entry["error"] = "no_required_capabilities_defined"
+                entry["error"] = "No required capabilities defined for this feature."
             if feature["id"] == "connector_ecosystem":
-                integration_capabilities = integration_capabilities or self._build_integration_capabilities()
                 summary = integration_capabilities.get("summary", {})
                 ready = summary.get("ready", 0)
                 total = summary.get("total", 0)
