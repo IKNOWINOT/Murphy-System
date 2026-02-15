@@ -35,7 +35,7 @@ class StubTwoPhaseOrchestrator:
         }
 
 
-def test_execute_task_uses_two_phase_orchestrator():
+def test_execute_task_routes_to_two_phase_orchestrator_with_domain_fallback():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
     stub = StubTwoPhaseOrchestrator()
