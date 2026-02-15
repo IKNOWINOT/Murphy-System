@@ -489,6 +489,7 @@ class MurphySystem:
             "id": "connector_ecosystem",
             "label": "Connector ecosystem",
             "capabilities": ["integrations", "adapter_runtime"],
+            "includes_integration_metrics": True,
             "description": "Integrate external systems, adapters, and delivery channels."
         },
         {
@@ -3253,7 +3254,9 @@ class MurphySystem:
                 "missing_capabilities": missing,
                 "error": error
             }
-            if feature["id"] == "connector_ecosystem":
+            if error:
+                logger.warning("Competitive feature configuration issue for %s: %s", feature["id"], error)
+            if feature.get("includes_integration_metrics"):
                 summary = integration_capabilities.get("summary", {})
                 ready = summary.get("ready", 0)
                 total = summary.get("total", 0)
