@@ -1073,15 +1073,12 @@ class MurphySystem:
             validated_override = self._normalize_gate_override(entry.get("status_override"), name)
             # Manual overrides take precedence over confidence-based gating.
             status = validated_override or ("open" if doc.confidence >= threshold else "blocked")
-            reason = None
-            if blocked_by:
+            blocked_chain = blocked_by
+            if blocked_chain:
                 status = "blocked"
-                reason = f"Blocked by {blocked_by}"
             elif status == "blocked":
                 blocked_by = name
-                reason = "Manually blocked" if validated_override == "blocked" else "Confidence below threshold"
-            elif status == "open":
-                reason = "Manual override" if validated_override == "open" else "Confidence meets threshold"
+            reason = self._determine_gate_reason(status, validated_override, blocked_chain)
             gates.append({
                 "name": name,
                 "threshold": threshold,
@@ -1091,6 +1088,20 @@ class MurphySystem:
                 "blocked_by": blocked_by if status == "blocked" else None
             })
         return gates
+
+    @staticmethod
+    def _determine_gate_reason(
+        status: str,
+        override: Optional[str],
+        blocked_by: Optional[str]
+    ) -> Optional[str]:
+        if blocked_by and status == "blocked":
+            return f"Blocked by {blocked_by}"
+        if status == "blocked":
+            return "Manually blocked" if override == "blocked" else "Confidence below threshold"
+        if status == "open":
+            return "Manual override" if override == "open" else "Confidence meets threshold"
+        return None
 
     def _build_block_tree(self, doc: LivingDocument) -> Dict[str, Any]:
         root = {
