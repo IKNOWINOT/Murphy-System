@@ -70,7 +70,7 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 
 | Domain | Location | Purpose | Entry Points |
 | --- | --- | --- | --- |
-| **Runtime API** | `Murphy System/murphy_integrated/murphy_system_1.0_runtime.py` | Runtime 1.0 API server | `./start_murphy_1.0.sh`, `GET /api/status` |
+| **Runtime API** | `Murphy System/murphy_integrated/murphy_system_1.0_runtime.py` | Runtime 1.0 API server | `Murphy System/murphy_integrated/start_murphy_1.0.sh`, `GET /api/status` |
 | **Architect UI** | `Murphy System/murphy_integrated/terminal_architect.html` | Primary UI for planning + gate review | `python -m http.server 8090`, `?apiPort=6666` |
 | **Legacy UI** | `Murphy System/murphy_integrated/murphy_ui_integrated.html` | Legacy UI reference | `murphy_production_ui.html?legacy=true` |
 | **Activation Audit** | `Murphy System/murphy_integrated/ACTIVATION_AUDIT.md` | Inactive subsystem inventory + verification | Review before wiring |
