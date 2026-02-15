@@ -1165,6 +1165,32 @@ class MurphySystem:
             module_path_set.add(f"{prefix}.{'.'.join(rel.parts)}")
         return sorted(module_path_set)
 
+    def _build_module_registry_summary(self) -> Dict[str, Any]:
+        status = self.module_manager.get_module_status()
+        modules = status.get("modules", {})
+        auto_registered = [
+            name
+            for name, info in modules.items()
+            if self.MODULE_AUTO_SCAN_TAG in info.get("capabilities", [])
+        ]
+        category_counts: Dict[str, int] = {}
+        for info in modules.values():
+            for capability in info.get("capabilities", []):
+                if capability.startswith(self.MODULE_CATEGORY_PREFIX):
+                    category = capability.split(":", 1)[-1] or "unknown"
+                    category_counts[category] = category_counts.get(category, 0) + 1
+        core_names = {module["name"] for module in self.MODULE_CATALOG}
+        missing_core = sorted(core_names - modules.keys())
+        return {
+            "total_available": status.get("total_available", len(modules)),
+            "total_active": status.get("total_active", 0),
+            "core_expected": len(core_names),
+            "core_registered": len(core_names) - len(missing_core),
+            "core_missing": missing_core,
+            "auto_registered": len(auto_registered),
+            "category_counts": category_counts
+        }
+
     def _should_skip_module_path(self, parts: Tuple[str, ...]) -> bool:
         return any(part.startswith("__") or part in self.MODULE_SCAN_EXCLUDED_DIRS for part in parts)
 
@@ -3741,6 +3767,7 @@ class MurphySystem:
             "constraints": doc.constraints,
             "region": sensor_plan["region"],
             "module_registry": self.module_manager.get_module_status(),
+            "module_registry_summary": self._build_module_registry_summary(),
             "capability_alignment": capability_alignment,
             "capability_tests": capability_tests,
             "business_automation_summary": business_summary,
@@ -4227,6 +4254,7 @@ class MurphySystem:
                 )
             },
             'module_registry': self.module_manager.get_module_status(),
+            'module_registry_summary': self._build_module_registry_summary(),
             'self_operation': {
                 'enabled': self_operation_enabled,
                 'can_work_on_self': self_operation_enabled and correction_system_available,

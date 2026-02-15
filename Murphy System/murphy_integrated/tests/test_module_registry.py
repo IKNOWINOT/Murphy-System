@@ -46,6 +46,18 @@ def test_module_registry_contains_gate_synthesis():
         assert status["modules"][module_name]["status"] == "available"
 
 
+def test_module_registry_summary_reports_core_modules():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    summary = murphy._build_module_registry_summary()
+
+    assert summary["core_missing"] == []
+    assert summary["core_registered"] == summary["core_expected"]
+    assert summary["total_available"] >= summary["core_expected"]
+    assert summary["auto_registered"] >= 1
+    assert summary["category_counts"]
+
+
 def test_module_registry_includes_src_inventory():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
