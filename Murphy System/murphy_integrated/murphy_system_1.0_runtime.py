@@ -1424,6 +1424,18 @@ class MurphySystem:
             "path": str(persistence_dir)
         }
 
+    def _build_observability_snapshot(self) -> Dict[str, Any]:
+        if not self.telemetry_bus or not self.telemetry_ingester:
+            return {
+                "status": "unavailable",
+                "reason": "Telemetry bus not initialized."
+            }
+        return {
+            "status": "available",
+            "telemetry_bus": self.telemetry_bus.get_stats(),
+            "ingestion": dict(self.telemetry_ingester.stats)
+        }
+
     def _persist_execution_snapshot(
         self,
         doc: LivingDocument,
@@ -4192,6 +4204,7 @@ class MurphySystem:
         )
         execution_wiring = self._build_execution_wiring_snapshot(doc)
         persistence_status = self._build_persistence_status()
+        observability_snapshot = self._build_observability_snapshot()
         preview = {
             "document_id": doc.doc_id,
             "request_summary": task_description,
@@ -4228,6 +4241,7 @@ class MurphySystem:
             "dynamic_implementation": dynamic_implementation,
             "execution_wiring": execution_wiring,
             "persistence": persistence_status,
+            "observability": observability_snapshot,
             "integration_capabilities": integration_capabilities,
             "competitive_feature_alignment": competitive_feature_alignment
         }
@@ -4694,6 +4708,7 @@ class MurphySystem:
             },
             'module_registry': self.module_manager.get_module_status(),
             'module_registry_summary': self._build_module_registry_summary(),
+            'observability': self._build_observability_snapshot(),
             'self_operation': {
                 'enabled': self_operation_enabled,
                 'can_work_on_self': self_operation_enabled and correction_system_available,
