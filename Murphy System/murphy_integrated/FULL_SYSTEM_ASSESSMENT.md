@@ -19,6 +19,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **Compute plane validation path:** deterministic compute requests can now be validated through the runtime for structured checks.
 - **Execution wiring snapshot:** execute responses now include gate synthesis + swarm task readiness summaries for runtime execution checks.
 - **Persistence snapshots:** execution previews and results can be persisted when `MURPHY_PERSISTENCE_DIR` is configured.
+- **Observability snapshot:** telemetry bus + ingester stats are exposed in activation previews and system status.
 
 ## 3) Critical execution gaps (must close)
 
@@ -31,7 +32,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 4. **Multi-channel delivery adapters**  
    There are no production adapters for document/email/chat/voice output.
 5. **Operational services**  
-   Remote access invites, ticketing, patch/rollback automation, and health telemetry are only planned.
+   Remote access invites, ticketing, patch/rollback automation, and health telemetry dashboards are still planned (observability snapshots are wired).
 
 ## 4) Recommended features to add (priority order)
 
@@ -64,8 +65,8 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 | RBAC + tenant governance | Role/tenant policy enforcement | `security_plane_adapter`, `governance_framework` | **Partial** (policies defined; tenant enforcement pending) |
 | Audit & compliance | Audit trails + compliance gates | `telemetry_ingestion`, `gate_synthesis` | **Partial** (persistence/audit store not wired) |
 | Persistent memory + replay | Durable context + replay | *Not wired (persistence layer missing)* | **Missing** |
-| Observability + AIOps | Runtime telemetry + feedback | `telemetry_ingestion`, `recursive_stability_controller` | **Partial** (dashboards not wired) |
-| Monitoring & analytics | Execution dashboards + analytics | `telemetry_ingestion`, telemetry adapter | **Partial** (dashboards not wired) |
+| Observability + AIOps | Runtime telemetry + feedback | `telemetry_ingestion`, `recursive_stability_controller` | **Partial** (snapshots wired; dashboards not wired) |
+| Monitoring & analytics | Execution dashboards + analytics | `telemetry_ingestion`, telemetry adapter | **Partial** (snapshots wired; dashboards not wired) |
 | Self-healing automation | Rollbacks + stabilization loops | `recursive_stability_controller`, governance gates | **Partial** (rollback wiring pending) |
 | Self-improvement loops | Learning + correction | `learning_engine`, corrections flow | **Partial** (needs persisted training loop) |
 | Knowledge + RAG | Curated context + conditions | `system_librarian`, `learning_engine` | **Partial** (persistence + retrieval tuning pending) |

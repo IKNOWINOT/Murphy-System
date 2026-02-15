@@ -21,6 +21,7 @@ psutil==5.9.6
 
 # Data Validation (use latest version with pre-built wheels for Python 3.13)
 pydantic>=2.5.0
+jsonschema==4.21.1
 
 # Environment Variables
 python-dotenv==1.0.0
