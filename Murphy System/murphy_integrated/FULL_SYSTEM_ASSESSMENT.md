@@ -135,7 +135,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 - Store user-script screenshots in `docs/screenshots/` (repository root).
 - Reference the new screenshots in `VISUAL_SETUP_GUIDE_WITH_SCREENSHOTS.md` (repository root).
 - Record the matching pytest command/output in this assessment entry whenever a percentage changes.
-- Validate README.md internal links after each update and fix any broken paths.
+- Validate `README.md` internal links after each update and fix any broken paths.
 
 ---
 
