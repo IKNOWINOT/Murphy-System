@@ -31,9 +31,17 @@ def test_delivery_adapter_snapshot_in_preview():
     delivery_readiness = preview["delivery_readiness"]
     adapters = delivery_readiness["delivery_adapters"]
     summary = adapters["summary"]
+    adapter_entries = {adapter["id"]: adapter for adapter in adapters["adapters"]}
     assert summary["total"] == len(murphy.DELIVERY_ADAPTER_CANDIDATES)
     assert summary["configured"] == 0
     assert delivery_readiness["status"] in {"needs_wiring", "needs_coverage"}
+    assert set(adapter_entries.keys()) == {
+        candidate["id"] for candidate in murphy.DELIVERY_ADAPTER_CANDIDATES
+    }
+    for adapter_id, adapter in adapter_entries.items():
+        assert adapter["id"] == adapter_id
+        assert adapter["channel"] in {"document", "email", "chat", "voice"}
+        assert adapter["status"] in {"available", "needs_integration", "configured"}
     output_stage = next(
         stage for stage in preview["dynamic_implementation"]["stages"] if stage["id"] == "output_delivery"
     )
