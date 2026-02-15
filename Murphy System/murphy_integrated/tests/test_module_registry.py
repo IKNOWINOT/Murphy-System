@@ -27,3 +27,7 @@ def test_module_registry_contains_gate_synthesis():
     assert "two_phase_orchestrator" in status["modules"]
     assert "governance_framework" in status["modules"]
     assert status["modules"]["gate_synthesis"]["status"] == "available"
+    assert status["modules"]["module_manager"]["status"] == "available"
+    assert status["modules"]["universal_control_plane"]["status"] == "available"
+    assert status["modules"]["two_phase_orchestrator"]["status"] == "available"
+    assert status["modules"]["governance_framework"]["status"] == "available"
