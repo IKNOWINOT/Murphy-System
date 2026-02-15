@@ -41,6 +41,7 @@ This directory contains visual screenshots for the Murphy System setup process.
 | 33_ui_architect_dynamic_implementation.png | Architect terminal UI activation preview with dynamic implementation plan | 1280x720 |
 | 34_ui_architect_dynamic_implementation_details.png | Architect terminal UI dynamic implementation plan with automation loop and trigger stages | 1280x720 |
 | 35_ui_architect_dynamic_gate_sequence.png | Architect terminal UI dynamic implementation plan with gate sequencing and compliance review | 1280x720 |
+| 36_ui_architect_scripted_gates.png | Architect terminal UI scripted prompt run with gate reasons | 1280x720 |
 | 24_ui_production_overview.png | Legacy production UI overview (deprecated) | 1280x720 |
 | 25_ui_production_execution.png | Legacy production UI execution with activation preview | 1280x720 |
 | 26_ui_production_gate_update.png | Legacy production UI gate policy update flow | 1280x720 |
@@ -69,6 +70,6 @@ Screenshots were generated using Python PIL (Pillow) library to create terminal-
 
 ---
 
-**Total Screenshots:** 39  
+**Total Screenshots:** 40  
 **Total Size:** ~5.8 MB  
 **Created:** February 9, 2026
