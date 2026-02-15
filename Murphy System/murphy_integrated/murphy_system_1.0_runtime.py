@@ -3592,11 +3592,7 @@ class MurphySystem:
             "connectors": connectors
         }
 
-    def _build_delivery_adapter_snapshot(
-        self,
-        integration_capabilities: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
-        integration_capabilities = integration_capabilities or self._build_integration_capabilities()
+    def _build_delivery_adapter_snapshot(self) -> Dict[str, Any]:
         configured_ids = {
             connector_id
             for connector_id, connector in self.integration_connectors.items()

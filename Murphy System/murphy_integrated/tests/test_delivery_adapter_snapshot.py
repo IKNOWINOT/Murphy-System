@@ -47,8 +47,10 @@ def test_delivery_adapter_snapshot_in_preview():
         assert adapter["channel"] in {"document", "email", "chat", "voice"}
         assert adapter["status"] in {"available", "needs_integration", "configured"}
     output_stage = next(
-        stage for stage in preview["dynamic_implementation"]["stages"] if stage["id"] == "output_delivery"
+        (stage for stage in preview["dynamic_implementation"]["stages"] if stage["id"] == "output_delivery"),
+        None
     )
+    assert output_stage is not None
     assert output_stage["status"] in {"needs_wiring", "needs_coverage"}
 
 
