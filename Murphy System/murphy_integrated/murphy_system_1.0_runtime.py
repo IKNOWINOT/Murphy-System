@@ -19,7 +19,7 @@ import os
 import importlib.util
 from copy import deepcopy
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple, Literal, Set
+from typing import Dict, List, Optional, Any, Tuple, Literal, Set, TYPE_CHECKING
 from dataclasses import asdict, is_dataclass
 from datetime import datetime, timedelta
 import logging
@@ -34,6 +34,11 @@ sys.path.insert(0, str(Path(__file__).parent))
 # Core imports
 from src.module_manager import module_manager
 from src.modular_runtime import ModularRuntime
+
+if TYPE_CHECKING:
+    from src.compute_plane.service import ComputeService as ComputeServiceType
+else:
+    ComputeServiceType = Any
 
 # Universal Control Plane
 try:
@@ -1387,7 +1392,7 @@ class MurphySystem:
             "timestamp": datetime.utcnow().isoformat()
         }
 
-    def _get_compute_service(self) -> Optional["ComputeService"]:
+    def _get_compute_service(self) -> Optional[ComputeServiceType]:
         """Return a cached compute service instance, or None if unavailable."""
         if self._compute_service is not None:
             return self._compute_service
@@ -1506,8 +1511,24 @@ class MurphySystem:
             if not session_id:
                 session_payload = self.create_session()
             resolved_session = session_id or (session_payload or {}).get("session_id")
+            if not session_id and session_payload is None:
+                logger.warning("Compute-plane validation session creation failed.")
             if status == "validated" and resolved_session:
+                previous_doc = self.document_sessions.get(resolved_session)
                 self.document_sessions[resolved_session] = doc.doc_id
+                if previous_doc and previous_doc != doc.doc_id:
+                    logger.info(
+                        "Updated compute-plane session mapping %s: %s -> %s",
+                        resolved_session,
+                        previous_doc,
+                        doc.doc_id
+                    )
+                else:
+                    logger.info(
+                        "Mapped compute-plane session %s to document %s",
+                        resolved_session,
+                        doc.doc_id
+                    )
             return {
                 "success": status == "validated",
                 "status": status,
