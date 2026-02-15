@@ -21,8 +21,8 @@ def test_module_registry_contains_gate_synthesis():
     murphy = runtime.MurphySystem.create_test_instance()
     status = murphy.module_manager.get_module_status()
 
-    assert "gate_synthesis" in status["modules"]
     expected_modules = [
+        "gate_synthesis",
         "module_manager",
         "modular_runtime",
         "universal_control_plane",
@@ -41,4 +41,3 @@ def test_module_registry_contains_gate_synthesis():
     for module_name in expected_modules:
         assert module_name in status["modules"]
         assert status["modules"][module_name]["status"] == "available"
-    assert status["modules"]["gate_synthesis"]["status"] == "available"
