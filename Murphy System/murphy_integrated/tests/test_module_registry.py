@@ -22,4 +22,8 @@ def test_module_registry_contains_gate_synthesis():
     status = murphy.module_manager.get_module_status()
 
     assert "gate_synthesis" in status["modules"]
+    assert "module_manager" in status["modules"]
+    assert "universal_control_plane" in status["modules"]
+    assert "two_phase_orchestrator" in status["modules"]
+    assert "governance_framework" in status["modules"]
     assert status["modules"]["gate_synthesis"]["status"] == "available"
