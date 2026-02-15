@@ -57,3 +57,19 @@ def test_module_registry_includes_src_inventory():
         capability.startswith(runtime.MurphySystem.MODULE_CATEGORY_PREFIX)
         for capability in capabilities
     )
+
+
+def test_module_registry_includes_local_packages():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    status = murphy.module_manager.get_module_status()
+
+    expected_modules = [
+        "bots.config_loader",
+        "modern_arcana.analysis_bot",
+    ]
+    for module_name in expected_modules:
+        assert module_name in status["modules"]
+        capabilities = status["modules"][module_name]["capabilities"]
+        assert runtime.MurphySystem.MODULE_AUTO_SCAN_TAG in capabilities
+        assert f"{runtime.MurphySystem.MODULE_PATH_PREFIX}{module_name}" in capabilities
