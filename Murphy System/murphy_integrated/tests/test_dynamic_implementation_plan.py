@@ -114,7 +114,8 @@ def test_dynamic_implementation_plan_ready_with_orchestrator():
     murphy = runtime.MurphySystem.create_test_instance()
 
     murphy.orchestrator = DummyOrchestrator()
-    # Keep flow steps empty to avoid onboarding prompts shifting requirements status.
+    # Keep flow steps empty so requirements status is driven by explicit answers
+    # instead of default onboarding prompts.
     murphy.flow_steps = []
     murphy.swarm_system = object()
     murphy.integration_engine = object()
@@ -143,6 +144,7 @@ def test_dynamic_implementation_plan_ready_with_orchestrator():
     )
 
     assert plan["execution_strategy"] == "orchestrator"
+    # Ready-state transition is validated in test_dynamic_implementation_plan_ready_with_orchestrator.
     assert plan["status"] == "ready"
     stage_map = {stage["id"]: stage for stage in plan["stages"]}
     assert stage_map["gate_alignment"]["status"] == "ready"
