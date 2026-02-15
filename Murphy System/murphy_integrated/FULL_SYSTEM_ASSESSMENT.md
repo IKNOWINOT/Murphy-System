@@ -180,6 +180,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 5. **Persistence + replay tests**: verify stored session data, replayed approvals, and rollback.
 6. **Wingman protocol tests**: validate executor/validator pairing and deterministic checks per subject.
 7. **Delivery adapter snapshot tests**: `test_delivery_adapter_snapshot.py` verifies delivery readiness status and adapter availability outputs.
+8. **Two-phase orchestrator execution tests**: `test_two_phase_orchestrator_execution.py` validates create/run automation routing when the async orchestrator interface is unavailable.
 
 ---
 

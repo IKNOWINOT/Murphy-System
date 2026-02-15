@@ -61,11 +61,13 @@ start_murphy_1.0.bat   # Windows
 - **What you can test:** `/api/health`, `/api/status`, `/api/info`, `/api/execute`, and automation endpoints under `/api/automation/...`
 - **Deterministic validation:** supply `compute_request` (expression + language) to `/api/execute` for cached compute plane checks (thread-safe shared service instance); session/doc tracking attaches once validation succeeds, and invalid session IDs trigger a new session warning before validation.
 - **Execution wiring:** activation previews and `/api/execute` responses now include `execution_wiring` with gate synthesis + swarm task readiness summaries.
+- **Two-phase execution path:** when the async orchestrator interface is unavailable, `execute_task` now routes through `TwoPhaseOrchestrator` (`create_automation`/`run_automation`) for the legacy phase1/phase2 workflow.
 - **Wingman protocol:** activation previews include executor/validator pairing metadata in dynamic chain training patterns for deterministic output verification.
 - **Persistence snapshots:** set `MURPHY_PERSISTENCE_DIR` to store activation previews + execution results for replay analysis.
 - **Observability snapshot:** activation previews and `/api/status` include telemetry bus + ingestion stats when telemetry components are available.
 - **Delivery adapter snapshot:** activation previews include document/email/chat/voice adapter readiness; summary counts reflect adapter statuses (configured, available, unconfigured), and delivery readiness propagates blocked/needs states (`needs_wiring`, `needs_coverage`) when adapters or org chart coverage are incomplete; `needs_info` is used when requirements are complete but delivery inputs are missing, and the dynamic plan marks the output_delivery stage with the same status. These snapshots are treated as **observability sensor data** that cue follow-on tasks and confirm delivery readiness for stakeholder requests.
 - **Delivery adapter test:** `tests/test_delivery_adapter_snapshot.py` validates readiness status and adapter summary output.
+- **Two-phase orchestrator test:** `tests/test_two_phase_orchestrator_execution.py` validates the legacy phase1/phase2 create/run automation path.
 - **Architect UI:** serve `Murphy System/murphy_integrated/terminal_architect.html` (or `murphy_production_ui.html`, which redirects unless `?legacy=true`) with `python -m http.server 8090` and open `http://localhost:8090/murphy_integrated/terminal_architect.html?apiPort=6666`
 - **Details:** see [Runtime 1.0 Status](<Murphy System/murphy_integrated/RUNTIME_1.0_STATUS.md>)
 - **Competitive alignment:** activation previews now include `competitive_feature_alignment` and `module_registry_summary` so readiness gaps are measurable.
