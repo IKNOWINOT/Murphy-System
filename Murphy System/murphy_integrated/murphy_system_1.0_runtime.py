@@ -289,6 +289,90 @@ class MurphySystem:
     )
     MODULE_CATALOG = [
         {
+            "name": "module_manager",
+            "path": "src.module_manager",
+            "description": "Module manager registry",
+            "capabilities": ["module_registry", "capability_mapping"]
+        },
+        {
+            "name": "modular_runtime",
+            "path": "src.modular_runtime",
+            "description": "Modular runtime core",
+            "capabilities": ["runtime", "module_execution"]
+        },
+        {
+            "name": "universal_control_plane",
+            "path": "universal_control_plane",
+            "description": "Universal control plane",
+            "capabilities": ["control_plane", "execution_policy"]
+        },
+        {
+            "name": "inoni_business_automation",
+            "path": "inoni_business_automation",
+            "description": "Business automation engines",
+            "capabilities": ["business_automation", "executive_operations"]
+        },
+        {
+            "name": "two_phase_orchestrator",
+            "path": "two_phase_orchestrator",
+            "description": "Two-phase orchestrator",
+            "capabilities": ["orchestration", "handoff"]
+        },
+        {
+            "name": "form_intake",
+            "path": "src.form_intake.handlers",
+            "description": "Form intake handlers",
+            "capabilities": ["forms", "intake"]
+        },
+        {
+            "name": "confidence_engine",
+            "path": "src.confidence_engine.unified_confidence_engine",
+            "description": "Confidence evaluation engine",
+            "capabilities": ["confidence", "validation"]
+        },
+        {
+            "name": "execution_engine",
+            "path": "src.execution_engine.integrated_form_executor",
+            "description": "Execution engine",
+            "capabilities": ["execution", "actions"]
+        },
+        {
+            "name": "learning_engine",
+            "path": "src.learning_engine.integrated_correction_system",
+            "description": "Learning and correction engine",
+            "capabilities": ["learning", "correction"]
+        },
+        {
+            "name": "hitl_monitor",
+            "path": "src.supervisor_system.integrated_hitl_monitor",
+            "description": "Human-in-the-loop monitor",
+            "capabilities": ["hitl", "supervision"]
+        },
+        {
+            "name": "governance_framework",
+            "path": "src.governance_framework.scheduler",
+            "description": "Governance scheduling framework",
+            "capabilities": ["governance", "scheduling"]
+        },
+        {
+            "name": "telemetry_ingestion",
+            "path": "src.telemetry_learning.ingestion",
+            "description": "Telemetry ingestion and analytics",
+            "capabilities": ["telemetry", "analytics"]
+        },
+        {
+            "name": "mfgc_adapter",
+            "path": "src.mfgc_adapter",
+            "description": "MFGC adapter",
+            "capabilities": ["adapter", "execution_fallback"]
+        },
+        {
+            "name": "system_integrator",
+            "path": "src.system_integrator",
+            "description": "System integrator bridge",
+            "capabilities": ["integration", "adapter_bridge"]
+        },
+        {
             "name": "gate_synthesis",
             "path": "src.gate_synthesis",
             "description": "Gate synthesis engine",
