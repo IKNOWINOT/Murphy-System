@@ -1076,11 +1076,10 @@ class MurphySystem:
             if blocked_by:
                 status = "blocked"
                 reason = self._determine_gate_reason(status, validated_override, blocked_by)
-            elif status == "blocked":
-                reason = self._determine_gate_reason(status, validated_override, None)
-                blocked_by = name
             else:
                 reason = self._determine_gate_reason(status, validated_override, None)
+                if status == "blocked":
+                    blocked_by = name
             gates.append({
                 "name": name,
                 "threshold": threshold,
