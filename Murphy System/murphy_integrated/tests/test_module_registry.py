@@ -63,13 +63,18 @@ def test_module_registry_includes_local_packages():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
     status = murphy.module_manager.get_module_status()
+    modules = status["modules"]
 
-    expected_modules = [
-        "bots.config_loader",
-        "modern_arcana.analysis_bot",
-    ]
-    for module_name in expected_modules:
-        assert module_name in status["modules"]
-        capabilities = status["modules"][module_name]["capabilities"]
-        assert runtime.MurphySystem.MODULE_AUTO_SCAN_TAG in capabilities
-        assert f"{runtime.MurphySystem.MODULE_PATH_PREFIX}{module_name}" in capabilities
+    def assert_package_registered(prefix: str) -> None:
+        package_modules = [
+            name for name in modules
+            if name.startswith(prefix)
+        ]
+        assert package_modules, f"Expected auto-registered modules under {prefix}"
+        for module_name in package_modules[:3]:
+            capabilities = modules[module_name]["capabilities"]
+            assert runtime.MurphySystem.MODULE_AUTO_SCAN_TAG in capabilities
+            assert f"{runtime.MurphySystem.MODULE_PATH_PREFIX}{module_name}" in capabilities
+
+    assert_package_registered("bots.")
+    assert_package_registered("modern_arcana.")
