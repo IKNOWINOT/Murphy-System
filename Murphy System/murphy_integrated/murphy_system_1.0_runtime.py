@@ -681,6 +681,7 @@ class MurphySystem:
         instance.system_integrator = None
         instance.mfgc_adapter = None
         instance.integration_connectors = {}
+        instance._adapter_availability = None
         return instance
 
     def _initialize_configuration_defaults(self) -> None:
@@ -851,6 +852,7 @@ class MurphySystem:
         self.document_sessions: Dict[str, str] = {}
         self.activation_usage: Dict[str, int] = {}
         self.integration_connectors: Dict[str, Dict[str, Any]] = {}
+        self._adapter_availability: Optional[Dict[str, bool]] = None
         self.latest_activation_preview: Dict[str, Any] = {}
         self.execution_metrics = {"total": 0, "success": 0, "total_time": 0.0}
         self.chat_sessions: Dict[str, Dict] = {}
@@ -900,7 +902,6 @@ class MurphySystem:
         gate_status = dynamic_implementation.get("gate_status", "needs_info")
         execution_strategy = dynamic_implementation.get("execution_strategy", "simulation")
         overall_status = dynamic_implementation.get("status", "needs_info")
-        approval_required = approval_status in self.APPROVAL_BLOCKING_STATUSES
         if overall_status == "ready" and approval_status == "ready":
             status = "ready"
             reason = None
@@ -919,6 +920,7 @@ class MurphySystem:
         else:
             status = overall_status
             reason = f"Execution policy blocked by {overall_status} status."
+        approval_required = status in self.APPROVAL_BLOCKING_STATUSES
         return {
             "status": status,
             "enforced": enforce_policy,
@@ -2797,9 +2799,10 @@ class MurphySystem:
                 "status": status,
                 "configured": bool(registered)
             })
+        adapter_availability = self._get_adapter_availability()
         for adapter in self.CORE_ADAPTER_CANDIDATES:
             module_name = adapter["module"]
-            available = importlib.util.find_spec(module_name) is not None
+            available = adapter_availability.get(module_name, False)
             connectors.append({
                 "id": adapter["id"],
                 "label": adapter["label"],
@@ -2819,6 +2822,16 @@ class MurphySystem:
             },
             "connectors": connectors
         }
+
+    def _get_adapter_availability(self) -> Dict[str, bool]:
+        cache = self._adapter_availability
+        if cache is None:
+            cache = {
+                adapter["module"]: importlib.util.find_spec(adapter["module"]) is not None
+                for adapter in self.CORE_ADAPTER_CANDIDATES
+            }
+            self._adapter_availability = cache
+        return cache
 
     def _suggest_gap_action(self, subsystem_id: str, entry: Optional[Dict[str, Any]]) -> str:
         if not entry or not entry.get("available"):

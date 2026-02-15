@@ -55,7 +55,7 @@ def test_dynamic_implementation_plan_requires_requirements():
     policy = murphy._build_execution_policy(plan, {})
     assert policy["enforced"] is True
     assert policy["status"] == "needs_wiring"
-    assert policy["approval_required"] is True
+    assert policy["approval_required"] is False
     relaxed_policy = murphy._build_execution_policy(plan, {"enforce_policy": False})
     assert relaxed_policy["enforced"] is False
     stages = {stage["id"]: stage for stage in plan["stages"]}
