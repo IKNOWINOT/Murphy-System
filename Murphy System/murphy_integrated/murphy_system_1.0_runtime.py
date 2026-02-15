@@ -1897,7 +1897,7 @@ class MurphySystem:
     ) -> Dict[str, Any]:
         """Execute the legacy two-phase orchestrator path (create + run automation)."""
         requested_domain = (parameters or {}).get("domain")
-        orchestration_domain = task_type if requested_domain is None else requested_domain
+        orchestration_domain = requested_domain or task_type
         try:
             orchestrator = self._get_orchestrator()
             if orchestrator is None:
