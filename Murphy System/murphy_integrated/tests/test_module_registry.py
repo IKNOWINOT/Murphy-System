@@ -1,6 +1,8 @@
 import importlib.util
 from pathlib import Path
 
+SAMPLE_MODULE_LIMIT = 3
+
 
 def load_runtime_module():
     runtime_dir = Path(__file__).resolve().parent.parent
@@ -71,8 +73,8 @@ def test_module_registry_includes_local_packages():
             if name.startswith(prefix)
         ]
         assert package_modules, f"Expected auto-registered modules under {prefix}"
-        sample_limit = 3  # Sample a few modules to keep assertions lightweight.
-        for module_name in package_modules[:sample_limit]:
+        # Sample a few modules to keep assertions lightweight.
+        for module_name in package_modules[:SAMPLE_MODULE_LIMIT]:
             capabilities = modules[module_name]["capabilities"]
             assert runtime.MurphySystem.MODULE_AUTO_SCAN_TAG in capabilities
             assert f"{runtime.MurphySystem.MODULE_PATH_PREFIX}{module_name}" in capabilities
