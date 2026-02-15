@@ -178,6 +178,7 @@ def test_dynamic_implementation_plan_partial_wiring():
 
     murphy.orchestrator = DummyOrchestrator()
     murphy.flow_steps = []
+    # Simulate partial wiring: orchestrator is available, swarm/integration are not.
     murphy.swarm_system = None
     murphy.integration_engine = None
     doc = runtime.LivingDocument("doc-3", "Test", "content", "request")
