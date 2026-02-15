@@ -1196,7 +1196,7 @@ class MurphySystem:
         if not capability.startswith(self.MODULE_CATEGORY_PREFIX):
             return self.MODULE_CATEGORY_UNKNOWN
         parts = capability.split(":", 1)
-        stripped = parts[1].strip() if len(parts) > 1 else ""
+        stripped = parts[1].strip()
         return stripped or self.MODULE_CATEGORY_UNKNOWN
 
     def _should_skip_module_path(self, parts: Tuple[str, ...]) -> bool:
