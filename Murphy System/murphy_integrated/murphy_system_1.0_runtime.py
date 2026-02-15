@@ -486,11 +486,23 @@ class MurphySystem:
             "description": "Trigger automations from schedules and governance policies."
         },
         {
+            "id": "adaptive_execution_routing",
+            "label": "Adaptive execution routing",
+            "capabilities": ["control_plane", "execution_policy", "confidence"],
+            "description": "Route tasks across deterministic and LLM execution paths."
+        },
+        {
             "id": "connector_ecosystem",
             "label": "Connector ecosystem",
             "capabilities": ["integrations", "adapter_runtime"],
             "includes_integration_metrics": True,
             "description": "Integrate external systems, adapters, and delivery channels."
+        },
+        {
+            "id": "multichannel_delivery",
+            "label": "Multi-channel delivery",
+            "capabilities": ["adapter_runtime", "integrations"],
+            "description": "Deliver outputs across documents, email, chat, and voice."
         },
         {
             "id": "policy_as_code",
@@ -505,10 +517,22 @@ class MurphySystem:
             "description": "Enforce approvals and safety policies before execution."
         },
         {
+            "id": "rbac_tenancy",
+            "label": "RBAC + tenant governance",
+            "capabilities": ["security", "governance"],
+            "description": "Standardize role-based access controls and tenant policies."
+        },
+        {
             "id": "audit_compliance",
             "label": "Audit + compliance",
             "capabilities": ["telemetry", "risk", "compliance"],
             "description": "Audit automation actions with compliance gates and telemetry."
+        },
+        {
+            "id": "persistent_memory",
+            "label": "Persistent memory + replay",
+            "capabilities": ["persistence", "audit"],
+            "description": "Persist automation context and enable replayable approvals."
         },
         {
             "id": "observability_aiops",
@@ -531,8 +555,8 @@ class MurphySystem:
         {
             "id": "self_improvement",
             "label": "Self-improvement",
-            "capabilities": ["learning", "correction"],
-            "description": "Learn from feedback to improve future runs."
+            "capabilities": ["learning", "correction", "feedback", "telemetry"],
+            "description": "Learn from corrections with feedback telemetry for self-optimization."
         },
         {
             "id": "knowledge_rag",

@@ -62,7 +62,7 @@ start_murphy_1.0.bat   # Windows
 - **Architect UI:** serve `Murphy System/murphy_integrated/terminal_architect.html` (or `murphy_production_ui.html`, which redirects unless `?legacy=true`) with `python -m http.server 8090` and open `http://localhost:8090/murphy_integrated/terminal_architect.html?apiPort=6666`
 - **Details:** see [Runtime 1.0 Status](<Murphy System/murphy_integrated/RUNTIME_1.0_STATUS.md>)
 - **Competitive alignment:** activation previews now include `competitive_feature_alignment` and `module_registry_summary` so readiness gaps are measurable.
-- **Alignment diagnostics:** competitive feature alignment reports connector readiness and flags configuration errors with guidance for missing capability lists, now covering policy-as-code, observability/AIOps, self-healing, knowledge/RAG, and connector marketplace readiness (see the updated competitive baseline in `FULL_SYSTEM_ASSESSMENT.md`).
+- **Alignment diagnostics:** competitive feature alignment reports connector readiness and flags configuration errors with guidance for missing capability lists, now covering adaptive routing, multi-channel delivery, RBAC/tenant governance, persistent memory (currently missing), policy-as-code, observability/AIOps, self-healing, knowledge/RAG, and connector marketplace readiness (see the updated competitive baseline in `FULL_SYSTEM_ASSESSMENT.md`).
 ---
 
 ## 🗃️ Repository Index (Database-Style Reference)

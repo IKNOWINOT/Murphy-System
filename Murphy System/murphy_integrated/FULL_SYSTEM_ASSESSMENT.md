@@ -52,11 +52,15 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 | --- | --- | --- | --- |
 | Workflow orchestration | Multi-stage workflows across systems | `two_phase_orchestrator`, `execution_engine` | **Available** (core modules present, execution wiring partial) |
 | Event-driven automation | Scheduled + triggered workflows | `governance_framework`, `scheduler` | **Partial** (trigger execution wiring pending) |
+| Adaptive execution routing | Deterministic vs. LLM routing | `universal_control_plane`, `confidence_engine` | **Available** (control plane + confidence available) |
 | Connector ecosystem | Prebuilt connectors + adapters | `integration_engine`, `adapter_framework`, delivery adapters | **Partial** (delivery adapters not wired) |
+| Multi-channel delivery | Document/email/chat/voice delivery | `adapter_framework`, `integration_engine` | **Partial** (delivery adapters not wired) |
 | Connector marketplace | Compile + package adapters for reuse | `module_compiler_adapter`, `adapter_framework` | **Partial** (execution packaging not wired) |
 | Governance & HITL | Role-based approvals + policy checks | `governance_framework`, `hitl_monitor`, gate policies | **Available** (policy enforcement in planning) |
 | Policy-as-code | Codified compliance + approval rules | `governance_framework`, `gate_synthesis` | **Partial** (runtime enforcement pending) |
+| RBAC + tenant governance | Role/tenant policy enforcement | `security_plane_adapter`, `governance_framework` | **Partial** (policies defined; tenant enforcement pending) |
 | Audit & compliance | Audit trails + compliance gates | `telemetry_ingestion`, `gate_synthesis` | **Partial** (persistence/audit store not wired) |
+| Persistent memory + replay | Durable context + replay | *Not wired (persistence layer missing)* | **Missing** |
 | Observability + AIOps | Runtime telemetry + feedback | `telemetry_ingestion`, `recursive_stability_controller` | **Partial** (dashboards not wired) |
 | Monitoring & analytics | Execution dashboards + analytics | `telemetry_ingestion`, telemetry adapter | **Partial** (dashboards not wired) |
 | Self-healing automation | Rollbacks + stabilization loops | `recursive_stability_controller`, governance gates | **Partial** (rollback wiring pending) |
