@@ -269,7 +269,6 @@ class MurphySystem:
     GATE_OVERRIDE_VALUES = {"open", "blocked"}
     COMPLIANCE_BLOCKED_STATES = {"blocked", "failed", "denied"}
     COMPLIANCE_PENDING_STATES = {"pending", "review", "queued"}
-    STATUSES_BLOCKING_EXECUTION = {"needs_info", "pending_approval"}
     MAX_FAILURE_MODE_DESC_LENGTH = 80
     MAX_SAMPLE_GATES = 3
     DEFAULT_PHASE_VERBOSITY = 1
@@ -895,6 +894,7 @@ class MurphySystem:
                 "status": "unavailable",
                 "enforced": enforce_policy,
                 "approval_required": False,
+                "execution_blocked": True,
                 "reason": "Dynamic implementation plan unavailable."
             }
         approval_policy = dynamic_implementation.get("approval_policy", {})
@@ -920,11 +920,13 @@ class MurphySystem:
         else:
             status = overall_status
             reason = f"Execution policy blocked by {overall_status} status."
-        approval_required = status in self.STATUSES_BLOCKING_EXECUTION
+        approval_required = approval_status == "pending_approval"
+        execution_blocked = status != "ready"
         return {
             "status": status,
             "enforced": enforce_policy,
             "approval_required": approval_required,
+            "execution_blocked": execution_blocked,
             "approval_status": approval_status,
             "gate_status": gate_status,
             "execution_strategy": execution_strategy,
