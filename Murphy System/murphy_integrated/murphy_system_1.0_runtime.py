@@ -3000,11 +3000,17 @@ class MurphySystem:
                 "average_confidence": round(avg_subject_confidence, 3),
                 "average_seconds": round(avg_subject_time, 1)
             })
+        wingman_protocol = self._build_wingman_protocol(
+            patterns,
+            high_confidence,
+            subject_summary
+        )
         return {
             "model": "causal_path_confidence",
             "threshold": self.HIGH_CONFIDENCE_THRESHOLD,
             "patterns": patterns,
             "high_confidence_paths": high_confidence,
+            "wingman_protocol": wingman_protocol,
             "graphing": {
                 "subjects": subject_ids,
                 "subject_summary": subject_summary,
@@ -3042,6 +3048,39 @@ class MurphySystem:
                     }
                 ]
             }
+        }
+
+    def _build_wingman_protocol(
+        self,
+        patterns: List[Dict[str, Any]],
+        high_confidence: List[Dict[str, Any]],
+        subject_summary: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        validator_ready = bool(high_confidence)
+        subjects = [entry["subject"] for entry in subject_summary]
+        return {
+            "status": "ready" if validator_ready else "needs_info",
+            "action_side": {
+                "role": "primary_executor",
+                "focus": "Execute approved tasks and capture stage evidence.",
+                "subjects": subjects
+            },
+            "validator_side": {
+                "role": "deterministic_validator",
+                "focus": "Verify outputs against gate criteria and deterministic checks.",
+                "subjects": subjects
+            },
+            "training_sources": [
+                "scripted_ui_screenshots",
+                "gate_chain_outputs",
+                "high_confidence_paths"
+            ],
+            "deterministic_checks": [
+                "compute_plane_validation",
+                "gate_policy_alignment",
+                "delivery_readiness"
+            ],
+            "loop_notes": "Pair execution with validation feedback to train reusable runbooks per subject."
         }
 
     def _map_stage_confidence(self, status: str) -> float:

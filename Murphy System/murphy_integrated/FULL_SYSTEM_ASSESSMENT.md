@@ -104,6 +104,7 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 2. **Policy compiler** to enforce gates in real-time execution.
 3. **Unified adapter layer** for all delivery channels.
 4. **Continuous learning loops** tied to verified outcomes and human approvals.
+5. **Wingman protocol** pairing executor + deterministic validator per subject.
 
 ## 7) Immediate next actions
 
@@ -124,6 +125,7 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 - **Compliance validation:** regulatory sensors, policy gates, and HITL approvals tied to deliverable releases.
 - **Operations automation:** remote access invites, ticketing, patch/rollback automation, and production telemetry.
 - **Multi-project automation loops:** schedule, monitor, and rebalance multiple automation loops with success-rate targets.
+- **Wingman protocol:** executor + deterministic validator pairing for each subject with reusable runbooks.
 
 **Bottom line:** Runtime 1.0 is a strong planning/preview engine. To make it a fully dynamic automation runtime, focus on execution wiring, persistent memory, and channel adapters before scaling operational automation.
 
@@ -172,6 +174,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 3. **Multi-loop scheduling tests**: validate trigger schedules across concurrent automation loops.
 4. **Compliance + delivery tests**: assert approval gating before release of documents/email/chat.
 5. **Persistence + replay tests**: verify stored session data, replayed approvals, and rollback.
+6. **Wingman protocol tests**: validate executor/validator pairing and deterministic checks per subject.
 
 ---
 
@@ -198,6 +201,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 ### Step 5 — Multi-project automation loops
 1. Enable scheduler-driven multi-project execution with load balancing.
 2. Validate compliance sensors against region-specific requirements before delivery.
+3. Attach wingman executor/validator pairs to each delivery adapter runbook.
 
 ---
 
