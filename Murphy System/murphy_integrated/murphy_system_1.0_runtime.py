@@ -1716,6 +1716,18 @@ class MurphySystem:
             fallback["persistence_snapshot"] = persistence_snapshot
             return fallback
 
+        if not self._supports_async_orchestrator():
+            return self._execute_two_phase_orchestrator(
+                task_description,
+                task_type,
+                parameters,
+                doc,
+                activation_preview,
+                execution_wiring,
+                execution_policy,
+                persistence_snapshot
+            )
+
         try:
             # Phase 1: Generative Setup
             logger.info("Phase 1: Generative Setup...")
@@ -1848,12 +1860,68 @@ class MurphySystem:
             }
         }
 
-    def _is_orchestrator_available(self) -> bool:
+    def _supports_async_orchestrator(self) -> bool:
         return (
             self.orchestrator is not None
             and hasattr(self.orchestrator, "phase1_generative_setup")
             and hasattr(self.orchestrator, "phase2_production_execution")
         )
+
+    def _supports_two_phase_orchestrator(self) -> bool:
+        return (
+            self.orchestrator is not None
+            and hasattr(self.orchestrator, "create_automation")
+            and hasattr(self.orchestrator, "run_automation")
+        )
+
+    def _is_orchestrator_available(self) -> bool:
+        return self._supports_async_orchestrator() or self._supports_two_phase_orchestrator()
+
+    def _execute_two_phase_orchestrator(
+        self,
+        task_description: str,
+        task_type: str,
+        parameters: Optional[Dict[str, Any]],
+        doc: LivingDocument,
+        activation_preview: Dict[str, Any],
+        execution_wiring: Optional[Dict[str, Any]],
+        execution_policy: Dict[str, Any],
+        persistence_snapshot: Optional[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Execute the legacy two-phase orchestrator path (create + run automation)."""
+        orchestration_domain = (parameters or {}).get("domain") or task_type
+        try:
+            automation_id = self.orchestrator.create_automation(task_description, orchestration_domain)
+            run_result = self.orchestrator.run_automation(automation_id)
+            return {
+                "success": True,
+                "automation_id": automation_id,
+                "session_id": automation_id,
+                "result": run_result,
+                "deliverables": run_result.get("deliverables", []),
+                "doc_id": doc.doc_id,
+                "activation_preview": activation_preview,
+                "execution_wiring": execution_wiring,
+                "execution_policy": execution_policy,
+                "persistence_snapshot": persistence_snapshot,
+                "metadata": {
+                    "task_description": task_description,
+                    "task_type": task_type,
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "mode": "two_phase_orchestrator"
+                }
+            }
+        except Exception as exc:
+            logger.error("Two-Phase Orchestrator execution failed: %s", exc)
+            return {
+                "success": False,
+                "error": str(exc),
+                "phase": "orchestrator",
+                "activation_preview": activation_preview,
+                "execution_wiring": execution_wiring,
+                "execution_policy": execution_policy,
+                "persistence_snapshot": persistence_snapshot
+            }
 
     def _execute_with_mfgc_adapter(
         self,
