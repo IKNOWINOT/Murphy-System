@@ -3214,6 +3214,7 @@ class MurphySystem:
         self,
         integration_capabilities: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
+        log = logging.getLogger(__name__)
         status = self.module_manager.get_module_status()
         modules = status.get("modules", {})
         capability_set = {
@@ -3251,11 +3252,11 @@ class MurphySystem:
                 "coverage": round(coverage, 2),
                 "required_capabilities": required,
                 "available_capabilities": available,
-                "missing_capabilities": missing,
-                "error": error
+                "missing_capabilities": missing
             }
             if error:
-                logger.warning("Competitive feature configuration issue for %s: %s", feature["id"], error)
+                entry["error"] = error
+                log.warning("Competitive feature configuration issue for %s: %s", feature["id"], error)
             if feature.get("includes_integration_metrics"):
                 summary = integration_capabilities.get("summary", {})
                 ready = summary.get("ready", 0)
