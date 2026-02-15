@@ -112,7 +112,9 @@ These percentages are **current estimates** based on wired functionality vs. pla
 | UI + user testing | 70% | Architect UI + scripted screenshots now in place |
 | Test coverage for dynamic chains | 55% | Dynamic plan tests exist; execution/integration tests still pending |
 
-**Progress update protocol:** attach user-script screenshots + test results for every percentage change.
+**Progress update protocol:** store user-script screenshots in `docs/screenshots/` and reference them in
+`VISUAL_SETUP_GUIDE_WITH_SCREENSHOTS.md`. Record the matching pytest command/output in this assessment
+entry whenever a percentage changes.
 
 ---
 
