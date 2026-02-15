@@ -1123,7 +1123,7 @@ class MurphySystem:
         return self._collect_module_paths(src_root, "src")
 
     def _collect_local_module_paths(self, root: Path) -> List[str]:
-        module_paths = set(self._collect_root_module_paths(root))
+        module_paths = self._collect_root_module_paths(root)
         for package_dir in root.iterdir():
             if not package_dir.is_dir():
                 continue
@@ -1139,8 +1139,8 @@ class MurphySystem:
         for py_file in root.glob("*.py"):
             if py_file.name == "__init__.py":
                 continue
-            if "." in py_file.stem:
-                # Skip versioned module filenames (e.g., murphy_system_1.0_runtime.py)
+            if re.search(r"\d+\.\d+", py_file.stem):
+                # Skip versioned module filenames (e.g., murphy_system_1.0_runtime.py).
                 continue
             module_path_set.add(py_file.stem)
         return module_path_set
