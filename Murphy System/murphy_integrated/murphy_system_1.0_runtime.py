@@ -1388,6 +1388,7 @@ class MurphySystem:
         }
 
     def _get_compute_service(self) -> Optional["ComputeService"]:
+        """Return a cached compute service instance, or None if unavailable."""
         if self._compute_service is not None:
             return self._compute_service
         try:
@@ -1401,7 +1402,11 @@ class MurphySystem:
         self,
         parameters: Optional[Dict[str, Any]]
     ) -> Optional[Dict[str, Any]]:
-        """Run deterministic compute-plane validation when compute inputs are provided."""
+        """Run deterministic compute-plane validation when compute inputs are provided.
+
+        ComputeService.validate_expression returns either a ValidationResult object or a dict,
+        so the payload is normalized to a dictionary for consistent downstream usage.
+        """
         compute_request = (parameters or {}).get("compute_request")
         if not compute_request:
             return None
@@ -1501,7 +1506,7 @@ class MurphySystem:
             if not session_id:
                 session_payload = self.create_session()
             resolved_session = session_id or (session_payload or {}).get("session_id")
-            if resolved_session:
+            if status == "validated" and resolved_session:
                 self.document_sessions[resolved_session] = doc.doc_id
             return {
                 "success": status == "validated",
