@@ -1860,18 +1860,23 @@ class MurphySystem:
             }
         }
 
+    def _get_orchestrator(self) -> Optional[Any]:
+        return self.orchestrator
+
     def _supports_async_orchestrator(self) -> bool:
+        orchestrator = self._get_orchestrator()
         return (
-            self.orchestrator is not None
-            and hasattr(self.orchestrator, "phase1_generative_setup")
-            and hasattr(self.orchestrator, "phase2_production_execution")
+            orchestrator is not None
+            and hasattr(orchestrator, "phase1_generative_setup")
+            and hasattr(orchestrator, "phase2_production_execution")
         )
 
     def _supports_two_phase_orchestrator(self) -> bool:
+        orchestrator = self._get_orchestrator()
         return (
-            self.orchestrator is not None
-            and hasattr(self.orchestrator, "create_automation")
-            and hasattr(self.orchestrator, "run_automation")
+            orchestrator is not None
+            and hasattr(orchestrator, "create_automation")
+            and hasattr(orchestrator, "run_automation")
         )
 
     def _is_orchestrator_available(self) -> bool:
@@ -1891,8 +1896,11 @@ class MurphySystem:
         """Execute the legacy two-phase orchestrator path (create + run automation)."""
         orchestration_domain = (parameters or {}).get("domain") or task_type
         try:
-            automation_id = self.orchestrator.create_automation(task_description, orchestration_domain)
-            run_result = self.orchestrator.run_automation(automation_id)
+            orchestrator = self._get_orchestrator()
+            if orchestrator is None:
+                raise RuntimeError("Orchestrator unavailable for two-phase execution.")
+            automation_id = orchestrator.create_automation(task_description, orchestration_domain)
+            run_result = orchestrator.run_automation(automation_id)
             return {
                 "success": True,
                 "automation_id": automation_id,

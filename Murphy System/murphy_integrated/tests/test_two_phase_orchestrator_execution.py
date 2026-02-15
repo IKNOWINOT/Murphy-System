@@ -21,8 +21,8 @@ class StubTwoPhaseOrchestrator:
     def __init__(self):
         self.calls = []
 
-    def create_automation(self, request: str, domain: str) -> str:
-        self.calls.append(("create", request, domain))
+    def create_automation(self, task_description: str, domain: str) -> str:
+        self.calls.append(("create", task_description, domain))
         return "automation-123"
 
     def run_automation(self, automation_id: str):
