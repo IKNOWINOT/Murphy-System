@@ -3823,6 +3823,43 @@ class MurphySystem:
             "connectors": connectors
         }
 
+    def _build_adapter_execution_snapshot(self) -> Dict[str, Any]:
+        adapter_availability = self._get_adapter_availability()
+        configured_ids = {
+            connector_id
+            for connector_id, connector in self.integration_connectors.items()
+            if connector.get("status") == "configured"
+        }
+        adapters = []
+        for adapter in self.CORE_ADAPTER_CANDIDATES:
+            module_name = adapter["module"]
+            available = adapter_availability.get(module_name, False)
+            configured = adapter["id"] in configured_ids
+            if configured:
+                status = "configured"
+            elif available:
+                status = "available"
+            else:
+                status = "needs_integration"
+            adapters.append({
+                **adapter,
+                "available": available,
+                "configured": configured,
+                "status": status
+            })
+        configured_count = len([adapter for adapter in adapters if adapter["status"] == "configured"])
+        available_count = len([adapter for adapter in adapters if adapter["status"] == "available"])
+        total = len(adapters)
+        return {
+            "summary": {
+                "total": total,
+                "configured": configured_count,
+                "available": available_count,
+                "needs_integration": total - configured_count - available_count
+            },
+            "adapters": adapters
+        }
+
     def _build_delivery_adapter_snapshot(self) -> Dict[str, Any]:
         configured_ids = {
             connector_id
@@ -4717,6 +4754,7 @@ class MurphySystem:
         competitive_feature_alignment = self._build_competitive_feature_alignment(
             integration_capabilities
         )
+        adapter_execution = self._build_adapter_execution_snapshot()
         execution_wiring = self._build_execution_wiring_snapshot(doc)
         persistence_status = self._build_persistence_status()
         observability_snapshot = self._build_observability_snapshot()
@@ -4763,6 +4801,7 @@ class MurphySystem:
             "persistence": persistence_status,
             "observability": observability_snapshot,
             "integration_capabilities": integration_capabilities,
+            "adapter_execution": adapter_execution,
             "competitive_feature_alignment": competitive_feature_alignment
         }
         if onboarding_context:
@@ -5241,6 +5280,7 @@ class MurphySystem:
             'module_registry_summary': self._build_module_registry_summary(),
             'registry_health': self._build_registry_health_snapshot(),
             'schema_drift': self._build_schema_drift_snapshot(),
+            'adapter_execution': self._build_adapter_execution_snapshot(),
             'observability': self._build_observability_snapshot(),
             'handoff_queue': self._build_handoff_queue_snapshot(),
             'learning_backlog': learning_backlog,
