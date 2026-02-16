@@ -1856,9 +1856,8 @@ class MurphySystem:
                     "doc_id": doc.doc_id
                 }
             )
-        compute_request = (parameters or {}).get("compute_request")
         resolved_compute_session = None
-        if compute_request:
+        if (parameters or {}).get("compute_request"):
             resolved_compute_session = self._resolve_compute_session(session_id)
         compute_plane_result = self._execute_compute_plane_validation(parameters)
         if compute_plane_result:
