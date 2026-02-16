@@ -4482,6 +4482,90 @@ class MurphySystem:
             "gap_action": gap_action
         }
 
+    def _build_governance_dashboard_snapshot(
+        self,
+        executive_directive: Optional[Dict[str, Any]],
+        operations_plan: Optional[List[Dict[str, Any]]],
+        delivery_readiness: Optional[Dict[str, Any]],
+        handoff_queue: Optional[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        operations_plan = operations_plan or []
+        delivery_readiness = delivery_readiness or {}
+        handoff_queue = handoff_queue or {}
+        executive_status = (
+            (executive_directive or {}).get("delivery_readiness")
+            or delivery_readiness.get("status")
+            or "needs_info"
+        )
+        delivery_status = delivery_readiness.get("status", "needs_info")
+        compliance_status = delivery_readiness.get("compliance_status", "needs_info")
+        hitl_status = handoff_queue.get("status", "unavailable")
+
+        if not operations_plan:
+            operations_status = "needs_wiring"
+        elif all(task.get("status") in {"ready", "complete"} for task in operations_plan):
+            operations_status = "ready"
+        else:
+            operations_status = "pending"
+
+        qa_tasks = [task for task in operations_plan if task.get("owner") == "quality_assurance"]
+        if not qa_tasks:
+            qa_status = "needs_wiring"
+        elif all(task.get("status") in {"ready", "complete"} for task in qa_tasks):
+            qa_status = "ready"
+        else:
+            qa_status = "pending"
+
+        components = {
+            "executive": executive_status,
+            "operations": operations_status,
+            "quality_assurance": qa_status,
+            "hitl": hitl_status,
+            "delivery": delivery_status,
+            "compliance": compliance_status
+        }
+        summary = {
+            "total": len(components),
+            "ready": 0,
+            "pending": 0,
+            "needs_info": 0,
+            "needs_wiring": 0,
+            "other": 0
+        }
+        normalized = {}
+        for component, status in components.items():
+            normalized_status = "other"
+            if status in {"ready", "clear", "configured"}:
+                normalized_status = "ready"
+            elif status in {"pending", "pending_review", "pending_approval", "blocked", "needs_compliance"}:
+                normalized_status = "pending"
+            elif status == "needs_wiring":
+                normalized_status = "needs_wiring"
+            elif status == "needs_info":
+                normalized_status = "needs_info"
+            summary[normalized_status] += 1
+            normalized[component] = {"status": status, "normalized_status": normalized_status}
+
+        if summary["needs_wiring"]:
+            overall_status = "needs_wiring"
+            gap_action = "Initialize missing governance services and delivery connectors."
+        elif summary["needs_info"]:
+            overall_status = "needs_info"
+            gap_action = "Collect missing governance inputs and compliance evidence."
+        elif summary["pending"]:
+            overall_status = "pending_review"
+            gap_action = "Review pending approvals and QA checks."
+        else:
+            overall_status = "ready"
+            gap_action = "Governance dashboard ready for execution."
+
+        return {
+            "status": overall_status,
+            "summary": summary,
+            "components": normalized,
+            "gap_action": gap_action
+        }
+
     def _build_learning_backlog_snapshot(
         self,
         learning_loop: Optional[Dict[str, Any]],
@@ -5257,6 +5341,12 @@ class MurphySystem:
         handoff_queue = self._build_handoff_queue_snapshot(hitl_contracts)
         workload_distribution = self._build_workload_distribution(operations_plan)
         executive_directive = self._build_executive_directive(task_description, operations_plan, delivery_readiness)
+        governance_dashboard = self._build_governance_dashboard_snapshot(
+            executive_directive,
+            operations_plan,
+            delivery_readiness,
+            handoff_queue
+        )
         capability_review = self._build_capability_review(
             capability_tests,
             capability_alignment,
@@ -5315,6 +5405,7 @@ class MurphySystem:
             "business_automation_summary": business_summary,
             "executive_branch_plan": executive_plan,
             "executive_directive": executive_directive,
+            "governance_dashboard": governance_dashboard,
             "operations_plan": operations_plan,
             "workload_distribution": workload_distribution,
             "hitl_contracts": hitl_contracts,
@@ -5788,6 +5879,12 @@ class MurphySystem:
             latest_preview.get("dynamic_implementation"),
             latest_preview.get("capability_review")
         )
+        governance_dashboard = self._build_governance_dashboard_snapshot(
+            latest_preview.get("executive_directive"),
+            latest_preview.get("operations_plan"),
+            latest_preview.get("delivery_readiness"),
+            latest_preview.get("handoff_queue")
+        )
         return {
             'version': self.version,
             'status': 'running',
@@ -5825,6 +5922,7 @@ class MurphySystem:
             'orchestrator_readiness': self._build_orchestrator_readiness_snapshot(),
             'observability': self._build_observability_snapshot(),
             'handoff_queue': self._build_handoff_queue_snapshot(),
+            'governance_dashboard': governance_dashboard,
             'learning_backlog': learning_backlog,
             'self_improvement': self_improvement_snapshot,
             'self_operation': {
