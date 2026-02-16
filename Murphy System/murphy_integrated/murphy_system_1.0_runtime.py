@@ -2640,10 +2640,15 @@ class MurphySystem:
             status = "ready"
             gap_action = "Ready for human review once HITL approvals are satisfied."
         delivery_adapters = self._build_delivery_adapter_snapshot()
+        connector_orchestration = self._build_connector_orchestration_snapshot(delivery_adapters)
         adapter_summary = delivery_adapters.get("summary", {})
         if status == "ready" and adapter_summary.get("configured", 0) < adapter_summary.get("total", 0):
             status = "needs_wiring"
             gap_action = "Configure delivery adapters for document/email/chat/voice outputs."
+        connector_summary = connector_orchestration.get("summary", {})
+        if status == "ready" and connector_summary.get("configured", 0) < connector_summary.get("total", 0):
+            status = "needs_wiring"
+            gap_action = connector_orchestration.get("gap_action", gap_action)
         return {
             "status": status,
             "requirements_status": requirements_status,
@@ -2655,7 +2660,8 @@ class MurphySystem:
             "regulatory_source": sensor_plan.get("primary_regulatory_source", {}).get("id"),
             "approval_policy": approval_policy,
             "gap_action": gap_action,
-            "delivery_adapters": delivery_adapters
+            "delivery_adapters": delivery_adapters,
+            "connector_orchestration": connector_orchestration
         }
 
     def _extract_deliverables(
@@ -4111,6 +4117,53 @@ class MurphySystem:
                 "unconfigured": total - ready_count
             },
             "adapters": adapters
+        }
+
+    def _build_connector_orchestration_snapshot(
+        self,
+        delivery_snapshot: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        delivery_snapshot = delivery_snapshot or self._build_delivery_adapter_snapshot()
+        channels = []
+        for adapter in delivery_snapshot.get("adapters", []):
+            channel = adapter.get("channel")
+            configured_connectors = self._get_configured_delivery_connectors(channel) if channel else []
+            connector_ids = [connector["id"] for connector in configured_connectors]
+            if connector_ids:
+                status = "configured"
+            elif adapter.get("status") == "available":
+                status = "available"
+            else:
+                status = "needs_integration"
+            channels.append({
+                "channel": channel,
+                "adapter_id": adapter.get("id"),
+                "adapter_status": adapter.get("status"),
+                "configured_connectors": connector_ids,
+                "status": status
+            })
+        configured = len([entry for entry in channels if entry["status"] == "configured"])
+        available = len([entry for entry in channels if entry["status"] == "available"])
+        total = len(channels)
+        if total and configured == total:
+            orchestration_status = "ready"
+            gap_action = "All delivery channels configured."
+        elif configured:
+            orchestration_status = "partial"
+            gap_action = "Configure remaining delivery channels for full coverage."
+        else:
+            orchestration_status = "needs_integration"
+            gap_action = "Configure delivery connectors for document/email/chat/voice outputs."
+        return {
+            "status": orchestration_status,
+            "summary": {
+                "total": total,
+                "configured": configured,
+                "available": available,
+                "needs_integration": total - configured - available
+            },
+            "channels": channels,
+            "gap_action": gap_action
         }
 
     def _get_configured_delivery_connectors(self, channel: str) -> List[Dict[str, Any]]:
