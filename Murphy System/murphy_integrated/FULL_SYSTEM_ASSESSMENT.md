@@ -183,10 +183,9 @@ These percentages are **current estimates** based on wired functionality vs. pla
 **Remaining expansion**
 
 1. **Execution wiring tests**: orchestrator + MFGC fallback with live task execution results.
-2. **Gate chain sequencing tests**: verify dynamic chain control points under mixed gate states.
-3. **Multi-loop scheduling tests**: validate trigger schedules across concurrent automation loops.
-4. **Compliance + delivery tests**: assert approval gating before release of documents/email/chat.
-5. **Persistence + replay tests**: verify stored session data, replayed approvals, and rollback.
+2. **Multi-loop scheduling tests**: validate trigger schedules across concurrent automation loops.
+3. **Compliance + delivery tests**: assert approval gating before release of documents/email/chat.
+4. **Persistence + replay tests**: verify stored session data, replayed approvals, and rollback.
 
 **Completed dynamic test modules**
 
@@ -198,8 +197,9 @@ These percentages are **current estimates** based on wired functionality vs. pla
 6. **Audit snapshot tests**: `test_audit_snapshot.py` validates audit snapshot summary output.
 7. **Persistence snapshot index tests**: `test_persistence_snapshot_index.py` validates snapshot index reporting in persistence status.
 8. **Learning backlog routing tests**: `test_learning_backlog_snapshot.py` validates learning backlog routing snapshot output.
-9. **Wingman protocol tests**: `test_dynamic_implementation_plan.py` validates executor/validator pairing and deterministic checks per subject.
-10. **Swarm execution path tests**: `test_swarm_execution_path.py` validates `run_swarm_execution` outputs.
+9. **Gate chain sequencing tests**: `test_gate_chain_sequencing.py` validates gate blocking propagation and reasons.
+10. **Wingman protocol tests**: `test_dynamic_implementation_plan.py` validates executor/validator pairing and deterministic checks per subject.
+11. **Swarm execution path tests**: `test_swarm_execution_path.py` validates `run_swarm_execution` outputs.
 
 ---
 

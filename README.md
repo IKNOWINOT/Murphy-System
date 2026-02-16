@@ -79,6 +79,7 @@ start_murphy_1.0.bat   # Windows
 - **HITL handoff queue test:** `tests/test_handoff_queue_snapshot.py` validates backlog visibility for HITL interventions and contract approvals.
 - **Self-improvement snapshot test:** `tests/test_self_improvement_snapshot.py` validates remediation backlog and action outputs.
 - **Two-phase orchestrator tests:** `tests/test_two_phase_orchestrator_execution.py` validates routing plus domain fallback for the legacy phase1/phase2 create/run automation path.
+- **Gate chain sequencing tests:** `tests/test_gate_chain_sequencing.py` validates gate blocking propagation and reasons.
 - **Swarm execution tests:** `tests/test_swarm_execution_path.py` validates swarm execution preview summaries for initialized and missing swarm systems.
 - **Two-phase session handling:** uses a dedicated session ID separate from the automation ID; `session_id_source` indicates when the automation_id fallback is used if session creation fails.
 - **Architect UI:** serve `Murphy System/murphy_integrated/terminal_architect.html` (or `murphy_production_ui.html`, which redirects unless `?legacy=true`) with `python -m http.server 8090` and open `http://localhost:8090/murphy_integrated/terminal_architect.html?apiPort=6666`
