@@ -276,7 +276,7 @@ class MurphySystem:
     GATE_OVERRIDE_VALUES = {"open", "blocked"}
     COMPLIANCE_BLOCKED_STATES = {"blocked", "failed", "denied"}
     COMPLIANCE_PENDING_STATES = {"pending", "review", "queued"}
-    VALID_DELIVERY_CHANNELS = {"document", "email", "chat", "voice"}
+    VALID_DELIVERY_CHANNELS = {"document", "email", "chat", "voice", "unknown"}
     PERSISTENCE_DIR_ENV = "MURPHY_PERSISTENCE_DIR"
     PERSISTENCE_SNAPSHOT_PREFIX = "activation_snapshot"
     MAX_FAILURE_MODE_DESC_LENGTH = 80
