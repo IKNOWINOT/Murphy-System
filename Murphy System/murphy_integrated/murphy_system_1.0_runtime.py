@@ -4141,8 +4141,10 @@ class MurphySystem:
         recipients_raw = params.get("email_recipients") or []
         if isinstance(recipients_raw, list):
             recipients = [str(item) for item in recipients_raw if item]
-        else:
+        elif recipients_raw:
             recipients = [str(recipients_raw)]
+        else:
+            recipients = []
         subject = params.get("email_subject") or f"Automation update: {task_type}"
         summary_text = params.get("email_summary") or self._truncate_description(task_description)
         body = params.get("email_body") or f"{summary_text}\n\nTask: {task_description}"
