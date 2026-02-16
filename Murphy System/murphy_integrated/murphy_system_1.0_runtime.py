@@ -4025,7 +4025,7 @@ class MurphySystem:
         if not connectors:
             return None
         try:
-            # Lazy import keeps execution engines optional unless document delivery is requested.
+            # Lazy import keeps DocumentGenerationEngine optional unless document delivery is requested.
             from src.execution.document_generation_engine import (
                 DocumentGenerationEngine,
                 DocumentTemplate,
@@ -4041,7 +4041,13 @@ class MurphySystem:
             "Task: {task}\nSummary: {summary}\nDeliverable: {deliverable}"
         )
         placeholder_matches = re.findall(r"{([^}]+)}", template_content)
-        placeholders = sorted({match.strip() for match in placeholder_matches if match.strip()})
+        placeholders = sorted(
+            {
+                match.strip()
+                for match in placeholder_matches
+                if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", match.strip())
+            }
+        )
         if not placeholders:
             placeholders = ["task", "summary", "deliverable"]
         context = dict(params.get("document_context") or {})
@@ -4064,7 +4070,7 @@ class MurphySystem:
                 )
                 return None
         # Select the first connector alphabetically by ID for deterministic behavior.
-        selected_connector = sorted(connectors, key=lambda connector: connector["id"])[0]
+        selected_connector = min(connectors, key=lambda connector: connector["id"])
         engine = DocumentGenerationEngine()
         template = DocumentTemplate(
             template_id=template_id,
