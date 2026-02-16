@@ -3739,6 +3739,45 @@ class MurphySystem:
             "adapters": adapters
         }
 
+    def _build_handoff_queue_snapshot(
+        self,
+        hitl_contracts: Optional[List[Dict[str, Any]]] = None
+    ) -> Dict[str, Any]:
+        pending_interventions = [
+            item for item in self.hitl_interventions.values() if item.get("status") == "pending"
+        ]
+        contract_queue = hitl_contracts or []
+        pending_contracts = []
+        for contract in contract_queue:
+            status = (contract.get("status") or "").lower()
+            if status in {"approved", "complete", "ready", "cleared"}:
+                continue
+            pending_contracts.append(contract)
+        total_pending = len(pending_interventions) + len(pending_contracts)
+        monitor_ready = bool(self.hitl_monitor)
+        if monitor_ready:
+            queue_status = "pending_review" if total_pending else "clear"
+        else:
+            queue_status = "needs_wiring" if total_pending else "monitor_unavailable"
+        if total_pending:
+            gap_action = "Review pending HITL requests and contract approvals."
+        elif monitor_ready:
+            gap_action = "No HITL backlog; monitor ready for new approvals."
+        else:
+            gap_action = "Initialize HITL monitor to track approvals and handoff requests."
+        return {
+            "status": queue_status,
+            "monitor_status": "ready" if monitor_ready else "needs_wiring",
+            "summary": {
+                "pending_interventions": len(pending_interventions),
+                "pending_contracts": len(pending_contracts),
+                "total_pending": total_pending
+            },
+            "pending_interventions": pending_interventions,
+            "pending_contracts": pending_contracts,
+            "gap_action": gap_action
+        }
+
     def _build_competitive_feature_alignment(
         self,
         integration_capabilities: Optional[Dict[str, Any]] = None
@@ -4403,6 +4442,7 @@ class MurphySystem:
             sensor_plan,
             hitl_contracts
         )
+        handoff_queue = self._build_handoff_queue_snapshot(hitl_contracts)
         workload_distribution = self._build_workload_distribution(operations_plan)
         executive_directive = self._build_executive_directive(task_description, operations_plan, delivery_readiness)
         capability_review = self._build_capability_review(
@@ -4466,6 +4506,7 @@ class MurphySystem:
             "self_operation": self_operation,
             "learning_loop": learning_loop,
             "delivery_readiness": delivery_readiness,
+            "handoff_queue": handoff_queue,
             "capability_review": capability_review,
             "dynamic_implementation": dynamic_implementation,
             "execution_wiring": execution_wiring,
@@ -4938,6 +4979,7 @@ class MurphySystem:
             'module_registry': self.module_manager.get_module_status(),
             'module_registry_summary': self._build_module_registry_summary(),
             'observability': self._build_observability_snapshot(),
+            'handoff_queue': self._build_handoff_queue_snapshot(),
             'self_operation': {
                 'enabled': self_operation_enabled,
                 'can_work_on_self': self_operation_enabled and correction_system_available,
