@@ -1741,10 +1741,7 @@ class MurphySystem:
         so the payload is normalized to a dictionary for consistent downstream usage.
         """
         swarm_execution = None
-        swarm_execution = None
-        swarm_execution = None
         compute_request = (parameters or {}).get("compute_request")
-        swarm_execution = None
         if (parameters or {}).get("run_swarm_execution"):
             swarm_execution = self._attempt_true_swarm(
                 task_description,
