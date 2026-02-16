@@ -3865,6 +3865,59 @@ class MurphySystem:
             "gap_action": gap_action
         }
 
+    def _build_learning_backlog_snapshot(
+        self,
+        learning_loop: Optional[Dict[str, Any]],
+        training_patterns: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        if not learning_loop:
+            return {
+                "status": "unavailable",
+                "reason": "Learning loop unavailable.",
+                "summary": {"total_iterations": 0}
+            }
+        training_patterns = training_patterns or {}
+        iterations = learning_loop.get("iterations", [])
+        backlog = [
+            {
+                "iteration": entry.get("iteration"),
+                "variant": entry.get("variant"),
+                "focus": entry.get("focus"),
+                "status": entry.get("status", "pending")
+            }
+            for entry in iterations
+        ]
+        queued = [entry for entry in backlog if entry["status"] in {"queued", "ready"}]
+        pending = [entry for entry in backlog if entry["status"] not in {"queued", "ready"}]
+        loop_status = learning_loop.get("status", "needs_info")
+        if loop_status == "ready":
+            status = "ready"
+        elif loop_status == "needs_wiring":
+            status = "needs_wiring"
+        else:
+            status = "needs_info"
+        training_sources = (
+            training_patterns.get("wingman_protocol", {}).get("training_sources", [])
+            if training_patterns
+            else []
+        )
+        return {
+            "status": status,
+            "requirements_status": learning_loop.get("requirements_identification", {}).get("status"),
+            "summary": {
+                "total_iterations": len(backlog),
+                "queued_iterations": len(queued),
+                "pending_iterations": len(pending)
+            },
+            "backlog": backlog,
+            "routing": {
+                "status": "ready" if status == "ready" else "pending",
+                "training_sources": training_sources,
+                "high_confidence_paths": len(training_patterns.get("high_confidence_paths", []))
+            },
+            "gap_action": learning_loop.get("gap_action")
+        }
+
     def _build_self_improvement_snapshot(
         self,
         dynamic_implementation: Optional[Dict[str, Any]],
@@ -4608,6 +4661,10 @@ class MurphySystem:
             org_chart_plan,
             trigger_plan
         )
+        learning_backlog = self._build_learning_backlog_snapshot(
+            learning_loop,
+            dynamic_implementation.get("chain_plan", {}).get("training_patterns")
+        )
         self_improvement_snapshot = self._build_self_improvement_snapshot(
             dynamic_implementation,
             capability_review
@@ -4653,6 +4710,7 @@ class MurphySystem:
             "org_chart_plan": org_chart_plan,
             "self_operation": self_operation,
             "learning_loop": learning_loop,
+            "learning_backlog": learning_backlog,
             "delivery_readiness": delivery_readiness,
             "handoff_queue": handoff_queue,
             "self_improvement": self_improvement_snapshot,
@@ -5098,6 +5156,12 @@ class MurphySystem:
             pending_integrations = len(self.integration_engine.list_pending_integrations())
             committed_integrations = len(self.integration_engine.list_committed_integrations())
         latest_preview = self.latest_activation_preview or {}
+        learning_backlog = self._build_learning_backlog_snapshot(
+            latest_preview.get("learning_loop"),
+            (latest_preview.get("dynamic_implementation") or {})
+            .get("chain_plan", {})
+            .get("training_patterns")
+        )
         self_improvement_snapshot = self._build_self_improvement_snapshot(
             latest_preview.get("dynamic_implementation"),
             latest_preview.get("capability_review")
@@ -5136,6 +5200,7 @@ class MurphySystem:
             'schema_drift': self._build_schema_drift_snapshot(),
             'observability': self._build_observability_snapshot(),
             'handoff_queue': self._build_handoff_queue_snapshot(),
+            'learning_backlog': learning_backlog,
             'self_improvement': self_improvement_snapshot,
             'self_operation': {
                 'enabled': self_operation_enabled,
