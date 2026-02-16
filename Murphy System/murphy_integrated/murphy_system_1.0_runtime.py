@@ -5253,6 +5253,7 @@ class MurphySystem:
             sensor_plan,
             hitl_contracts
         )
+        connector_orchestration = delivery_readiness.get("connector_orchestration", {})
         handoff_queue = self._build_handoff_queue_snapshot(hitl_contracts)
         workload_distribution = self._build_workload_distribution(operations_plan)
         executive_directive = self._build_executive_directive(task_description, operations_plan, delivery_readiness)
@@ -5330,6 +5331,7 @@ class MurphySystem:
             "learning_loop": learning_loop,
             "learning_backlog": learning_backlog,
             "delivery_readiness": delivery_readiness,
+            "connector_orchestration": connector_orchestration,
             "handoff_queue": handoff_queue,
             "self_improvement": self_improvement_snapshot,
             "capability_review": capability_review,
@@ -5820,6 +5822,7 @@ class MurphySystem:
             'registry_health': self._build_registry_health_snapshot(),
             'schema_drift': self._build_schema_drift_snapshot(),
             'adapter_execution': self._build_adapter_execution_snapshot(),
+            'connector_orchestration': self._build_connector_orchestration_snapshot(),
             'orchestrator_readiness': self._build_orchestrator_readiness_snapshot(),
             'observability': self._build_observability_snapshot(),
             'handoff_queue': self._build_handoff_queue_snapshot(),

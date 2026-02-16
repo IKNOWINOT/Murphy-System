@@ -79,6 +79,7 @@ start_murphy_1.0.bat   # Windows
 - **Module registry standardization:** auto-registers `murphy_integrated/src` modules and local packages into the module catalog with health + schema drift snapshots.
 - **Adapter execution snapshot:** activation previews and `/api/status` include adapter framework readiness for telemetry, module compiler, librarian, and security adapters.
 - **Delivery adapter readiness:** activation previews include document/email/chat/voice adapter readiness; summary counts reflect adapter statuses (configured, available, unconfigured).
+- **Connector orchestration snapshot:** activation previews and `/api/status` include connector orchestration summaries to track multi-channel delivery readiness.
 - **Delivery readiness states:** delivery readiness propagates blocked/needs states (`needs_wiring`, `needs_coverage`) when adapters or org chart coverage are incomplete. `needs_info` is used when requirements are complete but delivery inputs are missing, and the dynamic plan marks the output_delivery stage with the same status.
 - **Delivery observability signals:** delivery readiness snapshots are treated as **observability sensor data** that cue follow-on tasks and confirm delivery readiness for stakeholder requests.
 - **Delivery connector configuration:** provide `delivery_connectors` in `/api/execute` (use `id` as the canonical connector identifier; `connector_id` remains supported for legacy inputs) to mark adapters as configured in runtime previews. Connectors without a `channel` default to `unknown`; missing statuses are treated as `unconfigured`, and invalid values log warnings before defaulting.
@@ -88,6 +89,7 @@ start_murphy_1.0.bat   # Windows
 - **Voice delivery stub:** when a voice connector is configured, `/api/execute` returns a queued voice payload with script defaults and playback cue steps; missing destinations are marked as `needs_info`.
 - **Delivery completion tracking:** the completion tracker in `FULL_SYSTEM_ASSESSMENT.md` reflects multi-channel delivery stub coverage (production adapters still pending).
 - **Delivery adapter test:** `tests/test_delivery_adapter_snapshot.py` validates readiness status and adapter summary output.
+- **Connector orchestration test:** `tests/test_connector_orchestration_snapshot.py` validates multi-channel delivery readiness summaries.
 - **Document delivery test:** `tests/test_document_delivery_execution.py` validates document stub deliverables when connectors are configured.
 - **Email delivery test:** `tests/test_email_delivery_stub.py` validates email stub deliverables when connectors are configured.
 - **Chat + voice delivery test:** `tests/test_chat_voice_delivery_stub.py` validates chat and voice stub deliverables when connectors are configured.
