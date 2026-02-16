@@ -1254,7 +1254,15 @@ class MurphySystem:
     def _apply_delivery_connectors(self, parameters: Optional[Dict[str, Any]]) -> None:
         if not isinstance(parameters, dict):
             return
-        connector_entries = parameters.get("delivery_connectors") or []
+        connector_entries = parameters.get("delivery_connectors")
+        if connector_entries is None:
+            return
+        if not isinstance(connector_entries, list):
+            logger.warning(
+                "delivery_connectors must be a list; ignoring invalid value of type %s.",
+                type(connector_entries).__name__
+            )
+            return
         valid_statuses = {"configured", "available", "unconfigured"}
         valid_channels = self.VALID_DELIVERY_CHANNELS
         for connector in connector_entries:
