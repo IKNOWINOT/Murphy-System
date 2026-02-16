@@ -1263,10 +1263,7 @@ class MurphySystem:
             connector_id = connector.get("id") or connector.get("connector_id")
             if not connector_id:
                 continue
-            if "status" in connector:
-                status = connector.get("status")
-            else:
-                status = "unconfigured"
+            status = connector.get("status", "unconfigured")
             if status not in valid_statuses:
                 logger.warning(
                     "Unknown delivery connector status '%s' for %s; defaulting to 'unconfigured'.",
@@ -1274,7 +1271,7 @@ class MurphySystem:
                     connector_id
                 )
                 status = "unconfigured"
-            channel = connector.get("channel") if "channel" in connector else "unknown"
+            channel = connector.get("channel", "unknown")
             if channel not in valid_channels:
                 logger.warning(
                     "Unknown delivery connector channel '%s' for %s; defaulting to 'unknown'.",
