@@ -64,6 +64,8 @@ _workspace_*.zip
 murphy_persistence/
 .murphy_persistence/
 persistence_snapshots/
+handoff_queue_snapshots/
+handoff_queue_snapshot_*.json
 
 # Bytecode caches (repo has nested folders)
 **/__pycache__/
