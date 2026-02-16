@@ -1254,6 +1254,8 @@ class MurphySystem:
         if not isinstance(parameters, dict):
             return
         connector_entries = parameters.get("delivery_connectors") or []
+        valid_statuses = {"configured", "available", "unconfigured"}
+        valid_channels = {"document", "email", "chat", "voice"}
         for connector in connector_entries:
             if not isinstance(connector, dict):
                 continue
@@ -1261,7 +1263,21 @@ class MurphySystem:
             if not connector_id:
                 continue
             status = connector.get("status", "unconfigured")
+            if status not in valid_statuses:
+                logger.warning(
+                    "Unknown delivery connector status '%s' for %s; defaulting to 'unconfigured'.",
+                    status,
+                    connector_id
+                )
+                status = "unconfigured"
             channel = connector.get("channel") or "unknown"
+            if channel not in valid_channels:
+                logger.warning(
+                    "Unknown delivery connector channel '%s' for %s; defaulting to 'unknown'.",
+                    channel,
+                    connector_id
+                )
+                channel = "unknown"
             self.integration_connectors[connector_id] = {
                 "status": status,
                 "channel": channel,
