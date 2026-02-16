@@ -4562,7 +4562,6 @@ class MurphySystem:
         # Normalize detailed statuses into summary buckets for governance readiness tracking.
         for component, status in components.items():
             normalized_status = self._normalize_governance_status(status)
-            summary.setdefault(normalized_status, 0)
             summary[normalized_status] += 1
             normalized[component] = {"status": status, "normalized_status": normalized_status}
 
