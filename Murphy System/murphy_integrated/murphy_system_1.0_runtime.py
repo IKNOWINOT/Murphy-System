@@ -4496,6 +4496,8 @@ class MurphySystem:
         - needs_wiring/monitor_unavailable/unavailable -> needs_wiring
         - needs_info -> needs_info
         - unknown values -> other
+
+        Blocked/compliance statuses stay in the pending bucket to keep review visibility.
         """
         if status in {"ready", "complete", "clear", "configured"}:
             return "ready"
@@ -4512,7 +4514,7 @@ class MurphySystem:
         """Return needs_wiring when empty, ready when all tasks ready/complete, else pending.
 
         Args:
-            tasks: list of task dicts containing at least a ``status`` field.
+            tasks: list of task dicts containing at least ``status`` (and often ``owner``).
         """
         if not tasks:
             return "needs_wiring"
