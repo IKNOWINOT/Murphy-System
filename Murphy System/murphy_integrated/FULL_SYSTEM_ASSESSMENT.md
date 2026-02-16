@@ -27,6 +27,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **Audit snapshot:** persistence status now includes an audit snapshot summary (latest snapshot + count).
 - **Observability snapshot:** telemetry bus + ingester stats are exposed in activation previews and system status.
 - **Delivery adapter snapshot:** activation previews include document/email/chat/voice adapter readiness; the snapshot is treated as observability sensor data to drive follow-on task cues and delivery confirmations.
+- **Connector orchestration snapshot:** delivery readiness now reports multi-channel connector orchestration status for configured adapters and remaining gaps.
 - **Delivery adapter test coverage:** snapshot tests validate configured vs. unconfigured adapters and output status handling.
 - **Delivery connector configuration:** runtime accepts `delivery_connectors` input to mark adapters as configured for previews.
 - **Document delivery stub:** when a document connector is configured, `execute_task` can generate a markdown deliverable via `DocumentGenerationEngine` for preview delivery outputs.
@@ -139,7 +140,7 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 - **Deterministic + LLM routing:** compute plane and LLM orchestration must both be wired with clear task routing rules.
 - **Persistence & replay:** store LivingDocument, gate history, librarian context, and automation plans with replay support.
 - **Multi-channel delivery:** document/email/chat/voice stubs wired; chat/voice adapters with approvals and audit trails remain.
-- **Delivery adapter integration:** readiness snapshot is available and document/email/chat/voice stub generation is wired; production adapters for chat/voice remain unconfigured.
+- **Delivery adapter integration:** readiness snapshot plus connector orchestration are available and document/email/chat/voice stub generation is wired; production adapters for chat/voice remain unconfigured.
 - **Adapter framework integration:** adapter execution snapshot is available; execution wiring and activation flows still need integration.
 - **Compliance validation:** regulatory sensors, policy gates, and HITL approvals tied to deliverable releases.
 - **Operations automation:** remote access invites, ticketing, patch/rollback automation, and production telemetry.
@@ -159,11 +160,11 @@ These percentages are **current estimates** based on wired functionality vs. pla
 | Execution wiring (gate + swarm + orchestrator) | 47% | MFGC fallback wired, orchestrator wiring still partial |
 | Deterministic + LLM routing | 40% | Routing heuristics exist; compute plane not invoked end-to-end |
 | Persistence + replay | 20% | Snapshot persistence available; durable storage not wired |
-| Multi-channel delivery | 45% | Document/email/chat/voice stubs wired; production adapters with approvals pending |
+| Multi-channel delivery | 50% | Document/email/chat/voice stubs wired; orchestration snapshot added; production adapters with approvals pending |
 | Compliance validation | 35% | Regional sensors + gate policies defined, enforcement incomplete |
 | Operational automation | 20% | Planning templates exist; ticketing/remote access not wired |
 | UI + user testing | 70% | Architect UI + scripted screenshots now in place |
-| Test coverage for dynamic chains | 62% | Dynamic plan tests exist; execution/integration tests still pending |
+| Test coverage for dynamic chains | 64% | Dynamic plan tests exist; execution/integration tests still pending |
 
 **Progress update protocol:**
 - Store user-script screenshots in `docs/screenshots/` (repository root).
@@ -196,28 +197,29 @@ These percentages are **current estimates** based on wired functionality vs. pla
 
 1. **Adapter execution snapshot tests**: `test_adapter_execution_snapshot.py` validates adapter execution readiness reporting for core framework modules.
 2. **Delivery adapter snapshot tests**: `test_delivery_adapter_snapshot.py` verifies delivery readiness status and adapter availability outputs.
-3. **Execution wiring snapshot tests**: `test_execution_wiring_snapshot.py` validates runtime execution wiring summaries in previews and responses.
-4. **Execution wiring integration tests**: `test_execution_wiring_integration.py` validates MFGC fallback routing in `execute_task`.
-5. **Document delivery execution tests**: `test_document_delivery_execution.py` validates document stub deliverables when document connectors are configured.
-6. **Email delivery execution tests**: `test_email_delivery_stub.py` validates email stub deliverables when email connectors are configured.
-7. **Chat + voice delivery execution tests**: `test_chat_voice_delivery_stub.py` validates chat and voice stub deliverables when connectors are configured.
-8. **Gate chain sequencing tests**: `test_gate_chain_sequencing.py` verifies blocked gate propagation in sequencing rules.
-9. **Multi-loop scheduling tests**: `test_multi_loop_schedule_snapshot.py` validates multi-loop schedule readiness and pending states.
-10. **Compliance + delivery gating tests**: `test_compliance_delivery_gating.py` validates compliance gating before delivery release.
-11. **Two-phase orchestrator execution tests**: `test_two_phase_orchestrator_execution.py` validates create/run automation routing when the async orchestrator interface is unavailable.
-12. **Compute plane validation tests**: `test_compute_plane_validation.py` validates deterministic routing and validation payload handling.
-13. **HITL handoff queue snapshot tests**: `test_handoff_queue_snapshot.py` verifies approval backlog visibility for interventions and contracts.
-14. **Self-improvement snapshot tests**: `test_self_improvement_snapshot.py` validates remediation backlog and action outputs.
-15. **Learning backlog routing tests**: `test_learning_backlog_snapshot.py` validates backlog routing summaries for iteration readiness.
-16. **Observability snapshot tests**: `test_observability_snapshot.py` validates telemetry bus + ingestion stats in status outputs.
-17. **Registry health + schema drift tests**: `test_registry_health_snapshot.py` validates module registry health and drift indicators.
-18. **Persistence snapshot index tests**: `test_persistence_snapshot_index.py` validates snapshot index summaries in persistence status.
-19. **Persistence replay snapshot tests**: `test_persistence_replay_snapshot.py` validates replay readiness metadata.
-20. **Audit snapshot tests**: `test_audit_snapshot.py` validates audit snapshot summaries.
-21. **Persistence snapshot tests**: `test_persistence_snapshot.py` validates persistence snapshot write and status handling.
-22. **Wingman protocol tests**: `test_dynamic_implementation_plan.py` validates executor/validator pairing and deterministic checks per subject.
-23. **Swarm execution path tests**: `test_swarm_execution_path.py` validates `run_swarm_execution` outputs.
-24. **Orchestrator readiness snapshot tests**: `test_orchestrator_readiness_snapshot.py` validates async/two-phase/swarm readiness summaries.
+3. **Connector orchestration snapshot tests**: `test_connector_orchestration_snapshot.py` validates multi-channel delivery readiness summaries.
+4. **Execution wiring snapshot tests**: `test_execution_wiring_snapshot.py` validates runtime execution wiring summaries in previews and responses.
+5. **Execution wiring integration tests**: `test_execution_wiring_integration.py` validates MFGC fallback routing in `execute_task`.
+6. **Document delivery execution tests**: `test_document_delivery_execution.py` validates document stub deliverables when document connectors are configured.
+7. **Email delivery execution tests**: `test_email_delivery_stub.py` validates email stub deliverables when email connectors are configured.
+8. **Chat + voice delivery execution tests**: `test_chat_voice_delivery_stub.py` validates chat and voice stub deliverables when connectors are configured.
+9. **Gate chain sequencing tests**: `test_gate_chain_sequencing.py` verifies blocked gate propagation in sequencing rules.
+10. **Multi-loop scheduling tests**: `test_multi_loop_schedule_snapshot.py` validates multi-loop schedule readiness and pending states.
+11. **Compliance + delivery gating tests**: `test_compliance_delivery_gating.py` validates compliance gating before delivery release.
+12. **Two-phase orchestrator execution tests**: `test_two_phase_orchestrator_execution.py` validates create/run automation routing when the async orchestrator interface is unavailable.
+13. **Compute plane validation tests**: `test_compute_plane_validation.py` validates deterministic routing and validation payload handling.
+14. **HITL handoff queue snapshot tests**: `test_handoff_queue_snapshot.py` verifies approval backlog visibility for interventions and contracts.
+15. **Self-improvement snapshot tests**: `test_self_improvement_snapshot.py` validates remediation backlog and action outputs.
+16. **Learning backlog routing tests**: `test_learning_backlog_snapshot.py` validates backlog routing summaries for iteration readiness.
+17. **Observability snapshot tests**: `test_observability_snapshot.py` validates telemetry bus + ingestion stats in status outputs.
+18. **Registry health + schema drift tests**: `test_registry_health_snapshot.py` validates module registry health and drift indicators.
+19. **Persistence snapshot index tests**: `test_persistence_snapshot_index.py` validates snapshot index summaries in persistence status.
+20. **Persistence replay snapshot tests**: `test_persistence_replay_snapshot.py` validates replay readiness metadata.
+21. **Audit snapshot tests**: `test_audit_snapshot.py` validates audit snapshot summaries.
+22. **Persistence snapshot tests**: `test_persistence_snapshot.py` validates persistence snapshot write and status handling.
+23. **Wingman protocol tests**: `test_dynamic_implementation_plan.py` validates executor/validator pairing and deterministic checks per subject.
+24. **Swarm execution path tests**: `test_swarm_execution_path.py` validates `run_swarm_execution` outputs.
+25. **Orchestrator readiness snapshot tests**: `test_orchestrator_readiness_snapshot.py` validates async/two-phase/swarm readiness summaries.
 
 ---
 
