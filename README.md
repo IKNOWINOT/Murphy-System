@@ -88,12 +88,14 @@ start_murphy_1.0.bat   # Windows
 - **Email delivery stub:** when an email connector is configured, `/api/execute` returns a queued email payload (subject/body defaults + recipient placeholders) and marks missing recipients as `needs_info`.
 - **Chat delivery stub:** when a chat connector is configured, `/api/execute` returns a queued chat payload with channel/message defaults and marks missing channels as `needs_info`.
 - **Voice delivery stub:** when a voice connector is configured, `/api/execute` returns a queued voice payload with script defaults and playback cue steps; missing destinations are marked as `needs_info`.
+- **Translation delivery stub:** when a translation connector is configured, `/api/execute` returns a queued translation payload with locale placeholders and output defaults.
 - **Delivery completion tracking:** the completion tracker in `FULL_SYSTEM_ASSESSMENT.md` reflects multi-channel delivery stub coverage (production adapters still pending).
 - **Delivery adapter test:** `tests/test_delivery_adapter_snapshot.py` validates readiness status and adapter summary output.
 - **Connector orchestration test:** `tests/test_connector_orchestration_snapshot.py` validates multi-channel delivery readiness summaries.
 - **Document delivery test:** `tests/test_document_delivery_execution.py` validates document stub deliverables when connectors are configured.
 - **Email delivery test:** `tests/test_email_delivery_stub.py` validates email stub deliverables when connectors are configured.
 - **Chat + voice delivery test:** `tests/test_chat_voice_delivery_stub.py` validates chat and voice stub deliverables when connectors are configured.
+- **Translation delivery test:** `tests/test_translation_delivery_stub.py` validates translation stub deliverables when connectors are configured.
 - **HITL handoff queue snapshot:** activation previews and `/api/status` expose pending HITL interventions and contract approvals as observability signals to drive approval and delivery tasks (case-insensitive resolved statuses like approved/complete/ready/cleared are filtered; pending/blocked/rejected remain queued for review).
 - **Self-improvement snapshot:** activation previews and `/api/status` include a remediation backlog derived from wiring/info/capability gaps plus recommended actions for continuous improvement loops.
 - **Learning backlog routing:** activation previews and `/api/status` include learning backlog routing snapshots to track iteration queues and training source readiness.
