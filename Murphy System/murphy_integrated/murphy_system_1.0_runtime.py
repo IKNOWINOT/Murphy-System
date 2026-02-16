@@ -1976,6 +1976,12 @@ class MurphySystem:
                 task_type,
                 parameters
             )
+            deliverables = self._append_email_deliverable(
+                deliverables,
+                task_description,
+                task_type,
+                parameters
+            )
             # Return complete result
             return {
                 'success': True,
@@ -2037,6 +2043,12 @@ class MurphySystem:
                 task_type,
                 parameters
             )
+            deliverables = self._append_email_deliverable(
+                deliverables,
+                task_description,
+                task_type,
+                parameters
+            )
             return {
                 "success": success,
                 "session_id": session_id or self.create_session().get("session_id"),
@@ -2065,6 +2077,12 @@ class MurphySystem:
         self._record_execution(success=True, duration=duration)
         deliverables = self._append_document_deliverable(
             [],
+            task_description,
+            task_type,
+            parameters
+        )
+        deliverables = self._append_email_deliverable(
+            deliverables,
             task_description,
             task_type,
             parameters
@@ -2150,6 +2168,12 @@ class MurphySystem:
                 session_id_source = "session_id"
             deliverables = self._append_document_deliverable(
                 run_result.get("deliverables", []),
+                task_description,
+                task_type,
+                parameters
+            )
+            deliverables = self._append_email_deliverable(
+                deliverables,
                 task_description,
                 task_type,
                 parameters
@@ -4092,6 +4116,51 @@ class MurphySystem:
             "document": document.to_dict()
         }
 
+    def _build_email_deliverable(
+        self,
+        task_description: str,
+        task_type: str,
+        parameters: Optional[Dict[str, Any]]
+    ) -> Optional[Dict[str, Any]]:
+        connectors = self._get_configured_delivery_connectors("email")
+        if not connectors:
+            return None
+        params = parameters or {}
+        connector_override = params.get("email_connector_id")
+        if connector_override:
+            connectors = [
+                connector for connector in connectors if connector["id"] == connector_override
+            ]
+            if not connectors:
+                logger.warning(
+                    "Requested email connector '%s' not configured; skipping email delivery.",
+                    connector_override
+                )
+                return None
+        selected_connector = sorted(connectors, key=lambda connector: connector["id"])[0]
+        recipients_raw = params.get("email_recipients") or []
+        if isinstance(recipients_raw, list):
+            recipients = [str(item) for item in recipients_raw if item]
+        else:
+            recipients = [str(recipients_raw)]
+        subject = params.get("email_subject") or f"Automation update: {task_type}"
+        summary_text = params.get("email_summary") or self._truncate_description(task_description)
+        body = params.get("email_body") or f"{summary_text}\n\nTask: {task_description}"
+        status = "queued" if recipients else "needs_info"
+        deliverable = {
+            "type": "email",
+            "status": status,
+            "connector_id": selected_connector["id"],
+            "message": {
+                "to": recipients,
+                "subject": subject,
+                "body": body
+            }
+        }
+        if status == "needs_info":
+            deliverable["gap_action"] = "Provide email recipients to queue the delivery."
+        return deliverable
+
     def _append_document_deliverable(
         self,
         deliverables: Optional[List[Dict[str, Any]]],
@@ -4105,6 +4174,21 @@ class MurphySystem:
         document_delivery = self._build_document_deliverable(task_description, task_type, parameters)
         if document_delivery:
             output.append(document_delivery)
+        return output
+
+    def _append_email_deliverable(
+        self,
+        deliverables: Optional[List[Dict[str, Any]]],
+        task_description: str,
+        task_type: str,
+        parameters: Optional[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        output = list(deliverables or [])
+        if any(item.get("type") == "email" for item in output):
+            return output
+        email_delivery = self._build_email_deliverable(task_description, task_type, parameters)
+        if email_delivery:
+            output.append(email_delivery)
         return output
 
     def _build_handoff_queue_snapshot(
