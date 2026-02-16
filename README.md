@@ -71,6 +71,7 @@ start_murphy_1.0.bat   # Windows
 - **Observability snapshot:** activation previews and `/api/status` include telemetry bus + ingestion stats when telemetry components are available.
 - **Registry health + schema drift snapshots:** activation previews and `/api/status` now include registry health status plus schema drift indicators for missing persistence, observability, or delivery adapter configuration.
 - **Module registry standardization:** auto-registers `murphy_integrated/src` modules and local packages into the module catalog with health + schema drift snapshots.
+- **Adapter execution snapshot:** activation previews and `/api/status` include adapter framework readiness for telemetry, module compiler, librarian, and security adapters.
 - **Delivery adapter snapshot:** activation previews include document/email/chat/voice adapter readiness; summary counts reflect adapter statuses (configured, available, unconfigured), and delivery readiness propagates blocked/needs states (`needs_wiring`, `needs_coverage`) when adapters or org chart coverage are incomplete; `needs_info` is used when requirements are complete but delivery inputs are missing, and the dynamic plan marks the output_delivery stage with the same status. These snapshots are treated as **observability sensor data** that cue follow-on tasks and confirm delivery readiness for stakeholder requests.
 - **Delivery adapter test:** `tests/test_delivery_adapter_snapshot.py` validates readiness status and adapter summary output.
 - **HITL handoff queue snapshot:** activation previews and `/api/status` expose pending HITL interventions and contract approvals as observability signals to drive approval and delivery tasks (case-insensitive resolved statuses like approved/complete/ready/cleared are filtered; pending/blocked/rejected remain queued for review).
@@ -81,6 +82,7 @@ start_murphy_1.0.bat   # Windows
 - **Two-phase orchestrator tests:** `tests/test_two_phase_orchestrator_execution.py` validates routing plus domain fallback for the legacy phase1/phase2 create/run automation path.
 - **Gate chain sequencing tests:** `tests/test_gate_chain_sequencing.py` validates gate blocking propagation and reasons.
 - **Swarm execution tests:** `tests/test_swarm_execution_path.py` validates swarm execution preview summaries for initialized and missing swarm systems.
+- **Adapter execution snapshot tests:** `tests/test_adapter_execution_snapshot.py` validates adapter readiness and configuration status.
 - **Two-phase session handling:** uses a dedicated session ID separate from the automation ID; `session_id_source` indicates when the automation_id fallback is used if session creation fails.
 - **Architect UI:** serve `Murphy System/murphy_integrated/terminal_architect.html` (or `murphy_production_ui.html`, which redirects unless `?legacy=true`) with `python -m http.server 8090` and open `http://localhost:8090/murphy_integrated/terminal_architect.html?apiPort=6666`
 - **Details:** see [Runtime 1.0 Status](<Murphy System/murphy_integrated/RUNTIME_1.0_STATUS.md>)

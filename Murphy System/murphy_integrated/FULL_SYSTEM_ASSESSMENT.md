@@ -28,6 +28,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **Delivery adapter test coverage:** snapshot tests validate configured vs. unconfigured adapters and output status handling.
 - **Registry health + schema drift snapshots:** activation previews and system status expose module registry health and configuration drift indicators.
 - **Module registry standardization:** `murphy_integrated/src` modules plus local packages are auto-registered into the module catalog with health + schema drift indicators.
+- **Adapter execution snapshot:** activation previews include adapter framework readiness for telemetry, module compiler, librarian, and security adapters.
 - **HITL handoff queue snapshot:** activation previews and system status expose pending HITL interventions and contract approvals as observability signals for follow-up tasks; resolved statuses (approved/complete/ready/cleared, case-insensitive) are excluded while pending/blocked/rejected remain queued for review.
 - **Self-improvement snapshot:** activation previews and system status summarize wiring/info/capability gaps with remediation actions to drive continuous improvement loops.
 - **Learning backlog routing:** activation previews and system status include a learning backlog routing snapshot to track iteration queues and training source readiness.
@@ -132,7 +133,7 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 - **Persistence & replay:** store LivingDocument, gate history, librarian context, and automation plans with replay support.
 - **Multi-channel delivery:** document/email/chat/voice adapters with governance approvals and audit trails.
 - **Delivery adapter wiring:** snapshot is available, but adapters remain unconfigured (needs integration).
-- **Adapter framework integration:** register telemetry, module compiler, librarian, and security adapters for execution telemetry.
+- **Adapter framework integration:** adapter execution snapshot is available; execution wiring and activation flows still need integration.
 - **Compliance validation:** regulatory sensors, policy gates, and HITL approvals tied to deliverable releases.
 - **Operations automation:** remote access invites, ticketing, patch/rollback automation, and production telemetry.
 - **Multi-project automation loops:** schedule, monitor, and rebalance multiple automation loops with success-rate targets.
@@ -200,6 +201,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 9. **Gate chain sequencing tests**: `test_gate_chain_sequencing.py` validates gate blocking propagation and reasons.
 10. **Wingman protocol tests**: `test_dynamic_implementation_plan.py` validates executor/validator pairing and deterministic checks per subject.
 11. **Swarm execution path tests**: `test_swarm_execution_path.py` validates `run_swarm_execution` outputs.
+12. **Adapter execution snapshot tests**: `test_adapter_execution_snapshot.py` validates adapter readiness and configuration status.
 
 ---
 
