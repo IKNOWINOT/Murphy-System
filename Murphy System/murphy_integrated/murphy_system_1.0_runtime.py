@@ -1519,9 +1519,29 @@ class MurphySystem:
                 "status": "disabled",
                 "reason": f"Set {self.PERSISTENCE_DIR_ENV} to enable persistence snapshots."
             }
+        snapshot_index = self._build_persistence_snapshot_index(persistence_dir)
         return {
             "status": "configured",
-            "path": str(persistence_dir)
+            "path": str(persistence_dir),
+            "snapshot_index": snapshot_index
+        }
+
+    def _build_persistence_snapshot_index(self, persistence_dir: Path) -> Dict[str, Any]:
+        if not persistence_dir.exists():
+            return {
+                "status": "missing",
+                "count": 0,
+                "snapshots": [],
+                "reason": "Persistence directory not found."
+            }
+        snapshots = sorted(
+            persistence_dir.glob(f"{self.PERSISTENCE_SNAPSHOT_PREFIX}_*.json"),
+            key=lambda path: path.name
+        )
+        return {
+            "status": "ready" if snapshots else "empty",
+            "count": len(snapshots),
+            "snapshots": [path.name for path in snapshots]
         }
 
     def _build_observability_snapshot(self) -> Dict[str, Any]:
