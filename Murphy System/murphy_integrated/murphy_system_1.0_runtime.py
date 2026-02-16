@@ -1982,6 +1982,18 @@ class MurphySystem:
                 task_type,
                 parameters
             )
+            deliverables = self._append_chat_deliverable(
+                deliverables,
+                task_description,
+                task_type,
+                parameters
+            )
+            deliverables = self._append_voice_deliverable(
+                deliverables,
+                task_description,
+                task_type,
+                parameters
+            )
             # Return complete result
             return {
                 'success': True,
@@ -2049,6 +2061,18 @@ class MurphySystem:
                 task_type,
                 parameters
             )
+            deliverables = self._append_chat_deliverable(
+                deliverables,
+                task_description,
+                task_type,
+                parameters
+            )
+            deliverables = self._append_voice_deliverable(
+                deliverables,
+                task_description,
+                task_type,
+                parameters
+            )
             return {
                 "success": success,
                 "session_id": session_id or self.create_session().get("session_id"),
@@ -2082,6 +2106,18 @@ class MurphySystem:
             parameters
         )
         deliverables = self._append_email_deliverable(
+            deliverables,
+            task_description,
+            task_type,
+            parameters
+        )
+        deliverables = self._append_chat_deliverable(
+            deliverables,
+            task_description,
+            task_type,
+            parameters
+        )
+        deliverables = self._append_voice_deliverable(
             deliverables,
             task_description,
             task_type,
@@ -2173,6 +2209,18 @@ class MurphySystem:
                 parameters
             )
             deliverables = self._append_email_deliverable(
+                deliverables,
+                task_description,
+                task_type,
+                parameters
+            )
+            deliverables = self._append_chat_deliverable(
+                deliverables,
+                task_description,
+                task_type,
+                parameters
+            )
+            deliverables = self._append_voice_deliverable(
                 deliverables,
                 task_description,
                 task_type,
@@ -4163,6 +4211,88 @@ class MurphySystem:
             deliverable["gap_action"] = "Provide email recipients to queue the delivery."
         return deliverable
 
+    def _build_chat_deliverable(
+        self,
+        task_description: str,
+        task_type: str,
+        parameters: Optional[Dict[str, Any]]
+    ) -> Optional[Dict[str, Any]]:
+        connectors = self._get_configured_delivery_connectors("chat")
+        if not connectors:
+            return None
+        params = parameters or {}
+        connector_override = params.get("chat_connector_id")
+        if connector_override:
+            connectors = [
+                connector for connector in connectors if connector["id"] == connector_override
+            ]
+            if not connectors:
+                logger.warning(
+                    "Requested chat connector '%s' not configured; skipping chat delivery.",
+                    connector_override
+                )
+                return None
+        selected_connector = sorted(connectors, key=lambda connector: connector["id"])[0]
+        channel = params.get("chat_channel") or params.get("chat_room")
+        message = params.get("chat_message") or params.get("chat_summary")
+        if not message:
+            message = self._truncate_description(task_description)
+        status = "queued" if channel else "needs_info"
+        deliverable = {
+            "type": "chat",
+            "status": status,
+            "connector_id": selected_connector["id"],
+            "message": {
+                "channel": channel,
+                "content": message
+            }
+        }
+        if status == "needs_info":
+            deliverable["gap_action"] = "Provide chat channel to queue the delivery."
+        return deliverable
+
+    def _build_voice_deliverable(
+        self,
+        task_description: str,
+        task_type: str,
+        parameters: Optional[Dict[str, Any]]
+    ) -> Optional[Dict[str, Any]]:
+        connectors = self._get_configured_delivery_connectors("voice")
+        if not connectors:
+            return None
+        params = parameters or {}
+        connector_override = params.get("voice_connector_id")
+        if connector_override:
+            connectors = [
+                connector for connector in connectors if connector["id"] == connector_override
+            ]
+            if not connectors:
+                logger.warning(
+                    "Requested voice connector '%s' not configured; skipping voice delivery.",
+                    connector_override
+                )
+                return None
+        selected_connector = sorted(connectors, key=lambda connector: connector["id"])[0]
+        destination = params.get("voice_destination") or params.get("voice_number")
+        script = params.get("voice_script") or params.get("voice_message")
+        if not script:
+            script = self._truncate_description(task_description)
+        profile = params.get("voice_profile") or "default"
+        status = "queued" if destination else "needs_info"
+        deliverable = {
+            "type": "voice",
+            "status": status,
+            "connector_id": selected_connector["id"],
+            "script": {
+                "text": script,
+                "voice_profile": profile,
+                "destination": destination
+            }
+        }
+        if status == "needs_info":
+            deliverable["gap_action"] = "Provide voice destination to queue the delivery."
+        return deliverable
+
     def _append_document_deliverable(
         self,
         deliverables: Optional[List[Dict[str, Any]]],
@@ -4191,6 +4321,36 @@ class MurphySystem:
         email_delivery = self._build_email_deliverable(task_description, task_type, parameters)
         if email_delivery:
             output.append(email_delivery)
+        return output
+
+    def _append_chat_deliverable(
+        self,
+        deliverables: Optional[List[Dict[str, Any]]],
+        task_description: str,
+        task_type: str,
+        parameters: Optional[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        output = list(deliverables or [])
+        if any(item.get("type") == "chat" for item in output):
+            return output
+        chat_delivery = self._build_chat_deliverable(task_description, task_type, parameters)
+        if chat_delivery:
+            output.append(chat_delivery)
+        return output
+
+    def _append_voice_deliverable(
+        self,
+        deliverables: Optional[List[Dict[str, Any]]],
+        task_description: str,
+        task_type: str,
+        parameters: Optional[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        output = list(deliverables or [])
+        if any(item.get("type") == "voice" for item in output):
+            return output
+        voice_delivery = self._build_voice_deliverable(task_description, task_type, parameters)
+        if voice_delivery:
+            output.append(voice_delivery)
         return output
 
     def _build_handoff_queue_snapshot(
