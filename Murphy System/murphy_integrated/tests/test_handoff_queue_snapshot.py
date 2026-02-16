@@ -32,12 +32,14 @@ def test_handoff_queue_snapshot_pending_items():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
     murphy.handle_form_validation({"task_data": {"description": ""}})
+    intervention = next(iter(murphy.hitl_interventions.values()))
     contracts = [{"gate": "HITL Contract", "status": "pending"}]
     snapshot = murphy._build_handoff_queue_snapshot(contracts)
     summary = snapshot["summary"]
     assert summary["pending_interventions"] == 1
     assert summary["pending_contracts"] == 1
     assert summary["total_pending"] == 2
+    assert intervention in snapshot["pending_interventions"]
     if murphy.hitl_monitor:
         assert snapshot["status"] == "pending_review"
     else:
