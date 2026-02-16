@@ -4045,10 +4045,21 @@ class MurphySystem:
         context.setdefault("task", task_description)
         summary_text = params.get("document_summary")
         if not summary_text:
-            truncate = getattr(self, "_truncate_description", None)
-            summary_text = truncate(task_description) if callable(truncate) else task_description
+            summary_text = self._truncate_description(task_description)
         context.setdefault("summary", summary_text)
         context.setdefault("deliverable", params.get("document_deliverable", task_type))
+        connector_override = params.get("document_connector_id")
+        if connector_override:
+            connectors = [
+                connector for connector in connectors if connector["id"] == connector_override
+            ]
+            if not connectors:
+                logger.warning(
+                    "Requested document connector '%s' not configured; skipping document delivery.",
+                    connector_override
+                )
+                return None
+        selected_connector = sorted(connectors, key=lambda connector: connector["id"])[0]
         engine = DocumentGenerationEngine()
         template = DocumentTemplate(
             template_id=template_id,
@@ -4060,12 +4071,12 @@ class MurphySystem:
         document = engine.generate_from_template(
             template_id,
             context,
-            metadata={"task_type": task_type, "connector_id": connectors[0]["id"]}
+            metadata={"task_type": task_type, "connector_id": selected_connector["id"]}
         )
         return {
             "type": "document",
             "status": "generated",
-            "connector_id": connectors[0]["id"],
+            "connector_id": selected_connector["id"],
             "document": document.to_dict()
         }
 
