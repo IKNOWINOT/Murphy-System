@@ -26,6 +26,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **Delivery adapter snapshot:** activation previews include document/email/chat/voice adapter readiness; the snapshot is treated as observability sensor data to drive follow-on task cues and delivery confirmations.
 - **Delivery adapter test coverage:** snapshot tests validate configured vs. unconfigured adapters and output status handling.
 - **Registry health + schema drift snapshots:** activation previews and system status expose module registry health and configuration drift indicators.
+- **Module registry standardization:** `murphy_integrated/src` modules plus local packages are auto-registered into the module catalog with health + schema drift indicators.
 - **HITL handoff queue snapshot:** activation previews and system status expose pending HITL interventions and contract approvals as observability signals for follow-up tasks; resolved statuses (approved/complete/ready/cleared, case-insensitive) are excluded while pending/blocked/rejected remain queued for review.
 - **Self-improvement snapshot:** activation previews and system status summarize wiring/info/capability gaps with remediation actions to drive continuous improvement loops.
 - **Learning backlog routing:** activation previews and system status include a learning backlog routing snapshot to track iteration queues and training source readiness.
@@ -130,7 +131,6 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 - **Persistence & replay:** store LivingDocument, gate history, librarian context, and automation plans with replay support.
 - **Multi-channel delivery:** document/email/chat/voice adapters with governance approvals and audit trails.
 - **Delivery adapter wiring:** snapshot is available, but adapters remain unconfigured (needs integration).
-- **Module registry standardization:** auto-register `murphy_integrated/src` modules plus local packages (bots, modern_arcana) into the `module_manager` catalog alongside core runtime entries (control plane, orchestration, intake, confidence, execution, learning, governance, telemetry, MFGC).
 - **Adapter framework integration:** register telemetry, module compiler, librarian, and security adapters for execution telemetry.
 - **Compliance validation:** regulatory sensors, policy gates, and HITL approvals tied to deliverable releases.
 - **Operations automation:** remote access invites, ticketing, patch/rollback automation, and production telemetry.
@@ -179,20 +179,25 @@ These percentages are **current estimates** based on wired functionality vs. pla
 
 ## 11) Testing expansion plan (dynamic combinations + actions)
 
+**Remaining expansion**
+
 1. **Execution wiring tests**: orchestrator + MFGC fallback with live task execution results.
 2. **Gate chain sequencing tests**: verify dynamic chain control points under mixed gate states.
 3. **Multi-loop scheduling tests**: validate trigger schedules across concurrent automation loops.
 4. **Compliance + delivery tests**: assert approval gating before release of documents/email/chat.
 5. **Persistence + replay tests**: verify stored session data, replayed approvals, and rollback.
 6. **Wingman protocol tests**: validate executor/validator pairing and deterministic checks per subject.
-7. **Delivery adapter snapshot tests**: `test_delivery_adapter_snapshot.py` verifies delivery readiness status and adapter availability outputs.
-8. **Two-phase orchestrator execution tests**: `test_two_phase_orchestrator_execution.py` validates create/run automation routing when the async orchestrator interface is unavailable.
-9. **HITL handoff queue snapshot tests**: `test_handoff_queue_snapshot.py` verifies approval backlog visibility for interventions and contracts.
-10. **Self-improvement snapshot tests**: `test_self_improvement_snapshot.py` validates remediation backlog and action outputs.
-11. **Registry health snapshot tests**: `test_registry_health_snapshot.py` validates registry health and schema drift snapshot output.
-12. **Persistence snapshot index tests**: `test_persistence_snapshot_index.py` validates snapshot index reporting in persistence status.
-13. **Learning backlog routing tests**: `test_learning_backlog_snapshot.py` validates learning backlog routing snapshot output.
-14. **Swarm execution path tests**: `test_swarm_execution_path.py` validates `run_swarm_execution` outputs.
+
+**Completed dynamic test modules**
+
+1. **Delivery adapter snapshot tests**: `test_delivery_adapter_snapshot.py` verifies delivery readiness status and adapter availability outputs.
+2. **Two-phase orchestrator execution tests**: `test_two_phase_orchestrator_execution.py` validates create/run automation routing when the async orchestrator interface is unavailable.
+3. **HITL handoff queue snapshot tests**: `test_handoff_queue_snapshot.py` verifies approval backlog visibility for interventions and contracts.
+4. **Self-improvement snapshot tests**: `test_self_improvement_snapshot.py` validates remediation backlog and action outputs.
+5. **Registry health snapshot tests**: `test_registry_health_snapshot.py` validates registry health and schema drift snapshot output.
+6. **Persistence snapshot index tests**: `test_persistence_snapshot_index.py` validates snapshot index reporting in persistence status.
+7. **Learning backlog routing tests**: `test_learning_backlog_snapshot.py` validates learning backlog routing snapshot output.
+8. **Swarm execution path tests**: `test_swarm_execution_path.py` validates `run_swarm_execution` outputs.
 
 ---
 
