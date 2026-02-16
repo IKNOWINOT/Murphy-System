@@ -4491,12 +4491,12 @@ class MurphySystem:
         """Map raw governance status values to summary buckets.
 
         Examples:
-        - ready/clear/configured -> ready
+        - ready/complete/clear/configured -> ready
         - pending/pending_review/pending_approval/blocked/needs_compliance -> pending (review required)
         - needs_wiring/monitor_unavailable/unavailable -> needs_wiring
         - needs_info -> needs_info
         """
-        if status in {"ready", "clear", "configured"}:
+        if status in {"ready", "complete", "clear", "configured"}:
             return "ready"
         if status in {"pending", "pending_review", "pending_approval", "blocked", "needs_compliance"}:
             return "pending"
@@ -4508,7 +4508,7 @@ class MurphySystem:
 
     @staticmethod
     def _resolve_plan_status(tasks: List[Dict[str, Any]]) -> str:
-        """Return needs_wiring, ready, or pending for an operations plan task list."""
+        """Return needs_wiring when empty, ready when all tasks are ready/complete, else pending."""
         if not tasks:
             return "needs_wiring"
         if all(task.get("status") in {"ready", "complete"} for task in tasks):
@@ -4562,6 +4562,7 @@ class MurphySystem:
         # Normalize detailed statuses into summary buckets for governance readiness tracking.
         for component, status in components.items():
             normalized_status = self._normalize_governance_status(status)
+            summary.setdefault(normalized_status, 0)
             summary[normalized_status] += 1
             normalized[component] = {"status": status, "normalized_status": normalized_status}
 
