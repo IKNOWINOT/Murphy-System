@@ -196,9 +196,10 @@ These percentages are **current estimates** based on wired functionality vs. pla
 3. **HITL handoff queue snapshot tests**: `test_handoff_queue_snapshot.py` verifies approval backlog visibility for interventions and contracts.
 4. **Self-improvement snapshot tests**: `test_self_improvement_snapshot.py` validates remediation backlog and action outputs.
 5. **Registry health snapshot tests**: `test_registry_health_snapshot.py` validates registry health and schema drift snapshot output.
-6. **Persistence snapshot index tests**: `test_persistence_snapshot_index.py` validates snapshot index reporting in persistence status.
-7. **Learning backlog routing tests**: `test_learning_backlog_snapshot.py` validates learning backlog routing snapshot output.
-8. **Swarm execution path tests**: `test_swarm_execution_path.py` validates `run_swarm_execution` outputs.
+6. **Audit snapshot tests**: `test_audit_snapshot.py` validates audit snapshot summary output.
+7. **Persistence snapshot index tests**: `test_persistence_snapshot_index.py` validates snapshot index reporting in persistence status.
+8. **Learning backlog routing tests**: `test_learning_backlog_snapshot.py` validates learning backlog routing snapshot output.
+9. **Swarm execution path tests**: `test_swarm_execution_path.py` validates `run_swarm_execution` outputs.
 
 ---
 
