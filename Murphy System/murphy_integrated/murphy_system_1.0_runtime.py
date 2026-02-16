@@ -1638,6 +1638,16 @@ class MurphySystem:
         so the payload is normalized to a dictionary for consistent downstream usage.
         """
         compute_request = (parameters or {}).get("compute_request")
+        swarm_execution = None
+        if (parameters or {}).get("run_swarm_execution"):
+            swarm_execution = self._attempt_true_swarm(
+                task_description,
+                {
+                    "task_type": task_type,
+                    "session_id": session_id,
+                    "doc_id": doc.doc_id
+                }
+            )
         if not compute_request:
             return None
         expression = compute_request.get("expression")
@@ -1784,6 +1794,7 @@ class MurphySystem:
                 "execution_policy": execution_policy,
                 "persistence_snapshot": persistence_snapshot,
                 "compute_plane": compute_plane_result,
+                "swarm_execution": swarm_execution,
                 "metadata": {
                     "task_description": task_description,
                     "task_type": task_type,
@@ -1800,6 +1811,7 @@ class MurphySystem:
             fallback["execution_wiring"] = execution_wiring
             fallback["execution_policy"] = execution_policy
             fallback["persistence_snapshot"] = persistence_snapshot
+            fallback["swarm_execution"] = swarm_execution
             return fallback
 
         if not self._supports_async_orchestrator():
@@ -1812,7 +1824,8 @@ class MurphySystem:
                 activation_preview,
                 execution_wiring,
                 execution_policy,
-                persistence_snapshot
+                persistence_snapshot,
+                swarm_execution
             )
 
         try:
@@ -1866,6 +1879,7 @@ class MurphySystem:
                 'execution_wiring': execution_wiring,
                 'execution_policy': execution_policy,
                 'persistence_snapshot': persistence_snapshot,
+                'swarm_execution': swarm_execution,
                 'metadata': {
                     'task_description': task_description,
                     'task_type': task_type,
@@ -1990,7 +2004,8 @@ class MurphySystem:
         activation_preview: Dict[str, Any],
         execution_wiring: Optional[Dict[str, Any]],
         execution_policy: Dict[str, Any],
-        persistence_snapshot: Optional[Dict[str, Any]]
+        persistence_snapshot: Optional[Dict[str, Any]],
+        swarm_execution: Optional[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """Execute the legacy two-phase orchestrator path (create + run automation)."""
         # If the domain is not provided, default to task_type to preserve compatibility with
@@ -2024,6 +2039,7 @@ class MurphySystem:
                 "execution_wiring": execution_wiring,
                 "execution_policy": execution_policy,
                 "persistence_snapshot": persistence_snapshot,
+                "swarm_execution": swarm_execution,
                 "metadata": {
                     "task_description": task_description,
                     "task_type": task_type,
@@ -2040,7 +2056,8 @@ class MurphySystem:
                 "activation_preview": activation_preview,
                 "execution_wiring": execution_wiring,
                 "execution_policy": execution_policy,
-                "persistence_snapshot": persistence_snapshot
+                "persistence_snapshot": persistence_snapshot,
+                "swarm_execution": swarm_execution
             }
 
     def _execute_with_mfgc_adapter(

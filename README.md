@@ -61,6 +61,7 @@ start_murphy_1.0.bat   # Windows
 - **What you can test:** `/api/health`, `/api/status`, `/api/info`, `/api/execute`, and automation endpoints under `/api/automation/...`
 - **Deterministic validation:** supply `compute_request` (expression + language) to `/api/execute` for cached compute plane checks (thread-safe shared service instance); session/doc tracking attaches once validation succeeds, and invalid session IDs trigger a new session warning before validation.
 - **Execution wiring:** activation previews and `/api/execute` responses now include `execution_wiring` with gate synthesis + swarm task readiness summaries.
+- **Swarm execution preview:** include `run_swarm_execution=true` in `/api/execute` payloads to collect TrueSwarmSystem execution summaries (used for wiring validation while full execution paths are completed).
 - **Two-phase execution path:** when the async orchestrator interface is unavailable, `execute_task` now routes through `TwoPhaseOrchestrator` (`create_automation`/`run_automation`) for the legacy phase1/phase2 workflow.
 - **Wingman protocol:** activation previews include executor/validator pairing metadata in dynamic chain training patterns for deterministic output verification.
 - **Persistence snapshots:** set `MURPHY_PERSISTENCE_DIR` to store activation previews + execution results; persistence status now includes a snapshot index for replay analysis.
@@ -74,6 +75,7 @@ start_murphy_1.0.bat   # Windows
 - **HITL handoff queue test:** `tests/test_handoff_queue_snapshot.py` validates backlog visibility for HITL interventions and contract approvals.
 - **Self-improvement snapshot test:** `tests/test_self_improvement_snapshot.py` validates remediation backlog and action outputs.
 - **Two-phase orchestrator tests:** `tests/test_two_phase_orchestrator_execution.py` validates routing plus domain fallback for the legacy phase1/phase2 create/run automation path.
+- **Swarm execution tests:** `tests/test_swarm_execution_path.py` validates swarm execution preview summaries for initialized and missing swarm systems.
 - **Two-phase session handling:** uses a dedicated session ID separate from the automation ID; `session_id_source` indicates when the automation_id fallback is used if session creation fails.
 - **Architect UI:** serve `Murphy System/murphy_integrated/terminal_architect.html` (or `murphy_production_ui.html`, which redirects unless `?legacy=true`) with `python -m http.server 8090` and open `http://localhost:8090/murphy_integrated/terminal_architect.html?apiPort=6666`
 - **Details:** see [Runtime 1.0 Status](<Murphy System/murphy_integrated/RUNTIME_1.0_STATUS.md>)

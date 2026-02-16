@@ -18,6 +18,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **Learning-loop plan:** iterative requirement variants are listed with expected output targets.
 - **Compute plane validation path:** deterministic compute requests can now be validated through the runtime for structured checks.
 - **Execution wiring snapshot:** execute responses now include gate synthesis + swarm task readiness summaries for runtime execution checks.
+- **Swarm execution preview:** `execute_task` can invoke TrueSwarmSystem summaries with `run_swarm_execution` to validate swarm expansion coverage.
 - **Two-phase orchestrator wiring:** `execute_task` now routes through `TwoPhaseOrchestrator` (`create_automation`/`run_automation`) when the async orchestrator interface is unavailable (validated by `tests/test_two_phase_orchestrator_execution.py`); orchestration defaults to the task type only when the domain parameter is omitted, and responses report a dedicated session ID alongside the automation ID with a `session_id_source` fallback indicator.
 - **Persistence snapshots:** execution previews and results can be persisted when `MURPHY_PERSISTENCE_DIR` is configured.
 - **Persistence index:** persistence status now includes a snapshot index for quick replay/audit visibility.
@@ -124,7 +125,7 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 
 ## 8) Completion checklist (what remains to be complete)
 
-- **Dynamic execution wiring:** gate synthesis, dynamic swarm generation, and chain execution must run through the main runtime paths (no preview-only paths).
+- **Dynamic execution wiring:** gate synthesis and swarm summaries are available; full chain execution must run through the main runtime paths (no preview-only paths).
 - **Deterministic + LLM routing:** compute plane and LLM orchestration must both be wired with clear task routing rules.
 - **Persistence & replay:** store LivingDocument, gate history, librarian context, and automation plans with replay support.
 - **Multi-channel delivery:** document/email/chat/voice adapters with governance approvals and audit trails.
@@ -191,6 +192,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 11. **Registry health snapshot tests**: `test_registry_health_snapshot.py` validates registry health and schema drift snapshot output.
 12. **Persistence snapshot index tests**: `test_persistence_snapshot_index.py` validates snapshot index reporting in persistence status.
 13. **Learning backlog routing tests**: `test_learning_backlog_snapshot.py` validates learning backlog routing snapshot output.
+14. **Swarm execution path tests**: `test_swarm_execution_path.py` validates `run_swarm_execution` outputs.
 
 ---
 
