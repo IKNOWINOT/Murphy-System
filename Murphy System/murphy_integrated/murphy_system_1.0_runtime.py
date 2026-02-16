@@ -4501,20 +4501,16 @@ class MurphySystem:
         compliance_status = delivery_readiness.get("compliance_status", "needs_wiring")
         hitl_status = handoff_queue.get("status", "needs_wiring")
 
-        if not operations_plan:
-            operations_status = "needs_wiring"
-        elif all(task.get("status") in {"ready", "complete"} for task in operations_plan):
-            operations_status = "ready"
-        else:
-            operations_status = "pending"
+        def _resolve_plan_status(tasks: List[Dict[str, Any]]) -> str:
+            if not tasks:
+                return "needs_wiring"
+            if all(task.get("status") in {"ready", "complete"} for task in tasks):
+                return "ready"
+            return "pending"
 
+        operations_status = _resolve_plan_status(operations_plan)
         qa_tasks = [task for task in operations_plan if task.get("owner") == "quality_assurance"]
-        if not qa_tasks:
-            qa_status = "needs_wiring"
-        elif all(task.get("status") in {"ready", "complete"} for task in qa_tasks):
-            qa_status = "ready"
-        else:
-            qa_status = "pending"
+        qa_status = _resolve_plan_status(qa_tasks)
 
         components = {
             "executive": executive_status,
@@ -4533,6 +4529,7 @@ class MurphySystem:
             "other": 0
         }
         normalized = {}
+        # Normalize detailed statuses into summary buckets for governance readiness tracking.
         for component, status in components.items():
             normalized_status = "other"
             if status in {"ready", "clear", "configured"}:
