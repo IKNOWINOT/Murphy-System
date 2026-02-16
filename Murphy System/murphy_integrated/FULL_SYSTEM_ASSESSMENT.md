@@ -27,6 +27,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **Registry health + schema drift snapshots:** activation previews and system status expose module registry health and configuration drift indicators.
 - **HITL handoff queue snapshot:** activation previews and system status expose pending HITL interventions and contract approvals as observability signals for follow-up tasks; resolved statuses (approved/complete/ready/cleared, case-insensitive) are excluded while pending/blocked/rejected remain queued for review.
 - **Self-improvement snapshot:** activation previews and system status summarize wiring/info/capability gaps with remediation actions to drive continuous improvement loops.
+- **Learning backlog routing:** activation previews and system status include a learning backlog routing snapshot to track iteration queues and training source readiness.
 
 ## 3) Critical execution gaps (must close)
 
@@ -189,6 +190,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 10. **Self-improvement snapshot tests**: `test_self_improvement_snapshot.py` validates remediation backlog and action outputs.
 11. **Registry health snapshot tests**: `test_registry_health_snapshot.py` validates registry health and schema drift snapshot output.
 12. **Persistence snapshot index tests**: `test_persistence_snapshot_index.py` validates snapshot index reporting in persistence status.
+13. **Learning backlog routing tests**: `test_learning_backlog_snapshot.py` validates learning backlog routing snapshot output.
 
 ---
 

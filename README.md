@@ -70,6 +70,7 @@ start_murphy_1.0.bat   # Windows
 - **Delivery adapter test:** `tests/test_delivery_adapter_snapshot.py` validates readiness status and adapter summary output.
 - **HITL handoff queue snapshot:** activation previews and `/api/status` expose pending HITL interventions and contract approvals as observability signals to drive approval and delivery tasks (case-insensitive resolved statuses like approved/complete/ready/cleared are filtered; pending/blocked/rejected remain queued for review).
 - **Self-improvement snapshot:** activation previews and `/api/status` include a remediation backlog derived from wiring/info/capability gaps plus recommended actions for continuous improvement loops.
+- **Learning backlog routing:** activation previews and `/api/status` include learning backlog routing snapshots to track iteration queues and training source readiness.
 - **HITL handoff queue test:** `tests/test_handoff_queue_snapshot.py` validates backlog visibility for HITL interventions and contract approvals.
 - **Self-improvement snapshot test:** `tests/test_self_improvement_snapshot.py` validates remediation backlog and action outputs.
 - **Two-phase orchestrator tests:** `tests/test_two_phase_orchestrator_execution.py` validates routing plus domain fallback for the legacy phase1/phase2 create/run automation path.
