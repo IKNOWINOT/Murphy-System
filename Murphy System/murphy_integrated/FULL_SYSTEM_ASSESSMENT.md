@@ -133,7 +133,7 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 - **Deterministic + LLM routing:** compute plane and LLM orchestration must both be wired with clear task routing rules.
 - **Persistence & replay:** store LivingDocument, gate history, librarian context, and automation plans with replay support.
 - **Multi-channel delivery:** document/email/chat/voice adapters with governance approvals and audit trails.
-- **Delivery adapter wiring:** snapshot is available, but adapters remain unconfigured (needs integration).
+- **Delivery adapter integration:** readiness snapshot is available, but adapters remain unconfigured (needs integration).
 - **Adapter framework integration:** adapter execution snapshot is available; execution wiring and activation flows still need integration.
 - **Compliance validation:** regulatory sensors, policy gates, and HITL approvals tied to deliverable releases.
 - **Operations automation:** remote access invites, ticketing, patch/rollback automation, and production telemetry.
@@ -198,6 +198,13 @@ These percentages are **current estimates** based on wired functionality vs. pla
 8. **Compute plane validation tests**: `test_compute_plane_validation.py` validates deterministic routing and validation payload handling.
 9. **HITL handoff queue snapshot tests**: `test_handoff_queue_snapshot.py` verifies approval backlog visibility for interventions and contracts.
 10. **Self-improvement snapshot tests**: `test_self_improvement_snapshot.py` validates remediation backlog and action outputs.
+11. **Learning backlog routing tests**: `test_learning_backlog_snapshot.py` validates backlog routing summaries for iteration readiness.
+12. **Observability snapshot tests**: `test_observability_snapshot.py` validates telemetry bus + ingestion stats in status outputs.
+13. **Registry health + schema drift tests**: `test_registry_health_snapshot.py` validates module registry health and drift indicators.
+14. **Persistence snapshot index tests**: `test_persistence_snapshot_index.py` validates snapshot index summaries in persistence status.
+15. **Persistence replay snapshot tests**: `test_persistence_replay_snapshot.py` validates replay readiness metadata.
+16. **Audit snapshot tests**: `test_audit_snapshot.py` validates audit snapshot summaries.
+17. **Persistence snapshot tests**: `test_persistence_snapshot.py` validates persistence snapshot write and status handling.
 11. **Registry health snapshot tests**: `test_registry_health_snapshot.py` validates registry health and schema drift snapshot output.
 12. **Audit snapshot tests**: `test_audit_snapshot.py` validates audit snapshot summary output.
 13. **Persistence snapshot index tests**: `test_persistence_snapshot_index.py` validates snapshot index reporting in persistence status.
