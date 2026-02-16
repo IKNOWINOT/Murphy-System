@@ -4064,8 +4064,6 @@ class MurphySystem:
                 )
                 return None
         # Select the first connector alphabetically by ID for deterministic behavior.
-        if not connectors:
-            return None
         selected_connector = sorted(connectors, key=lambda connector: connector["id"])[0]
         engine = DocumentGenerationEngine()
         template = DocumentTemplate(
