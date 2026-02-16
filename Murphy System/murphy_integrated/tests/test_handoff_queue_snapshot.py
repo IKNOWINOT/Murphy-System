@@ -72,3 +72,14 @@ def test_handoff_queue_snapshot_resolved_contracts():
     snapshot = murphy._build_handoff_queue_snapshot(contracts)
     assert snapshot["summary"]["pending_contracts"] == 0
     assert snapshot["summary"]["total_pending"] == 0
+
+
+def test_handoff_queue_snapshot_unresolved_contracts():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    contracts = [
+        {"gate": "HITL Contract", "status": status}
+        for status in ["pending", "blocked", "rejected", "in_review"]
+    ]
+    snapshot = murphy._build_handoff_queue_snapshot(contracts)
+    assert snapshot["summary"]["pending_contracts"] == len(contracts)

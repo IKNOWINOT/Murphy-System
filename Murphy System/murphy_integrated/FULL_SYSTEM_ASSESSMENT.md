@@ -23,7 +23,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **Observability snapshot:** telemetry bus + ingester stats are exposed in activation previews and system status.
 - **Delivery adapter snapshot:** activation previews include document/email/chat/voice adapter readiness; the snapshot is treated as observability sensor data to drive follow-on task cues and delivery confirmations.
 - **Delivery adapter test coverage:** snapshot tests validate configured vs. unconfigured adapters and output status handling.
-- **HITL handoff queue snapshot:** activation previews and system status expose pending HITL interventions and contract approvals as observability signals for follow-up tasks; resolved statuses (approved/complete/ready/cleared) are excluded from backlog counts.
+- **HITL handoff queue snapshot:** activation previews and system status expose pending HITL interventions and contract approvals as observability signals for follow-up tasks; resolved statuses (approved/complete/ready/cleared) are excluded while pending/blocked/rejected remain queued.
 
 ## 3) Critical execution gaps (must close)
 
