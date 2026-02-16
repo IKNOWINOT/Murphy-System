@@ -4495,6 +4495,7 @@ class MurphySystem:
         - pending/pending_review/pending_approval/blocked/needs_compliance -> pending (review required)
         - needs_wiring/monitor_unavailable/unavailable -> needs_wiring
         - needs_info -> needs_info
+        - unknown values -> other
         """
         if status in {"ready", "complete", "clear", "configured"}:
             return "ready"
@@ -4508,7 +4509,10 @@ class MurphySystem:
 
     @staticmethod
     def _resolve_plan_status(tasks: List[Dict[str, Any]]) -> str:
-        """Return needs_wiring when empty, ready when all tasks are ready/complete, else pending."""
+        """Return needs_wiring when empty, ready when all tasks ready/complete, else pending.
+
+        Any task status outside ready/complete is treated as pending for rollup.
+        """
         if not tasks:
             return "needs_wiring"
         if all(task.get("status") in {"ready", "complete"} for task in tasks):

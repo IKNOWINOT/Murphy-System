@@ -31,6 +31,7 @@ def test_governance_dashboard_snapshot_defaults():
     assert summary["total"] == 6
     assert summary["needs_wiring"] == 1
     assert snapshot["status"] == "needs_wiring"
+    assert snapshot["components"]["operations"]["normalized_status"] == "pending"
 
 
 def test_governance_dashboard_snapshot_ready():
@@ -67,3 +68,5 @@ def test_governance_dashboard_snapshot_in_system_status():
 
     governance = status["governance_dashboard"]
     assert governance["summary"]["total"] == 6
+    assert governance["status"] == "needs_wiring"
+    assert governance["components"]["hitl"]["normalized_status"] == "pending"
