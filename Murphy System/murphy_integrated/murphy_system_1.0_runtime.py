@@ -4511,7 +4511,8 @@ class MurphySystem:
     def _resolve_plan_status(tasks: List[Dict[str, Any]]) -> str:
         """Return needs_wiring when empty, ready when all tasks ready/complete, else pending.
 
-        Any task status outside ready/complete is treated as pending for rollup.
+        Args:
+            tasks: list of task dicts containing at least a ``status`` field.
         """
         if not tasks:
             return "needs_wiring"
@@ -4526,7 +4527,10 @@ class MurphySystem:
         delivery_readiness: Optional[Dict[str, Any]],
         handoff_queue: Optional[Dict[str, Any]]
     ) -> Dict[str, Any]:
-        """Summarize executive, operations, QA, and HITL readiness into one dashboard."""
+        """Summarize executive, operations, QA, and HITL readiness into one dashboard.
+
+        Returns a dict with: status, summary, components, and gap_action.
+        """
         operations_plan = operations_plan or []
         delivery_readiness = delivery_readiness or {}
         handoff_queue = handoff_queue or {}
