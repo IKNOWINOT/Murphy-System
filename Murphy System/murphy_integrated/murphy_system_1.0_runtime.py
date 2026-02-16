@@ -1260,8 +1260,8 @@ class MurphySystem:
             connector_id = connector.get("id") or connector.get("connector_id")
             if not connector_id:
                 continue
-            status = connector.get("status", "available")
-            channel = connector.get("channel") or connector.get("type") or "unknown"
+            status = connector.get("status", "unconfigured")
+            channel = connector.get("channel") or "unknown"
             self.integration_connectors[connector_id] = {
                 "status": status,
                 "channel": channel,
