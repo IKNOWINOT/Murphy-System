@@ -4045,6 +4045,7 @@ class MurphySystem:
         context.setdefault("task", task_description)
         summary_text = params.get("document_summary")
         if not summary_text:
+            # Reuse the standard summary truncation helper for document defaults.
             summary_text = self._truncate_description(task_description)
         context.setdefault("summary", summary_text)
         context.setdefault("deliverable", params.get("document_deliverable", task_type))
@@ -4059,6 +4060,7 @@ class MurphySystem:
                     connector_override
                 )
                 return None
+        # Select the first connector alphabetically by ID for deterministic behavior.
         selected_connector = sorted(connectors, key=lambda connector: connector["id"])[0]
         engine = DocumentGenerationEngine()
         template = DocumentTemplate(
