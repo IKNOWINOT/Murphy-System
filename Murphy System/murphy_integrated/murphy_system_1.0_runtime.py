@@ -1268,6 +1268,7 @@ class MurphySystem:
         for connector in connector_entries:
             if not isinstance(connector, dict):
                 continue
+            # Use "id" as the canonical connector identifier; "connector_id" remains for legacy inputs.
             connector_id = connector.get("id") or connector.get("connector_id")
             if not connector_id:
                 continue
@@ -1287,10 +1288,15 @@ class MurphySystem:
                     connector_id
                 )
                 channel = "unknown"
+            metadata = {
+                key: value
+                for key, value in connector.items()
+                if key not in {"id", "connector_id", "status", "channel"}
+            }
             self.integration_connectors[connector_id] = {
                 "status": status,
                 "channel": channel,
-                "metadata": connector
+                "metadata": metadata
             }
 
     def _register_core_modules(self) -> None:

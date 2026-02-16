@@ -76,6 +76,7 @@ def test_delivery_adapter_snapshot_marks_configured_entries():
 def test_delivery_adapter_snapshot_applies_parameter_connectors():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
+    expected_ids = {candidate["id"] for candidate in murphy.DELIVERY_ADAPTER_CANDIDATES}
     params = {
         "onboarding_context": {"answers": build_onboarding_answers(murphy)},
         "delivery_connectors": [
@@ -93,6 +94,7 @@ def test_delivery_adapter_snapshot_applies_parameter_connectors():
     delivery_readiness = preview["delivery_readiness"]
     summary = delivery_readiness["delivery_adapters"]["summary"]
     assert summary["configured"] == 1
+    assert "document_delivery" in expected_ids
     connector = murphy.integration_connectors["document_delivery"]
     assert connector["channel"] == "document"
     assert connector["status"] == "configured"
