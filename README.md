@@ -81,6 +81,7 @@ start_murphy_1.0.bat   # Windows
 - **Self-improvement snapshot test:** `tests/test_self_improvement_snapshot.py` validates remediation backlog and action outputs.
 - **Two-phase orchestrator tests:** `tests/test_two_phase_orchestrator_execution.py` validates routing plus domain fallback for the legacy phase1/phase2 create/run automation path.
 - **Gate chain sequencing tests:** `tests/test_gate_chain_sequencing.py` validates gate blocking propagation and reasons.
+- **Multi-loop scheduling tests:** `tests/test_multi_loop_schedule_snapshot.py` validates multi-loop schedule readiness and pending status handling.
 - **Compliance delivery tests:** `tests/test_compliance_delivery_gating.py` validates compliance gating before delivery release.
 - **Swarm execution tests:** `tests/test_swarm_execution_path.py` validates swarm execution preview summaries for initialized and missing swarm systems.
 - **Adapter execution snapshot tests:** `tests/test_adapter_execution_snapshot.py` validates adapter readiness and configuration status.
