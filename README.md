@@ -65,6 +65,7 @@ start_murphy_1.0.bat   # Windows
 - **Two-phase execution path:** when the async orchestrator interface is unavailable, `execute_task` now routes through `TwoPhaseOrchestrator` (`create_automation`/`run_automation`) for the legacy phase1/phase2 workflow.
 - **Wingman protocol:** activation previews include executor/validator pairing metadata in dynamic chain training patterns for deterministic output verification.
 - **Persistence snapshots:** set `MURPHY_PERSISTENCE_DIR` to store activation previews + execution results; persistence status now includes a snapshot index for replay analysis.
+- **Audit snapshot:** persistence status now includes an audit snapshot summary (count + latest snapshot) for quick audit visibility.
 - **Observability snapshot:** activation previews and `/api/status` include telemetry bus + ingestion stats when telemetry components are available.
 - **Registry health + schema drift snapshots:** activation previews and `/api/status` now include registry health status plus schema drift indicators for missing persistence, observability, or delivery adapter configuration.
 - **Module registry standardization:** auto-registers `murphy_integrated/src` modules and local packages into the module catalog with health + schema drift snapshots.

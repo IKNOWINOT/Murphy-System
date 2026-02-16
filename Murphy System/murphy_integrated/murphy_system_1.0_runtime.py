@@ -1515,15 +1515,41 @@ class MurphySystem:
     def _build_persistence_status(self) -> Dict[str, Any]:
         persistence_dir = self._get_persistence_dir()
         if not persistence_dir:
+            disabled_reason = f"Set {self.PERSISTENCE_DIR_ENV} to enable persistence snapshots."
             return {
                 "status": "disabled",
-                "reason": f"Set {self.PERSISTENCE_DIR_ENV} to enable persistence snapshots."
+                "reason": disabled_reason,
+                "audit_snapshot": {
+                    "status": "disabled",
+                    "reason": disabled_reason
+                }
             }
         snapshot_index = self._build_persistence_snapshot_index(persistence_dir)
+        audit_snapshot = self._build_audit_snapshot(persistence_dir, snapshot_index)
         return {
             "status": "configured",
             "path": str(persistence_dir),
-            "snapshot_index": snapshot_index
+            "snapshot_index": snapshot_index,
+            "audit_snapshot": audit_snapshot
+        }
+
+    def _build_audit_snapshot(
+        self,
+        persistence_dir: Path,
+        snapshot_index: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        status = snapshot_index.get("status", "missing")
+        if status == "missing":
+            return {
+                "status": "missing",
+                "reason": "Persistence directory not found for audit snapshots."
+            }
+        snapshots = snapshot_index.get("snapshots", [])
+        latest_snapshot = snapshots[-1] if snapshots else None
+        return {
+            "status": "ready" if snapshots else "empty",
+            "snapshot_count": snapshot_index.get("count", len(snapshots)),
+            "latest_snapshot": latest_snapshot
         }
 
     def _build_persistence_snapshot_index(self, persistence_dir: Path) -> Dict[str, Any]:

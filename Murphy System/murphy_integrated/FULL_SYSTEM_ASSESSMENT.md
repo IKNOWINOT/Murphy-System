@@ -22,6 +22,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **Two-phase orchestrator wiring:** `execute_task` now routes through `TwoPhaseOrchestrator` (`create_automation`/`run_automation`) when the async orchestrator interface is unavailable (validated by `tests/test_two_phase_orchestrator_execution.py`); orchestration defaults to the task type only when the domain parameter is omitted, and responses report a dedicated session ID alongside the automation ID with a `session_id_source` fallback indicator.
 - **Persistence snapshots:** execution previews and results can be persisted when `MURPHY_PERSISTENCE_DIR` is configured.
 - **Persistence index:** persistence status now includes a snapshot index for quick replay/audit visibility.
+- **Audit snapshot:** persistence status now includes an audit snapshot summary (latest snapshot + count).
 - **Observability snapshot:** telemetry bus + ingester stats are exposed in activation previews and system status.
 - **Delivery adapter snapshot:** activation previews include document/email/chat/voice adapter readiness; the snapshot is treated as observability sensor data to drive follow-on task cues and delivery confirmations.
 - **Delivery adapter test coverage:** snapshot tests validate configured vs. unconfigured adapters and output status handling.
@@ -38,7 +39,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 2. **Compute plane + stability controllers**  
    Deterministic reasoning exists but is not invoked for tagged tasks.
 3. **Persistence + audit trails**  
-   Snapshot persistence is available when configured, but durable replay/audit storage is still missing.
+   Snapshot persistence + audit snapshot summaries are available when configured, but durable replay/audit storage is still missing.
 4. **Multi-channel delivery adapters**  
    There are no production adapters for document/email/chat/voice output.
 5. **Operational services**  
