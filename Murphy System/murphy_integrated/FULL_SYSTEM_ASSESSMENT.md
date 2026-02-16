@@ -22,6 +22,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **Two-phase orchestrator wiring:** `execute_task` now routes through `TwoPhaseOrchestrator` (`create_automation`/`run_automation`) when the async orchestrator interface is unavailable (validated by `tests/test_two_phase_orchestrator_execution.py`); orchestration defaults to the task type only when the domain parameter is omitted, and responses report a dedicated session ID alongside the automation ID with a `session_id_source` fallback indicator.
 - **Persistence snapshots:** execution previews and results can be persisted when `MURPHY_PERSISTENCE_DIR` is configured.
 - **Persistence index:** persistence status now includes a snapshot index for quick replay/audit visibility.
+- **Persistence replay snapshot:** persistence status now includes replay readiness metadata and the latest snapshot name.
 - **Audit snapshot:** persistence status now includes an audit snapshot summary (latest snapshot + count).
 - **Observability snapshot:** telemetry bus + ingester stats are exposed in activation previews and system status.
 - **Delivery adapter snapshot:** activation previews include document/email/chat/voice adapter readiness; the snapshot is treated as observability sensor data to drive follow-on task cues and delivery confirmations.
@@ -184,7 +185,6 @@ These percentages are **current estimates** based on wired functionality vs. pla
 **Remaining expansion**
 
 1. **Execution wiring tests**: orchestrator + MFGC fallback with live task execution results.
-2. **Persistence + replay tests**: verify stored session data, replayed approvals, and rollback.
 
 **Completed dynamic test modules**
 
@@ -201,10 +201,11 @@ These percentages are **current estimates** based on wired functionality vs. pla
 11. **Registry health snapshot tests**: `test_registry_health_snapshot.py` validates registry health and schema drift snapshot output.
 12. **Audit snapshot tests**: `test_audit_snapshot.py` validates audit snapshot summary output.
 13. **Persistence snapshot index tests**: `test_persistence_snapshot_index.py` validates snapshot index reporting in persistence status.
-14. **Learning backlog routing tests**: `test_learning_backlog_snapshot.py` validates learning backlog routing snapshot output.
-10. **Wingman protocol tests**: `test_dynamic_implementation_plan.py` validates executor/validator pairing and deterministic checks per subject.
-11. **Swarm execution path tests**: `test_swarm_execution_path.py` validates `run_swarm_execution` outputs.
-12. **Adapter execution snapshot tests**: `test_adapter_execution_snapshot.py` validates adapter readiness and configuration status.
+14. **Persistence replay snapshot tests**: `test_persistence_replay_snapshot.py` validates replay readiness output in persistence status.
+15. **Learning backlog routing tests**: `test_learning_backlog_snapshot.py` validates learning backlog routing snapshot output.
+16. **Wingman protocol tests**: `test_dynamic_implementation_plan.py` validates executor/validator pairing and deterministic checks per subject.
+17. **Swarm execution path tests**: `test_swarm_execution_path.py` validates `run_swarm_execution` outputs.
+18. **Adapter execution snapshot tests**: `test_adapter_execution_snapshot.py` validates adapter readiness and configuration status.
 
 ---
 

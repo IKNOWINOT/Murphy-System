@@ -1522,15 +1522,21 @@ class MurphySystem:
                 "audit_snapshot": {
                     "status": "disabled",
                     "reason": disabled_reason
+                },
+                "replay_snapshot": {
+                    "status": "disabled",
+                    "reason": disabled_reason
                 }
             }
         snapshot_index = self._build_persistence_snapshot_index(persistence_dir)
         audit_snapshot = self._build_audit_snapshot(persistence_dir, snapshot_index)
+        replay_snapshot = self._build_persistence_replay_snapshot(snapshot_index)
         return {
             "status": "configured",
             "path": str(persistence_dir),
             "snapshot_index": snapshot_index,
-            "audit_snapshot": audit_snapshot
+            "audit_snapshot": audit_snapshot,
+            "replay_snapshot": replay_snapshot
         }
 
     def _build_audit_snapshot(
@@ -1550,6 +1556,27 @@ class MurphySystem:
             "status": "ready" if snapshots else "empty",
             "snapshot_count": snapshot_index.get("count", len(snapshots)),
             "latest_snapshot": latest_snapshot
+        }
+
+    def _build_persistence_replay_snapshot(self, snapshot_index: Dict[str, Any]) -> Dict[str, Any]:
+        status = snapshot_index.get("status", "missing")
+        if status == "missing":
+            return {
+                "status": "missing",
+                "reason": "Persistence directory not found for replay snapshots."
+            }
+        snapshots = snapshot_index.get("snapshots", [])
+        if not snapshots:
+            return {
+                "status": "empty",
+                "reason": "No persistence snapshots available for replay."
+            }
+        latest_snapshot = snapshots[-1]
+        return {
+            "status": "ready",
+            "snapshot_count": snapshot_index.get("count", len(snapshots)),
+            "latest_snapshot": latest_snapshot,
+            "available_snapshots": snapshots
         }
 
     def _build_persistence_snapshot_index(self, persistence_dir: Path) -> Dict[str, Any]:
