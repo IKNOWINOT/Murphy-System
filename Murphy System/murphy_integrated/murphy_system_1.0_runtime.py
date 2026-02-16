@@ -1241,6 +1241,7 @@ class MurphySystem:
         onboarding_context = None
         if isinstance(parameters, dict):
             onboarding_context = parameters.get("onboarding_context")
+        self._apply_delivery_connectors(parameters)
         activation_preview = self._build_activation_preview(
             doc,
             task_description=task_description,
@@ -1248,6 +1249,24 @@ class MurphySystem:
         )
         self.latest_activation_preview = activation_preview
         return doc, activation_preview
+
+    def _apply_delivery_connectors(self, parameters: Optional[Dict[str, Any]]) -> None:
+        if not isinstance(parameters, dict):
+            return
+        connector_entries = parameters.get("delivery_connectors") or []
+        for connector in connector_entries:
+            if not isinstance(connector, dict):
+                continue
+            connector_id = connector.get("id") or connector.get("connector_id")
+            if not connector_id:
+                continue
+            status = connector.get("status", "configured")
+            channel = connector.get("channel") or connector.get("type") or "delivery"
+            self.integration_connectors[connector_id] = {
+                "status": status,
+                "channel": channel,
+                "metadata": connector
+            }
 
     def _register_core_modules(self) -> None:
         if not getattr(self, "module_manager", None):
@@ -5264,7 +5283,7 @@ class MurphySystem:
         if self.integration_engine:
             pending_integrations = len(self.integration_engine.list_pending_integrations())
             committed_integrations = len(self.integration_engine.list_committed_integrations())
-        latest_preview = self.latest_activation_preview or {}
+        latest_preview = getattr(self, "latest_activation_preview", {}) or {}
         learning_backlog = self._build_learning_backlog_snapshot(
             latest_preview.get("learning_loop"),
             (latest_preview.get("dynamic_implementation") or {})
