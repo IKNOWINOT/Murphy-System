@@ -190,25 +190,25 @@ These percentages are **current estimates** based on wired functionality vs. pla
 **Completed dynamic test modules**
 
 1. **Adapter execution snapshot tests**: `test_adapter_execution_snapshot.py` validates adapter execution readiness reporting for core framework modules.
-2. **Delivery adapter snapshot tests**: `test_delivery_adapter_snapshot.py` verifies delivery readiness status and adapter availability outputs.
-3. **Execution wiring snapshot tests**: `test_execution_wiring_snapshot.py` validates runtime execution wiring summaries in previews and responses.
-4. **Execution wiring integration tests**: `test_execution_wiring_integration.py` validates MFGC fallback routing in `execute_task`.
-5. **Gate chain sequencing tests**: `test_gate_chain_sequencing.py` verifies blocked gate propagation in sequencing rules.
-6. **Multi-loop scheduling tests**: `test_multi_loop_schedule_snapshot.py` validates multi-loop schedule readiness and pending states.
-7. **Compliance + delivery gating tests**: `test_compliance_delivery_gating.py` validates compliance gating before delivery release.
-8. **Two-phase orchestrator execution tests**: `test_two_phase_orchestrator_execution.py` validates create/run automation routing when the async orchestrator interface is unavailable.
-9. **Compute plane validation tests**: `test_compute_plane_validation.py` validates deterministic routing and validation payload handling.
-10. **HITL handoff queue snapshot tests**: `test_handoff_queue_snapshot.py` verifies approval backlog visibility for interventions and contracts.
-11. **Self-improvement snapshot tests**: `test_self_improvement_snapshot.py` validates remediation backlog and action outputs.
-12. **Learning backlog routing tests**: `test_learning_backlog_snapshot.py` validates backlog routing summaries for iteration readiness.
-13. **Observability snapshot tests**: `test_observability_snapshot.py` validates telemetry bus + ingestion stats in status outputs.
-14. **Registry health + schema drift tests**: `test_registry_health_snapshot.py` validates module registry health and drift indicators.
-15. **Persistence snapshot index tests**: `test_persistence_snapshot_index.py` validates snapshot index summaries in persistence status.
-16. **Persistence replay snapshot tests**: `test_persistence_replay_snapshot.py` validates replay readiness metadata.
-17. **Audit snapshot tests**: `test_audit_snapshot.py` validates audit snapshot summaries.
-18. **Persistence snapshot tests**: `test_persistence_snapshot.py` validates persistence snapshot write and status handling.
-19. **Wingman protocol tests**: `test_dynamic_implementation_plan.py` validates executor/validator pairing and deterministic checks per subject.
-20. **Swarm execution path tests**: `test_swarm_execution_path.py` validates `run_swarm_execution` outputs.
+1. **Delivery adapter snapshot tests**: `test_delivery_adapter_snapshot.py` verifies delivery readiness status and adapter availability outputs.
+1. **Execution wiring snapshot tests**: `test_execution_wiring_snapshot.py` validates runtime execution wiring summaries in previews and responses.
+1. **Execution wiring integration tests**: `test_execution_wiring_integration.py` validates MFGC fallback routing in `execute_task`.
+1. **Gate chain sequencing tests**: `test_gate_chain_sequencing.py` verifies blocked gate propagation in sequencing rules.
+1. **Multi-loop scheduling tests**: `test_multi_loop_schedule_snapshot.py` validates multi-loop schedule readiness and pending states.
+1. **Compliance + delivery gating tests**: `test_compliance_delivery_gating.py` validates compliance gating before delivery release.
+1. **Two-phase orchestrator execution tests**: `test_two_phase_orchestrator_execution.py` validates create/run automation routing when the async orchestrator interface is unavailable.
+1. **Compute plane validation tests**: `test_compute_plane_validation.py` validates deterministic routing and validation payload handling.
+1. **HITL handoff queue snapshot tests**: `test_handoff_queue_snapshot.py` verifies approval backlog visibility for interventions and contracts.
+1. **Self-improvement snapshot tests**: `test_self_improvement_snapshot.py` validates remediation backlog and action outputs.
+1. **Learning backlog routing tests**: `test_learning_backlog_snapshot.py` validates backlog routing summaries for iteration readiness.
+1. **Observability snapshot tests**: `test_observability_snapshot.py` validates telemetry bus + ingestion stats in status outputs.
+1. **Registry health + schema drift tests**: `test_registry_health_snapshot.py` validates module registry health and drift indicators.
+1. **Persistence snapshot index tests**: `test_persistence_snapshot_index.py` validates snapshot index summaries in persistence status.
+1. **Persistence replay snapshot tests**: `test_persistence_replay_snapshot.py` validates replay readiness metadata.
+1. **Audit snapshot tests**: `test_audit_snapshot.py` validates audit snapshot summaries.
+1. **Persistence snapshot tests**: `test_persistence_snapshot.py` validates persistence snapshot write and status handling.
+1. **Wingman protocol tests**: `test_dynamic_implementation_plan.py` validates executor/validator pairing and deterministic checks per subject.
+1. **Swarm execution path tests**: `test_swarm_execution_path.py` validates `run_swarm_execution` outputs.
 
 ---
 
