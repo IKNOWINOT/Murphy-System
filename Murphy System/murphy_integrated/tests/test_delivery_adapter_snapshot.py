@@ -94,3 +94,4 @@ def test_delivery_adapter_snapshot_applies_parameter_connectors():
     assert summary["configured"] == 1
     connector = murphy.integration_connectors["document_delivery"]
     assert connector["channel"] == "document"
+    assert connector["status"] == "configured"

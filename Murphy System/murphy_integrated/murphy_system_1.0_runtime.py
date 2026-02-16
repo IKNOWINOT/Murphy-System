@@ -1261,7 +1261,7 @@ class MurphySystem:
             if not connector_id:
                 continue
             status = connector.get("status", "configured")
-            channel = connector.get("channel") or connector.get("type") or "delivery"
+            channel = connector.get("channel") or connector.get("type") or "unspecified"
             self.integration_connectors[connector_id] = {
                 "status": status,
                 "channel": channel,
