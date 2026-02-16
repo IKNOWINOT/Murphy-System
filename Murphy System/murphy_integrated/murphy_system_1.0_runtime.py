@@ -3865,6 +3865,61 @@ class MurphySystem:
             "gap_action": gap_action
         }
 
+    def _build_self_improvement_snapshot(
+        self,
+        dynamic_implementation: Optional[Dict[str, Any]],
+        capability_review: Optional[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        if not dynamic_implementation:
+            return {
+                "status": "unavailable",
+                "reason": "Dynamic implementation plan unavailable.",
+                "summary": {"total_backlog": 0}
+            }
+        backlog = []
+        wiring_gaps = dynamic_implementation.get("wiring_gaps", [])
+        info_gaps = dynamic_implementation.get("information_gaps", [])
+        for gap in wiring_gaps:
+            backlog.append({
+                "id": gap.get("id"),
+                "type": "wiring",
+                "owner": gap.get("owner"),
+                "reason": gap.get("reason")
+            })
+        for gap in info_gaps:
+            backlog.append({
+                "id": gap.get("id"),
+                "type": "information",
+                "owner": gap.get("owner"),
+                "reason": gap.get("reason")
+            })
+        capability_review = capability_review or {}
+        for gap in capability_review.get("gaps", []):
+            backlog.append({
+                "id": gap.get("id"),
+                "type": "capability",
+                "owner": "runtime",
+                "reason": gap.get("issue")
+            })
+        remediation_actions = list(dict.fromkeys(dynamic_implementation.get("next_actions", [])))
+        if capability_review.get("gaps") and "Review capability gaps and prioritize remediation." not in remediation_actions:
+            remediation_actions.append("Review capability gaps and prioritize remediation.")
+        if not remediation_actions and backlog:
+            remediation_actions.append("Review self-improvement backlog and assign owners.")
+        status = "ready" if not backlog else "needs_attention"
+        return {
+            "status": status,
+            "summary": {
+                "total_backlog": len(backlog),
+                "wiring_gaps": len(wiring_gaps),
+                "information_gaps": len(info_gaps),
+                "capability_gaps": len(capability_review.get("gaps", [])),
+                "corrections_logged": len(self.corrections)
+            },
+            "backlog": backlog,
+            "remediation_actions": remediation_actions
+        }
+
     def _build_competitive_feature_alignment(
         self,
         integration_capabilities: Optional[Dict[str, Any]] = None
@@ -4553,6 +4608,10 @@ class MurphySystem:
             org_chart_plan,
             trigger_plan
         )
+        self_improvement_snapshot = self._build_self_improvement_snapshot(
+            dynamic_implementation,
+            capability_review
+        )
 
         integration_capabilities = self._build_integration_capabilities()
         competitive_feature_alignment = self._build_competitive_feature_alignment(
@@ -4596,6 +4655,7 @@ class MurphySystem:
             "learning_loop": learning_loop,
             "delivery_readiness": delivery_readiness,
             "handoff_queue": handoff_queue,
+            "self_improvement": self_improvement_snapshot,
             "capability_review": capability_review,
             "dynamic_implementation": dynamic_implementation,
             "execution_wiring": execution_wiring,
@@ -5037,6 +5097,11 @@ class MurphySystem:
         if self.integration_engine:
             pending_integrations = len(self.integration_engine.list_pending_integrations())
             committed_integrations = len(self.integration_engine.list_committed_integrations())
+        latest_preview = self.latest_activation_preview or {}
+        self_improvement_snapshot = self._build_self_improvement_snapshot(
+            latest_preview.get("dynamic_implementation"),
+            latest_preview.get("capability_review")
+        )
         return {
             'version': self.version,
             'status': 'running',
@@ -5071,6 +5136,7 @@ class MurphySystem:
             'schema_drift': self._build_schema_drift_snapshot(),
             'observability': self._build_observability_snapshot(),
             'handoff_queue': self._build_handoff_queue_snapshot(),
+            'self_improvement': self_improvement_snapshot,
             'self_operation': {
                 'enabled': self_operation_enabled,
                 'can_work_on_self': self_operation_enabled and correction_system_available,
