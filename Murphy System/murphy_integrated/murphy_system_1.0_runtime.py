@@ -3950,6 +3950,41 @@ class MurphySystem:
             "execution_ready": bool(gate_synthesis) and bool(swarm_tasks) and swarm_ready
         }
 
+    def _build_orchestrator_readiness_snapshot(self) -> Dict[str, Any]:
+        async_ready = self._supports_async_orchestrator()
+        two_phase_ready = self._supports_two_phase_orchestrator()
+        swarm_ready = bool(getattr(self, "swarm_system", None))
+        components = {
+            "async_orchestrator": {
+                "status": "ready" if async_ready else "needs_wiring",
+                "available": async_ready
+            },
+            "two_phase_orchestrator": {
+                "status": "ready" if two_phase_ready else "needs_wiring",
+                "available": two_phase_ready
+            },
+            "swarm_system": {
+                "status": "ready" if swarm_ready else "needs_wiring",
+                "available": swarm_ready
+            }
+        }
+        ready_count = sum(1 for entry in components.values() if entry["status"] == "ready")
+        preferred_path = "simulation"
+        if async_ready:
+            preferred_path = "async_orchestrator"
+        elif two_phase_ready:
+            preferred_path = "two_phase_orchestrator"
+        return {
+            "summary": {
+                "total": len(components),
+                "ready": ready_count,
+                "needs_wiring": len(components) - ready_count
+            },
+            "components": components,
+            "execution_ready": async_ready or two_phase_ready,
+            "preferred_path": preferred_path
+        }
+
     def _build_integration_capabilities(self) -> Dict[str, Any]:
         connectors = []
         for entry in self.INTEGRATION_CONNECTOR_CATALOG:
@@ -5204,6 +5239,7 @@ class MurphySystem:
         )
         adapter_execution = self._build_adapter_execution_snapshot()
         execution_wiring = self._build_execution_wiring_snapshot(doc)
+        orchestrator_readiness = self._build_orchestrator_readiness_snapshot()
         persistence_status = self._build_persistence_status()
         observability_snapshot = self._build_observability_snapshot()
         preview = {
@@ -5246,6 +5282,7 @@ class MurphySystem:
             "capability_review": capability_review,
             "dynamic_implementation": dynamic_implementation,
             "execution_wiring": execution_wiring,
+            "orchestrator_readiness": orchestrator_readiness,
             "persistence": persistence_status,
             "observability": observability_snapshot,
             "integration_capabilities": integration_capabilities,
@@ -5730,6 +5767,7 @@ class MurphySystem:
             'registry_health': self._build_registry_health_snapshot(),
             'schema_drift': self._build_schema_drift_snapshot(),
             'adapter_execution': self._build_adapter_execution_snapshot(),
+            'orchestrator_readiness': self._build_orchestrator_readiness_snapshot(),
             'observability': self._build_observability_snapshot(),
             'handoff_queue': self._build_handoff_queue_snapshot(),
             'learning_backlog': learning_backlog,
