@@ -48,7 +48,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 3. **Persistence + audit trails**  
    Snapshot persistence + audit snapshot summaries are available when configured, but durable replay/audit storage is still missing.
 4. **Multi-channel delivery adapters**  
-   Document/email/chat/voice stubs are wired, but production adapters for chat/voice output remain unavailable.
+   Document/email/chat/voice stubs are wired, but production adapters (email/chat/voice) and approval hooks remain unavailable.
 5. **Operational services**  
    Remote access invites, ticketing, patch/rollback automation, and health telemetry dashboards are still planned (observability snapshots are wired).
 
@@ -60,7 +60,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 2. **Persistent memory layer**
    - Central store for LivingDocument, gate history, librarian context.
 3. **Multi-channel delivery adapters**
-   - Document generator, email sender, chat dispatch, voice/TTS adapter.
+   - Document/email/chat/voice stubs are wired; production adapters (email/chat/voice) and approval hooks remain.
 4. **Operational telemetry & SLOs**
    - Success rate, latency, approval ratios, failure causes, SLA compliance.
 5. **Customer operations automation**
@@ -104,7 +104,7 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 2. Add replay & audit export endpoints.
 
 ### Phase 3 — Multi-channel delivery
-1. Add document, email, chat, voice adapters.
+1. Add production document, email, chat, voice adapters (stubs already wired).
 2. Bind outputs to governance gates and approval flows.
 
 ### Phase 4 — Operational automation
@@ -158,7 +158,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 | Execution wiring (gate + swarm + orchestrator) | 45% | MFGC fallback wired, orchestrator wiring still partial |
 | Deterministic + LLM routing | 40% | Routing heuristics exist; compute plane not invoked end-to-end |
 | Persistence + replay | 20% | Snapshot persistence available; durable storage not wired |
-| Multi-channel delivery | 30% | Document/email/chat/voice stubs wired; chat/voice adapters pending |
+| Multi-channel delivery | 40% | Document/email/chat/voice stubs wired; production adapters with approvals pending |
 | Compliance validation | 35% | Regional sensors + gate policies defined, enforcement incomplete |
 | Operational automation | 20% | Planning templates exist; ticketing/remote access not wired |
 | UI + user testing | 70% | Architect UI + scripted screenshots now in place |

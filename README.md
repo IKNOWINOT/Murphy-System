@@ -85,6 +85,7 @@ start_murphy_1.0.bat   # Windows
 - **Email delivery stub:** when an email connector is configured, `/api/execute` returns a queued email payload (subject/body defaults + recipient placeholders) and marks missing recipients as `needs_info`.
 - **Chat delivery stub:** when a chat connector is configured, `/api/execute` returns a queued chat payload with channel/message defaults and marks missing channels as `needs_info`.
 - **Voice delivery stub:** when a voice connector is configured, `/api/execute` returns a queued voice payload with script defaults and marks missing destinations as `needs_info`.
+- **Delivery completion tracking:** the completion tracker in `FULL_SYSTEM_ASSESSMENT.md` reflects multi-channel delivery stub coverage (production adapters still pending).
 - **Delivery adapter test:** `tests/test_delivery_adapter_snapshot.py` validates readiness status and adapter summary output.
 - **Document delivery test:** `tests/test_document_delivery_execution.py` validates document stub deliverables when connectors are configured.
 - **Email delivery test:** `tests/test_email_delivery_stub.py` validates email stub deliverables when connectors are configured.
