@@ -4043,7 +4043,11 @@ class MurphySystem:
         placeholders = ["task", "summary", "deliverable"]
         context = dict(params.get("document_context") or {})
         context.setdefault("task", task_description)
-        context.setdefault("summary", params.get("document_summary", self._truncate_description(task_description)))
+        summary_text = params.get("document_summary")
+        if not summary_text:
+            truncate = getattr(self, "_truncate_description", None)
+            summary_text = truncate(task_description) if callable(truncate) else task_description
+        context.setdefault("summary", summary_text)
         context.setdefault("deliverable", params.get("document_deliverable", task_type))
         engine = DocumentGenerationEngine()
         template = DocumentTemplate(

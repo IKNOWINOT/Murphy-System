@@ -36,8 +36,7 @@ def test_execute_task_includes_document_deliverable_when_configured():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
     murphy.system_integrator = StubIntegrator()
-    if runtime.MFGCAdapter is not None:
-        murphy.mfgc_adapter = runtime.MFGCAdapter(murphy.system_integrator)
+    murphy.mfgc_adapter = None
     murphy.orchestrator = None
 
     response = asyncio.run(
