@@ -4498,8 +4498,8 @@ class MurphySystem:
             or "needs_info"
         )
         delivery_status = delivery_readiness.get("status", "needs_info")
-        compliance_status = delivery_readiness.get("compliance_status", "needs_info")
-        hitl_status = handoff_queue.get("status", "unavailable")
+        compliance_status = delivery_readiness.get("compliance_status", "needs_wiring")
+        hitl_status = handoff_queue.get("status", "needs_wiring")
 
         if not operations_plan:
             operations_status = "needs_wiring"
@@ -4539,7 +4539,7 @@ class MurphySystem:
                 normalized_status = "ready"
             elif status in {"pending", "pending_review", "pending_approval", "blocked", "needs_compliance"}:
                 normalized_status = "pending"
-            elif status == "needs_wiring":
+            elif status in {"needs_wiring", "monitor_unavailable", "unavailable"}:
                 normalized_status = "needs_wiring"
             elif status == "needs_info":
                 normalized_status = "needs_info"
