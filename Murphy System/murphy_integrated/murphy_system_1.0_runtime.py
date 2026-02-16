@@ -4123,7 +4123,8 @@ class MurphySystem:
         self,
         delivery_snapshot: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        delivery_snapshot = delivery_snapshot or self._build_delivery_adapter_snapshot()
+        if delivery_snapshot is None:
+            delivery_snapshot = self._build_delivery_adapter_snapshot()
         channels = []
         for adapter in delivery_snapshot.get("adapters", []):
             channel = adapter.get("channel")
@@ -5253,7 +5254,6 @@ class MurphySystem:
             sensor_plan,
             hitl_contracts
         )
-        connector_orchestration = delivery_readiness.get("connector_orchestration", {})
         handoff_queue = self._build_handoff_queue_snapshot(hitl_contracts)
         workload_distribution = self._build_workload_distribution(operations_plan)
         executive_directive = self._build_executive_directive(task_description, operations_plan, delivery_readiness)
@@ -5331,7 +5331,6 @@ class MurphySystem:
             "learning_loop": learning_loop,
             "learning_backlog": learning_backlog,
             "delivery_readiness": delivery_readiness,
-            "connector_orchestration": connector_orchestration,
             "handoff_queue": handoff_queue,
             "self_improvement": self_improvement_snapshot,
             "capability_review": capability_review,
