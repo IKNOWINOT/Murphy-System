@@ -69,8 +69,12 @@ start_murphy_1.0.bat   # Windows
 - **Audit snapshot:** persistence status now includes an audit snapshot summary (count + latest snapshot) for quick audit visibility.
 - **Audit snapshot test:** `tests/test_audit_snapshot.py` validates audit snapshot summary output.
 - **Persistence replay snapshot test:** `tests/test_persistence_replay_snapshot.py` validates replay readiness output in persistence status.
+- **Persistence index test:** `tests/test_persistence_snapshot_index.py` validates snapshot index summaries in persistence status.
+- **Persistence snapshot test:** `tests/test_persistence_snapshot.py` validates persistence snapshot write + status handling.
 - **Observability snapshot:** activation previews and `/api/status` include telemetry bus + ingestion stats when telemetry components are available.
+- **Observability snapshot test:** `tests/test_observability_snapshot.py` validates telemetry snapshot reporting.
 - **Registry health + schema drift snapshots:** activation previews and `/api/status` now include registry health status plus schema drift indicators for missing persistence, observability, or delivery adapter configuration.
+- **Registry health snapshot test:** `tests/test_registry_health_snapshot.py` validates registry health + drift snapshot outputs.
 - **Module registry standardization:** auto-registers `murphy_integrated/src` modules and local packages into the module catalog with health + schema drift snapshots.
 - **Adapter execution snapshot:** activation previews and `/api/status` include adapter framework readiness for telemetry, module compiler, librarian, and security adapters.
 - **Delivery adapter snapshot:** activation previews include document/email/chat/voice adapter readiness; summary counts reflect adapter statuses (configured, available, unconfigured), and delivery readiness propagates blocked/needs states (`needs_wiring`, `needs_coverage`) when adapters or org chart coverage are incomplete; `needs_info` is used when requirements are complete but delivery inputs are missing, and the dynamic plan marks the output_delivery stage with the same status. These snapshots are treated as **observability sensor data** that cue follow-on tasks and confirm delivery readiness for stakeholder requests.
@@ -78,6 +82,7 @@ start_murphy_1.0.bat   # Windows
 - **HITL handoff queue snapshot:** activation previews and `/api/status` expose pending HITL interventions and contract approvals as observability signals to drive approval and delivery tasks (case-insensitive resolved statuses like approved/complete/ready/cleared are filtered; pending/blocked/rejected remain queued for review).
 - **Self-improvement snapshot:** activation previews and `/api/status` include a remediation backlog derived from wiring/info/capability gaps plus recommended actions for continuous improvement loops.
 - **Learning backlog routing:** activation previews and `/api/status` include learning backlog routing snapshots to track iteration queues and training source readiness.
+- **Learning backlog snapshot test:** `tests/test_learning_backlog_snapshot.py` validates backlog routing summaries.
 - **HITL handoff queue test:** `tests/test_handoff_queue_snapshot.py` validates backlog visibility for HITL interventions and contract approvals.
 - **Self-improvement snapshot test:** `tests/test_self_improvement_snapshot.py` validates remediation backlog and action outputs.
 - **Two-phase orchestrator tests:** `tests/test_two_phase_orchestrator_execution.py` validates routing plus domain fallback for the legacy phase1/phase2 create/run automation path.
