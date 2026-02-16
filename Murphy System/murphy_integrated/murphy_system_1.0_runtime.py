@@ -695,6 +695,7 @@ class MurphySystem:
             "module": "src.adapter_framework.adapters.http_adapter"
         }
     ]
+    DOCUMENT_PLACEHOLDER_PATTERN = r"[A-Za-z_][A-Za-z0-9_]*"
     EXTERNAL_SENSOR_CATALOG = {
         "marketing": [
             {
@@ -4045,7 +4046,7 @@ class MurphySystem:
             {
                 match.strip()
                 for match in placeholder_matches
-                if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", match.strip())
+                if re.fullmatch(self.DOCUMENT_PLACEHOLDER_PATTERN, match.strip())
             }
         )
         if not placeholders:
@@ -4070,7 +4071,7 @@ class MurphySystem:
                 )
                 return None
         # Select the first connector alphabetically by ID for deterministic behavior.
-        selected_connector = min(connectors, key=lambda connector: connector["id"])
+        selected_connector = sorted(connectors, key=lambda connector: connector["id"])[0]
         engine = DocumentGenerationEngine()
         template = DocumentTemplate(
             template_id=template_id,
