@@ -1908,20 +1908,29 @@ class MurphySystem:
     ) -> Dict[str, Any]:
         """Execute the legacy two-phase orchestrator path (create + run automation)."""
         # If the domain is not provided, default to task_type to preserve compatibility with
-        # legacy TwoPhaseOrchestrator create_automation(request, domain) call sites.
-        requested_domain = (parameters or {}).get("domain")
-        orchestration_domain = requested_domain or task_type
+        # legacy TwoPhaseOrchestrator create_automation(request, domain) call sites. Empty string
+        # is treated as an explicit domain for legacy edge cases.
+        requested_domain = None
+        if parameters is not None and "domain" in parameters:
+            requested_domain = parameters.get("domain")
+        orchestration_domain = task_type if requested_domain is None else requested_domain
         try:
             orchestrator = self._get_orchestrator()
             if orchestrator is None:
                 raise RuntimeError("Orchestrator unavailable for two-phase execution.")
             automation_id = orchestrator.create_automation(task_description, orchestration_domain)
             run_result = orchestrator.run_automation(automation_id)
-            response_session = self._resolve_orchestrator_session_id(session_id) or automation_id
+            response_session = self._resolve_orchestrator_session_id(session_id)
+            if response_session is None:
+                response_session = automation_id
+                session_id_source = "automation_id_fallback"
+            else:
+                session_id_source = "session_id"
             return {
                 "success": True,
                 "automation_id": automation_id,
                 "session_id": response_session,
+                "session_id_source": session_id_source,
                 "result": run_result,
                 "deliverables": run_result.get("deliverables", []),
                 "doc_id": doc.doc_id,

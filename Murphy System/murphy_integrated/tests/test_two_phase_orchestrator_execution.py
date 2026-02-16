@@ -54,6 +54,7 @@ def test_execute_task_routes_to_two_phase_orchestrator():
     assert response["automation_id"] == "automation-123"
     assert response["session_id"] is not None
     assert response["session_id"] != response["automation_id"]
+    assert response["session_id_source"] == "session_id"
     assert response["deliverables"] == ["report.pdf"]
     assert response["metadata"]["mode"] == "two_phase_orchestrator"
     assert ("create", "Generate a compliance report", "compliance") in stub.calls
@@ -76,3 +77,21 @@ def test_two_phase_orchestrator_defaults_domain_to_task_type():
 
     assert response["success"] is True
     assert ("create", "Draft a response letter", "operations") in stub.calls
+
+
+def test_two_phase_orchestrator_accepts_empty_domain():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    stub = StubTwoPhaseOrchestrator()
+    murphy.orchestrator = stub
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Run onboarding automation",
+            "operations",
+            {"enforce_policy": False, "domain": ""}
+        )
+    )
+
+    assert response["success"] is True
+    assert ("create", "Run onboarding automation", "") in stub.calls
