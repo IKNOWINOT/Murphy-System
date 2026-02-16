@@ -27,6 +27,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **Observability snapshot:** telemetry bus + ingester stats are exposed in activation previews and system status.
 - **Delivery adapter snapshot:** activation previews include document/email/chat/voice adapter readiness; the snapshot is treated as observability sensor data to drive follow-on task cues and delivery confirmations.
 - **Delivery adapter test coverage:** snapshot tests validate configured vs. unconfigured adapters and output status handling.
+- **Delivery connector configuration:** runtime accepts `delivery_connectors` input to mark adapters as configured for previews.
 - **Registry health + schema drift snapshots:** activation previews and system status expose module registry health and configuration drift indicators.
 - **Module registry standardization:** `murphy_integrated/src` modules plus local packages are auto-registered into the module catalog with health + schema drift indicators.
 - **Adapter execution snapshot:** activation previews include adapter framework readiness for telemetry, module compiler, librarian, and security adapters.
@@ -133,7 +134,7 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 - **Deterministic + LLM routing:** compute plane and LLM orchestration must both be wired with clear task routing rules.
 - **Persistence & replay:** store LivingDocument, gate history, librarian context, and automation plans with replay support.
 - **Multi-channel delivery:** document/email/chat/voice adapters with governance approvals and audit trails.
-- **Delivery adapter integration:** readiness snapshot is available, but adapters remain unconfigured (needs integration).
+- **Delivery adapter integration:** readiness snapshot is available; connectors can be supplied via `delivery_connectors`, but production adapters remain unconfigured.
 - **Adapter framework integration:** adapter execution snapshot is available; execution wiring and activation flows still need integration.
 - **Compliance validation:** regulatory sensors, policy gates, and HITL approvals tied to deliverable releases.
 - **Operations automation:** remote access invites, ticketing, patch/rollback automation, and production telemetry.

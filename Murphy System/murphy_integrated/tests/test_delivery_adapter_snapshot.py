@@ -70,3 +70,27 @@ def test_delivery_adapter_snapshot_marks_configured_entries():
     delivery_readiness = preview["delivery_readiness"]
     summary = delivery_readiness["delivery_adapters"]["summary"]
     assert summary["configured"] == 1
+
+
+def test_delivery_adapter_snapshot_applies_parameter_connectors():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    params = {
+        "onboarding_context": {"answers": build_onboarding_answers(murphy)},
+        "delivery_connectors": [
+            {"id": "document_delivery", "status": "configured", "channel": "document"}
+        ]
+    }
+
+    _, preview = murphy._prepare_activation_preview(
+        "Deliver automation outputs",
+        "request",
+        None,
+        params
+    )
+
+    delivery_readiness = preview["delivery_readiness"]
+    summary = delivery_readiness["delivery_adapters"]["summary"]
+    assert summary["configured"] == 1
+    connector = murphy.integration_connectors["document_delivery"]
+    assert connector["channel"] == "document"
