@@ -4490,7 +4490,11 @@ class MurphySystem:
     def _normalize_governance_status(status: str) -> str:
         """Map raw governance status values to summary buckets.
 
-        Returns one of: ready, pending, needs_wiring, needs_info, other.
+        Examples:
+        - ready/clear/configured -> ready
+        - pending/pending_review/pending_approval/blocked/needs_compliance -> pending (review required)
+        - needs_wiring/monitor_unavailable/unavailable -> needs_wiring
+        - needs_info -> needs_info
         """
         if status in {"ready", "clear", "configured"}:
             return "ready"
@@ -4504,7 +4508,7 @@ class MurphySystem:
 
     @staticmethod
     def _resolve_plan_status(tasks: List[Dict[str, Any]]) -> str:
-        """Return a roll-up status for an operations plan task list."""
+        """Return needs_wiring, ready, or pending for an operations plan task list."""
         if not tasks:
             return "needs_wiring"
         if all(task.get("status") in {"ready", "complete"} for task in tasks):
@@ -4522,6 +4526,7 @@ class MurphySystem:
         operations_plan = operations_plan or []
         delivery_readiness = delivery_readiness or {}
         handoff_queue = handoff_queue or {}
+        # Prefer executive directive readiness, fall back to delivery readiness, then needs_info.
         executive_status = (
             (executive_directive or {}).get("delivery_readiness")
             or delivery_readiness.get("status")
