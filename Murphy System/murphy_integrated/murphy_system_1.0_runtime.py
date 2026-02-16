@@ -4482,6 +4482,18 @@ class MurphySystem:
             "gap_action": gap_action
         }
 
+    @staticmethod
+    def _normalize_governance_status(status: str) -> str:
+        if status in {"ready", "clear", "configured"}:
+            return "ready"
+        if status in {"pending", "pending_review", "pending_approval", "blocked", "needs_compliance"}:
+            return "pending"
+        if status in {"needs_wiring", "monitor_unavailable", "unavailable"}:
+            return "needs_wiring"
+        if status == "needs_info":
+            return "needs_info"
+        return "other"
+
     def _build_governance_dashboard_snapshot(
         self,
         executive_directive: Optional[Dict[str, Any]],
@@ -4501,16 +4513,16 @@ class MurphySystem:
         compliance_status = delivery_readiness.get("compliance_status", "needs_wiring")
         hitl_status = handoff_queue.get("status", "needs_wiring")
 
-        def _resolve_plan_status(tasks: List[Dict[str, Any]]) -> str:
+        def resolve_plan_status(tasks: List[Dict[str, Any]]) -> str:
             if not tasks:
                 return "needs_wiring"
             if all(task.get("status") in {"ready", "complete"} for task in tasks):
                 return "ready"
             return "pending"
 
-        operations_status = _resolve_plan_status(operations_plan)
+        operations_status = resolve_plan_status(operations_plan)
         qa_tasks = [task for task in operations_plan if task.get("owner") == "quality_assurance"]
-        qa_status = _resolve_plan_status(qa_tasks)
+        qa_status = resolve_plan_status(qa_tasks)
 
         components = {
             "executive": executive_status,
@@ -4531,15 +4543,7 @@ class MurphySystem:
         normalized = {}
         # Normalize detailed statuses into summary buckets for governance readiness tracking.
         for component, status in components.items():
-            normalized_status = "other"
-            if status in {"ready", "clear", "configured"}:
-                normalized_status = "ready"
-            elif status in {"pending", "pending_review", "pending_approval", "blocked", "needs_compliance"}:
-                normalized_status = "pending"
-            elif status in {"needs_wiring", "monitor_unavailable", "unavailable"}:
-                normalized_status = "needs_wiring"
-            elif status == "needs_info":
-                normalized_status = "needs_info"
+            normalized_status = self._normalize_governance_status(status)
             summary[normalized_status] += 1
             normalized[component] = {"status": status, "normalized_status": normalized_status}
 
