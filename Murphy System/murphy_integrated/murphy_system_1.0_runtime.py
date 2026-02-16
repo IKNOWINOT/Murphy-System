@@ -5314,6 +5314,7 @@ class MurphySystem:
         if self.integration_engine:
             pending_integrations = len(self.integration_engine.list_pending_integrations())
             committed_integrations = len(self.integration_engine.list_committed_integrations())
+        # latest_activation_preview may be unset in lightweight/test instances.
         latest_preview = getattr(self, "latest_activation_preview", {}) or {}
         learning_backlog = self._build_learning_backlog_snapshot(
             latest_preview.get("learning_loop"),
