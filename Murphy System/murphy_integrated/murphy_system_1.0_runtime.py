@@ -1969,13 +1969,19 @@ class MurphySystem:
             
             logger.info(f"✓ Execution complete")
             
+            deliverables = self._append_document_deliverable(
+                execution_result.get('deliverables', []),
+                task_description,
+                task_type,
+                parameters
+            )
             # Return complete result
             return {
                 'success': True,
                 'session_id': session_id,
                 'execution_packet': execution_packet,
                 'result': execution_result.get('result'),
-                'deliverables': execution_result.get('deliverables', []),
+                'deliverables': deliverables,
                 'doc_id': doc.doc_id,
                 'activation_preview': activation_preview,
                 'execution_wiring': execution_wiring,
@@ -2024,11 +2030,17 @@ class MurphySystem:
                 mfgc_payload.get("integrator_response")
                 or self._build_mfgc_fallback_response(task_description, success)
             )
+            deliverables = self._append_document_deliverable(
+                [],
+                task_description,
+                task_type,
+                parameters
+            )
             return {
                 "success": success,
                 "session_id": session_id or self.create_session().get("session_id"),
                 "result": response_payload,
-                "deliverables": [],
+                "deliverables": deliverables,
                 "mfgc_execution": mfgc_payload,
                 "metadata": {
                     "task_description": task_description,
@@ -2050,11 +2062,17 @@ class MurphySystem:
         }
         duration = time.perf_counter() - start
         self._record_execution(success=True, duration=duration)
+        deliverables = self._append_document_deliverable(
+            [],
+            task_description,
+            task_type,
+            parameters
+        )
         return {
             "success": True,
             "session_id": session_id or self.create_session().get("session_id"),
             "result": summary,
-            "deliverables": [],
+            "deliverables": deliverables,
             "metadata": {
                 "task_description": task_description,
                 "task_type": task_type,
@@ -2129,13 +2147,19 @@ class MurphySystem:
                 session_id_source = "automation_id_fallback"
             else:
                 session_id_source = "session_id"
+            deliverables = self._append_document_deliverable(
+                run_result.get("deliverables", []),
+                task_description,
+                task_type,
+                parameters
+            )
             return {
                 "success": True,
                 "automation_id": automation_id,
                 "session_id": response_session,
                 "session_id_source": session_id_source,
                 "result": run_result,
-                "deliverables": run_result.get("deliverables", []),
+                "deliverables": deliverables,
                 "doc_id": doc.doc_id,
                 "activation_preview": activation_preview,
                 "execution_wiring": execution_wiring,
@@ -3980,6 +4004,80 @@ class MurphySystem:
             },
             "adapters": adapters
         }
+
+    def _get_configured_delivery_connectors(self, channel: str) -> List[Dict[str, Any]]:
+        connectors = []
+        for connector_id, connector in self.integration_connectors.items():
+            if connector.get("channel") != channel:
+                continue
+            if connector.get("status") != "configured":
+                continue
+            connectors.append({"id": connector_id, **connector})
+        return connectors
+
+    def _build_document_deliverable(
+        self,
+        task_description: str,
+        task_type: str,
+        parameters: Optional[Dict[str, Any]]
+    ) -> Optional[Dict[str, Any]]:
+        connectors = self._get_configured_delivery_connectors("document")
+        if not connectors:
+            return None
+        try:
+            from src.execution.document_generation_engine import (
+                DocumentGenerationEngine,
+                DocumentTemplate,
+                DocumentType
+            )
+        except ImportError:
+            logger.warning("DocumentGenerationEngine not available; document delivery skipped.")
+            return None
+        params = parameters or {}
+        template_id = params.get("document_template_id", "task_summary")
+        template_content = params.get(
+            "document_template",
+            "Task: {task}\nSummary: {summary}\nDeliverable: {deliverable}"
+        )
+        placeholders = ["task", "summary", "deliverable"]
+        context = dict(params.get("document_context") or {})
+        context.setdefault("task", task_description)
+        context.setdefault("summary", params.get("document_summary", self._truncate_description(task_description)))
+        context.setdefault("deliverable", params.get("document_deliverable", task_type))
+        engine = DocumentGenerationEngine()
+        template = DocumentTemplate(
+            template_id=template_id,
+            template_type=DocumentType.MARKDOWN,
+            content=template_content,
+            placeholders=placeholders
+        )
+        engine.register_template(template)
+        document = engine.generate_from_template(
+            template_id,
+            context,
+            metadata={"task_type": task_type, "connector_id": connectors[0]["id"]}
+        )
+        return {
+            "type": "document",
+            "status": "generated",
+            "connector_id": connectors[0]["id"],
+            "document": document.to_dict()
+        }
+
+    def _append_document_deliverable(
+        self,
+        deliverables: Optional[List[Dict[str, Any]]],
+        task_description: str,
+        task_type: str,
+        parameters: Optional[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        output = list(deliverables or [])
+        if any(item.get("type") == "document" for item in output):
+            return output
+        document_delivery = self._build_document_deliverable(task_description, task_type, parameters)
+        if document_delivery:
+            output.append(document_delivery)
+        return output
 
     def _build_handoff_queue_snapshot(
         self,
