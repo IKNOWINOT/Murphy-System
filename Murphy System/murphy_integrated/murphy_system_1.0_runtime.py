@@ -4040,7 +4040,10 @@ class MurphySystem:
             "document_template",
             "Task: {task}\nSummary: {summary}\nDeliverable: {deliverable}"
         )
-        placeholders = ["task", "summary", "deliverable"]
+        placeholder_matches = re.findall(r"{([^}]+)}", template_content)
+        placeholders = sorted({match.strip() for match in placeholder_matches if match.strip()})
+        if not placeholders:
+            placeholders = ["task", "summary", "deliverable"]
         context = dict(params.get("document_context") or {})
         context.setdefault("task", task_description)
         summary_text = params.get("document_summary")
@@ -4061,6 +4064,8 @@ class MurphySystem:
                 )
                 return None
         # Select the first connector alphabetically by ID for deterministic behavior.
+        if not connectors:
+            return None
         selected_connector = sorted(connectors, key=lambda connector: connector["id"])[0]
         engine = DocumentGenerationEngine()
         template = DocumentTemplate(
