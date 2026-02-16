@@ -64,6 +64,7 @@ start_murphy_1.0.bat   # Windows
 - **Swarm execution preview:** include `run_swarm_execution=true` in `/api/execute` payloads to collect TrueSwarmSystem execution summaries (used for wiring validation while full execution paths are completed).
 - **Two-phase execution path:** when the async orchestrator interface is unavailable, `execute_task` now routes through `TwoPhaseOrchestrator` (`create_automation`/`run_automation`) for the legacy phase1/phase2 workflow.
 - **Wingman protocol:** activation previews include executor/validator pairing metadata in dynamic chain training patterns for deterministic output verification.
+- **Wingman protocol tests:** `tests/test_dynamic_implementation_plan.py` validates executor/validator pairing output.
 - **Persistence snapshots:** set `MURPHY_PERSISTENCE_DIR` to store activation previews + execution results; persistence status now includes a snapshot index for replay analysis.
 - **Audit snapshot:** persistence status now includes an audit snapshot summary (count + latest snapshot) for quick audit visibility.
 - **Audit snapshot test:** `tests/test_audit_snapshot.py` validates audit snapshot summary output.
