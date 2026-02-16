@@ -49,3 +49,15 @@ def test_connector_orchestration_snapshot_all_configured():
     assert summary["configured"] == summary["total"]
     assert summary["needs_integration"] == 0
     assert snapshot["status"] == "ready"
+
+
+def test_connector_orchestration_snapshot_in_system_status():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+
+    status = murphy.get_system_status()
+
+    orchestration = status["connector_orchestration"]
+    summary = orchestration["summary"]
+    assert summary["total"] == len(murphy.DELIVERY_ADAPTER_CANDIDATES)
+    assert orchestration["status"] in {"needs_integration", "partial", "ready"}

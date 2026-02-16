@@ -160,11 +160,11 @@ These percentages are **current estimates** based on wired functionality vs. pla
 | Execution wiring (gate + swarm + orchestrator) | 47% | MFGC fallback wired, orchestrator wiring still partial |
 | Deterministic + LLM routing | 40% | Routing heuristics exist; compute plane not invoked end-to-end |
 | Persistence + replay | 20% | Snapshot persistence available; durable storage not wired |
-| Multi-channel delivery | 50% | Document/email/chat/voice stubs wired; orchestration snapshot added; production adapters with approvals pending |
+| Multi-channel delivery | 52% | Document/email/chat/voice stubs wired; orchestration snapshot added; production adapters with approvals pending |
 | Compliance validation | 35% | Regional sensors + gate policies defined, enforcement incomplete |
 | Operational automation | 20% | Planning templates exist; ticketing/remote access not wired |
 | UI + user testing | 70% | Architect UI + scripted screenshots now in place |
-| Test coverage for dynamic chains | 64% | Dynamic plan tests exist; execution/integration tests still pending |
+| Test coverage for dynamic chains | 65% | Dynamic plan tests exist; execution/integration tests still pending |
 
 **Progress update protocol:**
 - Store user-script screenshots in `docs/screenshots/` (repository root).
