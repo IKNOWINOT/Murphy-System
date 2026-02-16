@@ -1740,17 +1740,7 @@ class MurphySystem:
         ComputeService.validate_expression returns either a ValidationResult object or a dict,
         so the payload is normalized to a dictionary for consistent downstream usage.
         """
-        swarm_execution = None
         compute_request = (parameters or {}).get("compute_request")
-        if (parameters or {}).get("run_swarm_execution"):
-            swarm_execution = self._attempt_true_swarm(
-                task_description,
-                {
-                    "task_type": task_type,
-                    "session_id": session_id,
-                    "doc_id": doc.doc_id
-                }
-            )
         if not compute_request:
             return None
         expression = compute_request.get("expression")
@@ -1857,6 +1847,15 @@ class MurphySystem:
             )
 
         swarm_execution = None
+        if (parameters or {}).get("run_swarm_execution"):
+            swarm_execution = self._attempt_true_swarm(
+                task_description,
+                {
+                    "task_type": task_type,
+                    "session_id": session_id,
+                    "doc_id": doc.doc_id
+                }
+            )
         compute_request = (parameters or {}).get("compute_request")
         resolved_compute_session = None
         if compute_request:
