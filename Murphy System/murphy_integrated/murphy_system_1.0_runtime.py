@@ -1379,6 +1379,72 @@ class MurphySystem:
             "category_counts": category_counts
         }
 
+    def _build_registry_health_snapshot(self) -> Dict[str, Any]:
+        status = self.module_manager.get_module_status()
+        summary = self._build_module_registry_summary()
+        total_available = summary.get("total_available", 0)
+        total_active = summary.get("total_active", 0)
+        missing_core = summary.get("core_missing", [])
+        reasons = []
+        health = "healthy"
+        if total_available == 0:
+            health = "unavailable"
+            reasons.append("No modules registered in module manager.")
+        if missing_core:
+            if health == "healthy":
+                health = "needs_attention"
+            reasons.append(f"Missing {len(missing_core)} core modules.")
+        if total_available and total_active == 0:
+            if health == "healthy":
+                health = "needs_attention"
+            reasons.append("No active modules reported.")
+        if not reasons:
+            reasons.append("Module registry healthy.")
+        return {
+            "status": health,
+            "summary": summary,
+            "reasons": reasons,
+            "module_status": status
+        }
+
+    def _build_schema_drift_snapshot(self) -> Dict[str, Any]:
+        drift_items = []
+        persistence = self._build_persistence_status()
+        if persistence.get("status") != "configured":
+            drift_items.append({
+                "area": "persistence",
+                "status": persistence.get("status", "disabled"),
+                "reason": persistence.get("reason", "Persistence path not configured.")
+            })
+        observability = self._build_observability_snapshot()
+        if observability.get("status") != "available":
+            drift_items.append({
+                "area": "observability",
+                "status": observability.get("status", "unavailable"),
+                "reason": observability.get("reason", "Telemetry bus not initialized.")
+            })
+        delivery = self._build_delivery_adapter_snapshot()
+        unconfigured = delivery.get("summary", {}).get("unconfigured", 0)
+        if unconfigured:
+            missing_adapters = [
+                adapter["id"]
+                for adapter in delivery.get("adapters", [])
+                if not adapter.get("configured")
+            ]
+            drift_items.append({
+                "area": "delivery_adapters",
+                "status": "needs_integration",
+                "count": unconfigured,
+                "missing": missing_adapters
+            })
+        return {
+            "status": "clear" if not drift_items else "drift_detected",
+            "summary": {
+                "total_issues": len(drift_items)
+            },
+            "issues": drift_items
+        }
+
     def _extract_category_from_capability(self, capability: str) -> str:
         if not capability.startswith(self.MODULE_CATEGORY_PREFIX):
             return self.MODULE_CATEGORY_UNKNOWN
@@ -4487,6 +4553,8 @@ class MurphySystem:
             "region": sensor_plan["region"],
             "module_registry": self.module_manager.get_module_status(),
             "module_registry_summary": self._build_module_registry_summary(),
+            "registry_health": self._build_registry_health_snapshot(),
+            "schema_drift": self._build_schema_drift_snapshot(),
             "capability_alignment": capability_alignment,
             "capability_tests": capability_tests,
             "business_automation_summary": business_summary,
@@ -4979,6 +5047,8 @@ class MurphySystem:
             },
             'module_registry': self.module_manager.get_module_status(),
             'module_registry_summary': self._build_module_registry_summary(),
+            'registry_health': self._build_registry_health_snapshot(),
+            'schema_drift': self._build_schema_drift_snapshot(),
             'observability': self._build_observability_snapshot(),
             'handoff_queue': self._build_handoff_queue_snapshot(),
             'self_operation': {
