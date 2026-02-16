@@ -845,6 +845,10 @@ class MurphySystem:
         {"id": "growth", "focus": "Growth and marketing automation variant"}
     ]
 
+    GOVERNANCE_OWNER_EXECUTIVE = "executive_branch"
+    GOVERNANCE_OWNER_OPERATIONS = "operations_director"
+    GOVERNANCE_OWNER_QA = "quality_assurance"
+
     DYNAMIC_IMPLEMENTATION_STAGES = [
         {
             "id": "requirements_identification",
@@ -2516,11 +2520,11 @@ class MurphySystem:
         operations = []
         for task in doc.generated_tasks:
             stage = task.get("stage")
-            owner = "operations_director"
+            owner = self.GOVERNANCE_OWNER_OPERATIONS
             if stage in {"automation_design", "billing"}:
-                owner = "executive_branch"
+                owner = self.GOVERNANCE_OWNER_EXECUTIVE
             elif stage == "automation_production":
-                owner = "quality_assurance"
+                owner = self.GOVERNANCE_OWNER_QA
             operations.append({
                 "stage": stage,
                 "owner": owner,
@@ -4494,6 +4498,14 @@ class MurphySystem:
             return "needs_info"
         return "other"
 
+    @staticmethod
+    def _resolve_plan_status(tasks: List[Dict[str, Any]]) -> str:
+        if not tasks:
+            return "needs_wiring"
+        if all(task.get("status") in {"ready", "complete"} for task in tasks):
+            return "ready"
+        return "pending"
+
     def _build_governance_dashboard_snapshot(
         self,
         executive_directive: Optional[Dict[str, Any]],
@@ -4513,16 +4525,11 @@ class MurphySystem:
         compliance_status = delivery_readiness.get("compliance_status", "needs_wiring")
         hitl_status = handoff_queue.get("status", "needs_wiring")
 
-        def resolve_plan_status(tasks: List[Dict[str, Any]]) -> str:
-            if not tasks:
-                return "needs_wiring"
-            if all(task.get("status") in {"ready", "complete"} for task in tasks):
-                return "ready"
-            return "pending"
-
-        operations_status = resolve_plan_status(operations_plan)
-        qa_tasks = [task for task in operations_plan if task.get("owner") == "quality_assurance"]
-        qa_status = resolve_plan_status(qa_tasks)
+        operations_status = self._resolve_plan_status(operations_plan)
+        qa_tasks = [
+            task for task in operations_plan if task.get("owner") == self.GOVERNANCE_OWNER_QA
+        ]
+        qa_status = self._resolve_plan_status(qa_tasks)
 
         components = {
             "executive": executive_status,
