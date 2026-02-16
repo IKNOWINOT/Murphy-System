@@ -3750,6 +3750,7 @@ class MurphySystem:
         pending_contracts = []
         for contract in contract_queue:
             status = str(contract.get("status", "")).lower()
+            # Approved/complete/ready/cleared indicate resolved HITL contracts.
             if status in {"approved", "complete", "ready", "cleared"}:
                 continue
             pending_contracts.append(contract)
