@@ -26,6 +26,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **Delivery adapter test coverage:** snapshot tests validate configured vs. unconfigured adapters and output status handling.
 - **Registry health + schema drift snapshots:** activation previews and system status expose module registry health and configuration drift indicators.
 - **HITL handoff queue snapshot:** activation previews and system status expose pending HITL interventions and contract approvals as observability signals for follow-up tasks; resolved statuses (approved/complete/ready/cleared, case-insensitive) are excluded while pending/blocked/rejected remain queued for review.
+- **Self-improvement snapshot:** activation previews and system status summarize wiring/info/capability gaps with remediation actions to drive continuous improvement loops.
 
 ## 3) Critical execution gaps (must close)
 
@@ -185,8 +186,9 @@ These percentages are **current estimates** based on wired functionality vs. pla
 7. **Delivery adapter snapshot tests**: `test_delivery_adapter_snapshot.py` verifies delivery readiness status and adapter availability outputs.
 8. **Two-phase orchestrator execution tests**: `test_two_phase_orchestrator_execution.py` validates create/run automation routing when the async orchestrator interface is unavailable.
 9. **HITL handoff queue snapshot tests**: `test_handoff_queue_snapshot.py` verifies approval backlog visibility for interventions and contracts.
-10. **Registry health snapshot tests**: `test_registry_health_snapshot.py` validates registry health and schema drift snapshot output.
-11. **Persistence snapshot index tests**: `test_persistence_snapshot_index.py` validates snapshot index reporting in persistence status.
+10. **Self-improvement snapshot tests**: `test_self_improvement_snapshot.py` validates remediation backlog and action outputs.
+11. **Registry health snapshot tests**: `test_registry_health_snapshot.py` validates registry health and schema drift snapshot output.
+12. **Persistence snapshot index tests**: `test_persistence_snapshot_index.py` validates snapshot index reporting in persistence status.
 
 ---
 
