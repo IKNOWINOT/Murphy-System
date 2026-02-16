@@ -89,6 +89,7 @@ start_murphy_1.0.bat   # Windows
 - **HITL handoff queue test:** `tests/test_handoff_queue_snapshot.py` validates backlog visibility for HITL interventions and contract approvals.
 - **Self-improvement snapshot test:** `tests/test_self_improvement_snapshot.py` validates remediation backlog and action outputs.
 - **Two-phase orchestrator tests:** `tests/test_two_phase_orchestrator_execution.py` validates routing plus domain fallback for the legacy phase1/phase2 create/run automation path.
+- **Execution wiring integration test:** `tests/test_execution_wiring_integration.py` validates MFGC fallback routing in `execute_task` when the orchestrator is unavailable.
 - **Gate chain sequencing tests:** `tests/test_gate_chain_sequencing.py` validates gate blocking propagation and reasons.
 - **Multi-loop scheduling tests:** `tests/test_multi_loop_schedule_snapshot.py` validates multi-loop schedule readiness and pending status handling.
 - **Compliance delivery tests:** `tests/test_compliance_delivery_gating.py` validates compliance gating before delivery release.

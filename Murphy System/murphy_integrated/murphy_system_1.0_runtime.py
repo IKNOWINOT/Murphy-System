@@ -1740,6 +1740,9 @@ class MurphySystem:
         ComputeService.validate_expression returns either a ValidationResult object or a dict,
         so the payload is normalized to a dictionary for consistent downstream usage.
         """
+        swarm_execution = None
+        swarm_execution = None
+        swarm_execution = None
         compute_request = (parameters or {}).get("compute_request")
         swarm_execution = None
         if (parameters or {}).get("run_swarm_execution"):
@@ -1856,6 +1859,7 @@ class MurphySystem:
                 success=True
             )
 
+        swarm_execution = None
         compute_request = (parameters or {}).get("compute_request")
         resolved_compute_session = None
         if compute_request:
