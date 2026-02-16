@@ -4025,6 +4025,7 @@ class MurphySystem:
         if not connectors:
             return None
         try:
+            # Lazy import keeps execution engines optional unless document delivery is requested.
             from src.execution.document_generation_engine import (
                 DocumentGenerationEngine,
                 DocumentTemplate,
