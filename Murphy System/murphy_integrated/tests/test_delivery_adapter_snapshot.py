@@ -1,4 +1,5 @@
 import importlib.util
+import logging
 from pathlib import Path
 
 
@@ -95,3 +96,53 @@ def test_delivery_adapter_snapshot_applies_parameter_connectors():
     connector = murphy.integration_connectors["document_delivery"]
     assert connector["channel"] == "document"
     assert connector["status"] == "configured"
+
+
+def test_delivery_adapter_snapshot_handles_invalid_connector_fields(caplog):
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    params = {
+        "onboarding_context": {"answers": build_onboarding_answers(murphy)},
+        "delivery_connectors": [
+            {"id": "document_delivery", "status": "bad", "channel": "fax"}
+        ]
+    }
+
+    caplog.set_level(logging.WARNING)
+    _, preview = murphy._prepare_activation_preview(
+        "Deliver automation outputs",
+        "request",
+        None,
+        params
+    )
+
+    delivery_readiness = preview["delivery_readiness"]
+    summary = delivery_readiness["delivery_adapters"]["summary"]
+    assert summary["configured"] == 0
+    connector = murphy.integration_connectors["document_delivery"]
+    assert connector["status"] == "unconfigured"
+    assert connector["channel"] == "unknown"
+    assert "Unknown delivery connector status" in caplog.text
+    assert "Unknown delivery connector channel" in caplog.text
+
+
+def test_delivery_adapter_snapshot_ignores_invalid_connector_list(caplog):
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    params = {
+        "onboarding_context": {"answers": build_onboarding_answers(murphy)},
+        "delivery_connectors": "not-a-list"
+    }
+
+    caplog.set_level(logging.WARNING)
+    _, preview = murphy._prepare_activation_preview(
+        "Deliver automation outputs",
+        "request",
+        None,
+        params
+    )
+
+    delivery_readiness = preview["delivery_readiness"]
+    summary = delivery_readiness["delivery_adapters"]["summary"]
+    assert summary["configured"] == 0
+    assert "delivery_connectors must be a list" in caplog.text
