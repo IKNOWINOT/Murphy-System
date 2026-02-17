@@ -5144,7 +5144,7 @@ class MurphySystem:
         answers = context.get("answers")
         # Dict-merge precedence: answer keys override context keys when both are present.
         source = {**context, **answers} if isinstance(answers, dict) else context
-        execution_profile_source = "onboarding" if source else "default"
+        execution_profile_source = "onboarding" if isinstance(onboarding_context, dict) else "default"
         text = f"{task_description} {source}".lower()
         explicit_mode = str(source.get("execution_mode", "")).lower()
         # risk_level is accepted as a legacy/synonym input for safety_level.
