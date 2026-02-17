@@ -4516,21 +4516,19 @@ class MurphySystem:
                 return None
         selected_connector = sorted(connectors, key=lambda connector: connector["id"])[0]
         connector_id = selected_connector["id"]
-        if "translation_source_locale" not in params and "source_locale" in params:
-            logger.warning(
-                "translation delivery used legacy source_locale for connector %s; prefer translation_source_locale.",
-                connector_id
-            )
-        if "translation_target_locale" not in params and "target_locale" in params:
-            logger.warning(
-                "translation delivery used legacy target_locale for connector %s; prefer translation_target_locale.",
-                connector_id
-            )
-        if "translation_target_locale" not in params and "translation_locale" in params:
-            logger.warning(
-                "translation delivery used legacy translation_locale for connector %s; prefer translation_target_locale.",
-                connector_id
-            )
+        legacy_locale_params = [
+            ("source_locale", "translation_source_locale"),
+            ("target_locale", "translation_target_locale"),
+            ("translation_locale", "translation_target_locale")
+        ]
+        for legacy_key, preferred_key in legacy_locale_params:
+            if preferred_key not in params and legacy_key in params:
+                logger.warning(
+                    "translation delivery used legacy %s for connector %s; prefer %s.",
+                    legacy_key,
+                    connector_id,
+                    preferred_key
+                )
         # Prefer translation_source_locale for clarity; source_locale remains as a legacy alias.
         source_locale = (
             params.get("translation_source_locale")
@@ -4542,6 +4540,7 @@ class MurphySystem:
             or params.get("target_locale")
             or params.get("translation_locale")
         )
+        # translation_source is a legacy alias for translation_text.
         text = params.get("translation_text") or params.get("translation_source")
         if not text:
             text = self._truncate_description(task_description)
