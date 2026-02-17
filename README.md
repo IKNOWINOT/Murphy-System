@@ -83,6 +83,7 @@ start_murphy_1.0.bat   # Windows
 - **Governance dashboard snapshot:** activation previews and `/api/status` include exec/ops/QA/HITL readiness consolidation; `tests/test_governance_dashboard_snapshot.py` validates output coverage.
 - **Delivery readiness states:** delivery readiness propagates blocked/needs states (`needs_wiring`, `needs_coverage`) when adapters or org chart coverage are incomplete. `needs_info` is used when requirements are complete but delivery inputs are missing, and the dynamic plan marks the output_delivery stage with the same status.
 - **Delivery observability signals:** delivery readiness snapshots are treated as **observability sensor data** that cue follow-on tasks and confirm delivery readiness for stakeholder requests.
+- **Compliance validation snapshot:** activation previews and `/api/status` summarize compliance readiness, regulatory sources, and next-action guidance for delivery releases.
 - **Delivery connector configuration:** provide `delivery_connectors` in `/api/execute` (use `id` as the canonical connector identifier; `connector_id` remains supported for legacy inputs) to mark adapters as configured in runtime previews. Connectors without a `channel` default to `unknown`; missing statuses are treated as `unconfigured`, and invalid values log warnings before defaulting.
 - **Document delivery stub:** when a document connector is configured, `/api/execute` returns a markdown deliverable generated via `DocumentGenerationEngine` (loaded on demand); placeholders are derived from validated identifier patterns in the template, summaries fall back to a truncated task description, and you can select a specific connector with `document_connector_id` (otherwise the first connector is selected alphabetically by ID; email/chat/voice still require adapters).
 - **Email delivery stub:** when an email connector is configured, `/api/execute` returns a queued email payload (subject/body defaults + recipient placeholders) and marks missing recipients as `needs_info`.
@@ -107,6 +108,7 @@ start_murphy_1.0.bat   # Windows
 - **Gate chain sequencing tests:** `tests/test_gate_chain_sequencing.py` validates gate blocking propagation and reasons.
 - **Multi-loop scheduling tests:** `tests/test_multi_loop_schedule_snapshot.py` validates multi-loop schedule readiness and pending status handling.
 - **Compliance delivery tests:** `tests/test_compliance_delivery_gating.py` validates compliance gating before delivery release.
+- **Compliance validation snapshot test:** `tests/test_compliance_validation_snapshot.py` validates compliance readiness summaries and regulatory sources.
 - **Swarm execution tests:** `tests/test_swarm_execution_path.py` validates swarm execution preview summaries for initialized and missing swarm systems.
 - **Adapter execution snapshot tests:** `tests/test_adapter_execution_snapshot.py` validates adapter readiness and configuration status.
 - **Two-phase session handling:** uses a dedicated session ID separate from the automation ID; `session_id_source` indicates when the automation_id fallback is used if session creation fails.

@@ -28,6 +28,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **Observability snapshot:** telemetry bus + ingester stats are exposed in activation previews and system status.
 - **Delivery adapter snapshot:** activation previews include document/email/chat/voice/translation adapter readiness; the snapshot is treated as observability sensor data to drive follow-on task cues and delivery confirmations.
 - **Connector orchestration snapshot:** delivery readiness now reports multi-channel connector orchestration status for configured adapters and remaining gaps.
+- **Compliance validation snapshot:** activation previews and system status summarize compliance readiness, regulatory sources, and next-step actions.
 - **Governance dashboard snapshot:** activation previews and system status include exec/ops/QA/HITL readiness consolidation for review workflows.
 - **Delivery adapter test coverage:** snapshot tests validate configured vs. unconfigured adapters and output status handling.
 - **Delivery connector configuration:** runtime accepts `delivery_connectors` input to mark adapters as configured for previews.
@@ -163,7 +164,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 | Deterministic + LLM routing | 40% | Routing heuristics exist; compute plane not invoked end-to-end |
 | Persistence + replay | 20% | Snapshot persistence available; durable storage not wired |
 | Multi-channel delivery | 55% | Document/email/chat/voice/translation stubs wired; orchestration snapshot added; production adapters with approvals pending |
-| Compliance validation | 35% | Regional sensors + gate policies defined, enforcement incomplete |
+| Compliance validation | 38% | Compliance validation snapshot added with regulatory sources + next-action guidance |
 | Operational automation | 22% | Planning templates exist; ticketing/remote access not wired |
 | UI + user testing | 70% | Architect UI + scripted screenshots now in place |
 | Test coverage for dynamic chains | 68% | Dynamic plan tests exist; execution/integration tests still pending |
@@ -224,6 +225,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 25. **Swarm execution path tests**: `test_swarm_execution_path.py` validates `run_swarm_execution` outputs.
 26. **Orchestrator readiness snapshot tests**: `test_orchestrator_readiness_snapshot.py` validates async/two-phase/swarm readiness summaries.
 27. **Governance dashboard snapshot tests**: `test_governance_dashboard_snapshot.py` validates exec/ops/QA/HITL readiness consolidation in status outputs.
+28. **Compliance validation snapshot tests**: `test_compliance_validation_snapshot.py` validates compliance readiness summaries and regulatory sources.
 
 ---
 
