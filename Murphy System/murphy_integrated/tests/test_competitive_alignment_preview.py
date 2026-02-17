@@ -31,6 +31,8 @@ def test_competitive_feature_alignment_in_activation_preview():
 
     assert "competitive_feature_alignment" in preview
     assert "competitive_feature_alignment_summary" in preview
+    assert "integration_capabilities_summary" in preview
     alignment = preview["competitive_feature_alignment"]
     assert alignment["summary"]["total"] == len(alignment["features"])
+    assert preview["integration_capabilities_summary"] == preview["integration_capabilities"]["summary"]
     assert preview["competitive_feature_alignment_summary"] == alignment["summary"]

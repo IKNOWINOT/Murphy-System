@@ -5673,6 +5673,7 @@ class MurphySystem:
             "persistence": persistence_status,
             "observability": observability_snapshot,
             "integration_capabilities": integration_capabilities,
+            "integration_capabilities_summary": integration_capabilities.get("summary", {}),
             "adapter_execution": adapter_execution,
             "competitive_feature_alignment": competitive_feature_alignment,
             "competitive_feature_alignment_summary": competitive_feature_alignment.get("summary", {})
@@ -6170,6 +6171,7 @@ class MurphySystem:
             'schema_drift': self._build_schema_drift_snapshot(),
             'adapter_execution': self._build_adapter_execution_snapshot(),
             'integration_capabilities': integration_capabilities,
+            'integration_capabilities_summary': integration_capabilities.get("summary", {}),
             'competitive_feature_alignment': competitive_feature_alignment,
             'competitive_feature_alignment_summary': competitive_feature_alignment.get("summary", {}),
             'connector_orchestration': self._build_connector_orchestration_snapshot(),

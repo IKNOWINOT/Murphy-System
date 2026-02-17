@@ -97,7 +97,7 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 | Knowledge + RAG | Curated context + conditions | `system_librarian`, `learning_engine` | **Partial** (persistence + retrieval tuning pending) |
 | Dynamic swarm expansion | Task decomposition into swarms | `true_swarm_system`, `domain_swarms` | **Partial** (execution wiring pending) |
 
-**Runtime behavior:** activation previews and `/api/status` include `competitive_feature_alignment` derived from module capabilities and integration readiness plus a standardized `competitive_feature_alignment_summary`, and `/api/info` exposes alignment + integration summaries for lightweight reporting.
+**Runtime behavior:** activation previews and `/api/status` include `competitive_feature_alignment` derived from module capabilities and integration readiness plus standardized `competitive_feature_alignment_summary` and `integration_capabilities_summary` fields, and `/api/info` exposes alignment + integration summaries for lightweight reporting.
 
 ## 5) Finishing plan (systematic path to full operation)
 
@@ -293,3 +293,4 @@ This update confirms that sections **1-13** remain active and accepted as the op
 7. Added `/api/info` summary parity for integration and competitive alignment snapshots, validated by focused test coverage.
 8. Added focused activation preview regression coverage for competitive alignment to keep preview/status/info feature reporting synchronized.
 9. Standardized competitive alignment summary fields across preview/status/info outputs and extended focused tests to validate summary parity.
+10. Standardized integration capability summary fields across preview/status/info outputs and extended focused tests to validate parity with full integration capability payloads.
