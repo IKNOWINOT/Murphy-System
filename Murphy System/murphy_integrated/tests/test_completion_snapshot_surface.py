@@ -38,9 +38,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["execution_mode"] == status["runtime_execution_profile"]["execution_mode"]
     assert preview["runtime_execution_profile"]["execution_enforcement_level"] == status["runtime_execution_profile"]["execution_enforcement_level"]
     assert preview["runtime_execution_profile"]["control_plane_separation_state"] == status["runtime_execution_profile"]["control_plane_separation_state"]
+    assert preview["runtime_execution_profile"]["self_improvement_rd_candidate"] == status["runtime_execution_profile"]["self_improvement_rd_candidate"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
     assert status["runtime_execution_profile"]["control_plane_separation_state"] == "adaptive"
+    assert status["runtime_execution_profile"]["self_improvement_rd_candidate"] == "hybrid_governance_feedback_loop"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
     assert expected["summary"]["low_completion_areas"] >= 1
@@ -49,7 +51,7 @@ def test_completion_snapshot_surface_parity():
     dynamic_chain = next(
         item for item in expected["areas"] if item["area"] == "dynamic_chain_test_coverage"
     )
-    assert dynamic_chain["percent"] == 89
+    assert dynamic_chain["percent"] == 90
 
 
 def test_runtime_execution_profile_mode_derivation():
@@ -67,9 +69,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["execution_profile_source"] == "onboarding"
     assert strict["execution_enforcement_level"] == "full_gate_enforcement"
     assert strict["control_plane_separation_state"] == "enforced"
+    assert strict["self_improvement_rd_candidate"] == "governed_policy_tuning_loop"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
     assert dynamic["execution_profile_source"] == "onboarding"
     assert dynamic["execution_enforcement_level"] == "autonomy_accelerated"
     assert dynamic["control_plane_separation_state"] == "relaxed"
+    assert dynamic["self_improvement_rd_candidate"] == "autonomous_feedback_acceleration_loop"
     assert dynamic["audit_requirements"] == "minimal"
