@@ -31,11 +31,14 @@ def test_competitive_feature_alignment_summary_in_system_info():
     assert "module_registry_summary" in info
     assert info["integration_capabilities_summary"] == expected_integration_summary
     assert info["competitive_feature_alignment_summary"] == expected_alignment_summary
+    status = murphy.get_system_status()
+    assert info["integration_capabilities_summary"] == status["integration_capabilities_summary"]
+    assert info["competitive_feature_alignment_summary"] == status["competitive_feature_alignment_summary"]
     alignment_summary = info["competitive_feature_alignment_summary"]
     assert alignment_summary["total"] >= 1
     assert alignment_summary["available"] + alignment_summary["partial"] + alignment_summary["missing"] == alignment_summary["total"]
     assert info["module_registry_summary"]["total_available"] >= info["module_registry_summary"]["core_expected"]
     assert info["module_registry_summary"] == murphy._build_module_registry_summary()
-    assert info["module_registry_summary"] == murphy.get_system_status()["module_registry_summary"]
+    assert info["module_registry_summary"] == status["module_registry_summary"]
     assert info["module_registry_summary"]["core_registered"] == info["module_registry_summary"]["core_expected"]
     assert info["module_registry_summary"]["core_missing"] == []
