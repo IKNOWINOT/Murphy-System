@@ -29,6 +29,7 @@ def test_competitive_feature_alignment_in_system_status():
     assert "module_registry_summary" in status
     assert status["integration_capabilities_summary"] == status["integration_capabilities"]["summary"]
     assert status["module_registry_summary"] == murphy._build_module_registry_summary()
+    assert status["module_registry_summary"]["total_available"] == status["module_registry"]["total_available"]
     assert status["module_registry_summary"]["total_available"] >= status["module_registry_summary"]["core_expected"]
     assert status["module_registry_summary"]["core_registered"] == status["module_registry_summary"]["core_expected"]
     assert status["module_registry_summary"]["core_missing"] == []
