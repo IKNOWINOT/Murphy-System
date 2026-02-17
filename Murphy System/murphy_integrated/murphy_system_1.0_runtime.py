@@ -4525,7 +4525,7 @@ class MurphySystem:
         for legacy_key, preferred_key in legacy_locale_map.items():
             if preferred_key not in params and legacy_key in params:
                 logger.debug(
-                    "translation delivery detected legacy %s for connector %s; will fall back to %s.",
+                    "translation delivery detected legacy %s for connector %s; fallback resolves to %s below.",
                     legacy_key,
                     connector_id,
                     preferred_key
@@ -4541,7 +4541,7 @@ class MurphySystem:
             or params.get("target_locale")
             or params.get("translation_locale")
         )
-        # translation_source is a legacy alias for translation_text.
+        # translation_source is a legacy alias for translation_text (content, not locale metadata).
         text = params.get("translation_text") or params.get("translation_source")
         if not text:
             text = self._truncate_description(task_description)
