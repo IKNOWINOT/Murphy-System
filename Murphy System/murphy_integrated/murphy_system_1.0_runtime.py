@@ -727,6 +727,8 @@ class MurphySystem:
         "dynamic_chain_test_coverage": 86
     }
     COMPLETION_REMEDIATION_THRESHOLD_PERCENT = 50
+    STRICT_EXECUTION_MODE_TOKENS = {"strict", "regulated", "compliance", "low risk", "conservative"}
+    DYNAMIC_EXECUTION_MODE_TOKENS = {"dynamic", "high autonomy", "production mode", "fast mode"}
     DOCUMENT_PLACEHOLDER_PATTERN = r"[A-Za-z_][A-Za-z0-9_]*"
     EXTERNAL_SENSOR_CATALOG = {
         "marketing": [
@@ -5139,21 +5141,20 @@ class MurphySystem:
     ) -> Dict[str, Any]:
         context = onboarding_context if isinstance(onboarding_context, dict) else {}
         answers = context.get("answers")
+        # answers override base onboarding keys when both are present.
         source = {**context, **answers} if isinstance(answers, dict) else context
         text = f"{task_description} {source}".lower()
         explicit_mode = str(source.get("execution_mode", "")).lower()
         safety_level = str(source.get("safety_level", source.get("risk_level", "standard"))).lower()
         risk_tolerance = str(source.get("risk_tolerance", "moderate")).lower()
         autonomy_level = str(source.get("autonomy_level", source.get("autonomy_preferences", "balanced"))).lower()
-        strict_tokens = {"strict", "regulated", "compliance", "low risk", "conservative"}
-        dynamic_tokens = {"dynamic", "high autonomy", "production mode", "fast mode"}
         strict_signal = (
-            any(token in text for token in strict_tokens)
+            any(token in text for token in self.STRICT_EXECUTION_MODE_TOKENS)
             or safety_level in {"high", "strict"}
             or risk_tolerance in {"low", "conservative"}
         )
         dynamic_signal = (
-            any(token in text for token in dynamic_tokens)
+            any(token in text for token in self.DYNAMIC_EXECUTION_MODE_TOKENS)
             or autonomy_level in {"high", "dynamic"}
         )
         if explicit_mode in {"strict", "balanced", "dynamic"}:
@@ -6468,6 +6469,7 @@ class MurphySystem:
         summary_bundle = self._build_summary_surface_bundle()
         module_registry_status = self.module_manager.get_module_status()
         completion_snapshot = self._build_completion_snapshot()
+        # System info has no request/onboarding context, so use neutral defaults.
         runtime_execution_profile = self._build_runtime_execution_profile("", None)
         return {
             'name': 'Murphy System',
