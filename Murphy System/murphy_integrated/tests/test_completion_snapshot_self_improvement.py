@@ -43,6 +43,7 @@ def test_completion_snapshot_updates_self_improvement_backlog():
 
     assert self_improvement["status"] == "needs_attention"
     assert self_improvement["summary"]["completion_gaps"] == 1
+    assert self_improvement["summary"]["completion_total_areas"] == 3
     assert self_improvement["summary"]["completion_remediation_threshold_percent"] == 40
     assert self_improvement["summary"]["completion_average_percent"] == 50.67
     assert self_improvement["summary"]["completion_gap_areas"] == ["deterministic_llm_routing"]
@@ -72,6 +73,7 @@ def test_completion_snapshot_default_threshold_fallback():
 
     status = murphy.get_system_status()
     assert status["self_improvement"]["summary"]["completion_gaps"] == 2
+    assert status["self_improvement"]["summary"]["completion_total_areas"] == 3
     assert status["self_improvement"]["summary"]["completion_remediation_threshold_percent"] == 50
     assert status["self_improvement"]["summary"]["completion_average_percent"] == 50.67
     assert status["self_improvement"]["summary"]["completion_gap_areas"] == [
