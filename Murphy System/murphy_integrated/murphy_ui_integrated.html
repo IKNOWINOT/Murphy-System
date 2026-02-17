@@ -78,6 +78,13 @@
             padding: 30px;
             animation: fadeIn 0.3s;
         }
+
+        .preview-json {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
         
         .tab-content.active {
             display: block;
@@ -335,6 +342,18 @@
             </div>
             
             <div id="taskResult"></div>
+
+            <div id="blockCommands" style="display: none; margin-top: 25px;">
+                <h3>Block Commands</h3>
+                <p style="color: #6c757d;">Use magnify, simplify, or solidify to expand the command tree and resolve low-confidence steps.</p>
+                <div style="margin-bottom: 15px;">
+                    <button class="btn btn-secondary" onclick="runBlockCommand('magnify')">Magnify</button>
+                    <button class="btn btn-secondary" onclick="runBlockCommand('simplify')">Simplify</button>
+                    <button class="btn btn-secondary" onclick="runBlockCommand('solidify')">Solidify</button>
+                    <button class="btn btn-secondary" onclick="updateGatePolicy()">Update Gates</button>
+                </div>
+                <div id="blockTree"></div>
+            </div>
         </div>
         
         <!-- Validation Tab -->
@@ -434,7 +453,18 @@
     </div>
     
     <script>
-        const API_BASE = 'http://localhost:6666/api';
+        function resolveApiBase() {
+            const params = new URLSearchParams(window.location.search);
+            const overridePort = params.get('apiPort');
+            if (window.location.hostname === 'localhost') {
+                const port = overridePort || '6666';
+                return `http://localhost:${port}/api`;
+            }
+            return `${window.location.origin}/api`;
+        }
+
+        const API_BASE = resolveApiBase();
+        let currentDocId = null;
         
         function switchTab(tabName) {
             // Hide all tabs
@@ -504,7 +534,42 @@
                         <p style="margin-top: 15px;"><strong>Output:</strong></p>
                         <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;">${JSON.stringify(data.output, null, 2)}</pre>
                     `;
+                    if (data.activation_preview) {
+                        const subsystems = data.activation_preview.planned_subsystems || [];
+                        const subsystemItems = subsystems
+                            .map(item => `<li>${escapeHtml(item.id)}: ${escapeHtml(item.reason)}</li>`)
+                            .join('');
+                        const alignment = data.activation_preview.capability_alignment || [];
+                        const alignmentItems = alignment
+                            .map(item => `<li>${escapeHtml(item.id)}: ${escapeHtml(item.gap_reason)} (${escapeHtml(item.gap_action)})</li>`)
+                            .join('');
+                        html += `
+                            <h4 style="margin-top: 20px;">Activation Preview</h4>
+                            <p><strong>Planned Subsystems:</strong></p>
+                            <ul>${subsystemItems}</ul>
+                            <p><strong>Capability Alignment:</strong></p>
+                            <ul>${alignmentItems}</ul>
+                            <p><strong>Capability Tests:</strong></p>
+                            <pre class="preview-json">${JSON.stringify(data.activation_preview.capability_tests || [], null, 2)}</pre>
+                            <p><strong>Planned Gates:</strong></p>
+                            <pre class="preview-json">${JSON.stringify(data.activation_preview.planned_gates, null, 2)}</pre>
+                            <p><strong>Planned Swarm Tasks:</strong></p>
+                            <pre class="preview-json">${JSON.stringify(data.activation_preview.planned_swarm_tasks, null, 2)}</pre>
+                            <p><strong>Business Automation Summary:</strong></p>
+                            <pre class="preview-json">${JSON.stringify(data.activation_preview.business_automation_summary || {}, null, 2)}</pre>
+                            <p><strong>Executive Branch Plan:</strong></p>
+                            <pre class="preview-json">${JSON.stringify(data.activation_preview.executive_branch_plan || {}, null, 2)}</pre>
+                            <p><strong>Operations Plan:</strong></p>
+                            <pre class="preview-json">${JSON.stringify(data.activation_preview.operations_plan || [], null, 2)}</pre>
+                            <p><strong>HITL Contracts:</strong></p>
+                            <pre class="preview-json">${JSON.stringify(data.activation_preview.hitl_contracts || [], null, 2)}</pre>
+                            <p><strong>Timer & Trigger Plan:</strong></p>
+                            <pre class="preview-json">${JSON.stringify(data.activation_preview.timer_triggers || {}, null, 2)}</pre>
+                        `;
+                    }
                     showResult('taskResult', html, 'success');
+                    currentDocId = data.doc_id || null;
+                    renderBlockTree(data.block_tree);
                 } else {
                     showResult('taskResult', `Error: ${data.error || data.reason}`, 'error');
                 }
@@ -512,6 +577,111 @@
                 showResult('taskResult', `Network error: ${error.message}`, 'error');
             } finally {
                 showLoading('taskLoading', false);
+            }
+        }
+
+        function renderBlockTree(blockTree) {
+            const container = document.getElementById('blockCommands');
+            const tree = document.getElementById('blockTree');
+            if (!blockTree) {
+                container.style.display = 'none';
+                tree.innerHTML = '';
+                return;
+            }
+            container.style.display = 'block';
+            tree.innerHTML = '';
+            const list = document.createElement('ul');
+            list.style.paddingLeft = '20px';
+            appendBlockNode(list, blockTree);
+            tree.appendChild(list);
+        }
+
+        function appendBlockNode(parent, node) {
+            const item = document.createElement('li');
+            item.textContent = node.label || node.action || node.id;
+            parent.appendChild(item);
+            if (node.children && node.children.length) {
+                const sub = document.createElement('ul');
+                sub.style.paddingLeft = '20px';
+                node.children.forEach(child => appendBlockNode(sub, child));
+                parent.appendChild(sub);
+            }
+        }
+
+        async function runBlockCommand(action) {
+            if (!currentDocId) {
+                showResult('taskResult', 'Run a task first to create a block tree.', 'error');
+                return;
+            }
+            let payload = {};
+            if (action === 'magnify') {
+                const domain = prompt('Magnify domain:', 'automation');
+                if (!domain) return;
+                payload.domain = domain;
+            }
+            try {
+                const response = await fetch(`${API_BASE}/documents/${currentDocId}/${action}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (data.success) {
+                    currentDocId = data.doc_id || currentDocId;
+                    renderBlockTree(data.block_tree);
+                } else {
+                    showResult('taskResult', `Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showResult('taskResult', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function updateGatePolicy() {
+            if (!currentDocId) {
+                showResult('taskResult', 'Run a task first to update gates.', 'error');
+                return;
+            }
+            const examplePayload = JSON.stringify({
+                confidence: 0.72,
+                gates: [
+                    { name: "Executive Review Gate", threshold: 0.65 },
+                    { name: "Execution Gate", threshold: 0.78 }
+                ]
+            }, null, 2);
+            const input = prompt('Update gate policy (JSON):', examplePayload);
+            if (!input) return;
+            let payload = {};
+            try {
+                payload = JSON.parse(input);
+            } catch (error) {
+                showResult('taskResult', `Invalid JSON: ${error.message}`, 'error');
+                return;
+            }
+            try {
+                const response = await fetch(`${API_BASE}/documents/${currentDocId}/gates`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (data.success) {
+                    currentDocId = data.doc_id || currentDocId;
+                    renderBlockTree(data.block_tree);
+                    showResult(
+                        'taskResult',
+                        `<h4>Gate Policy Updated</h4>
+                         <p><strong>Planned Gates:</strong></p>
+                         <pre class="preview-json">${JSON.stringify(data.gates || [], null, 2)}</pre>
+                         <p><strong>Timer & Trigger Plan:</strong></p>
+                         <pre class="preview-json">${JSON.stringify(data.activation_preview?.timer_triggers || {}, null, 2)}</pre>`,
+                        'success'
+                    );
+                } else {
+                    showResult('taskResult', `Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showResult('taskResult', `Error: ${error.message}`, 'error');
             }
         }
         
@@ -677,6 +847,18 @@
             }
         }
         
+        function escapeHtml(value) {
+            if (value === undefined || value === null) {
+                return '';
+            }
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         function showResult(elementId, content, type = '') {
             const element = document.getElementById(elementId);
             element.innerHTML = `<div class="result-box ${type}">${content}</div>`;

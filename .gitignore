@@ -60,6 +60,12 @@ logs/
 murphy_integrated/__pycache__/
 murphy_v3/__pycache__/
 *.pyc
+_workspace_*.zip
+murphy_persistence/
+.murphy_persistence/
+persistence_snapshots/
+handoff_queue_snapshots/
+handoff_queue_snapshot_*.json
 
 # Bytecode caches (repo has nested folders)
 **/__pycache__/

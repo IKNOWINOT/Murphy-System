@@ -10,7 +10,7 @@ Successfully implemented a comprehensive inter-agent communication and decision-
 1. **✓ Task Review Creation**
    - Created complete task review with LLM + Librarian analysis
    - Generated decision gates with confidence levels
-   - Calculated token costs vs revenue potential
+   - Calculated execution costs (token + compute/API + infra) vs revenue potential
    - Identified clarifying questions to boost confidence
 
 2. **✓ Answer Clarifying Question**
@@ -31,13 +31,16 @@ Successfully implemented a comprehensive inter-agent communication and decision-
 5. **✓ Decision Gates Analysis**
    - Retrieved 3 decision gates for task
    - Showed confidence levels (70%, 80%, 75%)
-   - Displayed reasoning and token costs
+   - Displayed reasoning and execution cost components
 
 6. **✓ Cost Analysis**
-   - Token Cost: 832 tokens
+   - Token Cost: 932 tokens × $0.001 = $0.93
+   - Compute/API Cost: $7.50
+   - Infra/Wear Estimate: $0.50
+   - Total Execution Cost: $8.93
    - Revenue Potential: $500.00
-   - Cost/Benefit Ratio: 0.60
-   - Recommendation: Review Required (costs exceed revenue)
+   - Cost/Benefit Ratio: 56.0
+   - Recommendation: Proceed (revenue exceeds total execution cost)
 
 7. **✓ All Task Reviews**
    - Retrieved 1 task review
@@ -72,9 +75,9 @@ Every agent task gets a complete review containing:
 - Complexity Level gate
 
 **Cost Analysis:**
-- Token cost calculation
+- Execution cost calculation (token pricing + compute/API + infra)
 - Revenue potential estimation
-- Cost/benefit ratio
+- Cost/benefit ratio (revenue ÷ execution cost)
 - Proceed/Review recommendation
 
 **Clarifying Questions:**
@@ -122,7 +125,7 @@ Each task has multiple decision points:
 
 **Gate 1: Revenue vs Cost**
 - Does this generate revenue?
-- Or does it just cost tokens?
+- Or does it consume execution resources?
 - Helps prioritize profitable tasks
 
 **Gate 2: Information Source**
@@ -137,18 +140,21 @@ Each task has multiple decision points:
 - Complex (sub-agents required)?
 - Determines resource allocation
 
-### 5. Token Cost vs Revenue Analysis
+### 5. Execution Cost vs Revenue Analysis
 Every task is analyzed for profitability:
-- **Token Cost**: Actual computational cost
+- **Execution Cost**: Token pricing + compute/API + infra wear
 - **Revenue Potential**: Estimated revenue generation
-- **Cost/Benefit Ratio**: Revenue / Cost
+- **Cost/Benefit Ratio**: Revenue / Execution Cost
 - **Recommendation**: Proceed or Review Required
 
 **Example from Test:**
-- Token Cost: 832 tokens
+- Token Cost: 932 tokens × $0.001 = $0.93
+- Compute/API Cost: $7.50
+- Infra/Wear Estimate: $0.50
+- Total Execution Cost: $8.93
 - Revenue Potential: $500.00
-- Cost/Benefit Ratio: 0.60
-- Recommendation: Review Required (costs > revenue)
+- Cost/Benefit Ratio: 56.0
+- Recommendation: Proceed (revenue > execution cost)
 
 ### 6. Clarifying Questions System
 When confidence is low, system generates specific questions:
@@ -216,7 +222,14 @@ Conversations are organized into threads:
 
 10. **GET /api/task/review/<task_id>/cost-analysis**
     - Get cost/benefit analysis
-    - Shows recommendation
+    - Shows execution cost breakdown and recommendation
+
+## Execution Cost Model Requirements
+To keep cost/benefit analysis mathematically correct across engine requirements:
+- **Execution Cost Formula**: `token_cost_usd + compute_api_cost + infra_wear_cost`
+- **Token Cost**: `token_count × token_unit_price`
+- **Cost/Benefit Ratio**: `revenue_potential ÷ execution_cost`
+- **Remediation**: If any analysis only uses tokens, update it to include compute/API and infra estimates before making recommendations.
 
 ## System Integration
 
@@ -275,9 +288,12 @@ Conversations are organized into threads:
 3. Complexity Gate: 75% confidence - Medium (Multiple Agents)
 
 **Cost Analysis:**
-- Token Cost: 832 tokens
+- Token Cost: 932 tokens × $0.001 = $0.93
+- Compute/API Cost: $7.50
+- Infra/Wear Estimate: $0.50
+- Total Execution Cost: $8.93
 - Revenue Potential: $500.00
-- Cost/Benefit: 0.60 (Review Required)
+- Cost/Benefit: 56.0 (Proceed)
 
 **Clarifying Questions:**
 1. What is the specific deliverable format? (+10%)
@@ -321,7 +337,7 @@ Conversations are organized into threads:
 - **Transparency**: See exactly what agents are thinking
 - **Control**: Approve/reject decisions at any point
 - **Confidence**: Know when system is certain vs uncertain
-- **Cost Awareness**: Understand token costs vs revenue
+- **Cost Awareness**: Understand execution cost vs revenue
 
 ### For Agents
 - **Communication**: Talk to each other like coworkers
@@ -367,7 +383,7 @@ The Agent Communication System successfully transforms Murphy into a platform wh
 - ✅ Inter-agent email chatter
 - ✅ Clarifying questions for uncertainty
 - ✅ Decision gates for critical choices
-- ✅ Token cost vs revenue analysis
+- ✅ Execution cost vs revenue analysis
 
 **Test Results: 7/8 tests passed (87.5% success rate)**
 

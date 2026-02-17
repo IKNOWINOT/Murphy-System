@@ -229,8 +229,19 @@ Type 'api' to see new integrated endpoints
     </div>
     
     <script>
-        const API_BASE = 'http://localhost:6666/api';
+        function resolveApiBase() {
+            const params = new URLSearchParams(window.location.search);
+            const overridePort = params.get('apiPort');
+            if (window.location.hostname === 'localhost') {
+                const port = overridePort || '6666';
+                return `http://localhost:${port}/api`;
+            }
+            return `${window.location.origin}/api`;
+        }
+
+        const API_BASE = resolveApiBase();
         let systemOnline = false;
+        let lastDocId = null;
         
         // Check system status on load
         window.addEventListener('load', () => {
@@ -243,7 +254,7 @@ Type 'api' to see new integrated endpoints
                 const response = await fetch(`${API_BASE}/system/info`);
                 const data = await response.json();
                 
-                if (data.success) {
+                if (response.ok && (data.success !== false)) {
                     systemOnline = true;
                     document.getElementById('statusBadge').textContent = 'ONLINE';
                     document.getElementById('statusBadge').className = 'status-badge status-active';
@@ -303,7 +314,7 @@ Type 'api' to see new integrated endpoints
             const args = parts.slice(1).join(' ');
             
             if (!systemOnline && cmd !== 'help' && cmd !== 'clear') {
-                addOutput('✗ Backend offline. Start murphy_complete_backend_extended.py first.', 'error');
+                addOutput('✗ Backend offline. Start murphy_system_1.0_runtime.py first.', 'error');
                 return;
             }
             
@@ -319,6 +330,18 @@ Type 'api' to see new integrated endpoints
                     break;
                 case 'submit':
                     await submitTask(args);
+                    break;
+                case 'magnify':
+                    await runBlockCommand('magnify', args);
+                    break;
+                case 'simplify':
+                    await runBlockCommand('simplify');
+                    break;
+                case 'solidify':
+                    await runBlockCommand('solidify');
+                    break;
+                case 'blocks':
+                    await showBlockTree();
                     break;
                 case 'validate':
                     await validateTask(args);
@@ -357,6 +380,11 @@ Type 'api' to see new integrated endpoints
             addOutput('                      Example: submit {"task_type":"analysis","description":"Analyze data"}');
             addOutput('  validate          - Validate a task without executing');
             addOutput('                      Example: validate {"task_type":"general","description":"Test"}');
+            addOutput('  magnify           - Magnify current block command tree');
+            addOutput('                      Example: magnify automation');
+            addOutput('  simplify          - Simplify current block command tree');
+            addOutput('  solidify          - Solidify current block command tree');
+            addOutput('  blocks            - Show current block command tree');
             addOutput('');
             addOutput('LEARNING & CORRECTIONS:', 'info');
             addOutput('  correct           - Submit a correction');
@@ -393,6 +421,10 @@ Type 'api' to see new integrated endpoints
             addOutput('');
             addOutput('SYSTEM ENDPOINTS:', 'info');
             addOutput('  GET  /api/system/info               - Get system information');
+            addOutput('  POST /api/documents/<id>/magnify    - Magnify block command tree');
+            addOutput('  POST /api/documents/<id>/simplify   - Simplify block command tree');
+            addOutput('  POST /api/documents/<id>/solidify   - Solidify block command tree');
+            addOutput('  GET  /api/documents/<id>/blocks     - Fetch block command tree');
             addOutput('');
             addOutput('Base URL: ' + API_BASE, 'success');
         }
@@ -404,13 +436,16 @@ Type 'api' to see new integrated endpoints
                 
                 if (data.success) {
                     addOutput('=== System Status ===', 'info');
-                    addOutput('Name: ' + data.system.name, 'success');
-                    addOutput('Version: ' + data.system.version, 'success');
+                    const systemInfo = data.system || data;
+                    addOutput('Name: ' + (systemInfo?.name || 'Murphy System'), 'success');
+                    addOutput('Version: ' + (systemInfo?.version || '1.0.0'), 'success');
                     addOutput('');
                     addOutput('COMPONENTS:', 'info');
-                    for (const [key, value] of Object.entries(data.system.components)) {
-                        const status = value ? '✓' : '✗';
-                        const color = value ? 'success' : 'error';
+                    const components = systemInfo?.components || {};
+                    for (const [key, value] of Object.entries(components)) {
+                        const isActive = value === 'active' || value === true;
+                        const status = isActive ? '✓' : '✗';
+                        const color = isActive ? 'success' : 'error';
                         addOutput('  ' + status + ' ' + key, color);
                     }
                 } else {
@@ -444,6 +479,7 @@ Type 'api' to see new integrated endpoints
                     addOutput('✓ Task executed successfully', 'success');
                     addOutput('Task ID: ' + result.task_id, 'success');
                     addOutput('Status: ' + result.status, 'success');
+                    lastDocId = result.doc_id || lastDocId;
                     
                     if (result.confidence_report) {
                         const conf = result.confidence_report.combined_confidence;
@@ -455,6 +491,13 @@ Type 'api' to see new integrated endpoints
                         addOutput('Output:', 'info');
                         addOutput(JSON.stringify(result.output, null, 2), 'json');
                     }
+                    if (result.activation_preview) {
+                        addOutput('Activation Preview:', 'info');
+                        addOutput(JSON.stringify(result.activation_preview, null, 2), 'json');
+                    }
+                    if (result.block_tree) {
+                        showBlockTree(result.block_tree);
+                    }
                 } else {
                     addOutput('✗ Task rejected: ' + (result.reason || result.error), 'error');
                     if (result.confidence_report) {
@@ -465,6 +508,54 @@ Type 'api' to see new integrated endpoints
             } catch (error) {
                 addOutput('✗ Error: ' + error.message, 'error');
                 addOutput('Make sure JSON is valid', 'warning');
+            }
+        }
+
+        async function runBlockCommand(action, domainArg) {
+            if (!lastDocId) {
+                addOutput('Run a task first to create a block tree.', 'warning');
+                return;
+            }
+            let payload = {};
+            if (action === 'magnify') {
+                payload.domain = domainArg || 'automation';
+            }
+            try {
+                const response = await fetch(`${API_BASE}/documents/${lastDocId}/${action}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (data.success) {
+                    lastDocId = data.doc_id || lastDocId;
+                    showBlockTree(data.block_tree);
+                } else {
+                    addOutput('✗ Block command failed: ' + data.error, 'error');
+                }
+            } catch (error) {
+                addOutput('✗ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function showBlockTree(blockTree) {
+            if (!lastDocId && !blockTree) {
+                addOutput('Run a task first to create a block tree.', 'warning');
+                return;
+            }
+            try {
+                let data = blockTree;
+                if (!data) {
+                    const response = await fetch(`${API_BASE}/documents/${lastDocId}/blocks`);
+                    const result = await response.json();
+                    data = result.block_tree;
+                }
+                if (data) {
+                    addOutput('=== Block Command Tree ===', 'info');
+                    addOutput(JSON.stringify(data, null, 2), 'json');
+                }
+            } catch (error) {
+                addOutput('✗ Error: ' + error.message, 'error');
             }
         }
         

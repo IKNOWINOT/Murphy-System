@@ -1,0 +1,88 @@
+# Murphy System Runtime Activation Audit
+
+This audit lists implemented subsystems that are not wired into the runtime 1.0 execution path and suggests verification steps for commissioned capabilities.
+
+## Inactive / Unwired Subsystems
+
+| Subsystem | Status | Activation Notes |
+| --- | --- | --- |
+| Recursive Stability Controller | Implemented, inactive | `src/recursive_stability_controller/` provides telemetry and gate damping but no runtime entrypoint. |
+| Gate Synthesis Engine | Implemented, inactive | `src/gate_synthesis/` builds gates and enumerates failure modes; not invoked from execute flow. |
+| Compute Plane | Implemented, inactive | `src/compute_plane/` supports symbolic/numeric solving; runtime does not expose it. |
+| Infinity Expansion System | Implemented, inactive | `src/infinity_expansion_system.py` expands problem space but is not called. |
+| Advanced Swarm System | Implemented, inactive | `src/advanced_swarm_system.py` defines swarm synthesis but is not used in runtime. |
+| Domain Swarms | Implemented, inactive | `src/domain_swarms.py` domain generators are not wired to task intake. |
+| True Swarm System | Implemented, inactive | `src/true_swarm_system.py` is instantiated but not called in `execute_task`. |
+| Knowledge Gap System | Implemented, inactive | `src/knowledge_gap_system.py` exists without runtime integration. |
+| Neuro-Symbolic Models | Implemented, inactive | `src/neuro_symbolic_models/` not referenced in runtime. |
+
+## Runtime Audit Endpoint
+
+Query the activation audit directly:
+
+```
+GET /api/diagnostics/activation
+```
+
+This returns availability and wiring status for each subsystem.
+
+To fetch the last activation preview captured during request processing:
+
+```
+GET /api/diagnostics/activation/last
+```
+
+Activation previews include a `capability_alignment` array with gap reasons/actions, a `capability_tests` array showing wiring attempts and errors, and a `capability_review` summary that highlights success/failure counts plus automation-extension gaps, automation execution evaluation, competitive comparison readiness, and delivery-readiness checks (99% coverage target + compliance gates).
+For a step-by-step flow breakdown and UI attempt script, see [SYSTEM_FLOW_ANALYSIS.md](SYSTEM_FLOW_ANALYSIS.md).
+For recommended gap closure solutions, capability ratings, and multi-channel output plans, see [CAPABILITY_GAP_SOLUTIONS.md](CAPABILITY_GAP_SOLUTIONS.md).
+For a full system assessment and finishing plan, see [FULL_SYSTEM_ASSESSMENT.md](FULL_SYSTEM_ASSESSMENT.md).
+
+## Verification Checklist (Commissioned Behaviors)
+
+1. **Block command expansion (magnify/simplify/solidify)**
+   - Run a task, then expand the block tree in the architect UI.
+2. **Swarm task generation**
+   - Solidify a document to generate swarm tasks for signup to billing flow.
+3. **Automation execution**
+   - Submit a task via `/api/forms/task-execution` and validate the execution packet.
+4. **Integration workflow**
+   - Add a repository via `/api/integrations/add` and verify pending approvals.
+5. **Governance / HITL**
+   - Trigger a validation failure and review HITL intervention queue.
+6. **Business automation**
+   - Call `/api/automation/{engine}/{action}` with sample parameters.
+
+## Suggested Next Tests
+
+- Wire compute plane into execution for symbolic reasoning tasks.
+- Connect gate synthesis engine to document solidification for automatic gate creation.
+- Integrate TrueSwarmSystem into execution to expand tasks into domain-specific swarms.
+
+## Remaining Critical Items to Examine (Readiness Checklist)
+
+These are the remaining areas that must be verified closely before declaring the runtime “working” end-to-end:
+
+1. **Orchestrator availability**
+   - Confirm the two-phase orchestrator is online and reachable (runtime logs should not fall back to simulation).
+2. **Gate synthesis wiring**
+   - Ensure generated gates affect execution decisions (policy changes should alter approvals and routing).
+3. **Swarm execution**
+   - Validate that TrueSwarmSystem + domain swarms run beyond previews and produce executable tasks.
+4. **Compute plane + stability controllers**
+   - Confirm deterministic compute requests hit the compute plane and stability controllers can dampen loops.
+5. **Librarian context**
+   - Verify onboarding answers are persisted, replayed in requests, and produce updated conditions/gates.
+6. **Org chart position coverage**
+   - Validate deliverables map to role coverage and contract obligations in activation previews.
+7. **External sensor/regulatory sources**
+   - Validate region-based sensor plans, ensure source URLs are reachable, and confirm the output is used.
+8. **Timer/trigger scheduling**
+   - Confirm governance scheduler can register triggers and fire follow-up jobs.
+9. **Persistence and audit trail**
+   - Ensure LivingDocument and activation previews are stored and replayable across sessions.
+10. **Human-in-the-loop escalation**
+   - Validate that HITL queues are populated when gates fail and approvals are captured.
+11. **UI → API parity**
+    - Verify the architect UI drives the same APIs as the runtime and that error states are visible.
+
+> **Test environment note:** automated tests expect `pytest` to be available; the current environment reports it missing.

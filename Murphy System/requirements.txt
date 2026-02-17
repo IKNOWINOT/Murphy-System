@@ -2,6 +2,8 @@
 # Install with: pip install -r requirements.txt
 
 # Core Web Framework
+fastapi==0.110.0
+uvicorn==0.27.1
 flask==3.0.0
 flask-cors==4.0.0
 flask-socketio==5.3.5
@@ -19,6 +21,7 @@ psutil==5.9.6
 
 # Data Validation (use latest version with pre-built wheels for Python 3.13)
 pydantic>=2.5.0
+jsonschema==4.21.1
 
 # Environment Variables
 python-dotenv==1.0.0
@@ -31,5 +34,9 @@ nest-asyncio==1.5.8
 # sqlalchemy==2.0.23
 
 # Optional: Enhanced features
-# numpy==1.26.2
+numpy==1.26.2
 # pandas==2.1.4
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0

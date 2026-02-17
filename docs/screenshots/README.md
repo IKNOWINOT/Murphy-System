@@ -17,6 +17,35 @@ This directory contains visual screenshots for the Murphy System setup process.
 | 09_system_info.png | System information endpoint | 900x300 |
 | 10_endpoints.png | Available API endpoints list | 900x280 |
 | 11_api_docs.png | API documentation browser view | 1000x500 |
+| 12_ui_terminal.png | Terminal UI dashboard | 1280x720 |
+| 13_ui_terminal_execute.png | Terminal UI task execution example | 1280x1019 |
+| 14_ui_integrated_form_execution.png | Legacy integrated UI form execution example | 1280x1240 |
+| 15_ui_integrated_terminal_execute.png | Legacy integrated terminal UI execute tab | 1280x1219 |
+| 16_ui_terminal_integrated_submit.png | Integrated terminal command submission | 1280x736 |
+| 17_ui_terminal_architect_flow.png | Architect terminal flow step | 1280x720 |
+| 18_ui_terminal_worker_status.png | Worker terminal status flow | 1280x722 |
+| 19_ui_architect_block_tree.png | Architect block command tree with magnify/simplify/solidify | 1280x720 |
+| 20_ui_activation_preview.png | Legacy integrated UI activation preview with capability alignment | 1280x2411 |
+| 21_ui_activation_tests.png | Legacy integrated UI capability tests and error output | 1280x4154 |
+| 22_ui_automation_loop.png | Legacy integrated UI showing self-automation loop execution | 1280x13349 |
+| 23_ui_gate_policy_update.png | Legacy integrated UI showing gate policy updates and trigger plan | 1280x3541 |
+| 24_ui_architect_overview.png | Architect terminal UI overview | 1280x720 |
+| 25_ui_architect_preview.png | Architect terminal UI activation preview | 1280x720 |
+| 26_ui_architect_librarian.png | Architect terminal UI librarian context | 1280x720 |
+| 27_ui_architect_gate_update.png | Architect terminal UI gate policy update flow | 1280x720 |
+| 28_ui_architect_blocks.png | Architect terminal UI block command tree | 1280x720 |
+| 29_ui_architect_blocks_magnify.png | Architect terminal UI magnify expansion | 1280x720 |
+| 30_ui_architect_user_inputs.png | Architect terminal UI user input and live activation preview | 1280x720 |
+| 31_ui_architect_user_command.png | Architect terminal UI user command with onboarding prompt | 1280x720 |
+| 32_ui_architect_compliance.png | Architect terminal UI compliance readiness response | 1280x720 |
+| 33_ui_architect_dynamic_implementation.png | Architect terminal UI activation preview with dynamic implementation plan | 1280x720 |
+| 34_ui_architect_dynamic_implementation_details.png | Architect terminal UI dynamic implementation plan with automation loop and trigger stages | 1280x720 |
+| 35_ui_architect_dynamic_gate_sequence.png | Architect terminal UI dynamic implementation plan with gate sequencing and compliance review | 1280x720 |
+| 36_ui_architect_scripted_gates.png | Architect terminal UI scripted prompt run with gate reasons | 1280x720 |
+| 24_ui_production_overview.png | Legacy production UI overview (deprecated) | 1280x720 |
+| 25_ui_production_execution.png | Legacy production UI execution with activation preview | 1280x720 |
+| 26_ui_production_gate_update.png | Legacy production UI gate policy update flow | 1280x720 |
+| 27_ui_production_control_metrics.png | Legacy production UI activation preview with control metrics | 1280x720 |
 
 ## Usage
 
@@ -41,6 +70,6 @@ Screenshots were generated using Python PIL (Pillow) library to create terminal-
 
 ---
 
-**Total Screenshots:** 11  
-**Total Size:** ~196 KB  
+**Total Screenshots:** 40  
+**Total Size:** ~5.8 MB  
 **Created:** February 9, 2026

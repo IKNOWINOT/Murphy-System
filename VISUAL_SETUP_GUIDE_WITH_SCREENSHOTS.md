@@ -8,6 +8,10 @@
 
 ## 📋 Table of Contents
 
+**Why this UI?** The architect terminal UI is used for validation because it surfaces activation previews, gate edits, timer/trigger scheduling, and business automation summaries in one place while matching the requested terminal-architect look and feel. The legacy integrated UIs remain available for quick command execution, but the architect UI provides the governance and execution visibility needed for production readiness.
+
+**Why the screenshots?** Each capture records operator inputs and system responses so the team can grade capability coverage and feed the results back into the learning loop that tunes automation behavior.
+
 1. [Prerequisites Check](#prerequisites-check)
 2. [Initial Setup](#initial-setup)
 3. [Virtual Environment Configuration](#virtual-environment-configuration)
@@ -15,8 +19,14 @@
 5. [System Configuration](#system-configuration)
 6. [Starting Murphy](#starting-murphy)
 7. [Verification & Testing](#verification-testing)
-8. [Available API Endpoints](#available-api-endpoints)
-9. [Next Steps](#next-steps)
+8. [Optional UI Access](#optional-ui-access-terminal-ui)
+9. [Architect Terminal Walkthrough](#architect-terminal-walkthrough)
+10. [Terminal UI Walkthroughs](#terminal-ui-walkthroughs)
+11. [Available API Endpoints](#available-api-endpoints)
+12. [Block Command Tree Walkthrough](#block-command-tree-walkthrough)
+13. [Gate Policy Updates & Timers](#gate-policy-updates--timers)
+14. [Control Metrics Preview](#control-metrics-preview)
+15. [Next Steps](#next-steps)
 
 ---
 
@@ -264,7 +274,142 @@ curl -s http://localhost:6666/openapi.json | python3 -c "import json, sys; data 
 
 ---
 
-### Step 11: Access API Documentation in Browser
+### Step 11: Optional UI Access (Terminal UI)
+
+Runtime 1.0 does not serve a web UI by default. To view the terminal UI, navigate to `Murphy System/murphy_integrated` and serve the `murphy_ui_integrated_terminal.html` file locally:
+
+```bash
+cd "Murphy System/murphy_integrated"
+python -m http.server 8090
+```
+
+Then open:
+
+```
+http://localhost:8090/murphy_ui_integrated_terminal.html
+```
+
+If you start the HTTP server from a different directory, adjust the URL path to match the served location of the HTML file.
+
+**Browser note:** Some browsers block port 6666. If you run the API on a different port (e.g., 8000), append `?apiPort=8000` to any UI URL so it targets the correct port:
+
+```
+http://localhost:8090/murphy_ui_integrated_terminal.html?apiPort=8000
+```
+
+![Terminal UI](docs/screenshots/12_ui_terminal.png)
+
+**What you'll see:**
+- Terminal-styled dashboard with system status
+- Tabs for execute, forms, corrections, sessions, and integrations
+
+**Note:** Some tabs may show errors unless optional endpoints are wired to runtime 1.0.
+
+---
+
+### Step 12: Open the Architect Terminal UI
+
+Launch the architect terminal UI (the production UI redirect points here) and target the runtime port. Use `?legacy=true` if you must view the older light-theme UI.
+
+```
+http://localhost:8090/murphy_integrated/terminal_architect.html?apiPort=8000
+```
+
+![Architect Terminal Overview](docs/screenshots/24_ui_architect_overview.png)
+
+---
+
+## Architect Terminal Walkthrough
+
+### Step 13: Run an Automation Request
+
+Submit a full onboarding automation request in the architect terminal input (marketing → executive → operations → QA → HITL → execution). Include the operating region so regulatory sources are selected.
+
+![Architect Terminal User Input](docs/screenshots/30_ui_architect_user_inputs.png)
+
+![Architect Terminal User Command](docs/screenshots/31_ui_architect_user_command.png)
+
+![Architect Terminal Compliance Readiness](docs/screenshots/32_ui_architect_compliance.png)
+
+![Architect Terminal Preview](docs/screenshots/25_ui_architect_preview.png)
+
+![Architect Terminal Dynamic Implementation](docs/screenshots/33_ui_architect_dynamic_implementation.png)
+
+![Architect Terminal Dynamic Implementation Details](docs/screenshots/34_ui_architect_dynamic_implementation_details.png)
+
+![Architect Terminal Gate Sequencing](docs/screenshots/35_ui_architect_dynamic_gate_sequence.png)
+
+![Architect Terminal Scripted Gates](docs/screenshots/36_ui_architect_scripted_gates.png)
+
+**Observed behavior:** the terminal returns activation preview JSON showing gates, swarm tasks, governance plans, librarian conditions, delivery readiness (99% coverage target + compliance status), and region-aware external API sensor plans sourced from the runtime response. The expanded dynamic implementation stages include gate sequencing, compliance review, automation loop, multi-loop scheduling, trigger schedule, and monitoring feedback.
+
+**Dynamic implementation check:** the preview includes a dynamic implementation plan that stages requirements capture, gate alignment, compliance sequencing, workload distribution, execution strategy, and human release status so the system can iterate across multiple projects. The scripted prompt capture in the screenshot shows gate statuses and reasons updating in real time (open vs blocked). This helps validate how confidence shifts alter gate readiness.
+
+**Gap + graphing summary:** the `wiring_gaps` and `information_gaps` fields highlight what still needs dynamic wiring or additional input for capability grading and learning. The `chain_plan.training_patterns.graphing` output provides multi-graph summaries (all paths, high-confidence paths, fastest paths) with time-based estimates plus a subject-condensation map and per-subject summaries so the system can reason about workload and confidence across owners rather than any particular chart style.
+
+---
+
+### Step 14: Review Librarian Context & Conditions
+
+Open the **LIBRARIAN** tab to see the live librarian context, matched knowledge topics, and approval-required conditions that inform gate synthesis.
+
+![Architect Terminal Librarian](docs/screenshots/26_ui_architect_librarian.png)
+
+---
+
+### Step 15: Update Gate Policies in Real Time
+
+Use **Update Gates** in the Gates tab (or `/updategates`) to adjust thresholds and immediately review the refreshed gate chain and trigger plan.
+
+![Architect Terminal Gate Update](docs/screenshots/27_ui_architect_gate_update.png)
+
+---
+
+### Step 16: Inspect Block Command Tree and Magnify
+
+Switch to **BLOCKS** to inspect the generated block tree, then run **Magnify** to expand the request into deeper sub-tasks.
+
+![Architect Terminal Blocks](docs/screenshots/28_ui_architect_blocks.png)
+
+![Architect Terminal Magnify](docs/screenshots/29_ui_architect_blocks_magnify.png)
+
+---
+
+## Terminal UI Walkthroughs
+
+### Step 17: Integrated Terminal Execute Tab
+
+Submit a task through the terminal-style execute tab.
+
+![Integrated Terminal Execute](docs/screenshots/15_ui_integrated_terminal_execute.png)
+
+---
+
+### Step 18: Integrated Terminal Command Flow
+
+Use the command interface to submit a task payload.
+
+![Terminal Integrated Submit](docs/screenshots/16_ui_terminal_integrated_submit.png)
+
+---
+
+### Step 19: Architect Terminal Flow Step
+
+Issue a high-level architecture command and observe the stage handoff.
+
+![Architect Terminal Flow](docs/screenshots/17_ui_terminal_architect_flow.png)
+
+---
+
+### Step 20: Worker Terminal Status Flow
+
+Run a worker status command and confirm the next-step prompt.
+
+![Worker Terminal Status](docs/screenshots/18_ui_terminal_worker_status.png)
+
+---
+
+### Step 21: Access API Documentation in Browser
 
 Open your browser and navigate to:
 
@@ -288,6 +433,60 @@ http://localhost:6666/docs
 
 ---
 
+## Block Command Tree Walkthrough
+
+### Step 22: Architect Block Tree Expansion
+
+Open the architect terminal, run a high-level command, and use magnify/simplify/solidify to expand the block tree.
+
+![Architect Block Tree](docs/screenshots/19_ui_architect_block_tree.png)
+
+---
+
+### Step 23: Legacy Integrated Activation Preview (Optional)
+
+If you still need the legacy integrated UI, run a request there to see the planned subsystems, gates, swarm tasks, and capability alignment gaps. The architect UI already exposes the same activation preview.
+
+![Legacy Activation Preview](docs/screenshots/25_ui_production_execution.png)
+
+---
+
+### Step 24: Legacy Integrated Capability Tests (Optional)
+
+Inspect the activation preview JSON in the legacy integrated UI to see capability test errors and successful subsystem checks.
+
+![Legacy Capability Tests](docs/screenshots/27_ui_production_control_metrics.png)
+
+---
+
+### Step 25: Legacy Integrated Self-Automation Loop Output (Optional)
+
+Use the legacy integrated UI execution output to confirm business automation loop results and self-operation status.
+
+![Legacy Automation Loop](docs/screenshots/25_ui_production_execution.png)
+
+---
+
+## Gate Policy Updates & Timers
+
+### Step 26: Update Gate Policies and Trigger Plans
+
+Use **Update Gates** in the architect UI to adjust gate thresholds (executive, operations, QA, HITL, execution) and immediately see the timer/trigger plan update.
+
+![Gate Policy Update](docs/screenshots/27_ui_architect_gate_update.png)
+
+---
+
+## Control Metrics Preview
+
+### Step 27: Verify Control-Metric Gate Context (Optional)
+
+Run a request and confirm the gate synthesis output includes control metrics (setpoints, sensor feedback, control effect) aligned to the request domain. The legacy integrated UI screenshot below shows the control metrics format.
+
+![Legacy Control Metrics](docs/screenshots/27_ui_production_control_metrics.png)
+
+---
+
 ## Available API Endpoints
 
 ### Complete Endpoint Reference
@@ -298,6 +497,7 @@ http://localhost:6666/docs
 | GET | /api/status | System status |
 | GET | /api/info | System information |
 | POST | /api/execute | Execute a task |
+| POST | /api/documents/{doc_id}/gates | Update gate policies |
 | POST | /api/integrations/add | Add new integration |
 | POST | /api/integrations/{id}/approve | Approve integration |
 | POST | /api/integrations/{id}/reject | Reject integration |
