@@ -34,6 +34,8 @@ def test_completion_snapshot_surface_parity():
     expected = status["completion_snapshot"]
     assert info["completion_snapshot"] == expected
     assert preview["completion_snapshot"] == expected
+    assert info["runtime_execution_profile"] == status["runtime_execution_profile"]
+    assert preview["runtime_execution_profile"] == status["runtime_execution_profile"]
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
     assert expected["summary"]["low_completion_areas"] >= 1
@@ -41,4 +43,21 @@ def test_completion_snapshot_surface_parity():
     dynamic_chain = next(
         item for item in expected["areas"] if item["area"] == "dynamic_chain_test_coverage"
     )
-    assert dynamic_chain["percent"] == 85
+    assert dynamic_chain["percent"] == 86
+
+
+def test_runtime_execution_profile_mode_derivation():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    strict = murphy._build_runtime_execution_profile(
+        "Regulated compliance workflow",
+        {"safety_level": "strict", "risk_tolerance": "low"}
+    )
+    dynamic = murphy._build_runtime_execution_profile(
+        "High autonomy production mode",
+        {"autonomy_level": "dynamic", "risk_tolerance": "high"}
+    )
+    assert strict["execution_mode"] == "strict"
+    assert strict["escalation_policy"] == "mandatory"
+    assert dynamic["execution_mode"] == "dynamic"
+    assert dynamic["audit_requirements"] == "minimal"

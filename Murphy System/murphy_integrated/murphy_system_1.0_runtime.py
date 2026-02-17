@@ -724,7 +724,7 @@ class MurphySystem:
         "compliance_validation": 38,
         "operational_automation": 22,
         "ui_user_testing": 70,
-        "dynamic_chain_test_coverage": 85
+        "dynamic_chain_test_coverage": 86
     }
     COMPLETION_REMEDIATION_THRESHOLD_PERCENT = 50
     DOCUMENT_PLACEHOLDER_PATTERN = r"[A-Za-z_][A-Za-z0-9_]*"
@@ -5132,6 +5132,54 @@ class MurphySystem:
             }
         }
 
+    def _build_runtime_execution_profile(
+        self,
+        task_description: str,
+        onboarding_context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        context = onboarding_context or {}
+        answers = context.get("answers") if isinstance(context, dict) else None
+        if isinstance(answers, dict):
+            source = {**context, **answers}
+        else:
+            source = context if isinstance(context, dict) else {}
+        text = f"{task_description} {source}".lower()
+        explicit_mode = str(source.get("execution_mode", "")).lower()
+        safety_level = str(source.get("safety_level", source.get("risk_level", "standard"))).lower()
+        risk_tolerance = str(source.get("risk_tolerance", "moderate")).lower()
+        autonomy_level = str(source.get("autonomy_level", source.get("autonomy_preferences", "balanced"))).lower()
+        if explicit_mode in {"strict", "balanced", "dynamic"}:
+            mode = explicit_mode
+        elif any(token in text for token in ["strict", "regulated", "compliance", "low risk", "conservative"]) or safety_level in {"high", "strict"} or risk_tolerance in {"low", "conservative"}:
+            mode = "strict"
+        elif any(token in text for token in ["dynamic", "high autonomy", "production mode", "fast mode"]) or autonomy_level in {"high", "dynamic"}:
+            mode = "dynamic"
+        else:
+            mode = "balanced"
+        escalation_policy = source.get("escalation_policy")
+        if not escalation_policy:
+            escalation_policy = (
+                "mandatory" if mode == "strict"
+                else "selective" if mode == "balanced"
+                else "on_exception"
+            )
+        audit_requirements = source.get("audit_requirements")
+        if not audit_requirements:
+            audit_requirements = (
+                "full" if mode == "strict"
+                else "standard" if mode == "balanced"
+                else "minimal"
+            )
+        return {
+            "execution_mode": mode,
+            "safety_level": safety_level,
+            "escalation_policy": escalation_policy,
+            "budget_constraints": source.get("budget_constraints", source.get("budget_ceiling", "standard")),
+            "tool_permissions": source.get("tool_permissions", "governed_default"),
+            "audit_requirements": audit_requirements,
+            "autonomy_level": autonomy_level
+        }
+
     def _build_summary_surface_consistency(
         self,
         summary_bundle: Optional[Dict[str, Any]] = None,
@@ -5800,6 +5848,10 @@ class MurphySystem:
         summary_bundle = self._build_summary_surface_bundle()
         module_registry_status = self.module_manager.get_module_status()
         completion_snapshot = self._build_completion_snapshot()
+        runtime_execution_profile = self._build_runtime_execution_profile(
+            task_description,
+            onboarding_context
+        )
         summary_surface_consistency = self._build_summary_surface_consistency(
             summary_bundle,
             module_registry_status,
@@ -5832,6 +5884,7 @@ class MurphySystem:
             "module_registry_summary": summary_bundle["module_registry_summary"],
             "summary_surface_consistency": summary_surface_consistency,
             "completion_snapshot": completion_snapshot,
+            "runtime_execution_profile": runtime_execution_profile,
             "registry_health": self._build_registry_health_snapshot(),
             "schema_drift": self._build_schema_drift_snapshot(),
             "capability_alignment": capability_alignment,
@@ -6329,6 +6382,10 @@ class MurphySystem:
         summary_bundle = self._build_summary_surface_bundle()
         module_registry_status = self.module_manager.get_module_status()
         completion_snapshot = self._build_completion_snapshot()
+        runtime_execution_profile = self._build_runtime_execution_profile(
+            latest_preview.get("request_summary", ""),
+            latest_preview.get("onboarding_context")
+        )
         summary_surface_consistency = self._build_summary_surface_consistency(
             summary_bundle,
             module_registry_status,
@@ -6374,6 +6431,7 @@ class MurphySystem:
             'module_registry_summary': summary_bundle["module_registry_summary"],
             'summary_surface_consistency': summary_surface_consistency,
             'completion_snapshot': completion_snapshot,
+            'runtime_execution_profile': runtime_execution_profile,
             'registry_health': self._build_registry_health_snapshot(),
             'schema_drift': self._build_schema_drift_snapshot(),
             'adapter_execution': self._build_adapter_execution_snapshot(),
@@ -6402,6 +6460,7 @@ class MurphySystem:
         summary_bundle = self._build_summary_surface_bundle()
         module_registry_status = self.module_manager.get_module_status()
         completion_snapshot = self._build_completion_snapshot()
+        runtime_execution_profile = self._build_runtime_execution_profile("", None)
         return {
             'name': 'Murphy System',
             'version': self.version,
@@ -6434,7 +6493,8 @@ class MurphySystem:
                 module_registry_status,
                 completion_snapshot
             ),
-            'completion_snapshot': completion_snapshot
+            'completion_snapshot': completion_snapshot,
+            'runtime_execution_profile': runtime_execution_profile
         }
 
     def get_activation_audit(self) -> Dict[str, Any]:
