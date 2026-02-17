@@ -169,7 +169,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 | Compliance validation | 38% | Compliance validation snapshot added with regulatory sources + next-action guidance |
 | Operational automation | 22% | Planning templates exist; ticketing/remote access not wired |
 | UI + user testing | 70% | Architect UI + scripted screenshots now in place |
-| Test coverage for dynamic chains | 86% | Dynamic plan tests exist; summary surface bundle + consumer parity + consistency + remediation/consistency-gap + completion snapshot + completion remediation + threshold/average/gap-area/total-area/coverage-ratio/backlog/backlog-ratio + execution-profile checks added; execution/integration tests still pending |
+| Test coverage for dynamic chains | 87% | Dynamic plan tests exist; summary surface bundle + consumer parity + consistency + remediation/consistency-gap + completion snapshot + completion remediation + threshold/average/gap-area/total-area/coverage-ratio/backlog/backlog-ratio + execution-profile/enforcement-level checks added; execution/integration tests still pending |
 
 **Progress update protocol:**
 - Store user-script screenshots in `docs/screenshots/` (repository root).
@@ -237,7 +237,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 35. **Summary bundle consumer tests**: `test_summary_surface_bundle_consumers.py` validates `/api/status` and `/api/info` consume shared summary bundle outputs.
 36. **Summary surface consistency tests**: `test_summary_surface_consistency.py` validates consistency snapshots across activation preview, `/api/status`, and `/api/info`, including completion snapshot presence detection.
 37. **Summary consistency remediation tests**: `test_summary_consistency_self_improvement.py` validates consistency drift remediation routing into self-improvement backlog/actions and summary consistency-gap accounting.
-38. **Completion snapshot surface tests**: `test_completion_snapshot_surface.py` validates completion snapshot parity across activation preview, `/api/status`, and `/api/info`, including threshold metadata plus runtime execution profile parity/mode derivation checks.
+38. **Completion snapshot surface tests**: `test_completion_snapshot_surface.py` validates completion snapshot parity across activation preview, `/api/status`, and `/api/info`, including threshold metadata plus runtime execution profile parity/mode/enforcement-level derivation checks.
 39. **Completion remediation tests**: `test_completion_snapshot_self_improvement.py` validates low completion areas route into self-improvement backlog/actions using snapshot threshold metadata.
 
 ---
@@ -356,6 +356,7 @@ This update confirms that sections **1-13** remain active and accepted as the op
 39. Added completion backlog-ratio propagation to self-improvement summaries and validated metadata-driven/fallback behavior.
 40. Added governed-agentization/control-plane expansion planning (including execution-profile compilation and repository capability-map rollout) to section 12 for the next implementation phase.
 41. Added runtime execution-profile surface propagation and mode-derivation validation across activation preview, `/api/status`, and `/api/info`.
+42. Added execution-enforcement-level derivation in runtime execution profiles and validated strict/balanced/dynamic mapping with focused surface tests.
 
 **Current completion percentage snapshot (section 9, this iteration):**
 - Execution wiring (gate + swarm + orchestrator): **47%**
@@ -365,4 +366,4 @@ This update confirms that sections **1-13** remain active and accepted as the op
 - Compliance validation: **38%**
 - Operational automation: **22%**
 - UI + user testing: **70%**
-- Test coverage for dynamic chains: **86%**
+- Test coverage for dynamic chains: **87%**
