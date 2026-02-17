@@ -4985,7 +4985,10 @@ class MurphySystem:
         backlog = list(updated.get("backlog", []))
         summary = dict(updated.get("summary", {}))
         threshold = int(
-            completion_snapshot.get("summary", {}).get("remediation_threshold_percent", threshold)
+            completion_snapshot.get("summary", {}).get(
+                "remediation_threshold_percent",
+                self.COMPLETION_REMEDIATION_THRESHOLD_PERCENT
+            )
         )
         completion_gap_areas = [
             area for area in completion_snapshot.get("areas", [])
