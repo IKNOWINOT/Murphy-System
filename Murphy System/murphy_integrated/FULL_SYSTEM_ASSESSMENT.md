@@ -304,3 +304,13 @@ This update confirms that sections **1-13** remain active and accepted as the op
 16. Hardened `/api/info` and activation preview registry parity checks by asserting core registry completeness (`core_registered == core_expected`, no `core_missing` entries).
 17. Hardened `/api/status` and activation preview registry parity checks by asserting registry availability (`total_available >= core_expected`) alongside core completeness.
 18. Hardened `/api/status` and activation preview registry parity checks by asserting summary total counts match module registry status totals.
+
+**Current completion percentage snapshot (section 9, this iteration):**
+- Execution wiring (gate + swarm + orchestrator): **47%**
+- Deterministic + LLM routing: **40%**
+- Persistence + replay: **23%**
+- Multi-channel delivery: **58%**
+- Compliance validation: **38%**
+- Operational automation: **22%**
+- UI + user testing: **70%**
+- Test coverage for dynamic chains: **68%**
