@@ -38,4 +38,4 @@ def test_completion_snapshot_surface_parity():
     dynamic_chain = next(
         item for item in expected["areas"] if item["area"] == "dynamic_chain_test_coverage"
     )
-    assert dynamic_chain["percent"] == 75
+    assert dynamic_chain["percent"] == 77

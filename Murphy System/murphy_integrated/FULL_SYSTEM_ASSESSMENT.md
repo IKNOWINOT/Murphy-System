@@ -323,6 +323,7 @@ This update confirms that sections **1-13** remain active and accepted as the op
 28. Added runtime completion snapshot outputs across preview/status/info and validated cross-surface parity with focused regression coverage.
 29. Routed low completion areas into self-improvement remediation backlog/actions and validated behavior with focused regression coverage.
 30. Extended consistency checks to validate completion snapshot presence across preview/status/info and detect missing completion data.
+31. Aligned runtime completion snapshot dynamic-chain test percentage with section 9 tracker values for consistent cross-surface reporting.
 
 **Current completion percentage snapshot (section 9, this iteration):**
 - Execution wiring (gate + swarm + orchestrator): **47%**
