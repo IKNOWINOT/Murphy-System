@@ -24,8 +24,10 @@ def test_competitive_feature_alignment_in_system_status():
 
     assert "integration_capabilities" in status
     assert "competitive_feature_alignment" in status
+    assert "competitive_feature_alignment_summary" in status
     alignment = status["competitive_feature_alignment"]
     assert alignment["summary"]["total"] == len(alignment["features"])
+    assert status["competitive_feature_alignment_summary"] == alignment["summary"]
     feature_ids = {feature["id"] for feature in alignment["features"]}
     assert "ai_model_lifecycle" in feature_ids
     assert "low_code_automation" in feature_ids
