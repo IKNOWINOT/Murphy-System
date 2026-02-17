@@ -42,5 +42,16 @@ def test_summary_surface_consistency_available_across_surfaces():
     assert status["summary_surface_consistency"]["status"] == "consistent"
     assert info["summary_surface_consistency"]["status"] == "consistent"
     assert preview["summary_surface_consistency"]["status"] == "consistent"
+    assert status["summary_surface_consistency"]["checks"]["completion_snapshot_present"] is True
     assert status["self_improvement"]["summary"]["consistency_gaps"] == 0
     assert preview["self_improvement"]["summary"]["consistency_gaps"] == 0
+
+
+def test_summary_surface_consistency_detects_missing_completion_snapshot():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    consistency = murphy._build_summary_surface_consistency(
+        completion_snapshot={"areas": [], "summary": {"total_areas": 0, "average_percent": 0.0}}
+    )
+    assert consistency["status"] == "drift_detected"
+    assert consistency["checks"]["completion_snapshot_present"] is False
