@@ -4515,17 +4515,21 @@ class MurphySystem:
                 )
                 return None
         selected_connector = sorted(connectors, key=lambda connector: connector["id"])[0]
-        if "source_locale" in params and "translation_source_locale" not in params:
+        connector_id = selected_connector["id"]
+        if "translation_source_locale" not in params and "source_locale" in params:
             logger.warning(
-                "translation delivery received legacy source_locale; prefer translation_source_locale."
+                "translation delivery used legacy source_locale for connector %s; prefer translation_source_locale.",
+                connector_id
             )
-        if "target_locale" in params and "translation_target_locale" not in params:
+        if "translation_target_locale" not in params and "target_locale" in params:
             logger.warning(
-                "translation delivery received legacy target_locale; prefer translation_target_locale."
+                "translation delivery used legacy target_locale for connector %s; prefer translation_target_locale.",
+                connector_id
             )
-        if "translation_locale" in params and "translation_target_locale" not in params:
+        if "translation_target_locale" not in params and "translation_locale" in params:
             logger.warning(
-                "translation delivery received legacy translation_locale; prefer translation_target_locale."
+                "translation delivery used legacy translation_locale for connector %s; prefer translation_target_locale.",
+                connector_id
             )
         # Prefer translation_source_locale for clarity; source_locale remains as a legacy alias.
         source_locale = (
