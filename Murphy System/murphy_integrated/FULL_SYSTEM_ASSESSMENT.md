@@ -169,7 +169,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 | Compliance validation | 38% | Compliance validation snapshot added with regulatory sources + next-action guidance |
 | Operational automation | 22% | Planning templates exist; ticketing/remote access not wired |
 | UI + user testing | 70% | Architect UI + scripted screenshots now in place |
-| Test coverage for dynamic chains | 70% | Dynamic plan tests exist; summary surface bundle + cross-surface parity tests added; execution/integration tests still pending |
+| Test coverage for dynamic chains | 71% | Dynamic plan tests exist; summary surface bundle + consumer parity tests added; execution/integration tests still pending |
 
 **Progress update protocol:**
 - Store user-script screenshots in `docs/screenshots/` (repository root).
@@ -234,6 +234,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 32. **Competitive alignment status summary tests**: `test_competitive_alignment_status.py` validates `/api/status` module registry summary parity with runtime registry aggregation, registry availability, core registry completeness, and total count consistency.
 33. **Summary surface parity tests**: `test_summary_surface_parity.py` validates summary parity across activation preview, `/api/status`, and `/api/info`.
 34. **Summary surface bundle tests**: `test_summary_surface_bundle.py` validates standardized summary bundle parity with runtime builders.
+35. **Summary bundle consumer tests**: `test_summary_surface_bundle_consumers.py` validates `/api/status` and `/api/info` consume shared summary bundle outputs.
 
 ---
 
@@ -311,6 +312,7 @@ This update confirms that sections **1-13** remain active and accepted as the op
 21. Hardened `/api/info` parity checks by asserting integration/alignment summary consistency with `/api/status` outputs.
 22. Added cross-surface parity coverage so activation preview, `/api/status`, and `/api/info` report matching integration/alignment/registry summaries.
 23. Standardized summary assembly via a shared runtime bundle builder and validated bundle parity with dedicated regression coverage.
+24. Added consumer-level regression coverage to verify `/api/status` and `/api/info` use shared summary bundle outputs consistently.
 
 **Current completion percentage snapshot (section 9, this iteration):**
 - Execution wiring (gate + swarm + orchestrator): **47%**
@@ -320,4 +322,4 @@ This update confirms that sections **1-13** remain active and accepted as the op
 - Compliance validation: **38%**
 - Operational automation: **22%**
 - UI + user testing: **70%**
-- Test coverage for dynamic chains: **70%**
+- Test coverage for dynamic chains: **71%**
