@@ -4988,9 +4988,9 @@ class MurphySystem:
             if area.get("percent", 0) < threshold
         ]
         summary["completion_gaps"] = len(completion_gap_areas)
-        summary["total_backlog"] = len(backlog)
-        updated["summary"] = summary
         if not completion_gap_areas:
+            summary["total_backlog"] = len(backlog)
+            updated["summary"] = summary
             return updated
         for area in completion_gap_areas:
             backlog.append({
@@ -5003,7 +5003,6 @@ class MurphySystem:
         completion_action = "Prioritize low completion areas and schedule remediation loops."
         if completion_action not in actions:
             actions.append(completion_action)
-        summary["completion_gaps"] = len(completion_gap_areas)
         summary["total_backlog"] = len(backlog)
         updated["status"] = "needs_attention"
         updated["backlog"] = backlog
