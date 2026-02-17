@@ -40,10 +40,11 @@ def test_completion_snapshot_surface_parity():
     assert expected["summary"]["remediation_threshold_percent"] == 50
     assert expected["summary"]["low_completion_areas"] >= 1
     assert len(expected["summary"]["low_completion_area_ids"]) == expected["summary"]["low_completion_areas"]
+    assert status["runtime_execution_profile"]["execution_enforcement_level"] == "policy_guarded"
     dynamic_chain = next(
         item for item in expected["areas"] if item["area"] == "dynamic_chain_test_coverage"
     )
-    assert dynamic_chain["percent"] == 86
+    assert dynamic_chain["percent"] == 87
 
 
 def test_runtime_execution_profile_mode_derivation():
@@ -58,6 +59,8 @@ def test_runtime_execution_profile_mode_derivation():
         {"autonomy_level": "dynamic", "risk_tolerance": "high"}
     )
     assert strict["execution_mode"] == "strict"
+    assert strict["execution_enforcement_level"] == "full_gate_enforcement"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
+    assert dynamic["execution_enforcement_level"] == "autonomy_accelerated"
     assert dynamic["audit_requirements"] == "minimal"

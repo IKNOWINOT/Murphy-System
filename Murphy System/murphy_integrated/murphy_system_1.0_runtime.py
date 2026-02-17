@@ -724,7 +724,7 @@ class MurphySystem:
         "compliance_validation": 38,
         "operational_automation": 22,
         "ui_user_testing": 70,
-        "dynamic_chain_test_coverage": 86
+        "dynamic_chain_test_coverage": 87
     }
     COMPLETION_REMEDIATION_THRESHOLD_PERCENT = 50
     # Phrase tokens intentionally rely on substring matching against normalized text.
@@ -5181,8 +5181,14 @@ class MurphySystem:
                 "balanced": "standard",
                 "dynamic": "minimal"
             }.get(mode, "standard")
+        execution_enforcement_level = {
+            "strict": "full_gate_enforcement",
+            "balanced": "policy_guarded",
+            "dynamic": "autonomy_accelerated"
+        }.get(mode, "policy_guarded")
         return {
             "execution_mode": mode,
+            "execution_enforcement_level": execution_enforcement_level,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
             "budget_constraints": source.get("budget_constraints", source.get("budget_ceiling", "standard")),
