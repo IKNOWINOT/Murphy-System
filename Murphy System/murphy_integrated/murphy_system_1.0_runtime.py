@@ -4911,6 +4911,43 @@ class MurphySystem:
             "remediation_actions": remediation_actions
         }
 
+    def _apply_summary_consistency_remediation(
+        self,
+        self_improvement_snapshot: Dict[str, Any],
+        summary_surface_consistency: Optional[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        if not summary_surface_consistency:
+            return self_improvement_snapshot
+        updated = dict(self_improvement_snapshot)
+        updated["summary_surface_consistency"] = summary_surface_consistency
+        if summary_surface_consistency.get("status") != "drift_detected":
+            return updated
+        checks = summary_surface_consistency.get("checks", {})
+        failed_checks = [name for name, passed in checks.items() if not passed]
+        if not failed_checks:
+            return updated
+        backlog = list(updated.get("backlog", []))
+        backlog.append({
+            "id": "summary_surface_consistency",
+            "type": "consistency",
+            "owner": "runtime",
+            "reason": "Summary surface consistency drift detected: " + ", ".join(sorted(failed_checks))
+        })
+        actions = list(dict.fromkeys(updated.get("remediation_actions", [])))
+        drift_action = "Resolve summary surface consistency drift across preview/status/info outputs."
+        if drift_action not in actions:
+            actions.append(drift_action)
+        summary = dict(updated.get("summary", {}))
+        summary["consistency_gaps"] = len(
+            [item for item in backlog if item.get("type") == "consistency"]
+        )
+        summary["total_backlog"] = len(backlog)
+        updated["status"] = "needs_attention"
+        updated["backlog"] = backlog
+        updated["remediation_actions"] = actions
+        updated["summary"] = summary
+        return updated
+
     def _build_competitive_feature_alignment(
         self,
         integration_capabilities: Optional[Dict[str, Any]] = None
@@ -5658,6 +5695,14 @@ class MurphySystem:
 
         summary_bundle = self._build_summary_surface_bundle()
         module_registry_status = self.module_manager.get_module_status()
+        summary_surface_consistency = self._build_summary_surface_consistency(
+            summary_bundle,
+            module_registry_status
+        )
+        self_improvement_snapshot = self._apply_summary_consistency_remediation(
+            self_improvement_snapshot,
+            summary_surface_consistency
+        )
         adapter_execution = self._build_adapter_execution_snapshot()
         execution_wiring = self._build_execution_wiring_snapshot(doc)
         orchestrator_readiness = self._build_orchestrator_readiness_snapshot()
@@ -5675,10 +5720,7 @@ class MurphySystem:
             "region": sensor_plan["region"],
             "module_registry": module_registry_status,
             "module_registry_summary": summary_bundle["module_registry_summary"],
-            "summary_surface_consistency": self._build_summary_surface_consistency(
-                summary_bundle,
-                module_registry_status
-            ),
+            "summary_surface_consistency": summary_surface_consistency,
             "registry_health": self._build_registry_health_snapshot(),
             "schema_drift": self._build_schema_drift_snapshot(),
             "capability_alignment": capability_alignment,
@@ -6175,6 +6217,14 @@ class MurphySystem:
         )
         summary_bundle = self._build_summary_surface_bundle()
         module_registry_status = self.module_manager.get_module_status()
+        summary_surface_consistency = self._build_summary_surface_consistency(
+            summary_bundle,
+            module_registry_status
+        )
+        self_improvement_snapshot = self._apply_summary_consistency_remediation(
+            self_improvement_snapshot,
+            summary_surface_consistency
+        )
         return {
             'version': self.version,
             'status': 'running',
@@ -6205,10 +6255,7 @@ class MurphySystem:
             },
             'module_registry': module_registry_status,
             'module_registry_summary': summary_bundle["module_registry_summary"],
-            'summary_surface_consistency': self._build_summary_surface_consistency(
-                summary_bundle,
-                module_registry_status
-            ),
+            'summary_surface_consistency': summary_surface_consistency,
             'registry_health': self._build_registry_health_snapshot(),
             'schema_drift': self._build_schema_drift_snapshot(),
             'adapter_execution': self._build_adapter_execution_snapshot(),
