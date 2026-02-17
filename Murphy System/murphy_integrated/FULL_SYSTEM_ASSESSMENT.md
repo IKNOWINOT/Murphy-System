@@ -169,7 +169,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 | Compliance validation | 38% | Compliance validation snapshot added with regulatory sources + next-action guidance |
 | Operational automation | 22% | Planning templates exist; ticketing/remote access not wired |
 | UI + user testing | 70% | Architect UI + scripted screenshots now in place |
-| Test coverage for dynamic chains | 79% | Dynamic plan tests exist; summary surface bundle + consumer parity + consistency + remediation/consistency-gap + completion snapshot + completion remediation + threshold metadata + threshold-summary checks added; execution/integration tests still pending |
+| Test coverage for dynamic chains | 80% | Dynamic plan tests exist; summary surface bundle + consumer parity + consistency + remediation/consistency-gap + completion snapshot + completion remediation + threshold/average summary checks added; execution/integration tests still pending |
 
 **Progress update protocol:**
 - Store user-script screenshots in `docs/screenshots/` (repository root).
@@ -326,6 +326,7 @@ This update confirms that sections **1-13** remain active and accepted as the op
 31. Aligned runtime completion snapshot dynamic-chain test percentage with section 9 tracker values for consistent cross-surface reporting.
 32. Added completion threshold metadata to runtime completion snapshots and validated remediation behavior consumes that threshold.
 33. Exposed completion remediation threshold in self-improvement summary outputs and validated both metadata-driven and fallback threshold paths.
+34. Added completion average propagation to self-improvement summary outputs and validated metadata-driven/fallback behavior.
 
 **Current completion percentage snapshot (section 9, this iteration):**
 - Execution wiring (gate + swarm + orchestrator): **47%**
@@ -335,4 +336,4 @@ This update confirms that sections **1-13** remain active and accepted as the op
 - Compliance validation: **38%**
 - Operational automation: **22%**
 - UI + user testing: **70%**
-- Test coverage for dynamic chains: **79%**
+- Test coverage for dynamic chains: **80%**
