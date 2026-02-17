@@ -118,6 +118,10 @@ start_murphy_1.0.bat   # Windows
 - **Details:** see [Runtime 1.0 Status](<Murphy System/murphy_integrated/RUNTIME_1.0_STATUS.md>)
 - **Competitive alignment:** activation previews now include `competitive_feature_alignment` and `module_registry_summary` so readiness gaps are measurable.
 - **Alignment diagnostics:** competitive feature alignment reports connector readiness and flags configuration errors with guidance for missing capability lists, now covering adaptive routing, multi-channel delivery, RBAC/tenant governance, persistent memory (currently missing), policy-as-code, observability/AIOps, self-healing, knowledge/RAG, and connector marketplace readiness (see the updated competitive baseline in `FULL_SYSTEM_ASSESSMENT.md`).
+- **Confidence-gated execution:** `execute_task` now evaluates all tasks through the `UnifiedConfidenceEngine` with G/D/H + 5D uncertainty scoring before execution; responses include `confidence_gate` with confidence score and gate decision.
+- **Self-diagnostics:** `/api/status` now includes full module health checks (9 core modules), system resource monitoring, Python environment validation, and integration dependency status via the `self_diagnostics` module.
+- **Standardized testing:** pytest infrastructure (`pytest.ini`, `conftest.py`) with 39 passing unit tests covering confidence engine, execution engine, learning engine, governance, swarm system, supervisor, module manager, and self-diagnostics.
+- **Repository security:** API keys, zip archives, log files, and database files removed from git tracking; `.gitignore` hardened with comprehensive exclusion patterns.
 ---
 
 ## 🗃️ Repository Index (Database-Style Reference)
@@ -135,23 +139,27 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **Activation Audit** | `Murphy System/murphy_integrated/ACTIVATION_AUDIT.md` | Inactive subsystem inventory + verification | Review before wiring |
 | **Flow Analysis** | `Murphy System/murphy_integrated/SYSTEM_FLOW_ANALYSIS.md` | User-scripted flow + gate checklist | Use for screenshot testing |
 | **Capability Gaps** | `Murphy System/murphy_integrated/CAPABILITY_GAP_SOLUTIONS.md` | Gaps + closure recommendations | Track upgrades |
-| **Full Assessment** | `Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md` | Completion tracker + finishing plan | Update % completion here |
+| **Full Assessment** | `Murphy System/docs/full_system_assessment.md` | Completion tracker + finishing plan (sections 1-14) | Update % completion here |
+| **Legacy Assessment** | `Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md` | Previous version (see docs/ for latest) | Read-only reference |
+| **Self-Diagnostics** | `Murphy System/murphy_integrated/src/self_diagnostics.py` | Module health checking + system diagnostics | Wired into `/api/status` |
 | **Screenshot Assets** | `docs/screenshots/` | UI verification images for capability grading | Referenced in `VISUAL_SETUP_GUIDE_WITH_SCREENSHOTS.md` |
-| **Tests** | `Murphy System/murphy_integrated/tests/` | Dynamic chain, gate, and capability tests | `python -m pytest` |
+| **Tests** | `Murphy System/tests/` | pytest unit tests + dynamic chain tests | `cd "Murphy System" && python -m pytest tests/test_core_modules.py tests/test_self_diagnostics.py -v` |
 | **Legacy Archives** | `Murphy System/archive/legacy_versions/` | Historical runtimes + deployments | Read-only reference |
 
 ### Subsystem Lookup
 
 | Subsystem | Primary Module | Notes |
 | --- | --- | --- |
-| **Gate + Confidence** | `src/confidence_engine/` | G/D/H + 5D uncertainty |
+| **Gate + Confidence** | `src/confidence_engine/` | G/D/H + 5D uncertainty; wired into execute_task |
 | **Learning + Corrections** | `src/learning_engine/` | Shadow agent training pipeline |
 | **Integration Engine** | `src/integration_engine/` | GitHub ingestion + HITL approvals |
 | **Swarm System** | `src/true_swarm_system.py` | Dynamic swarm generation (wiring ongoing) |
 | **Governance** | `src/governance_framework/` | Scheduler + authority bands |
+| **Self-Diagnostics** | `src/self_diagnostics.py` | Module health + system diagnostics (wired into status) |
+| **Supervisor/HITL** | `src/supervisor_system/` | Audit logging + feedback processing |
 
 **Progress tracking:** update completion percentages and screenshot-based validation in
-`Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md`.
+`Murphy System/docs/full_system_assessment.md`.
 
 ---
 
