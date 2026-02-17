@@ -6196,6 +6196,7 @@ class MurphySystem:
         competitive_feature_alignment = self._build_competitive_feature_alignment(
             integration_capabilities
         )
+        module_registry_summary = self._build_module_registry_summary()
         return {
             'name': 'Murphy System',
             'version': self.version,
@@ -6221,7 +6222,8 @@ class MurphySystem:
                 'orchestrator': '2-phase execution (setup → execute)'
             },
             'integration_capabilities_summary': integration_capabilities.get("summary", {}),
-            'competitive_feature_alignment_summary': competitive_feature_alignment.get("summary", {})
+            'competitive_feature_alignment_summary': competitive_feature_alignment.get("summary", {}),
+            'module_registry_summary': module_registry_summary
         }
 
     def get_activation_audit(self) -> Dict[str, Any]:

@@ -24,6 +24,8 @@ def test_competitive_feature_alignment_summary_in_system_info():
 
     assert "integration_capabilities_summary" in info
     assert "competitive_feature_alignment_summary" in info
+    assert "module_registry_summary" in info
     alignment_summary = info["competitive_feature_alignment_summary"]
     assert alignment_summary["total"] >= 1
     assert alignment_summary["available"] + alignment_summary["partial"] + alignment_summary["missing"] == alignment_summary["total"]
+    assert info["module_registry_summary"]["total_available"] >= info["module_registry_summary"]["core_expected"]
