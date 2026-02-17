@@ -5106,10 +5106,12 @@ class MurphySystem:
     def _build_summary_surface_consistency(
         self,
         summary_bundle: Optional[Dict[str, Any]] = None,
-        module_registry_status: Optional[Dict[str, Any]] = None
+        module_registry_status: Optional[Dict[str, Any]] = None,
+        completion_snapshot: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         bundle = summary_bundle or self._build_summary_surface_bundle()
         module_status = module_registry_status or self.module_manager.get_module_status()
+        completion_data = completion_snapshot or self._build_completion_snapshot()
         module_summary = bundle.get("module_registry_summary", {})
         module_total = module_status.get("total_available")
         if module_total is None:
@@ -5117,6 +5119,7 @@ class MurphySystem:
         checks = {
             "integration_summary_present": bool(bundle.get("integration_capabilities_summary")),
             "alignment_summary_present": bool(bundle.get("competitive_feature_alignment_summary")),
+            "completion_snapshot_present": bool(completion_data.get("areas")),
             "registry_total_matches_status": module_summary.get("total_available") == module_total,
             "registry_core_complete": (
                 module_summary.get("core_registered") == module_summary.get("core_expected")
@@ -5767,11 +5770,12 @@ class MurphySystem:
 
         summary_bundle = self._build_summary_surface_bundle()
         module_registry_status = self.module_manager.get_module_status()
+        completion_snapshot = self._build_completion_snapshot()
         summary_surface_consistency = self._build_summary_surface_consistency(
             summary_bundle,
-            module_registry_status
+            module_registry_status,
+            completion_snapshot
         )
-        completion_snapshot = self._build_completion_snapshot()
         self_improvement_snapshot = self._apply_summary_consistency_remediation(
             self_improvement_snapshot,
             summary_surface_consistency
@@ -6295,11 +6299,12 @@ class MurphySystem:
         )
         summary_bundle = self._build_summary_surface_bundle()
         module_registry_status = self.module_manager.get_module_status()
+        completion_snapshot = self._build_completion_snapshot()
         summary_surface_consistency = self._build_summary_surface_consistency(
             summary_bundle,
-            module_registry_status
+            module_registry_status,
+            completion_snapshot
         )
-        completion_snapshot = self._build_completion_snapshot()
         self_improvement_snapshot = self._apply_summary_consistency_remediation(
             self_improvement_snapshot,
             summary_surface_consistency
@@ -6397,7 +6402,8 @@ class MurphySystem:
             'module_registry_summary': summary_bundle["module_registry_summary"],
             'summary_surface_consistency': self._build_summary_surface_consistency(
                 summary_bundle,
-                module_registry_status
+                module_registry_status,
+                completion_snapshot
             ),
             'completion_snapshot': completion_snapshot
         }
