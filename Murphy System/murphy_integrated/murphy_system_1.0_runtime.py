@@ -4922,9 +4922,7 @@ class MurphySystem:
         updated["summary_surface_consistency"] = summary_surface_consistency
         backlog = list(updated.get("backlog", []))
         summary = dict(updated.get("summary", {}))
-        summary["consistency_gaps"] = len(
-            [item for item in backlog if item.get("type") == "consistency"]
-        )
+        summary["consistency_gaps"] = self._count_consistency_gaps(backlog)
         summary["total_backlog"] = len(backlog)
         updated["summary"] = summary
         if summary_surface_consistency.get("status") != "drift_detected":
@@ -4949,15 +4947,16 @@ class MurphySystem:
         drift_action = "Resolve summary surface consistency drift across preview/status/info outputs."
         if drift_action not in actions:
             actions.append(drift_action)
-        summary["consistency_gaps"] = len(
-            [item for item in backlog if item.get("type") == "consistency"]
-        )
+        summary["consistency_gaps"] = self._count_consistency_gaps(backlog)
         summary["total_backlog"] = len(backlog)
         updated["status"] = "needs_attention"
         updated["backlog"] = backlog
         updated["remediation_actions"] = actions
         updated["summary"] = summary
         return updated
+
+    def _count_consistency_gaps(self, backlog: List[Dict[str, Any]]) -> int:
+        return len([item for item in backlog if item.get("type") == "consistency"])
 
     def _build_competitive_feature_alignment(
         self,
