@@ -169,7 +169,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 | Compliance validation | 38% | Compliance validation snapshot added with regulatory sources + next-action guidance |
 | Operational automation | 22% | Planning templates exist; ticketing/remote access not wired |
 | UI + user testing | 70% | Architect UI + scripted screenshots now in place |
-| Test coverage for dynamic chains | 83% | Dynamic plan tests exist; summary surface bundle + consumer parity + consistency + remediation/consistency-gap + completion snapshot + completion remediation + threshold/average/gap-area/total-area/coverage-ratio summary checks added; execution/integration tests still pending |
+| Test coverage for dynamic chains | 84% | Dynamic plan tests exist; summary surface bundle + consumer parity + consistency + remediation/consistency-gap + completion snapshot + completion remediation + threshold/average/gap-area/total-area/coverage-ratio/backlog summary checks added; execution/integration tests still pending |
 
 **Progress update protocol:**
 - Store user-script screenshots in `docs/screenshots/` (repository root).
@@ -330,6 +330,7 @@ This update confirms that sections **1-13** remain active and accepted as the op
 35. Added low-completion area ID propagation to completion snapshots and self-improvement summaries with focused remediation coverage.
 36. Added completion total-area propagation to self-improvement summaries and validated metadata-driven/fallback behavior.
 37. Added completion coverage-ratio propagation to self-improvement summaries and validated metadata-driven/fallback behavior.
+38. Added completion backlog-item propagation to self-improvement summaries and validated metadata-driven/fallback behavior.
 
 **Current completion percentage snapshot (section 9, this iteration):**
 - Execution wiring (gate + swarm + orchestrator): **47%**
@@ -339,4 +340,4 @@ This update confirms that sections **1-13** remain active and accepted as the op
 - Compliance validation: **38%**
 - Operational automation: **22%**
 - UI + user testing: **70%**
-- Test coverage for dynamic chains: **83%**
+- Test coverage for dynamic chains: **84%**

@@ -48,6 +48,7 @@ def test_completion_snapshot_updates_self_improvement_backlog():
     assert self_improvement["summary"]["completion_average_percent"] == 50.67
     assert self_improvement["summary"]["completion_gap_areas"] == ["deterministic_llm_routing"]
     assert self_improvement["summary"]["completion_coverage_ratio"] == 0.67
+    assert self_improvement["summary"]["completion_backlog_items"] == 1
     assert any(item.get("type") == "completion" for item in self_improvement.get("backlog", []))
     assert "Prioritize low completion areas and schedule remediation loops." in self_improvement.get("remediation_actions", [])
 
@@ -81,3 +82,4 @@ def test_completion_snapshot_default_threshold_fallback():
         "deterministic_llm_routing"
     ]
     assert status["self_improvement"]["summary"]["completion_coverage_ratio"] == 0.33
+    assert status["self_improvement"]["summary"]["completion_backlog_items"] == 2
