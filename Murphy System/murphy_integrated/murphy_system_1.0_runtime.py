@@ -4516,6 +4516,7 @@ class MurphySystem:
                 return None
         selected_connector = sorted(connectors, key=lambda connector: connector["id"])[0]
         connector_id = selected_connector["id"]
+        # translation_locale is a legacy alias for target locale (pre-dates translation_target_locale).
         legacy_locale_map = {
             "source_locale": "translation_source_locale",
             "target_locale": "translation_target_locale",
@@ -4524,7 +4525,7 @@ class MurphySystem:
         for legacy_key, preferred_key in legacy_locale_map.items():
             if preferred_key not in params and legacy_key in params:
                 logger.debug(
-                    "translation delivery used legacy %s for connector %s; prefer %s.",
+                    "translation delivery detected legacy %s for connector %s; will fall back to %s.",
                     legacy_key,
                     connector_id,
                     preferred_key
