@@ -560,6 +560,18 @@ class MurphySystem:
             "description": "Track execution metrics and performance analytics."
         },
         {
+            "id": "ai_model_lifecycle",
+            "label": "AI model lifecycle orchestration",
+            "capabilities": ["learning", "analytics", "execution"],
+            "description": "Coordinate model feedback, tuning signals, and runtime execution outcomes."
+        },
+        {
+            "id": "low_code_automation",
+            "label": "Low-code/no-code automation intake",
+            "capabilities": ["forms", "intake", "governance"],
+            "description": "Enable guided form-based automation setup with governance validation."
+        },
+        {
             "id": "self_healing",
             "label": "Self-healing automation",
             "capabilities": ["stability", "feedback", "governance"],
