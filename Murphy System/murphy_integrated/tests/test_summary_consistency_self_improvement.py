@@ -41,4 +41,5 @@ def test_summary_consistency_drift_updates_self_improvement_backlog():
     assert self_improvement["status"] == "needs_attention"
     assert self_improvement["summary_surface_consistency"]["status"] == "drift_detected"
     assert any(item.get("type") == "consistency" for item in self_improvement.get("backlog", []))
+    assert self_improvement["summary"]["consistency_gaps"] >= 1
     assert "Resolve summary surface consistency drift across preview/status/info outputs." in self_improvement.get("remediation_actions", [])

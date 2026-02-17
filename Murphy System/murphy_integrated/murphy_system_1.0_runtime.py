@@ -4920,13 +4920,19 @@ class MurphySystem:
             return self_improvement_snapshot
         updated = dict(self_improvement_snapshot)
         updated["summary_surface_consistency"] = summary_surface_consistency
+        backlog = list(updated.get("backlog", []))
+        summary = dict(updated.get("summary", {}))
+        summary["consistency_gaps"] = len(
+            [item for item in backlog if item.get("type") == "consistency"]
+        )
+        summary["total_backlog"] = len(backlog)
+        updated["summary"] = summary
         if summary_surface_consistency.get("status") != "drift_detected":
             return updated
         checks = summary_surface_consistency.get("checks", {})
         failed_checks = [name for name, passed in checks.items() if not passed]
         if not failed_checks:
             return updated
-        backlog = list(updated.get("backlog", []))
         backlog.append({
             "id": "summary_surface_consistency",
             "type": "consistency",
@@ -4943,7 +4949,6 @@ class MurphySystem:
         drift_action = "Resolve summary surface consistency drift across preview/status/info outputs."
         if drift_action not in actions:
             actions.append(drift_action)
-        summary = dict(updated.get("summary", {}))
         summary["consistency_gaps"] = len(
             [item for item in backlog if item.get("type") == "consistency"]
         )
