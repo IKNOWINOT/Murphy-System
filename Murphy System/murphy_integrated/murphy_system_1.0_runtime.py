@@ -2668,6 +2668,38 @@ class MurphySystem:
             "connector_orchestration": connector_orchestration
         }
 
+    def _build_compliance_validation_snapshot(
+        self,
+        delivery_readiness: Optional[Dict[str, Any]],
+        sensor_plan: Optional[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Summarize compliance validation readiness from delivery readiness and sensor inputs."""
+        readiness = delivery_readiness or {}
+        compliance_status = readiness.get("compliance_status", "needs_info")
+        regulatory_source = readiness.get("regulatory_source")
+        if not regulatory_source and sensor_plan:
+            regulatory_source = (sensor_plan.get("primary_regulatory_source") or {}).get("id")
+        regulatory_sources = (sensor_plan or {}).get("regulatory_sources", [])
+        if compliance_status == "clear":
+            status = "ready"
+            next_action = "Compliance gates clear; proceed with delivery approvals."
+        elif (
+            compliance_status in self.COMPLIANCE_BLOCKED_STATES
+            or compliance_status in self.COMPLIANCE_PENDING_STATES
+        ):
+            status = "needs_compliance"
+            next_action = "Resolve compliance gates before delivery release."
+        else:
+            status = "needs_info"
+            next_action = "Attach compliance evidence and regulatory sources."
+        return {
+            "status": status,
+            "compliance_status": compliance_status,
+            "regulatory_source": regulatory_source,
+            "regulatory_sources": regulatory_sources,
+            "next_action": next_action
+        }
+
     def _extract_deliverables(
         self,
         doc: LivingDocument,
@@ -5367,6 +5399,10 @@ class MurphySystem:
             sensor_plan,
             hitl_contracts
         )
+        compliance_validation = self._build_compliance_validation_snapshot(
+            delivery_readiness,
+            sensor_plan
+        )
         handoff_queue = self._build_handoff_queue_snapshot(hitl_contracts)
         workload_distribution = self._build_workload_distribution(operations_plan)
         executive_directive = self._build_executive_directive(task_description, operations_plan, delivery_readiness)
@@ -5451,6 +5487,7 @@ class MurphySystem:
             "learning_loop": learning_loop,
             "learning_backlog": learning_backlog,
             "delivery_readiness": delivery_readiness,
+            "compliance_validation": compliance_validation,
             "handoff_queue": handoff_queue,
             "self_improvement": self_improvement_snapshot,
             "capability_review": capability_review,
@@ -5914,6 +5951,10 @@ class MurphySystem:
             latest_preview.get("delivery_readiness"),
             latest_preview.get("handoff_queue")
         )
+        compliance_validation = self._build_compliance_validation_snapshot(
+            latest_preview.get("delivery_readiness"),
+            latest_preview.get("external_api_sensors")
+        )
         return {
             'version': self.version,
             'status': 'running',
@@ -5950,6 +5991,7 @@ class MurphySystem:
             'connector_orchestration': self._build_connector_orchestration_snapshot(),
             'orchestrator_readiness': self._build_orchestrator_readiness_snapshot(),
             'observability': self._build_observability_snapshot(),
+            'compliance_validation': compliance_validation,
             'handoff_queue': self._build_handoff_queue_snapshot(),
             'governance_dashboard': governance_dashboard,
             'learning_backlog': learning_backlog,
