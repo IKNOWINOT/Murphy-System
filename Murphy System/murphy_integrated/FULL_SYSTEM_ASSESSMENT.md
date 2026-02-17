@@ -106,7 +106,7 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 
 ### Phase 2 — Persistence + audit
 1. Store LivingDocument, gate history, librarian context.
-2. Add replay & audit export endpoints.
+2. Add replay endpoints for approval flows; audit export snapshot wired.
 
 ### Phase 3 — Multi-channel delivery
 1. Add production document, email, chat, voice, translation adapters (stubs already wired).
@@ -141,7 +141,7 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 
 - **Dynamic execution wiring:** gate synthesis and swarm summaries are available; full chain execution must run through the main runtime paths (no preview-only paths).
 - **Deterministic + LLM routing:** compute plane and LLM orchestration must both be wired with clear task routing rules.
-- **Persistence & replay:** store LivingDocument, gate history, librarian context, and automation plans with replay support.
+- **Persistence & replay:** store LivingDocument, gate history, librarian context, and automation plans with replay support; audit export snapshot available.
 - **Multi-channel delivery:** document/email/chat/voice/translation stubs wired; chat/voice adapters with approvals and audit trails remain.
 - **Delivery adapter integration:** readiness snapshot plus connector orchestration are available and document/email/chat/voice/translation stub generation is wired; production adapters for chat/voice remain unconfigured.
 - **Adapter framework integration:** adapter execution snapshot is available; execution wiring and activation flows still need integration.
@@ -162,7 +162,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 | --- | --- | --- |
 | Execution wiring (gate + swarm + orchestrator) | 47% | MFGC fallback wired, orchestrator wiring still partial |
 | Deterministic + LLM routing | 40% | Routing heuristics exist; compute plane not invoked end-to-end |
-| Persistence + replay | 20% | Snapshot persistence available; durable storage not wired |
+| Persistence + replay | 23% | Snapshot persistence + audit export snapshot available; durable storage not wired |
 | Multi-channel delivery | 55% | Document/email/chat/voice/translation stubs wired; orchestration snapshot added; production adapters with approvals pending |
 | Compliance validation | 38% | Compliance validation snapshot added with regulatory sources + next-action guidance |
 | Operational automation | 22% | Planning templates exist; ticketing/remote access not wired |
@@ -220,12 +220,13 @@ These percentages are **current estimates** based on wired functionality vs. pla
 20. **Persistence snapshot index tests**: `test_persistence_snapshot_index.py` validates snapshot index summaries in persistence status.
 21. **Persistence replay snapshot tests**: `test_persistence_replay_snapshot.py` validates replay readiness metadata.
 22. **Audit snapshot tests**: `test_audit_snapshot.py` validates audit snapshot summaries.
-23. **Persistence snapshot tests**: `test_persistence_snapshot.py` validates persistence snapshot write and status handling.
-24. **Wingman protocol tests**: `test_dynamic_implementation_plan.py` validates executor/validator pairing and deterministic checks per subject.
-25. **Swarm execution path tests**: `test_swarm_execution_path.py` validates `run_swarm_execution` outputs.
-26. **Orchestrator readiness snapshot tests**: `test_orchestrator_readiness_snapshot.py` validates async/two-phase/swarm readiness summaries.
-27. **Governance dashboard snapshot tests**: `test_governance_dashboard_snapshot.py` validates exec/ops/QA/HITL readiness consolidation in status outputs.
-28. **Compliance validation snapshot tests**: `test_compliance_validation_snapshot.py` validates compliance readiness summaries and regulatory sources.
+23. **Audit export snapshot tests**: `test_audit_export_snapshot.py` validates export readiness and format metadata.
+24. **Persistence snapshot tests**: `test_persistence_snapshot.py` validates persistence snapshot write and status handling.
+25. **Wingman protocol tests**: `test_dynamic_implementation_plan.py` validates executor/validator pairing and deterministic checks per subject.
+26. **Swarm execution path tests**: `test_swarm_execution_path.py` validates `run_swarm_execution` outputs.
+27. **Orchestrator readiness snapshot tests**: `test_orchestrator_readiness_snapshot.py` validates async/two-phase/swarm readiness summaries.
+28. **Governance dashboard snapshot tests**: `test_governance_dashboard_snapshot.py` validates exec/ops/QA/HITL readiness consolidation in status outputs.
+29. **Compliance validation snapshot tests**: `test_compliance_validation_snapshot.py` validates compliance readiness summaries and regulatory sources.
 
 ---
 

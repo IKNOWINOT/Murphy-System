@@ -279,6 +279,7 @@ class MurphySystem:
     VALID_DELIVERY_CHANNELS = {"document", "email", "chat", "voice", "unknown"}
     PERSISTENCE_DIR_ENV = "MURPHY_PERSISTENCE_DIR"
     PERSISTENCE_SNAPSHOT_PREFIX = "activation_snapshot"
+    AUDIT_EXPORT_PREFIX = "audit_export"
     MAX_FAILURE_MODE_DESC_LENGTH = 80
     MAX_SAMPLE_GATES = 3
     DEFAULT_PHASE_VERBOSITY = 1
@@ -1578,6 +1579,11 @@ class MurphySystem:
                     "status": "disabled",
                     "reason": disabled_reason
                 },
+                "audit_export_snapshot": {
+                    "status": "disabled",
+                    "reason": disabled_reason,
+                    "supported_formats": []
+                },
                 "replay_snapshot": {
                     "status": "disabled",
                     "reason": disabled_reason
@@ -1585,12 +1591,14 @@ class MurphySystem:
             }
         snapshot_index = self._build_persistence_snapshot_index(persistence_dir)
         audit_snapshot = self._build_audit_snapshot(persistence_dir, snapshot_index)
+        audit_export_snapshot = self._build_audit_export_snapshot(persistence_dir, snapshot_index)
         replay_snapshot = self._build_persistence_replay_snapshot(snapshot_index)
         return {
             "status": "configured",
             "path": str(persistence_dir),
             "snapshot_index": snapshot_index,
             "audit_snapshot": audit_snapshot,
+            "audit_export_snapshot": audit_export_snapshot,
             "replay_snapshot": replay_snapshot
         }
 
@@ -1612,6 +1620,41 @@ class MurphySystem:
             "snapshot_count": snapshot_index.get("count", len(snapshots)),
             "latest_snapshot": latest_snapshot
         }
+
+    def _build_audit_export_snapshot(
+        self,
+        persistence_dir: Path,
+        snapshot_index: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        supported_formats = ["json", "csv"]
+        if not self.mfgc_config.get("audit_trail", True):
+            return {
+                "status": "disabled",
+                "reason": "Audit trail disabled in configuration.",
+                "supported_formats": []
+            }
+        status = snapshot_index.get("status", "missing")
+        if status == "missing":
+            return {
+                "status": "missing",
+                "reason": "Persistence directory not found for audit exports.",
+                "supported_formats": supported_formats
+            }
+        export_files = sorted(
+            persistence_dir.glob(f"{self.AUDIT_EXPORT_PREFIX}_*.*"),
+            key=lambda path: path.name
+        )
+        latest_export = export_files[-1].name if export_files else None
+        export_status = "ready" if export_files else "empty"
+        snapshot = {
+            "status": export_status,
+            "supported_formats": supported_formats,
+            "export_count": len(export_files),
+            "latest_export": latest_export
+        }
+        if not export_files:
+            snapshot["reason"] = "No audit exports available."
+        return snapshot
 
     def _build_persistence_replay_snapshot(self, snapshot_index: Dict[str, Any]) -> Dict[str, Any]:
         status = snapshot_index.get("status", "missing")
