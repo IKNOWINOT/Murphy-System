@@ -230,6 +230,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 28. **Governance dashboard snapshot tests**: `test_governance_dashboard_snapshot.py` validates exec/ops/QA/HITL readiness consolidation in status outputs.
 29. **Compliance validation snapshot tests**: `test_compliance_validation_snapshot.py` validates compliance readiness summaries and regulatory sources.
 30. **Competitive alignment preview tests**: `test_competitive_alignment_preview.py` validates competitive feature alignment output in activation previews.
+31. **Competitive alignment info summary tests**: `test_competitive_alignment_info.py` validates `/api/info` module registry summary parity with runtime registry aggregation.
 
 ---
 
@@ -295,3 +296,4 @@ This update confirms that sections **1-13** remain active and accepted as the op
 9. Standardized competitive alignment summary fields across preview/status/info outputs and extended focused tests to validate summary parity.
 10. Standardized integration capability summary fields across preview/status/info outputs and extended focused tests to validate parity with full integration capability payloads.
 11. Added `/api/info` module registry summary parity so lightweight metadata surfaces now align with preview/status registry reporting.
+12. Added focused `/api/info` regression coverage to verify module registry summary parity against runtime aggregation output.
