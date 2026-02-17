@@ -1645,6 +1645,7 @@ class MurphySystem:
             key=lambda path: path.name
         )
         latest_export = export_files[-1].name if export_files else None
+        # Keep reason populated across all audit export states for consistent consumers.
         export_status = "ready" if export_files else "empty"
         reason = "Audit exports available." if export_files else "No audit exports available."
         snapshot = {
