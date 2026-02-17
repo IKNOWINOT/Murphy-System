@@ -724,7 +724,7 @@ class MurphySystem:
         "compliance_validation": 38,
         "operational_automation": 22,
         "ui_user_testing": 70,
-        "dynamic_chain_test_coverage": 87
+        "dynamic_chain_test_coverage": 88
     }
     COMPLETION_REMEDIATION_THRESHOLD_PERCENT = 50
     # Phrase tokens intentionally rely on substring matching against normalized text.
@@ -5144,6 +5144,7 @@ class MurphySystem:
         answers = context.get("answers")
         # Dict-merge precedence: answer keys override context keys when both are present.
         source = {**context, **answers} if isinstance(answers, dict) else context
+        execution_profile_source = "onboarding" if source else "default"
         text = f"{task_description} {source}".lower()
         explicit_mode = str(source.get("execution_mode", "")).lower()
         # risk_level is accepted as a legacy/synonym input for safety_level.
@@ -5188,6 +5189,7 @@ class MurphySystem:
         }.get(mode, "policy_guarded")
         return {
             "execution_mode": mode,
+            "execution_profile_source": execution_profile_source,
             "execution_enforcement_level": execution_enforcement_level,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
