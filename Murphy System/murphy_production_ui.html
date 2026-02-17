@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Murphy - Business Operating System</title>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        if (!params.has('legacy')) {
+            const target = `murphy_integrated/terminal_architect.html${window.location.search}`;
+            window.location.replace(target);
+        }
+    </script>
     <style>
         * {
             margin: 0;
@@ -13,16 +20,16 @@
 
         :root {
             --primary: #2563eb;
-            --primary-dark: #1e40af;
-            --success: #10b981;
+            --primary-dark: #1e3a8a;
+            --success: #0f766e;
             --warning: #f59e0b;
-            --danger: #ef4444;
-            --bg-dark: #0f172a;
-            --bg-card: #1e293b;
-            --bg-hover: #334155;
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --border: #334155;
+            --danger: #dc2626;
+            --bg-dark: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-hover: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --border: #e2e8f0;
         }
 
         body {
@@ -69,7 +76,7 @@
             align-items: center;
             gap: 8px;
             padding: 6px 12px;
-            background: rgba(16, 185, 129, 0.1);
+            background: rgba(15, 118, 110, 0.12);
             border-radius: 6px;
             font-size: 14px;
         }
@@ -163,6 +170,65 @@
             box-shadow: 0 8px 24px rgba(37, 99, 235, 0.15);
         }
 
+        .automation-grid {
+            display: grid;
+            grid-template-columns: minmax(280px, 360px) 1fr;
+            gap: 24px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+
+        .form-control {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+        }
+
+        .automation-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .preview-json {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+
+        .preview-section {
+            margin-top: 16px;
+        }
+
+        .preview-section h4 {
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
         .card-header {
             display: flex;
             justify-content: space-between;
@@ -183,7 +249,7 @@
         }
 
         .badge-success {
-            background: rgba(16, 185, 129, 0.1);
+            background: rgba(15, 118, 110, 0.12);
             color: var(--success);
         }
 
@@ -576,6 +642,55 @@
 
         <!-- Main Content -->
         <div class="main-content">
+            <!-- Live Automation Builder -->
+            <div class="card" id="automation-console">
+                <div class="card-header">
+                    <div class="card-title">Automation Builder (Live)</div>
+                    <div class="automation-actions">
+                        <button class="btn btn-secondary" id="update-gates-btn">Update Gates</button>
+                        <button class="btn btn-primary" id="execute-task-btn">Run Request</button>
+                    </div>
+                </div>
+                <div class="process-meta" style="margin-bottom: 16px;">
+                    Submit a request to generate gates, swarm tasks, and librarian conditions in real time. Use Update Gates to edit thresholds.
+                </div>
+                <div class="automation-grid">
+                    <div>
+                        <div class="form-group">
+                            <label for="task-type">Task Type</label>
+                            <select id="task-type" class="form-control">
+                                <option value="general">General Task</option>
+                                <option value="automation">Automation</option>
+                                <option value="analysis">Analysis</option>
+                                <option value="content">Content Generation</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="task-description">Task Description</label>
+                            <textarea id="task-description" class="form-control" rows="6" placeholder="Describe the automation request..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="task-parameters">Parameters (JSON)</label>
+                            <textarea id="task-parameters" class="form-control" rows="4">{}</textarea>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="preview-section">
+                            <h4>Execution Summary</h4>
+                            <div id="execution-summary" class="preview-json">Run a request to see execution output.</div>
+                        </div>
+                        <div class="preview-section">
+                            <h4>Activation Preview (System Generation)</h4>
+                            <div id="activation-preview" class="preview-json">Activation preview will appear here.</div>
+                        </div>
+                        <div class="preview-section">
+                            <h4>Librarian Context & Conditions</h4>
+                            <div id="librarian-preview" class="preview-json">Librarian context will appear here.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Dashboard Overview -->
             <div class="dashboard-grid">
                 <div class="card">
@@ -782,6 +897,11 @@
     </div>
 
     <script>
+        const apiPort = new URLSearchParams(window.location.search).get('apiPort') || '8000';
+        // Default to 8000 for local overrides; docs still reference 6666 unless apiPort is supplied.
+        const apiBase = `http://localhost:${apiPort}`;
+        let lastDocumentId = null;
+
         function toggleProcess(element, event) {
             if (event) event.stopPropagation();
             
@@ -808,11 +928,120 @@
             element.classList.toggle('expanded');
         }
 
-        // Auto-refresh data every 30 seconds
-        setInterval(() => {
-            console.log('Refreshing data...');
-            // Add API calls here
-        }, 30000);
+        function renderJson(targetId, payload, fallback) {
+            const target = document.getElementById(targetId);
+            if (!target) return;
+            const content = payload ?? fallback;
+            target.textContent = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
+        }
+
+        async function refreshHealth() {
+            const statusText = document.querySelector('.status-indicator span');
+            try {
+                const response = await fetch(`${apiBase}/api/health`);
+                if (!response.ok) {
+                    throw new Error('Health check failed');
+                }
+                const data = await response.json();
+                if (statusText) {
+                    statusText.textContent = `Runtime ${data.status} · v${data.version}`;
+                }
+            } catch (error) {
+                if (statusText) {
+                    statusText.textContent = 'Runtime offline';
+                }
+            }
+        }
+
+        async function executeTask() {
+            const taskDescription = document.getElementById('task-description').value.trim();
+            const taskType = document.getElementById('task-type').value;
+            const rawParams = document.getElementById('task-parameters').value.trim() || '{}';
+            let parameters = {};
+            try {
+                parameters = JSON.parse(rawParams);
+            } catch (error) {
+                alert('Parameters must be valid JSON.');
+                renderJson('execution-summary', { error: 'Parameters must be valid JSON.' });
+                return;
+            }
+            renderJson('execution-summary', { status: 'Running request...' });
+            try {
+                const response = await fetch(`${apiBase}/api/forms/task-execution`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        description: taskDescription,
+                        task_type: taskType,
+                        parameters
+                    })
+                });
+                const data = await response.json();
+                renderJson('execution-summary', {
+                    task_id: data.task_id,
+                    status: data.status,
+                    output: data.output,
+                    confidence: data.confidence_report?.combined_confidence
+                });
+                if (data.activation_preview) {
+                    lastDocumentId = data.activation_preview.document_id || data.doc_id || null;
+                    renderJson('activation-preview', data.activation_preview);
+                    renderJson('librarian-preview', data.activation_preview.librarian_context || {});
+                }
+            } catch (error) {
+                renderJson('execution-summary', { error: error.message });
+            }
+        }
+
+        async function updateGates() {
+            if (!lastDocumentId) {
+                alert('Run a request first so a document is created.');
+                return;
+            }
+            const input = prompt('Update gate policy (JSON):', JSON.stringify({
+                confidence: 0.78,
+                gates: [
+                    { name: 'Executive Review Gate', threshold: 0.6 },
+                    { name: 'Operations Director Gate', threshold: 0.6 },
+                    { name: 'Execution Gate', threshold: 0.7 }
+                ]
+            }, null, 2));
+            if (!input) {
+                return;
+            }
+            let payload;
+            try {
+                payload = JSON.parse(input);
+            } catch (error) {
+                alert('Gate policy must be valid JSON.');
+                return;
+            }
+            try {
+                const response = await fetch(`${apiBase}/api/documents/${lastDocumentId}/gates`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                renderJson('activation-preview', data.activation_preview || data);
+                renderJson('librarian-preview', data.activation_preview?.librarian_context || {});
+            } catch (error) {
+                alert(`Gate update failed: ${error.message}`);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const runButton = document.getElementById('execute-task-btn');
+            const updateButton = document.getElementById('update-gates-btn');
+            if (runButton) {
+                runButton.addEventListener('click', executeTask);
+            }
+            if (updateButton) {
+                updateButton.addEventListener('click', updateGates);
+            }
+            refreshHealth();
+            setInterval(refreshHealth, 30000);
+        });
     </script>
 </body>
 </html>

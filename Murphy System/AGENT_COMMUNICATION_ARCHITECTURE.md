@@ -93,10 +93,13 @@
 │  Step 4: Calculate Costs                                    │
 │  ┌────────────────────────────────────────────────────┐    │
 │  │ Cost Analysis System                               │    │
-│  │ - Token Cost: 832 tokens                           │    │
-│  │ - Revenue Potential: $500                          │    │
-│  │ - Cost/Benefit: 0.60                               │    │
-│  │ - Recommendation: Review Required                  │    │
+│  │ - Token Cost: 932 tokens @ $0.001 = $0.93          │    │
+│  │ - Compute + API Cost: $7.50                        │    │
+│  │ - Infra/Wear Estimate: $0.50                       │    │
+│  │ - Total Execution Cost: $8.93                      │    │
+│  │ - Revenue Potential: $500.00                       │    │
+│  │ - Cost/Benefit: 56.0                               │    │
+│  │ - Recommendation: Proceed                          │    │
 │  └────────────────────────────────────────────────────┘    │
 │                          │                                  │
 │                          ▼                                  │
@@ -384,10 +387,13 @@ Task Complete
 │                                                             │
 │  INPUT: Task Request                                        │
 │  │                                                          │
-│  ├─► Calculate Token Cost                                  │
+│  ├─► Calculate Execution Cost                             │
 │  │   ├─ LLM tokens used: 832                               │
 │  │   ├─ Librarian tokens: ~100                             │
-│  │   └─ Total: 932 tokens                                  │
+│  │   ├─ Token cost: 932 tokens × $0.001 = $0.93           │
+│  │   ├─ Compute/API cost: $7.50                            │
+│  │   ├─ Infra/wear estimate: $0.50                         │
+│  │   └─ Total execution cost: $8.93                        │
 │  │                                                          │
 │  ├─► Estimate Revenue Potential                            │
 │  │   ├─ Check for revenue keywords                         │
@@ -395,23 +401,23 @@ Task Complete
 │  │   └─ Estimated revenue: $500.00                         │
 │  │                                                          │
 │  ├─► Calculate Cost/Benefit Ratio                          │
-│  │   ├─ Revenue / Token Cost                               │
-│  │   ├─ $500.00 / 932 tokens                               │
-│  │   └─ Ratio: 0.54                                        │
+│  │   ├─ Revenue / Total Execution Cost                     │
+│  │   ├─ $500.00 / $8.93                                    │
+│  │   └─ Ratio: 56.0                                        │
 │  │                                                          │
 │  └─► Generate Recommendation                               │
 │      ├─ If ratio > 1.0: "Proceed"                          │
 │      ├─ If ratio < 1.0: "Review Required"                  │
-│      └─ Result: "Review Required"                          │
+│      └─ Result: "Proceed"                                  │
 │                                                             │
 │  OUTPUT: Cost Analysis Report                               │
 │  ┌───────────────────────────────────────────────────┐     │
-│  │ Token Cost: 932 tokens                            │     │
+│  │ Total Execution Cost: $8.93                       │     │
 │  │ Revenue Potential: $500.00                        │     │
-│  │ Cost/Benefit Ratio: 0.54                          │     │
-│  │ Recommendation: ⚠️  REVIEW REQUIRED                │     │
+│  │ Cost/Benefit Ratio: 56.0                          │     │
+│  │ Recommendation: ✅  PROCEED                        │     │
 │  │                                                   │     │
-│  │ Reason: Token costs exceed revenue potential      │     │
+│  │ Reason: Revenue exceeds total execution cost      │     │
 │  └───────────────────────────────────────────────────┘     │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘

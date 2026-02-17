@@ -13,7 +13,7 @@ Murphy System 1.0 is a **Universal AI Automation System** capable of automating 
 - **6 Automation Types:** Factory/IoT, Content Publishing, Data Processing, System Administration, Agent Reasoning, Business Operations
 - **Self-Integration:** Automatically adds GitHub repositories, external APIs, and hardware devices with human-in-the-loop safety approval
 - **Self-Improvement:** Learns from human corrections through correction capture and shadow agent training
-- **Self-Operation:** Runs Inoni LLC (the company that makes Murphy) autonomously through 5 business automation engines
+- **Self-Operation:** Once activated, runs Inoni LLC (the company that makes Murphy) autonomously through 5 business automation engines
 
 ---
 
@@ -260,7 +260,8 @@ murphy_integrated/
 
 | File | Purpose |
 |------|---------|
-| `murphy_ui_integrated.html` | Main web interface |
+| `murphy_production_ui.html` | Redirects to architect terminal UI unless `?legacy=true` |
+| `murphy_ui_integrated.html` | Legacy integrated UI |
 | `terminal_integrated.html` | Integrated terminal UI |
 | `terminal_architect.html` | Architect mode |
 | `terminal_enhanced.html` | Enhanced features |

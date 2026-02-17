@@ -278,7 +278,7 @@ class EngineRegistry:
         ControlType.SENSOR_ACTUATOR: [EngineType.SENSOR, EngineType.ACTUATOR],
         ControlType.CONTENT_API: [EngineType.CONTENT, EngineType.API],
         ControlType.DATABASE_COMPUTE: [EngineType.DATABASE, EngineType.COMMAND],
-        ControlType.AGENT_REASONING: [EngineType.AGENT, EngineType.CONTENT],
+        ControlType.AGENT_REASONING: [EngineType.AGENT, EngineType.CONTENT, EngineType.COMMAND],
         ControlType.COMMAND_SYSTEM: [EngineType.COMMAND],
         ControlType.HYBRID: [EngineType.SENSOR, EngineType.ACTUATOR, EngineType.DATABASE, 
                             EngineType.API, EngineType.CONTENT, EngineType.COMMAND, EngineType.AGENT]
