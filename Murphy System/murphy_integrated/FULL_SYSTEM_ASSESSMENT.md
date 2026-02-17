@@ -229,6 +229,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 27. **Orchestrator readiness snapshot tests**: `test_orchestrator_readiness_snapshot.py` validates async/two-phase/swarm readiness summaries.
 28. **Governance dashboard snapshot tests**: `test_governance_dashboard_snapshot.py` validates exec/ops/QA/HITL readiness consolidation in status outputs.
 29. **Compliance validation snapshot tests**: `test_compliance_validation_snapshot.py` validates compliance readiness summaries and regulatory sources.
+30. **Competitive alignment preview tests**: `test_competitive_alignment_preview.py` validates competitive feature alignment output in activation previews.
 
 ---
 
@@ -290,3 +291,4 @@ This update confirms that sections **1-13** remain active and accepted as the op
 5. Maintained standardization scope by preserving `.gitignore` protections for generated files/artifacts and keeping changes limited to assessment-aligned runtime/docs/test paths.
 6. Aligned runtime status parity by exposing `integration_capabilities` + `competitive_feature_alignment` through `/api/status`, with focused regression coverage.
 7. Added `/api/info` summary parity for integration and competitive alignment snapshots, validated by focused test coverage.
+8. Added focused activation preview regression coverage for competitive alignment to keep preview/status/info feature reporting synchronized.
