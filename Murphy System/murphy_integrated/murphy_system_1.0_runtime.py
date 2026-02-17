@@ -716,6 +716,16 @@ class MurphySystem:
             "module": "src.adapter_framework.adapters.http_adapter"
         }
     ]
+    COMPLETION_SNAPSHOT_AREAS = {
+        "execution_wiring": 47,
+        "deterministic_llm_routing": 40,
+        "persistence_replay": 23,
+        "multichannel_delivery": 58,
+        "compliance_validation": 38,
+        "operational_automation": 22,
+        "ui_user_testing": 70,
+        "dynamic_chain_test_coverage": 74
+    }
     DOCUMENT_PLACEHOLDER_PATTERN = r"[A-Za-z_][A-Za-z0-9_]*"
     EXTERNAL_SENSOR_CATALOG = {
         "marketing": [
@@ -5041,6 +5051,19 @@ class MurphySystem:
             "module_registry_summary": module_registry_summary
         }
 
+    def _build_completion_snapshot(self) -> Dict[str, Any]:
+        areas = [
+            {"area": key, "percent": value}
+            for key, value in self.COMPLETION_SNAPSHOT_AREAS.items()
+        ]
+        return {
+            "areas": areas,
+            "summary": {
+                "total_areas": len(areas),
+                "average_percent": round(sum(item["percent"] for item in areas) / len(areas), 2) if areas else 0.0
+            }
+        }
+
     def _build_summary_surface_consistency(
         self,
         summary_bundle: Optional[Dict[str, Any]] = None,
@@ -5709,6 +5732,7 @@ class MurphySystem:
             summary_bundle,
             module_registry_status
         )
+        completion_snapshot = self._build_completion_snapshot()
         self_improvement_snapshot = self._apply_summary_consistency_remediation(
             self_improvement_snapshot,
             summary_surface_consistency
@@ -5731,6 +5755,7 @@ class MurphySystem:
             "module_registry": module_registry_status,
             "module_registry_summary": summary_bundle["module_registry_summary"],
             "summary_surface_consistency": summary_surface_consistency,
+            "completion_snapshot": completion_snapshot,
             "registry_health": self._build_registry_health_snapshot(),
             "schema_drift": self._build_schema_drift_snapshot(),
             "capability_alignment": capability_alignment,
@@ -6231,6 +6256,7 @@ class MurphySystem:
             summary_bundle,
             module_registry_status
         )
+        completion_snapshot = self._build_completion_snapshot()
         self_improvement_snapshot = self._apply_summary_consistency_remediation(
             self_improvement_snapshot,
             summary_surface_consistency
@@ -6266,6 +6292,7 @@ class MurphySystem:
             'module_registry': module_registry_status,
             'module_registry_summary': summary_bundle["module_registry_summary"],
             'summary_surface_consistency': summary_surface_consistency,
+            'completion_snapshot': completion_snapshot,
             'registry_health': self._build_registry_health_snapshot(),
             'schema_drift': self._build_schema_drift_snapshot(),
             'adapter_execution': self._build_adapter_execution_snapshot(),
@@ -6293,6 +6320,7 @@ class MurphySystem:
         """Get system information"""
         summary_bundle = self._build_summary_surface_bundle()
         module_registry_status = self.module_manager.get_module_status()
+        completion_snapshot = self._build_completion_snapshot()
         return {
             'name': 'Murphy System',
             'version': self.version,
@@ -6323,7 +6351,8 @@ class MurphySystem:
             'summary_surface_consistency': self._build_summary_surface_consistency(
                 summary_bundle,
                 module_registry_status
-            )
+            ),
+            'completion_snapshot': completion_snapshot
         }
 
     def get_activation_audit(self) -> Dict[str, Any]:
