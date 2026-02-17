@@ -29,17 +29,20 @@ env.bak/
 venv.bak/
 
 # IDEs
-# .vscode/ - We want to keep VS Code configs for demos
 .idea/
 *.swp
 *.swo
 *~
 .DS_Store
 
-# Environment
+# Environment and Secrets
 .env
 .env.local
 .env.*.local
+**/groq_keys.txt
+**/all_groq_keys.txt
+**/aristotle_key.txt
+**/Murphy System Keys.txt
 
 # Logs
 *.log
@@ -56,16 +59,21 @@ logs/
 .mypy_cache/
 .ruff_cache/
 
-# Murphy specific
-murphy_integrated/__pycache__/
-murphy_v3/__pycache__/
+# Archives and packages
+*.zip
+
+# Bytecode caches (repo has nested folders)
+**/__pycache__/
 *.pyc
-_workspace_*.zip
+
+# Murphy specific
 murphy_persistence/
 .murphy_persistence/
 persistence_snapshots/
 handoff_queue_snapshots/
 handoff_queue_snapshot_*.json
 
-# Bytecode caches (repo has nested folders)
-**/__pycache__/
+# Generated/temporary files
+*.json.bak
+test_results.json
+backend_status.json
