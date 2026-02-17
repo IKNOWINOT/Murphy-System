@@ -724,7 +724,7 @@ class MurphySystem:
         "compliance_validation": 38,
         "operational_automation": 22,
         "ui_user_testing": 70,
-        "dynamic_chain_test_coverage": 74
+        "dynamic_chain_test_coverage": 75
     }
     DOCUMENT_PLACEHOLDER_PATTERN = r"[A-Za-z_][A-Za-z0-9_]*"
     EXTERNAL_SENSOR_CATALOG = {

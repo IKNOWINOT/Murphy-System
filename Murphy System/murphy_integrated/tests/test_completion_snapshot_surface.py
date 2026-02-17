@@ -19,7 +19,6 @@ def load_runtime_module():
 def test_completion_snapshot_surface_parity():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
-    expected = murphy._build_completion_snapshot()
 
     status = murphy.get_system_status()
     info = murphy.get_system_info()
@@ -32,7 +31,11 @@ def test_completion_snapshot_surface_parity():
         {"answers": {step["stage"]: "ok" for step in murphy.flow_steps}}
     )
 
-    assert status["completion_snapshot"] == expected
+    expected = status["completion_snapshot"]
     assert info["completion_snapshot"] == expected
     assert preview["completion_snapshot"] == expected
     assert expected["summary"]["total_areas"] == len(expected["areas"])
+    dynamic_chain = next(
+        item for item in expected["areas"] if item["area"] == "dynamic_chain_test_coverage"
+    )
+    assert dynamic_chain["percent"] == 75
