@@ -97,7 +97,7 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 | Knowledge + RAG | Curated context + conditions | `system_librarian`, `learning_engine` | **Partial** (persistence + retrieval tuning pending) |
 | Dynamic swarm expansion | Task decomposition into swarms | `true_swarm_system`, `domain_swarms` | **Partial** (execution wiring pending) |
 
-**Runtime behavior:** activation previews now include `competitive_feature_alignment` derived from module capabilities and integration readiness.
+**Runtime behavior:** activation previews and `/api/status` now include `competitive_feature_alignment` derived from module capabilities and integration readiness.
 
 ## 5) Finishing plan (systematic path to full operation)
 
@@ -288,3 +288,4 @@ This update confirms that sections **1-13** remain active and accepted as the op
 3. Updated runtime competitive feature mapping and test coverage (`tests/test_module_registry.py`) so these requirements are tracked in activation/status outputs.
 4. Updated root `README.md` and this assessment to reflect the latest confirmed system state.
 5. Maintained standardization scope by preserving `.gitignore` protections for generated files/artifacts and keeping changes limited to assessment-aligned runtime/docs/test paths.
+6. Aligned runtime status parity by exposing `integration_capabilities` + `competitive_feature_alignment` through `/api/status`, with focused regression coverage.
