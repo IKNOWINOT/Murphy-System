@@ -724,7 +724,7 @@ class MurphySystem:
         "compliance_validation": 38,
         "operational_automation": 22,
         "ui_user_testing": 70,
-        "dynamic_chain_test_coverage": 81
+        "dynamic_chain_test_coverage": 82
     }
     COMPLETION_REMEDIATION_THRESHOLD_PERCENT = 50
     DOCUMENT_PLACEHOLDER_PATTERN = r"[A-Za-z_][A-Za-z0-9_]*"
@@ -4999,8 +4999,13 @@ class MurphySystem:
             area for area in completion_snapshot.get("areas", [])
             if area.get("percent", 0) < threshold
         ]
+        total_areas = int(completion_snapshot.get("summary", {}).get("total_areas", len(completion_snapshot.get("areas", [])) or 0))
         summary["completion_gaps"] = len(completion_gap_areas)
         summary["completion_gap_areas"] = [area.get("area") for area in completion_gap_areas]
+        summary["completion_coverage_ratio"] = (
+            round((total_areas - len(completion_gap_areas)) / total_areas, 2)
+            if total_areas > 0 else 0.0
+        )
         if completion_gap_areas:
             for area in completion_gap_areas:
                 backlog.append({
