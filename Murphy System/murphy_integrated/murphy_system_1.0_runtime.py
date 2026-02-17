@@ -4980,6 +4980,20 @@ class MurphySystem:
         }
         return {"summary": summary, "features": alignment}
 
+    def _build_summary_surface_bundle(self) -> Dict[str, Any]:
+        integration_capabilities = self._build_integration_capabilities()
+        competitive_feature_alignment = self._build_competitive_feature_alignment(
+            integration_capabilities
+        )
+        module_registry_summary = self._build_module_registry_summary()
+        return {
+            "integration_capabilities": integration_capabilities,
+            "integration_capabilities_summary": integration_capabilities.get("summary", {}),
+            "competitive_feature_alignment": competitive_feature_alignment,
+            "competitive_feature_alignment_summary": competitive_feature_alignment.get("summary", {}),
+            "module_registry_summary": module_registry_summary
+        }
+
     def _get_adapter_availability(self) -> Dict[str, bool]:
         if self._adapter_availability is None:
             self._adapter_availability = {}
@@ -5618,10 +5632,7 @@ class MurphySystem:
             capability_review
         )
 
-        integration_capabilities = self._build_integration_capabilities()
-        competitive_feature_alignment = self._build_competitive_feature_alignment(
-            integration_capabilities
-        )
+        summary_bundle = self._build_summary_surface_bundle()
         adapter_execution = self._build_adapter_execution_snapshot()
         execution_wiring = self._build_execution_wiring_snapshot(doc)
         orchestrator_readiness = self._build_orchestrator_readiness_snapshot()
@@ -5638,7 +5649,7 @@ class MurphySystem:
             "constraints": doc.constraints,
             "region": sensor_plan["region"],
             "module_registry": self.module_manager.get_module_status(),
-            "module_registry_summary": self._build_module_registry_summary(),
+            "module_registry_summary": summary_bundle["module_registry_summary"],
             "registry_health": self._build_registry_health_snapshot(),
             "schema_drift": self._build_schema_drift_snapshot(),
             "capability_alignment": capability_alignment,
@@ -5672,11 +5683,11 @@ class MurphySystem:
             "orchestrator_readiness": orchestrator_readiness,
             "persistence": persistence_status,
             "observability": observability_snapshot,
-            "integration_capabilities": integration_capabilities,
-            "integration_capabilities_summary": integration_capabilities.get("summary", {}),
+            "integration_capabilities": summary_bundle["integration_capabilities"],
+            "integration_capabilities_summary": summary_bundle["integration_capabilities_summary"],
             "adapter_execution": adapter_execution,
-            "competitive_feature_alignment": competitive_feature_alignment,
-            "competitive_feature_alignment_summary": competitive_feature_alignment.get("summary", {})
+            "competitive_feature_alignment": summary_bundle["competitive_feature_alignment"],
+            "competitive_feature_alignment_summary": summary_bundle["competitive_feature_alignment_summary"]
         }
         if onboarding_context:
             preview["onboarding_context"] = onboarding_context
@@ -6133,10 +6144,7 @@ class MurphySystem:
             latest_preview.get("delivery_readiness"),
             latest_preview.get("external_api_sensors")
         )
-        integration_capabilities = self._build_integration_capabilities()
-        competitive_feature_alignment = self._build_competitive_feature_alignment(
-            integration_capabilities
-        )
+        summary_bundle = self._build_summary_surface_bundle()
         return {
             'version': self.version,
             'status': 'running',
@@ -6166,14 +6174,14 @@ class MurphySystem:
                 )
             },
             'module_registry': self.module_manager.get_module_status(),
-            'module_registry_summary': self._build_module_registry_summary(),
+            'module_registry_summary': summary_bundle["module_registry_summary"],
             'registry_health': self._build_registry_health_snapshot(),
             'schema_drift': self._build_schema_drift_snapshot(),
             'adapter_execution': self._build_adapter_execution_snapshot(),
-            'integration_capabilities': integration_capabilities,
-            'integration_capabilities_summary': integration_capabilities.get("summary", {}),
-            'competitive_feature_alignment': competitive_feature_alignment,
-            'competitive_feature_alignment_summary': competitive_feature_alignment.get("summary", {}),
+            'integration_capabilities': summary_bundle["integration_capabilities"],
+            'integration_capabilities_summary': summary_bundle["integration_capabilities_summary"],
+            'competitive_feature_alignment': summary_bundle["competitive_feature_alignment"],
+            'competitive_feature_alignment_summary': summary_bundle["competitive_feature_alignment_summary"],
             'connector_orchestration': self._build_connector_orchestration_snapshot(),
             'orchestrator_readiness': self._build_orchestrator_readiness_snapshot(),
             'observability': self._build_observability_snapshot(),
@@ -6192,11 +6200,7 @@ class MurphySystem:
     
     def get_system_info(self) -> Dict:
         """Get system information"""
-        integration_capabilities = self._build_integration_capabilities()
-        competitive_feature_alignment = self._build_competitive_feature_alignment(
-            integration_capabilities
-        )
-        module_registry_summary = self._build_module_registry_summary()
+        summary_bundle = self._build_summary_surface_bundle()
         return {
             'name': 'Murphy System',
             'version': self.version,
@@ -6221,9 +6225,9 @@ class MurphySystem:
                 'integration_engine': '6 components (HITL, safety testing, capability extraction)',
                 'orchestrator': '2-phase execution (setup → execute)'
             },
-            'integration_capabilities_summary': integration_capabilities.get("summary", {}),
-            'competitive_feature_alignment_summary': competitive_feature_alignment.get("summary", {}),
-            'module_registry_summary': module_registry_summary
+            'integration_capabilities_summary': summary_bundle["integration_capabilities_summary"],
+            'competitive_feature_alignment_summary': summary_bundle["competitive_feature_alignment_summary"],
+            'module_registry_summary': summary_bundle["module_registry_summary"]
         }
 
     def get_activation_audit(self) -> Dict[str, Any]:

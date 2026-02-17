@@ -122,7 +122,8 @@ start_murphy_1.0.bat   # Windows
 - **Competitive alignment info test:** `tests/test_competitive_alignment_info.py` validates `/api/info` integration/alignment summaries and module registry summary parity with runtime builders and `/api/status` summary outputs, including core registry completeness.
 - **Competitive alignment status test:** `tests/test_competitive_alignment_status.py` validates `/api/status` module registry summary parity with runtime registry aggregation, including registry availability, core completeness, and total count consistency.
 - **Cross-surface summary parity test:** `tests/test_summary_surface_parity.py` validates summary parity across activation preview, `/api/status`, and `/api/info`.
-- **Completion percentage snapshot (this iteration):** execution wiring 47%, deterministic+LLM routing 40%, persistence+replay 23%, multi-channel delivery 58%, compliance 38%, operations 22%, UI/testing 70%, dynamic-chain tests 69% (source: `FULL_SYSTEM_ASSESSMENT.md` section 9).
+- **Summary surface bundle test:** `tests/test_summary_surface_bundle.py` validates standardized summary bundle outputs used across preview/status/info.
+- **Completion percentage snapshot (this iteration):** execution wiring 47%, deterministic+LLM routing 40%, persistence+replay 23%, multi-channel delivery 58%, compliance 38%, operations 22%, UI/testing 70%, dynamic-chain tests 70% (source: `FULL_SYSTEM_ASSESSMENT.md` section 9).
 ---
 
 ## 🗃️ Repository Index (Database-Style Reference)
