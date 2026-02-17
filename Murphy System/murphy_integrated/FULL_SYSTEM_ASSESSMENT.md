@@ -230,7 +230,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 28. **Governance dashboard snapshot tests**: `test_governance_dashboard_snapshot.py` validates exec/ops/QA/HITL readiness consolidation in status outputs.
 29. **Compliance validation snapshot tests**: `test_compliance_validation_snapshot.py` validates compliance readiness summaries and regulatory sources.
 30. **Competitive alignment preview tests**: `test_competitive_alignment_preview.py` validates activation preview parity for competitive, integration, and module registry summaries, including registry availability, core completeness, and total count consistency.
-31. **Competitive alignment info summary tests**: `test_competitive_alignment_info.py` validates `/api/info` integration/alignment summaries plus module registry summary parity with runtime builders, including core registry completeness.
+31. **Competitive alignment info summary tests**: `test_competitive_alignment_info.py` validates `/api/info` integration/alignment summaries plus module registry summary parity with runtime builders and `/api/status`, including core registry completeness.
 32. **Competitive alignment status summary tests**: `test_competitive_alignment_status.py` validates `/api/status` module registry summary parity with runtime registry aggregation, registry availability, core registry completeness, and total count consistency.
 
 ---
@@ -305,6 +305,7 @@ This update confirms that sections **1-13** remain active and accepted as the op
 17. Hardened `/api/status` and activation preview registry parity checks by asserting registry availability (`total_available >= core_expected`) alongside core completeness.
 18. Hardened `/api/status` and activation preview registry parity checks by asserting summary total counts match module registry status totals.
 19. Hardened `/api/info` parity checks by asserting integration/alignment summaries exactly match runtime builder outputs.
+20. Hardened `/api/info` parity checks by asserting module registry summary consistency with `/api/status` outputs.
 
 **Current completion percentage snapshot (section 9, this iteration):**
 - Execution wiring (gate + swarm + orchestrator): **47%**
