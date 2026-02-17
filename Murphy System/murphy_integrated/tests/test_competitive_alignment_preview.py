@@ -37,4 +37,6 @@ def test_competitive_feature_alignment_in_activation_preview():
     assert alignment["summary"]["total"] == len(alignment["features"])
     assert preview["integration_capabilities_summary"] == preview["integration_capabilities"]["summary"]
     assert preview["module_registry_summary"] == murphy._build_module_registry_summary()
+    assert preview["module_registry_summary"]["core_registered"] == preview["module_registry_summary"]["core_expected"]
+    assert preview["module_registry_summary"]["core_missing"] == []
     assert preview["competitive_feature_alignment_summary"] == alignment["summary"]

@@ -229,8 +229,8 @@ These percentages are **current estimates** based on wired functionality vs. pla
 27. **Orchestrator readiness snapshot tests**: `test_orchestrator_readiness_snapshot.py` validates async/two-phase/swarm readiness summaries.
 28. **Governance dashboard snapshot tests**: `test_governance_dashboard_snapshot.py` validates exec/ops/QA/HITL readiness consolidation in status outputs.
 29. **Compliance validation snapshot tests**: `test_compliance_validation_snapshot.py` validates compliance readiness summaries and regulatory sources.
-30. **Competitive alignment preview tests**: `test_competitive_alignment_preview.py` validates activation preview parity for competitive, integration, and module registry summaries.
-31. **Competitive alignment info summary tests**: `test_competitive_alignment_info.py` validates `/api/info` module registry summary parity with runtime registry aggregation.
+30. **Competitive alignment preview tests**: `test_competitive_alignment_preview.py` validates activation preview parity for competitive, integration, and module registry summaries, including core registry completeness.
+31. **Competitive alignment info summary tests**: `test_competitive_alignment_info.py` validates `/api/info` module registry summary parity with runtime registry aggregation, including core registry completeness.
 32. **Competitive alignment status summary tests**: `test_competitive_alignment_status.py` validates `/api/status` module registry summary parity with runtime registry aggregation and core registry completeness.
 
 ---
@@ -301,3 +301,4 @@ This update confirms that sections **1-13** remain active and accepted as the op
 13. Added focused `/api/status` regression coverage to verify module registry summary parity against runtime aggregation output.
 14. Added focused activation preview regression coverage to verify module registry summary parity against runtime aggregation output.
 15. Hardened `/api/status` registry parity checks by asserting core registry completeness (`core_registered == core_expected`, no `core_missing` entries).
+16. Hardened `/api/info` and activation preview registry parity checks by asserting core registry completeness (`core_registered == core_expected`, no `core_missing` entries).
