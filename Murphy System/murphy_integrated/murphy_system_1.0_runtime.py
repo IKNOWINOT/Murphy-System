@@ -6131,6 +6131,10 @@ class MurphySystem:
             latest_preview.get("delivery_readiness"),
             latest_preview.get("external_api_sensors")
         )
+        integration_capabilities = self._build_integration_capabilities()
+        competitive_feature_alignment = self._build_competitive_feature_alignment(
+            integration_capabilities
+        )
         return {
             'version': self.version,
             'status': 'running',
@@ -6164,6 +6168,8 @@ class MurphySystem:
             'registry_health': self._build_registry_health_snapshot(),
             'schema_drift': self._build_schema_drift_snapshot(),
             'adapter_execution': self._build_adapter_execution_snapshot(),
+            'integration_capabilities': integration_capabilities,
+            'competitive_feature_alignment': competitive_feature_alignment,
             'connector_orchestration': self._build_connector_orchestration_snapshot(),
             'orchestrator_readiness': self._build_orchestrator_readiness_snapshot(),
             'observability': self._build_observability_snapshot(),
