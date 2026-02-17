@@ -36,7 +36,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **Email delivery stub:** when an email connector is configured, `execute_task` prepares an email delivery payload with subject/body defaults and recipient placeholders.
 - **Chat delivery stub:** when a chat connector is configured, `execute_task` queues a chat delivery payload with channel and message defaults.
 - **Voice delivery stub:** when a voice connector is configured, `execute_task` prepares a voice delivery script payload with destination placeholders and playback cue steps.
-- **Translation delivery stub:** when a translation connector is configured, `execute_task` prepares a translation payload with locale placeholders and output defaults.
+- **Translation delivery stub:** when a translation connector is configured, `execute_task` prepares a translation payload with source/target locale placeholders and flags missing target locales for follow-up.
 - **Registry health + schema drift snapshots:** activation previews and system status expose module registry health and configuration drift indicators.
 - **Module registry standardization:** `murphy_integrated/src` modules plus local packages are auto-registered into the module catalog with health + schema drift indicators.
 - **Adapter execution snapshot:** activation previews include adapter framework readiness for telemetry, module compiler, librarian, and security adapters.
@@ -163,7 +163,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 | Execution wiring (gate + swarm + orchestrator) | 47% | MFGC fallback wired, orchestrator wiring still partial |
 | Deterministic + LLM routing | 40% | Routing heuristics exist; compute plane not invoked end-to-end |
 | Persistence + replay | 23% | Snapshot persistence + audit export snapshot available; durable storage not wired |
-| Multi-channel delivery | 55% | Document/email/chat/voice/translation stubs wired; orchestration snapshot added; production adapters with approvals pending |
+| Multi-channel delivery | 58% | Document/email/chat/voice/translation stubs wired with locale gating; orchestration snapshot added; production adapters with approvals pending |
 | Compliance validation | 38% | Compliance validation snapshot added with regulatory sources + next-action guidance |
 | Operational automation | 22% | Planning templates exist; ticketing/remote access not wired |
 | UI + user testing | 70% | Architect UI + scripted screenshots now in place |

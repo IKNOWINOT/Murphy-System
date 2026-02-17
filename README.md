@@ -80,7 +80,7 @@ start_murphy_1.0.bat   # Windows
 - **Registry health snapshot test:** `tests/test_registry_health_snapshot.py` validates registry health + drift snapshot outputs.
 - **Module registry standardization:** auto-registers `murphy_integrated/src` modules and local packages into the module catalog with health + schema drift snapshots.
 - **Adapter execution snapshot:** activation previews and `/api/status` include adapter framework readiness for telemetry, module compiler, librarian, and security adapters.
-- **Delivery adapter readiness:** activation previews include document/email/chat/voice adapter readiness; summary counts reflect adapter statuses (configured, available, unconfigured).
+- **Delivery adapter readiness:** activation previews include document/email/chat/voice/translation adapter readiness; summary counts reflect adapter statuses (configured, available, unconfigured).
 - **Connector orchestration snapshot:** activation previews and `/api/status` include connector orchestration summaries to track multi-channel delivery readiness and configuration gaps.
 - **Governance dashboard snapshot:** activation previews and `/api/status` include exec/ops/QA/HITL readiness consolidation; `tests/test_governance_dashboard_snapshot.py` validates output coverage.
 - **Delivery readiness states:** delivery readiness propagates blocked/needs states (`needs_wiring`, `needs_coverage`) when adapters or org chart coverage are incomplete. `needs_info` is used when requirements are complete but delivery inputs are missing, and the dynamic plan marks the output_delivery stage with the same status.
@@ -91,7 +91,7 @@ start_murphy_1.0.bat   # Windows
 - **Email delivery stub:** when an email connector is configured, `/api/execute` returns a queued email payload (subject/body defaults + recipient placeholders) and marks missing recipients as `needs_info`.
 - **Chat delivery stub:** when a chat connector is configured, `/api/execute` returns a queued chat payload with channel/message defaults and marks missing channels as `needs_info`.
 - **Voice delivery stub:** when a voice connector is configured, `/api/execute` returns a queued voice payload with script defaults and playback cue steps; missing destinations are marked as `needs_info`.
-- **Translation delivery stub:** when a translation connector is configured, `/api/execute` returns a queued translation payload with locale placeholders and output defaults.
+- **Translation delivery stub:** when a translation connector is configured, `/api/execute` returns a translation payload with source/target locale placeholders; missing target locales are flagged as `needs_info`.
 - **Delivery completion tracking:** the completion tracker in `FULL_SYSTEM_ASSESSMENT.md` reflects multi-channel delivery stub coverage (production adapters still pending).
 - **Delivery adapter test:** `tests/test_delivery_adapter_snapshot.py` validates readiness status and adapter summary output.
 - **Connector orchestration test:** `tests/test_connector_orchestration_snapshot.py` validates multi-channel delivery readiness summaries.

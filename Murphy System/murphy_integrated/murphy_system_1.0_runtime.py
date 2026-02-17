@@ -276,7 +276,7 @@ class MurphySystem:
     GATE_OVERRIDE_VALUES = {"open", "blocked"}
     COMPLIANCE_BLOCKED_STATES = {"blocked", "failed", "denied"}
     COMPLIANCE_PENDING_STATES = {"pending", "review", "queued"}
-    VALID_DELIVERY_CHANNELS = {"document", "email", "chat", "voice", "unknown"}
+    VALID_DELIVERY_CHANNELS = {"document", "email", "chat", "voice", "translation", "unknown"}
     PERSISTENCE_DIR_ENV = "MURPHY_PERSISTENCE_DIR"
     PERSISTENCE_SNAPSHOT_PREFIX = "activation_snapshot"
     AUDIT_EXPORT_PREFIX = "audit_export"
@@ -693,6 +693,12 @@ class MurphySystem:
             "id": "voice_delivery",
             "label": "Voice delivery adapter",
             "channel": "voice",
+            "module": "src.adapter_framework.adapters.http_adapter"
+        },
+        {
+            "id": "translation_delivery",
+            "label": "Translation delivery adapter",
+            "channel": "translation",
             "module": "src.adapter_framework.adapters.http_adapter"
         }
     ]
@@ -2042,6 +2048,12 @@ class MurphySystem:
                 task_type,
                 parameters
             )
+            deliverables = self._append_translation_deliverable(
+                deliverables,
+                task_description,
+                task_type,
+                parameters
+            )
             # Return complete result
             return {
                 'success': True,
@@ -2121,6 +2133,12 @@ class MurphySystem:
                 task_type,
                 parameters
             )
+            deliverables = self._append_translation_deliverable(
+                deliverables,
+                task_description,
+                task_type,
+                parameters
+            )
             return {
                 "success": success,
                 "session_id": session_id or self.create_session().get("session_id"),
@@ -2166,6 +2184,12 @@ class MurphySystem:
             parameters
         )
         deliverables = self._append_voice_deliverable(
+            deliverables,
+            task_description,
+            task_type,
+            parameters
+        )
+        deliverables = self._append_translation_deliverable(
             deliverables,
             task_description,
             task_type,
@@ -2269,6 +2293,12 @@ class MurphySystem:
                 parameters
             )
             deliverables = self._append_voice_deliverable(
+                deliverables,
+                task_description,
+                task_type,
+                parameters
+            )
+            deliverables = self._append_translation_deliverable(
                 deliverables,
                 task_description,
                 task_type,
@@ -4462,6 +4492,52 @@ class MurphySystem:
             deliverable["gap_action"] = "Provide voice destination to queue the delivery."
         return deliverable
 
+    def _build_translation_deliverable(
+        self,
+        task_description: str,
+        task_type: str,
+        parameters: Optional[Dict[str, Any]]
+    ) -> Optional[Dict[str, Any]]:
+        connectors = self._get_configured_delivery_connectors("translation")
+        if not connectors:
+            return None
+        params = parameters or {}
+        connector_override = params.get("translation_connector_id")
+        if connector_override:
+            connectors = [
+                connector for connector in connectors if connector["id"] == connector_override
+            ]
+            if not connectors:
+                logger.warning(
+                    "Requested translation connector '%s' not configured; skipping translation delivery.",
+                    connector_override
+                )
+                return None
+        selected_connector = sorted(connectors, key=lambda connector: connector["id"])[0]
+        source_locale = params.get("translation_source_locale") or params.get("source_locale") or "auto"
+        target_locale = (
+            params.get("translation_target_locale")
+            or params.get("target_locale")
+            or params.get("translation_locale")
+        )
+        text = params.get("translation_text") or params.get("translation_source")
+        if not text:
+            text = self._truncate_description(task_description)
+        status = "queued" if target_locale else "needs_info"
+        deliverable = {
+            "type": "translation",
+            "status": status,
+            "connector_id": selected_connector["id"],
+            "translation": {
+                "text": text,
+                "source_locale": source_locale,
+                "target_locale": target_locale
+            }
+        }
+        if status == "needs_info":
+            deliverable["gap_action"] = "Provide target locale to queue translation delivery."
+        return deliverable
+
     def _append_document_deliverable(
         self,
         deliverables: Optional[List[Dict[str, Any]]],
@@ -4520,6 +4596,21 @@ class MurphySystem:
         voice_delivery = self._build_voice_deliverable(task_description, task_type, parameters)
         if voice_delivery:
             output.append(voice_delivery)
+        return output
+
+    def _append_translation_deliverable(
+        self,
+        deliverables: Optional[List[Dict[str, Any]]],
+        task_description: str,
+        task_type: str,
+        parameters: Optional[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        output = list(deliverables or [])
+        if any(item.get("type") == "translation" for item in output):
+            return output
+        translation_delivery = self._build_translation_deliverable(task_description, task_type, parameters)
+        if translation_delivery:
+            output.append(translation_delivery)
         return output
 
     def _build_handoff_queue_snapshot(
