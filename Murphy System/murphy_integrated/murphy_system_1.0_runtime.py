@@ -4968,6 +4968,49 @@ class MurphySystem:
     def _count_consistency_gaps(self, backlog: List[Dict[str, Any]]) -> int:
         return len([item for item in backlog if item.get("type") == "consistency"])
 
+    def _count_completion_gaps(self, backlog: List[Dict[str, Any]]) -> int:
+        return len([item for item in backlog if item.get("type") == "completion"])
+
+    def _apply_completion_snapshot_remediation(
+        self,
+        self_improvement_snapshot: Dict[str, Any],
+        completion_snapshot: Optional[Dict[str, Any]],
+        threshold: int = 50
+    ) -> Dict[str, Any]:
+        if not completion_snapshot:
+            return self_improvement_snapshot
+        updated = dict(self_improvement_snapshot)
+        updated["completion_snapshot"] = completion_snapshot
+        backlog = list(updated.get("backlog", []))
+        summary = dict(updated.get("summary", {}))
+        completion_gap_areas = [
+            area for area in completion_snapshot.get("areas", [])
+            if area.get("percent", 0) < threshold
+        ]
+        summary["completion_gaps"] = len(completion_gap_areas)
+        summary["total_backlog"] = len(backlog)
+        updated["summary"] = summary
+        if not completion_gap_areas:
+            return updated
+        for area in completion_gap_areas:
+            backlog.append({
+                "id": f"completion_{area.get('area')}",
+                "type": "completion",
+                "owner": "runtime",
+                "reason": f"Completion area '{area.get('area')}' below threshold: {area.get('percent')}% < {threshold}%."
+            })
+        actions = list(updated.get("remediation_actions", []))
+        completion_action = "Prioritize low completion areas and schedule remediation loops."
+        if completion_action not in actions:
+            actions.append(completion_action)
+        summary["completion_gaps"] = len(completion_gap_areas)
+        summary["total_backlog"] = len(backlog)
+        updated["status"] = "needs_attention"
+        updated["backlog"] = backlog
+        updated["remediation_actions"] = actions
+        updated["summary"] = summary
+        return updated
+
     def _build_competitive_feature_alignment(
         self,
         integration_capabilities: Optional[Dict[str, Any]] = None
@@ -5737,6 +5780,10 @@ class MurphySystem:
             self_improvement_snapshot,
             summary_surface_consistency
         )
+        self_improvement_snapshot = self._apply_completion_snapshot_remediation(
+            self_improvement_snapshot,
+            completion_snapshot
+        )
         adapter_execution = self._build_adapter_execution_snapshot()
         execution_wiring = self._build_execution_wiring_snapshot(doc)
         orchestrator_readiness = self._build_orchestrator_readiness_snapshot()
@@ -6260,6 +6307,10 @@ class MurphySystem:
         self_improvement_snapshot = self._apply_summary_consistency_remediation(
             self_improvement_snapshot,
             summary_surface_consistency
+        )
+        self_improvement_snapshot = self._apply_completion_snapshot_remediation(
+            self_improvement_snapshot,
+            completion_snapshot
         )
         return {
             'version': self.version,
