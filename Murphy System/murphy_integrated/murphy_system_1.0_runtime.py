@@ -278,6 +278,7 @@ class MurphySystem:
     COMPLIANCE_PENDING_STATES = {"pending", "review", "queued"}
     VALID_DELIVERY_CHANNELS = {"document", "email", "chat", "voice", "translation", "unknown"}
     DEFAULT_TRANSLATION_SOURCE_LOCALE = "auto"
+    TRANSLATION_GAP_ACTION = "Provide target locale to queue the translation delivery."
     PERSISTENCE_DIR_ENV = "MURPHY_PERSISTENCE_DIR"
     PERSISTENCE_SNAPSHOT_PREFIX = "activation_snapshot"
     AUDIT_EXPORT_PREFIX = "audit_export"
@@ -4525,7 +4526,7 @@ class MurphySystem:
         for legacy_key, preferred_key in legacy_locale_map.items():
             if preferred_key not in params and legacy_key in params:
                 logger.debug(
-                    "translation delivery detected legacy %s for connector %s; checks %s in fallback resolution.",
+                    "translation delivery detected legacy parameter %s for connector %s; will check %s in fallback resolution.",
                     legacy_key,
                     connector_id,
                     preferred_key
@@ -4541,6 +4542,10 @@ class MurphySystem:
             or params.get("target_locale")
             or params.get("translation_locale")
         )
+        if "translation_text" not in params and "translation_source" in params:
+            logger.debug(
+                "translation delivery received legacy translation_source; prefer translation_text."
+            )
         # translation_source is a legacy alias for translation_text (content, not locale metadata).
         text = params.get("translation_text") or params.get("translation_source")
         if not text:
@@ -4559,7 +4564,7 @@ class MurphySystem:
             "translation": translation_payload
         }
         if status == "needs_info":
-            deliverable["gap_action"] = "Provide target locale to queue the translation delivery."
+            deliverable["gap_action"] = self.TRANSLATION_GAP_ACTION
         return deliverable
 
     def _append_document_deliverable(
