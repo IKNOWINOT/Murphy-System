@@ -23,7 +23,8 @@ def test_summary_consistency_drift_updates_self_improvement_backlog():
         "dynamic_implementation": {"next_actions": []},
         "capability_review": {"gaps": []}
     }
-    murphy._build_summary_surface_consistency = lambda *args, **kwargs: {
+    def drift_snapshot(*args, **kwargs):
+        return {
         "status": "drift_detected",
         "checks": {
             "integration_summary_present": True,
@@ -32,6 +33,7 @@ def test_summary_consistency_drift_updates_self_improvement_backlog():
             "registry_core_complete": True
         }
     }
+    murphy._build_summary_surface_consistency = drift_snapshot
 
     status = murphy.get_system_status()
     self_improvement = status["self_improvement"]
