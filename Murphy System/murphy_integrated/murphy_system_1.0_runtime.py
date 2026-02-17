@@ -727,6 +727,7 @@ class MurphySystem:
         "dynamic_chain_test_coverage": 86
     }
     COMPLETION_REMEDIATION_THRESHOLD_PERCENT = 50
+    # Phrase tokens intentionally rely on substring matching against normalized text.
     STRICT_EXECUTION_MODE_TOKENS = {"strict", "regulated", "compliance", "low risk", "conservative"}
     DYNAMIC_EXECUTION_MODE_TOKENS = {"dynamic", "high autonomy", "production mode", "fast mode"}
     DOCUMENT_PLACEHOLDER_PATTERN = r"[A-Za-z_][A-Za-z0-9_]*"
@@ -5146,7 +5147,7 @@ class MurphySystem:
         text = f"{task_description} {source}".lower()
         explicit_mode = str(source.get("execution_mode", "")).lower()
         # risk_level is accepted as a legacy/synonym input for safety_level.
-        safety_level = str(source.get("safety_level", source.get("risk_level", "standard"))).lower()
+        safety_level = str(source.get("safety_level") or source.get("risk_level") or "standard").lower()
         risk_tolerance = str(source.get("risk_tolerance", "moderate")).lower()
         autonomy_level = str(source.get("autonomy_level", source.get("autonomy_preferences", "balanced"))).lower()
         strict_signal = (
