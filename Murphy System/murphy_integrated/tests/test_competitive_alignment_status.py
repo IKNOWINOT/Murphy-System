@@ -29,6 +29,8 @@ def test_competitive_feature_alignment_in_system_status():
     assert "module_registry_summary" in status
     assert status["integration_capabilities_summary"] == status["integration_capabilities"]["summary"]
     assert status["module_registry_summary"] == murphy._build_module_registry_summary()
+    assert status["module_registry_summary"]["core_registered"] == status["module_registry_summary"]["core_expected"]
+    assert status["module_registry_summary"]["core_missing"] == []
     alignment = status["competitive_feature_alignment"]
     assert alignment["summary"]["total"] == len(alignment["features"])
     assert status["competitive_feature_alignment_summary"] == alignment["summary"]
