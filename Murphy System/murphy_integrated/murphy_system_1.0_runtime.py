@@ -5009,8 +5009,11 @@ class MurphySystem:
             "integration_summary_present": bool(bundle.get("integration_capabilities_summary")),
             "alignment_summary_present": bool(bundle.get("competitive_feature_alignment_summary")),
             "registry_total_matches_status": module_summary.get("total_available") == module_total,
-            "registry_core_complete": module_summary.get("core_registered") == module_summary.get("core_expected")
-            and module_summary.get("core_missing") == []
+            "registry_core_complete": (
+                module_summary.get("core_registered") == module_summary.get("core_expected")
+            ) and (
+                module_summary.get("core_missing") == []
+            )
         }
         status = "consistent" if all(checks.values()) else "drift_detected"
         return {"status": status, "checks": checks}

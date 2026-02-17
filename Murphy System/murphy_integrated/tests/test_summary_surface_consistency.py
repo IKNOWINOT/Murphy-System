@@ -27,7 +27,7 @@ def test_summary_surface_consistency_available_across_surfaces():
     status = murphy.get_system_status()
     info = murphy.get_system_info()
 
-    doc = runtime.LivingDocument("doc-consistency", "Consistency", "content", "request")
+    doc = runtime.LivingDocument("test_consistency_doc", "Consistency", "content", "request")
     doc.confidence = 0.9
     murphy._update_document_tree(doc)
     preview = murphy._build_activation_preview(
