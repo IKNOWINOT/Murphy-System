@@ -4933,7 +4933,13 @@ class MurphySystem:
             "owner": "runtime",
             "reason": "Summary surface consistency drift detected: " + ", ".join(sorted(failed_checks))
         })
-        actions = list(dict.fromkeys(updated.get("remediation_actions", [])))
+        actions = []
+        seen_actions: Set[str] = set()
+        for action in updated.get("remediation_actions", []):
+            if action in seen_actions:
+                continue
+            seen_actions.add(action)
+            actions.append(action)
         drift_action = "Resolve summary surface consistency drift across preview/status/info outputs."
         if drift_action not in actions:
             actions.append(drift_action)
