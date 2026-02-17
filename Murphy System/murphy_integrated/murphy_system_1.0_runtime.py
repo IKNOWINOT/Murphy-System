@@ -724,7 +724,7 @@ class MurphySystem:
         "compliance_validation": 38,
         "operational_automation": 22,
         "ui_user_testing": 70,
-        "dynamic_chain_test_coverage": 83
+        "dynamic_chain_test_coverage": 84
     }
     COMPLETION_REMEDIATION_THRESHOLD_PERCENT = 50
     DOCUMENT_PLACEHOLDER_PATTERN = r"[A-Za-z_][A-Za-z0-9_]*"
@@ -5022,6 +5022,7 @@ class MurphySystem:
             updated["status"] = "needs_attention"
             updated["backlog"] = backlog
             updated["remediation_actions"] = actions
+        summary["completion_backlog_items"] = self._count_completion_gaps(backlog)
         summary["total_backlog"] = len(backlog)
         updated["summary"] = summary
         return updated
