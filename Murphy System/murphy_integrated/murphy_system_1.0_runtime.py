@@ -112,10 +112,12 @@ try:
         ActionSet
     )
     from src.telemetry_learning.ingestion import TelemetryIngester, TelemetryBus
+    from src.self_diagnostics import ModuleHealthChecker, SystemDiagnostics
 except ImportError as e:
     print(f"Warning: Some original Murphy components not available: {e}")
     SystemLibrarian = TrueSwarmSystem = GovernanceScheduler = TelemetryIngester = TelemetryBus = None
     ScheduledAgent = PriorityLevel = AgentDescriptor = GovernanceAuthorityBand = GovernanceActionType = ActionSet = None
+    ModuleHealthChecker = SystemDiagnostics = None
 
 # MFGC Adapter
 try:
@@ -1913,6 +1915,25 @@ class MurphySystem:
                     "doc_id": doc.doc_id
                 }
             )
+
+        # Confidence gate: validate task before execution
+        confidence_result = None
+        if self.confidence_engine:
+            try:
+                task_data = {
+                    "description": task_description,
+                    "task_type": task_type,
+                    "id": doc.doc_id,
+                    **(parameters or {})
+                }
+                confidence_result = self.confidence_engine.calculate_confidence(task_data)
+                logger.info(
+                    f"Confidence gate: score={confidence_result.confidence:.3f}, "
+                    f"allowed={confidence_result.gate_result.allowed}"
+                )
+            except Exception as e:
+                logger.warning(f"Confidence engine evaluation failed: {e}")
+
         resolved_compute_session = None
         if (parameters or {}).get("compute_request"):
             resolved_compute_session = self._resolve_compute_session(session_id)
@@ -1954,6 +1975,10 @@ class MurphySystem:
                 "persistence_snapshot": persistence_snapshot,
                 "compute_plane": compute_plane_result,
                 "swarm_execution": swarm_execution,
+                "confidence_gate": {
+                    "score": confidence_result.confidence if confidence_result else None,
+                    "allowed": confidence_result.gate_result.allowed if confidence_result else None
+                } if confidence_result else None,
                 "metadata": {
                     "task_description": task_description,
                     "task_type": task_type,
@@ -1971,6 +1996,10 @@ class MurphySystem:
             fallback["execution_policy"] = execution_policy
             fallback["persistence_snapshot"] = persistence_snapshot
             fallback["swarm_execution"] = swarm_execution
+            fallback["confidence_gate"] = {
+                "score": confidence_result.confidence if confidence_result else None,
+                "allowed": confidence_result.gate_result.allowed if confidence_result else None
+            } if confidence_result else None
             return fallback
 
         if not self._supports_async_orchestrator():
@@ -2069,6 +2098,10 @@ class MurphySystem:
                 'execution_policy': execution_policy,
                 'persistence_snapshot': persistence_snapshot,
                 'swarm_execution': swarm_execution,
+                'confidence_gate': {
+                    'score': confidence_result.confidence if confidence_result else None,
+                    'allowed': confidence_result.gate_result.allowed if confidence_result else None
+                } if confidence_result else None,
                 'metadata': {
                     'task_description': task_description,
                     'task_type': task_type,
@@ -6165,8 +6198,19 @@ class MurphySystem:
                 'can_work_on_self': self_operation_enabled and correction_system_available,
                 'activation_required': True,
                 'state': 'active' if self_operation_enabled else 'unavailable'
-            }
+            },
+            'diagnostics': self._run_diagnostics()
         }
+    
+    def _run_diagnostics(self) -> Dict:
+        """Run system self-diagnostics."""
+        if SystemDiagnostics:
+            try:
+                diag = SystemDiagnostics(self)
+                return diag.run_full_diagnostics()
+            except Exception as e:
+                return {"status": "error", "error": str(e)}
+        return {"status": "unavailable"}
     
     def get_system_info(self) -> Dict:
         """Get system information"""
