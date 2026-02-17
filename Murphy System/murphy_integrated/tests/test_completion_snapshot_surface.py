@@ -35,7 +35,9 @@ def test_completion_snapshot_surface_parity():
     assert info["completion_snapshot"] == expected
     assert preview["completion_snapshot"] == expected
     assert expected["summary"]["total_areas"] == len(expected["areas"])
+    assert expected["summary"]["remediation_threshold_percent"] == 50
+    assert expected["summary"]["low_completion_areas"] >= 1
     dynamic_chain = next(
         item for item in expected["areas"] if item["area"] == "dynamic_chain_test_coverage"
     )
-    assert dynamic_chain["percent"] == 77
+    assert dynamic_chain["percent"] == 78

@@ -23,19 +23,25 @@ def test_completion_snapshot_updates_self_improvement_backlog():
         "dynamic_implementation": {"next_actions": []},
         "capability_review": {"gaps": []}
     }
-    murphy._build_completion_snapshot = lambda: {
-        "areas": [
-            {"area": "execution_wiring", "percent": 45},
-            {"area": "deterministic_llm_routing", "percent": 35},
-            {"area": "ui_user_testing", "percent": 72}
-        ],
-        "summary": {"total_areas": 3, "average_percent": 50.67}
-    }
+    def completion_snapshot_with_threshold():
+        return {
+            "areas": [
+                {"area": "execution_wiring", "percent": 45},
+                {"area": "deterministic_llm_routing", "percent": 35},
+                {"area": "ui_user_testing", "percent": 72}
+            ],
+            "summary": {
+                "total_areas": 3,
+                "average_percent": 50.67,
+                "remediation_threshold_percent": 40
+            }
+        }
+    murphy._build_completion_snapshot = completion_snapshot_with_threshold
 
     status = murphy.get_system_status()
     self_improvement = status["self_improvement"]
 
     assert self_improvement["status"] == "needs_attention"
-    assert self_improvement["summary"]["completion_gaps"] == 2
+    assert self_improvement["summary"]["completion_gaps"] == 1
     assert any(item.get("type") == "completion" for item in self_improvement.get("backlog", []))
     assert "Prioritize low completion areas and schedule remediation loops." in self_improvement.get("remediation_actions", [])
