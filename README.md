@@ -126,7 +126,8 @@ start_murphy_1.0.bat   # Windows
 - **Summary bundle consumer test:** `tests/test_summary_surface_bundle_consumers.py` validates that `/api/status` and `/api/info` consume shared summary bundle outputs.
 - **Summary surface consistency test:** `tests/test_summary_surface_consistency.py` validates consistency snapshots across activation preview, `/api/status`, and `/api/info`.
 - **Summary consistency remediation test:** `tests/test_summary_consistency_self_improvement.py` validates that summary consistency drift updates self-improvement backlog/actions in `/api/status` and records `consistency_gaps` in summary output.
-- **Completion percentage snapshot (this iteration):** execution wiring 47%, deterministic+LLM routing 40%, persistence+replay 23%, multi-channel delivery 58%, compliance 38%, operations 22%, UI/testing 70%, dynamic-chain tests 74% (source: `FULL_SYSTEM_ASSESSMENT.md` section 9).
+- **Completion snapshot surface test:** `tests/test_completion_snapshot_surface.py` validates completion snapshot parity across activation preview, `/api/status`, and `/api/info`.
+- **Completion percentage snapshot (this iteration):** execution wiring 47%, deterministic+LLM routing 40%, persistence+replay 23%, multi-channel delivery 58%, compliance 38%, operations 22%, UI/testing 70%, dynamic-chain tests 75% (source: `FULL_SYSTEM_ASSESSMENT.md` section 9).
 ---
 
 ## 🗃️ Repository Index (Database-Style Reference)
