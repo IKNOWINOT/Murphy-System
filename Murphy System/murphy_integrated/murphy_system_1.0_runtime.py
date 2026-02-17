@@ -5674,7 +5674,8 @@ class MurphySystem:
             "observability": observability_snapshot,
             "integration_capabilities": integration_capabilities,
             "adapter_execution": adapter_execution,
-            "competitive_feature_alignment": competitive_feature_alignment
+            "competitive_feature_alignment": competitive_feature_alignment,
+            "competitive_feature_alignment_summary": competitive_feature_alignment.get("summary", {})
         }
         if onboarding_context:
             preview["onboarding_context"] = onboarding_context
@@ -6170,6 +6171,7 @@ class MurphySystem:
             'adapter_execution': self._build_adapter_execution_snapshot(),
             'integration_capabilities': integration_capabilities,
             'competitive_feature_alignment': competitive_feature_alignment,
+            'competitive_feature_alignment_summary': competitive_feature_alignment.get("summary", {}),
             'connector_orchestration': self._build_connector_orchestration_snapshot(),
             'orchestrator_readiness': self._build_orchestrator_readiness_snapshot(),
             'observability': self._build_observability_snapshot(),
