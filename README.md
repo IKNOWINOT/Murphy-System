@@ -120,6 +120,7 @@ start_murphy_1.0.bat   # Windows
 - **Alignment diagnostics:** competitive feature alignment reports connector readiness and flags configuration errors with guidance for missing capability lists, now covering adaptive routing, multi-channel delivery, RBAC/tenant governance, persistent memory (currently missing), policy-as-code, observability/AIOps, AI model lifecycle orchestration, low-code/no-code intake governance, self-healing, knowledge/RAG, and connector marketplace readiness (see the updated competitive baseline in `FULL_SYSTEM_ASSESSMENT.md`).
 - **Competitive alignment preview test:** `tests/test_competitive_alignment_preview.py` validates competitive feature alignment output in activation previews.
 - **Competitive alignment info test:** `tests/test_competitive_alignment_info.py` validates `/api/info` module registry summary parity with runtime registry aggregation.
+- **Competitive alignment status test:** `tests/test_competitive_alignment_status.py` validates `/api/status` module registry summary parity with runtime registry aggregation.
 ---
 
 ## 🗃️ Repository Index (Database-Style Reference)
