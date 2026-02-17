@@ -42,3 +42,5 @@ def test_summary_surface_consistency_available_across_surfaces():
     assert status["summary_surface_consistency"]["status"] == "consistent"
     assert info["summary_surface_consistency"]["status"] == "consistent"
     assert preview["summary_surface_consistency"]["status"] == "consistent"
+    assert status["self_improvement"]["summary"]["consistency_gaps"] == 0
+    assert preview["self_improvement"]["summary"]["consistency_gaps"] == 0

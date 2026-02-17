@@ -169,7 +169,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 | Compliance validation | 38% | Compliance validation snapshot added with regulatory sources + next-action guidance |
 | Operational automation | 22% | Planning templates exist; ticketing/remote access not wired |
 | UI + user testing | 70% | Architect UI + scripted screenshots now in place |
-| Test coverage for dynamic chains | 73% | Dynamic plan tests exist; summary surface bundle + consumer parity + consistency + remediation tests added; execution/integration tests still pending |
+| Test coverage for dynamic chains | 74% | Dynamic plan tests exist; summary surface bundle + consumer parity + consistency + remediation/consistency-gap tests added; execution/integration tests still pending |
 
 **Progress update protocol:**
 - Store user-script screenshots in `docs/screenshots/` (repository root).
@@ -236,7 +236,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 34. **Summary surface bundle tests**: `test_summary_surface_bundle.py` validates standardized summary bundle parity with runtime builders.
 35. **Summary bundle consumer tests**: `test_summary_surface_bundle_consumers.py` validates `/api/status` and `/api/info` consume shared summary bundle outputs.
 36. **Summary surface consistency tests**: `test_summary_surface_consistency.py` validates consistency snapshots across activation preview, `/api/status`, and `/api/info`.
-37. **Summary consistency remediation tests**: `test_summary_consistency_self_improvement.py` validates consistency drift remediation routing into self-improvement backlog/actions.
+37. **Summary consistency remediation tests**: `test_summary_consistency_self_improvement.py` validates consistency drift remediation routing into self-improvement backlog/actions and summary consistency-gap accounting.
 
 ---
 
@@ -317,6 +317,7 @@ This update confirms that sections **1-13** remain active and accepted as the op
 24. Added consumer-level regression coverage to verify `/api/status` and `/api/info` use shared summary bundle outputs consistently.
 25. Added summary consistency snapshots to activation preview, `/api/status`, and `/api/info` with regression coverage for consistent status checks.
 26. Routed summary consistency drift into self-improvement remediation backlog/actions and validated the behavior with focused regression coverage.
+27. Normalized self-improvement summary output so `consistency_gaps` is always reported (including non-drift paths) and validated with focused tests.
 
 **Current completion percentage snapshot (section 9, this iteration):**
 - Execution wiring (gate + swarm + orchestrator): **47%**
@@ -326,4 +327,4 @@ This update confirms that sections **1-13** remain active and accepted as the op
 - Compliance validation: **38%**
 - Operational automation: **22%**
 - UI + user testing: **70%**
-- Test coverage for dynamic chains: **73%**
+- Test coverage for dynamic chains: **74%**
