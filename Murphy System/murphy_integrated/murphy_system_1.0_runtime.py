@@ -6188,7 +6188,10 @@ class MurphySystem:
     
     def get_system_info(self) -> Dict:
         """Get system information"""
-        
+        integration_capabilities = self._build_integration_capabilities()
+        competitive_feature_alignment = self._build_competitive_feature_alignment(
+            integration_capabilities
+        )
         return {
             'name': 'Murphy System',
             'version': self.version,
@@ -6212,7 +6215,9 @@ class MurphySystem:
                 'business_automation': '5 engines (sales, marketing, R&D, business, production)',
                 'integration_engine': '6 components (HITL, safety testing, capability extraction)',
                 'orchestrator': '2-phase execution (setup → execute)'
-            }
+            },
+            'integration_capabilities_summary': integration_capabilities.get("summary", {}),
+            'competitive_feature_alignment_summary': competitive_feature_alignment.get("summary", {})
         }
 
     def get_activation_audit(self) -> Dict[str, Any]:
