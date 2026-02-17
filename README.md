@@ -68,7 +68,9 @@ start_murphy_1.0.bat   # Windows
 - **Wingman protocol tests:** `tests/test_dynamic_implementation_plan.py` validates executor/validator pairing output.
 - **Persistence snapshots:** set `MURPHY_PERSISTENCE_DIR` to store activation previews + execution results; persistence status now includes a snapshot index and replay readiness metadata.
 - **Audit snapshot:** persistence status now includes an audit snapshot summary (count + latest snapshot) for quick audit visibility.
+- **Audit export snapshot:** persistence status now includes audit export readiness with supported formats and latest export metadata.
 - **Audit snapshot test:** `tests/test_audit_snapshot.py` validates audit snapshot summary output.
+- **Audit export snapshot test:** `tests/test_audit_export_snapshot.py` validates export readiness and format metadata.
 - **Persistence replay snapshot test:** `tests/test_persistence_replay_snapshot.py` validates replay readiness output in persistence status.
 - **Persistence index test:** `tests/test_persistence_snapshot_index.py` validates snapshot index summaries in persistence status.
 - **Persistence snapshot test:** `tests/test_persistence_snapshot.py` validates persistence snapshot write + status handling.
