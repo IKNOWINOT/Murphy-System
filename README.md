@@ -128,6 +128,7 @@ start_murphy_1.0.bat   # Windows
 - **Summary consistency remediation test:** `tests/test_summary_consistency_self_improvement.py` validates that summary consistency drift updates self-improvement backlog/actions in `/api/status` and records `consistency_gaps` in summary output.
 - **Completion snapshot surface test:** `tests/test_completion_snapshot_surface.py` validates completion snapshot parity across activation preview, `/api/status`, and `/api/info`, including threshold metadata.
 - **Completion remediation test:** `tests/test_completion_snapshot_self_improvement.py` validates low completion areas feed self-improvement backlog/actions in `/api/status` using snapshot threshold metadata with summary average, gap-area, total-area, coverage-ratio, completion-backlog, and backlog-ratio propagation.
+- **Architecture expansion planning:** `FULL_SYSTEM_ASSESSMENT.md` section 12 now includes a governed-agentization expansion step covering togglable planning/execution control planes, runtime execution profile compilation, governance-kernel enforcement, and phased repository-wide capability mapping.
 - **Completion percentage snapshot (this iteration):** execution wiring 47%, deterministic+LLM routing 40%, persistence+replay 23%, multi-channel delivery 58%, compliance 38%, operations 22%, UI/testing 70%, dynamic-chain tests 85% (source: `FULL_SYSTEM_ASSESSMENT.md` section 9; runtime completion snapshot aligned).
 ---
 

@@ -267,6 +267,28 @@ These percentages are **current estimates** based on wired functionality vs. pla
 2. Validate compliance sensors against region-specific requirements before delivery.
 3. Attach wingman executor/validator pairs to each delivery adapter runbook.
 
+### Step 6 — Governed agentization + togglable control planes
+1. **Control plane separation**
+   - Define planning-plane responsibilities (reasoning, decomposition, gate synthesis, compliance proposal generation).
+   - Define execution-plane responsibilities (policy enforcement, permission validation, budget enforcement, escalation routing, audit logging).
+   - Add runtime mode switch for `strict`, `balanced`, `dynamic` execution with deterministic defaults.
+2. **Runtime execution profile compiler**
+   - Compile onboarding responses into `RuntimeExecutionProfile` (`safety_level`, `escalation_policy`, `budget_constraints`, `tool_permissions`, `audit_requirements`, `autonomy_level`).
+   - Persist compiled profile and reference it in execution broker/policy compiler before tool invocation.
+3. **Governance kernel enforcement**
+   - Route all tool calls through a non-LLM enforcement layer (role registry, permission graph, escalation policy, budget controller, audit emitter).
+   - Prevent direct agent-to-tool execution bypass.
+4. **Org-chart execution enforcement**
+   - Enforce role-bound permissions, department-scoped memory, and escalation chains matching reporting lines.
+   - Add arbitration controls for cross-department workflows.
+5. **Durable swarm orchestration**
+   - Add queue durability, idempotency keys, retry policies, circuit breakers, and rollback hooks.
+   - Add budget-aware spawn limits and anti-runaway recursion controls.
+6. **Capability-map rollout (repository-wide)**
+   - Build a phased capability map inventory over the full file set (targeting every file path) with columns: path, subsystem, runtime role, available capabilities, dependency edges, governance boundary, execution criticality, underutilized potential.
+   - Start with runtime-critical directories first, then expand in batches until full repository coverage is complete.
+   - Use the capability map to define chained remediation sequences for each execution gap in sections 3, 7, and 8.
+
 ---
 
 ## 13) Machine learning plan for screenshot-driven chain evaluation
@@ -332,6 +354,7 @@ This update confirms that sections **1-13** remain active and accepted as the op
 37. Added completion coverage-ratio propagation to self-improvement summaries and validated metadata-driven/fallback behavior.
 38. Added completion backlog-item propagation to self-improvement summaries and validated metadata-driven/fallback behavior.
 39. Added completion backlog-ratio propagation to self-improvement summaries and validated metadata-driven/fallback behavior.
+40. Added governed-agentization/control-plane expansion planning (including execution-profile compilation and repository capability-map rollout) to section 12 for the next implementation phase.
 
 **Current completion percentage snapshot (section 9, this iteration):**
 - Execution wiring (gate + swarm + orchestrator): **47%**
