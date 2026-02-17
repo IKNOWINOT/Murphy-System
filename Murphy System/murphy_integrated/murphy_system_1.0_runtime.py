@@ -724,8 +724,9 @@ class MurphySystem:
         "compliance_validation": 38,
         "operational_automation": 22,
         "ui_user_testing": 70,
-        "dynamic_chain_test_coverage": 77
+        "dynamic_chain_test_coverage": 78
     }
+    COMPLETION_REMEDIATION_THRESHOLD_PERCENT = 50
     DOCUMENT_PLACEHOLDER_PATTERN = r"[A-Za-z_][A-Za-z0-9_]*"
     EXTERNAL_SENSOR_CATALOG = {
         "marketing": [
@@ -4983,6 +4984,9 @@ class MurphySystem:
         updated["completion_snapshot"] = completion_snapshot
         backlog = list(updated.get("backlog", []))
         summary = dict(updated.get("summary", {}))
+        threshold = int(
+            completion_snapshot.get("summary", {}).get("remediation_threshold_percent", threshold)
+        )
         completion_gap_areas = [
             area for area in completion_snapshot.get("areas", [])
             if area.get("percent", 0) < threshold
@@ -5095,11 +5099,17 @@ class MurphySystem:
             {"area": key, "percent": value}
             for key, value in self.COMPLETION_SNAPSHOT_AREAS.items()
         ]
+        threshold = self.COMPLETION_REMEDIATION_THRESHOLD_PERCENT
+        low_completion_areas = [
+            area["area"] for area in areas if area["percent"] < threshold
+        ]
         return {
             "areas": areas,
             "summary": {
                 "total_areas": len(areas),
-                "average_percent": round(sum(item["percent"] for item in areas) / len(areas), 2) if areas else 0.0
+                "average_percent": round(sum(item["percent"] for item in areas) / len(areas), 2) if areas else 0.0,
+                "remediation_threshold_percent": threshold,
+                "low_completion_areas": len(low_completion_areas)
             }
         }
 
