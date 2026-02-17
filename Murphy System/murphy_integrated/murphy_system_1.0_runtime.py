@@ -4994,6 +4994,27 @@ class MurphySystem:
             "module_registry_summary": module_registry_summary
         }
 
+    def _build_summary_surface_consistency(
+        self,
+        summary_bundle: Optional[Dict[str, Any]] = None,
+        module_registry_status: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        bundle = summary_bundle or self._build_summary_surface_bundle()
+        module_status = module_registry_status or self.module_manager.get_module_status()
+        module_summary = bundle.get("module_registry_summary", {})
+        module_total = module_status.get("total_available")
+        if module_total is None:
+            module_total = len(module_status.get("modules", {}))
+        checks = {
+            "integration_summary_present": bool(bundle.get("integration_capabilities_summary")),
+            "alignment_summary_present": bool(bundle.get("competitive_feature_alignment_summary")),
+            "registry_total_matches_status": module_summary.get("total_available") == module_total,
+            "registry_core_complete": module_summary.get("core_registered") == module_summary.get("core_expected")
+            and module_summary.get("core_missing") == []
+        }
+        status = "consistent" if all(checks.values()) else "drift_detected"
+        return {"status": status, "checks": checks}
+
     def _get_adapter_availability(self) -> Dict[str, bool]:
         if self._adapter_availability is None:
             self._adapter_availability = {}
@@ -5633,6 +5654,7 @@ class MurphySystem:
         )
 
         summary_bundle = self._build_summary_surface_bundle()
+        module_registry_status = self.module_manager.get_module_status()
         adapter_execution = self._build_adapter_execution_snapshot()
         execution_wiring = self._build_execution_wiring_snapshot(doc)
         orchestrator_readiness = self._build_orchestrator_readiness_snapshot()
@@ -5648,8 +5670,12 @@ class MurphySystem:
             "onboarding_questions": onboarding_questions,
             "constraints": doc.constraints,
             "region": sensor_plan["region"],
-            "module_registry": self.module_manager.get_module_status(),
+            "module_registry": module_registry_status,
             "module_registry_summary": summary_bundle["module_registry_summary"],
+            "summary_surface_consistency": self._build_summary_surface_consistency(
+                summary_bundle,
+                module_registry_status
+            ),
             "registry_health": self._build_registry_health_snapshot(),
             "schema_drift": self._build_schema_drift_snapshot(),
             "capability_alignment": capability_alignment,
@@ -6145,6 +6171,7 @@ class MurphySystem:
             latest_preview.get("external_api_sensors")
         )
         summary_bundle = self._build_summary_surface_bundle()
+        module_registry_status = self.module_manager.get_module_status()
         return {
             'version': self.version,
             'status': 'running',
@@ -6173,8 +6200,12 @@ class MurphySystem:
                     else 0.0
                 )
             },
-            'module_registry': self.module_manager.get_module_status(),
+            'module_registry': module_registry_status,
             'module_registry_summary': summary_bundle["module_registry_summary"],
+            'summary_surface_consistency': self._build_summary_surface_consistency(
+                summary_bundle,
+                module_registry_status
+            ),
             'registry_health': self._build_registry_health_snapshot(),
             'schema_drift': self._build_schema_drift_snapshot(),
             'adapter_execution': self._build_adapter_execution_snapshot(),
@@ -6201,6 +6232,7 @@ class MurphySystem:
     def get_system_info(self) -> Dict:
         """Get system information"""
         summary_bundle = self._build_summary_surface_bundle()
+        module_registry_status = self.module_manager.get_module_status()
         return {
             'name': 'Murphy System',
             'version': self.version,
@@ -6227,7 +6259,11 @@ class MurphySystem:
             },
             'integration_capabilities_summary': summary_bundle["integration_capabilities_summary"],
             'competitive_feature_alignment_summary': summary_bundle["competitive_feature_alignment_summary"],
-            'module_registry_summary': summary_bundle["module_registry_summary"]
+            'module_registry_summary': summary_bundle["module_registry_summary"],
+            'summary_surface_consistency': self._build_summary_surface_consistency(
+                summary_bundle,
+                module_registry_status
+            )
         }
 
     def get_activation_audit(self) -> Dict[str, Any]:
