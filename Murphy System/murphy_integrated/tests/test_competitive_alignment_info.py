@@ -21,10 +21,16 @@ def test_competitive_feature_alignment_summary_in_system_info():
     murphy = runtime.MurphySystem.create_test_instance()
 
     info = murphy.get_system_info()
+    expected_integration_summary = murphy._build_integration_capabilities().get("summary", {})
+    expected_alignment_summary = murphy._build_competitive_feature_alignment(
+        murphy._build_integration_capabilities()
+    ).get("summary", {})
 
     assert "integration_capabilities_summary" in info
     assert "competitive_feature_alignment_summary" in info
     assert "module_registry_summary" in info
+    assert info["integration_capabilities_summary"] == expected_integration_summary
+    assert info["competitive_feature_alignment_summary"] == expected_alignment_summary
     alignment_summary = info["competitive_feature_alignment_summary"]
     assert alignment_summary["total"] >= 1
     assert alignment_summary["available"] + alignment_summary["partial"] + alignment_summary["missing"] == alignment_summary["total"]
