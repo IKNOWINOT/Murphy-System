@@ -40,11 +40,13 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["control_plane_separation_state"] == status["runtime_execution_profile"]["control_plane_separation_state"]
     assert preview["runtime_execution_profile"]["self_improvement_rd_candidate"] == status["runtime_execution_profile"]["self_improvement_rd_candidate"]
     assert preview["runtime_execution_profile"]["approval_checkpoint_policy"] == status["runtime_execution_profile"]["approval_checkpoint_policy"]
+    assert preview["runtime_execution_profile"]["budget_enforcement_mode"] == status["runtime_execution_profile"]["budget_enforcement_mode"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
     assert status["runtime_execution_profile"]["control_plane_separation_state"] == "adaptive"
     assert status["runtime_execution_profile"]["self_improvement_rd_candidate"] == "hybrid_governance_feedback_loop"
     assert status["runtime_execution_profile"]["approval_checkpoint_policy"] == "conditional"
+    assert status["runtime_execution_profile"]["budget_enforcement_mode"] == "soft_cap"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
     assert expected["summary"]["low_completion_areas"] >= 1
@@ -53,7 +55,7 @@ def test_completion_snapshot_surface_parity():
     dynamic_chain = next(
         item for item in expected["areas"] if item["area"] == "dynamic_chain_test_coverage"
     )
-    assert dynamic_chain["percent"] == 91
+    assert dynamic_chain["percent"] == 92
 
 
 def test_runtime_execution_profile_mode_derivation():
@@ -73,6 +75,7 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["control_plane_separation_state"] == "enforced"
     assert strict["self_improvement_rd_candidate"] == "governed_policy_tuning_loop"
     assert strict["approval_checkpoint_policy"] == "mandatory"
+    assert strict["budget_enforcement_mode"] == "hard_cap"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
     assert dynamic["execution_profile_source"] == "onboarding"
@@ -80,4 +83,5 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["control_plane_separation_state"] == "relaxed"
     assert dynamic["self_improvement_rd_candidate"] == "autonomous_feedback_acceleration_loop"
     assert dynamic["approval_checkpoint_policy"] == "on_demand"
+    assert dynamic["budget_enforcement_mode"] == "user_tunable"
     assert dynamic["audit_requirements"] == "minimal"
