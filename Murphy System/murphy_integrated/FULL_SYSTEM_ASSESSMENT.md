@@ -329,7 +329,7 @@ This update confirms that sections **1-13** remain active and accepted as the op
 34. Added completion average propagation to self-improvement summary outputs and validated metadata-driven/fallback behavior.
 35. Added low-completion area ID propagation to completion snapshots and self-improvement summaries with focused remediation coverage.
 36. Added completion total-area propagation to self-improvement summaries and validated metadata-driven/fallback behavior.
-36. Added completion coverage-ratio propagation to self-improvement summaries and validated metadata-driven/fallback behavior.
+37. Added completion coverage-ratio propagation to self-improvement summaries and validated metadata-driven/fallback behavior.
 
 **Current completion percentage snapshot (section 9, this iteration):**
 - Execution wiring (gate + swarm + orchestrator): **47%**
