@@ -98,3 +98,4 @@ def test_translation_deliverable_needs_target_locale():
     assert translation_delivery is not None
     assert translation_delivery.get("status") == "needs_info"
     assert "locale" in translation_delivery.get("gap_action", "").lower()
+    assert "target_locale" not in translation_delivery.get("translation", {})

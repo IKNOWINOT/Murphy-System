@@ -4515,6 +4515,7 @@ class MurphySystem:
                 )
                 return None
         selected_connector = sorted(connectors, key=lambda connector: connector["id"])[0]
+        # Prefer translation_source_locale for clarity; source_locale remains as a legacy alias.
         source_locale = (
             params.get("translation_source_locale")
             or params.get("source_locale")
@@ -4529,15 +4530,17 @@ class MurphySystem:
         if not text:
             text = self._truncate_description(task_description)
         status = "queued" if target_locale else "needs_info"
+        translation_payload = {
+            "text": text,
+            "source_locale": source_locale
+        }
+        if target_locale:
+            translation_payload["target_locale"] = target_locale
         deliverable = {
             "type": "translation",
             "status": status,
             "connector_id": selected_connector["id"],
-            "translation": {
-                "text": text,
-                "source_locale": source_locale,
-                "target_locale": target_locale
-            }
+            "translation": translation_payload
         }
         if status == "needs_info":
             deliverable["gap_action"] = "Provide target locale to queue translation delivery."
