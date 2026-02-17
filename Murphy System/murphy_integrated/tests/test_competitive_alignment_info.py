@@ -36,5 +36,6 @@ def test_competitive_feature_alignment_summary_in_system_info():
     assert alignment_summary["available"] + alignment_summary["partial"] + alignment_summary["missing"] == alignment_summary["total"]
     assert info["module_registry_summary"]["total_available"] >= info["module_registry_summary"]["core_expected"]
     assert info["module_registry_summary"] == murphy._build_module_registry_summary()
+    assert info["module_registry_summary"] == murphy.get_system_status()["module_registry_summary"]
     assert info["module_registry_summary"]["core_registered"] == info["module_registry_summary"]["core_expected"]
     assert info["module_registry_summary"]["core_missing"] == []
