@@ -5137,39 +5137,47 @@ class MurphySystem:
         task_description: str,
         onboarding_context: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        context = onboarding_context or {}
-        answers = context.get("answers") if isinstance(context, dict) else None
-        if isinstance(answers, dict):
-            source = {**context, **answers}
-        else:
-            source = context if isinstance(context, dict) else {}
+        context = onboarding_context if isinstance(onboarding_context, dict) else {}
+        answers = context.get("answers")
+        source = {**context, **answers} if isinstance(answers, dict) else context
         text = f"{task_description} {source}".lower()
         explicit_mode = str(source.get("execution_mode", "")).lower()
         safety_level = str(source.get("safety_level", source.get("risk_level", "standard"))).lower()
         risk_tolerance = str(source.get("risk_tolerance", "moderate")).lower()
         autonomy_level = str(source.get("autonomy_level", source.get("autonomy_preferences", "balanced"))).lower()
+        strict_tokens = {"strict", "regulated", "compliance", "low risk", "conservative"}
+        dynamic_tokens = {"dynamic", "high autonomy", "production mode", "fast mode"}
+        strict_signal = (
+            any(token in text for token in strict_tokens)
+            or safety_level in {"high", "strict"}
+            or risk_tolerance in {"low", "conservative"}
+        )
+        dynamic_signal = (
+            any(token in text for token in dynamic_tokens)
+            or autonomy_level in {"high", "dynamic"}
+        )
         if explicit_mode in {"strict", "balanced", "dynamic"}:
             mode = explicit_mode
-        elif any(token in text for token in ["strict", "regulated", "compliance", "low risk", "conservative"]) or safety_level in {"high", "strict"} or risk_tolerance in {"low", "conservative"}:
+        elif strict_signal:
             mode = "strict"
-        elif any(token in text for token in ["dynamic", "high autonomy", "production mode", "fast mode"]) or autonomy_level in {"high", "dynamic"}:
+        elif dynamic_signal:
             mode = "dynamic"
         else:
             mode = "balanced"
         escalation_policy = source.get("escalation_policy")
         if not escalation_policy:
-            escalation_policy = (
-                "mandatory" if mode == "strict"
-                else "selective" if mode == "balanced"
-                else "on_exception"
-            )
+            escalation_policy = {
+                "strict": "mandatory",
+                "balanced": "selective",
+                "dynamic": "on_exception"
+            }.get(mode, "selective")
         audit_requirements = source.get("audit_requirements")
         if not audit_requirements:
-            audit_requirements = (
-                "full" if mode == "strict"
-                else "standard" if mode == "balanced"
-                else "minimal"
-            )
+            audit_requirements = {
+                "strict": "full",
+                "balanced": "standard",
+                "dynamic": "minimal"
+            }.get(mode, "standard")
         return {
             "execution_mode": mode,
             "safety_level": safety_level,
