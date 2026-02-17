@@ -1646,14 +1646,14 @@ class MurphySystem:
         )
         latest_export = export_files[-1].name if export_files else None
         export_status = "ready" if export_files else "empty"
+        reason = "Audit exports available." if export_files else "No audit exports available."
         snapshot = {
             "status": export_status,
             "supported_formats": supported_formats,
             "export_count": len(export_files),
-            "latest_export": latest_export
+            "latest_export": latest_export,
+            "reason": reason
         }
-        if not export_files:
-            snapshot["reason"] = "No audit exports available."
         return snapshot
 
     def _build_persistence_replay_snapshot(self, snapshot_index: Dict[str, Any]) -> Dict[str, Any]:
