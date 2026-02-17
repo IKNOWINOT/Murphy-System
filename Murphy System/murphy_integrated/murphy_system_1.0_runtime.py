@@ -4999,7 +4999,7 @@ class MurphySystem:
             area for area in completion_snapshot.get("areas", [])
             if area.get("percent", 0) < threshold
         ]
-        total_areas = int(completion_snapshot.get("summary", {}).get("total_areas", len(completion_snapshot.get("areas", [])) or 0))
+        total_areas = int(completion_snapshot.get("summary", {}).get("total_areas", len(completion_snapshot.get("areas", []))))
         summary["completion_gaps"] = len(completion_gap_areas)
         summary["completion_gap_areas"] = [area.get("area") for area in completion_gap_areas]
         summary["completion_coverage_ratio"] = (
