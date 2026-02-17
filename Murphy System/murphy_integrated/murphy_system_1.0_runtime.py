@@ -277,6 +277,7 @@ class MurphySystem:
     COMPLIANCE_BLOCKED_STATES = {"blocked", "failed", "denied"}
     COMPLIANCE_PENDING_STATES = {"pending", "review", "queued"}
     VALID_DELIVERY_CHANNELS = {"document", "email", "chat", "voice", "translation", "unknown"}
+    DEFAULT_TRANSLATION_SOURCE_LOCALE = "auto"
     PERSISTENCE_DIR_ENV = "MURPHY_PERSISTENCE_DIR"
     PERSISTENCE_SNAPSHOT_PREFIX = "activation_snapshot"
     AUDIT_EXPORT_PREFIX = "audit_export"
@@ -4514,7 +4515,11 @@ class MurphySystem:
                 )
                 return None
         selected_connector = sorted(connectors, key=lambda connector: connector["id"])[0]
-        source_locale = params.get("translation_source_locale") or params.get("source_locale") or "auto"
+        source_locale = (
+            params.get("translation_source_locale")
+            or params.get("source_locale")
+            or self.DEFAULT_TRANSLATION_SOURCE_LOCALE
+        )
         target_locale = (
             params.get("translation_target_locale")
             or params.get("target_locale")
