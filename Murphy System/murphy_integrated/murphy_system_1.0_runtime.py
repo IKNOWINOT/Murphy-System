@@ -5247,6 +5247,11 @@ class MurphySystem:
             "balanced": "policy_bounded_delegation",
             "dynamic": "adaptive_delegation_with_caps"
         }.get(mode, "policy_bounded_delegation")
+        execution_broker_policy = {
+            "strict": "broker_hard_gate",
+            "balanced": "broker_policy_guarded",
+            "dynamic": "broker_adaptive_guardrailed"
+        }.get(mode, "broker_policy_guarded")
         return {
             "execution_mode": mode,
             "execution_profile_source": execution_profile_source,
@@ -5263,6 +5268,7 @@ class MurphySystem:
             "policy_compiler_mode": policy_compiler_mode,
             "permission_validation_policy": permission_validation_policy,
             "delegation_scope_policy": delegation_scope_policy,
+            "execution_broker_policy": execution_broker_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
             "budget_constraints": source.get("budget_constraints", source.get("budget_ceiling", "standard")),
