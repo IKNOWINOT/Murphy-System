@@ -5302,6 +5302,11 @@ class MurphySystem:
             "balanced": "hr_admin_ui_with_policy_api",
             "dynamic": "hr_admin_ui_plus_delegated_api_with_audit"
         }.get(mode, "hr_admin_ui_with_policy_api")
+        employee_contract_accountability_policy = {
+            "strict": "contract_obligation_attestation_required",
+            "balanced": "contract_obligation_attestation_guided",
+            "dynamic": "contract_obligation_attestation_adaptive"
+        }.get(mode, "contract_obligation_attestation_guided")
         return {
             "execution_mode": mode,
             "execution_profile_source": execution_profile_source,
@@ -5329,6 +5334,7 @@ class MurphySystem:
             "user_base_management_surface_policy": user_base_management_surface_policy,
             "employee_contract_change_authority_policy": employee_contract_change_authority_policy,
             "employee_contract_management_surface_policy": employee_contract_management_surface_policy,
+            "employee_contract_accountability_policy": employee_contract_accountability_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
             "budget_constraints": source.get("budget_constraints", source.get("budget_ceiling", "standard")),

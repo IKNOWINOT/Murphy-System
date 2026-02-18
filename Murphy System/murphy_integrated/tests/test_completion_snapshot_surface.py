@@ -60,6 +60,7 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["user_base_management_surface_policy"] == status["runtime_execution_profile"]["user_base_management_surface_policy"]
     assert preview["runtime_execution_profile"]["employee_contract_change_authority_policy"] == status["runtime_execution_profile"]["employee_contract_change_authority_policy"]
     assert preview["runtime_execution_profile"]["employee_contract_management_surface_policy"] == status["runtime_execution_profile"]["employee_contract_management_surface_policy"]
+    assert preview["runtime_execution_profile"]["employee_contract_accountability_policy"] == status["runtime_execution_profile"]["employee_contract_accountability_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
     assert status["runtime_execution_profile"]["control_plane_separation_state"] == "adaptive"
@@ -85,6 +86,7 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["user_base_management_surface_policy"] == "admin_ui_with_policy_api"
     assert status["runtime_execution_profile"]["employee_contract_change_authority_policy"] == "policy_scoped_manager_plus_hr_approval"
     assert status["runtime_execution_profile"]["employee_contract_management_surface_policy"] == "hr_admin_ui_with_policy_api"
+    assert status["runtime_execution_profile"]["employee_contract_accountability_policy"] == "contract_obligation_attestation_guided"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
     assert expected["summary"]["low_completion_areas"] >= 1
@@ -133,6 +135,7 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["user_base_management_surface_policy"] == "admin_ui_only"
     assert strict["employee_contract_change_authority_policy"] == "hr_admin_approval_required"
     assert strict["employee_contract_management_surface_policy"] == "hr_admin_ui_only"
+    assert strict["employee_contract_accountability_policy"] == "contract_obligation_attestation_required"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
     assert dynamic["execution_profile_source"] == "onboarding"
@@ -160,4 +163,5 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["user_base_management_surface_policy"] == "admin_ui_plus_delegated_api_with_audit"
     assert dynamic["employee_contract_change_authority_policy"] == "delegated_manager_updates_with_hr_audit"
     assert dynamic["employee_contract_management_surface_policy"] == "hr_admin_ui_plus_delegated_api_with_audit"
+    assert dynamic["employee_contract_accountability_policy"] == "contract_obligation_attestation_adaptive"
     assert dynamic["audit_requirements"] == "minimal"
