@@ -134,6 +134,7 @@ start_murphy_1.0.bat   # Windows
 - **Architecture expansion planning:** `FULL_SYSTEM_ASSESSMENT.md` section 12 now includes a governed-agentization expansion step covering togglable planning/execution control planes, runtime execution profile compilation, governance-kernel enforcement, phased repository-wide capability mapping, and explicit shadow-agent org-peer/account-management expectations for UI-administered user-base configuration.
 - **Completion percentage snapshot (this iteration):** execution wiring 47%, deterministic+LLM routing 40%, persistence+replay 23%, multi-channel delivery 58%, compliance 38%, operations 22%, UI/testing 70%, dynamic-chain tests 96% (source: `FULL_SYSTEM_ASSESSMENT.md` section 9; runtime completion snapshot aligned after coverage confidence recalibration).
 - **Latest targeted test result:** `tests/test_completion_snapshot_surface.py` — **2 passed, 0 failed**.
+- **Percentage calibration note:** those percentages are intentionally held unless there is category-level end-to-end wiring progress; governance-profile metadata/parity additions alone do not move execution/persistence/delivery/ops percentages.
 ---
 
 ## 🗃️ Repository Index (Database-Style Reference)
