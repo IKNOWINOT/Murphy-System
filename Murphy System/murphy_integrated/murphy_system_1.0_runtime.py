@@ -5282,6 +5282,16 @@ class MurphySystem:
             "balanced": "org_chart_role_and_contract_policy_boundaries",
             "dynamic": "org_chart_role_and_contract_adaptive_boundaries"
         }.get(mode, "org_chart_role_and_contract_policy_boundaries")
+        shadow_agent_account_policy = {
+            "strict": "identity_bound_shadow_accounts",
+            "balanced": "policy_governed_shadow_accounts",
+            "dynamic": "adaptive_shadow_accounts_with_audit"
+        }.get(mode, "policy_governed_shadow_accounts")
+        user_base_management_surface_policy = {
+            "strict": "admin_ui_only",
+            "balanced": "admin_ui_with_policy_api",
+            "dynamic": "admin_ui_plus_delegated_api_with_audit"
+        }.get(mode, "admin_ui_with_policy_api")
         return {
             "execution_mode": mode,
             "execution_profile_source": execution_profile_source,
@@ -5305,6 +5315,8 @@ class MurphySystem:
             "department_memory_isolation_policy": department_memory_isolation_policy,
             "employee_contract_responsibility_policy": employee_contract_responsibility_policy,
             "core_responsibility_scope": core_responsibility_scope,
+            "shadow_agent_account_policy": shadow_agent_account_policy,
+            "user_base_management_surface_policy": user_base_management_surface_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
             "budget_constraints": source.get("budget_constraints", source.get("budget_ceiling", "standard")),
