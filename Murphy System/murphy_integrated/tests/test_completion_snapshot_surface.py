@@ -106,6 +106,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["execution_plane_policy_compiler_enforcement_policy"] == status["runtime_execution_profile"]["execution_plane_policy_compiler_enforcement_policy"]
     assert preview["runtime_execution_profile"]["execution_plane_deterministic_override_policy"] == status["runtime_execution_profile"]["execution_plane_deterministic_override_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_requirement_policy"] == status["runtime_execution_profile"]["hitl_escalation_requirement_policy"]
+    assert preview["runtime_execution_profile"]["shadow_peer_role_enforcement_policy"] == status["runtime_execution_profile"]["shadow_peer_role_enforcement_policy"]
+    assert preview["runtime_execution_profile"]["shadow_account_user_binding_policy"] == status["runtime_execution_profile"]["shadow_account_user_binding_policy"]
+    assert preview["runtime_execution_profile"]["employee_contract_scope_enforcement_policy"] == status["runtime_execution_profile"]["employee_contract_scope_enforcement_policy"]
+    assert preview["runtime_execution_profile"]["employee_contract_exception_review_policy"] == status["runtime_execution_profile"]["employee_contract_exception_review_policy"]
+    assert preview["runtime_execution_profile"]["user_base_tenant_boundary_policy"] == status["runtime_execution_profile"]["user_base_tenant_boundary_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -168,6 +173,11 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["execution_plane_policy_compiler_enforcement_policy"] == "execution_policy_compiler_enforcement_scoped"
     assert status["runtime_execution_profile"]["execution_plane_deterministic_override_policy"] == "deterministic_override_policy_scoped"
     assert status["runtime_execution_profile"]["hitl_escalation_requirement_policy"] == "hitl_escalation_requirement_policy_guided"
+    assert status["runtime_execution_profile"]["shadow_peer_role_enforcement_policy"] == "shadow_peer_role_enforcement_policy_guided"
+    assert status["runtime_execution_profile"]["shadow_account_user_binding_policy"] == "shadow_account_user_binding_policy_guided"
+    assert status["runtime_execution_profile"]["employee_contract_scope_enforcement_policy"] == "employee_contract_scope_enforcement_policy_guided"
+    assert status["runtime_execution_profile"]["employee_contract_exception_review_policy"] == "employee_contract_exception_review_policy_guided"
+    assert status["runtime_execution_profile"]["user_base_tenant_boundary_policy"] == "user_base_tenant_boundary_policy_scoped"
     assert status["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_policy_guided"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
@@ -263,6 +273,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["execution_plane_policy_compiler_enforcement_policy"] == "execution_policy_compiler_enforcement_required"
     assert strict["execution_plane_deterministic_override_policy"] == "deterministic_override_required_for_high_risk"
     assert strict["hitl_escalation_requirement_policy"] == "hitl_escalation_requirement_hard"
+    assert strict["shadow_peer_role_enforcement_policy"] == "shadow_peer_role_enforcement_mandatory"
+    assert strict["shadow_account_user_binding_policy"] == "shadow_account_user_binding_mandatory"
+    assert strict["employee_contract_scope_enforcement_policy"] == "employee_contract_scope_enforcement_required"
+    assert strict["employee_contract_exception_review_policy"] == "employee_contract_exception_review_mandatory"
+    assert strict["user_base_tenant_boundary_policy"] == "user_base_tenant_boundary_enforcement_required"
     assert strict["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_hard"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
@@ -337,5 +352,10 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["execution_plane_policy_compiler_enforcement_policy"] == "execution_policy_compiler_enforcement_adaptive_with_audit"
     assert dynamic["execution_plane_deterministic_override_policy"] == "deterministic_override_adaptive_with_audit"
     assert dynamic["hitl_escalation_requirement_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
+    assert dynamic["shadow_peer_role_enforcement_policy"] == "shadow_peer_role_enforcement_adaptive_with_audit"
+    assert dynamic["shadow_account_user_binding_policy"] == "shadow_account_user_binding_adaptive_with_audit"
+    assert dynamic["employee_contract_scope_enforcement_policy"] == "employee_contract_scope_enforcement_adaptive_with_audit"
+    assert dynamic["employee_contract_exception_review_policy"] == "employee_contract_exception_review_adaptive_with_audit"
+    assert dynamic["user_base_tenant_boundary_policy"] == "user_base_tenant_boundary_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"
