@@ -111,6 +111,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["employee_contract_scope_enforcement_policy"] == status["runtime_execution_profile"]["employee_contract_scope_enforcement_policy"]
     assert preview["runtime_execution_profile"]["employee_contract_exception_review_policy"] == status["runtime_execution_profile"]["employee_contract_exception_review_policy"]
     assert preview["runtime_execution_profile"]["user_base_tenant_boundary_policy"] == status["runtime_execution_profile"]["user_base_tenant_boundary_policy"]
+    assert preview["runtime_execution_profile"]["compliance_event_escalation_policy"] == status["runtime_execution_profile"]["compliance_event_escalation_policy"]
+    assert preview["runtime_execution_profile"]["regulatory_override_resolution_policy"] == status["runtime_execution_profile"]["regulatory_override_resolution_policy"]
+    assert preview["runtime_execution_profile"]["budget_ceiling_revision_policy"] == status["runtime_execution_profile"]["budget_ceiling_revision_policy"]
+    assert preview["runtime_execution_profile"]["budget_consumption_alert_policy"] == status["runtime_execution_profile"]["budget_consumption_alert_policy"]
+    assert preview["runtime_execution_profile"]["approval_checkpoint_timeout_policy"] == status["runtime_execution_profile"]["approval_checkpoint_timeout_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -278,6 +283,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["employee_contract_scope_enforcement_policy"] == "employee_contract_scope_enforcement_required"
     assert strict["employee_contract_exception_review_policy"] == "employee_contract_exception_review_mandatory"
     assert strict["user_base_tenant_boundary_policy"] == "user_base_tenant_boundary_enforcement_required"
+    assert strict["compliance_event_escalation_policy"] == "compliance_event_escalation_immediate"
+    assert strict["regulatory_override_resolution_policy"] == "regulatory_override_resolution_manual_only"
+    assert strict["budget_ceiling_revision_policy"] == "budget_ceiling_revision_manual_approval_only"
+    assert strict["budget_consumption_alert_policy"] == "budget_consumption_alert_realtime_required"
+    assert strict["approval_checkpoint_timeout_policy"] == "approval_checkpoint_timeout_hard_stop"
     assert strict["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_hard"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
@@ -357,5 +367,10 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["employee_contract_scope_enforcement_policy"] == "employee_contract_scope_enforcement_adaptive_with_audit"
     assert dynamic["employee_contract_exception_review_policy"] == "employee_contract_exception_review_adaptive_with_audit"
     assert dynamic["user_base_tenant_boundary_policy"] == "user_base_tenant_boundary_adaptive_with_audit"
+    assert dynamic["compliance_event_escalation_policy"] == "compliance_event_escalation_adaptive_with_audit"
+    assert dynamic["regulatory_override_resolution_policy"] == "regulatory_override_resolution_adaptive_with_audit"
+    assert dynamic["budget_ceiling_revision_policy"] == "budget_ceiling_revision_adaptive_with_audit"
+    assert dynamic["budget_consumption_alert_policy"] == "budget_consumption_alert_adaptive_with_audit"
+    assert dynamic["approval_checkpoint_timeout_policy"] == "approval_checkpoint_timeout_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"
