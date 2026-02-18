@@ -724,7 +724,7 @@ class MurphySystem:
         "compliance_validation": 38,
         "operational_automation": 22,
         "ui_user_testing": 70,
-        "dynamic_chain_test_coverage": 99
+        "dynamic_chain_test_coverage": 100
     }
     COMPLETION_REMEDIATION_THRESHOLD_PERCENT = 50
     # Phrase tokens intentionally rely on substring matching against normalized text.
@@ -5242,6 +5242,11 @@ class MurphySystem:
             "balanced": "policy_guided_validation",
             "dynamic": "adaptive_validation_with_bounds"
         }.get(mode, "policy_guided_validation")
+        delegation_scope_policy = {
+            "strict": "role_bound_delegation_only",
+            "balanced": "policy_bounded_delegation",
+            "dynamic": "adaptive_delegation_with_caps"
+        }.get(mode, "policy_bounded_delegation")
         return {
             "execution_mode": mode,
             "execution_profile_source": execution_profile_source,
@@ -5257,6 +5262,7 @@ class MurphySystem:
             "compute_routing_policy": compute_routing_policy,
             "policy_compiler_mode": policy_compiler_mode,
             "permission_validation_policy": permission_validation_policy,
+            "delegation_scope_policy": delegation_scope_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
             "budget_constraints": source.get("budget_constraints", source.get("budget_ceiling", "standard")),
