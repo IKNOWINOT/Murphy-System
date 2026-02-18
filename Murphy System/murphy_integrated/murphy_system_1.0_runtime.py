@@ -5568,6 +5568,31 @@ class MurphySystem:
             "user_base_tenant_boundary_policy_scoped",
             "user_base_tenant_boundary_adaptive_with_audit"
         )
+        compliance_event_escalation_policy = _mode_policy(
+            "compliance_event_escalation_immediate",
+            "compliance_event_escalation_policy_guided",
+            "compliance_event_escalation_adaptive_with_audit"
+        )
+        regulatory_override_resolution_policy = _mode_policy(
+            "regulatory_override_resolution_manual_only",
+            "regulatory_override_resolution_policy_scoped",
+            "regulatory_override_resolution_adaptive_with_audit"
+        )
+        budget_ceiling_revision_policy = _mode_policy(
+            "budget_ceiling_revision_manual_approval_only",
+            "budget_ceiling_revision_policy_scoped",
+            "budget_ceiling_revision_adaptive_with_audit"
+        )
+        budget_consumption_alert_policy = _mode_policy(
+            "budget_consumption_alert_realtime_required",
+            "budget_consumption_alert_policy_guided",
+            "budget_consumption_alert_adaptive_with_audit"
+        )
+        approval_checkpoint_timeout_policy = _mode_policy(
+            "approval_checkpoint_timeout_hard_stop",
+            "approval_checkpoint_timeout_policy_scoped",
+            "approval_checkpoint_timeout_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -5647,6 +5672,11 @@ class MurphySystem:
             "employee_contract_scope_enforcement_policy": employee_contract_scope_enforcement_policy,
             "employee_contract_exception_review_policy": employee_contract_exception_review_policy,
             "user_base_tenant_boundary_policy": user_base_tenant_boundary_policy,
+            "compliance_event_escalation_policy": compliance_event_escalation_policy,
+            "regulatory_override_resolution_policy": regulatory_override_resolution_policy,
+            "budget_ceiling_revision_policy": budget_ceiling_revision_policy,
+            "budget_consumption_alert_policy": budget_consumption_alert_policy,
+            "approval_checkpoint_timeout_policy": approval_checkpoint_timeout_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
