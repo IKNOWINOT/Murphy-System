@@ -5267,6 +5267,11 @@ class MurphySystem:
             "balanced": "policy_scored_arbitration",
             "dynamic": "adaptive_arbitration_with_audit"
         }.get(mode, "policy_scored_arbitration")
+        department_memory_isolation_policy = {
+            "strict": "strict_department_isolation",
+            "balanced": "policy_scoped_isolation",
+            "dynamic": "adaptive_isolation_with_audit"
+        }.get(mode, "policy_scoped_isolation")
         return {
             "execution_mode": mode,
             "execution_profile_source": execution_profile_source,
@@ -5287,6 +5292,7 @@ class MurphySystem:
             "role_registry_policy": role_registry_policy,
             "authority_boundary_policy": authority_boundary_policy,
             "cross_department_arbitration_policy": cross_department_arbitration_policy,
+            "department_memory_isolation_policy": department_memory_isolation_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
             "budget_constraints": source.get("budget_constraints", source.get("budget_ceiling", "standard")),

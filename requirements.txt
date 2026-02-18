@@ -1,4 +1,4 @@
 # Root requirements entrypoint.
 # Use this from the repository root:
 #   python -m pip install -r requirements.txt
--r Murphy System/requirements.txt
+-r "Murphy System/requirements.txt"
