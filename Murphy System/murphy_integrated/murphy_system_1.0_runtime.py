@@ -5543,6 +5543,31 @@ class MurphySystem:
             "hitl_escalation_requirement_policy_guided",
             "hitl_escalation_requirement_adaptive_with_audit"
         )
+        shadow_peer_role_enforcement_policy = _mode_policy(
+            "shadow_peer_role_enforcement_mandatory",
+            "shadow_peer_role_enforcement_policy_guided",
+            "shadow_peer_role_enforcement_adaptive_with_audit"
+        )
+        shadow_account_user_binding_policy = _mode_policy(
+            "shadow_account_user_binding_mandatory",
+            "shadow_account_user_binding_policy_guided",
+            "shadow_account_user_binding_adaptive_with_audit"
+        )
+        employee_contract_scope_enforcement_policy = _mode_policy(
+            "employee_contract_scope_enforcement_required",
+            "employee_contract_scope_enforcement_policy_guided",
+            "employee_contract_scope_enforcement_adaptive_with_audit"
+        )
+        employee_contract_exception_review_policy = _mode_policy(
+            "employee_contract_exception_review_mandatory",
+            "employee_contract_exception_review_policy_guided",
+            "employee_contract_exception_review_adaptive_with_audit"
+        )
+        user_base_tenant_boundary_policy = _mode_policy(
+            "user_base_tenant_boundary_enforcement_required",
+            "user_base_tenant_boundary_policy_scoped",
+            "user_base_tenant_boundary_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -5617,6 +5642,11 @@ class MurphySystem:
             "execution_plane_policy_compiler_enforcement_policy": execution_plane_policy_compiler_enforcement_policy,
             "execution_plane_deterministic_override_policy": execution_plane_deterministic_override_policy,
             "hitl_escalation_requirement_policy": hitl_escalation_requirement_policy,
+            "shadow_peer_role_enforcement_policy": shadow_peer_role_enforcement_policy,
+            "shadow_account_user_binding_policy": shadow_account_user_binding_policy,
+            "employee_contract_scope_enforcement_policy": employee_contract_scope_enforcement_policy,
+            "employee_contract_exception_review_policy": employee_contract_exception_review_policy,
+            "user_base_tenant_boundary_policy": user_base_tenant_boundary_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
