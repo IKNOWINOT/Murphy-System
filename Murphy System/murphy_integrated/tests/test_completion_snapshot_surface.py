@@ -126,6 +126,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["approval_sla_enforcement_policy"] == status["runtime_execution_profile"]["approval_sla_enforcement_policy"]
     assert preview["runtime_execution_profile"]["tenant_residency_control_policy"] == status["runtime_execution_profile"]["tenant_residency_control_policy"]
     assert preview["runtime_execution_profile"]["swarm_recursion_guard_policy"] == status["runtime_execution_profile"]["swarm_recursion_guard_policy"]
+    assert preview["runtime_execution_profile"]["contract_renewal_gate_policy"] == status["runtime_execution_profile"]["contract_renewal_gate_policy"]
+    assert preview["runtime_execution_profile"]["shadow_account_suspension_policy"] == status["runtime_execution_profile"]["shadow_account_suspension_policy"]
+    assert preview["runtime_execution_profile"]["user_base_offboarding_policy"] == status["runtime_execution_profile"]["user_base_offboarding_policy"]
+    assert preview["runtime_execution_profile"]["governance_kernel_heartbeat_policy"] == status["runtime_execution_profile"]["governance_kernel_heartbeat_policy"]
+    assert preview["runtime_execution_profile"]["policy_compiler_change_control_policy"] == status["runtime_execution_profile"]["policy_compiler_change_control_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -313,6 +318,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["approval_sla_enforcement_policy"] == "approval_sla_enforcement_hard_deadline"
     assert strict["tenant_residency_control_policy"] == "tenant_residency_control_hard_enforced"
     assert strict["swarm_recursion_guard_policy"] == "swarm_recursion_guard_hard_limit"
+    assert strict["contract_renewal_gate_policy"] == "contract_renewal_gate_required"
+    assert strict["shadow_account_suspension_policy"] == "shadow_account_suspension_manual_approval_required"
+    assert strict["user_base_offboarding_policy"] == "user_base_offboarding_workflow_required"
+    assert strict["governance_kernel_heartbeat_policy"] == "governance_kernel_heartbeat_hard_monitoring"
+    assert strict["policy_compiler_change_control_policy"] == "policy_compiler_change_control_manual_review_required"
     assert strict["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_hard"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
@@ -407,5 +417,10 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["approval_sla_enforcement_policy"] == "approval_sla_enforcement_adaptive_with_audit"
     assert dynamic["tenant_residency_control_policy"] == "tenant_residency_control_adaptive_with_audit"
     assert dynamic["swarm_recursion_guard_policy"] == "swarm_recursion_guard_adaptive_with_audit"
+    assert dynamic["contract_renewal_gate_policy"] == "contract_renewal_gate_adaptive_with_audit"
+    assert dynamic["shadow_account_suspension_policy"] == "shadow_account_suspension_adaptive_with_audit"
+    assert dynamic["user_base_offboarding_policy"] == "user_base_offboarding_adaptive_with_audit"
+    assert dynamic["governance_kernel_heartbeat_policy"] == "governance_kernel_heartbeat_adaptive_with_audit"
+    assert dynamic["policy_compiler_change_control_policy"] == "policy_compiler_change_control_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"
