@@ -81,6 +81,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["retry_backoff_policy"] == status["runtime_execution_profile"]["retry_backoff_policy"]
     assert preview["runtime_execution_profile"]["circuit_breaker_policy"] == status["runtime_execution_profile"]["circuit_breaker_policy"]
     assert preview["runtime_execution_profile"]["rollback_recovery_policy"] == status["runtime_execution_profile"]["rollback_recovery_policy"]
+    assert preview["runtime_execution_profile"]["planning_plane_decomposition_policy"] == status["runtime_execution_profile"]["planning_plane_decomposition_policy"]
+    assert preview["runtime_execution_profile"]["planning_plane_risk_simulation_policy"] == status["runtime_execution_profile"]["planning_plane_risk_simulation_policy"]
+    assert preview["runtime_execution_profile"]["execution_plane_permission_gate_policy"] == status["runtime_execution_profile"]["execution_plane_permission_gate_policy"]
+    assert preview["runtime_execution_profile"]["execution_plane_budget_guardrail_policy"] == status["runtime_execution_profile"]["execution_plane_budget_guardrail_policy"]
+    assert preview["runtime_execution_profile"]["execution_plane_audit_trail_integrity_policy"] == status["runtime_execution_profile"]["execution_plane_audit_trail_integrity_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
     assert status["runtime_execution_profile"]["control_plane_separation_state"] == "adaptive"
@@ -127,6 +132,11 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["retry_backoff_policy"] == "policy_scoped_retry_backoff"
     assert status["runtime_execution_profile"]["circuit_breaker_policy"] == "circuit_breaker_policy_guarded"
     assert status["runtime_execution_profile"]["rollback_recovery_policy"] == "policy_scoped_rollback_recovery"
+    assert status["runtime_execution_profile"]["planning_plane_decomposition_policy"] == "policy_guided_decomposition"
+    assert status["runtime_execution_profile"]["planning_plane_risk_simulation_policy"] == "risk_simulation_policy_guided"
+    assert status["runtime_execution_profile"]["execution_plane_permission_gate_policy"] == "permission_gates_policy_guided"
+    assert status["runtime_execution_profile"]["execution_plane_budget_guardrail_policy"] == "policy_scoped_budget_guardrails"
+    assert status["runtime_execution_profile"]["execution_plane_audit_trail_integrity_policy"] == "governed_audit_trail_integrity"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
     assert expected["summary"]["low_completion_areas"] >= 1
@@ -196,6 +206,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["retry_backoff_policy"] == "bounded_retry_with_manual_escalation"
     assert strict["circuit_breaker_policy"] == "circuit_breaker_hard_fail_closed"
     assert strict["rollback_recovery_policy"] == "rollback_required_on_policy_breach"
+    assert strict["planning_plane_decomposition_policy"] == "hierarchical_decomposition_mandatory"
+    assert strict["planning_plane_risk_simulation_policy"] == "risk_simulation_required_before_execution"
+    assert strict["execution_plane_permission_gate_policy"] == "permission_gates_required"
+    assert strict["execution_plane_budget_guardrail_policy"] == "hard_budget_guardrails"
+    assert strict["execution_plane_audit_trail_integrity_policy"] == "immutable_audit_trail_required"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
     assert dynamic["execution_profile_source"] == "onboarding"
@@ -244,4 +259,9 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["retry_backoff_policy"] == "adaptive_retry_backoff_with_guardrails"
     assert dynamic["circuit_breaker_policy"] == "circuit_breaker_adaptive_with_audit"
     assert dynamic["rollback_recovery_policy"] == "adaptive_rollback_recovery_with_audit"
+    assert dynamic["planning_plane_decomposition_policy"] == "adaptive_decomposition_with_audit"
+    assert dynamic["planning_plane_risk_simulation_policy"] == "adaptive_risk_simulation_with_audit"
+    assert dynamic["execution_plane_permission_gate_policy"] == "adaptive_permission_gates_with_audit"
+    assert dynamic["execution_plane_budget_guardrail_policy"] == "adaptive_budget_guardrails_with_audit"
+    assert dynamic["execution_plane_audit_trail_integrity_policy"] == "adaptive_audit_trail_integrity_with_audit"
     assert dynamic["audit_requirements"] == "minimal"
