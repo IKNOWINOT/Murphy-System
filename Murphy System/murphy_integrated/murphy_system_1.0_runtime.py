@@ -5368,6 +5368,31 @@ class MurphySystem:
             "delegation_comfort_policy_bounds",
             "delegation_comfort_adaptive_bounds"
         )
+        employee_contract_review_policy = _mode_policy(
+            "hr_legal_review_mandatory",
+            "hr_review_policy_guided",
+            "adaptive_hr_review_with_audit"
+        )
+        employee_contract_versioning_policy = _mode_policy(
+            "immutable_contract_version_history",
+            "governed_contract_version_history",
+            "adaptive_contract_version_history_with_audit"
+        )
+        shadow_agent_account_lifecycle_policy = _mode_policy(
+            "hr_controlled_shadow_lifecycle",
+            "policy_guided_shadow_lifecycle",
+            "adaptive_shadow_lifecycle_with_audit"
+        )
+        user_base_ui_audit_policy = _mode_policy(
+            "immutable_ui_audit_stream",
+            "governed_ui_audit_stream",
+            "sampled_ui_audit_stream_with_escalation"
+        )
+        org_chart_assignment_sync_policy = _mode_policy(
+            "mandatory_org_chart_sync_before_execution",
+            "policy_scoped_org_chart_sync",
+            "adaptive_org_chart_sync_with_audit"
+        )
         return {
             "execution_mode": mode,
             "execution_profile_source": execution_profile_source,
@@ -5406,6 +5431,11 @@ class MurphySystem:
             "risk_tolerance_enforcement_policy": risk_tolerance_enforcement_policy,
             "safety_level_assurance_policy": safety_level_assurance_policy,
             "delegation_comfort_governance_policy": delegation_comfort_governance_policy,
+            "employee_contract_review_policy": employee_contract_review_policy,
+            "employee_contract_versioning_policy": employee_contract_versioning_policy,
+            "shadow_agent_account_lifecycle_policy": shadow_agent_account_lifecycle_policy,
+            "user_base_ui_audit_policy": user_base_ui_audit_policy,
+            "org_chart_assignment_sync_policy": org_chart_assignment_sync_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
             "budget_constraints": source.get("budget_constraints", source.get("budget_ceiling", "standard")),

@@ -71,6 +71,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["risk_tolerance_enforcement_policy"] == status["runtime_execution_profile"]["risk_tolerance_enforcement_policy"]
     assert preview["runtime_execution_profile"]["safety_level_assurance_policy"] == status["runtime_execution_profile"]["safety_level_assurance_policy"]
     assert preview["runtime_execution_profile"]["delegation_comfort_governance_policy"] == status["runtime_execution_profile"]["delegation_comfort_governance_policy"]
+    assert preview["runtime_execution_profile"]["employee_contract_review_policy"] == status["runtime_execution_profile"]["employee_contract_review_policy"]
+    assert preview["runtime_execution_profile"]["employee_contract_versioning_policy"] == status["runtime_execution_profile"]["employee_contract_versioning_policy"]
+    assert preview["runtime_execution_profile"]["shadow_agent_account_lifecycle_policy"] == status["runtime_execution_profile"]["shadow_agent_account_lifecycle_policy"]
+    assert preview["runtime_execution_profile"]["user_base_ui_audit_policy"] == status["runtime_execution_profile"]["user_base_ui_audit_policy"]
+    assert preview["runtime_execution_profile"]["org_chart_assignment_sync_policy"] == status["runtime_execution_profile"]["org_chart_assignment_sync_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
     assert status["runtime_execution_profile"]["control_plane_separation_state"] == "adaptive"
@@ -107,6 +112,11 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["risk_tolerance_enforcement_policy"] == "risk_tolerance_policy_scored"
     assert status["runtime_execution_profile"]["safety_level_assurance_policy"] == "safety_level_attestation_guided"
     assert status["runtime_execution_profile"]["delegation_comfort_governance_policy"] == "delegation_comfort_policy_bounds"
+    assert status["runtime_execution_profile"]["employee_contract_review_policy"] == "hr_review_policy_guided"
+    assert status["runtime_execution_profile"]["employee_contract_versioning_policy"] == "governed_contract_version_history"
+    assert status["runtime_execution_profile"]["shadow_agent_account_lifecycle_policy"] == "policy_guided_shadow_lifecycle"
+    assert status["runtime_execution_profile"]["user_base_ui_audit_policy"] == "governed_ui_audit_stream"
+    assert status["runtime_execution_profile"]["org_chart_assignment_sync_policy"] == "policy_scoped_org_chart_sync"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
     assert expected["summary"]["low_completion_areas"] >= 1
@@ -166,6 +176,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["risk_tolerance_enforcement_policy"] == "low_risk_mandatory_enforcement"
     assert strict["safety_level_assurance_policy"] == "safety_level_attestation_required"
     assert strict["delegation_comfort_governance_policy"] == "delegation_comfort_hard_limits"
+    assert strict["employee_contract_review_policy"] == "hr_legal_review_mandatory"
+    assert strict["employee_contract_versioning_policy"] == "immutable_contract_version_history"
+    assert strict["shadow_agent_account_lifecycle_policy"] == "hr_controlled_shadow_lifecycle"
+    assert strict["user_base_ui_audit_policy"] == "immutable_ui_audit_stream"
+    assert strict["org_chart_assignment_sync_policy"] == "mandatory_org_chart_sync_before_execution"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
     assert dynamic["execution_profile_source"] == "onboarding"
@@ -204,4 +219,9 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["risk_tolerance_enforcement_policy"] == "risk_tolerance_adaptive_with_caps"
     assert dynamic["safety_level_assurance_policy"] == "safety_level_attestation_adaptive"
     assert dynamic["delegation_comfort_governance_policy"] == "delegation_comfort_adaptive_bounds"
+    assert dynamic["employee_contract_review_policy"] == "adaptive_hr_review_with_audit"
+    assert dynamic["employee_contract_versioning_policy"] == "adaptive_contract_version_history_with_audit"
+    assert dynamic["shadow_agent_account_lifecycle_policy"] == "adaptive_shadow_lifecycle_with_audit"
+    assert dynamic["user_base_ui_audit_policy"] == "sampled_ui_audit_stream_with_escalation"
+    assert dynamic["org_chart_assignment_sync_policy"] == "adaptive_org_chart_sync_with_audit"
     assert dynamic["audit_requirements"] == "minimal"
