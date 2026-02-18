@@ -54,6 +54,8 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["authority_boundary_policy"] == status["runtime_execution_profile"]["authority_boundary_policy"]
     assert preview["runtime_execution_profile"]["cross_department_arbitration_policy"] == status["runtime_execution_profile"]["cross_department_arbitration_policy"]
     assert preview["runtime_execution_profile"]["department_memory_isolation_policy"] == status["runtime_execution_profile"]["department_memory_isolation_policy"]
+    assert preview["runtime_execution_profile"]["employee_contract_responsibility_policy"] == status["runtime_execution_profile"]["employee_contract_responsibility_policy"]
+    assert preview["runtime_execution_profile"]["core_responsibility_scope"] == status["runtime_execution_profile"]["core_responsibility_scope"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
     assert status["runtime_execution_profile"]["control_plane_separation_state"] == "adaptive"
@@ -73,6 +75,8 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["authority_boundary_policy"] == "policy_scoped_authority_boundaries"
     assert status["runtime_execution_profile"]["cross_department_arbitration_policy"] == "policy_scored_arbitration"
     assert status["runtime_execution_profile"]["department_memory_isolation_policy"] == "policy_scoped_isolation"
+    assert status["runtime_execution_profile"]["employee_contract_responsibility_policy"] == "contract_guided_responsibilities"
+    assert status["runtime_execution_profile"]["core_responsibility_scope"] == "org_chart_role_and_contract_policy_boundaries"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
     assert expected["summary"]["low_completion_areas"] >= 1
@@ -81,7 +85,7 @@ def test_completion_snapshot_surface_parity():
     dynamic_chain = next(
         item for item in expected["areas"] if item["area"] == "dynamic_chain_test_coverage"
     )
-    assert dynamic_chain["percent"] == 100
+    assert dynamic_chain["percent"] == 96
 
 
 def test_runtime_execution_profile_mode_derivation():
@@ -115,6 +119,8 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["authority_boundary_policy"] == "hard_authority_boundaries"
     assert strict["cross_department_arbitration_policy"] == "explicit_executive_arbitration"
     assert strict["department_memory_isolation_policy"] == "strict_department_isolation"
+    assert strict["employee_contract_responsibility_policy"] == "contract_bound_responsibilities_required"
+    assert strict["core_responsibility_scope"] == "org_chart_role_and_contract_hard_boundaries"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
     assert dynamic["execution_profile_source"] == "onboarding"
@@ -136,4 +142,6 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["authority_boundary_policy"] == "adaptive_authority_boundaries_with_audit"
     assert dynamic["cross_department_arbitration_policy"] == "adaptive_arbitration_with_audit"
     assert dynamic["department_memory_isolation_policy"] == "adaptive_isolation_with_audit"
+    assert dynamic["employee_contract_responsibility_policy"] == "contract_aware_adaptive_responsibilities"
+    assert dynamic["core_responsibility_scope"] == "org_chart_role_and_contract_adaptive_boundaries"
     assert dynamic["audit_requirements"] == "minimal"

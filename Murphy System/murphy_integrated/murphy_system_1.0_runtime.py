@@ -724,7 +724,7 @@ class MurphySystem:
         "compliance_validation": 38,
         "operational_automation": 22,
         "ui_user_testing": 70,
-        "dynamic_chain_test_coverage": 100
+        "dynamic_chain_test_coverage": 96
     }
     COMPLETION_REMEDIATION_THRESHOLD_PERCENT = 50
     # Phrase tokens intentionally rely on substring matching against normalized text.
@@ -5272,6 +5272,16 @@ class MurphySystem:
             "balanced": "policy_scoped_isolation",
             "dynamic": "adaptive_isolation_with_audit"
         }.get(mode, "policy_scoped_isolation")
+        employee_contract_responsibility_policy = {
+            "strict": "contract_bound_responsibilities_required",
+            "balanced": "contract_guided_responsibilities",
+            "dynamic": "contract_aware_adaptive_responsibilities"
+        }.get(mode, "contract_guided_responsibilities")
+        core_responsibility_scope = {
+            "strict": "org_chart_role_and_contract_hard_boundaries",
+            "balanced": "org_chart_role_and_contract_policy_boundaries",
+            "dynamic": "org_chart_role_and_contract_adaptive_boundaries"
+        }.get(mode, "org_chart_role_and_contract_policy_boundaries")
         return {
             "execution_mode": mode,
             "execution_profile_source": execution_profile_source,
@@ -5293,6 +5303,8 @@ class MurphySystem:
             "authority_boundary_policy": authority_boundary_policy,
             "cross_department_arbitration_policy": cross_department_arbitration_policy,
             "department_memory_isolation_policy": department_memory_isolation_policy,
+            "employee_contract_responsibility_policy": employee_contract_responsibility_policy,
+            "core_responsibility_scope": core_responsibility_scope,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
             "budget_constraints": source.get("budget_constraints", source.get("budget_ceiling", "standard")),
