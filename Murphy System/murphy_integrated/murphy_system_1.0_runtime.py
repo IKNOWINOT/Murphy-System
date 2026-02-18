@@ -5643,6 +5643,31 @@ class MurphySystem:
             "swarm_recursion_guard_policy_scoped",
             "swarm_recursion_guard_adaptive_with_audit"
         )
+        contract_renewal_gate_policy = _mode_policy(
+            "contract_renewal_gate_required",
+            "contract_renewal_gate_policy_scoped",
+            "contract_renewal_gate_adaptive_with_audit"
+        )
+        shadow_account_suspension_policy = _mode_policy(
+            "shadow_account_suspension_manual_approval_required",
+            "shadow_account_suspension_policy_scoped",
+            "shadow_account_suspension_adaptive_with_audit"
+        )
+        user_base_offboarding_policy = _mode_policy(
+            "user_base_offboarding_workflow_required",
+            "user_base_offboarding_policy_scoped",
+            "user_base_offboarding_adaptive_with_audit"
+        )
+        governance_kernel_heartbeat_policy = _mode_policy(
+            "governance_kernel_heartbeat_hard_monitoring",
+            "governance_kernel_heartbeat_policy_scoped",
+            "governance_kernel_heartbeat_adaptive_with_audit"
+        )
+        policy_compiler_change_control_policy = _mode_policy(
+            "policy_compiler_change_control_manual_review_required",
+            "policy_compiler_change_control_policy_scoped",
+            "policy_compiler_change_control_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -5737,6 +5762,11 @@ class MurphySystem:
             "approval_sla_enforcement_policy": approval_sla_enforcement_policy,
             "tenant_residency_control_policy": tenant_residency_control_policy,
             "swarm_recursion_guard_policy": swarm_recursion_guard_policy,
+            "contract_renewal_gate_policy": contract_renewal_gate_policy,
+            "shadow_account_suspension_policy": shadow_account_suspension_policy,
+            "user_base_offboarding_policy": user_base_offboarding_policy,
+            "governance_kernel_heartbeat_policy": governance_kernel_heartbeat_policy,
+            "policy_compiler_change_control_policy": policy_compiler_change_control_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
