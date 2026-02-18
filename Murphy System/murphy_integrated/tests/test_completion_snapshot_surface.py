@@ -43,6 +43,7 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["budget_enforcement_mode"] == status["runtime_execution_profile"]["budget_enforcement_mode"]
     assert preview["runtime_execution_profile"]["audit_logging_policy"] == status["runtime_execution_profile"]["audit_logging_policy"]
     assert preview["runtime_execution_profile"]["escalation_routing_policy"] == status["runtime_execution_profile"]["escalation_routing_policy"]
+    assert preview["runtime_execution_profile"]["tool_mediation_policy"] == status["runtime_execution_profile"]["tool_mediation_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
     assert status["runtime_execution_profile"]["control_plane_separation_state"] == "adaptive"
@@ -51,6 +52,7 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["budget_enforcement_mode"] == "soft_cap"
     assert status["runtime_execution_profile"]["audit_logging_policy"] == "standard_governance_stream"
     assert status["runtime_execution_profile"]["escalation_routing_policy"] == "policy_scored_chain"
+    assert status["runtime_execution_profile"]["tool_mediation_policy"] == "policy_guarded_mediation"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
     assert expected["summary"]["low_completion_areas"] >= 1
@@ -59,7 +61,7 @@ def test_completion_snapshot_surface_parity():
     dynamic_chain = next(
         item for item in expected["areas"] if item["area"] == "dynamic_chain_test_coverage"
     )
-    assert dynamic_chain["percent"] == 94
+    assert dynamic_chain["percent"] == 95
 
 
 def test_runtime_execution_profile_mode_derivation():
@@ -82,6 +84,7 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["budget_enforcement_mode"] == "hard_cap"
     assert strict["audit_logging_policy"] == "immutable_full_stream"
     assert strict["escalation_routing_policy"] == "mandatory_human_chain"
+    assert strict["tool_mediation_policy"] == "allowlist_mandatory_mediation"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
     assert dynamic["execution_profile_source"] == "onboarding"
@@ -92,4 +95,5 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["budget_enforcement_mode"] == "user_tunable"
     assert dynamic["audit_logging_policy"] == "sampled_governance_stream"
     assert dynamic["escalation_routing_policy"] == "exception_only_chain"
+    assert dynamic["tool_mediation_policy"] == "accelerated_mediation_with_guardrails"
     assert dynamic["audit_requirements"] == "minimal"
