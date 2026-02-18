@@ -86,6 +86,16 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["execution_plane_permission_gate_policy"] == status["runtime_execution_profile"]["execution_plane_permission_gate_policy"]
     assert preview["runtime_execution_profile"]["execution_plane_budget_guardrail_policy"] == status["runtime_execution_profile"]["execution_plane_budget_guardrail_policy"]
     assert preview["runtime_execution_profile"]["execution_plane_audit_trail_integrity_policy"] == status["runtime_execution_profile"]["execution_plane_audit_trail_integrity_policy"]
+    assert preview["runtime_execution_profile"]["swarm_spawn_governance_policy"] == status["runtime_execution_profile"]["swarm_spawn_governance_policy"]
+    assert preview["runtime_execution_profile"]["swarm_failure_containment_policy"] == status["runtime_execution_profile"]["swarm_failure_containment_policy"]
+    assert preview["runtime_execution_profile"]["swarm_budget_expansion_policy"] == status["runtime_execution_profile"]["swarm_budget_expansion_policy"]
+    assert preview["runtime_execution_profile"]["shadow_reinforcement_signal_policy"] == status["runtime_execution_profile"]["shadow_reinforcement_signal_policy"]
+    assert preview["runtime_execution_profile"]["behavioral_divergence_tracking_policy"] == status["runtime_execution_profile"]["behavioral_divergence_tracking_policy"]
+    assert preview["runtime_execution_profile"]["planning_plane_gate_synthesis_policy"] == status["runtime_execution_profile"]["planning_plane_gate_synthesis_policy"]
+    assert preview["runtime_execution_profile"]["planning_plane_org_mapping_policy"] == status["runtime_execution_profile"]["planning_plane_org_mapping_policy"]
+    assert preview["runtime_execution_profile"]["execution_plane_tool_permission_enforcement_policy"] == status["runtime_execution_profile"]["execution_plane_tool_permission_enforcement_policy"]
+    assert preview["runtime_execution_profile"]["execution_plane_budget_ceiling_override_policy"] == status["runtime_execution_profile"]["execution_plane_budget_ceiling_override_policy"]
+    assert preview["runtime_execution_profile"]["execution_plane_escalation_checkpoint_policy"] == status["runtime_execution_profile"]["execution_plane_escalation_checkpoint_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
     assert status["runtime_execution_profile"]["control_plane_separation_state"] == "adaptive"
@@ -211,6 +221,16 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["execution_plane_permission_gate_policy"] == "permission_gates_required"
     assert strict["execution_plane_budget_guardrail_policy"] == "hard_budget_guardrails"
     assert strict["execution_plane_audit_trail_integrity_policy"] == "immutable_audit_trail_required"
+    assert strict["swarm_spawn_governance_policy"] == "spawn_governance_preapproval_required"
+    assert strict["swarm_failure_containment_policy"] == "failure_containment_hard_isolation"
+    assert strict["swarm_budget_expansion_policy"] == "swarm_budget_expansion_forbidden"
+    assert strict["shadow_reinforcement_signal_policy"] == "shadow_reinforcement_signals_strictly_scoped"
+    assert strict["behavioral_divergence_tracking_policy"] == "behavioral_divergence_tracking_mandatory"
+    assert strict["planning_plane_gate_synthesis_policy"] == "gate_synthesis_required_before_execution"
+    assert strict["planning_plane_org_mapping_policy"] == "org_mapping_lock_required"
+    assert strict["execution_plane_tool_permission_enforcement_policy"] == "tool_permission_enforcement_mandatory"
+    assert strict["execution_plane_budget_ceiling_override_policy"] == "budget_ceiling_override_forbidden"
+    assert strict["execution_plane_escalation_checkpoint_policy"] == "escalation_checkpoint_required"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
     assert dynamic["execution_profile_source"] == "onboarding"
@@ -264,4 +284,14 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["execution_plane_permission_gate_policy"] == "adaptive_permission_gates_with_audit"
     assert dynamic["execution_plane_budget_guardrail_policy"] == "adaptive_budget_guardrails_with_audit"
     assert dynamic["execution_plane_audit_trail_integrity_policy"] == "adaptive_audit_trail_integrity_with_audit"
+    assert dynamic["swarm_spawn_governance_policy"] == "spawn_governance_adaptive_with_audit"
+    assert dynamic["swarm_failure_containment_policy"] == "failure_containment_adaptive_with_audit"
+    assert dynamic["swarm_budget_expansion_policy"] == "swarm_budget_expansion_adaptive_with_caps"
+    assert dynamic["shadow_reinforcement_signal_policy"] == "shadow_reinforcement_signals_adaptive_with_audit"
+    assert dynamic["behavioral_divergence_tracking_policy"] == "behavioral_divergence_tracking_adaptive_with_audit"
+    assert dynamic["planning_plane_gate_synthesis_policy"] == "adaptive_gate_synthesis_with_audit"
+    assert dynamic["planning_plane_org_mapping_policy"] == "adaptive_org_mapping_with_audit"
+    assert dynamic["execution_plane_tool_permission_enforcement_policy"] == "adaptive_tool_permission_enforcement_with_audit"
+    assert dynamic["execution_plane_budget_ceiling_override_policy"] == "budget_ceiling_override_adaptive_with_audit"
+    assert dynamic["execution_plane_escalation_checkpoint_policy"] == "escalation_checkpoint_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"
