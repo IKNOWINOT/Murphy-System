@@ -51,6 +51,7 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["delegation_scope_policy"] == status["runtime_execution_profile"]["delegation_scope_policy"]
     assert preview["runtime_execution_profile"]["execution_broker_policy"] == status["runtime_execution_profile"]["execution_broker_policy"]
     assert preview["runtime_execution_profile"]["role_registry_policy"] == status["runtime_execution_profile"]["role_registry_policy"]
+    assert preview["runtime_execution_profile"]["authority_boundary_policy"] == status["runtime_execution_profile"]["authority_boundary_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
     assert status["runtime_execution_profile"]["control_plane_separation_state"] == "adaptive"
@@ -67,6 +68,7 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["delegation_scope_policy"] == "policy_bounded_delegation"
     assert status["runtime_execution_profile"]["execution_broker_policy"] == "broker_policy_guarded"
     assert status["runtime_execution_profile"]["role_registry_policy"] == "governed_role_registry"
+    assert status["runtime_execution_profile"]["authority_boundary_policy"] == "policy_scoped_authority_boundaries"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
     assert expected["summary"]["low_completion_areas"] >= 1
@@ -106,6 +108,7 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["delegation_scope_policy"] == "role_bound_delegation_only"
     assert strict["execution_broker_policy"] == "broker_hard_gate"
     assert strict["role_registry_policy"] == "immutable_role_registry"
+    assert strict["authority_boundary_policy"] == "hard_authority_boundaries"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
     assert dynamic["execution_profile_source"] == "onboarding"
@@ -124,4 +127,5 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["delegation_scope_policy"] == "adaptive_delegation_with_caps"
     assert dynamic["execution_broker_policy"] == "broker_adaptive_guardrailed"
     assert dynamic["role_registry_policy"] == "adaptive_role_registry_with_audit"
+    assert dynamic["authority_boundary_policy"] == "adaptive_authority_boundaries_with_audit"
     assert dynamic["audit_requirements"] == "minimal"

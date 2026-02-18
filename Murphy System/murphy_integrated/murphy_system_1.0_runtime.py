@@ -5257,6 +5257,11 @@ class MurphySystem:
             "balanced": "governed_role_registry",
             "dynamic": "adaptive_role_registry_with_audit"
         }.get(mode, "governed_role_registry")
+        authority_boundary_policy = {
+            "strict": "hard_authority_boundaries",
+            "balanced": "policy_scoped_authority_boundaries",
+            "dynamic": "adaptive_authority_boundaries_with_audit"
+        }.get(mode, "policy_scoped_authority_boundaries")
         return {
             "execution_mode": mode,
             "execution_profile_source": execution_profile_source,
@@ -5275,6 +5280,7 @@ class MurphySystem:
             "delegation_scope_policy": delegation_scope_policy,
             "execution_broker_policy": execution_broker_policy,
             "role_registry_policy": role_registry_policy,
+            "authority_boundary_policy": authority_boundary_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
             "budget_constraints": source.get("budget_constraints", source.get("budget_ceiling", "standard")),
