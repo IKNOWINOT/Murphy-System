@@ -5252,6 +5252,11 @@ class MurphySystem:
             "balanced": "broker_policy_guarded",
             "dynamic": "broker_adaptive_guardrailed"
         }.get(mode, "broker_policy_guarded")
+        role_registry_policy = {
+            "strict": "immutable_role_registry",
+            "balanced": "governed_role_registry",
+            "dynamic": "adaptive_role_registry_with_audit"
+        }.get(mode, "governed_role_registry")
         return {
             "execution_mode": mode,
             "execution_profile_source": execution_profile_source,
@@ -5269,6 +5274,7 @@ class MurphySystem:
             "permission_validation_policy": permission_validation_policy,
             "delegation_scope_policy": delegation_scope_policy,
             "execution_broker_policy": execution_broker_policy,
+            "role_registry_policy": role_registry_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
             "budget_constraints": source.get("budget_constraints", source.get("budget_ceiling", "standard")),
