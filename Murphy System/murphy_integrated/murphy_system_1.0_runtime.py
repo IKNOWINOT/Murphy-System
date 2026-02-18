@@ -5262,6 +5262,11 @@ class MurphySystem:
             "balanced": "policy_scoped_authority_boundaries",
             "dynamic": "adaptive_authority_boundaries_with_audit"
         }.get(mode, "policy_scoped_authority_boundaries")
+        cross_department_arbitration_policy = {
+            "strict": "explicit_executive_arbitration",
+            "balanced": "policy_scored_arbitration",
+            "dynamic": "adaptive_arbitration_with_audit"
+        }.get(mode, "policy_scored_arbitration")
         return {
             "execution_mode": mode,
             "execution_profile_source": execution_profile_source,
@@ -5281,6 +5286,7 @@ class MurphySystem:
             "execution_broker_policy": execution_broker_policy,
             "role_registry_policy": role_registry_policy,
             "authority_boundary_policy": authority_boundary_policy,
+            "cross_department_arbitration_policy": cross_department_arbitration_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
             "budget_constraints": source.get("budget_constraints", source.get("budget_ceiling", "standard")),
