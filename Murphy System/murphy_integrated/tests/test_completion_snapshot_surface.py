@@ -46,6 +46,7 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["tool_mediation_policy"] == status["runtime_execution_profile"]["tool_mediation_policy"]
     assert preview["runtime_execution_profile"]["deterministic_routing_policy"] == status["runtime_execution_profile"]["deterministic_routing_policy"]
     assert preview["runtime_execution_profile"]["compute_routing_policy"] == status["runtime_execution_profile"]["compute_routing_policy"]
+    assert preview["runtime_execution_profile"]["policy_compiler_mode"] == status["runtime_execution_profile"]["policy_compiler_mode"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
     assert status["runtime_execution_profile"]["control_plane_separation_state"] == "adaptive"
@@ -57,6 +58,7 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["tool_mediation_policy"] == "policy_guarded_mediation"
     assert status["runtime_execution_profile"]["deterministic_routing_policy"] == "deterministic_preferred"
     assert status["runtime_execution_profile"]["compute_routing_policy"] == "hybrid_compute_lane"
+    assert status["runtime_execution_profile"]["policy_compiler_mode"] == "guarded_policy_compilation"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
     assert expected["summary"]["low_completion_areas"] >= 1
@@ -65,7 +67,7 @@ def test_completion_snapshot_surface_parity():
     dynamic_chain = next(
         item for item in expected["areas"] if item["area"] == "dynamic_chain_test_coverage"
     )
-    assert dynamic_chain["percent"] == 97
+    assert dynamic_chain["percent"] == 98
 
 
 def test_runtime_execution_profile_mode_derivation():
@@ -91,6 +93,7 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["tool_mediation_policy"] == "allowlist_mandatory_mediation"
     assert strict["deterministic_routing_policy"] == "deterministic_only"
     assert strict["compute_routing_policy"] == "deterministic_compute_lane"
+    assert strict["policy_compiler_mode"] == "locked_policy_compilation"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
     assert dynamic["execution_profile_source"] == "onboarding"
@@ -104,4 +107,5 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["tool_mediation_policy"] == "accelerated_mediation_with_guardrails"
     assert dynamic["deterministic_routing_policy"] == "deterministic_fallback"
     assert dynamic["compute_routing_policy"] == "adaptive_compute_lane"
+    assert dynamic["policy_compiler_mode"] == "adaptive_policy_compilation"
     assert dynamic["audit_requirements"] == "minimal"
