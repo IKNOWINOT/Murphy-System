@@ -5443,6 +5443,56 @@ class MurphySystem:
             "governed_audit_trail_integrity",
             "adaptive_audit_trail_integrity_with_audit"
         )
+        swarm_spawn_governance_policy = _mode_policy(
+            "spawn_governance_preapproval_required",
+            "spawn_governance_policy_scoped",
+            "spawn_governance_adaptive_with_audit"
+        )
+        swarm_failure_containment_policy = _mode_policy(
+            "failure_containment_hard_isolation",
+            "failure_containment_policy_guided",
+            "failure_containment_adaptive_with_audit"
+        )
+        swarm_budget_expansion_policy = _mode_policy(
+            "swarm_budget_expansion_forbidden",
+            "swarm_budget_expansion_policy_scoped",
+            "swarm_budget_expansion_adaptive_with_caps"
+        )
+        shadow_reinforcement_signal_policy = _mode_policy(
+            "shadow_reinforcement_signals_strictly_scoped",
+            "shadow_reinforcement_signals_policy_guided",
+            "shadow_reinforcement_signals_adaptive_with_audit"
+        )
+        behavioral_divergence_tracking_policy = _mode_policy(
+            "behavioral_divergence_tracking_mandatory",
+            "behavioral_divergence_tracking_policy_scoped",
+            "behavioral_divergence_tracking_adaptive_with_audit"
+        )
+        planning_plane_gate_synthesis_policy = _mode_policy(
+            "gate_synthesis_required_before_execution",
+            "policy_guided_gate_synthesis",
+            "adaptive_gate_synthesis_with_audit"
+        )
+        planning_plane_org_mapping_policy = _mode_policy(
+            "org_mapping_lock_required",
+            "policy_scoped_org_mapping",
+            "adaptive_org_mapping_with_audit"
+        )
+        execution_plane_tool_permission_enforcement_policy = _mode_policy(
+            "tool_permission_enforcement_mandatory",
+            "policy_scoped_tool_permission_enforcement",
+            "adaptive_tool_permission_enforcement_with_audit"
+        )
+        execution_plane_budget_ceiling_override_policy = _mode_policy(
+            "budget_ceiling_override_forbidden",
+            "budget_ceiling_override_policy_scoped",
+            "budget_ceiling_override_adaptive_with_audit"
+        )
+        execution_plane_escalation_checkpoint_policy = _mode_policy(
+            "escalation_checkpoint_required",
+            "escalation_checkpoint_policy_guided",
+            "escalation_checkpoint_adaptive_with_audit"
+        )
         return {
             "execution_mode": mode,
             "execution_profile_source": execution_profile_source,
@@ -5496,6 +5546,16 @@ class MurphySystem:
             "execution_plane_permission_gate_policy": execution_plane_permission_gate_policy,
             "execution_plane_budget_guardrail_policy": execution_plane_budget_guardrail_policy,
             "execution_plane_audit_trail_integrity_policy": execution_plane_audit_trail_integrity_policy,
+            "swarm_spawn_governance_policy": swarm_spawn_governance_policy,
+            "swarm_failure_containment_policy": swarm_failure_containment_policy,
+            "swarm_budget_expansion_policy": swarm_budget_expansion_policy,
+            "shadow_reinforcement_signal_policy": shadow_reinforcement_signal_policy,
+            "behavioral_divergence_tracking_policy": behavioral_divergence_tracking_policy,
+            "planning_plane_gate_synthesis_policy": planning_plane_gate_synthesis_policy,
+            "planning_plane_org_mapping_policy": planning_plane_org_mapping_policy,
+            "execution_plane_tool_permission_enforcement_policy": execution_plane_tool_permission_enforcement_policy,
+            "execution_plane_budget_ceiling_override_policy": execution_plane_budget_ceiling_override_policy,
+            "execution_plane_escalation_checkpoint_policy": execution_plane_escalation_checkpoint_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
             "budget_constraints": source.get("budget_constraints", source.get("budget_ceiling", "standard")),
