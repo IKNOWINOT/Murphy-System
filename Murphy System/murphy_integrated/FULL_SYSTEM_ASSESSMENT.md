@@ -288,6 +288,9 @@ These percentages are **current estimates** based on wired functionality vs. pla
    - Build a phased capability map inventory over the full file set (targeting every file path) with columns: path, subsystem, runtime role, available capabilities, dependency edges, governance boundary, execution criticality, underutilized potential.
    - Start with runtime-critical directories first, then expand in batches until full repository coverage is complete.
    - Use the capability map to define chained remediation sequences for each execution gap in sections 3, 7, and 8.
+7. **Shadow-agent + account-plane integration**
+   - Treat shadow agents as org-chart peers of their mapped primary roles (not subordinate assistant threads), with identical governance boundary checks.
+   - Include account/user-base controls for shadow mappings in UI-managed configuration surfaces so operators can manage shadow assignments where user and account data is administered.
 
 ---
 
@@ -374,6 +377,7 @@ This update confirms that sections **1-13** remain active and accepted as the op
 57. Added role-registry-policy derivation (`immutable_role_registry`/`governed_role_registry`/`adaptive_role_registry_with_audit`) in runtime execution profiles and validated strict/balanced/dynamic mapping with focused surface tests.
 58. Added authority-boundary-policy derivation (`hard_authority_boundaries`/`policy_scoped_authority_boundaries`/`adaptive_authority_boundaries_with_audit`) in runtime execution profiles and validated strict/balanced/dynamic mapping with focused surface tests.
 59. Added cross-department-arbitration-policy derivation (`explicit_executive_arbitration`/`policy_scored_arbitration`/`adaptive_arbitration_with_audit`) in runtime execution profiles and validated strict/balanced/dynamic mapping with focused surface tests.
+60. Clarified section-12 planning that shadow agents are org-peer role mirrors with account/user-base mapping management expected through UI-administered configuration surfaces.
 
 **Current completion percentage snapshot (section 9, this iteration):**
 - Execution wiring (gate + swarm + orchestrator): **47%**
