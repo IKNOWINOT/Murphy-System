@@ -66,6 +66,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["user_base_access_governance_policy"] == status["runtime_execution_profile"]["user_base_access_governance_policy"]
     assert preview["runtime_execution_profile"]["employee_contract_obligation_tracking_policy"] == status["runtime_execution_profile"]["employee_contract_obligation_tracking_policy"]
     assert preview["runtime_execution_profile"]["employee_contract_escalation_binding_policy"] == status["runtime_execution_profile"]["employee_contract_escalation_binding_policy"]
+    assert preview["runtime_execution_profile"]["regulatory_context_binding_policy"] == status["runtime_execution_profile"]["regulatory_context_binding_policy"]
+    assert preview["runtime_execution_profile"]["autonomy_preference_override_policy"] == status["runtime_execution_profile"]["autonomy_preference_override_policy"]
+    assert preview["runtime_execution_profile"]["risk_tolerance_enforcement_policy"] == status["runtime_execution_profile"]["risk_tolerance_enforcement_policy"]
+    assert preview["runtime_execution_profile"]["safety_level_assurance_policy"] == status["runtime_execution_profile"]["safety_level_assurance_policy"]
+    assert preview["runtime_execution_profile"]["delegation_comfort_governance_policy"] == status["runtime_execution_profile"]["delegation_comfort_governance_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
     assert status["runtime_execution_profile"]["control_plane_separation_state"] == "adaptive"
@@ -97,6 +102,11 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["user_base_access_governance_policy"] == "rbac_policy_governed_controls"
     assert status["runtime_execution_profile"]["employee_contract_obligation_tracking_policy"] == "obligation_tracking_policy_guided"
     assert status["runtime_execution_profile"]["employee_contract_escalation_binding_policy"] == "contract_escalation_binding_policy_guided"
+    assert status["runtime_execution_profile"]["regulatory_context_binding_policy"] == "regulatory_context_policy_guided"
+    assert status["runtime_execution_profile"]["autonomy_preference_override_policy"] == "autonomy_override_policy_scoped"
+    assert status["runtime_execution_profile"]["risk_tolerance_enforcement_policy"] == "risk_tolerance_policy_scored"
+    assert status["runtime_execution_profile"]["safety_level_assurance_policy"] == "safety_level_attestation_guided"
+    assert status["runtime_execution_profile"]["delegation_comfort_governance_policy"] == "delegation_comfort_policy_bounds"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
     assert expected["summary"]["low_completion_areas"] >= 1
@@ -151,6 +161,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["user_base_access_governance_policy"] == "rbac_and_tenant_controls_mandatory"
     assert strict["employee_contract_obligation_tracking_policy"] == "obligation_tracking_required"
     assert strict["employee_contract_escalation_binding_policy"] == "contract_escalation_binding_required"
+    assert strict["regulatory_context_binding_policy"] == "regulatory_context_lockdown_required"
+    assert strict["autonomy_preference_override_policy"] == "autonomy_override_disabled"
+    assert strict["risk_tolerance_enforcement_policy"] == "low_risk_mandatory_enforcement"
+    assert strict["safety_level_assurance_policy"] == "safety_level_attestation_required"
+    assert strict["delegation_comfort_governance_policy"] == "delegation_comfort_hard_limits"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
     assert dynamic["execution_profile_source"] == "onboarding"
@@ -184,4 +199,9 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["user_base_access_governance_policy"] == "adaptive_rbac_controls_with_audit"
     assert dynamic["employee_contract_obligation_tracking_policy"] == "obligation_tracking_adaptive_with_audit"
     assert dynamic["employee_contract_escalation_binding_policy"] == "contract_escalation_binding_adaptive"
+    assert dynamic["regulatory_context_binding_policy"] == "regulatory_context_adaptive_with_audit"
+    assert dynamic["autonomy_preference_override_policy"] == "autonomy_override_user_tunable_with_audit"
+    assert dynamic["risk_tolerance_enforcement_policy"] == "risk_tolerance_adaptive_with_caps"
+    assert dynamic["safety_level_assurance_policy"] == "safety_level_attestation_adaptive"
+    assert dynamic["delegation_comfort_governance_policy"] == "delegation_comfort_adaptive_bounds"
     assert dynamic["audit_requirements"] == "minimal"

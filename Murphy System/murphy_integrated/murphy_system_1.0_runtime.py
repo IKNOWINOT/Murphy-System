@@ -5343,6 +5343,31 @@ class MurphySystem:
             "contract_escalation_binding_policy_guided",
             "contract_escalation_binding_adaptive"
         )
+        regulatory_context_binding_policy = _mode_policy(
+            "regulatory_context_lockdown_required",
+            "regulatory_context_policy_guided",
+            "regulatory_context_adaptive_with_audit"
+        )
+        autonomy_preference_override_policy = _mode_policy(
+            "autonomy_override_disabled",
+            "autonomy_override_policy_scoped",
+            "autonomy_override_user_tunable_with_audit"
+        )
+        risk_tolerance_enforcement_policy = _mode_policy(
+            "low_risk_mandatory_enforcement",
+            "risk_tolerance_policy_scored",
+            "risk_tolerance_adaptive_with_caps"
+        )
+        safety_level_assurance_policy = _mode_policy(
+            "safety_level_attestation_required",
+            "safety_level_attestation_guided",
+            "safety_level_attestation_adaptive"
+        )
+        delegation_comfort_governance_policy = _mode_policy(
+            "delegation_comfort_hard_limits",
+            "delegation_comfort_policy_bounds",
+            "delegation_comfort_adaptive_bounds"
+        )
         return {
             "execution_mode": mode,
             "execution_profile_source": execution_profile_source,
@@ -5376,6 +5401,11 @@ class MurphySystem:
             "user_base_access_governance_policy": user_base_access_governance_policy,
             "employee_contract_obligation_tracking_policy": employee_contract_obligation_tracking_policy,
             "employee_contract_escalation_binding_policy": employee_contract_escalation_binding_policy,
+            "regulatory_context_binding_policy": regulatory_context_binding_policy,
+            "autonomy_preference_override_policy": autonomy_preference_override_policy,
+            "risk_tolerance_enforcement_policy": risk_tolerance_enforcement_policy,
+            "safety_level_assurance_policy": safety_level_assurance_policy,
+            "delegation_comfort_governance_policy": delegation_comfort_governance_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
             "budget_constraints": source.get("budget_constraints", source.get("budget_ceiling", "standard")),
