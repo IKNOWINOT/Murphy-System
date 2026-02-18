@@ -61,6 +61,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["employee_contract_change_authority_policy"] == status["runtime_execution_profile"]["employee_contract_change_authority_policy"]
     assert preview["runtime_execution_profile"]["employee_contract_management_surface_policy"] == status["runtime_execution_profile"]["employee_contract_management_surface_policy"]
     assert preview["runtime_execution_profile"]["employee_contract_accountability_policy"] == status["runtime_execution_profile"]["employee_contract_accountability_policy"]
+    assert preview["runtime_execution_profile"]["shadow_agent_org_parity_policy"] == status["runtime_execution_profile"]["shadow_agent_org_parity_policy"]
+    assert preview["runtime_execution_profile"]["shadow_agent_contract_binding_policy"] == status["runtime_execution_profile"]["shadow_agent_contract_binding_policy"]
+    assert preview["runtime_execution_profile"]["user_base_access_governance_policy"] == status["runtime_execution_profile"]["user_base_access_governance_policy"]
+    assert preview["runtime_execution_profile"]["employee_contract_obligation_tracking_policy"] == status["runtime_execution_profile"]["employee_contract_obligation_tracking_policy"]
+    assert preview["runtime_execution_profile"]["employee_contract_escalation_binding_policy"] == status["runtime_execution_profile"]["employee_contract_escalation_binding_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
     assert status["runtime_execution_profile"]["control_plane_separation_state"] == "adaptive"
@@ -87,6 +92,11 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["employee_contract_change_authority_policy"] == "policy_scoped_manager_plus_hr_approval"
     assert status["runtime_execution_profile"]["employee_contract_management_surface_policy"] == "hr_admin_ui_with_policy_api"
     assert status["runtime_execution_profile"]["employee_contract_accountability_policy"] == "contract_obligation_attestation_guided"
+    assert status["runtime_execution_profile"]["shadow_agent_org_parity_policy"] == "policy_validated_org_role_shadowing"
+    assert status["runtime_execution_profile"]["shadow_agent_contract_binding_policy"] == "contract_binding_policy_guided"
+    assert status["runtime_execution_profile"]["user_base_access_governance_policy"] == "rbac_policy_governed_controls"
+    assert status["runtime_execution_profile"]["employee_contract_obligation_tracking_policy"] == "obligation_tracking_policy_guided"
+    assert status["runtime_execution_profile"]["employee_contract_escalation_binding_policy"] == "contract_escalation_binding_policy_guided"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
     assert expected["summary"]["low_completion_areas"] >= 1
@@ -136,6 +146,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["employee_contract_change_authority_policy"] == "hr_admin_approval_required"
     assert strict["employee_contract_management_surface_policy"] == "hr_admin_ui_only"
     assert strict["employee_contract_accountability_policy"] == "contract_obligation_attestation_required"
+    assert strict["shadow_agent_org_parity_policy"] == "one_to_one_org_role_shadow_required"
+    assert strict["shadow_agent_contract_binding_policy"] == "contract_binding_mandatory"
+    assert strict["user_base_access_governance_policy"] == "rbac_and_tenant_controls_mandatory"
+    assert strict["employee_contract_obligation_tracking_policy"] == "obligation_tracking_required"
+    assert strict["employee_contract_escalation_binding_policy"] == "contract_escalation_binding_required"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
     assert dynamic["execution_profile_source"] == "onboarding"
@@ -164,4 +179,9 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["employee_contract_change_authority_policy"] == "delegated_manager_updates_with_hr_audit"
     assert dynamic["employee_contract_management_surface_policy"] == "hr_admin_ui_plus_delegated_api_with_audit"
     assert dynamic["employee_contract_accountability_policy"] == "contract_obligation_attestation_adaptive"
+    assert dynamic["shadow_agent_org_parity_policy"] == "adaptive_org_role_shadowing_with_audit"
+    assert dynamic["shadow_agent_contract_binding_policy"] == "contract_binding_adaptive_with_audit"
+    assert dynamic["user_base_access_governance_policy"] == "adaptive_rbac_controls_with_audit"
+    assert dynamic["employee_contract_obligation_tracking_policy"] == "obligation_tracking_adaptive_with_audit"
+    assert dynamic["employee_contract_escalation_binding_policy"] == "contract_escalation_binding_adaptive"
     assert dynamic["audit_requirements"] == "minimal"
