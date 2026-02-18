@@ -5302,11 +5302,47 @@ class MurphySystem:
             "balanced": "hr_admin_ui_with_policy_api",
             "dynamic": "hr_admin_ui_plus_delegated_api_with_audit"
         }.get(mode, "hr_admin_ui_with_policy_api")
-        employee_contract_accountability_policy = {
-            "strict": "contract_obligation_attestation_required",
-            "balanced": "contract_obligation_attestation_guided",
-            "dynamic": "contract_obligation_attestation_adaptive"
-        }.get(mode, "contract_obligation_attestation_guided")
+        def _mode_policy(
+            strict_value: str,
+            balanced_value: str,
+            dynamic_value: str
+        ) -> str:
+            return {
+                "strict": strict_value,
+                "balanced": balanced_value,
+                "dynamic": dynamic_value
+            }.get(mode, balanced_value)
+
+        employee_contract_accountability_policy = _mode_policy(
+            "contract_obligation_attestation_required",
+            "contract_obligation_attestation_guided",
+            "contract_obligation_attestation_adaptive"
+        )
+        shadow_agent_org_parity_policy = _mode_policy(
+            "one_to_one_org_role_shadow_required",
+            "policy_validated_org_role_shadowing",
+            "adaptive_org_role_shadowing_with_audit"
+        )
+        shadow_agent_contract_binding_policy = _mode_policy(
+            "contract_binding_mandatory",
+            "contract_binding_policy_guided",
+            "contract_binding_adaptive_with_audit"
+        )
+        user_base_access_governance_policy = _mode_policy(
+            "rbac_and_tenant_controls_mandatory",
+            "rbac_policy_governed_controls",
+            "adaptive_rbac_controls_with_audit"
+        )
+        employee_contract_obligation_tracking_policy = _mode_policy(
+            "obligation_tracking_required",
+            "obligation_tracking_policy_guided",
+            "obligation_tracking_adaptive_with_audit"
+        )
+        employee_contract_escalation_binding_policy = _mode_policy(
+            "contract_escalation_binding_required",
+            "contract_escalation_binding_policy_guided",
+            "contract_escalation_binding_adaptive"
+        )
         return {
             "execution_mode": mode,
             "execution_profile_source": execution_profile_source,
@@ -5335,6 +5371,11 @@ class MurphySystem:
             "employee_contract_change_authority_policy": employee_contract_change_authority_policy,
             "employee_contract_management_surface_policy": employee_contract_management_surface_policy,
             "employee_contract_accountability_policy": employee_contract_accountability_policy,
+            "shadow_agent_org_parity_policy": shadow_agent_org_parity_policy,
+            "shadow_agent_contract_binding_policy": shadow_agent_contract_binding_policy,
+            "user_base_access_governance_policy": user_base_access_governance_policy,
+            "employee_contract_obligation_tracking_policy": employee_contract_obligation_tracking_policy,
+            "employee_contract_escalation_binding_policy": employee_contract_escalation_binding_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
             "budget_constraints": source.get("budget_constraints", source.get("budget_ceiling", "standard")),
