@@ -5393,6 +5393,31 @@ class MurphySystem:
             "policy_scoped_org_chart_sync",
             "adaptive_org_chart_sync_with_audit"
         )
+        event_queue_durability_policy = _mode_policy(
+            "durable_queue_required",
+            "durable_queue_policy_guided",
+            "durable_queue_adaptive_with_audit"
+        )
+        idempotency_key_enforcement_policy = _mode_policy(
+            "idempotency_keys_mandatory",
+            "idempotency_keys_policy_scoped",
+            "idempotency_keys_adaptive_with_audit"
+        )
+        retry_backoff_policy = _mode_policy(
+            "bounded_retry_with_manual_escalation",
+            "policy_scoped_retry_backoff",
+            "adaptive_retry_backoff_with_guardrails"
+        )
+        circuit_breaker_policy = _mode_policy(
+            "circuit_breaker_hard_fail_closed",
+            "circuit_breaker_policy_guarded",
+            "circuit_breaker_adaptive_with_audit"
+        )
+        rollback_recovery_policy = _mode_policy(
+            "rollback_required_on_policy_breach",
+            "policy_scoped_rollback_recovery",
+            "adaptive_rollback_recovery_with_audit"
+        )
         return {
             "execution_mode": mode,
             "execution_profile_source": execution_profile_source,
@@ -5436,6 +5461,11 @@ class MurphySystem:
             "shadow_agent_account_lifecycle_policy": shadow_agent_account_lifecycle_policy,
             "user_base_ui_audit_policy": user_base_ui_audit_policy,
             "org_chart_assignment_sync_policy": org_chart_assignment_sync_policy,
+            "event_queue_durability_policy": event_queue_durability_policy,
+            "idempotency_key_enforcement_policy": idempotency_key_enforcement_policy,
+            "retry_backoff_policy": retry_backoff_policy,
+            "circuit_breaker_policy": circuit_breaker_policy,
+            "rollback_recovery_policy": rollback_recovery_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
             "budget_constraints": source.get("budget_constraints", source.get("budget_ceiling", "standard")),
