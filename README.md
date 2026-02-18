@@ -46,6 +46,8 @@ start_murphy_1.0.bat   # Windows
 
 **⚠️ Important:** You need at least one API key (Groq recommended - free at https://console.groq.com)
 
+**Dependency install from repo root:** run `python -m pip install -r requirements.txt` (this root file points to `Murphy System/requirements.txt`, which includes `pytest`).
+
 **📚 Setup Documentation:**
 - **With Screenshots:** [VISUAL_SETUP_GUIDE_WITH_SCREENSHOTS.md](VISUAL_SETUP_GUIDE_WITH_SCREENSHOTS.md) - 11 images ⭐ BEST
 - **Quick Reference:** [QUICK_SETUP_REFERENCE.md](QUICK_SETUP_REFERENCE.md) - All commands on one page
