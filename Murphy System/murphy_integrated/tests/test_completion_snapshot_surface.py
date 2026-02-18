@@ -96,6 +96,17 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["execution_plane_tool_permission_enforcement_policy"] == status["runtime_execution_profile"]["execution_plane_tool_permission_enforcement_policy"]
     assert preview["runtime_execution_profile"]["execution_plane_budget_ceiling_override_policy"] == status["runtime_execution_profile"]["execution_plane_budget_ceiling_override_policy"]
     assert preview["runtime_execution_profile"]["execution_plane_escalation_checkpoint_policy"] == status["runtime_execution_profile"]["execution_plane_escalation_checkpoint_policy"]
+    assert preview["runtime_execution_profile"]["human_in_the_loop_enforcement_policy"] == status["runtime_execution_profile"]["human_in_the_loop_enforcement_policy"]
+    assert preview["runtime_execution_profile"]["regulatory_audit_retention_policy"] == status["runtime_execution_profile"]["regulatory_audit_retention_policy"]
+    assert preview["runtime_execution_profile"]["tenant_boundary_enforcement_policy"] == status["runtime_execution_profile"]["tenant_boundary_enforcement_policy"]
+    assert preview["runtime_execution_profile"]["policy_exception_handling_policy"] == status["runtime_execution_profile"]["policy_exception_handling_policy"]
+    assert preview["runtime_execution_profile"]["runtime_profile_refresh_policy"] == status["runtime_execution_profile"]["runtime_profile_refresh_policy"]
+    assert preview["runtime_execution_profile"]["planning_plane_compliance_modeling_policy"] == status["runtime_execution_profile"]["planning_plane_compliance_modeling_policy"]
+    assert preview["runtime_execution_profile"]["planning_plane_proposal_generation_policy"] == status["runtime_execution_profile"]["planning_plane_proposal_generation_policy"]
+    assert preview["runtime_execution_profile"]["execution_plane_policy_compiler_enforcement_policy"] == status["runtime_execution_profile"]["execution_plane_policy_compiler_enforcement_policy"]
+    assert preview["runtime_execution_profile"]["execution_plane_deterministic_override_policy"] == status["runtime_execution_profile"]["execution_plane_deterministic_override_policy"]
+    assert preview["runtime_execution_profile"]["hitl_escalation_requirement_policy"] == status["runtime_execution_profile"]["hitl_escalation_requirement_policy"]
+    assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
     assert status["runtime_execution_profile"]["control_plane_separation_state"] == "adaptive"
@@ -147,6 +158,17 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["execution_plane_permission_gate_policy"] == "permission_gates_policy_guided"
     assert status["runtime_execution_profile"]["execution_plane_budget_guardrail_policy"] == "policy_scoped_budget_guardrails"
     assert status["runtime_execution_profile"]["execution_plane_audit_trail_integrity_policy"] == "governed_audit_trail_integrity"
+    assert status["runtime_execution_profile"]["human_in_the_loop_enforcement_policy"] == "human_in_the_loop_enforcement_policy_guided"
+    assert status["runtime_execution_profile"]["regulatory_audit_retention_policy"] == "regulatory_audit_retention_policy_scoped"
+    assert status["runtime_execution_profile"]["tenant_boundary_enforcement_policy"] == "tenant_boundary_enforcement_policy_scoped"
+    assert status["runtime_execution_profile"]["policy_exception_handling_policy"] == "policy_exception_handling_governed_review"
+    assert status["runtime_execution_profile"]["runtime_profile_refresh_policy"] == "runtime_profile_refresh_policy_guided"
+    assert status["runtime_execution_profile"]["planning_plane_compliance_modeling_policy"] == "compliance_modeling_policy_guided"
+    assert status["runtime_execution_profile"]["planning_plane_proposal_generation_policy"] == "proposal_generation_policy_scoped"
+    assert status["runtime_execution_profile"]["execution_plane_policy_compiler_enforcement_policy"] == "execution_policy_compiler_enforcement_scoped"
+    assert status["runtime_execution_profile"]["execution_plane_deterministic_override_policy"] == "deterministic_override_policy_scoped"
+    assert status["runtime_execution_profile"]["hitl_escalation_requirement_policy"] == "hitl_escalation_requirement_policy_guided"
+    assert status["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_policy_guided"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
     assert expected["summary"]["low_completion_areas"] >= 1
@@ -231,6 +253,17 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["execution_plane_tool_permission_enforcement_policy"] == "tool_permission_enforcement_mandatory"
     assert strict["execution_plane_budget_ceiling_override_policy"] == "budget_ceiling_override_forbidden"
     assert strict["execution_plane_escalation_checkpoint_policy"] == "escalation_checkpoint_required"
+    assert strict["human_in_the_loop_enforcement_policy"] == "human_in_the_loop_enforcement_mandatory"
+    assert strict["regulatory_audit_retention_policy"] == "regulatory_audit_retention_mandatory"
+    assert strict["tenant_boundary_enforcement_policy"] == "tenant_boundary_enforcement_required"
+    assert strict["policy_exception_handling_policy"] == "policy_exception_handling_manual_review_only"
+    assert strict["runtime_profile_refresh_policy"] == "runtime_profile_refresh_pre_execution_required"
+    assert strict["planning_plane_compliance_modeling_policy"] == "compliance_modeling_required_before_execution"
+    assert strict["planning_plane_proposal_generation_policy"] == "proposal_generation_policy_gated"
+    assert strict["execution_plane_policy_compiler_enforcement_policy"] == "execution_policy_compiler_enforcement_required"
+    assert strict["execution_plane_deterministic_override_policy"] == "deterministic_override_required_for_high_risk"
+    assert strict["hitl_escalation_requirement_policy"] == "hitl_escalation_requirement_hard"
+    assert strict["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_hard"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
     assert dynamic["execution_profile_source"] == "onboarding"
@@ -294,4 +327,15 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["execution_plane_tool_permission_enforcement_policy"] == "adaptive_tool_permission_enforcement_with_audit"
     assert dynamic["execution_plane_budget_ceiling_override_policy"] == "budget_ceiling_override_adaptive_with_audit"
     assert dynamic["execution_plane_escalation_checkpoint_policy"] == "escalation_checkpoint_adaptive_with_audit"
+    assert dynamic["human_in_the_loop_enforcement_policy"] == "human_in_the_loop_enforcement_adaptive_with_audit"
+    assert dynamic["regulatory_audit_retention_policy"] == "regulatory_audit_retention_adaptive_with_audit"
+    assert dynamic["tenant_boundary_enforcement_policy"] == "tenant_boundary_enforcement_adaptive_with_audit"
+    assert dynamic["policy_exception_handling_policy"] == "policy_exception_handling_adaptive_with_audit"
+    assert dynamic["runtime_profile_refresh_policy"] == "runtime_profile_refresh_adaptive_with_audit"
+    assert dynamic["planning_plane_compliance_modeling_policy"] == "compliance_modeling_adaptive_with_audit"
+    assert dynamic["planning_plane_proposal_generation_policy"] == "proposal_generation_adaptive_with_audit"
+    assert dynamic["execution_plane_policy_compiler_enforcement_policy"] == "execution_policy_compiler_enforcement_adaptive_with_audit"
+    assert dynamic["execution_plane_deterministic_override_policy"] == "deterministic_override_adaptive_with_audit"
+    assert dynamic["hitl_escalation_requirement_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
+    assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"

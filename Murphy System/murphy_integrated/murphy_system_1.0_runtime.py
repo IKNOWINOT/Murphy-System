@@ -5493,6 +5493,57 @@ class MurphySystem:
             "escalation_checkpoint_policy_guided",
             "escalation_checkpoint_adaptive_with_audit"
         )
+        human_in_the_loop_enforcement_policy = _mode_policy(
+            "human_in_the_loop_enforcement_mandatory",
+            "human_in_the_loop_enforcement_policy_guided",
+            "human_in_the_loop_enforcement_adaptive_with_audit"
+        )
+        regulatory_audit_retention_policy = _mode_policy(
+            "regulatory_audit_retention_mandatory",
+            "regulatory_audit_retention_policy_scoped",
+            "regulatory_audit_retention_adaptive_with_audit"
+        )
+        tenant_boundary_enforcement_policy = _mode_policy(
+            "tenant_boundary_enforcement_required",
+            "tenant_boundary_enforcement_policy_scoped",
+            "tenant_boundary_enforcement_adaptive_with_audit"
+        )
+        policy_exception_handling_policy = _mode_policy(
+            "policy_exception_handling_manual_review_only",
+            "policy_exception_handling_governed_review",
+            "policy_exception_handling_adaptive_with_audit"
+        )
+        runtime_profile_refresh_policy = _mode_policy(
+            "runtime_profile_refresh_pre_execution_required",
+            "runtime_profile_refresh_policy_guided",
+            "runtime_profile_refresh_adaptive_with_audit"
+        )
+        planning_plane_compliance_modeling_policy = _mode_policy(
+            "compliance_modeling_required_before_execution",
+            "compliance_modeling_policy_guided",
+            "compliance_modeling_adaptive_with_audit"
+        )
+        planning_plane_proposal_generation_policy = _mode_policy(
+            "proposal_generation_policy_gated",
+            "proposal_generation_policy_scoped",
+            "proposal_generation_adaptive_with_audit"
+        )
+        execution_plane_policy_compiler_enforcement_policy = _mode_policy(
+            "execution_policy_compiler_enforcement_required",
+            "execution_policy_compiler_enforcement_scoped",
+            "execution_policy_compiler_enforcement_adaptive_with_audit"
+        )
+        execution_plane_deterministic_override_policy = _mode_policy(
+            "deterministic_override_required_for_high_risk",
+            "deterministic_override_policy_scoped",
+            "deterministic_override_adaptive_with_audit"
+        )
+        hitl_escalation_requirement_policy = _mode_policy(
+            "hitl_escalation_requirement_hard",
+            "hitl_escalation_requirement_policy_guided",
+            "hitl_escalation_requirement_adaptive_with_audit"
+        )
+        hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
             "execution_profile_source": execution_profile_source,
@@ -5556,6 +5607,17 @@ class MurphySystem:
             "execution_plane_tool_permission_enforcement_policy": execution_plane_tool_permission_enforcement_policy,
             "execution_plane_budget_ceiling_override_policy": execution_plane_budget_ceiling_override_policy,
             "execution_plane_escalation_checkpoint_policy": execution_plane_escalation_checkpoint_policy,
+            "human_in_the_loop_enforcement_policy": human_in_the_loop_enforcement_policy,
+            "regulatory_audit_retention_policy": regulatory_audit_retention_policy,
+            "tenant_boundary_enforcement_policy": tenant_boundary_enforcement_policy,
+            "policy_exception_handling_policy": policy_exception_handling_policy,
+            "runtime_profile_refresh_policy": runtime_profile_refresh_policy,
+            "planning_plane_compliance_modeling_policy": planning_plane_compliance_modeling_policy,
+            "planning_plane_proposal_generation_policy": planning_plane_proposal_generation_policy,
+            "execution_plane_policy_compiler_enforcement_policy": execution_plane_policy_compiler_enforcement_policy,
+            "execution_plane_deterministic_override_policy": execution_plane_deterministic_override_policy,
+            "hitl_escalation_requirement_policy": hitl_escalation_requirement_policy,
+            "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
             "budget_constraints": source.get("budget_constraints", source.get("budget_ceiling", "standard")),
