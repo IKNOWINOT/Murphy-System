@@ -5292,6 +5292,16 @@ class MurphySystem:
             "balanced": "admin_ui_with_policy_api",
             "dynamic": "admin_ui_plus_delegated_api_with_audit"
         }.get(mode, "admin_ui_with_policy_api")
+        employee_contract_change_authority_policy = {
+            "strict": "hr_admin_approval_required",
+            "balanced": "policy_scoped_manager_plus_hr_approval",
+            "dynamic": "delegated_manager_updates_with_hr_audit"
+        }.get(mode, "policy_scoped_manager_plus_hr_approval")
+        employee_contract_management_surface_policy = {
+            "strict": "hr_admin_ui_only",
+            "balanced": "hr_admin_ui_with_policy_api",
+            "dynamic": "hr_admin_ui_plus_delegated_api_with_audit"
+        }.get(mode, "hr_admin_ui_with_policy_api")
         return {
             "execution_mode": mode,
             "execution_profile_source": execution_profile_source,
@@ -5317,6 +5327,8 @@ class MurphySystem:
             "core_responsibility_scope": core_responsibility_scope,
             "shadow_agent_account_policy": shadow_agent_account_policy,
             "user_base_management_surface_policy": user_base_management_surface_policy,
+            "employee_contract_change_authority_policy": employee_contract_change_authority_policy,
+            "employee_contract_management_surface_policy": employee_contract_management_surface_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
             "budget_constraints": source.get("budget_constraints", source.get("budget_ceiling", "standard")),
