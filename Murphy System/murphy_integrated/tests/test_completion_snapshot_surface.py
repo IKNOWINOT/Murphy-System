@@ -76,6 +76,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["shadow_agent_account_lifecycle_policy"] == status["runtime_execution_profile"]["shadow_agent_account_lifecycle_policy"]
     assert preview["runtime_execution_profile"]["user_base_ui_audit_policy"] == status["runtime_execution_profile"]["user_base_ui_audit_policy"]
     assert preview["runtime_execution_profile"]["org_chart_assignment_sync_policy"] == status["runtime_execution_profile"]["org_chart_assignment_sync_policy"]
+    assert preview["runtime_execution_profile"]["event_queue_durability_policy"] == status["runtime_execution_profile"]["event_queue_durability_policy"]
+    assert preview["runtime_execution_profile"]["idempotency_key_enforcement_policy"] == status["runtime_execution_profile"]["idempotency_key_enforcement_policy"]
+    assert preview["runtime_execution_profile"]["retry_backoff_policy"] == status["runtime_execution_profile"]["retry_backoff_policy"]
+    assert preview["runtime_execution_profile"]["circuit_breaker_policy"] == status["runtime_execution_profile"]["circuit_breaker_policy"]
+    assert preview["runtime_execution_profile"]["rollback_recovery_policy"] == status["runtime_execution_profile"]["rollback_recovery_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
     assert status["runtime_execution_profile"]["control_plane_separation_state"] == "adaptive"
@@ -117,6 +122,11 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["shadow_agent_account_lifecycle_policy"] == "policy_guided_shadow_lifecycle"
     assert status["runtime_execution_profile"]["user_base_ui_audit_policy"] == "governed_ui_audit_stream"
     assert status["runtime_execution_profile"]["org_chart_assignment_sync_policy"] == "policy_scoped_org_chart_sync"
+    assert status["runtime_execution_profile"]["event_queue_durability_policy"] == "durable_queue_policy_guided"
+    assert status["runtime_execution_profile"]["idempotency_key_enforcement_policy"] == "idempotency_keys_policy_scoped"
+    assert status["runtime_execution_profile"]["retry_backoff_policy"] == "policy_scoped_retry_backoff"
+    assert status["runtime_execution_profile"]["circuit_breaker_policy"] == "circuit_breaker_policy_guarded"
+    assert status["runtime_execution_profile"]["rollback_recovery_policy"] == "policy_scoped_rollback_recovery"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
     assert expected["summary"]["low_completion_areas"] >= 1
@@ -181,6 +191,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["shadow_agent_account_lifecycle_policy"] == "hr_controlled_shadow_lifecycle"
     assert strict["user_base_ui_audit_policy"] == "immutable_ui_audit_stream"
     assert strict["org_chart_assignment_sync_policy"] == "mandatory_org_chart_sync_before_execution"
+    assert strict["event_queue_durability_policy"] == "durable_queue_required"
+    assert strict["idempotency_key_enforcement_policy"] == "idempotency_keys_mandatory"
+    assert strict["retry_backoff_policy"] == "bounded_retry_with_manual_escalation"
+    assert strict["circuit_breaker_policy"] == "circuit_breaker_hard_fail_closed"
+    assert strict["rollback_recovery_policy"] == "rollback_required_on_policy_breach"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
     assert dynamic["execution_profile_source"] == "onboarding"
@@ -224,4 +239,9 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["shadow_agent_account_lifecycle_policy"] == "adaptive_shadow_lifecycle_with_audit"
     assert dynamic["user_base_ui_audit_policy"] == "sampled_ui_audit_stream_with_escalation"
     assert dynamic["org_chart_assignment_sync_policy"] == "adaptive_org_chart_sync_with_audit"
+    assert dynamic["event_queue_durability_policy"] == "durable_queue_adaptive_with_audit"
+    assert dynamic["idempotency_key_enforcement_policy"] == "idempotency_keys_adaptive_with_audit"
+    assert dynamic["retry_backoff_policy"] == "adaptive_retry_backoff_with_guardrails"
+    assert dynamic["circuit_breaker_policy"] == "circuit_breaker_adaptive_with_audit"
+    assert dynamic["rollback_recovery_policy"] == "adaptive_rollback_recovery_with_audit"
     assert dynamic["audit_requirements"] == "minimal"
