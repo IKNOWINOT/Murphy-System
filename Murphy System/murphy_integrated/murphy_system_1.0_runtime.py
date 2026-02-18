@@ -5618,6 +5618,31 @@ class MurphySystem:
             "user_autonomy_preference_ui_policy_scoped",
             "user_autonomy_preference_ui_adaptive_with_audit"
         )
+        planning_execution_toggle_guard_policy = _mode_policy(
+            "planning_execution_toggle_manual_approval_required",
+            "planning_execution_toggle_policy_scoped",
+            "planning_execution_toggle_adaptive_with_audit"
+        )
+        governance_exception_escalation_policy = _mode_policy(
+            "governance_exception_escalation_immediate",
+            "governance_exception_escalation_policy_guided",
+            "governance_exception_escalation_adaptive_with_audit"
+        )
+        approval_sla_enforcement_policy = _mode_policy(
+            "approval_sla_enforcement_hard_deadline",
+            "approval_sla_enforcement_policy_scoped",
+            "approval_sla_enforcement_adaptive_with_audit"
+        )
+        tenant_residency_control_policy = _mode_policy(
+            "tenant_residency_control_hard_enforced",
+            "tenant_residency_control_policy_scoped",
+            "tenant_residency_control_adaptive_with_audit"
+        )
+        swarm_recursion_guard_policy = _mode_policy(
+            "swarm_recursion_guard_hard_limit",
+            "swarm_recursion_guard_policy_scoped",
+            "swarm_recursion_guard_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -5707,6 +5732,11 @@ class MurphySystem:
             "onboarding_profile_revalidation_policy": onboarding_profile_revalidation_policy,
             "control_plane_mode_transition_policy": control_plane_mode_transition_policy,
             "user_autonomy_preference_ui_policy": user_autonomy_preference_ui_policy,
+            "planning_execution_toggle_guard_policy": planning_execution_toggle_guard_policy,
+            "governance_exception_escalation_policy": governance_exception_escalation_policy,
+            "approval_sla_enforcement_policy": approval_sla_enforcement_policy,
+            "tenant_residency_control_policy": tenant_residency_control_policy,
+            "swarm_recursion_guard_policy": swarm_recursion_guard_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
