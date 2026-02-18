@@ -5418,6 +5418,31 @@ class MurphySystem:
             "policy_scoped_rollback_recovery",
             "adaptive_rollback_recovery_with_audit"
         )
+        planning_plane_decomposition_policy = _mode_policy(
+            "hierarchical_decomposition_mandatory",
+            "policy_guided_decomposition",
+            "adaptive_decomposition_with_audit"
+        )
+        planning_plane_risk_simulation_policy = _mode_policy(
+            "risk_simulation_required_before_execution",
+            "risk_simulation_policy_guided",
+            "adaptive_risk_simulation_with_audit"
+        )
+        execution_plane_permission_gate_policy = _mode_policy(
+            "permission_gates_required",
+            "permission_gates_policy_guided",
+            "adaptive_permission_gates_with_audit"
+        )
+        execution_plane_budget_guardrail_policy = _mode_policy(
+            "hard_budget_guardrails",
+            "policy_scoped_budget_guardrails",
+            "adaptive_budget_guardrails_with_audit"
+        )
+        execution_plane_audit_trail_integrity_policy = _mode_policy(
+            "immutable_audit_trail_required",
+            "governed_audit_trail_integrity",
+            "adaptive_audit_trail_integrity_with_audit"
+        )
         return {
             "execution_mode": mode,
             "execution_profile_source": execution_profile_source,
@@ -5466,6 +5491,11 @@ class MurphySystem:
             "retry_backoff_policy": retry_backoff_policy,
             "circuit_breaker_policy": circuit_breaker_policy,
             "rollback_recovery_policy": rollback_recovery_policy,
+            "planning_plane_decomposition_policy": planning_plane_decomposition_policy,
+            "planning_plane_risk_simulation_policy": planning_plane_risk_simulation_policy,
+            "execution_plane_permission_gate_policy": execution_plane_permission_gate_policy,
+            "execution_plane_budget_guardrail_policy": execution_plane_budget_guardrail_policy,
+            "execution_plane_audit_trail_integrity_policy": execution_plane_audit_trail_integrity_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
             "budget_constraints": source.get("budget_constraints", source.get("budget_ceiling", "standard")),
