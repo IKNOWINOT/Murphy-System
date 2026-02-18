@@ -116,6 +116,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["budget_ceiling_revision_policy"] == status["runtime_execution_profile"]["budget_ceiling_revision_policy"]
     assert preview["runtime_execution_profile"]["budget_consumption_alert_policy"] == status["runtime_execution_profile"]["budget_consumption_alert_policy"]
     assert preview["runtime_execution_profile"]["approval_checkpoint_timeout_policy"] == status["runtime_execution_profile"]["approval_checkpoint_timeout_policy"]
+    assert preview["runtime_execution_profile"]["compliance_sensor_event_policy"] == status["runtime_execution_profile"]["compliance_sensor_event_policy"]
+    assert preview["runtime_execution_profile"]["policy_drift_detection_policy"] == status["runtime_execution_profile"]["policy_drift_detection_policy"]
+    assert preview["runtime_execution_profile"]["onboarding_profile_revalidation_policy"] == status["runtime_execution_profile"]["onboarding_profile_revalidation_policy"]
+    assert preview["runtime_execution_profile"]["control_plane_mode_transition_policy"] == status["runtime_execution_profile"]["control_plane_mode_transition_policy"]
+    assert preview["runtime_execution_profile"]["user_autonomy_preference_ui_policy"] == status["runtime_execution_profile"]["user_autonomy_preference_ui_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -288,6 +293,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["budget_ceiling_revision_policy"] == "budget_ceiling_revision_manual_approval_only"
     assert strict["budget_consumption_alert_policy"] == "budget_consumption_alert_realtime_required"
     assert strict["approval_checkpoint_timeout_policy"] == "approval_checkpoint_timeout_hard_stop"
+    assert strict["compliance_sensor_event_policy"] == "compliance_sensor_events_mandatory"
+    assert strict["policy_drift_detection_policy"] == "policy_drift_detection_hard_gate"
+    assert strict["onboarding_profile_revalidation_policy"] == "onboarding_profile_revalidation_required_before_execution"
+    assert strict["control_plane_mode_transition_policy"] == "control_plane_mode_transition_manual_approval_required"
+    assert strict["user_autonomy_preference_ui_policy"] == "user_autonomy_preference_ui_restricted"
     assert strict["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_hard"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
@@ -372,5 +382,10 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["budget_ceiling_revision_policy"] == "budget_ceiling_revision_adaptive_with_audit"
     assert dynamic["budget_consumption_alert_policy"] == "budget_consumption_alert_adaptive_with_audit"
     assert dynamic["approval_checkpoint_timeout_policy"] == "approval_checkpoint_timeout_adaptive_with_audit"
+    assert dynamic["compliance_sensor_event_policy"] == "compliance_sensor_events_adaptive_with_audit"
+    assert dynamic["policy_drift_detection_policy"] == "policy_drift_detection_adaptive_with_audit"
+    assert dynamic["onboarding_profile_revalidation_policy"] == "onboarding_profile_revalidation_adaptive_with_audit"
+    assert dynamic["control_plane_mode_transition_policy"] == "control_plane_mode_transition_adaptive_with_audit"
+    assert dynamic["user_autonomy_preference_ui_policy"] == "user_autonomy_preference_ui_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"

@@ -5593,6 +5593,31 @@ class MurphySystem:
             "approval_checkpoint_timeout_policy_scoped",
             "approval_checkpoint_timeout_adaptive_with_audit"
         )
+        compliance_sensor_event_policy = _mode_policy(
+            "compliance_sensor_events_mandatory",
+            "compliance_sensor_events_policy_scoped",
+            "compliance_sensor_events_adaptive_with_audit"
+        )
+        policy_drift_detection_policy = _mode_policy(
+            "policy_drift_detection_hard_gate",
+            "policy_drift_detection_governed_review",
+            "policy_drift_detection_adaptive_with_audit"
+        )
+        onboarding_profile_revalidation_policy = _mode_policy(
+            "onboarding_profile_revalidation_required_before_execution",
+            "onboarding_profile_revalidation_policy_scoped",
+            "onboarding_profile_revalidation_adaptive_with_audit"
+        )
+        control_plane_mode_transition_policy = _mode_policy(
+            "control_plane_mode_transition_manual_approval_required",
+            "control_plane_mode_transition_policy_scoped",
+            "control_plane_mode_transition_adaptive_with_audit"
+        )
+        user_autonomy_preference_ui_policy = _mode_policy(
+            "user_autonomy_preference_ui_restricted",
+            "user_autonomy_preference_ui_policy_scoped",
+            "user_autonomy_preference_ui_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -5677,6 +5702,11 @@ class MurphySystem:
             "budget_ceiling_revision_policy": budget_ceiling_revision_policy,
             "budget_consumption_alert_policy": budget_consumption_alert_policy,
             "approval_checkpoint_timeout_policy": approval_checkpoint_timeout_policy,
+            "compliance_sensor_event_policy": compliance_sensor_event_policy,
+            "policy_drift_detection_policy": policy_drift_detection_policy,
+            "onboarding_profile_revalidation_policy": onboarding_profile_revalidation_policy,
+            "control_plane_mode_transition_policy": control_plane_mode_transition_policy,
+            "user_autonomy_preference_ui_policy": user_autonomy_preference_ui_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
