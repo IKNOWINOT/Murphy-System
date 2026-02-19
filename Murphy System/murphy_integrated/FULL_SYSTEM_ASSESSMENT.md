@@ -296,6 +296,9 @@ These percentages are **current estimates** based on wired functionality vs. pla
 7. **Shadow-agent + account-plane integration**
    - Treat shadow agents as org-chart peers of their mapped primary roles (not subordinate assistant threads), with identical governance boundary checks.
    - Include account/user-base controls for shadow mappings in UI-managed configuration surfaces so operators can manage shadow assignments where user and account data is administered.
+8. **Semantics boundary control-loop integration**
+   - Add runtime orchestration wrappers for belief-state hypotheses, loss/risk selection (expected loss + CVaR), RVoI-driven clarifying-question selection, invariance commutation checks, and verification-feedback loops.
+   - Keep Groq inference unchanged; implement these controls as runtime boundary conditions plus telemetry (`R*(b)`, `H(x)`, question count, verification outcomes).
 
 ---
 
@@ -408,6 +411,8 @@ This update confirms that sections **1-13** remain active and accepted as the op
 83. Added recursion-residency governance profile derivation for `planning_execution_toggle_guard_policy`, `governance_exception_escalation_policy`, `approval_sla_enforcement_policy`, `tenant_residency_control_policy`, and `swarm_recursion_guard_policy`, with strict/balanced/dynamic mapping validated via focused cross-surface tests (**2 passed, 0 failed**).
 84. Added contract-lifecycle governance profile derivation for `contract_renewal_gate_policy`, `shadow_account_suspension_policy`, `user_base_offboarding_policy`, `governance_kernel_heartbeat_policy`, and `policy_compiler_change_control_policy`, with strict/balanced/dynamic mapping validated via focused cross-surface tests (**2 passed, 0 failed**).
 85. Added persistence-observability governance profile derivation for `replay_reconciliation_policy`, `audit_artifact_retention_policy`, `event_backpressure_management_policy`, `queue_health_slo_policy`, and `rollback_compensation_policy`, with strict/balanced/dynamic mapping validated via focused cross-surface tests (**2 passed, 0 failed**).
+86. Added semantics telemetry-governance profile derivation for `runtime_telemetry_tokens_to_resolution_policy`, `runtime_telemetry_question_count_policy`, `runtime_telemetry_invariance_score_policy`, `runtime_telemetry_risk_score_policy`, and `runtime_telemetry_verification_feedback_policy`, with strict/balanced/dynamic mapping validated via focused cross-surface tests (**2 passed, 0 failed**).
+87. Added semantics-boundary governance profile derivation for `semantics_belief_state_policy`, `semantics_loss_risk_policy`, `semantics_voi_question_policy`, `semantics_invariance_boundary_policy`, and `semantics_verification_feedback_policy`, with strict/balanced/dynamic mapping validated via focused cross-surface tests (**2 passed, 0 failed**).
 
 **Current completion percentage snapshot (section 9, this iteration):**
 - Execution wiring (gate + swarm + orchestrator): **47%**

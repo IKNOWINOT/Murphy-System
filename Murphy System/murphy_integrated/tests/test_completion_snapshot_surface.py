@@ -141,6 +141,16 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["idempotent_recovery_validation_policy"] == status["runtime_execution_profile"]["idempotent_recovery_validation_policy"]
     assert preview["runtime_execution_profile"]["agent_spawn_budget_reconciliation_policy"] == status["runtime_execution_profile"]["agent_spawn_budget_reconciliation_policy"]
     assert preview["runtime_execution_profile"]["audit_chain_export_policy"] == status["runtime_execution_profile"]["audit_chain_export_policy"]
+    assert preview["runtime_execution_profile"]["semantics_belief_state_policy"] == status["runtime_execution_profile"]["semantics_belief_state_policy"]
+    assert preview["runtime_execution_profile"]["semantics_loss_risk_policy"] == status["runtime_execution_profile"]["semantics_loss_risk_policy"]
+    assert preview["runtime_execution_profile"]["semantics_voi_question_policy"] == status["runtime_execution_profile"]["semantics_voi_question_policy"]
+    assert preview["runtime_execution_profile"]["semantics_invariance_boundary_policy"] == status["runtime_execution_profile"]["semantics_invariance_boundary_policy"]
+    assert preview["runtime_execution_profile"]["semantics_verification_feedback_policy"] == status["runtime_execution_profile"]["semantics_verification_feedback_policy"]
+    assert preview["runtime_execution_profile"]["runtime_telemetry_tokens_to_resolution_policy"] == status["runtime_execution_profile"]["runtime_telemetry_tokens_to_resolution_policy"]
+    assert preview["runtime_execution_profile"]["runtime_telemetry_question_count_policy"] == status["runtime_execution_profile"]["runtime_telemetry_question_count_policy"]
+    assert preview["runtime_execution_profile"]["runtime_telemetry_invariance_score_policy"] == status["runtime_execution_profile"]["runtime_telemetry_invariance_score_policy"]
+    assert preview["runtime_execution_profile"]["runtime_telemetry_risk_score_policy"] == status["runtime_execution_profile"]["runtime_telemetry_risk_score_policy"]
+    assert preview["runtime_execution_profile"]["runtime_telemetry_verification_feedback_policy"] == status["runtime_execution_profile"]["runtime_telemetry_verification_feedback_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -353,6 +363,16 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["idempotent_recovery_validation_policy"] == "idempotent_recovery_validation_required"
     assert strict["agent_spawn_budget_reconciliation_policy"] == "agent_spawn_budget_reconciliation_required"
     assert strict["audit_chain_export_policy"] == "audit_chain_export_required"
+    assert strict["semantics_belief_state_policy"] == "structured_spec_hypothesis_belief_required"
+    assert strict["semantics_loss_risk_policy"] == "loss_and_cvar_risk_evaluation_required"
+    assert strict["semantics_voi_question_policy"] == "voi_questioning_required_before_high_risk_action"
+    assert strict["semantics_invariance_boundary_policy"] == "invariance_commutation_gate_required"
+    assert strict["semantics_verification_feedback_policy"] == "verification_feedback_loop_required"
+    assert strict["runtime_telemetry_tokens_to_resolution_policy"] == "telemetry_tokens_to_resolution_required"
+    assert strict["runtime_telemetry_question_count_policy"] == "telemetry_question_count_required"
+    assert strict["runtime_telemetry_invariance_score_policy"] == "telemetry_invariance_score_required"
+    assert strict["runtime_telemetry_risk_score_policy"] == "telemetry_risk_score_required"
+    assert strict["runtime_telemetry_verification_feedback_policy"] == "telemetry_verification_feedback_required"
     assert strict["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_hard"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
@@ -462,5 +482,15 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["idempotent_recovery_validation_policy"] == "idempotent_recovery_validation_adaptive_with_audit"
     assert dynamic["agent_spawn_budget_reconciliation_policy"] == "agent_spawn_budget_reconciliation_adaptive_with_audit"
     assert dynamic["audit_chain_export_policy"] == "audit_chain_export_adaptive_with_audit"
+    assert dynamic["semantics_belief_state_policy"] == "structured_spec_hypothesis_belief_adaptive_with_audit"
+    assert dynamic["semantics_loss_risk_policy"] == "loss_and_cvar_risk_evaluation_adaptive_with_audit"
+    assert dynamic["semantics_voi_question_policy"] == "voi_questioning_adaptive_with_audit"
+    assert dynamic["semantics_invariance_boundary_policy"] == "invariance_commutation_adaptive_with_audit"
+    assert dynamic["semantics_verification_feedback_policy"] == "verification_feedback_adaptive_with_audit"
+    assert dynamic["runtime_telemetry_tokens_to_resolution_policy"] == "telemetry_tokens_to_resolution_adaptive_with_audit"
+    assert dynamic["runtime_telemetry_question_count_policy"] == "telemetry_question_count_adaptive_with_audit"
+    assert dynamic["runtime_telemetry_invariance_score_policy"] == "telemetry_invariance_score_adaptive_with_audit"
+    assert dynamic["runtime_telemetry_risk_score_policy"] == "telemetry_risk_score_adaptive_with_audit"
+    assert dynamic["runtime_telemetry_verification_feedback_policy"] == "telemetry_verification_feedback_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"

@@ -5718,6 +5718,56 @@ class MurphySystem:
             "audit_chain_export_policy_scoped",
             "audit_chain_export_adaptive_with_audit"
         )
+        semantics_belief_state_policy = _mode_policy(
+            "structured_spec_hypothesis_belief_required",
+            "structured_spec_hypothesis_belief_policy_scoped",
+            "structured_spec_hypothesis_belief_adaptive_with_audit"
+        )
+        semantics_loss_risk_policy = _mode_policy(
+            "loss_and_cvar_risk_evaluation_required",
+            "loss_and_cvar_risk_evaluation_policy_scoped",
+            "loss_and_cvar_risk_evaluation_adaptive_with_audit"
+        )
+        semantics_voi_question_policy = _mode_policy(
+            "voi_questioning_required_before_high_risk_action",
+            "voi_questioning_policy_scoped",
+            "voi_questioning_adaptive_with_audit"
+        )
+        semantics_invariance_boundary_policy = _mode_policy(
+            "invariance_commutation_gate_required",
+            "invariance_commutation_policy_scoped",
+            "invariance_commutation_adaptive_with_audit"
+        )
+        semantics_verification_feedback_policy = _mode_policy(
+            "verification_feedback_loop_required",
+            "verification_feedback_policy_scoped",
+            "verification_feedback_adaptive_with_audit"
+        )
+        runtime_telemetry_tokens_to_resolution_policy = _mode_policy(
+            "telemetry_tokens_to_resolution_required",
+            "telemetry_tokens_to_resolution_policy_scoped",
+            "telemetry_tokens_to_resolution_adaptive_with_audit"
+        )
+        runtime_telemetry_question_count_policy = _mode_policy(
+            "telemetry_question_count_required",
+            "telemetry_question_count_policy_scoped",
+            "telemetry_question_count_adaptive_with_audit"
+        )
+        runtime_telemetry_invariance_score_policy = _mode_policy(
+            "telemetry_invariance_score_required",
+            "telemetry_invariance_score_policy_scoped",
+            "telemetry_invariance_score_adaptive_with_audit"
+        )
+        runtime_telemetry_risk_score_policy = _mode_policy(
+            "telemetry_risk_score_required",
+            "telemetry_risk_score_policy_scoped",
+            "telemetry_risk_score_adaptive_with_audit"
+        )
+        runtime_telemetry_verification_feedback_policy = _mode_policy(
+            "telemetry_verification_feedback_required",
+            "telemetry_verification_feedback_policy_scoped",
+            "telemetry_verification_feedback_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -5827,6 +5877,16 @@ class MurphySystem:
             "idempotent_recovery_validation_policy": idempotent_recovery_validation_policy,
             "agent_spawn_budget_reconciliation_policy": agent_spawn_budget_reconciliation_policy,
             "audit_chain_export_policy": audit_chain_export_policy,
+            "semantics_belief_state_policy": semantics_belief_state_policy,
+            "semantics_loss_risk_policy": semantics_loss_risk_policy,
+            "semantics_voi_question_policy": semantics_voi_question_policy,
+            "semantics_invariance_boundary_policy": semantics_invariance_boundary_policy,
+            "semantics_verification_feedback_policy": semantics_verification_feedback_policy,
+            "runtime_telemetry_tokens_to_resolution_policy": runtime_telemetry_tokens_to_resolution_policy,
+            "runtime_telemetry_question_count_policy": runtime_telemetry_question_count_policy,
+            "runtime_telemetry_invariance_score_policy": runtime_telemetry_invariance_score_policy,
+            "runtime_telemetry_risk_score_policy": runtime_telemetry_risk_score_policy,
+            "runtime_telemetry_verification_feedback_policy": runtime_telemetry_verification_feedback_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
