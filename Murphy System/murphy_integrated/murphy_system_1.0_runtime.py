@@ -6168,6 +6168,31 @@ class MurphySystem:
             "section_loop_exit_criteria_policy_scoped",
             "section_loop_exit_criteria_adaptive_with_audit"
         )
+        section_recommendation_priority_policy = _mode_policy(
+            "section_recommendation_priority_required",
+            "section_recommendation_priority_policy_scoped",
+            "section_recommendation_priority_adaptive_with_audit"
+        )
+        section_recommendation_dependency_policy = _mode_policy(
+            "section_recommendation_dependency_required",
+            "section_recommendation_dependency_policy_scoped",
+            "section_recommendation_dependency_adaptive_with_audit"
+        )
+        section_risk_escalation_policy = _mode_policy(
+            "section_risk_escalation_required",
+            "section_risk_escalation_policy_scoped",
+            "section_risk_escalation_adaptive_with_audit"
+        )
+        section_completion_signoff_policy = _mode_policy(
+            "section_completion_signoff_required",
+            "section_completion_signoff_policy_scoped",
+            "section_completion_signoff_adaptive_with_audit"
+        )
+        section_continuous_improvement_policy = _mode_policy(
+            "section_continuous_improvement_required",
+            "section_continuous_improvement_policy_scoped",
+            "section_continuous_improvement_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -6367,6 +6392,11 @@ class MurphySystem:
             "section_retest_trigger_policy": section_retest_trigger_policy,
             "section_documentation_accuracy_policy": section_documentation_accuracy_policy,
             "section_loop_exit_criteria_policy": section_loop_exit_criteria_policy,
+            "section_recommendation_priority_policy": section_recommendation_priority_policy,
+            "section_recommendation_dependency_policy": section_recommendation_dependency_policy,
+            "section_risk_escalation_policy": section_risk_escalation_policy,
+            "section_completion_signoff_policy": section_completion_signoff_policy,
+            "section_continuous_improvement_policy": section_continuous_improvement_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,

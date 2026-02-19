@@ -244,6 +244,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["section_retest_trigger_policy"] == status["runtime_execution_profile"]["section_retest_trigger_policy"]
     assert preview["runtime_execution_profile"]["section_documentation_accuracy_policy"] == status["runtime_execution_profile"]["section_documentation_accuracy_policy"]
     assert preview["runtime_execution_profile"]["section_loop_exit_criteria_policy"] == status["runtime_execution_profile"]["section_loop_exit_criteria_policy"]
+    assert preview["runtime_execution_profile"]["section_recommendation_priority_policy"] == status["runtime_execution_profile"]["section_recommendation_priority_policy"]
+    assert preview["runtime_execution_profile"]["section_recommendation_dependency_policy"] == status["runtime_execution_profile"]["section_recommendation_dependency_policy"]
+    assert preview["runtime_execution_profile"]["section_risk_escalation_policy"] == status["runtime_execution_profile"]["section_risk_escalation_policy"]
+    assert preview["runtime_execution_profile"]["section_completion_signoff_policy"] == status["runtime_execution_profile"]["section_completion_signoff_policy"]
+    assert preview["runtime_execution_profile"]["section_continuous_improvement_policy"] == status["runtime_execution_profile"]["section_continuous_improvement_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -591,6 +596,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["section_retest_trigger_policy"] == "section_retest_trigger_required"
     assert strict["section_documentation_accuracy_policy"] == "section_documentation_accuracy_required"
     assert strict["section_loop_exit_criteria_policy"] == "section_loop_exit_criteria_required"
+    assert strict["section_recommendation_priority_policy"] == "section_recommendation_priority_required"
+    assert strict["section_recommendation_dependency_policy"] == "section_recommendation_dependency_required"
+    assert strict["section_risk_escalation_policy"] == "section_risk_escalation_required"
+    assert strict["section_completion_signoff_policy"] == "section_completion_signoff_required"
+    assert strict["section_continuous_improvement_policy"] == "section_continuous_improvement_required"
     assert strict["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_hard"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
@@ -790,5 +800,10 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["section_retest_trigger_policy"] == "section_retest_trigger_adaptive_with_audit"
     assert dynamic["section_documentation_accuracy_policy"] == "section_documentation_accuracy_adaptive_with_audit"
     assert dynamic["section_loop_exit_criteria_policy"] == "section_loop_exit_criteria_adaptive_with_audit"
+    assert dynamic["section_recommendation_priority_policy"] == "section_recommendation_priority_adaptive_with_audit"
+    assert dynamic["section_recommendation_dependency_policy"] == "section_recommendation_dependency_adaptive_with_audit"
+    assert dynamic["section_risk_escalation_policy"] == "section_risk_escalation_adaptive_with_audit"
+    assert dynamic["section_completion_signoff_policy"] == "section_completion_signoff_adaptive_with_audit"
+    assert dynamic["section_continuous_improvement_policy"] == "section_continuous_improvement_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"
