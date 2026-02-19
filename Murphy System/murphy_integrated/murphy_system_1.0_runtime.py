@@ -5743,6 +5743,56 @@ class MurphySystem:
             "verification_feedback_policy_scoped",
             "verification_feedback_adaptive_with_audit"
         )
+        semantics_hypothesis_update_policy = _mode_policy(
+            "belief_hypothesis_posterior_update_required",
+            "belief_hypothesis_posterior_update_policy_scoped",
+            "belief_hypothesis_posterior_update_adaptive_with_audit"
+        )
+        semantics_likelihood_scoring_policy = _mode_policy(
+            "answer_likelihood_scoring_required",
+            "answer_likelihood_scoring_policy_scoped",
+            "answer_likelihood_scoring_adaptive_with_audit"
+        )
+        semantics_rvoi_decision_policy = _mode_policy(
+            "rvoi_question_decision_required",
+            "rvoi_question_decision_policy_scoped",
+            "rvoi_question_decision_adaptive_with_audit"
+        )
+        semantics_clarifying_question_budget_policy = _mode_policy(
+            "clarifying_question_budget_enforced",
+            "clarifying_question_budget_policy_scoped",
+            "clarifying_question_budget_adaptive_with_audit"
+        )
+        semantics_invariance_retry_policy = _mode_policy(
+            "invariance_retry_or_ask_required",
+            "invariance_retry_or_ask_policy_scoped",
+            "invariance_retry_or_ask_adaptive_with_audit"
+        )
+        semantics_hypothesis_distribution_policy = _mode_policy(
+            "structured_hypothesis_distribution_required",
+            "structured_hypothesis_distribution_policy_scoped",
+            "structured_hypothesis_distribution_adaptive_with_audit"
+        )
+        semantics_cvar_risk_measure_policy = _mode_policy(
+            "expected_loss_and_cvar_required",
+            "expected_loss_and_cvar_policy_scoped",
+            "expected_loss_and_cvar_adaptive_with_audit"
+        )
+        semantics_question_cost_policy = _mode_policy(
+            "question_cost_and_voi_threshold_required",
+            "question_cost_and_voi_threshold_policy_scoped",
+            "question_cost_and_voi_threshold_adaptive_with_audit"
+        )
+        semantics_invariance_transform_set_policy = _mode_policy(
+            "invariance_transform_set_required",
+            "invariance_transform_set_policy_scoped",
+            "invariance_transform_set_adaptive_with_audit"
+        )
+        semantics_verification_boundary_policy = _mode_policy(
+            "verification_boundary_enforcement_required",
+            "verification_boundary_enforcement_policy_scoped",
+            "verification_boundary_enforcement_adaptive_with_audit"
+        )
         runtime_telemetry_tokens_to_resolution_policy = _mode_policy(
             "telemetry_tokens_to_resolution_required",
             "telemetry_tokens_to_resolution_policy_scoped",
@@ -5882,6 +5932,16 @@ class MurphySystem:
             "semantics_voi_question_policy": semantics_voi_question_policy,
             "semantics_invariance_boundary_policy": semantics_invariance_boundary_policy,
             "semantics_verification_feedback_policy": semantics_verification_feedback_policy,
+            "semantics_hypothesis_update_policy": semantics_hypothesis_update_policy,
+            "semantics_likelihood_scoring_policy": semantics_likelihood_scoring_policy,
+            "semantics_rvoi_decision_policy": semantics_rvoi_decision_policy,
+            "semantics_clarifying_question_budget_policy": semantics_clarifying_question_budget_policy,
+            "semantics_invariance_retry_policy": semantics_invariance_retry_policy,
+            "semantics_hypothesis_distribution_policy": semantics_hypothesis_distribution_policy,
+            "semantics_cvar_risk_measure_policy": semantics_cvar_risk_measure_policy,
+            "semantics_question_cost_policy": semantics_question_cost_policy,
+            "semantics_invariance_transform_set_policy": semantics_invariance_transform_set_policy,
+            "semantics_verification_boundary_policy": semantics_verification_boundary_policy,
             "runtime_telemetry_tokens_to_resolution_policy": runtime_telemetry_tokens_to_resolution_policy,
             "runtime_telemetry_question_count_policy": runtime_telemetry_question_count_policy,
             "runtime_telemetry_invariance_score_policy": runtime_telemetry_invariance_score_policy,
