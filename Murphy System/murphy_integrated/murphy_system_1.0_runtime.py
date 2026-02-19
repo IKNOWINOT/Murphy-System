@@ -6093,6 +6093,31 @@ class MurphySystem:
             "recommendation_completion_report_policy_scoped",
             "recommendation_completion_report_adaptive_with_audit"
         )
+        section_1_to_14_continuity_policy = _mode_policy(
+            "section_1_to_14_continuity_required",
+            "section_1_to_14_continuity_policy_scoped",
+            "section_1_to_14_continuity_adaptive_with_audit"
+        )
+        section_recommendation_acceptance_audit_policy = _mode_policy(
+            "section_recommendation_acceptance_audit_required",
+            "section_recommendation_acceptance_audit_policy_scoped",
+            "section_recommendation_acceptance_audit_adaptive_with_audit"
+        )
+        section_recommendation_implementation_trace_policy = _mode_policy(
+            "section_recommendation_implementation_trace_required",
+            "section_recommendation_implementation_trace_policy_scoped",
+            "section_recommendation_implementation_trace_adaptive_with_audit"
+        )
+        section_followup_test_loop_policy = _mode_policy(
+            "section_followup_test_loop_required",
+            "section_followup_test_loop_policy_scoped",
+            "section_followup_test_loop_adaptive_with_audit"
+        )
+        section_readme_assessment_lockstep_policy = _mode_policy(
+            "section_readme_assessment_lockstep_required",
+            "section_readme_assessment_lockstep_policy_scoped",
+            "section_readme_assessment_lockstep_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -6277,6 +6302,11 @@ class MurphySystem:
             "recommendation_test_evidence_policy": recommendation_test_evidence_policy,
             "recommendation_section_sync_policy": recommendation_section_sync_policy,
             "recommendation_completion_report_policy": recommendation_completion_report_policy,
+            "section_1_to_14_continuity_policy": section_1_to_14_continuity_policy,
+            "section_recommendation_acceptance_audit_policy": section_recommendation_acceptance_audit_policy,
+            "section_recommendation_implementation_trace_policy": section_recommendation_implementation_trace_policy,
+            "section_followup_test_loop_policy": section_followup_test_loop_policy,
+            "section_readme_assessment_lockstep_policy": section_readme_assessment_lockstep_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,

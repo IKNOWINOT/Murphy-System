@@ -229,6 +229,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["recommendation_test_evidence_policy"] == status["runtime_execution_profile"]["recommendation_test_evidence_policy"]
     assert preview["runtime_execution_profile"]["recommendation_section_sync_policy"] == status["runtime_execution_profile"]["recommendation_section_sync_policy"]
     assert preview["runtime_execution_profile"]["recommendation_completion_report_policy"] == status["runtime_execution_profile"]["recommendation_completion_report_policy"]
+    assert preview["runtime_execution_profile"]["section_1_to_14_continuity_policy"] == status["runtime_execution_profile"]["section_1_to_14_continuity_policy"]
+    assert preview["runtime_execution_profile"]["section_recommendation_acceptance_audit_policy"] == status["runtime_execution_profile"]["section_recommendation_acceptance_audit_policy"]
+    assert preview["runtime_execution_profile"]["section_recommendation_implementation_trace_policy"] == status["runtime_execution_profile"]["section_recommendation_implementation_trace_policy"]
+    assert preview["runtime_execution_profile"]["section_followup_test_loop_policy"] == status["runtime_execution_profile"]["section_followup_test_loop_policy"]
+    assert preview["runtime_execution_profile"]["section_readme_assessment_lockstep_policy"] == status["runtime_execution_profile"]["section_readme_assessment_lockstep_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -551,6 +556,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["recommendation_test_evidence_policy"] == "recommendation_test_evidence_required"
     assert strict["recommendation_section_sync_policy"] == "recommendation_section_sync_required"
     assert strict["recommendation_completion_report_policy"] == "recommendation_completion_report_required"
+    assert strict["section_1_to_14_continuity_policy"] == "section_1_to_14_continuity_required"
+    assert strict["section_recommendation_acceptance_audit_policy"] == "section_recommendation_acceptance_audit_required"
+    assert strict["section_recommendation_implementation_trace_policy"] == "section_recommendation_implementation_trace_required"
+    assert strict["section_followup_test_loop_policy"] == "section_followup_test_loop_required"
+    assert strict["section_readme_assessment_lockstep_policy"] == "section_readme_assessment_lockstep_required"
     assert strict["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_hard"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
@@ -735,5 +745,10 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["recommendation_test_evidence_policy"] == "recommendation_test_evidence_adaptive_with_audit"
     assert dynamic["recommendation_section_sync_policy"] == "recommendation_section_sync_adaptive_with_audit"
     assert dynamic["recommendation_completion_report_policy"] == "recommendation_completion_report_adaptive_with_audit"
+    assert dynamic["section_1_to_14_continuity_policy"] == "section_1_to_14_continuity_adaptive_with_audit"
+    assert dynamic["section_recommendation_acceptance_audit_policy"] == "section_recommendation_acceptance_audit_adaptive_with_audit"
+    assert dynamic["section_recommendation_implementation_trace_policy"] == "section_recommendation_implementation_trace_adaptive_with_audit"
+    assert dynamic["section_followup_test_loop_policy"] == "section_followup_test_loop_adaptive_with_audit"
+    assert dynamic["section_readme_assessment_lockstep_policy"] == "section_readme_assessment_lockstep_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"
