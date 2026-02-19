@@ -254,6 +254,18 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["section_regression_guard_policy"] == status["runtime_execution_profile"]["section_regression_guard_policy"]
     assert preview["runtime_execution_profile"]["section_release_readiness_policy"] == status["runtime_execution_profile"]["section_release_readiness_policy"]
     assert preview["runtime_execution_profile"]["section_traceability_index_policy"] == status["runtime_execution_profile"]["section_traceability_index_policy"]
+    # Section completion-attestation policy group
+    assert preview["runtime_execution_profile"]["section_acceptance_criteria_enforcement_policy"] == status["runtime_execution_profile"]["section_acceptance_criteria_enforcement_policy"]
+    assert preview["runtime_execution_profile"]["section_artifact_quality_review_policy"] == status["runtime_execution_profile"]["section_artifact_quality_review_policy"]
+    assert preview["runtime_execution_profile"]["section_retest_on_change_policy"] == status["runtime_execution_profile"]["section_retest_on_change_policy"]
+    assert preview["runtime_execution_profile"]["section_documentation_trace_policy"] == status["runtime_execution_profile"]["section_documentation_trace_policy"]
+    assert preview["runtime_execution_profile"]["section_release_gate_attestation_policy"] == status["runtime_execution_profile"]["section_release_gate_attestation_policy"]
+    # Section dependency-health and validation signal policy group
+    assert preview["runtime_execution_profile"]["section_dependency_health_policy"] == status["runtime_execution_profile"]["section_dependency_health_policy"]
+    assert preview["runtime_execution_profile"]["section_recommendation_sla_policy"] == status["runtime_execution_profile"]["section_recommendation_sla_policy"]
+    assert preview["runtime_execution_profile"]["section_documentation_sync_policy"] == status["runtime_execution_profile"]["section_documentation_sync_policy"]
+    assert preview["runtime_execution_profile"]["section_validation_signal_policy"] == status["runtime_execution_profile"]["section_validation_signal_policy"]
+    assert preview["runtime_execution_profile"]["section_handoff_audit_policy"] == status["runtime_execution_profile"]["section_handoff_audit_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -386,6 +398,16 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["section_regression_guard_policy"] == "section_regression_guard_policy_scoped"
     assert status["runtime_execution_profile"]["section_release_readiness_policy"] == "section_release_readiness_policy_scoped"
     assert status["runtime_execution_profile"]["section_traceability_index_policy"] == "section_traceability_index_policy_scoped"
+    assert status["runtime_execution_profile"]["section_acceptance_criteria_enforcement_policy"] == "section_acceptance_criteria_enforcement_policy_scoped"
+    assert status["runtime_execution_profile"]["section_artifact_quality_review_policy"] == "section_artifact_quality_review_policy_scoped"
+    assert status["runtime_execution_profile"]["section_retest_on_change_policy"] == "section_retest_on_change_policy_scoped"
+    assert status["runtime_execution_profile"]["section_documentation_trace_policy"] == "section_documentation_trace_policy_scoped"
+    assert status["runtime_execution_profile"]["section_release_gate_attestation_policy"] == "section_release_gate_attestation_policy_scoped"
+    assert status["runtime_execution_profile"]["section_dependency_health_policy"] == "section_dependency_health_policy_scoped"
+    assert status["runtime_execution_profile"]["section_recommendation_sla_policy"] == "section_recommendation_sla_policy_scoped"
+    assert status["runtime_execution_profile"]["section_documentation_sync_policy"] == "section_documentation_sync_policy_scoped"
+    assert status["runtime_execution_profile"]["section_validation_signal_policy"] == "section_validation_signal_policy_scoped"
+    assert status["runtime_execution_profile"]["section_handoff_audit_policy"] == "section_handoff_audit_policy_scoped"
     assert status["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_policy_guided"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
@@ -825,5 +847,15 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["section_regression_guard_policy"] == "section_regression_guard_adaptive_with_audit"
     assert dynamic["section_release_readiness_policy"] == "section_release_readiness_adaptive_with_audit"
     assert dynamic["section_traceability_index_policy"] == "section_traceability_index_adaptive_with_audit"
+    assert dynamic["section_acceptance_criteria_enforcement_policy"] == "section_acceptance_criteria_enforcement_adaptive_with_audit"
+    assert dynamic["section_artifact_quality_review_policy"] == "section_artifact_quality_review_adaptive_with_audit"
+    assert dynamic["section_retest_on_change_policy"] == "section_retest_on_change_adaptive_with_audit"
+    assert dynamic["section_documentation_trace_policy"] == "section_documentation_trace_adaptive_with_audit"
+    assert dynamic["section_release_gate_attestation_policy"] == "section_release_gate_attestation_adaptive_with_audit"
+    assert dynamic["section_dependency_health_policy"] == "section_dependency_health_adaptive_with_audit"
+    assert dynamic["section_recommendation_sla_policy"] == "section_recommendation_sla_adaptive_with_audit"
+    assert dynamic["section_documentation_sync_policy"] == "section_documentation_sync_adaptive_with_audit"
+    assert dynamic["section_validation_signal_policy"] == "section_validation_signal_adaptive_with_audit"
+    assert dynamic["section_handoff_audit_policy"] == "section_handoff_audit_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"

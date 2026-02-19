@@ -6218,6 +6218,56 @@ class MurphySystem:
             "section_traceability_index_policy_scoped",
             "section_traceability_index_adaptive_with_audit"
         )
+        section_acceptance_criteria_enforcement_policy = _mode_policy(
+            "section_acceptance_criteria_enforcement_required",
+            "section_acceptance_criteria_enforcement_policy_scoped",
+            "section_acceptance_criteria_enforcement_adaptive_with_audit"
+        )
+        section_artifact_quality_review_policy = _mode_policy(
+            "section_artifact_quality_review_required",
+            "section_artifact_quality_review_policy_scoped",
+            "section_artifact_quality_review_adaptive_with_audit"
+        )
+        section_retest_on_change_policy = _mode_policy(
+            "section_retest_on_change_required",
+            "section_retest_on_change_policy_scoped",
+            "section_retest_on_change_adaptive_with_audit"
+        )
+        section_documentation_trace_policy = _mode_policy(
+            "section_documentation_trace_required",
+            "section_documentation_trace_policy_scoped",
+            "section_documentation_trace_adaptive_with_audit"
+        )
+        section_release_gate_attestation_policy = _mode_policy(
+            "section_release_gate_attestation_required",
+            "section_release_gate_attestation_policy_scoped",
+            "section_release_gate_attestation_adaptive_with_audit"
+        )
+        section_dependency_health_policy = _mode_policy(
+            "section_dependency_health_gate_required",
+            "section_dependency_health_policy_scoped",
+            "section_dependency_health_adaptive_with_audit"
+        )
+        section_recommendation_sla_policy = _mode_policy(
+            "section_recommendation_sla_required",
+            "section_recommendation_sla_policy_scoped",
+            "section_recommendation_sla_adaptive_with_audit"
+        )
+        section_documentation_sync_policy = _mode_policy(
+            "section_documentation_sync_required",
+            "section_documentation_sync_policy_scoped",
+            "section_documentation_sync_adaptive_with_audit"
+        )
+        section_validation_signal_policy = _mode_policy(
+            "section_validation_signal_required",
+            "section_validation_signal_policy_scoped",
+            "section_validation_signal_adaptive_with_audit"
+        )
+        section_handoff_audit_policy = _mode_policy(
+            "section_handoff_audit_required",
+            "section_handoff_audit_policy_scoped",
+            "section_handoff_audit_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -6427,6 +6477,16 @@ class MurphySystem:
             "section_regression_guard_policy": section_regression_guard_policy,
             "section_release_readiness_policy": section_release_readiness_policy,
             "section_traceability_index_policy": section_traceability_index_policy,
+            "section_acceptance_criteria_enforcement_policy": section_acceptance_criteria_enforcement_policy,
+            "section_artifact_quality_review_policy": section_artifact_quality_review_policy,
+            "section_retest_on_change_policy": section_retest_on_change_policy,
+            "section_documentation_trace_policy": section_documentation_trace_policy,
+            "section_release_gate_attestation_policy": section_release_gate_attestation_policy,
+            "section_dependency_health_policy": section_dependency_health_policy,
+            "section_recommendation_sla_policy": section_recommendation_sla_policy,
+            "section_documentation_sync_policy": section_documentation_sync_policy,
+            "section_validation_signal_policy": section_validation_signal_policy,
+            "section_handoff_audit_policy": section_handoff_audit_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
