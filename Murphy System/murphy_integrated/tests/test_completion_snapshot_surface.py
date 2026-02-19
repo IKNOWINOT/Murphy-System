@@ -249,6 +249,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["section_risk_escalation_policy"] == status["runtime_execution_profile"]["section_risk_escalation_policy"]
     assert preview["runtime_execution_profile"]["section_completion_signoff_policy"] == status["runtime_execution_profile"]["section_completion_signoff_policy"]
     assert preview["runtime_execution_profile"]["section_continuous_improvement_policy"] == status["runtime_execution_profile"]["section_continuous_improvement_policy"]
+    assert preview["runtime_execution_profile"]["section_recommendation_conflict_resolution_policy"] == status["runtime_execution_profile"]["section_recommendation_conflict_resolution_policy"]
+    assert preview["runtime_execution_profile"]["section_dependency_unblock_policy"] == status["runtime_execution_profile"]["section_dependency_unblock_policy"]
+    assert preview["runtime_execution_profile"]["section_regression_guard_policy"] == status["runtime_execution_profile"]["section_regression_guard_policy"]
+    assert preview["runtime_execution_profile"]["section_release_readiness_policy"] == status["runtime_execution_profile"]["section_release_readiness_policy"]
+    assert preview["runtime_execution_profile"]["section_traceability_index_policy"] == status["runtime_execution_profile"]["section_traceability_index_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -376,6 +381,11 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["section_retest_trigger_policy"] == "section_retest_trigger_policy_scoped"
     assert status["runtime_execution_profile"]["section_documentation_accuracy_policy"] == "section_documentation_accuracy_policy_scoped"
     assert status["runtime_execution_profile"]["section_loop_exit_criteria_policy"] == "section_loop_exit_criteria_policy_scoped"
+    assert status["runtime_execution_profile"]["section_recommendation_conflict_resolution_policy"] == "section_recommendation_conflict_resolution_policy_scoped"
+    assert status["runtime_execution_profile"]["section_dependency_unblock_policy"] == "section_dependency_unblock_policy_scoped"
+    assert status["runtime_execution_profile"]["section_regression_guard_policy"] == "section_regression_guard_policy_scoped"
+    assert status["runtime_execution_profile"]["section_release_readiness_policy"] == "section_release_readiness_policy_scoped"
+    assert status["runtime_execution_profile"]["section_traceability_index_policy"] == "section_traceability_index_policy_scoped"
     assert status["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_policy_guided"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
@@ -601,6 +611,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["section_risk_escalation_policy"] == "section_risk_escalation_required"
     assert strict["section_completion_signoff_policy"] == "section_completion_signoff_required"
     assert strict["section_continuous_improvement_policy"] == "section_continuous_improvement_required"
+    assert strict["section_recommendation_conflict_resolution_policy"] == "section_recommendation_conflict_resolution_required"
+    assert strict["section_dependency_unblock_policy"] == "section_dependency_unblock_required"
+    assert strict["section_regression_guard_policy"] == "section_regression_guard_required"
+    assert strict["section_release_readiness_policy"] == "section_release_readiness_required"
+    assert strict["section_traceability_index_policy"] == "section_traceability_index_required"
     assert strict["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_hard"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
@@ -805,5 +820,10 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["section_risk_escalation_policy"] == "section_risk_escalation_adaptive_with_audit"
     assert dynamic["section_completion_signoff_policy"] == "section_completion_signoff_adaptive_with_audit"
     assert dynamic["section_continuous_improvement_policy"] == "section_continuous_improvement_adaptive_with_audit"
+    assert dynamic["section_recommendation_conflict_resolution_policy"] == "section_recommendation_conflict_resolution_adaptive_with_audit"
+    assert dynamic["section_dependency_unblock_policy"] == "section_dependency_unblock_adaptive_with_audit"
+    assert dynamic["section_regression_guard_policy"] == "section_regression_guard_adaptive_with_audit"
+    assert dynamic["section_release_readiness_policy"] == "section_release_readiness_adaptive_with_audit"
+    assert dynamic["section_traceability_index_policy"] == "section_traceability_index_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"
