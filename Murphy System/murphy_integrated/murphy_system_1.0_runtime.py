@@ -5843,6 +5843,31 @@ class MurphySystem:
             "semantics_action_revision_policy_scoped",
             "semantics_action_revision_adaptive_with_audit"
         )
+        legacy_orchestrator_discovery_policy = _mode_policy(
+            "legacy_orchestrator_inventory_required",
+            "legacy_orchestrator_inventory_policy_scoped",
+            "legacy_orchestrator_inventory_adaptive_with_audit"
+        )
+        rubixcube_orchestrator_adapter_policy = _mode_policy(
+            "rubixcube_adapter_wiring_required",
+            "rubixcube_adapter_wiring_policy_scoped",
+            "rubixcube_adapter_wiring_adaptive_with_audit"
+        )
+        triage_orchestrator_adapter_policy = _mode_policy(
+            "triage_adapter_wiring_required",
+            "triage_adapter_wiring_policy_scoped",
+            "triage_adapter_wiring_adaptive_with_audit"
+        )
+        bot_catalog_capability_mapping_policy = _mode_policy(
+            "bot_catalog_capability_mapping_required",
+            "bot_catalog_capability_mapping_policy_scoped",
+            "bot_catalog_capability_mapping_adaptive_with_audit"
+        )
+        legacy_orchestrator_wiring_priority_policy = _mode_policy(
+            "legacy_orchestrator_wiring_priority_required",
+            "legacy_orchestrator_wiring_priority_policy_scoped",
+            "legacy_orchestrator_wiring_priority_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -5977,6 +6002,11 @@ class MurphySystem:
             "semantics_belief_normalization_policy": semantics_belief_normalization_policy,
             "semantics_verification_loss_injection_policy": semantics_verification_loss_injection_policy,
             "semantics_action_revision_policy": semantics_action_revision_policy,
+            "legacy_orchestrator_discovery_policy": legacy_orchestrator_discovery_policy,
+            "rubixcube_orchestrator_adapter_policy": rubixcube_orchestrator_adapter_policy,
+            "triage_orchestrator_adapter_policy": triage_orchestrator_adapter_policy,
+            "bot_catalog_capability_mapping_policy": bot_catalog_capability_mapping_policy,
+            "legacy_orchestrator_wiring_priority_policy": legacy_orchestrator_wiring_priority_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
