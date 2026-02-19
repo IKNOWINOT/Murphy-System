@@ -5918,6 +5918,31 @@ class MurphySystem:
             "golden_path_reuse_policy_scoped",
             "golden_path_reuse_adaptive_with_audit"
         )
+        governance_review_cadence_policy = _mode_policy(
+            "governance_review_cadence_required",
+            "governance_review_cadence_policy_scoped",
+            "governance_review_cadence_adaptive_with_audit"
+        )
+        section_status_reconciliation_policy = _mode_policy(
+            "section_status_reconciliation_required",
+            "section_status_reconciliation_policy_scoped",
+            "section_status_reconciliation_adaptive_with_audit"
+        )
+        orchestrator_wiring_readiness_policy = _mode_policy(
+            "orchestrator_wiring_readiness_required",
+            "orchestrator_wiring_readiness_policy_scoped",
+            "orchestrator_wiring_readiness_adaptive_with_audit"
+        )
+        verification_feedback_closure_policy = _mode_policy(
+            "verification_feedback_closure_required",
+            "verification_feedback_closure_policy_scoped",
+            "verification_feedback_closure_adaptive_with_audit"
+        )
+        self_improvement_backlog_priority_policy = _mode_policy(
+            "self_improvement_backlog_priority_required",
+            "self_improvement_backlog_priority_policy_scoped",
+            "self_improvement_backlog_priority_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -6067,6 +6092,11 @@ class MurphySystem:
             "rubixcube_evidence_engine_policy": rubixcube_evidence_engine_policy,
             "triage_rollcall_confidence_policy": triage_rollcall_confidence_policy,
             "golden_path_reuse_policy": golden_path_reuse_policy,
+            "governance_review_cadence_policy": governance_review_cadence_policy,
+            "section_status_reconciliation_policy": section_status_reconciliation_policy,
+            "orchestrator_wiring_readiness_policy": orchestrator_wiring_readiness_policy,
+            "verification_feedback_closure_policy": verification_feedback_closure_policy,
+            "self_improvement_backlog_priority_policy": self_improvement_backlog_priority_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
