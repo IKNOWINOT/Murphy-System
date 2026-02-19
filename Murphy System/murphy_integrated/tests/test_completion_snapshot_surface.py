@@ -146,6 +146,16 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["semantics_voi_question_policy"] == status["runtime_execution_profile"]["semantics_voi_question_policy"]
     assert preview["runtime_execution_profile"]["semantics_invariance_boundary_policy"] == status["runtime_execution_profile"]["semantics_invariance_boundary_policy"]
     assert preview["runtime_execution_profile"]["semantics_verification_feedback_policy"] == status["runtime_execution_profile"]["semantics_verification_feedback_policy"]
+    assert preview["runtime_execution_profile"]["semantics_hypothesis_update_policy"] == status["runtime_execution_profile"]["semantics_hypothesis_update_policy"]
+    assert preview["runtime_execution_profile"]["semantics_likelihood_scoring_policy"] == status["runtime_execution_profile"]["semantics_likelihood_scoring_policy"]
+    assert preview["runtime_execution_profile"]["semantics_rvoi_decision_policy"] == status["runtime_execution_profile"]["semantics_rvoi_decision_policy"]
+    assert preview["runtime_execution_profile"]["semantics_clarifying_question_budget_policy"] == status["runtime_execution_profile"]["semantics_clarifying_question_budget_policy"]
+    assert preview["runtime_execution_profile"]["semantics_invariance_retry_policy"] == status["runtime_execution_profile"]["semantics_invariance_retry_policy"]
+    assert preview["runtime_execution_profile"]["semantics_hypothesis_distribution_policy"] == status["runtime_execution_profile"]["semantics_hypothesis_distribution_policy"]
+    assert preview["runtime_execution_profile"]["semantics_cvar_risk_measure_policy"] == status["runtime_execution_profile"]["semantics_cvar_risk_measure_policy"]
+    assert preview["runtime_execution_profile"]["semantics_question_cost_policy"] == status["runtime_execution_profile"]["semantics_question_cost_policy"]
+    assert preview["runtime_execution_profile"]["semantics_invariance_transform_set_policy"] == status["runtime_execution_profile"]["semantics_invariance_transform_set_policy"]
+    assert preview["runtime_execution_profile"]["semantics_verification_boundary_policy"] == status["runtime_execution_profile"]["semantics_verification_boundary_policy"]
     assert preview["runtime_execution_profile"]["runtime_telemetry_tokens_to_resolution_policy"] == status["runtime_execution_profile"]["runtime_telemetry_tokens_to_resolution_policy"]
     assert preview["runtime_execution_profile"]["runtime_telemetry_question_count_policy"] == status["runtime_execution_profile"]["runtime_telemetry_question_count_policy"]
     assert preview["runtime_execution_profile"]["runtime_telemetry_invariance_score_policy"] == status["runtime_execution_profile"]["runtime_telemetry_invariance_score_policy"]
@@ -368,6 +378,16 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["semantics_voi_question_policy"] == "voi_questioning_required_before_high_risk_action"
     assert strict["semantics_invariance_boundary_policy"] == "invariance_commutation_gate_required"
     assert strict["semantics_verification_feedback_policy"] == "verification_feedback_loop_required"
+    assert strict["semantics_hypothesis_update_policy"] == "belief_hypothesis_posterior_update_required"
+    assert strict["semantics_likelihood_scoring_policy"] == "answer_likelihood_scoring_required"
+    assert strict["semantics_rvoi_decision_policy"] == "rvoi_question_decision_required"
+    assert strict["semantics_clarifying_question_budget_policy"] == "clarifying_question_budget_enforced"
+    assert strict["semantics_invariance_retry_policy"] == "invariance_retry_or_ask_required"
+    assert strict["semantics_hypothesis_distribution_policy"] == "structured_hypothesis_distribution_required"
+    assert strict["semantics_cvar_risk_measure_policy"] == "expected_loss_and_cvar_required"
+    assert strict["semantics_question_cost_policy"] == "question_cost_and_voi_threshold_required"
+    assert strict["semantics_invariance_transform_set_policy"] == "invariance_transform_set_required"
+    assert strict["semantics_verification_boundary_policy"] == "verification_boundary_enforcement_required"
     assert strict["runtime_telemetry_tokens_to_resolution_policy"] == "telemetry_tokens_to_resolution_required"
     assert strict["runtime_telemetry_question_count_policy"] == "telemetry_question_count_required"
     assert strict["runtime_telemetry_invariance_score_policy"] == "telemetry_invariance_score_required"
@@ -487,6 +507,16 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["semantics_voi_question_policy"] == "voi_questioning_adaptive_with_audit"
     assert dynamic["semantics_invariance_boundary_policy"] == "invariance_commutation_adaptive_with_audit"
     assert dynamic["semantics_verification_feedback_policy"] == "verification_feedback_adaptive_with_audit"
+    assert dynamic["semantics_hypothesis_update_policy"] == "belief_hypothesis_posterior_update_adaptive_with_audit"
+    assert dynamic["semantics_likelihood_scoring_policy"] == "answer_likelihood_scoring_adaptive_with_audit"
+    assert dynamic["semantics_rvoi_decision_policy"] == "rvoi_question_decision_adaptive_with_audit"
+    assert dynamic["semantics_clarifying_question_budget_policy"] == "clarifying_question_budget_adaptive_with_audit"
+    assert dynamic["semantics_invariance_retry_policy"] == "invariance_retry_or_ask_adaptive_with_audit"
+    assert dynamic["semantics_hypothesis_distribution_policy"] == "structured_hypothesis_distribution_adaptive_with_audit"
+    assert dynamic["semantics_cvar_risk_measure_policy"] == "expected_loss_and_cvar_adaptive_with_audit"
+    assert dynamic["semantics_question_cost_policy"] == "question_cost_and_voi_threshold_adaptive_with_audit"
+    assert dynamic["semantics_invariance_transform_set_policy"] == "invariance_transform_set_adaptive_with_audit"
+    assert dynamic["semantics_verification_boundary_policy"] == "verification_boundary_enforcement_adaptive_with_audit"
     assert dynamic["runtime_telemetry_tokens_to_resolution_policy"] == "telemetry_tokens_to_resolution_adaptive_with_audit"
     assert dynamic["runtime_telemetry_question_count_policy"] == "telemetry_question_count_adaptive_with_audit"
     assert dynamic["runtime_telemetry_invariance_score_policy"] == "telemetry_invariance_score_adaptive_with_audit"
