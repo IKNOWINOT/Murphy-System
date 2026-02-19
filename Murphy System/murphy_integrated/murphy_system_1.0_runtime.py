@@ -6268,6 +6268,32 @@ class MurphySystem:
             "section_handoff_audit_policy_scoped",
             "section_handoff_audit_adaptive_with_audit"
         )
+
+        section_change_control_policy = _mode_policy(
+            "section_change_control_required",
+            "section_change_control_policy_scoped",
+            "section_change_control_adaptive_with_audit"
+        )
+        section_quality_drift_policy = _mode_policy(
+            "section_quality_drift_monitoring_required",
+            "section_quality_drift_policy_scoped",
+            "section_quality_drift_adaptive_with_audit"
+        )
+        section_verification_retry_policy = _mode_policy(
+            "section_verification_retry_required",
+            "section_verification_retry_policy_scoped",
+            "section_verification_retry_adaptive_with_audit"
+        )
+        section_governance_exception_budget_policy = _mode_policy(
+            "section_governance_exception_budget_required",
+            "section_governance_exception_budget_policy_scoped",
+            "section_governance_exception_budget_adaptive_with_audit"
+        )
+        section_release_documentation_gate_policy = _mode_policy(
+            "section_release_documentation_gate_required",
+            "section_release_documentation_gate_policy_scoped",
+            "section_release_documentation_gate_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -6487,6 +6513,11 @@ class MurphySystem:
             "section_documentation_sync_policy": section_documentation_sync_policy,
             "section_validation_signal_policy": section_validation_signal_policy,
             "section_handoff_audit_policy": section_handoff_audit_policy,
+            "section_change_control_policy": section_change_control_policy,
+            "section_quality_drift_policy": section_quality_drift_policy,
+            "section_verification_retry_policy": section_verification_retry_policy,
+            "section_governance_exception_budget_policy": section_governance_exception_budget_policy,
+            "section_release_documentation_gate_policy": section_release_documentation_gate_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
