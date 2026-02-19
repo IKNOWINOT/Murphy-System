@@ -5968,6 +5968,56 @@ class MurphySystem:
             "assessment_readme_assessment_sync_policy_scoped",
             "assessment_readme_assessment_sync_adaptive_with_audit"
         )
+        process_gate_iteration_policy = _mode_policy(
+            "process_gate_iteration_required",
+            "process_gate_iteration_policy_scoped",
+            "process_gate_iteration_adaptive_with_audit"
+        )
+        process_followup_testing_loop_policy = _mode_policy(
+            "process_followup_testing_loop_required",
+            "process_followup_testing_loop_policy_scoped",
+            "process_followup_testing_loop_adaptive_with_audit"
+        )
+        process_section_sync_audit_policy = _mode_policy(
+            "process_section_sync_audit_required",
+            "process_section_sync_audit_policy_scoped",
+            "process_section_sync_audit_adaptive_with_audit"
+        )
+        process_readme_update_enforcement_policy = _mode_policy(
+            "process_readme_update_enforcement_required",
+            "process_readme_update_enforcement_policy_scoped",
+            "process_readme_update_enforcement_adaptive_with_audit"
+        )
+        process_standardization_hygiene_policy = _mode_policy(
+            "process_standardization_hygiene_required",
+            "process_standardization_hygiene_policy_scoped",
+            "process_standardization_hygiene_adaptive_with_audit"
+        )
+        full_section_coverage_audit_policy = _mode_policy(
+            "full_section_coverage_audit_required",
+            "full_section_coverage_audit_policy_scoped",
+            "full_section_coverage_audit_adaptive_with_audit"
+        )
+        recommendation_acceptance_trace_policy = _mode_policy(
+            "recommendation_acceptance_trace_required",
+            "recommendation_acceptance_trace_policy_scoped",
+            "recommendation_acceptance_trace_adaptive_with_audit"
+        )
+        iterative_test_loop_enforcement_policy = _mode_policy(
+            "iterative_test_loop_enforcement_required",
+            "iterative_test_loop_enforcement_policy_scoped",
+            "iterative_test_loop_enforcement_adaptive_with_audit"
+        )
+        readme_assessment_consistency_policy = _mode_policy(
+            "readme_assessment_consistency_required",
+            "readme_assessment_consistency_policy_scoped",
+            "readme_assessment_consistency_adaptive_with_audit"
+        )
+        standardization_terminology_lock_policy = _mode_policy(
+            "standardization_terminology_lock_required",
+            "standardization_terminology_lock_policy_scoped",
+            "standardization_terminology_lock_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -6127,6 +6177,16 @@ class MurphySystem:
             "assessment_standardization_governance_policy": assessment_standardization_governance_policy,
             "assessment_progression_loop_policy": assessment_progression_loop_policy,
             "assessment_readme_assessment_sync_policy": assessment_readme_assessment_sync_policy,
+            "process_gate_iteration_policy": process_gate_iteration_policy,
+            "process_followup_testing_loop_policy": process_followup_testing_loop_policy,
+            "process_section_sync_audit_policy": process_section_sync_audit_policy,
+            "process_readme_update_enforcement_policy": process_readme_update_enforcement_policy,
+            "process_standardization_hygiene_policy": process_standardization_hygiene_policy,
+            "full_section_coverage_audit_policy": full_section_coverage_audit_policy,
+            "recommendation_acceptance_trace_policy": recommendation_acceptance_trace_policy,
+            "iterative_test_loop_enforcement_policy": iterative_test_loop_enforcement_policy,
+            "readme_assessment_consistency_policy": readme_assessment_consistency_policy,
+            "standardization_terminology_lock_policy": standardization_terminology_lock_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,

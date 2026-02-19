@@ -191,6 +191,16 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["assessment_standardization_governance_policy"] == status["runtime_execution_profile"]["assessment_standardization_governance_policy"]
     assert preview["runtime_execution_profile"]["assessment_progression_loop_policy"] == status["runtime_execution_profile"]["assessment_progression_loop_policy"]
     assert preview["runtime_execution_profile"]["assessment_readme_assessment_sync_policy"] == status["runtime_execution_profile"]["assessment_readme_assessment_sync_policy"]
+    assert preview["runtime_execution_profile"]["process_gate_iteration_policy"] == status["runtime_execution_profile"]["process_gate_iteration_policy"]
+    assert preview["runtime_execution_profile"]["process_followup_testing_loop_policy"] == status["runtime_execution_profile"]["process_followup_testing_loop_policy"]
+    assert preview["runtime_execution_profile"]["process_section_sync_audit_policy"] == status["runtime_execution_profile"]["process_section_sync_audit_policy"]
+    assert preview["runtime_execution_profile"]["process_readme_update_enforcement_policy"] == status["runtime_execution_profile"]["process_readme_update_enforcement_policy"]
+    assert preview["runtime_execution_profile"]["process_standardization_hygiene_policy"] == status["runtime_execution_profile"]["process_standardization_hygiene_policy"]
+    assert preview["runtime_execution_profile"]["full_section_coverage_audit_policy"] == status["runtime_execution_profile"]["full_section_coverage_audit_policy"]
+    assert preview["runtime_execution_profile"]["recommendation_acceptance_trace_policy"] == status["runtime_execution_profile"]["recommendation_acceptance_trace_policy"]
+    assert preview["runtime_execution_profile"]["iterative_test_loop_enforcement_policy"] == status["runtime_execution_profile"]["iterative_test_loop_enforcement_policy"]
+    assert preview["runtime_execution_profile"]["readme_assessment_consistency_policy"] == status["runtime_execution_profile"]["readme_assessment_consistency_policy"]
+    assert preview["runtime_execution_profile"]["standardization_terminology_lock_policy"] == status["runtime_execution_profile"]["standardization_terminology_lock_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -293,6 +303,16 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["assessment_standardization_governance_policy"] == "assessment_standardization_governance_policy_scoped"
     assert status["runtime_execution_profile"]["assessment_progression_loop_policy"] == "assessment_progression_loop_policy_scoped"
     assert status["runtime_execution_profile"]["assessment_readme_assessment_sync_policy"] == "assessment_readme_assessment_sync_policy_scoped"
+    assert status["runtime_execution_profile"]["process_gate_iteration_policy"] == "process_gate_iteration_policy_scoped"
+    assert status["runtime_execution_profile"]["process_followup_testing_loop_policy"] == "process_followup_testing_loop_policy_scoped"
+    assert status["runtime_execution_profile"]["process_section_sync_audit_policy"] == "process_section_sync_audit_policy_scoped"
+    assert status["runtime_execution_profile"]["process_readme_update_enforcement_policy"] == "process_readme_update_enforcement_policy_scoped"
+    assert status["runtime_execution_profile"]["process_standardization_hygiene_policy"] == "process_standardization_hygiene_policy_scoped"
+    assert status["runtime_execution_profile"]["full_section_coverage_audit_policy"] == "full_section_coverage_audit_policy_scoped"
+    assert status["runtime_execution_profile"]["recommendation_acceptance_trace_policy"] == "recommendation_acceptance_trace_policy_scoped"
+    assert status["runtime_execution_profile"]["iterative_test_loop_enforcement_policy"] == "iterative_test_loop_enforcement_policy_scoped"
+    assert status["runtime_execution_profile"]["readme_assessment_consistency_policy"] == "readme_assessment_consistency_policy_scoped"
+    assert status["runtime_execution_profile"]["standardization_terminology_lock_policy"] == "standardization_terminology_lock_policy_scoped"
     assert status["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_policy_guided"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
@@ -473,6 +493,16 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["assessment_standardization_governance_policy"] == "assessment_standardization_governance_required"
     assert strict["assessment_progression_loop_policy"] == "assessment_progression_loop_required"
     assert strict["assessment_readme_assessment_sync_policy"] == "assessment_readme_assessment_sync_required"
+    assert strict["process_gate_iteration_policy"] == "process_gate_iteration_required"
+    assert strict["process_followup_testing_loop_policy"] == "process_followup_testing_loop_required"
+    assert strict["process_section_sync_audit_policy"] == "process_section_sync_audit_required"
+    assert strict["process_readme_update_enforcement_policy"] == "process_readme_update_enforcement_required"
+    assert strict["process_standardization_hygiene_policy"] == "process_standardization_hygiene_required"
+    assert strict["full_section_coverage_audit_policy"] == "full_section_coverage_audit_required"
+    assert strict["recommendation_acceptance_trace_policy"] == "recommendation_acceptance_trace_required"
+    assert strict["iterative_test_loop_enforcement_policy"] == "iterative_test_loop_enforcement_required"
+    assert strict["readme_assessment_consistency_policy"] == "readme_assessment_consistency_required"
+    assert strict["standardization_terminology_lock_policy"] == "standardization_terminology_lock_required"
     assert strict["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_hard"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
@@ -632,5 +662,15 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["assessment_standardization_governance_policy"] == "assessment_standardization_governance_adaptive_with_audit"
     assert dynamic["assessment_progression_loop_policy"] == "assessment_progression_loop_adaptive_with_audit"
     assert dynamic["assessment_readme_assessment_sync_policy"] == "assessment_readme_assessment_sync_adaptive_with_audit"
+    assert dynamic["process_gate_iteration_policy"] == "process_gate_iteration_adaptive_with_audit"
+    assert dynamic["process_followup_testing_loop_policy"] == "process_followup_testing_loop_adaptive_with_audit"
+    assert dynamic["process_section_sync_audit_policy"] == "process_section_sync_audit_adaptive_with_audit"
+    assert dynamic["process_readme_update_enforcement_policy"] == "process_readme_update_enforcement_adaptive_with_audit"
+    assert dynamic["process_standardization_hygiene_policy"] == "process_standardization_hygiene_adaptive_with_audit"
+    assert dynamic["full_section_coverage_audit_policy"] == "full_section_coverage_audit_adaptive_with_audit"
+    assert dynamic["recommendation_acceptance_trace_policy"] == "recommendation_acceptance_trace_adaptive_with_audit"
+    assert dynamic["iterative_test_loop_enforcement_policy"] == "iterative_test_loop_enforcement_adaptive_with_audit"
+    assert dynamic["readme_assessment_consistency_policy"] == "readme_assessment_consistency_adaptive_with_audit"
+    assert dynamic["standardization_terminology_lock_policy"] == "standardization_terminology_lock_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"
