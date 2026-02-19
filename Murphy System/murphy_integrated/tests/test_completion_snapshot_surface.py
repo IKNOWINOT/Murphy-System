@@ -234,6 +234,16 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["section_recommendation_implementation_trace_policy"] == status["runtime_execution_profile"]["section_recommendation_implementation_trace_policy"]
     assert preview["runtime_execution_profile"]["section_followup_test_loop_policy"] == status["runtime_execution_profile"]["section_followup_test_loop_policy"]
     assert preview["runtime_execution_profile"]["section_readme_assessment_lockstep_policy"] == status["runtime_execution_profile"]["section_readme_assessment_lockstep_policy"]
+    assert preview["runtime_execution_profile"]["section_completion_delta_reporting_policy"] == status["runtime_execution_profile"]["section_completion_delta_reporting_policy"]
+    assert preview["runtime_execution_profile"]["section_micro_build_tracking_policy"] == status["runtime_execution_profile"]["section_micro_build_tracking_policy"]
+    assert preview["runtime_execution_profile"]["section_prompt_increment_logging_policy"] == status["runtime_execution_profile"]["section_prompt_increment_logging_policy"]
+    assert preview["runtime_execution_profile"]["section_recommendation_acceptance_evidence_policy"] == status["runtime_execution_profile"]["section_recommendation_acceptance_evidence_policy"]
+    assert preview["runtime_execution_profile"]["section_change_budget_tracking_policy"] == status["runtime_execution_profile"]["section_change_budget_tracking_policy"]
+    assert preview["runtime_execution_profile"]["section_test_result_reporting_policy"] == status["runtime_execution_profile"]["section_test_result_reporting_policy"]
+    assert preview["runtime_execution_profile"]["section_warning_budget_policy"] == status["runtime_execution_profile"]["section_warning_budget_policy"]
+    assert preview["runtime_execution_profile"]["section_retest_trigger_policy"] == status["runtime_execution_profile"]["section_retest_trigger_policy"]
+    assert preview["runtime_execution_profile"]["section_documentation_accuracy_policy"] == status["runtime_execution_profile"]["section_documentation_accuracy_policy"]
+    assert preview["runtime_execution_profile"]["section_loop_exit_criteria_policy"] == status["runtime_execution_profile"]["section_loop_exit_criteria_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -351,6 +361,16 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["section_recommendation_closure_policy"] == "section_recommendation_closure_policy_scoped"
     assert status["runtime_execution_profile"]["section_quality_gate_policy"] == "section_quality_gate_policy_scoped"
     assert status["runtime_execution_profile"]["section_snapshot_publication_policy"] == "section_snapshot_publication_policy_scoped"
+    assert status["runtime_execution_profile"]["section_completion_delta_reporting_policy"] == "section_completion_delta_reporting_policy_scoped"
+    assert status["runtime_execution_profile"]["section_micro_build_tracking_policy"] == "section_micro_build_tracking_policy_scoped"
+    assert status["runtime_execution_profile"]["section_prompt_increment_logging_policy"] == "section_prompt_increment_logging_policy_scoped"
+    assert status["runtime_execution_profile"]["section_recommendation_acceptance_evidence_policy"] == "section_recommendation_acceptance_evidence_policy_scoped"
+    assert status["runtime_execution_profile"]["section_change_budget_tracking_policy"] == "section_change_budget_tracking_policy_scoped"
+    assert status["runtime_execution_profile"]["section_test_result_reporting_policy"] == "section_test_result_reporting_policy_scoped"
+    assert status["runtime_execution_profile"]["section_warning_budget_policy"] == "section_warning_budget_policy_scoped"
+    assert status["runtime_execution_profile"]["section_retest_trigger_policy"] == "section_retest_trigger_policy_scoped"
+    assert status["runtime_execution_profile"]["section_documentation_accuracy_policy"] == "section_documentation_accuracy_policy_scoped"
+    assert status["runtime_execution_profile"]["section_loop_exit_criteria_policy"] == "section_loop_exit_criteria_policy_scoped"
     assert status["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_policy_guided"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
@@ -561,6 +581,16 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["section_recommendation_implementation_trace_policy"] == "section_recommendation_implementation_trace_required"
     assert strict["section_followup_test_loop_policy"] == "section_followup_test_loop_required"
     assert strict["section_readme_assessment_lockstep_policy"] == "section_readme_assessment_lockstep_required"
+    assert strict["section_completion_delta_reporting_policy"] == "section_completion_delta_reporting_required"
+    assert strict["section_micro_build_tracking_policy"] == "section_micro_build_tracking_required"
+    assert strict["section_prompt_increment_logging_policy"] == "section_prompt_increment_logging_required"
+    assert strict["section_recommendation_acceptance_evidence_policy"] == "section_recommendation_acceptance_evidence_required"
+    assert strict["section_change_budget_tracking_policy"] == "section_change_budget_tracking_required"
+    assert strict["section_test_result_reporting_policy"] == "section_test_result_reporting_required"
+    assert strict["section_warning_budget_policy"] == "section_warning_budget_enforced"
+    assert strict["section_retest_trigger_policy"] == "section_retest_trigger_required"
+    assert strict["section_documentation_accuracy_policy"] == "section_documentation_accuracy_required"
+    assert strict["section_loop_exit_criteria_policy"] == "section_loop_exit_criteria_required"
     assert strict["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_hard"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
@@ -750,5 +780,15 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["section_recommendation_implementation_trace_policy"] == "section_recommendation_implementation_trace_adaptive_with_audit"
     assert dynamic["section_followup_test_loop_policy"] == "section_followup_test_loop_adaptive_with_audit"
     assert dynamic["section_readme_assessment_lockstep_policy"] == "section_readme_assessment_lockstep_adaptive_with_audit"
+    assert dynamic["section_completion_delta_reporting_policy"] == "section_completion_delta_reporting_adaptive_with_audit"
+    assert dynamic["section_micro_build_tracking_policy"] == "section_micro_build_tracking_adaptive_with_audit"
+    assert dynamic["section_prompt_increment_logging_policy"] == "section_prompt_increment_logging_adaptive_with_audit"
+    assert dynamic["section_recommendation_acceptance_evidence_policy"] == "section_recommendation_acceptance_evidence_adaptive_with_audit"
+    assert dynamic["section_change_budget_tracking_policy"] == "section_change_budget_tracking_adaptive_with_audit"
+    assert dynamic["section_test_result_reporting_policy"] == "section_test_result_reporting_adaptive_with_audit"
+    assert dynamic["section_warning_budget_policy"] == "section_warning_budget_adaptive_with_audit"
+    assert dynamic["section_retest_trigger_policy"] == "section_retest_trigger_adaptive_with_audit"
+    assert dynamic["section_documentation_accuracy_policy"] == "section_documentation_accuracy_adaptive_with_audit"
+    assert dynamic["section_loop_exit_criteria_policy"] == "section_loop_exit_criteria_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"
