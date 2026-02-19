@@ -5668,6 +5668,56 @@ class MurphySystem:
             "policy_compiler_change_control_policy_scoped",
             "policy_compiler_change_control_adaptive_with_audit"
         )
+        replay_reconciliation_policy = _mode_policy(
+            "replay_reconciliation_required",
+            "replay_reconciliation_policy_scoped",
+            "replay_reconciliation_adaptive_with_audit"
+        )
+        audit_artifact_retention_policy = _mode_policy(
+            "audit_artifact_retention_required",
+            "audit_artifact_retention_policy_scoped",
+            "audit_artifact_retention_adaptive_with_audit"
+        )
+        event_backpressure_management_policy = _mode_policy(
+            "event_backpressure_management_required",
+            "event_backpressure_management_policy_scoped",
+            "event_backpressure_management_adaptive_with_audit"
+        )
+        queue_health_slo_policy = _mode_policy(
+            "queue_health_slo_hard_enforced",
+            "queue_health_slo_policy_scoped",
+            "queue_health_slo_adaptive_with_audit"
+        )
+        rollback_compensation_policy = _mode_policy(
+            "rollback_compensation_required",
+            "rollback_compensation_policy_scoped",
+            "rollback_compensation_adaptive_with_audit"
+        )
+        durable_queue_replay_policy = _mode_policy(
+            "durable_queue_replay_required",
+            "durable_queue_replay_policy_scoped",
+            "durable_queue_replay_adaptive_with_audit"
+        )
+        swarm_failure_domain_isolation_policy = _mode_policy(
+            "swarm_failure_domain_isolation_required",
+            "swarm_failure_domain_isolation_policy_scoped",
+            "swarm_failure_domain_isolation_adaptive_with_audit"
+        )
+        idempotent_recovery_validation_policy = _mode_policy(
+            "idempotent_recovery_validation_required",
+            "idempotent_recovery_validation_policy_scoped",
+            "idempotent_recovery_validation_adaptive_with_audit"
+        )
+        agent_spawn_budget_reconciliation_policy = _mode_policy(
+            "agent_spawn_budget_reconciliation_required",
+            "agent_spawn_budget_reconciliation_policy_scoped",
+            "agent_spawn_budget_reconciliation_adaptive_with_audit"
+        )
+        audit_chain_export_policy = _mode_policy(
+            "audit_chain_export_required",
+            "audit_chain_export_policy_scoped",
+            "audit_chain_export_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -5767,6 +5817,16 @@ class MurphySystem:
             "user_base_offboarding_policy": user_base_offboarding_policy,
             "governance_kernel_heartbeat_policy": governance_kernel_heartbeat_policy,
             "policy_compiler_change_control_policy": policy_compiler_change_control_policy,
+            "replay_reconciliation_policy": replay_reconciliation_policy,
+            "audit_artifact_retention_policy": audit_artifact_retention_policy,
+            "event_backpressure_management_policy": event_backpressure_management_policy,
+            "queue_health_slo_policy": queue_health_slo_policy,
+            "rollback_compensation_policy": rollback_compensation_policy,
+            "durable_queue_replay_policy": durable_queue_replay_policy,
+            "swarm_failure_domain_isolation_policy": swarm_failure_domain_isolation_policy,
+            "idempotent_recovery_validation_policy": idempotent_recovery_validation_policy,
+            "agent_spawn_budget_reconciliation_policy": agent_spawn_budget_reconciliation_policy,
+            "audit_chain_export_policy": audit_chain_export_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
