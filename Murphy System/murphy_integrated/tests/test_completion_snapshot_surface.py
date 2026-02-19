@@ -281,6 +281,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["section_manager_throwback_routing_policy"] == status["runtime_execution_profile"]["section_manager_throwback_routing_policy"]
     assert preview["runtime_execution_profile"]["section_scope_boundary_enforcement_policy"] == status["runtime_execution_profile"]["section_scope_boundary_enforcement_policy"]
     assert preview["runtime_execution_profile"]["section_change_order_authority_policy"] == status["runtime_execution_profile"]["section_change_order_authority_policy"]
+    assert preview["runtime_execution_profile"]["section_governance_traceability_policy"] == status["runtime_execution_profile"]["section_governance_traceability_policy"]
+    assert preview["runtime_execution_profile"]["section_progress_checkpoint_policy"] == status["runtime_execution_profile"]["section_progress_checkpoint_policy"]
+    assert preview["runtime_execution_profile"]["section_acceptance_verification_policy"] == status["runtime_execution_profile"]["section_acceptance_verification_policy"]
+    assert preview["runtime_execution_profile"]["section_sync_integrity_policy"] == status["runtime_execution_profile"]["section_sync_integrity_policy"]
+    assert preview["runtime_execution_profile"]["section_lifecycle_reporting_policy"] == status["runtime_execution_profile"]["section_lifecycle_reporting_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -423,6 +428,11 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["section_documentation_sync_policy"] == "section_documentation_sync_policy_scoped"
     assert status["runtime_execution_profile"]["section_validation_signal_policy"] == "section_validation_signal_policy_scoped"
     assert status["runtime_execution_profile"]["section_handoff_audit_policy"] == "section_handoff_audit_policy_scoped"
+    assert status["runtime_execution_profile"]["section_governance_traceability_policy"] == "section_governance_traceability_policy_scoped"
+    assert status["runtime_execution_profile"]["section_progress_checkpoint_policy"] == "section_progress_checkpoint_policy_scoped"
+    assert status["runtime_execution_profile"]["section_acceptance_verification_policy"] == "section_acceptance_verification_policy_scoped"
+    assert status["runtime_execution_profile"]["section_sync_integrity_policy"] == "section_sync_integrity_policy_scoped"
+    assert status["runtime_execution_profile"]["section_lifecycle_reporting_policy"] == "section_lifecycle_reporting_policy_scoped"
     assert status["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_policy_guided"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
@@ -653,6 +663,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["section_regression_guard_policy"] == "section_regression_guard_required"
     assert strict["section_release_readiness_policy"] == "section_release_readiness_required"
     assert strict["section_traceability_index_policy"] == "section_traceability_index_required"
+    assert strict["section_governance_traceability_policy"] == "section_governance_traceability_required"
+    assert strict["section_progress_checkpoint_policy"] == "section_progress_checkpoint_required"
+    assert strict["section_acceptance_verification_policy"] == "section_acceptance_verification_required"
+    assert strict["section_sync_integrity_policy"] == "section_sync_integrity_required"
+    assert strict["section_lifecycle_reporting_policy"] == "section_lifecycle_reporting_required"
     assert strict["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_hard"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
@@ -887,5 +902,10 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["section_manager_throwback_routing_policy"] == "section_manager_throwback_routing_adaptive_with_audit"
     assert dynamic["section_scope_boundary_enforcement_policy"] == "section_scope_boundary_enforcement_adaptive_with_audit"
     assert dynamic["section_change_order_authority_policy"] == "section_change_order_authority_adaptive_with_audit"
+    assert dynamic["section_governance_traceability_policy"] == "section_governance_traceability_adaptive_with_audit"
+    assert dynamic["section_progress_checkpoint_policy"] == "section_progress_checkpoint_adaptive_with_audit"
+    assert dynamic["section_acceptance_verification_policy"] == "section_acceptance_verification_adaptive_with_audit"
+    assert dynamic["section_sync_integrity_policy"] == "section_sync_integrity_adaptive_with_audit"
+    assert dynamic["section_lifecycle_reporting_policy"] == "section_lifecycle_reporting_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"
