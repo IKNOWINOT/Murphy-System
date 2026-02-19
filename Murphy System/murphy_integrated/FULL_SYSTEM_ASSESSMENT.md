@@ -426,3 +426,82 @@ This update confirms that sections **1-13** remain active and accepted as the op
 - UI + user testing: **70%**
 - Test coverage for dynamic chains: **96%**
 - Latest targeted run (`test_completion_snapshot_surface.py`): **2 passed, 0 failed**
+
+---
+
+## 15) Legacy bot-catalog integration task set (Rubixcube + Triage)
+
+This task set is planning-only and defines how to absorb unique capabilities from legacy/adjacent bot frameworks into the current Murphy orchestrator architecture without changing model weights.
+
+### 15.1 Source analysis scope
+
+- Primary active sources:
+  - `Murphy System/murphy_integrated/bots/rubixcube_bot/*`
+  - `Murphy System/murphy_integrated/bots/triage_bot/*`
+- Supporting inventory:
+  - `Murphy System/BOTS_ZIP_INVENTORY_MURPHY_3.md`
+  - Archive references under `Murphy System/archive/legacy_versions/.../bots/*` (for migration parity only)
+
+### 15.2 Most unique reusable functions identified
+
+1. **Capability-aware roll-call routing (triage_bot)**
+   - Candidate discovery from capability registry (not hardcoded dispatch).
+   - Per-candidate roll-call confidence probe before selection.
+2. **S(t) + KaiaMix blended scorer (triage_bot/rank.ts)**
+   - Hybrid ranking combining pass probability, cost/latency, and historical stability.
+3. **Golden-path reuse and recording hooks (triage_bot + rubixcube_bot)**
+   - Reuse known successful execution specs and persist successful paths for replay acceleration.
+4. **Probabilistic/statistical evidence engine (rubixcube_bot)**
+   - Built-in CI, hypothesis testing, Bayesian update, Monte Carlo simulation, and OLS forecasting primitives.
+5. **Hydration/fidelity confidence registry (rubixcube_bot)**
+   - Deterministic fold/hydrate + fidelity scoring + confidence ranking for structured evidence handling.
+6. **Quota/budget/stability middleware pattern (both bots)**
+   - Bot-base wrapper enforces budget/quota and stability breaker before action execution.
+7. **Observability event contracts (both bots)**
+   - Structured completion/HITL-required signals that can map directly to Murphy telemetry+governance dashboards.
+
+### 15.3 Orchestrator wiring plan (new task set)
+
+1. **Triage capability injection**
+   - Add a capability-rollcall stage before swarm expansion in current orchestrators.
+   - Inputs: task, constraints, domain context.
+   - Outputs: ranked bot/archetype candidate set with confidence.
+2. **Rubix evidence lane**
+   - Add an optional deterministic evidence lane for probability/CI/Bayesian/simulation checks before high-risk actions.
+   - Wire outputs into compliance and HITL gates as verification artifacts.
+3. **Golden-path memory bridge**
+   - Normalize legacy golden-path key/spec metadata into Murphy persistence schema.
+   - Ensure replay artifacts are available in `/api/status` + audit snapshots.
+4. **Governance and budget unification**
+   - Map bot-level quota/budget/stability controls to runtime execution profile policies and gate checks.
+5. **Telemetry contract alignment**
+   - Standardize triage/rubix event payloads into Murphy observability ingestion schema.
+
+### 15.4 Tooling implementation plan (no coding in this task)
+
+- **Adapters to define**
+  - `TriageRollcallAdapter`
+  - `RubixEvidenceAdapter`
+  - `GoldenPathBridgeAdapter`
+  - `BotGovernancePolicyMapper`
+  - `BotTelemetryNormalizer`
+- **Config artifacts to add**
+  - Bot capability-map manifest (catalog → orchestrator lane mapping)
+  - Policy mapping table (legacy bot controls → runtime execution profile policies)
+  - Evidence contract schemas (verification payload + audit retention attributes)
+
+### 15.5 Acceptance criteria for task-15 execution phase
+
+1. Triage roll-call integrated before final action routing for high-uncertainty tasks.
+2. Rubix evidence lane callable by policy for high-risk/compliance-tagged tasks.
+3. Golden-path bridge writes replayable artifacts into Murphy persistence snapshots.
+4. Telemetry events from these lanes appear in runtime observability snapshots.
+5. Focused tests validate:
+   - routing candidate ranking behavior,
+   - evidence-lane pass/fail propagation,
+   - replay artifact persistence,
+   - telemetry normalization.
+
+### 15.6 Section-wide status touchpoint
+
+Sections **1-14** remain accepted and active; section **15** is now the approved next planning task set for legacy bot-catalog leverage and orchestrator integration sequencing.
