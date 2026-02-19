@@ -186,6 +186,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["orchestrator_wiring_readiness_policy"] == status["runtime_execution_profile"]["orchestrator_wiring_readiness_policy"]
     assert preview["runtime_execution_profile"]["verification_feedback_closure_policy"] == status["runtime_execution_profile"]["verification_feedback_closure_policy"]
     assert preview["runtime_execution_profile"]["self_improvement_backlog_priority_policy"] == status["runtime_execution_profile"]["self_improvement_backlog_priority_policy"]
+    assert preview["runtime_execution_profile"]["assessment_section_coverage_policy"] == status["runtime_execution_profile"]["assessment_section_coverage_policy"]
+    assert preview["runtime_execution_profile"]["assessment_recommendation_acceptance_policy"] == status["runtime_execution_profile"]["assessment_recommendation_acceptance_policy"]
+    assert preview["runtime_execution_profile"]["assessment_standardization_governance_policy"] == status["runtime_execution_profile"]["assessment_standardization_governance_policy"]
+    assert preview["runtime_execution_profile"]["assessment_progression_loop_policy"] == status["runtime_execution_profile"]["assessment_progression_loop_policy"]
+    assert preview["runtime_execution_profile"]["assessment_readme_assessment_sync_policy"] == status["runtime_execution_profile"]["assessment_readme_assessment_sync_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -283,6 +288,11 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["orchestrator_wiring_readiness_policy"] == "orchestrator_wiring_readiness_policy_scoped"
     assert status["runtime_execution_profile"]["verification_feedback_closure_policy"] == "verification_feedback_closure_policy_scoped"
     assert status["runtime_execution_profile"]["self_improvement_backlog_priority_policy"] == "self_improvement_backlog_priority_policy_scoped"
+    assert status["runtime_execution_profile"]["assessment_section_coverage_policy"] == "assessment_section_coverage_policy_scoped"
+    assert status["runtime_execution_profile"]["assessment_recommendation_acceptance_policy"] == "assessment_recommendation_acceptance_policy_scoped"
+    assert status["runtime_execution_profile"]["assessment_standardization_governance_policy"] == "assessment_standardization_governance_policy_scoped"
+    assert status["runtime_execution_profile"]["assessment_progression_loop_policy"] == "assessment_progression_loop_policy_scoped"
+    assert status["runtime_execution_profile"]["assessment_readme_assessment_sync_policy"] == "assessment_readme_assessment_sync_policy_scoped"
     assert status["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_policy_guided"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
@@ -458,6 +468,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["orchestrator_wiring_readiness_policy"] == "orchestrator_wiring_readiness_required"
     assert strict["verification_feedback_closure_policy"] == "verification_feedback_closure_required"
     assert strict["self_improvement_backlog_priority_policy"] == "self_improvement_backlog_priority_required"
+    assert strict["assessment_section_coverage_policy"] == "assessment_section_coverage_required"
+    assert strict["assessment_recommendation_acceptance_policy"] == "assessment_recommendation_acceptance_required"
+    assert strict["assessment_standardization_governance_policy"] == "assessment_standardization_governance_required"
+    assert strict["assessment_progression_loop_policy"] == "assessment_progression_loop_required"
+    assert strict["assessment_readme_assessment_sync_policy"] == "assessment_readme_assessment_sync_required"
     assert strict["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_hard"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
@@ -612,5 +627,10 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["orchestrator_wiring_readiness_policy"] == "orchestrator_wiring_readiness_adaptive_with_audit"
     assert dynamic["verification_feedback_closure_policy"] == "verification_feedback_closure_adaptive_with_audit"
     assert dynamic["self_improvement_backlog_priority_policy"] == "self_improvement_backlog_priority_adaptive_with_audit"
+    assert dynamic["assessment_section_coverage_policy"] == "assessment_section_coverage_adaptive_with_audit"
+    assert dynamic["assessment_recommendation_acceptance_policy"] == "assessment_recommendation_acceptance_adaptive_with_audit"
+    assert dynamic["assessment_standardization_governance_policy"] == "assessment_standardization_governance_adaptive_with_audit"
+    assert dynamic["assessment_progression_loop_policy"] == "assessment_progression_loop_adaptive_with_audit"
+    assert dynamic["assessment_readme_assessment_sync_policy"] == "assessment_readme_assessment_sync_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"

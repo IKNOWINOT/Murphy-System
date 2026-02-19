@@ -5943,6 +5943,31 @@ class MurphySystem:
             "self_improvement_backlog_priority_policy_scoped",
             "self_improvement_backlog_priority_adaptive_with_audit"
         )
+        assessment_section_coverage_policy = _mode_policy(
+            "assessment_section_coverage_required",
+            "assessment_section_coverage_policy_scoped",
+            "assessment_section_coverage_adaptive_with_audit"
+        )
+        assessment_recommendation_acceptance_policy = _mode_policy(
+            "assessment_recommendation_acceptance_required",
+            "assessment_recommendation_acceptance_policy_scoped",
+            "assessment_recommendation_acceptance_adaptive_with_audit"
+        )
+        assessment_standardization_governance_policy = _mode_policy(
+            "assessment_standardization_governance_required",
+            "assessment_standardization_governance_policy_scoped",
+            "assessment_standardization_governance_adaptive_with_audit"
+        )
+        assessment_progression_loop_policy = _mode_policy(
+            "assessment_progression_loop_required",
+            "assessment_progression_loop_policy_scoped",
+            "assessment_progression_loop_adaptive_with_audit"
+        )
+        assessment_readme_assessment_sync_policy = _mode_policy(
+            "assessment_readme_assessment_sync_required",
+            "assessment_readme_assessment_sync_policy_scoped",
+            "assessment_readme_assessment_sync_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -6097,6 +6122,11 @@ class MurphySystem:
             "orchestrator_wiring_readiness_policy": orchestrator_wiring_readiness_policy,
             "verification_feedback_closure_policy": verification_feedback_closure_policy,
             "self_improvement_backlog_priority_policy": self_improvement_backlog_priority_policy,
+            "assessment_section_coverage_policy": assessment_section_coverage_policy,
+            "assessment_recommendation_acceptance_policy": assessment_recommendation_acceptance_policy,
+            "assessment_standardization_governance_policy": assessment_standardization_governance_policy,
+            "assessment_progression_loop_policy": assessment_progression_loop_policy,
+            "assessment_readme_assessment_sync_policy": assessment_readme_assessment_sync_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
