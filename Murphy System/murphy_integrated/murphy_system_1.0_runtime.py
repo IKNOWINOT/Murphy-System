@@ -6118,6 +6118,56 @@ class MurphySystem:
             "section_readme_assessment_lockstep_policy_scoped",
             "section_readme_assessment_lockstep_adaptive_with_audit"
         )
+        section_completion_delta_reporting_policy = _mode_policy(
+            "section_completion_delta_reporting_required",
+            "section_completion_delta_reporting_policy_scoped",
+            "section_completion_delta_reporting_adaptive_with_audit"
+        )
+        section_micro_build_tracking_policy = _mode_policy(
+            "section_micro_build_tracking_required",
+            "section_micro_build_tracking_policy_scoped",
+            "section_micro_build_tracking_adaptive_with_audit"
+        )
+        section_prompt_increment_logging_policy = _mode_policy(
+            "section_prompt_increment_logging_required",
+            "section_prompt_increment_logging_policy_scoped",
+            "section_prompt_increment_logging_adaptive_with_audit"
+        )
+        section_recommendation_acceptance_evidence_policy = _mode_policy(
+            "section_recommendation_acceptance_evidence_required",
+            "section_recommendation_acceptance_evidence_policy_scoped",
+            "section_recommendation_acceptance_evidence_adaptive_with_audit"
+        )
+        section_change_budget_tracking_policy = _mode_policy(
+            "section_change_budget_tracking_required",
+            "section_change_budget_tracking_policy_scoped",
+            "section_change_budget_tracking_adaptive_with_audit"
+        )
+        section_test_result_reporting_policy = _mode_policy(
+            "section_test_result_reporting_required",
+            "section_test_result_reporting_policy_scoped",
+            "section_test_result_reporting_adaptive_with_audit"
+        )
+        section_warning_budget_policy = _mode_policy(
+            "section_warning_budget_enforced",
+            "section_warning_budget_policy_scoped",
+            "section_warning_budget_adaptive_with_audit"
+        )
+        section_retest_trigger_policy = _mode_policy(
+            "section_retest_trigger_required",
+            "section_retest_trigger_policy_scoped",
+            "section_retest_trigger_adaptive_with_audit"
+        )
+        section_documentation_accuracy_policy = _mode_policy(
+            "section_documentation_accuracy_required",
+            "section_documentation_accuracy_policy_scoped",
+            "section_documentation_accuracy_adaptive_with_audit"
+        )
+        section_loop_exit_criteria_policy = _mode_policy(
+            "section_loop_exit_criteria_required",
+            "section_loop_exit_criteria_policy_scoped",
+            "section_loop_exit_criteria_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -6307,6 +6357,16 @@ class MurphySystem:
             "section_recommendation_implementation_trace_policy": section_recommendation_implementation_trace_policy,
             "section_followup_test_loop_policy": section_followup_test_loop_policy,
             "section_readme_assessment_lockstep_policy": section_readme_assessment_lockstep_policy,
+            "section_completion_delta_reporting_policy": section_completion_delta_reporting_policy,
+            "section_micro_build_tracking_policy": section_micro_build_tracking_policy,
+            "section_prompt_increment_logging_policy": section_prompt_increment_logging_policy,
+            "section_recommendation_acceptance_evidence_policy": section_recommendation_acceptance_evidence_policy,
+            "section_change_budget_tracking_policy": section_change_budget_tracking_policy,
+            "section_test_result_reporting_policy": section_test_result_reporting_policy,
+            "section_warning_budget_policy": section_warning_budget_policy,
+            "section_retest_trigger_policy": section_retest_trigger_policy,
+            "section_documentation_accuracy_policy": section_documentation_accuracy_policy,
+            "section_loop_exit_criteria_policy": section_loop_exit_criteria_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
