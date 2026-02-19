@@ -6419,6 +6419,31 @@ class MurphySystem:
             "section_governance_override_hierarchy_policy_scoped",
             "section_governance_override_hierarchy_adaptive_with_audit"
         )
+        section_risk_tolerance_boundary_policy = _mode_policy(
+            "section_risk_tolerance_boundary_required",
+            "section_risk_tolerance_boundary_policy_scoped",
+            "section_risk_tolerance_boundary_adaptive_with_audit"
+        )
+        section_approval_delegation_integrity_policy = _mode_policy(
+            "section_approval_delegation_integrity_required",
+            "section_approval_delegation_integrity_policy_scoped",
+            "section_approval_delegation_integrity_adaptive_with_audit"
+        )
+        section_budget_anomaly_circuit_breaker_policy = _mode_policy(
+            "section_budget_anomaly_circuit_breaker_required",
+            "section_budget_anomaly_circuit_breaker_policy_scoped",
+            "section_budget_anomaly_circuit_breaker_adaptive_with_audit"
+        )
+        section_compliance_evidence_freshness_policy = _mode_policy(
+            "section_compliance_evidence_freshness_required",
+            "section_compliance_evidence_freshness_policy_scoped",
+            "section_compliance_evidence_freshness_adaptive_with_audit"
+        )
+        section_decision_packet_trace_policy = _mode_policy(
+            "section_decision_packet_trace_required",
+            "section_decision_packet_trace_policy_scoped",
+            "section_decision_packet_trace_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -6668,6 +6693,11 @@ class MurphySystem:
             "section_authoritative_source_integrity_policy": section_authoritative_source_integrity_policy,
             "section_budget_gate_reconciliation_policy": section_budget_gate_reconciliation_policy,
             "section_governance_override_hierarchy_policy": section_governance_override_hierarchy_policy,
+            "section_risk_tolerance_boundary_policy": section_risk_tolerance_boundary_policy,
+            "section_approval_delegation_integrity_policy": section_approval_delegation_integrity_policy,
+            "section_budget_anomaly_circuit_breaker_policy": section_budget_anomaly_circuit_breaker_policy,
+            "section_compliance_evidence_freshness_policy": section_compliance_evidence_freshness_policy,
+            "section_decision_packet_trace_policy": section_decision_packet_trace_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
