@@ -6444,6 +6444,31 @@ class MurphySystem:
             "section_decision_packet_trace_policy_scoped",
             "section_decision_packet_trace_adaptive_with_audit"
         )
+        section_exec_authority_gate_policy = _mode_policy(
+            "section_exec_authority_gate_required",
+            "section_exec_authority_gate_policy_scoped",
+            "section_exec_authority_gate_adaptive_with_audit"
+        )
+        section_compute_plane_determinism_policy = _mode_policy(
+            "section_compute_plane_determinism_required",
+            "section_compute_plane_determinism_policy_scoped",
+            "section_compute_plane_determinism_adaptive_with_audit"
+        )
+        section_change_order_budget_delta_policy = _mode_policy(
+            "section_change_order_budget_delta_required",
+            "section_change_order_budget_delta_policy_scoped",
+            "section_change_order_budget_delta_adaptive_with_audit"
+        )
+        section_domain_swarm_accountability_policy = _mode_policy(
+            "section_domain_swarm_accountability_required",
+            "section_domain_swarm_accountability_policy_scoped",
+            "section_domain_swarm_accountability_adaptive_with_audit"
+        )
+        section_audit_packet_release_policy = _mode_policy(
+            "section_audit_packet_release_required",
+            "section_audit_packet_release_policy_scoped",
+            "section_audit_packet_release_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -6698,6 +6723,11 @@ class MurphySystem:
             "section_budget_anomaly_circuit_breaker_policy": section_budget_anomaly_circuit_breaker_policy,
             "section_compliance_evidence_freshness_policy": section_compliance_evidence_freshness_policy,
             "section_decision_packet_trace_policy": section_decision_packet_trace_policy,
+            "section_exec_authority_gate_policy": section_exec_authority_gate_policy,
+            "section_compute_plane_determinism_policy": section_compute_plane_determinism_policy,
+            "section_change_order_budget_delta_policy": section_change_order_budget_delta_policy,
+            "section_domain_swarm_accountability_policy": section_domain_swarm_accountability_policy,
+            "section_audit_packet_release_policy": section_audit_packet_release_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,

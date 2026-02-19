@@ -301,6 +301,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["section_budget_anomaly_circuit_breaker_policy"] == status["runtime_execution_profile"]["section_budget_anomaly_circuit_breaker_policy"]
     assert preview["runtime_execution_profile"]["section_compliance_evidence_freshness_policy"] == status["runtime_execution_profile"]["section_compliance_evidence_freshness_policy"]
     assert preview["runtime_execution_profile"]["section_decision_packet_trace_policy"] == status["runtime_execution_profile"]["section_decision_packet_trace_policy"]
+    assert preview["runtime_execution_profile"]["section_exec_authority_gate_policy"] == status["runtime_execution_profile"]["section_exec_authority_gate_policy"]
+    assert preview["runtime_execution_profile"]["section_compute_plane_determinism_policy"] == status["runtime_execution_profile"]["section_compute_plane_determinism_policy"]
+    assert preview["runtime_execution_profile"]["section_change_order_budget_delta_policy"] == status["runtime_execution_profile"]["section_change_order_budget_delta_policy"]
+    assert preview["runtime_execution_profile"]["section_domain_swarm_accountability_policy"] == status["runtime_execution_profile"]["section_domain_swarm_accountability_policy"]
+    assert preview["runtime_execution_profile"]["section_audit_packet_release_policy"] == status["runtime_execution_profile"]["section_audit_packet_release_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -463,6 +468,11 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["section_budget_anomaly_circuit_breaker_policy"] == "section_budget_anomaly_circuit_breaker_policy_scoped"
     assert status["runtime_execution_profile"]["section_compliance_evidence_freshness_policy"] == "section_compliance_evidence_freshness_policy_scoped"
     assert status["runtime_execution_profile"]["section_decision_packet_trace_policy"] == "section_decision_packet_trace_policy_scoped"
+    assert status["runtime_execution_profile"]["section_exec_authority_gate_policy"] == "section_exec_authority_gate_policy_scoped"
+    assert status["runtime_execution_profile"]["section_compute_plane_determinism_policy"] == "section_compute_plane_determinism_policy_scoped"
+    assert status["runtime_execution_profile"]["section_change_order_budget_delta_policy"] == "section_change_order_budget_delta_policy_scoped"
+    assert status["runtime_execution_profile"]["section_domain_swarm_accountability_policy"] == "section_domain_swarm_accountability_policy_scoped"
+    assert status["runtime_execution_profile"]["section_audit_packet_release_policy"] == "section_audit_packet_release_policy_scoped"
     assert status["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_policy_guided"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
@@ -713,6 +723,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["section_budget_anomaly_circuit_breaker_policy"] == "section_budget_anomaly_circuit_breaker_required"
     assert strict["section_compliance_evidence_freshness_policy"] == "section_compliance_evidence_freshness_required"
     assert strict["section_decision_packet_trace_policy"] == "section_decision_packet_trace_required"
+    assert strict["section_exec_authority_gate_policy"] == "section_exec_authority_gate_required"
+    assert strict["section_compute_plane_determinism_policy"] == "section_compute_plane_determinism_required"
+    assert strict["section_change_order_budget_delta_policy"] == "section_change_order_budget_delta_required"
+    assert strict["section_domain_swarm_accountability_policy"] == "section_domain_swarm_accountability_required"
+    assert strict["section_audit_packet_release_policy"] == "section_audit_packet_release_required"
     assert strict["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_hard"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
@@ -967,5 +982,10 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["section_budget_anomaly_circuit_breaker_policy"] == "section_budget_anomaly_circuit_breaker_adaptive_with_audit"
     assert dynamic["section_compliance_evidence_freshness_policy"] == "section_compliance_evidence_freshness_adaptive_with_audit"
     assert dynamic["section_decision_packet_trace_policy"] == "section_decision_packet_trace_adaptive_with_audit"
+    assert dynamic["section_exec_authority_gate_policy"] == "section_exec_authority_gate_adaptive_with_audit"
+    assert dynamic["section_compute_plane_determinism_policy"] == "section_compute_plane_determinism_adaptive_with_audit"
+    assert dynamic["section_change_order_budget_delta_policy"] == "section_change_order_budget_delta_adaptive_with_audit"
+    assert dynamic["section_domain_swarm_accountability_policy"] == "section_domain_swarm_accountability_adaptive_with_audit"
+    assert dynamic["section_audit_packet_release_policy"] == "section_audit_packet_release_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"
