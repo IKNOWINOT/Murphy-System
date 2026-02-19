@@ -417,6 +417,7 @@ This update confirms that sections **1-13** remain active and accepted as the op
 89. Added semantics posterior-update governance profile derivation and runtime surface parity checks for `semantics_question_candidate_generation_policy`, `semantics_answer_prediction_policy`, `semantics_belief_normalization_policy`, `semantics_verification_loss_injection_policy`, and `semantics_action_revision_policy`, with strict/balanced/dynamic mapping validated via focused cross-surface tests (**2 passed, 0 failed; 38 warnings**).
 90. Added legacy-orchestrator wiring governance profile derivation and runtime surface parity checks for `legacy_orchestrator_discovery_policy`, `rubixcube_orchestrator_adapter_policy`, `triage_orchestrator_adapter_policy`, `bot_catalog_capability_mapping_policy`, and `legacy_orchestrator_wiring_priority_policy`, with strict/balanced/dynamic mapping validated via focused cross-surface tests (**2 passed, 0 failed; 38 warnings**).
 91. Added multi-agent durability governance profile derivation and runtime surface parity checks for `durable_queue_replay_policy`, `swarm_failure_domain_isolation_policy`, `idempotent_recovery_validation_policy`, `agent_spawn_budget_reconciliation_policy`, and `audit_chain_export_policy`, with strict/balanced/dynamic mapping validated via focused cross-surface tests (**2 passed, 0 failed; 38 warnings**).
+92. Added legacy-modern-arcana bridge governance profile derivation and runtime surface parity checks for `modern_arcana_clockwork_bridge_policy`, `legacy_orchestrator_compatibility_matrix_policy`, `rubixcube_kaia_mix_scoring_policy`, `triage_rollcall_selection_policy`, and `legacy_orchestrator_tooling_plan_policy`, with strict/balanced/dynamic mapping validated via focused cross-surface tests (**2 passed, 0 failed; 38 warnings**).
 
 **Current completion percentage snapshot (section 9, this iteration):**
 - Execution wiring (gate + swarm + orchestrator): **47%**
@@ -461,6 +462,8 @@ This task set is planning-only and defines how to absorb unique capabilities fro
    - Bot-base wrapper enforces budget/quota and stability breaker before action execution.
 7. **Observability event contracts (both bots)**
    - Structured completion/HITL-required signals that can map directly to Murphy telemetry+governance dashboards.
+8. **Modern Arcana / Clockwork bridge controls**
+   - Legacy orchestration bridge hooks and compatibility-matrix decisions can be formalized as profile-governed runtime controls before direct wiring.
 
 ### 15.3 Orchestrator wiring plan (new task set)
 
@@ -478,6 +481,8 @@ This task set is planning-only and defines how to absorb unique capabilities fro
    - Map bot-level quota/budget/stability controls to runtime execution profile policies and gate checks.
 5. **Telemetry contract alignment**
    - Standardize triage/rubix event payloads into Murphy observability ingestion schema.
+6. **Legacy bridge scoring lane**
+   - Wire Rubixcube KaiaMix and triage roll-call selectors through runtime policy controls before enabling direct orchestration actions.
 
 ### 15.4 Tooling implementation plan (no coding in this task)
 
@@ -487,6 +492,7 @@ This task set is planning-only and defines how to absorb unique capabilities fro
   - `GoldenPathBridgeAdapter`
   - `BotGovernancePolicyMapper`
   - `BotTelemetryNormalizer`
+  - `LegacyCompatibilityMatrixAdapter`
 - **Config artifacts to add**
   - Bot capability-map manifest (catalog → orchestrator lane mapping)
   - Policy mapping table (legacy bot controls → runtime execution profile policies)
@@ -507,3 +513,13 @@ This task set is planning-only and defines how to absorb unique capabilities fro
 ### 15.6 Section-wide status touchpoint
 
 Sections **1-14** remain accepted and active; section **15** is now the approved next planning task set for legacy bot-catalog leverage and orchestrator integration sequencing.
+
+### 15.7 Runtime governance bridge fields now tracked
+
+- `modern_arcana_clockwork_bridge_policy`
+- `legacy_orchestrator_compatibility_matrix_policy`
+- `rubixcube_kaia_mix_scoring_policy`
+- `triage_rollcall_selection_policy`
+- `legacy_orchestrator_tooling_plan_policy`
+
+These fields provide strict/balanced/dynamic guardrails so legacy orchestration bridging can be wired incrementally under policy control.

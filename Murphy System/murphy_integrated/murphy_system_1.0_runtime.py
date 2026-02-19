@@ -5868,6 +5868,31 @@ class MurphySystem:
             "legacy_orchestrator_wiring_priority_policy_scoped",
             "legacy_orchestrator_wiring_priority_adaptive_with_audit"
         )
+        modern_arcana_clockwork_bridge_policy = _mode_policy(
+            "modern_arcana_clockwork_bridge_required",
+            "modern_arcana_clockwork_bridge_policy_scoped",
+            "modern_arcana_clockwork_bridge_adaptive_with_audit"
+        )
+        legacy_orchestrator_compatibility_matrix_policy = _mode_policy(
+            "legacy_orchestrator_compatibility_matrix_required",
+            "legacy_orchestrator_compatibility_matrix_policy_scoped",
+            "legacy_orchestrator_compatibility_matrix_adaptive_with_audit"
+        )
+        rubixcube_kaia_mix_scoring_policy = _mode_policy(
+            "rubixcube_kaia_mix_scoring_required",
+            "rubixcube_kaia_mix_scoring_policy_scoped",
+            "rubixcube_kaia_mix_scoring_adaptive_with_audit"
+        )
+        triage_rollcall_selection_policy = _mode_policy(
+            "triage_rollcall_selection_required",
+            "triage_rollcall_selection_policy_scoped",
+            "triage_rollcall_selection_adaptive_with_audit"
+        )
+        legacy_orchestrator_tooling_plan_policy = _mode_policy(
+            "legacy_orchestrator_tooling_plan_required",
+            "legacy_orchestrator_tooling_plan_policy_scoped",
+            "legacy_orchestrator_tooling_plan_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -6007,6 +6032,11 @@ class MurphySystem:
             "triage_orchestrator_adapter_policy": triage_orchestrator_adapter_policy,
             "bot_catalog_capability_mapping_policy": bot_catalog_capability_mapping_policy,
             "legacy_orchestrator_wiring_priority_policy": legacy_orchestrator_wiring_priority_policy,
+            "modern_arcana_clockwork_bridge_policy": modern_arcana_clockwork_bridge_policy,
+            "legacy_orchestrator_compatibility_matrix_policy": legacy_orchestrator_compatibility_matrix_policy,
+            "rubixcube_kaia_mix_scoring_policy": rubixcube_kaia_mix_scoring_policy,
+            "triage_rollcall_selection_policy": triage_rollcall_selection_policy,
+            "legacy_orchestrator_tooling_plan_policy": legacy_orchestrator_tooling_plan_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
