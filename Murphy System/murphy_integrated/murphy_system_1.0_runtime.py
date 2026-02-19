@@ -6469,6 +6469,31 @@ class MurphySystem:
             "section_audit_packet_release_policy_scoped",
             "section_audit_packet_release_adaptive_with_audit"
         )
+        section_request_envelope_integrity_policy = _mode_policy(
+            "section_request_envelope_integrity_required",
+            "section_request_envelope_integrity_policy_scoped",
+            "section_request_envelope_integrity_adaptive_with_audit"
+        )
+        section_gate_graph_compilation_policy = _mode_policy(
+            "section_gate_graph_compilation_required",
+            "section_gate_graph_compilation_policy_scoped",
+            "section_gate_graph_compilation_adaptive_with_audit"
+        )
+        section_domain_swarm_routing_policy = _mode_policy(
+            "section_domain_swarm_routing_required",
+            "section_domain_swarm_routing_policy_scoped",
+            "section_domain_swarm_routing_adaptive_with_audit"
+        )
+        section_compute_replay_consistency_policy = _mode_policy(
+            "section_compute_replay_consistency_required",
+            "section_compute_replay_consistency_policy_scoped",
+            "section_compute_replay_consistency_adaptive_with_audit"
+        )
+        section_authority_scope_binding_policy = _mode_policy(
+            "section_authority_scope_binding_required",
+            "section_authority_scope_binding_policy_scoped",
+            "section_authority_scope_binding_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -6728,6 +6753,11 @@ class MurphySystem:
             "section_change_order_budget_delta_policy": section_change_order_budget_delta_policy,
             "section_domain_swarm_accountability_policy": section_domain_swarm_accountability_policy,
             "section_audit_packet_release_policy": section_audit_packet_release_policy,
+            "section_request_envelope_integrity_policy": section_request_envelope_integrity_policy,
+            "section_gate_graph_compilation_policy": section_gate_graph_compilation_policy,
+            "section_domain_swarm_routing_policy": section_domain_swarm_routing_policy,
+            "section_compute_replay_consistency_policy": section_compute_replay_consistency_policy,
+            "section_authority_scope_binding_policy": section_authority_scope_binding_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
