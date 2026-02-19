@@ -6394,6 +6394,31 @@ class MurphySystem:
             "section_lifecycle_reporting_policy_scoped",
             "section_lifecycle_reporting_adaptive_with_audit"
         )
+        section_contractual_risk_alignment_policy = _mode_policy(
+            "section_contractual_risk_alignment_required",
+            "section_contractual_risk_alignment_policy_scoped",
+            "section_contractual_risk_alignment_adaptive_with_audit"
+        )
+        section_compliance_rulepack_sync_policy = _mode_policy(
+            "section_compliance_rulepack_sync_required",
+            "section_compliance_rulepack_sync_policy_scoped",
+            "section_compliance_rulepack_sync_adaptive_with_audit"
+        )
+        section_authoritative_source_integrity_policy = _mode_policy(
+            "section_authoritative_source_integrity_required",
+            "section_authoritative_source_integrity_policy_scoped",
+            "section_authoritative_source_integrity_adaptive_with_audit"
+        )
+        section_budget_gate_reconciliation_policy = _mode_policy(
+            "section_budget_gate_reconciliation_required",
+            "section_budget_gate_reconciliation_policy_scoped",
+            "section_budget_gate_reconciliation_adaptive_with_audit"
+        )
+        section_governance_override_hierarchy_policy = _mode_policy(
+            "section_governance_override_hierarchy_required",
+            "section_governance_override_hierarchy_policy_scoped",
+            "section_governance_override_hierarchy_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -6638,6 +6663,11 @@ class MurphySystem:
             "section_acceptance_verification_policy": section_acceptance_verification_policy,
             "section_sync_integrity_policy": section_sync_integrity_policy,
             "section_lifecycle_reporting_policy": section_lifecycle_reporting_policy,
+            "section_contractual_risk_alignment_policy": section_contractual_risk_alignment_policy,
+            "section_compliance_rulepack_sync_policy": section_compliance_rulepack_sync_policy,
+            "section_authoritative_source_integrity_policy": section_authoritative_source_integrity_policy,
+            "section_budget_gate_reconciliation_policy": section_budget_gate_reconciliation_policy,
+            "section_governance_override_hierarchy_policy": section_governance_override_hierarchy_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
