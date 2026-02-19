@@ -5818,6 +5818,31 @@ class MurphySystem:
             "telemetry_verification_feedback_policy_scoped",
             "telemetry_verification_feedback_adaptive_with_audit"
         )
+        semantics_question_candidate_generation_policy = _mode_policy(
+            "semantics_question_candidate_generation_required",
+            "semantics_question_candidate_generation_policy_scoped",
+            "semantics_question_candidate_generation_adaptive_with_audit"
+        )
+        semantics_answer_prediction_policy = _mode_policy(
+            "semantics_answer_prediction_required",
+            "semantics_answer_prediction_policy_scoped",
+            "semantics_answer_prediction_adaptive_with_audit"
+        )
+        semantics_belief_normalization_policy = _mode_policy(
+            "semantics_belief_normalization_required",
+            "semantics_belief_normalization_policy_scoped",
+            "semantics_belief_normalization_adaptive_with_audit"
+        )
+        semantics_verification_loss_injection_policy = _mode_policy(
+            "semantics_verification_loss_injection_required",
+            "semantics_verification_loss_injection_policy_scoped",
+            "semantics_verification_loss_injection_adaptive_with_audit"
+        )
+        semantics_action_revision_policy = _mode_policy(
+            "semantics_action_revision_required",
+            "semantics_action_revision_policy_scoped",
+            "semantics_action_revision_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -5947,6 +5972,11 @@ class MurphySystem:
             "runtime_telemetry_invariance_score_policy": runtime_telemetry_invariance_score_policy,
             "runtime_telemetry_risk_score_policy": runtime_telemetry_risk_score_policy,
             "runtime_telemetry_verification_feedback_policy": runtime_telemetry_verification_feedback_policy,
+            "semantics_question_candidate_generation_policy": semantics_question_candidate_generation_policy,
+            "semantics_answer_prediction_policy": semantics_answer_prediction_policy,
+            "semantics_belief_normalization_policy": semantics_belief_normalization_policy,
+            "semantics_verification_loss_injection_policy": semantics_verification_loss_injection_policy,
+            "semantics_action_revision_policy": semantics_action_revision_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
