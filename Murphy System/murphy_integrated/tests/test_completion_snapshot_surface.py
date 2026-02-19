@@ -161,6 +161,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["runtime_telemetry_invariance_score_policy"] == status["runtime_execution_profile"]["runtime_telemetry_invariance_score_policy"]
     assert preview["runtime_execution_profile"]["runtime_telemetry_risk_score_policy"] == status["runtime_execution_profile"]["runtime_telemetry_risk_score_policy"]
     assert preview["runtime_execution_profile"]["runtime_telemetry_verification_feedback_policy"] == status["runtime_execution_profile"]["runtime_telemetry_verification_feedback_policy"]
+    assert preview["runtime_execution_profile"]["semantics_question_candidate_generation_policy"] == status["runtime_execution_profile"]["semantics_question_candidate_generation_policy"]
+    assert preview["runtime_execution_profile"]["semantics_answer_prediction_policy"] == status["runtime_execution_profile"]["semantics_answer_prediction_policy"]
+    assert preview["runtime_execution_profile"]["semantics_belief_normalization_policy"] == status["runtime_execution_profile"]["semantics_belief_normalization_policy"]
+    assert preview["runtime_execution_profile"]["semantics_verification_loss_injection_policy"] == status["runtime_execution_profile"]["semantics_verification_loss_injection_policy"]
+    assert preview["runtime_execution_profile"]["semantics_action_revision_policy"] == status["runtime_execution_profile"]["semantics_action_revision_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -393,6 +398,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["runtime_telemetry_invariance_score_policy"] == "telemetry_invariance_score_required"
     assert strict["runtime_telemetry_risk_score_policy"] == "telemetry_risk_score_required"
     assert strict["runtime_telemetry_verification_feedback_policy"] == "telemetry_verification_feedback_required"
+    assert strict["semantics_question_candidate_generation_policy"] == "semantics_question_candidate_generation_required"
+    assert strict["semantics_answer_prediction_policy"] == "semantics_answer_prediction_required"
+    assert strict["semantics_belief_normalization_policy"] == "semantics_belief_normalization_required"
+    assert strict["semantics_verification_loss_injection_policy"] == "semantics_verification_loss_injection_required"
+    assert strict["semantics_action_revision_policy"] == "semantics_action_revision_required"
     assert strict["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_hard"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
@@ -522,5 +532,10 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["runtime_telemetry_invariance_score_policy"] == "telemetry_invariance_score_adaptive_with_audit"
     assert dynamic["runtime_telemetry_risk_score_policy"] == "telemetry_risk_score_adaptive_with_audit"
     assert dynamic["runtime_telemetry_verification_feedback_policy"] == "telemetry_verification_feedback_adaptive_with_audit"
+    assert dynamic["semantics_question_candidate_generation_policy"] == "semantics_question_candidate_generation_adaptive_with_audit"
+    assert dynamic["semantics_answer_prediction_policy"] == "semantics_answer_prediction_adaptive_with_audit"
+    assert dynamic["semantics_belief_normalization_policy"] == "semantics_belief_normalization_adaptive_with_audit"
+    assert dynamic["semantics_verification_loss_injection_policy"] == "semantics_verification_loss_injection_adaptive_with_audit"
+    assert dynamic["semantics_action_revision_policy"] == "semantics_action_revision_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"
