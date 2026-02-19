@@ -6344,6 +6344,56 @@ class MurphySystem:
             "section_change_order_authority_policy_scoped",
             "section_change_order_authority_adaptive_with_audit"
         )
+        section_completion_verification_policy = _mode_policy(
+            "section_completion_verification_required",
+            "section_completion_verification_policy_scoped",
+            "section_completion_verification_adaptive_with_audit"
+        )
+        section_recommendation_rollforward_policy = _mode_policy(
+            "section_recommendation_rollforward_required",
+            "section_recommendation_rollforward_policy_scoped",
+            "section_recommendation_rollforward_adaptive_with_audit"
+        )
+        section_dependency_traceability_policy = _mode_policy(
+            "section_dependency_traceability_required",
+            "section_dependency_traceability_policy_scoped",
+            "section_dependency_traceability_adaptive_with_audit"
+        )
+        section_operational_readiness_policy = _mode_policy(
+            "section_operational_readiness_required",
+            "section_operational_readiness_policy_scoped",
+            "section_operational_readiness_adaptive_with_audit"
+        )
+        section_reporting_attestation_policy = _mode_policy(
+            "section_reporting_attestation_required",
+            "section_reporting_attestation_policy_scoped",
+            "section_reporting_attestation_adaptive_with_audit"
+        )
+        section_governance_traceability_policy = _mode_policy(
+            "section_governance_traceability_required",
+            "section_governance_traceability_policy_scoped",
+            "section_governance_traceability_adaptive_with_audit"
+        )
+        section_progress_checkpoint_policy = _mode_policy(
+            "section_progress_checkpoint_required",
+            "section_progress_checkpoint_policy_scoped",
+            "section_progress_checkpoint_adaptive_with_audit"
+        )
+        section_acceptance_verification_policy = _mode_policy(
+            "section_acceptance_verification_required",
+            "section_acceptance_verification_policy_scoped",
+            "section_acceptance_verification_adaptive_with_audit"
+        )
+        section_sync_integrity_policy = _mode_policy(
+            "section_sync_integrity_required",
+            "section_sync_integrity_policy_scoped",
+            "section_sync_integrity_adaptive_with_audit"
+        )
+        section_lifecycle_reporting_policy = _mode_policy(
+            "section_lifecycle_reporting_required",
+            "section_lifecycle_reporting_policy_scoped",
+            "section_lifecycle_reporting_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -6578,6 +6628,16 @@ class MurphySystem:
             "section_manager_throwback_routing_policy": section_manager_throwback_routing_policy,
             "section_scope_boundary_enforcement_policy": section_scope_boundary_enforcement_policy,
             "section_change_order_authority_policy": section_change_order_authority_policy,
+            "section_completion_verification_policy": section_completion_verification_policy,
+            "section_recommendation_rollforward_policy": section_recommendation_rollforward_policy,
+            "section_dependency_traceability_policy": section_dependency_traceability_policy,
+            "section_operational_readiness_policy": section_operational_readiness_policy,
+            "section_reporting_attestation_policy": section_reporting_attestation_policy,
+            "section_governance_traceability_policy": section_governance_traceability_policy,
+            "section_progress_checkpoint_policy": section_progress_checkpoint_policy,
+            "section_acceptance_verification_policy": section_acceptance_verification_policy,
+            "section_sync_integrity_policy": section_sync_integrity_policy,
+            "section_lifecycle_reporting_policy": section_lifecycle_reporting_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
