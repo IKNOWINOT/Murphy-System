@@ -6193,6 +6193,31 @@ class MurphySystem:
             "section_continuous_improvement_policy_scoped",
             "section_continuous_improvement_adaptive_with_audit"
         )
+        section_recommendation_conflict_resolution_policy = _mode_policy(
+            "section_recommendation_conflict_resolution_required",
+            "section_recommendation_conflict_resolution_policy_scoped",
+            "section_recommendation_conflict_resolution_adaptive_with_audit"
+        )
+        section_dependency_unblock_policy = _mode_policy(
+            "section_dependency_unblock_required",
+            "section_dependency_unblock_policy_scoped",
+            "section_dependency_unblock_adaptive_with_audit"
+        )
+        section_regression_guard_policy = _mode_policy(
+            "section_regression_guard_required",
+            "section_regression_guard_policy_scoped",
+            "section_regression_guard_adaptive_with_audit"
+        )
+        section_release_readiness_policy = _mode_policy(
+            "section_release_readiness_required",
+            "section_release_readiness_policy_scoped",
+            "section_release_readiness_adaptive_with_audit"
+        )
+        section_traceability_index_policy = _mode_policy(
+            "section_traceability_index_required",
+            "section_traceability_index_policy_scoped",
+            "section_traceability_index_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -6397,6 +6422,11 @@ class MurphySystem:
             "section_risk_escalation_policy": section_risk_escalation_policy,
             "section_completion_signoff_policy": section_completion_signoff_policy,
             "section_continuous_improvement_policy": section_continuous_improvement_policy,
+            "section_recommendation_conflict_resolution_policy": section_recommendation_conflict_resolution_policy,
+            "section_dependency_unblock_policy": section_dependency_unblock_policy,
+            "section_regression_guard_policy": section_regression_guard_policy,
+            "section_release_readiness_policy": section_release_readiness_policy,
+            "section_traceability_index_policy": section_traceability_index_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
