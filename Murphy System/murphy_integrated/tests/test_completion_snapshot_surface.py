@@ -296,6 +296,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["section_authoritative_source_integrity_policy"] == status["runtime_execution_profile"]["section_authoritative_source_integrity_policy"]
     assert preview["runtime_execution_profile"]["section_budget_gate_reconciliation_policy"] == status["runtime_execution_profile"]["section_budget_gate_reconciliation_policy"]
     assert preview["runtime_execution_profile"]["section_governance_override_hierarchy_policy"] == status["runtime_execution_profile"]["section_governance_override_hierarchy_policy"]
+    assert preview["runtime_execution_profile"]["section_risk_tolerance_boundary_policy"] == status["runtime_execution_profile"]["section_risk_tolerance_boundary_policy"]
+    assert preview["runtime_execution_profile"]["section_approval_delegation_integrity_policy"] == status["runtime_execution_profile"]["section_approval_delegation_integrity_policy"]
+    assert preview["runtime_execution_profile"]["section_budget_anomaly_circuit_breaker_policy"] == status["runtime_execution_profile"]["section_budget_anomaly_circuit_breaker_policy"]
+    assert preview["runtime_execution_profile"]["section_compliance_evidence_freshness_policy"] == status["runtime_execution_profile"]["section_compliance_evidence_freshness_policy"]
+    assert preview["runtime_execution_profile"]["section_decision_packet_trace_policy"] == status["runtime_execution_profile"]["section_decision_packet_trace_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -453,6 +458,11 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["section_authoritative_source_integrity_policy"] == "section_authoritative_source_integrity_policy_scoped"
     assert status["runtime_execution_profile"]["section_budget_gate_reconciliation_policy"] == "section_budget_gate_reconciliation_policy_scoped"
     assert status["runtime_execution_profile"]["section_governance_override_hierarchy_policy"] == "section_governance_override_hierarchy_policy_scoped"
+    assert status["runtime_execution_profile"]["section_risk_tolerance_boundary_policy"] == "section_risk_tolerance_boundary_policy_scoped"
+    assert status["runtime_execution_profile"]["section_approval_delegation_integrity_policy"] == "section_approval_delegation_integrity_policy_scoped"
+    assert status["runtime_execution_profile"]["section_budget_anomaly_circuit_breaker_policy"] == "section_budget_anomaly_circuit_breaker_policy_scoped"
+    assert status["runtime_execution_profile"]["section_compliance_evidence_freshness_policy"] == "section_compliance_evidence_freshness_policy_scoped"
+    assert status["runtime_execution_profile"]["section_decision_packet_trace_policy"] == "section_decision_packet_trace_policy_scoped"
     assert status["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_policy_guided"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
@@ -698,6 +708,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["section_authoritative_source_integrity_policy"] == "section_authoritative_source_integrity_required"
     assert strict["section_budget_gate_reconciliation_policy"] == "section_budget_gate_reconciliation_required"
     assert strict["section_governance_override_hierarchy_policy"] == "section_governance_override_hierarchy_required"
+    assert strict["section_risk_tolerance_boundary_policy"] == "section_risk_tolerance_boundary_required"
+    assert strict["section_approval_delegation_integrity_policy"] == "section_approval_delegation_integrity_required"
+    assert strict["section_budget_anomaly_circuit_breaker_policy"] == "section_budget_anomaly_circuit_breaker_required"
+    assert strict["section_compliance_evidence_freshness_policy"] == "section_compliance_evidence_freshness_required"
+    assert strict["section_decision_packet_trace_policy"] == "section_decision_packet_trace_required"
     assert strict["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_hard"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
@@ -947,5 +962,10 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["section_authoritative_source_integrity_policy"] == "section_authoritative_source_integrity_adaptive_with_audit"
     assert dynamic["section_budget_gate_reconciliation_policy"] == "section_budget_gate_reconciliation_adaptive_with_audit"
     assert dynamic["section_governance_override_hierarchy_policy"] == "section_governance_override_hierarchy_adaptive_with_audit"
+    assert dynamic["section_risk_tolerance_boundary_policy"] == "section_risk_tolerance_boundary_adaptive_with_audit"
+    assert dynamic["section_approval_delegation_integrity_policy"] == "section_approval_delegation_integrity_adaptive_with_audit"
+    assert dynamic["section_budget_anomaly_circuit_breaker_policy"] == "section_budget_anomaly_circuit_breaker_adaptive_with_audit"
+    assert dynamic["section_compliance_evidence_freshness_policy"] == "section_compliance_evidence_freshness_adaptive_with_audit"
+    assert dynamic["section_decision_packet_trace_policy"] == "section_decision_packet_trace_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"
