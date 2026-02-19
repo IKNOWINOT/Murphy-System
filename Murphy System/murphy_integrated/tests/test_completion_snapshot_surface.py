@@ -181,6 +181,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["rubixcube_evidence_engine_policy"] == status["runtime_execution_profile"]["rubixcube_evidence_engine_policy"]
     assert preview["runtime_execution_profile"]["triage_rollcall_confidence_policy"] == status["runtime_execution_profile"]["triage_rollcall_confidence_policy"]
     assert preview["runtime_execution_profile"]["golden_path_reuse_policy"] == status["runtime_execution_profile"]["golden_path_reuse_policy"]
+    assert preview["runtime_execution_profile"]["governance_review_cadence_policy"] == status["runtime_execution_profile"]["governance_review_cadence_policy"]
+    assert preview["runtime_execution_profile"]["section_status_reconciliation_policy"] == status["runtime_execution_profile"]["section_status_reconciliation_policy"]
+    assert preview["runtime_execution_profile"]["orchestrator_wiring_readiness_policy"] == status["runtime_execution_profile"]["orchestrator_wiring_readiness_policy"]
+    assert preview["runtime_execution_profile"]["verification_feedback_closure_policy"] == status["runtime_execution_profile"]["verification_feedback_closure_policy"]
+    assert preview["runtime_execution_profile"]["self_improvement_backlog_priority_policy"] == status["runtime_execution_profile"]["self_improvement_backlog_priority_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -273,6 +278,11 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["rubixcube_evidence_engine_policy"] == "rubixcube_evidence_engine_policy_scoped"
     assert status["runtime_execution_profile"]["triage_rollcall_confidence_policy"] == "triage_rollcall_confidence_policy_scoped"
     assert status["runtime_execution_profile"]["golden_path_reuse_policy"] == "golden_path_reuse_policy_scoped"
+    assert status["runtime_execution_profile"]["governance_review_cadence_policy"] == "governance_review_cadence_policy_scoped"
+    assert status["runtime_execution_profile"]["section_status_reconciliation_policy"] == "section_status_reconciliation_policy_scoped"
+    assert status["runtime_execution_profile"]["orchestrator_wiring_readiness_policy"] == "orchestrator_wiring_readiness_policy_scoped"
+    assert status["runtime_execution_profile"]["verification_feedback_closure_policy"] == "verification_feedback_closure_policy_scoped"
+    assert status["runtime_execution_profile"]["self_improvement_backlog_priority_policy"] == "self_improvement_backlog_priority_policy_scoped"
     assert status["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_policy_guided"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
@@ -443,6 +453,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["rubixcube_evidence_engine_policy"] == "rubixcube_evidence_engine_required"
     assert strict["triage_rollcall_confidence_policy"] == "triage_rollcall_confidence_required"
     assert strict["golden_path_reuse_policy"] == "golden_path_reuse_required"
+    assert strict["governance_review_cadence_policy"] == "governance_review_cadence_required"
+    assert strict["section_status_reconciliation_policy"] == "section_status_reconciliation_required"
+    assert strict["orchestrator_wiring_readiness_policy"] == "orchestrator_wiring_readiness_required"
+    assert strict["verification_feedback_closure_policy"] == "verification_feedback_closure_required"
+    assert strict["self_improvement_backlog_priority_policy"] == "self_improvement_backlog_priority_required"
     assert strict["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_hard"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
@@ -592,5 +607,10 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["rubixcube_evidence_engine_policy"] == "rubixcube_evidence_engine_adaptive_with_audit"
     assert dynamic["triage_rollcall_confidence_policy"] == "triage_rollcall_confidence_adaptive_with_audit"
     assert dynamic["golden_path_reuse_policy"] == "golden_path_reuse_adaptive_with_audit"
+    assert dynamic["governance_review_cadence_policy"] == "governance_review_cadence_adaptive_with_audit"
+    assert dynamic["section_status_reconciliation_policy"] == "section_status_reconciliation_adaptive_with_audit"
+    assert dynamic["orchestrator_wiring_readiness_policy"] == "orchestrator_wiring_readiness_adaptive_with_audit"
+    assert dynamic["verification_feedback_closure_policy"] == "verification_feedback_closure_adaptive_with_audit"
+    assert dynamic["self_improvement_backlog_priority_policy"] == "self_improvement_backlog_priority_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"
