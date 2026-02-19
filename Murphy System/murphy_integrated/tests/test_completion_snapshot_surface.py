@@ -176,6 +176,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["rubixcube_kaia_mix_scoring_policy"] == status["runtime_execution_profile"]["rubixcube_kaia_mix_scoring_policy"]
     assert preview["runtime_execution_profile"]["triage_rollcall_selection_policy"] == status["runtime_execution_profile"]["triage_rollcall_selection_policy"]
     assert preview["runtime_execution_profile"]["legacy_orchestrator_tooling_plan_policy"] == status["runtime_execution_profile"]["legacy_orchestrator_tooling_plan_policy"]
+    assert preview["runtime_execution_profile"]["clockwork_orchestrator_bridge_policy"] == status["runtime_execution_profile"]["clockwork_orchestrator_bridge_policy"]
+    assert preview["runtime_execution_profile"]["arcana_pipeline_compatibility_policy"] == status["runtime_execution_profile"]["arcana_pipeline_compatibility_policy"]
+    assert preview["runtime_execution_profile"]["rubixcube_evidence_engine_policy"] == status["runtime_execution_profile"]["rubixcube_evidence_engine_policy"]
+    assert preview["runtime_execution_profile"]["triage_rollcall_confidence_policy"] == status["runtime_execution_profile"]["triage_rollcall_confidence_policy"]
+    assert preview["runtime_execution_profile"]["golden_path_reuse_policy"] == status["runtime_execution_profile"]["golden_path_reuse_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -263,6 +268,11 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["triage_orchestrator_adapter_policy"] == "triage_adapter_wiring_policy_scoped"
     assert status["runtime_execution_profile"]["bot_catalog_capability_mapping_policy"] == "bot_catalog_capability_mapping_policy_scoped"
     assert status["runtime_execution_profile"]["legacy_orchestrator_wiring_priority_policy"] == "legacy_orchestrator_wiring_priority_policy_scoped"
+    assert status["runtime_execution_profile"]["clockwork_orchestrator_bridge_policy"] == "clockwork_orchestrator_bridge_policy_scoped"
+    assert status["runtime_execution_profile"]["arcana_pipeline_compatibility_policy"] == "arcana_pipeline_compatibility_policy_scoped"
+    assert status["runtime_execution_profile"]["rubixcube_evidence_engine_policy"] == "rubixcube_evidence_engine_policy_scoped"
+    assert status["runtime_execution_profile"]["triage_rollcall_confidence_policy"] == "triage_rollcall_confidence_policy_scoped"
+    assert status["runtime_execution_profile"]["golden_path_reuse_policy"] == "golden_path_reuse_policy_scoped"
     assert status["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_policy_guided"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
@@ -428,6 +438,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["rubixcube_kaia_mix_scoring_policy"] == "rubixcube_kaia_mix_scoring_required"
     assert strict["triage_rollcall_selection_policy"] == "triage_rollcall_selection_required"
     assert strict["legacy_orchestrator_tooling_plan_policy"] == "legacy_orchestrator_tooling_plan_required"
+    assert strict["clockwork_orchestrator_bridge_policy"] == "clockwork_orchestrator_bridge_required"
+    assert strict["arcana_pipeline_compatibility_policy"] == "arcana_pipeline_compatibility_required"
+    assert strict["rubixcube_evidence_engine_policy"] == "rubixcube_evidence_engine_required"
+    assert strict["triage_rollcall_confidence_policy"] == "triage_rollcall_confidence_required"
+    assert strict["golden_path_reuse_policy"] == "golden_path_reuse_required"
     assert strict["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_hard"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
@@ -572,5 +587,10 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["rubixcube_kaia_mix_scoring_policy"] == "rubixcube_kaia_mix_scoring_adaptive_with_audit"
     assert dynamic["triage_rollcall_selection_policy"] == "triage_rollcall_selection_adaptive_with_audit"
     assert dynamic["legacy_orchestrator_tooling_plan_policy"] == "legacy_orchestrator_tooling_plan_adaptive_with_audit"
+    assert dynamic["clockwork_orchestrator_bridge_policy"] == "clockwork_orchestrator_bridge_adaptive_with_audit"
+    assert dynamic["arcana_pipeline_compatibility_policy"] == "arcana_pipeline_compatibility_adaptive_with_audit"
+    assert dynamic["rubixcube_evidence_engine_policy"] == "rubixcube_evidence_engine_adaptive_with_audit"
+    assert dynamic["triage_rollcall_confidence_policy"] == "triage_rollcall_confidence_adaptive_with_audit"
+    assert dynamic["golden_path_reuse_policy"] == "golden_path_reuse_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"

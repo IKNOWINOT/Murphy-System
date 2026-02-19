@@ -5893,6 +5893,31 @@ class MurphySystem:
             "legacy_orchestrator_tooling_plan_policy_scoped",
             "legacy_orchestrator_tooling_plan_adaptive_with_audit"
         )
+        clockwork_orchestrator_bridge_policy = _mode_policy(
+            "clockwork_orchestrator_bridge_required",
+            "clockwork_orchestrator_bridge_policy_scoped",
+            "clockwork_orchestrator_bridge_adaptive_with_audit"
+        )
+        arcana_pipeline_compatibility_policy = _mode_policy(
+            "arcana_pipeline_compatibility_required",
+            "arcana_pipeline_compatibility_policy_scoped",
+            "arcana_pipeline_compatibility_adaptive_with_audit"
+        )
+        rubixcube_evidence_engine_policy = _mode_policy(
+            "rubixcube_evidence_engine_required",
+            "rubixcube_evidence_engine_policy_scoped",
+            "rubixcube_evidence_engine_adaptive_with_audit"
+        )
+        triage_rollcall_confidence_policy = _mode_policy(
+            "triage_rollcall_confidence_required",
+            "triage_rollcall_confidence_policy_scoped",
+            "triage_rollcall_confidence_adaptive_with_audit"
+        )
+        golden_path_reuse_policy = _mode_policy(
+            "golden_path_reuse_required",
+            "golden_path_reuse_policy_scoped",
+            "golden_path_reuse_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -6037,6 +6062,11 @@ class MurphySystem:
             "rubixcube_kaia_mix_scoring_policy": rubixcube_kaia_mix_scoring_policy,
             "triage_rollcall_selection_policy": triage_rollcall_selection_policy,
             "legacy_orchestrator_tooling_plan_policy": legacy_orchestrator_tooling_plan_policy,
+            "clockwork_orchestrator_bridge_policy": clockwork_orchestrator_bridge_policy,
+            "arcana_pipeline_compatibility_policy": arcana_pipeline_compatibility_policy,
+            "rubixcube_evidence_engine_policy": rubixcube_evidence_engine_policy,
+            "triage_rollcall_confidence_policy": triage_rollcall_confidence_policy,
+            "golden_path_reuse_policy": golden_path_reuse_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
