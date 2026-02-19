@@ -131,6 +131,16 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["user_base_offboarding_policy"] == status["runtime_execution_profile"]["user_base_offboarding_policy"]
     assert preview["runtime_execution_profile"]["governance_kernel_heartbeat_policy"] == status["runtime_execution_profile"]["governance_kernel_heartbeat_policy"]
     assert preview["runtime_execution_profile"]["policy_compiler_change_control_policy"] == status["runtime_execution_profile"]["policy_compiler_change_control_policy"]
+    assert preview["runtime_execution_profile"]["replay_reconciliation_policy"] == status["runtime_execution_profile"]["replay_reconciliation_policy"]
+    assert preview["runtime_execution_profile"]["audit_artifact_retention_policy"] == status["runtime_execution_profile"]["audit_artifact_retention_policy"]
+    assert preview["runtime_execution_profile"]["event_backpressure_management_policy"] == status["runtime_execution_profile"]["event_backpressure_management_policy"]
+    assert preview["runtime_execution_profile"]["queue_health_slo_policy"] == status["runtime_execution_profile"]["queue_health_slo_policy"]
+    assert preview["runtime_execution_profile"]["rollback_compensation_policy"] == status["runtime_execution_profile"]["rollback_compensation_policy"]
+    assert preview["runtime_execution_profile"]["durable_queue_replay_policy"] == status["runtime_execution_profile"]["durable_queue_replay_policy"]
+    assert preview["runtime_execution_profile"]["swarm_failure_domain_isolation_policy"] == status["runtime_execution_profile"]["swarm_failure_domain_isolation_policy"]
+    assert preview["runtime_execution_profile"]["idempotent_recovery_validation_policy"] == status["runtime_execution_profile"]["idempotent_recovery_validation_policy"]
+    assert preview["runtime_execution_profile"]["agent_spawn_budget_reconciliation_policy"] == status["runtime_execution_profile"]["agent_spawn_budget_reconciliation_policy"]
+    assert preview["runtime_execution_profile"]["audit_chain_export_policy"] == status["runtime_execution_profile"]["audit_chain_export_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -203,6 +213,16 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["approval_sla_enforcement_policy"] == "approval_sla_enforcement_policy_scoped"
     assert status["runtime_execution_profile"]["tenant_residency_control_policy"] == "tenant_residency_control_policy_scoped"
     assert status["runtime_execution_profile"]["swarm_recursion_guard_policy"] == "swarm_recursion_guard_policy_scoped"
+    assert status["runtime_execution_profile"]["replay_reconciliation_policy"] == "replay_reconciliation_policy_scoped"
+    assert status["runtime_execution_profile"]["audit_artifact_retention_policy"] == "audit_artifact_retention_policy_scoped"
+    assert status["runtime_execution_profile"]["event_backpressure_management_policy"] == "event_backpressure_management_policy_scoped"
+    assert status["runtime_execution_profile"]["queue_health_slo_policy"] == "queue_health_slo_policy_scoped"
+    assert status["runtime_execution_profile"]["rollback_compensation_policy"] == "rollback_compensation_policy_scoped"
+    assert status["runtime_execution_profile"]["durable_queue_replay_policy"] == "durable_queue_replay_policy_scoped"
+    assert status["runtime_execution_profile"]["swarm_failure_domain_isolation_policy"] == "swarm_failure_domain_isolation_policy_scoped"
+    assert status["runtime_execution_profile"]["idempotent_recovery_validation_policy"] == "idempotent_recovery_validation_policy_scoped"
+    assert status["runtime_execution_profile"]["agent_spawn_budget_reconciliation_policy"] == "agent_spawn_budget_reconciliation_policy_scoped"
+    assert status["runtime_execution_profile"]["audit_chain_export_policy"] == "audit_chain_export_policy_scoped"
     assert status["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_policy_guided"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
@@ -323,6 +343,16 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["user_base_offboarding_policy"] == "user_base_offboarding_workflow_required"
     assert strict["governance_kernel_heartbeat_policy"] == "governance_kernel_heartbeat_hard_monitoring"
     assert strict["policy_compiler_change_control_policy"] == "policy_compiler_change_control_manual_review_required"
+    assert strict["replay_reconciliation_policy"] == "replay_reconciliation_required"
+    assert strict["audit_artifact_retention_policy"] == "audit_artifact_retention_required"
+    assert strict["event_backpressure_management_policy"] == "event_backpressure_management_required"
+    assert strict["queue_health_slo_policy"] == "queue_health_slo_hard_enforced"
+    assert strict["rollback_compensation_policy"] == "rollback_compensation_required"
+    assert strict["durable_queue_replay_policy"] == "durable_queue_replay_required"
+    assert strict["swarm_failure_domain_isolation_policy"] == "swarm_failure_domain_isolation_required"
+    assert strict["idempotent_recovery_validation_policy"] == "idempotent_recovery_validation_required"
+    assert strict["agent_spawn_budget_reconciliation_policy"] == "agent_spawn_budget_reconciliation_required"
+    assert strict["audit_chain_export_policy"] == "audit_chain_export_required"
     assert strict["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_hard"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
@@ -422,5 +452,15 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["user_base_offboarding_policy"] == "user_base_offboarding_adaptive_with_audit"
     assert dynamic["governance_kernel_heartbeat_policy"] == "governance_kernel_heartbeat_adaptive_with_audit"
     assert dynamic["policy_compiler_change_control_policy"] == "policy_compiler_change_control_adaptive_with_audit"
+    assert dynamic["replay_reconciliation_policy"] == "replay_reconciliation_adaptive_with_audit"
+    assert dynamic["audit_artifact_retention_policy"] == "audit_artifact_retention_adaptive_with_audit"
+    assert dynamic["event_backpressure_management_policy"] == "event_backpressure_management_adaptive_with_audit"
+    assert dynamic["queue_health_slo_policy"] == "queue_health_slo_adaptive_with_audit"
+    assert dynamic["rollback_compensation_policy"] == "rollback_compensation_adaptive_with_audit"
+    assert dynamic["durable_queue_replay_policy"] == "durable_queue_replay_adaptive_with_audit"
+    assert dynamic["swarm_failure_domain_isolation_policy"] == "swarm_failure_domain_isolation_adaptive_with_audit"
+    assert dynamic["idempotent_recovery_validation_policy"] == "idempotent_recovery_validation_adaptive_with_audit"
+    assert dynamic["agent_spawn_budget_reconciliation_policy"] == "agent_spawn_budget_reconciliation_adaptive_with_audit"
+    assert dynamic["audit_chain_export_policy"] == "audit_chain_export_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"
