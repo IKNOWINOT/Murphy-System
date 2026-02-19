@@ -6294,6 +6294,56 @@ class MurphySystem:
             "section_release_documentation_gate_policy_scoped",
             "section_release_documentation_gate_adaptive_with_audit"
         )
+        section_contract_compliance_link_policy = _mode_policy(
+            "section_contract_compliance_link_required",
+            "section_contract_compliance_link_policy_scoped",
+            "section_contract_compliance_link_adaptive_with_audit"
+        )
+        section_cost_center_attribution_policy = _mode_policy(
+            "section_cost_center_attribution_required",
+            "section_cost_center_attribution_policy_scoped",
+            "section_cost_center_attribution_adaptive_with_audit"
+        )
+        section_unowned_work_throwback_policy = _mode_policy(
+            "section_unowned_work_throwback_required",
+            "section_unowned_work_throwback_policy_scoped",
+            "section_unowned_work_throwback_adaptive_with_audit"
+        )
+        section_change_order_trigger_policy = _mode_policy(
+            "section_change_order_trigger_required",
+            "section_change_order_trigger_policy_scoped",
+            "section_change_order_trigger_adaptive_with_audit"
+        )
+        section_manager_assignment_policy = _mode_policy(
+            "section_manager_assignment_required",
+            "section_manager_assignment_policy_scoped",
+            "section_manager_assignment_adaptive_with_audit"
+        )
+        section_enterprise_operating_model_policy = _mode_policy(
+            "section_enterprise_operating_model_alignment_required",
+            "section_enterprise_operating_model_policy_scoped",
+            "section_enterprise_operating_model_adaptive_with_audit"
+        )
+        section_unaccounted_work_classification_policy = _mode_policy(
+            "section_unaccounted_work_classification_required",
+            "section_unaccounted_work_classification_policy_scoped",
+            "section_unaccounted_work_classification_adaptive_with_audit"
+        )
+        section_manager_throwback_routing_policy = _mode_policy(
+            "section_manager_throwback_routing_required",
+            "section_manager_throwback_routing_policy_scoped",
+            "section_manager_throwback_routing_adaptive_with_audit"
+        )
+        section_scope_boundary_enforcement_policy = _mode_policy(
+            "section_scope_boundary_enforcement_required",
+            "section_scope_boundary_enforcement_policy_scoped",
+            "section_scope_boundary_enforcement_adaptive_with_audit"
+        )
+        section_change_order_authority_policy = _mode_policy(
+            "section_change_order_authority_gate_required",
+            "section_change_order_authority_policy_scoped",
+            "section_change_order_authority_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -6518,6 +6568,16 @@ class MurphySystem:
             "section_verification_retry_policy": section_verification_retry_policy,
             "section_governance_exception_budget_policy": section_governance_exception_budget_policy,
             "section_release_documentation_gate_policy": section_release_documentation_gate_policy,
+            "section_contract_compliance_link_policy": section_contract_compliance_link_policy,
+            "section_cost_center_attribution_policy": section_cost_center_attribution_policy,
+            "section_unowned_work_throwback_policy": section_unowned_work_throwback_policy,
+            "section_change_order_trigger_policy": section_change_order_trigger_policy,
+            "section_manager_assignment_policy": section_manager_assignment_policy,
+            "section_enterprise_operating_model_policy": section_enterprise_operating_model_policy,
+            "section_unaccounted_work_classification_policy": section_unaccounted_work_classification_policy,
+            "section_manager_throwback_routing_policy": section_manager_throwback_routing_policy,
+            "section_scope_boundary_enforcement_policy": section_scope_boundary_enforcement_policy,
+            "section_change_order_authority_policy": section_change_order_authority_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,

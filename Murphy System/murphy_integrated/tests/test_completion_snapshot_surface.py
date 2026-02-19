@@ -271,6 +271,16 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["section_verification_retry_policy"] == status["runtime_execution_profile"]["section_verification_retry_policy"]
     assert preview["runtime_execution_profile"]["section_governance_exception_budget_policy"] == status["runtime_execution_profile"]["section_governance_exception_budget_policy"]
     assert preview["runtime_execution_profile"]["section_release_documentation_gate_policy"] == status["runtime_execution_profile"]["section_release_documentation_gate_policy"]
+    assert preview["runtime_execution_profile"]["section_contract_compliance_link_policy"] == status["runtime_execution_profile"]["section_contract_compliance_link_policy"]
+    assert preview["runtime_execution_profile"]["section_cost_center_attribution_policy"] == status["runtime_execution_profile"]["section_cost_center_attribution_policy"]
+    assert preview["runtime_execution_profile"]["section_unowned_work_throwback_policy"] == status["runtime_execution_profile"]["section_unowned_work_throwback_policy"]
+    assert preview["runtime_execution_profile"]["section_change_order_trigger_policy"] == status["runtime_execution_profile"]["section_change_order_trigger_policy"]
+    assert preview["runtime_execution_profile"]["section_manager_assignment_policy"] == status["runtime_execution_profile"]["section_manager_assignment_policy"]
+    assert preview["runtime_execution_profile"]["section_enterprise_operating_model_policy"] == status["runtime_execution_profile"]["section_enterprise_operating_model_policy"]
+    assert preview["runtime_execution_profile"]["section_unaccounted_work_classification_policy"] == status["runtime_execution_profile"]["section_unaccounted_work_classification_policy"]
+    assert preview["runtime_execution_profile"]["section_manager_throwback_routing_policy"] == status["runtime_execution_profile"]["section_manager_throwback_routing_policy"]
+    assert preview["runtime_execution_profile"]["section_scope_boundary_enforcement_policy"] == status["runtime_execution_profile"]["section_scope_boundary_enforcement_policy"]
+    assert preview["runtime_execution_profile"]["section_change_order_authority_policy"] == status["runtime_execution_profile"]["section_change_order_authority_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -867,5 +877,15 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["section_verification_retry_policy"] == "section_verification_retry_adaptive_with_audit"
     assert dynamic["section_governance_exception_budget_policy"] == "section_governance_exception_budget_adaptive_with_audit"
     assert dynamic["section_release_documentation_gate_policy"] == "section_release_documentation_gate_adaptive_with_audit"
+    assert dynamic["section_contract_compliance_link_policy"] == "section_contract_compliance_link_adaptive_with_audit"
+    assert dynamic["section_cost_center_attribution_policy"] == "section_cost_center_attribution_adaptive_with_audit"
+    assert dynamic["section_unowned_work_throwback_policy"] == "section_unowned_work_throwback_adaptive_with_audit"
+    assert dynamic["section_change_order_trigger_policy"] == "section_change_order_trigger_adaptive_with_audit"
+    assert dynamic["section_manager_assignment_policy"] == "section_manager_assignment_adaptive_with_audit"
+    assert dynamic["section_enterprise_operating_model_policy"] == "section_enterprise_operating_model_adaptive_with_audit"
+    assert dynamic["section_unaccounted_work_classification_policy"] == "section_unaccounted_work_classification_adaptive_with_audit"
+    assert dynamic["section_manager_throwback_routing_policy"] == "section_manager_throwback_routing_adaptive_with_audit"
+    assert dynamic["section_scope_boundary_enforcement_policy"] == "section_scope_boundary_enforcement_adaptive_with_audit"
+    assert dynamic["section_change_order_authority_policy"] == "section_change_order_authority_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"
