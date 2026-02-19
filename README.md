@@ -205,6 +205,7 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 
 **Progress tracking:** update completion percentages and screenshot-based validation in
 `Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md`.
+Track unresolved architecture/governance decisions in `RFI.MD` (repo root).
 
 ---
 
