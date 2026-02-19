@@ -6043,6 +6043,56 @@ class MurphySystem:
             "section_snapshot_publication_policy_scoped",
             "section_snapshot_publication_adaptive_with_audit"
         )
+        all_section_review_coverage_policy = _mode_policy(
+            "all_section_review_coverage_required",
+            "all_section_review_coverage_policy_scoped",
+            "all_section_review_coverage_adaptive_with_audit"
+        )
+        all_section_recommendation_acceptance_policy = _mode_policy(
+            "all_section_recommendation_acceptance_required",
+            "all_section_recommendation_acceptance_policy_scoped",
+            "all_section_recommendation_acceptance_adaptive_with_audit"
+        )
+        all_section_progression_gate_policy = _mode_policy(
+            "all_section_progression_gate_required",
+            "all_section_progression_gate_policy_scoped",
+            "all_section_progression_gate_adaptive_with_audit"
+        )
+        all_section_standardization_lock_policy = _mode_policy(
+            "all_section_standardization_lock_required",
+            "all_section_standardization_lock_policy_scoped",
+            "all_section_standardization_lock_adaptive_with_audit"
+        )
+        all_section_reporting_sync_policy = _mode_policy(
+            "all_section_reporting_sync_required",
+            "all_section_reporting_sync_policy_scoped",
+            "all_section_reporting_sync_adaptive_with_audit"
+        )
+        recommendation_acceptance_attestation_policy = _mode_policy(
+            "recommendation_acceptance_attestation_required",
+            "recommendation_acceptance_attestation_policy_scoped",
+            "recommendation_acceptance_attestation_adaptive_with_audit"
+        )
+        recommendation_execution_checkpoint_policy = _mode_policy(
+            "recommendation_execution_checkpoint_required",
+            "recommendation_execution_checkpoint_policy_scoped",
+            "recommendation_execution_checkpoint_adaptive_with_audit"
+        )
+        recommendation_test_evidence_policy = _mode_policy(
+            "recommendation_test_evidence_required",
+            "recommendation_test_evidence_policy_scoped",
+            "recommendation_test_evidence_adaptive_with_audit"
+        )
+        recommendation_section_sync_policy = _mode_policy(
+            "recommendation_section_sync_required",
+            "recommendation_section_sync_policy_scoped",
+            "recommendation_section_sync_adaptive_with_audit"
+        )
+        recommendation_completion_report_policy = _mode_policy(
+            "recommendation_completion_report_required",
+            "recommendation_completion_report_policy_scoped",
+            "recommendation_completion_report_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -6217,6 +6267,16 @@ class MurphySystem:
             "section_recommendation_closure_policy": section_recommendation_closure_policy,
             "section_quality_gate_policy": section_quality_gate_policy,
             "section_snapshot_publication_policy": section_snapshot_publication_policy,
+            "all_section_review_coverage_policy": all_section_review_coverage_policy,
+            "all_section_recommendation_acceptance_policy": all_section_recommendation_acceptance_policy,
+            "all_section_progression_gate_policy": all_section_progression_gate_policy,
+            "all_section_standardization_lock_policy": all_section_standardization_lock_policy,
+            "all_section_reporting_sync_policy": all_section_reporting_sync_policy,
+            "recommendation_acceptance_attestation_policy": recommendation_acceptance_attestation_policy,
+            "recommendation_execution_checkpoint_policy": recommendation_execution_checkpoint_policy,
+            "recommendation_test_evidence_policy": recommendation_test_evidence_policy,
+            "recommendation_section_sync_policy": recommendation_section_sync_policy,
+            "recommendation_completion_report_policy": recommendation_completion_report_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,

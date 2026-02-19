@@ -1,6 +1,19 @@
 import importlib.util
 from pathlib import Path
 
+import pytest
+
+
+# NOTE:
+# - These warning filters keep this focused parity suite signal clean while upstream
+#   Pydantic v2 migration and utcnow deprecation cleanup are tracked as follow-up
+#   modernization work in the assessment plan.
+pytestmark = [
+    pytest.mark.filterwarnings("ignore::pydantic.warnings.PydanticDeprecatedSince20"),
+    pytest.mark.filterwarnings("ignore:Valid config keys have changed in V2:UserWarning"),
+    pytest.mark.filterwarnings("ignore:datetime.datetime.utcnow\\(\\) is deprecated:DeprecationWarning"),
+]
+
 
 def load_runtime_module():
     runtime_dir = Path(__file__).resolve().parent.parent
@@ -206,6 +219,16 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["section_recommendation_closure_policy"] == status["runtime_execution_profile"]["section_recommendation_closure_policy"]
     assert preview["runtime_execution_profile"]["section_quality_gate_policy"] == status["runtime_execution_profile"]["section_quality_gate_policy"]
     assert preview["runtime_execution_profile"]["section_snapshot_publication_policy"] == status["runtime_execution_profile"]["section_snapshot_publication_policy"]
+    assert preview["runtime_execution_profile"]["all_section_review_coverage_policy"] == status["runtime_execution_profile"]["all_section_review_coverage_policy"]
+    assert preview["runtime_execution_profile"]["all_section_recommendation_acceptance_policy"] == status["runtime_execution_profile"]["all_section_recommendation_acceptance_policy"]
+    assert preview["runtime_execution_profile"]["all_section_progression_gate_policy"] == status["runtime_execution_profile"]["all_section_progression_gate_policy"]
+    assert preview["runtime_execution_profile"]["all_section_standardization_lock_policy"] == status["runtime_execution_profile"]["all_section_standardization_lock_policy"]
+    assert preview["runtime_execution_profile"]["all_section_reporting_sync_policy"] == status["runtime_execution_profile"]["all_section_reporting_sync_policy"]
+    assert preview["runtime_execution_profile"]["recommendation_acceptance_attestation_policy"] == status["runtime_execution_profile"]["recommendation_acceptance_attestation_policy"]
+    assert preview["runtime_execution_profile"]["recommendation_execution_checkpoint_policy"] == status["runtime_execution_profile"]["recommendation_execution_checkpoint_policy"]
+    assert preview["runtime_execution_profile"]["recommendation_test_evidence_policy"] == status["runtime_execution_profile"]["recommendation_test_evidence_policy"]
+    assert preview["runtime_execution_profile"]["recommendation_section_sync_policy"] == status["runtime_execution_profile"]["recommendation_section_sync_policy"]
+    assert preview["runtime_execution_profile"]["recommendation_completion_report_policy"] == status["runtime_execution_profile"]["recommendation_completion_report_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -518,6 +541,16 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["section_recommendation_closure_policy"] == "section_recommendation_closure_required"
     assert strict["section_quality_gate_policy"] == "section_quality_gate_required"
     assert strict["section_snapshot_publication_policy"] == "section_snapshot_publication_required"
+    assert strict["all_section_review_coverage_policy"] == "all_section_review_coverage_required"
+    assert strict["all_section_recommendation_acceptance_policy"] == "all_section_recommendation_acceptance_required"
+    assert strict["all_section_progression_gate_policy"] == "all_section_progression_gate_required"
+    assert strict["all_section_standardization_lock_policy"] == "all_section_standardization_lock_required"
+    assert strict["all_section_reporting_sync_policy"] == "all_section_reporting_sync_required"
+    assert strict["recommendation_acceptance_attestation_policy"] == "recommendation_acceptance_attestation_required"
+    assert strict["recommendation_execution_checkpoint_policy"] == "recommendation_execution_checkpoint_required"
+    assert strict["recommendation_test_evidence_policy"] == "recommendation_test_evidence_required"
+    assert strict["recommendation_section_sync_policy"] == "recommendation_section_sync_required"
+    assert strict["recommendation_completion_report_policy"] == "recommendation_completion_report_required"
     assert strict["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_hard"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
@@ -692,5 +725,15 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["section_recommendation_closure_policy"] == "section_recommendation_closure_adaptive_with_audit"
     assert dynamic["section_quality_gate_policy"] == "section_quality_gate_adaptive_with_audit"
     assert dynamic["section_snapshot_publication_policy"] == "section_snapshot_publication_adaptive_with_audit"
+    assert dynamic["all_section_review_coverage_policy"] == "all_section_review_coverage_adaptive_with_audit"
+    assert dynamic["all_section_recommendation_acceptance_policy"] == "all_section_recommendation_acceptance_adaptive_with_audit"
+    assert dynamic["all_section_progression_gate_policy"] == "all_section_progression_gate_adaptive_with_audit"
+    assert dynamic["all_section_standardization_lock_policy"] == "all_section_standardization_lock_adaptive_with_audit"
+    assert dynamic["all_section_reporting_sync_policy"] == "all_section_reporting_sync_adaptive_with_audit"
+    assert dynamic["recommendation_acceptance_attestation_policy"] == "recommendation_acceptance_attestation_adaptive_with_audit"
+    assert dynamic["recommendation_execution_checkpoint_policy"] == "recommendation_execution_checkpoint_adaptive_with_audit"
+    assert dynamic["recommendation_test_evidence_policy"] == "recommendation_test_evidence_adaptive_with_audit"
+    assert dynamic["recommendation_section_sync_policy"] == "recommendation_section_sync_adaptive_with_audit"
+    assert dynamic["recommendation_completion_report_policy"] == "recommendation_completion_report_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"
