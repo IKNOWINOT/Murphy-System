@@ -171,6 +171,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["triage_orchestrator_adapter_policy"] == status["runtime_execution_profile"]["triage_orchestrator_adapter_policy"]
     assert preview["runtime_execution_profile"]["bot_catalog_capability_mapping_policy"] == status["runtime_execution_profile"]["bot_catalog_capability_mapping_policy"]
     assert preview["runtime_execution_profile"]["legacy_orchestrator_wiring_priority_policy"] == status["runtime_execution_profile"]["legacy_orchestrator_wiring_priority_policy"]
+    assert preview["runtime_execution_profile"]["modern_arcana_clockwork_bridge_policy"] == status["runtime_execution_profile"]["modern_arcana_clockwork_bridge_policy"]
+    assert preview["runtime_execution_profile"]["legacy_orchestrator_compatibility_matrix_policy"] == status["runtime_execution_profile"]["legacy_orchestrator_compatibility_matrix_policy"]
+    assert preview["runtime_execution_profile"]["rubixcube_kaia_mix_scoring_policy"] == status["runtime_execution_profile"]["rubixcube_kaia_mix_scoring_policy"]
+    assert preview["runtime_execution_profile"]["triage_rollcall_selection_policy"] == status["runtime_execution_profile"]["triage_rollcall_selection_policy"]
+    assert preview["runtime_execution_profile"]["legacy_orchestrator_tooling_plan_policy"] == status["runtime_execution_profile"]["legacy_orchestrator_tooling_plan_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -418,6 +423,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["triage_orchestrator_adapter_policy"] == "triage_adapter_wiring_required"
     assert strict["bot_catalog_capability_mapping_policy"] == "bot_catalog_capability_mapping_required"
     assert strict["legacy_orchestrator_wiring_priority_policy"] == "legacy_orchestrator_wiring_priority_required"
+    assert strict["modern_arcana_clockwork_bridge_policy"] == "modern_arcana_clockwork_bridge_required"
+    assert strict["legacy_orchestrator_compatibility_matrix_policy"] == "legacy_orchestrator_compatibility_matrix_required"
+    assert strict["rubixcube_kaia_mix_scoring_policy"] == "rubixcube_kaia_mix_scoring_required"
+    assert strict["triage_rollcall_selection_policy"] == "triage_rollcall_selection_required"
+    assert strict["legacy_orchestrator_tooling_plan_policy"] == "legacy_orchestrator_tooling_plan_required"
     assert strict["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_hard"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
@@ -557,5 +567,10 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["triage_orchestrator_adapter_policy"] == "triage_adapter_wiring_adaptive_with_audit"
     assert dynamic["bot_catalog_capability_mapping_policy"] == "bot_catalog_capability_mapping_adaptive_with_audit"
     assert dynamic["legacy_orchestrator_wiring_priority_policy"] == "legacy_orchestrator_wiring_priority_adaptive_with_audit"
+    assert dynamic["modern_arcana_clockwork_bridge_policy"] == "modern_arcana_clockwork_bridge_adaptive_with_audit"
+    assert dynamic["legacy_orchestrator_compatibility_matrix_policy"] == "legacy_orchestrator_compatibility_matrix_adaptive_with_audit"
+    assert dynamic["rubixcube_kaia_mix_scoring_policy"] == "rubixcube_kaia_mix_scoring_adaptive_with_audit"
+    assert dynamic["triage_rollcall_selection_policy"] == "triage_rollcall_selection_adaptive_with_audit"
+    assert dynamic["legacy_orchestrator_tooling_plan_policy"] == "legacy_orchestrator_tooling_plan_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"
