@@ -6018,6 +6018,31 @@ class MurphySystem:
             "standardization_terminology_lock_policy_scoped",
             "standardization_terminology_lock_adaptive_with_audit"
         )
+        section_transition_handoff_policy = _mode_policy(
+            "section_transition_handoff_required",
+            "section_transition_handoff_policy_scoped",
+            "section_transition_handoff_adaptive_with_audit"
+        )
+        section_evidence_traceability_policy = _mode_policy(
+            "section_evidence_traceability_required",
+            "section_evidence_traceability_policy_scoped",
+            "section_evidence_traceability_adaptive_with_audit"
+        )
+        section_recommendation_closure_policy = _mode_policy(
+            "section_recommendation_closure_required",
+            "section_recommendation_closure_policy_scoped",
+            "section_recommendation_closure_adaptive_with_audit"
+        )
+        section_quality_gate_policy = _mode_policy(
+            "section_quality_gate_required",
+            "section_quality_gate_policy_scoped",
+            "section_quality_gate_adaptive_with_audit"
+        )
+        section_snapshot_publication_policy = _mode_policy(
+            "section_snapshot_publication_required",
+            "section_snapshot_publication_policy_scoped",
+            "section_snapshot_publication_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -6187,6 +6212,11 @@ class MurphySystem:
             "iterative_test_loop_enforcement_policy": iterative_test_loop_enforcement_policy,
             "readme_assessment_consistency_policy": readme_assessment_consistency_policy,
             "standardization_terminology_lock_policy": standardization_terminology_lock_policy,
+            "section_transition_handoff_policy": section_transition_handoff_policy,
+            "section_evidence_traceability_policy": section_evidence_traceability_policy,
+            "section_recommendation_closure_policy": section_recommendation_closure_policy,
+            "section_quality_gate_policy": section_quality_gate_policy,
+            "section_snapshot_publication_policy": section_snapshot_publication_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
