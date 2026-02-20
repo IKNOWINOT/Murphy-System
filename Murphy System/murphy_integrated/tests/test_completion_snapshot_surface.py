@@ -296,6 +296,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["section_authoritative_source_integrity_policy"] == status["runtime_execution_profile"]["section_authoritative_source_integrity_policy"]
     assert preview["runtime_execution_profile"]["section_budget_gate_reconciliation_policy"] == status["runtime_execution_profile"]["section_budget_gate_reconciliation_policy"]
     assert preview["runtime_execution_profile"]["section_governance_override_hierarchy_policy"] == status["runtime_execution_profile"]["section_governance_override_hierarchy_policy"]
+    assert preview["runtime_execution_profile"]["section_policy_pack_versioning_policy"] == status["runtime_execution_profile"]["section_policy_pack_versioning_policy"]
+    assert preview["runtime_execution_profile"]["section_authority_delegation_revocation_policy"] == status["runtime_execution_profile"]["section_authority_delegation_revocation_policy"]
+    assert preview["runtime_execution_profile"]["section_evidence_immutability_policy"] == status["runtime_execution_profile"]["section_evidence_immutability_policy"]
+    assert preview["runtime_execution_profile"]["section_compute_plane_replay_attestation_policy"] == status["runtime_execution_profile"]["section_compute_plane_replay_attestation_policy"]
+    assert preview["runtime_execution_profile"]["section_swarm_isolation_boundary_policy"] == status["runtime_execution_profile"]["section_swarm_isolation_boundary_policy"]
     assert preview["runtime_execution_profile"]["section_risk_tolerance_boundary_policy"] == status["runtime_execution_profile"]["section_risk_tolerance_boundary_policy"]
     assert preview["runtime_execution_profile"]["section_approval_delegation_integrity_policy"] == status["runtime_execution_profile"]["section_approval_delegation_integrity_policy"]
     assert preview["runtime_execution_profile"]["section_budget_anomaly_circuit_breaker_policy"] == status["runtime_execution_profile"]["section_budget_anomaly_circuit_breaker_policy"]
@@ -468,6 +473,11 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["section_authoritative_source_integrity_policy"] == "section_authoritative_source_integrity_policy_scoped"
     assert status["runtime_execution_profile"]["section_budget_gate_reconciliation_policy"] == "section_budget_gate_reconciliation_policy_scoped"
     assert status["runtime_execution_profile"]["section_governance_override_hierarchy_policy"] == "section_governance_override_hierarchy_policy_scoped"
+    assert status["runtime_execution_profile"]["section_policy_pack_versioning_policy"] == "section_policy_pack_versioning_policy_scoped"
+    assert status["runtime_execution_profile"]["section_authority_delegation_revocation_policy"] == "section_authority_delegation_revocation_policy_scoped"
+    assert status["runtime_execution_profile"]["section_evidence_immutability_policy"] == "section_evidence_immutability_policy_scoped"
+    assert status["runtime_execution_profile"]["section_compute_plane_replay_attestation_policy"] == "section_compute_plane_replay_attestation_policy_scoped"
+    assert status["runtime_execution_profile"]["section_swarm_isolation_boundary_policy"] == "section_swarm_isolation_boundary_policy_scoped"
     assert status["runtime_execution_profile"]["section_risk_tolerance_boundary_policy"] == "section_risk_tolerance_boundary_policy_scoped"
     assert status["runtime_execution_profile"]["section_approval_delegation_integrity_policy"] == "section_approval_delegation_integrity_policy_scoped"
     assert status["runtime_execution_profile"]["section_budget_anomaly_circuit_breaker_policy"] == "section_budget_anomaly_circuit_breaker_policy_scoped"
@@ -728,6 +738,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["section_authoritative_source_integrity_policy"] == "section_authoritative_source_integrity_required"
     assert strict["section_budget_gate_reconciliation_policy"] == "section_budget_gate_reconciliation_required"
     assert strict["section_governance_override_hierarchy_policy"] == "section_governance_override_hierarchy_required"
+    assert strict["section_policy_pack_versioning_policy"] == "section_policy_pack_versioning_required"
+    assert strict["section_authority_delegation_revocation_policy"] == "section_authority_delegation_revocation_required"
+    assert strict["section_evidence_immutability_policy"] == "section_evidence_immutability_required"
+    assert strict["section_compute_plane_replay_attestation_policy"] == "section_compute_plane_replay_attestation_required"
+    assert strict["section_swarm_isolation_boundary_policy"] == "section_swarm_isolation_boundary_required"
     assert strict["section_risk_tolerance_boundary_policy"] == "section_risk_tolerance_boundary_required"
     assert strict["section_approval_delegation_integrity_policy"] == "section_approval_delegation_integrity_required"
     assert strict["section_budget_anomaly_circuit_breaker_policy"] == "section_budget_anomaly_circuit_breaker_required"
@@ -992,6 +1007,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["section_authoritative_source_integrity_policy"] == "section_authoritative_source_integrity_adaptive_with_audit"
     assert dynamic["section_budget_gate_reconciliation_policy"] == "section_budget_gate_reconciliation_adaptive_with_audit"
     assert dynamic["section_governance_override_hierarchy_policy"] == "section_governance_override_hierarchy_adaptive_with_audit"
+    assert dynamic["section_policy_pack_versioning_policy"] == "section_policy_pack_versioning_adaptive_with_audit"
+    assert dynamic["section_authority_delegation_revocation_policy"] == "section_authority_delegation_revocation_adaptive_with_audit"
+    assert dynamic["section_evidence_immutability_policy"] == "section_evidence_immutability_adaptive_with_audit"
+    assert dynamic["section_compute_plane_replay_attestation_policy"] == "section_compute_plane_replay_attestation_adaptive_with_audit"
+    assert dynamic["section_swarm_isolation_boundary_policy"] == "section_swarm_isolation_boundary_adaptive_with_audit"
     assert dynamic["section_risk_tolerance_boundary_policy"] == "section_risk_tolerance_boundary_adaptive_with_audit"
     assert dynamic["section_approval_delegation_integrity_policy"] == "section_approval_delegation_integrity_adaptive_with_audit"
     assert dynamic["section_budget_anomaly_circuit_breaker_policy"] == "section_budget_anomaly_circuit_breaker_adaptive_with_audit"
