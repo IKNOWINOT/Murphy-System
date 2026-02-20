@@ -15,35 +15,35 @@ This ledger tracks decisions required to unblock architecture wiring, governance
 
 ---
 
-## Decision Ledger
+## OPEN (follow-up only)
 
-| ID | Status | Priority | Blocking | Topic | Decision request | Options / Expected Input |
-| --- | --- | --- | --- | --- | --- | --- |
-| RFI-001 | OPEN | High | Yes | Domain-aligned swarms | Final authoritative domain list for DomainSwarms (Engineering, Security, Compliance/GRC, Finance, Legal, Product, etc.)? | Provide domain names + owner role per domain |
-| RFI-002 | OPEN | High | Yes | Executive authority gates | Final authority scopes and delegation rules for approval gates (including separation-of-duties)? | Provide approver roles, delegation limits, SoD exceptions |
-| RFI-003 | OPEN | High | Yes | Scope enforcement | Exact mandatory Request Envelope fields defining in-scope vs Change Order? | Confirm required scope keys + minimum acceptance criteria |
-| RFI-004 | OPEN | High | Yes | Change orders | Which out-of-scope triggers are mandatory Change Orders (integration, budget, compliance expansion, environment change, etc.)? | Confirm trigger set + approval chain |
-| RFI-005 | OPEN | High | Yes | Budget/T&M controls | Which negotiated role rate table + NTE defaults are authoritative for T&M mode? | Provide rate card source + default NTE thresholds |
-| RFI-006 | OPEN | High | Yes | Compliance rulepacks | Which baseline rulepacks are mandatory (SOC2/PCI/HIPAA/regional privacy), and enforcement mode per rulepack (refuse/escalate/conditional)? | Provide rulepacks + enforcement mode by rulepack |
-| RFI-007 | OPEN | High | Yes | Authoritative source registry | Confirm one-source-of-truth mapping by fact type (IAM, Git, CI/CD, ITSM, GRC, SIEM, CLM, ERP/Billing). | Provide authoritative system list + precedence rules |
-| RFI-008 | OPEN | Medium | No | Legacy orchestrator wiring | For Rubixcube/Triage/Clockwork bridges, preferred wiring order? | Rank priority adapters 1..N |
-| RFI-009 | OPEN | Medium | No | Deterministic compute plane | Replay policy decision: required retention window + re-evaluation SLA for historical gate decisions? | Provide retention period + replay SLA |
-| RFI-010 | OPEN | Medium | No | Telemetry/public reporting | Which per-prompt micro-increment precision should be externally shown (`0.1`, `0.01`, `0.001`, etc.)? | Choose precision + publication cadence |
-| RFI-011 | OPEN | Medium | No | Verification boundary | Facts/citations policy: when is “mark uncertain” acceptable vs hard refusal? | Provide domain/risk-based thresholds |
-| RFI-012 | OPEN | Medium | No | UI operations | Required UI control set for shadow-agent account/user-base management (create/suspend/delegate/audit export)? | Confirm minimum UI operations + audit requirements |
+| ID | Priority | Blocking | Topic | Follow-up needed |
+| --- | --- | --- | --- | --- |
+| RFI-013 | Medium | No | Acronym mapping | Confirm your preferred names for source systems that previously used acronyms (IAM, ITSM, GRC, SIEM, CLM) so UI labels match your terminology. |
+| RFI-014 | Medium | No | Micro-increment precision | Confirm default decimal precision for per-prompt micro-build display (`0.10`, `0.01`, `0.001`, etc.). |
+| RFI-015 | Medium | No | Risk threshold tuning | Confirm preferred default threshold scale for “distance to finished” movement scoring used in recalibration prompts (e.g., 0–1 normalized). |
 
 ---
 
-## Answered
+## ANSWERED
 
-Move answered rows here (keep ID + decision + date + owner).
+- **RFI-001** | Decision: Org design is **position-based** from onboarded org charts. If missing, system derives minimal org chart + position contracts from industry/domain/work-type intake; each org position receives a shadow agent. User accounts are separate from org profiles; role assignment is org-scoped. | Date: 2026-02-19 | Owner: @IKNOWINOT
+- **RFI-002** | Decision: Collect industry + business model during onboarding; if no formal model exists, infer gating metrics from industry/work-type and current condition toward annual goal. | Date: 2026-02-19 | Owner: @IKNOWINOT
+- **RFI-003** | Decision: Scope boundary is proposal/request envelope. Out-of-scope work becomes Change Order with pushback logic; HITL approvals required for production expansion decisions. | Date: 2026-02-19 | Owner: @IKNOWINOT
+- **RFI-004** | Decision: Same as RFI-003; Change Orders are scope-reasonableness checks against existing proposal scope. | Date: 2026-02-19 | Owner: @IKNOWINOT
+- **RFI-005** | Decision: Compliance/budget standards are established during proposal by explicitly declaring standards and tasks. | Date: 2026-02-19 | Owner: @IKNOWINOT
+- **RFI-006** | Decision: Compliance/risk requirements are inferred from onboarding-selected domains that require those controls. | Date: 2026-02-19 | Owner: @IKNOWINOT
+- **RFI-007** | Decision: “Source of truth” is a Rosetta-stone style production notes layer derived from onboarding (turnover information between agents/automations). | Date: 2026-02-19 | Owner: @IKNOWINOT
+- **RFI-008** | Decision: Legacy orchestrator mapping is architecture-led; implement best-fit based on current code architecture. | Date: 2026-02-19 | Owner: @IKNOWINOT
+- **RFI-009** | Decision: Deterministic replay/compute defaults delegated to architecture recommendation. | Date: 2026-02-19 | Owner: @IKNOWINOT
+- **RFI-010** | Decision: Progress movement should reflect “actual movement based on distance to finished”; recalibrate estimates as needed. | Date: 2026-02-19 | Owner: @IKNOWINOT
+- **RFI-011** | Decision: Verification strictness varies by deterministic-side risk assessment. | Date: 2026-02-19 | Owner: @IKNOWINOT
+- **RFI-012** | Decision: User accounts and organization accounts are separate; users can be invited to orgs; shadow agents stay user-bound and may be licensed back. Org automations have Automator Admin role removable only by owner/board-designated authority; founder-side escalation path exists for owner credential incidents. | Date: 2026-02-19 | Owner: @IKNOWINOT
 
-Example:
-- `RFI-010 | Decision: Show micro-increments at 0.01 precision | Date: 2026-02-19 | Owner: @IKNOWINOT`
+---
 
-## Implemented
+## IMPLEMENTED
 
-Move implemented rows here (keep ID + linked commit/section + date).
-
-Example:
-- `RFI-012 | Implemented via commit abc1234 + FULL_SYSTEM_ASSESSMENT §14 | Date: 2026-02-20`
+- `RFI-001` | Reflected in section-level governance profile policies and section 14 continuity reporting; implementation ongoing for onboarding schema formalization. | Date: 2026-02-20
+- `RFI-003` | Reflected in scope boundary + change-order authority policies (`section_scope_boundary_enforcement_policy`, `section_change_order_authority_policy`). | Date: 2026-02-20
+- `RFI-012` | Reflected in shadow-account/user-base governance profile fields and section 14 logs. | Date: 2026-02-20

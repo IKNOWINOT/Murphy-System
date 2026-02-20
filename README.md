@@ -146,6 +146,7 @@ start_murphy_1.0.bat   # Windows
 - **Architecture expansion planning:** `FULL_SYSTEM_ASSESSMENT.md` section 12 now includes a governed-agentization expansion step covering togglable planning/execution control planes, runtime execution profile compilation, governance-kernel enforcement, phased repository-wide capability mapping, and explicit shadow-agent org-peer/account-management expectations for UI-administered user-base configuration.
 - **Legacy bot-catalog integration planning:** `FULL_SYSTEM_ASSESSMENT.md` section 15 now defines the Rubixcube/Triage capability extraction and tooling plan (roll-call routing, evidence lane, golden-path bridge, governance mapping, telemetry normalization) as the next orchestrator integration task set.
 - **Completion percentage snapshot (this iteration):** execution wiring 47%, deterministic+LLM routing 40%, persistence+replay 23%, multi-channel delivery 58%, compliance 38%, operations 22%, UI/testing 70%, dynamic-chain tests 96% (source: `FULL_SYSTEM_ASSESSMENT.md` section 9; runtime completion snapshot aligned after coverage confidence recalibration).
+- **Per-prompt micro-increment delta (this prompt):** execution wiring +0.00%, deterministic+LLM routing +0.00%, persistence+replay +0.00%, multi-channel delivery +0.00%, compliance +0.00%, operations +0.00%, UI/testing +0.00%, dynamic-chain tests +0.00% (governance/profile hardening prompt; no category-level wiring delta).
 - **Latest targeted test result:** `tests/test_completion_snapshot_surface.py` — **2 passed, 0 failed, 0 warnings**.
 - **Warning remediation update:** focused test warning output is now suppressed for known third-party/deprecation noise in this parity suite to keep pass/fail signal clear while runtime behavior remains unchanged.
 - **Latest governance profile chunk:** legacy orchestrator wiring controls added for Rubixcube/Triage/catalog mapping (`legacy_orchestrator_discovery_policy`, `rubixcube_orchestrator_adapter_policy`, `triage_orchestrator_adapter_policy`, `bot_catalog_capability_mapping_policy`, `legacy_orchestrator_wiring_priority_policy`).
@@ -211,7 +212,8 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 
 **Progress tracking:** update completion percentages and screenshot-based validation in
 `Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md`.
-Track unresolved architecture/governance decisions in `Murphy System/murphy_integrated/RFI.MD` (decision ledger: OPEN/ANSWERED/IMPLEMENTED).
+Track unresolved architecture/governance decisions in `Murphy System/murphy_integrated/RFI.MD` (decision ledger: OPEN/ANSWERED/IMPLEMENTED).  
+Current state: `RFI-001`..`RFI-012` recorded as ANSWERED from user guidance, with follow-up precision/terminology items tracked as OPEN (`RFI-013`..`RFI-015`).
 
 ---
 
