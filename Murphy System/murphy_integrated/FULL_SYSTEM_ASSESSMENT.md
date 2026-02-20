@@ -171,6 +171,16 @@ These percentages are **current estimates** based on wired functionality vs. pla
 | UI + user testing | 70% | Architect UI + scripted screenshots now in place |
 | Test coverage for dynamic chains | 96% | Dynamic plan tests exist; summary surface bundle + consumer parity + consistency + remediation/consistency-gap + completion snapshot + completion remediation + threshold/average/gap-area/total-area/coverage-ratio/backlog/backlog-ratio + execution-profile/enforcement-level/source/control-plane-separation/R&D-candidate/approval-policy/budget-mode/audit-policy/escalation-routing/tool-mediation/deterministic-routing/compute-routing/policy-compiler/permission-validation/delegation-scope/execution-broker/role-registry/authority-boundary/cross-department-arbitration/department-memory-isolation + employee-contract/core-responsibility + contract-change-authority/contract-management-surface/accountability/review/versioning + shadow-agent-org-parity-policy/contract-binding/account-lifecycle + user-base-access-governance/UI-audit + contract-obligation-tracking/escalation-binding + org-chart assignment sync + event queue durability/idempotency/retry-backoff/circuit-breaker/rollback-recovery + planning-plane decomposition/risk-simulation + execution-plane permission-gate/budget-guardrail/audit-integrity + planning-plane compliance-modeling/proposal-generation + execution-plane policy-compiler-enforcement/deterministic-override + HITL escalation requirement + human-in-the-loop enforcement + regulatory audit retention + tenant boundary enforcement + policy exception handling + runtime profile refresh + planning/execution toggle guard + governance exception escalation + approval SLA + tenant residency + swarm recursion guard policy checks added; full integration/e2e coverage still pending |
 
+**Per-prompt micro-increment delta (latest prompt, decimal precision = 0.01):**
+- Execution wiring: **+0.00%**
+- Deterministic + LLM routing: **+0.00%**
+- Persistence + replay: **+0.00%**
+- Multi-channel delivery: **+0.00%**
+- Compliance validation: **+0.00%**
+- Operational automation: **+0.00%**
+- UI + user testing: **+0.00%**
+- Dynamic-chain tests: **+0.00%**
+
 **Why these percentages can remain unchanged across prompts:**
 - Many recent iterations harden **execution-profile governance metadata** (policy derivation + cross-surface parity) rather than completing new end-to-end wiring categories (execution routing, persistence, delivery adapters, ops automation).
 - Percentages are updated only when there is direct evidence of category-level movement (new wired runtime path, adapter readiness milestone, or expanded integration/e2e coverage), not solely when metadata fields increase.
@@ -442,12 +452,13 @@ This update confirms that sections **1-14** remain active and accepted as the op
 114. Added section ownership-and-change-order routing profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_contract_compliance_link_policy`, `section_cost_center_attribution_policy`, `section_unowned_work_throwback_policy`, `section_change_order_trigger_policy`, and `section_manager_assignment_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
 115. Added section traceability/reporting profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_governance_traceability_policy`, `section_progress_checkpoint_policy`, `section_acceptance_verification_policy`, `section_sync_integrity_policy`, and `section_lifecycle_reporting_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
 116. Added `Murphy System/murphy_integrated/RFI.MD` decision ledger (OPEN / ANSWERED / IMPLEMENTED) for unresolved architecture/governance inputs (authority scopes, rulepacks, source-of-truth registry, budgets/T&M, change-order triggers, legacy wiring priority, telemetry precision), and linked it from README for operator visibility.
-117. Added section contractual/compliance integrity governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_contractual_risk_alignment_policy`, `section_compliance_rulepack_sync_policy`, `section_authoritative_source_integrity_policy`, `section_budget_gate_reconciliation_policy`, and `section_governance_override_hierarchy_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
-118. Added section risk/delegation circuit-breaker governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_risk_tolerance_boundary_policy`, `section_approval_delegation_integrity_policy`, `section_budget_anomaly_circuit_breaker_policy`, `section_compliance_evidence_freshness_policy`, and `section_decision_packet_trace_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
-119. Added section authority/compute/change-order governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_exec_authority_gate_policy`, `section_compute_plane_determinism_policy`, `section_change_order_budget_delta_policy`, `section_domain_swarm_accountability_policy`, and `section_audit_packet_release_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
-120. Added section envelope/compile/routing governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_request_envelope_integrity_policy`, `section_gate_graph_compilation_policy`, `section_domain_swarm_routing_policy`, `section_compute_replay_consistency_policy`, and `section_authority_scope_binding_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
-121. Added section policy-pack/replay-isolation governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_policy_pack_versioning_policy`, `section_authority_delegation_revocation_policy`, `section_evidence_immutability_policy`, `section_compute_plane_replay_attestation_policy`, and `section_swarm_isolation_boundary_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
-122. Added section authority-chain/replay attestation governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_authority_chain_escalation_policy`, `section_gate_decision_replay_policy`, `section_rulepack_refresh_attestation_policy`, `section_domain_owner_ack_policy`, and `section_handoff_readiness_attestation_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
+117. Processed user-provided responses for `RFI-001` through `RFI-012`, moved them into the ANSWERED ledger block, and added follow-up OPEN RFIs (`RFI-013`..`RFI-015`) only where precision/terminology thresholds still need confirmation.
+118. Added section contractual/compliance integrity governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_contractual_risk_alignment_policy`, `section_compliance_rulepack_sync_policy`, `section_authoritative_source_integrity_policy`, `section_budget_gate_reconciliation_policy`, and `section_governance_override_hierarchy_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
+119. Added section risk/delegation circuit-breaker governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_risk_tolerance_boundary_policy`, `section_approval_delegation_integrity_policy`, `section_budget_anomaly_circuit_breaker_policy`, `section_compliance_evidence_freshness_policy`, and `section_decision_packet_trace_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
+120. Added section authority/compute/change-order governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_exec_authority_gate_policy`, `section_compute_plane_determinism_policy`, `section_change_order_budget_delta_policy`, `section_domain_swarm_accountability_policy`, and `section_audit_packet_release_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
+121. Added section envelope/compile/routing governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_request_envelope_integrity_policy`, `section_gate_graph_compilation_policy`, `section_domain_swarm_routing_policy`, `section_compute_replay_consistency_policy`, and `section_authority_scope_binding_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
+122. Added section policy-pack/replay-isolation governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_policy_pack_versioning_policy`, `section_authority_delegation_revocation_policy`, `section_evidence_immutability_policy`, `section_compute_plane_replay_attestation_policy`, and `section_swarm_isolation_boundary_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
+123. Added section authority-chain/replay attestation governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_authority_chain_escalation_policy`, `section_gate_decision_replay_policy`, `section_rulepack_refresh_attestation_policy`, `section_domain_owner_ack_policy`, and `section_handoff_readiness_attestation_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
 
 **Current completion percentage snapshot (section 9, this iteration):**
 - Execution wiring (gate + swarm + orchestrator): **47%**
@@ -458,7 +469,16 @@ This update confirms that sections **1-14** remain active and accepted as the op
 - Operational automation: **22%**
 - UI + user testing: **70%**
 - Test coverage for dynamic chains: **96%**
-- Latest targeted run (`test_completion_snapshot_surface.py`): **2 passed, 0 failed**
+- **Per-prompt micro-increment delta (this prompt, decimal precision 0.01):**
+  - Execution wiring: **+0.00%**
+  - Deterministic + LLM routing: **+0.00%**
+  - Persistence + replay: **+0.00%**
+  - Multi-channel delivery: **+0.00%**
+  - Compliance validation: **+0.00%**
+  - Operational automation: **+0.00%**
+  - UI + user testing: **+0.00%**
+  - Dynamic-chain tests: **+0.00%**
+- Latest targeted run (`test_completion_snapshot_surface.py`): **2 passed, 0 failed, 0 warnings**
 
 ---
 
