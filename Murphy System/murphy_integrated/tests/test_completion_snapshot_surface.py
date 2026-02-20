@@ -386,6 +386,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["section_budget_cap_change_log_policy"] == status["runtime_execution_profile"]["section_budget_cap_change_log_policy"]
     assert preview["runtime_execution_profile"]["section_evidence_attestation_signature_policy"] == status["runtime_execution_profile"]["section_evidence_attestation_signature_policy"]
     assert preview["runtime_execution_profile"]["section_release_governance_manifest_policy"] == status["runtime_execution_profile"]["section_release_governance_manifest_policy"]
+    assert preview["runtime_execution_profile"]["section_governance_path_integrity_policy"] == status["runtime_execution_profile"]["section_governance_path_integrity_policy"]
+    assert preview["runtime_execution_profile"]["section_policy_exception_disposition_policy"] == status["runtime_execution_profile"]["section_policy_exception_disposition_policy"]
+    assert preview["runtime_execution_profile"]["section_budget_reforecast_attestation_policy"] == status["runtime_execution_profile"]["section_budget_reforecast_attestation_policy"]
+    assert preview["runtime_execution_profile"]["section_evidence_chain_custody_policy"] == status["runtime_execution_profile"]["section_evidence_chain_custody_policy"]
+    assert preview["runtime_execution_profile"]["section_release_authorization_token_policy"] == status["runtime_execution_profile"]["section_release_authorization_token_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -873,6 +878,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["section_change_order_scope_lock_policy"] == "section_change_order_scope_lock_required"
     assert strict["section_evidence_lineage_policy"] == "section_evidence_lineage_required"
     assert strict["section_decision_trace_attestation_policy"] == "section_decision_trace_attestation_required"
+    assert strict["section_governance_path_integrity_policy"] == "section_governance_path_integrity_required"
+    assert strict["section_policy_exception_disposition_policy"] == "section_policy_exception_disposition_required"
+    assert strict["section_budget_reforecast_attestation_policy"] == "section_budget_reforecast_attestation_required"
+    assert strict["section_evidence_chain_custody_policy"] == "section_evidence_chain_custody_required"
+    assert strict["section_release_authorization_token_policy"] == "section_release_authorization_token_required"
     assert strict["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_hard"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
@@ -1207,5 +1217,10 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["section_budget_cap_change_log_policy"] == "section_budget_cap_change_log_adaptive_with_audit"
     assert dynamic["section_evidence_attestation_signature_policy"] == "section_evidence_attestation_signature_adaptive_with_audit"
     assert dynamic["section_release_governance_manifest_policy"] == "section_release_governance_manifest_adaptive_with_audit"
+    assert dynamic["section_governance_path_integrity_policy"] == "section_governance_path_integrity_adaptive_with_audit"
+    assert dynamic["section_policy_exception_disposition_policy"] == "section_policy_exception_disposition_adaptive_with_audit"
+    assert dynamic["section_budget_reforecast_attestation_policy"] == "section_budget_reforecast_attestation_adaptive_with_audit"
+    assert dynamic["section_evidence_chain_custody_policy"] == "section_evidence_chain_custody_adaptive_with_audit"
+    assert dynamic["section_release_authorization_token_policy"] == "section_release_authorization_token_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"

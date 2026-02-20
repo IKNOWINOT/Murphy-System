@@ -6869,6 +6869,31 @@ class MurphySystem:
             "section_release_governance_manifest_policy_scoped",
             "section_release_governance_manifest_adaptive_with_audit"
         )
+        section_governance_path_integrity_policy = _mode_policy(
+            "section_governance_path_integrity_required",
+            "section_governance_path_integrity_policy_scoped",
+            "section_governance_path_integrity_adaptive_with_audit"
+        )
+        section_policy_exception_disposition_policy = _mode_policy(
+            "section_policy_exception_disposition_required",
+            "section_policy_exception_disposition_policy_scoped",
+            "section_policy_exception_disposition_adaptive_with_audit"
+        )
+        section_budget_reforecast_attestation_policy = _mode_policy(
+            "section_budget_reforecast_attestation_required",
+            "section_budget_reforecast_attestation_policy_scoped",
+            "section_budget_reforecast_attestation_adaptive_with_audit"
+        )
+        section_evidence_chain_custody_policy = _mode_policy(
+            "section_evidence_chain_custody_required",
+            "section_evidence_chain_custody_policy_scoped",
+            "section_evidence_chain_custody_adaptive_with_audit"
+        )
+        section_release_authorization_token_policy = _mode_policy(
+            "section_release_authorization_token_required",
+            "section_release_authorization_token_policy_scoped",
+            "section_release_authorization_token_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -7208,6 +7233,11 @@ class MurphySystem:
             "section_budget_cap_change_log_policy": section_budget_cap_change_log_policy,
             "section_evidence_attestation_signature_policy": section_evidence_attestation_signature_policy,
             "section_release_governance_manifest_policy": section_release_governance_manifest_policy,
+            "section_governance_path_integrity_policy": section_governance_path_integrity_policy,
+            "section_policy_exception_disposition_policy": section_policy_exception_disposition_policy,
+            "section_budget_reforecast_attestation_policy": section_budget_reforecast_attestation_policy,
+            "section_evidence_chain_custody_policy": section_evidence_chain_custody_policy,
+            "section_release_authorization_token_policy": section_release_authorization_token_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
