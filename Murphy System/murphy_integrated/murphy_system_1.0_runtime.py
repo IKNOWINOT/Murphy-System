@@ -6794,6 +6794,31 @@ class MurphySystem:
             "section_release_packet_consistency_policy_scoped",
             "section_release_packet_consistency_adaptive_with_audit"
         )
+        section_authority_recertification_policy = _mode_policy(
+            "section_authority_recertification_required",
+            "section_authority_recertification_policy_scoped",
+            "section_authority_recertification_adaptive_with_audit"
+        )
+        section_budget_forecast_variance_policy = _mode_policy(
+            "section_budget_forecast_variance_required",
+            "section_budget_forecast_variance_policy_scoped",
+            "section_budget_forecast_variance_adaptive_with_audit"
+        )
+        section_evidence_hash_chain_policy = _mode_policy(
+            "section_evidence_hash_chain_required",
+            "section_evidence_hash_chain_policy_scoped",
+            "section_evidence_hash_chain_adaptive_with_audit"
+        )
+        section_gate_timeout_enforcement_policy = _mode_policy(
+            "section_gate_timeout_enforcement_required",
+            "section_gate_timeout_enforcement_policy_scoped",
+            "section_gate_timeout_enforcement_adaptive_with_audit"
+        )
+        section_release_exception_register_policy = _mode_policy(
+            "section_release_exception_register_required",
+            "section_release_exception_register_policy_scoped",
+            "section_release_exception_register_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -7118,6 +7143,11 @@ class MurphySystem:
             "section_change_order_cost_trace_policy": section_change_order_cost_trace_policy,
             "section_evidence_checkpoint_policy": section_evidence_checkpoint_policy,
             "section_release_packet_consistency_policy": section_release_packet_consistency_policy,
+            "section_authority_recertification_policy": section_authority_recertification_policy,
+            "section_budget_forecast_variance_policy": section_budget_forecast_variance_policy,
+            "section_evidence_hash_chain_policy": section_evidence_hash_chain_policy,
+            "section_gate_timeout_enforcement_policy": section_gate_timeout_enforcement_policy,
+            "section_release_exception_register_policy": section_release_exception_register_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
