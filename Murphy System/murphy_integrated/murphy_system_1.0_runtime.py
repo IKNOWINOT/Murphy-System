@@ -6719,6 +6719,31 @@ class MurphySystem:
             "section_governance_override_precedence_policy_scoped",
             "section_governance_override_precedence_adaptive_with_audit"
         )
+        section_gate_outcome_reason_integrity_policy = _mode_policy(
+            "section_gate_outcome_reason_integrity_required",
+            "section_gate_outcome_reason_integrity_policy_scoped",
+            "section_gate_outcome_reason_integrity_adaptive_with_audit"
+        )
+        section_authority_signature_validation_policy = _mode_policy(
+            "section_authority_signature_validation_required",
+            "section_authority_signature_validation_policy_scoped",
+            "section_authority_signature_validation_adaptive_with_audit"
+        )
+        section_compute_replay_snapshot_policy = _mode_policy(
+            "section_compute_replay_snapshot_required",
+            "section_compute_replay_snapshot_policy_scoped",
+            "section_compute_replay_snapshot_adaptive_with_audit"
+        )
+        section_budget_control_trace_policy = _mode_policy(
+            "section_budget_control_trace_required",
+            "section_budget_control_trace_policy_scoped",
+            "section_budget_control_trace_adaptive_with_audit"
+        )
+        section_release_evidence_bundle_policy = _mode_policy(
+            "section_release_evidence_bundle_required",
+            "section_release_evidence_bundle_policy_scoped",
+            "section_release_evidence_bundle_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -7028,6 +7053,11 @@ class MurphySystem:
             "section_evidence_signature_policy": section_evidence_signature_policy,
             "section_domain_escalation_sla_policy": section_domain_escalation_sla_policy,
             "section_governance_override_precedence_policy": section_governance_override_precedence_policy,
+            "section_gate_outcome_reason_integrity_policy": section_gate_outcome_reason_integrity_policy,
+            "section_authority_signature_validation_policy": section_authority_signature_validation_policy,
+            "section_compute_replay_snapshot_policy": section_compute_replay_snapshot_policy,
+            "section_budget_control_trace_policy": section_budget_control_trace_policy,
+            "section_release_evidence_bundle_policy": section_release_evidence_bundle_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
