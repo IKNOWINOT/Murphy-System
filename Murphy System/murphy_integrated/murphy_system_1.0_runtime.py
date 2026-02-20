@@ -6894,6 +6894,31 @@ class MurphySystem:
             "section_release_authorization_token_policy_scoped",
             "section_release_authorization_token_adaptive_with_audit"
         )
+        section_governance_checkpoint_replay_policy = _mode_policy(
+            "section_governance_checkpoint_replay_required",
+            "section_governance_checkpoint_replay_policy_scoped",
+            "section_governance_checkpoint_replay_adaptive_with_audit"
+        )
+        section_authority_token_rotation_policy = _mode_policy(
+            "section_authority_token_rotation_required",
+            "section_authority_token_rotation_policy_scoped",
+            "section_authority_token_rotation_adaptive_with_audit"
+        )
+        section_budget_spike_containment_policy = _mode_policy(
+            "section_budget_spike_containment_required",
+            "section_budget_spike_containment_policy_scoped",
+            "section_budget_spike_containment_adaptive_with_audit"
+        )
+        section_evidence_bundle_hash_policy = _mode_policy(
+            "section_evidence_bundle_hash_required",
+            "section_evidence_bundle_hash_policy_scoped",
+            "section_evidence_bundle_hash_adaptive_with_audit"
+        )
+        section_release_exception_revalidation_policy = _mode_policy(
+            "section_release_exception_revalidation_required",
+            "section_release_exception_revalidation_policy_scoped",
+            "section_release_exception_revalidation_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -7238,6 +7263,11 @@ class MurphySystem:
             "section_budget_reforecast_attestation_policy": section_budget_reforecast_attestation_policy,
             "section_evidence_chain_custody_policy": section_evidence_chain_custody_policy,
             "section_release_authorization_token_policy": section_release_authorization_token_policy,
+            "section_governance_checkpoint_replay_policy": section_governance_checkpoint_replay_policy,
+            "section_authority_token_rotation_policy": section_authority_token_rotation_policy,
+            "section_budget_spike_containment_policy": section_budget_spike_containment_policy,
+            "section_evidence_bundle_hash_policy": section_evidence_bundle_hash_policy,
+            "section_release_exception_revalidation_policy": section_release_exception_revalidation_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
