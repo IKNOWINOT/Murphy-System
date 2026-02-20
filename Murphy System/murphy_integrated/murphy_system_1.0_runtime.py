@@ -6919,6 +6919,31 @@ class MurphySystem:
             "section_release_exception_revalidation_policy_scoped",
             "section_release_exception_revalidation_adaptive_with_audit"
         )
+        section_governance_policy_reconciliation_policy = _mode_policy(
+            "section_governance_policy_reconciliation_required",
+            "section_governance_policy_reconciliation_policy_scoped",
+            "section_governance_policy_reconciliation_adaptive_with_audit"
+        )
+        section_authority_chain_expiry_policy = _mode_policy(
+            "section_authority_chain_expiry_required",
+            "section_authority_chain_expiry_policy_scoped",
+            "section_authority_chain_expiry_adaptive_with_audit"
+        )
+        section_budget_exception_audit_policy = _mode_policy(
+            "section_budget_exception_audit_required",
+            "section_budget_exception_audit_policy_scoped",
+            "section_budget_exception_audit_adaptive_with_audit"
+        )
+        section_gate_signature_rotation_policy = _mode_policy(
+            "section_gate_signature_rotation_required",
+            "section_gate_signature_rotation_policy_scoped",
+            "section_gate_signature_rotation_adaptive_with_audit"
+        )
+        section_release_packet_attestation_policy = _mode_policy(
+            "section_release_packet_attestation_required",
+            "section_release_packet_attestation_policy_scoped",
+            "section_release_packet_attestation_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -7268,6 +7293,11 @@ class MurphySystem:
             "section_budget_spike_containment_policy": section_budget_spike_containment_policy,
             "section_evidence_bundle_hash_policy": section_evidence_bundle_hash_policy,
             "section_release_exception_revalidation_policy": section_release_exception_revalidation_policy,
+            "section_governance_policy_reconciliation_policy": section_governance_policy_reconciliation_policy,
+            "section_authority_chain_expiry_policy": section_authority_chain_expiry_policy,
+            "section_budget_exception_audit_policy": section_budget_exception_audit_policy,
+            "section_gate_signature_rotation_policy": section_gate_signature_rotation_policy,
+            "section_release_packet_attestation_policy": section_release_packet_attestation_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
