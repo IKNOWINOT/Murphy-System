@@ -472,16 +472,17 @@ This update confirms that sections **1-14** remain active and accepted as the op
 134. Previously confirmed section domain-escalation/dependency-trace governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_domain_owner_escalation_policy`, `section_gate_dependency_trace_policy`, `section_budget_variance_escalation_policy`, `section_evidence_lineage_recheck_policy`, and `section_release_authority_replay_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
 135. Added section reason-code/delegation-registry budget-log governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_gate_reason_code_replay_policy`, `section_approval_delegation_registry_policy`, `section_budget_cap_change_log_policy`, `section_evidence_attestation_signature_policy`, and `section_release_governance_manifest_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
 136. Added section governance-policy-reconciliation/authority-expiry/budget-exception audit hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_governance_policy_reconciliation_policy`, `section_authority_chain_expiry_policy`, `section_budget_exception_audit_policy`, `section_gate_signature_rotation_policy`, and `section_release_packet_attestation_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
+137. Added section governance-audit-recertification/scope-exception/budget-change-envelope hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_governance_audit_recertification_policy`, `section_authority_scope_exception_policy`, `section_budget_change_envelope_policy`, `section_evidence_chain_seal_policy`, and `section_release_gate_replay_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
 
 **Current completion percentage snapshot (section 9, this iteration):**
-- Execution wiring (gate + swarm + orchestrator): **49.65%**
-- Deterministic + LLM routing: **41.18%**
-- Persistence + replay: **24.97%**
-- Multi-channel delivery: **58.69%**
-- Compliance validation: **40.18%**
-- Operational automation: **23.48%**
-- UI + user testing: **71.09%**
-- Test coverage for dynamic chains: **97.56%**
+- Execution wiring (gate + swarm + orchestrator): **49.75%**
+- Deterministic + LLM routing: **41.22%**
+- Persistence + replay: **25.03%**
+- Multi-channel delivery: **58.71%**
+- Compliance validation: **40.26%**
+- Operational automation: **23.52%**
+- UI + user testing: **71.11%**
+- Test coverage for dynamic chains: **97.64%**
 - **Per-prompt micro-increment delta (this prompt, decimal precision 0.01):**
   - Execution wiring: **+0.05%**
   - Deterministic + LLM routing: **+0.02%**
@@ -492,7 +493,7 @@ This update confirms that sections **1-14** remain active and accepted as the op
   - UI + user testing: **+0.01%**
   - Dynamic-chain tests: **+0.04%**
 - Latest targeted run (`test_completion_snapshot_surface.py`): **2 passed, 0 failed, 0 warnings**
-- Latest governance policy chunk: `section_governance_decision_envelope_policy`, `section_authority_recusal_trace_policy`, `section_budget_guardrail_replay_policy`, `section_evidence_provenance_reconciliation_policy`, and `section_release_attestation_chain_policy`.
+- Latest governance policy chunk: `section_governance_audit_recertification_policy`, `section_authority_scope_exception_policy`, `section_budget_change_envelope_policy`, `section_evidence_chain_seal_policy`, and `section_release_gate_replay_policy`.
 
 ---
 
