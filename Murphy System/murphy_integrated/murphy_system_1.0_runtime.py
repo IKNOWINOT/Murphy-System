@@ -6694,6 +6694,31 @@ class MurphySystem:
             "section_evidence_snapshot_replay_policy_scoped",
             "section_evidence_snapshot_replay_adaptive_with_audit"
         )
+        section_budget_circuit_breaker_policy = _mode_policy(
+            "section_budget_circuit_breaker_required",
+            "section_budget_circuit_breaker_policy_scoped",
+            "section_budget_circuit_breaker_adaptive_with_audit"
+        )
+        section_change_order_authority_scope_policy = _mode_policy(
+            "section_change_order_authority_scope_required",
+            "section_change_order_authority_scope_policy_scoped",
+            "section_change_order_authority_scope_adaptive_with_audit"
+        )
+        section_evidence_signature_policy = _mode_policy(
+            "section_evidence_signature_required",
+            "section_evidence_signature_policy_scoped",
+            "section_evidence_signature_adaptive_with_audit"
+        )
+        section_domain_escalation_sla_policy = _mode_policy(
+            "section_domain_escalation_sla_required",
+            "section_domain_escalation_sla_policy_scoped",
+            "section_domain_escalation_sla_adaptive_with_audit"
+        )
+        section_governance_override_precedence_policy = _mode_policy(
+            "section_governance_override_precedence_required",
+            "section_governance_override_precedence_policy_scoped",
+            "section_governance_override_precedence_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -6998,6 +7023,11 @@ class MurphySystem:
             "section_authority_delegation_expiry_policy": section_authority_delegation_expiry_policy,
             "section_budget_tag_enforcement_policy": section_budget_tag_enforcement_policy,
             "section_evidence_snapshot_replay_policy": section_evidence_snapshot_replay_policy,
+            "section_budget_circuit_breaker_policy": section_budget_circuit_breaker_policy,
+            "section_change_order_authority_scope_policy": section_change_order_authority_scope_policy,
+            "section_evidence_signature_policy": section_evidence_signature_policy,
+            "section_domain_escalation_sla_policy": section_domain_escalation_sla_policy,
+            "section_governance_override_precedence_policy": section_governance_override_precedence_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,

@@ -465,27 +465,28 @@ This update confirms that sections **1-14** remain active and accepted as the op
 127. Added section governance-SLA/lineage governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_governance_sla_policy`, `section_authority_chain_replay_policy`, `section_change_order_scope_lock_policy`, `section_evidence_lineage_policy`, and `section_decision_trace_attestation_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
 128. Added section rulepack/allowlist/NTE/approval-reproducibility governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_rulepack_activation_policy`, `section_gate_input_allowlist_policy`, `section_nte_change_order_policy`, `section_approval_identity_binding_policy`, and `section_compute_reproducibility_window_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
 129. Added section refusal/escalation/delegation-tag/replay governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_refusal_reason_standard_policy`, `section_escalation_reason_code_policy`, `section_authority_delegation_expiry_policy`, `section_budget_tag_enforcement_policy`, and `section_evidence_snapshot_replay_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
+130. Added section budget/escalation/signature governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_budget_circuit_breaker_policy`, `section_change_order_authority_scope_policy`, `section_evidence_signature_policy`, `section_domain_escalation_sla_policy`, and `section_governance_override_precedence_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
 
 **Current completion percentage snapshot (section 9, this iteration):**
-- Execution wiring (gate + swarm + orchestrator): **48.30%**
-- Deterministic + LLM routing: **40.64%**
-- Persistence + replay: **24.16%**
-- Multi-channel delivery: **58.42%**
-- Compliance validation: **39.10%**
-- Operational automation: **22.94%**
-- UI + user testing: **70.82%**
-- Test coverage for dynamic chains: **96.48%**
+- Execution wiring (gate + swarm + orchestrator): **48.45%**
+- Deterministic + LLM routing: **40.70%**
+- Persistence + replay: **24.25%**
+- Multi-channel delivery: **58.45%**
+- Compliance validation: **39.22%**
+- Operational automation: **23.00%**
+- UI + user testing: **70.85%**
+- Test coverage for dynamic chains: **96.60%**
 - **Per-prompt micro-increment delta (this prompt, decimal precision 0.01):**
-  - Execution wiring: **+0.10%**
-  - Deterministic + LLM routing: **+0.04%**
-  - Persistence + replay: **+0.06%**
-  - Multi-channel delivery: **+0.02%**
-  - Compliance validation: **+0.10%**
-  - Operational automation: **+0.04%**
-  - UI + user testing: **+0.02%**
-  - Dynamic-chain tests: **+0.08%**
+  - Execution wiring: **+0.05%**
+  - Deterministic + LLM routing: **+0.02%**
+  - Persistence + replay: **+0.03%**
+  - Multi-channel delivery: **+0.01%**
+  - Compliance validation: **+0.04%**
+  - Operational automation: **+0.02%**
+  - UI + user testing: **+0.01%**
+  - Dynamic-chain tests: **+0.04%**
 - Latest targeted run (`test_completion_snapshot_surface.py`): **2 passed, 0 failed, 0 warnings**
-- Latest governance policy chunk: `section_refusal_reason_standard_policy`, `section_escalation_reason_code_policy`, `section_authority_delegation_expiry_policy`, `section_budget_tag_enforcement_policy`, and `section_evidence_snapshot_replay_policy`.
+- Latest governance policy chunk: `section_budget_circuit_breaker_policy`, `section_change_order_authority_scope_policy`, `section_evidence_signature_policy`, `section_domain_escalation_sla_policy`, and `section_governance_override_precedence_policy`.
 
 ---
 
