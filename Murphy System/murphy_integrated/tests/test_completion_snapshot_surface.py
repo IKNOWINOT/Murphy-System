@@ -341,6 +341,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["section_change_order_scope_lock_policy"] == status["runtime_execution_profile"]["section_change_order_scope_lock_policy"]
     assert preview["runtime_execution_profile"]["section_evidence_lineage_policy"] == status["runtime_execution_profile"]["section_evidence_lineage_policy"]
     assert preview["runtime_execution_profile"]["section_decision_trace_attestation_policy"] == status["runtime_execution_profile"]["section_decision_trace_attestation_policy"]
+    assert preview["runtime_execution_profile"]["section_rulepack_activation_policy"] == status["runtime_execution_profile"]["section_rulepack_activation_policy"]
+    assert preview["runtime_execution_profile"]["section_gate_input_allowlist_policy"] == status["runtime_execution_profile"]["section_gate_input_allowlist_policy"]
+    assert preview["runtime_execution_profile"]["section_nte_change_order_policy"] == status["runtime_execution_profile"]["section_nte_change_order_policy"]
+    assert preview["runtime_execution_profile"]["section_approval_identity_binding_policy"] == status["runtime_execution_profile"]["section_approval_identity_binding_policy"]
+    assert preview["runtime_execution_profile"]["section_compute_reproducibility_window_policy"] == status["runtime_execution_profile"]["section_compute_reproducibility_window_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -528,6 +533,11 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["section_change_order_scope_lock_policy"] == "section_change_order_scope_lock_policy_scoped"
     assert status["runtime_execution_profile"]["section_evidence_lineage_policy"] == "section_evidence_lineage_policy_scoped"
     assert status["runtime_execution_profile"]["section_decision_trace_attestation_policy"] == "section_decision_trace_attestation_policy_scoped"
+    assert status["runtime_execution_profile"]["section_rulepack_activation_policy"] == "section_rulepack_activation_policy_scoped"
+    assert status["runtime_execution_profile"]["section_gate_input_allowlist_policy"] == "section_gate_input_allowlist_policy_scoped"
+    assert status["runtime_execution_profile"]["section_nte_change_order_policy"] == "section_nte_change_order_policy_scoped"
+    assert status["runtime_execution_profile"]["section_approval_identity_binding_policy"] == "section_approval_identity_binding_policy_scoped"
+    assert status["runtime_execution_profile"]["section_compute_reproducibility_window_policy"] == "section_compute_reproducibility_window_policy_scoped"
     assert status["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_policy_guided"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
@@ -1102,5 +1112,10 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["section_change_order_scope_lock_policy"] == "section_change_order_scope_lock_adaptive_with_audit"
     assert dynamic["section_evidence_lineage_policy"] == "section_evidence_lineage_adaptive_with_audit"
     assert dynamic["section_decision_trace_attestation_policy"] == "section_decision_trace_attestation_adaptive_with_audit"
+    assert dynamic["section_rulepack_activation_policy"] == "section_rulepack_activation_adaptive_with_audit"
+    assert dynamic["section_gate_input_allowlist_policy"] == "section_gate_input_allowlist_adaptive_with_audit"
+    assert dynamic["section_nte_change_order_policy"] == "section_nte_change_order_adaptive_with_audit"
+    assert dynamic["section_approval_identity_binding_policy"] == "section_approval_identity_binding_adaptive_with_audit"
+    assert dynamic["section_compute_reproducibility_window_policy"] == "section_compute_reproducibility_window_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"

@@ -6644,6 +6644,31 @@ class MurphySystem:
             "section_decision_trace_attestation_policy_scoped",
             "section_decision_trace_attestation_adaptive_with_audit"
         )
+        section_rulepack_activation_policy = _mode_policy(
+            "section_rulepack_activation_required",
+            "section_rulepack_activation_policy_scoped",
+            "section_rulepack_activation_adaptive_with_audit"
+        )
+        section_gate_input_allowlist_policy = _mode_policy(
+            "section_gate_input_allowlist_required",
+            "section_gate_input_allowlist_policy_scoped",
+            "section_gate_input_allowlist_adaptive_with_audit"
+        )
+        section_nte_change_order_policy = _mode_policy(
+            "section_nte_change_order_required",
+            "section_nte_change_order_policy_scoped",
+            "section_nte_change_order_adaptive_with_audit"
+        )
+        section_approval_identity_binding_policy = _mode_policy(
+            "section_approval_identity_binding_required",
+            "section_approval_identity_binding_policy_scoped",
+            "section_approval_identity_binding_adaptive_with_audit"
+        )
+        section_compute_reproducibility_window_policy = _mode_policy(
+            "section_compute_reproducibility_window_required",
+            "section_compute_reproducibility_window_policy_scoped",
+            "section_compute_reproducibility_window_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -6938,6 +6963,11 @@ class MurphySystem:
             "section_change_order_scope_lock_policy": section_change_order_scope_lock_policy,
             "section_evidence_lineage_policy": section_evidence_lineage_policy,
             "section_decision_trace_attestation_policy": section_decision_trace_attestation_policy,
+            "section_rulepack_activation_policy": section_rulepack_activation_policy,
+            "section_gate_input_allowlist_policy": section_gate_input_allowlist_policy,
+            "section_nte_change_order_policy": section_nte_change_order_policy,
+            "section_approval_identity_binding_policy": section_approval_identity_binding_policy,
+            "section_compute_reproducibility_window_policy": section_compute_reproducibility_window_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
