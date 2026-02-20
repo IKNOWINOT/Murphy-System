@@ -6744,6 +6744,56 @@ class MurphySystem:
             "section_release_evidence_bundle_policy_scoped",
             "section_release_evidence_bundle_adaptive_with_audit"
         )
+        section_gate_evaluation_determinism_policy = _mode_policy(
+            "section_gate_evaluation_determinism_required",
+            "section_gate_evaluation_determinism_policy_scoped",
+            "section_gate_evaluation_determinism_adaptive_with_audit"
+        )
+        section_authority_override_documentation_policy = _mode_policy(
+            "section_authority_override_documentation_required",
+            "section_authority_override_documentation_policy_scoped",
+            "section_authority_override_documentation_adaptive_with_audit"
+        )
+        section_change_order_dependency_validation_policy = _mode_policy(
+            "section_change_order_dependency_validation_required",
+            "section_change_order_dependency_validation_policy_scoped",
+            "section_change_order_dependency_validation_adaptive_with_audit"
+        )
+        section_budget_forecast_alignment_policy = _mode_policy(
+            "section_budget_forecast_alignment_required",
+            "section_budget_forecast_alignment_policy_scoped",
+            "section_budget_forecast_alignment_adaptive_with_audit"
+        )
+        section_handoff_audit_completion_policy = _mode_policy(
+            "section_handoff_audit_completion_required",
+            "section_handoff_audit_completion_policy_scoped",
+            "section_handoff_audit_completion_adaptive_with_audit"
+        )
+        section_gate_decision_signature_policy = _mode_policy(
+            "section_gate_decision_signature_required",
+            "section_gate_decision_signature_policy_scoped",
+            "section_gate_decision_signature_adaptive_with_audit"
+        )
+        section_authority_scope_timeout_policy = _mode_policy(
+            "section_authority_scope_timeout_required",
+            "section_authority_scope_timeout_policy_scoped",
+            "section_authority_scope_timeout_adaptive_with_audit"
+        )
+        section_change_order_cost_trace_policy = _mode_policy(
+            "section_change_order_cost_trace_required",
+            "section_change_order_cost_trace_policy_scoped",
+            "section_change_order_cost_trace_adaptive_with_audit"
+        )
+        section_evidence_checkpoint_policy = _mode_policy(
+            "section_evidence_checkpoint_required",
+            "section_evidence_checkpoint_policy_scoped",
+            "section_evidence_checkpoint_adaptive_with_audit"
+        )
+        section_release_packet_consistency_policy = _mode_policy(
+            "section_release_packet_consistency_required",
+            "section_release_packet_consistency_policy_scoped",
+            "section_release_packet_consistency_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -7058,6 +7108,16 @@ class MurphySystem:
             "section_compute_replay_snapshot_policy": section_compute_replay_snapshot_policy,
             "section_budget_control_trace_policy": section_budget_control_trace_policy,
             "section_release_evidence_bundle_policy": section_release_evidence_bundle_policy,
+            "section_gate_evaluation_determinism_policy": section_gate_evaluation_determinism_policy,
+            "section_authority_override_documentation_policy": section_authority_override_documentation_policy,
+            "section_change_order_dependency_validation_policy": section_change_order_dependency_validation_policy,
+            "section_budget_forecast_alignment_policy": section_budget_forecast_alignment_policy,
+            "section_handoff_audit_completion_policy": section_handoff_audit_completion_policy,
+            "section_gate_decision_signature_policy": section_gate_decision_signature_policy,
+            "section_authority_scope_timeout_policy": section_authority_scope_timeout_policy,
+            "section_change_order_cost_trace_policy": section_change_order_cost_trace_policy,
+            "section_evidence_checkpoint_policy": section_evidence_checkpoint_policy,
+            "section_release_packet_consistency_policy": section_release_packet_consistency_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
