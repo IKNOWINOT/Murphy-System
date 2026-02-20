@@ -149,3 +149,6 @@ def test_competitive_feature_alignment_summary():
     )
     assert connector_feature is not None
     assert connector_feature["integration_summary"] == integration_capabilities["summary"]
+    feature_ids = {feature["id"] for feature in alignment["features"]}
+    assert "ai_model_lifecycle" in feature_ids
+    assert "low_code_automation" in feature_ids
