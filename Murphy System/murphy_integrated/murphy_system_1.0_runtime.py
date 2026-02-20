@@ -560,6 +560,18 @@ class MurphySystem:
             "description": "Track execution metrics and performance analytics."
         },
         {
+            "id": "ai_model_lifecycle",
+            "label": "AI model lifecycle orchestration",
+            "capabilities": ["learning", "analytics", "execution"],
+            "description": "Coordinate model feedback, tuning signals, and runtime execution outcomes."
+        },
+        {
+            "id": "low_code_automation",
+            "label": "Low-code/no-code automation intake",
+            "capabilities": ["forms", "intake", "governance"],
+            "description": "Enable guided form-based automation setup with governance validation."
+        },
+        {
             "id": "self_healing",
             "label": "Self-healing automation",
             "capabilities": ["stability", "feedback", "governance"],
@@ -704,6 +716,20 @@ class MurphySystem:
             "module": "src.adapter_framework.adapters.http_adapter"
         }
     ]
+    COMPLETION_SNAPSHOT_AREAS = {
+        "execution_wiring": 47,
+        "deterministic_llm_routing": 40,
+        "persistence_replay": 23,
+        "multichannel_delivery": 58,
+        "compliance_validation": 38,
+        "operational_automation": 22,
+        "ui_user_testing": 70,
+        "dynamic_chain_test_coverage": 96
+    }
+    COMPLETION_REMEDIATION_THRESHOLD_PERCENT = 50
+    # Phrase tokens intentionally rely on substring matching against normalized text.
+    STRICT_EXECUTION_MODE_TOKENS = {"strict", "regulated", "compliance", "low risk", "conservative"}
+    DYNAMIC_EXECUTION_MODE_TOKENS = {"dynamic", "high autonomy", "production mode", "fast mode"}
     DOCUMENT_PLACEHOLDER_PATTERN = r"[A-Za-z_][A-Za-z0-9_]*"
     EXTERNAL_SENSOR_CATALOG = {
         "marketing": [
@@ -4899,6 +4925,115 @@ class MurphySystem:
             "remediation_actions": remediation_actions
         }
 
+    def _apply_summary_consistency_remediation(
+        self,
+        self_improvement_snapshot: Dict[str, Any],
+        summary_surface_consistency: Optional[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        if not summary_surface_consistency:
+            return self_improvement_snapshot
+        updated = dict(self_improvement_snapshot)
+        updated["summary_surface_consistency"] = summary_surface_consistency
+        backlog = list(updated.get("backlog", []))
+        summary = dict(updated.get("summary", {}))
+        summary["consistency_gaps"] = self._count_consistency_gaps(backlog)
+        summary["total_backlog"] = len(backlog)
+        updated["summary"] = summary
+        if summary_surface_consistency.get("status") != "drift_detected":
+            return updated
+        checks = summary_surface_consistency.get("checks", {})
+        failed_checks = [name for name, passed in checks.items() if not passed]
+        if not failed_checks:
+            return updated
+        backlog.append({
+            "id": "summary_surface_consistency",
+            "type": "consistency",
+            "owner": "runtime",
+            "reason": "Summary surface consistency drift detected: " + ", ".join(sorted(failed_checks))
+        })
+        actions = []
+        seen_actions: Set[str] = set()
+        for action in updated.get("remediation_actions", []):
+            if action in seen_actions:
+                continue
+            seen_actions.add(action)
+            actions.append(action)
+        drift_action = "Resolve summary surface consistency drift across preview/status/info outputs."
+        if drift_action not in actions:
+            actions.append(drift_action)
+        summary["consistency_gaps"] = self._count_consistency_gaps(backlog)
+        summary["total_backlog"] = len(backlog)
+        updated["status"] = "needs_attention"
+        updated["backlog"] = backlog
+        updated["remediation_actions"] = actions
+        updated["summary"] = summary
+        return updated
+
+    def _count_consistency_gaps(self, backlog: List[Dict[str, Any]]) -> int:
+        return len([item for item in backlog if item.get("type") == "consistency"])
+
+    def _count_completion_gaps(self, backlog: List[Dict[str, Any]]) -> int:
+        return len([item for item in backlog if item.get("type") == "completion"])
+
+    def _apply_completion_snapshot_remediation(
+        self,
+        self_improvement_snapshot: Dict[str, Any],
+        completion_snapshot: Optional[Dict[str, Any]],
+        threshold: int = 50
+    ) -> Dict[str, Any]:
+        if not completion_snapshot:
+            return self_improvement_snapshot
+        updated = dict(self_improvement_snapshot)
+        updated["completion_snapshot"] = completion_snapshot
+        backlog = list(updated.get("backlog", []))
+        summary = dict(updated.get("summary", {}))
+        threshold = int(
+            completion_snapshot.get("summary", {}).get(
+                "remediation_threshold_percent",
+                self.COMPLETION_REMEDIATION_THRESHOLD_PERCENT
+            )
+        )
+        summary["completion_remediation_threshold_percent"] = threshold
+        summary["completion_average_percent"] = completion_snapshot.get("summary", {}).get(
+            "average_percent",
+            0.0
+        )
+        completion_gap_areas = [
+            area for area in completion_snapshot.get("areas", [])
+            if area.get("percent", 0) < threshold
+        ]
+        total_areas = int(completion_snapshot.get("summary", {}).get("total_areas", len(completion_snapshot.get("areas", []))))
+        summary["completion_total_areas"] = total_areas
+        summary["completion_gaps"] = len(completion_gap_areas)
+        summary["completion_gap_areas"] = [area.get("area") for area in completion_gap_areas]
+        summary["completion_coverage_ratio"] = (
+            round((total_areas - len(completion_gap_areas)) / total_areas, 2)
+            if total_areas > 0 else 0.0
+        )
+        if completion_gap_areas:
+            for area in completion_gap_areas:
+                backlog.append({
+                    "id": f"completion_{area.get('area')}",
+                    "type": "completion",
+                    "owner": "runtime",
+                    "reason": f"Completion area '{area.get('area')}' below threshold: {area.get('percent')}% < {threshold}%."
+                })
+            actions = list(updated.get("remediation_actions", []))
+            completion_action = "Prioritize low completion areas and schedule remediation loops."
+            if completion_action not in actions:
+                actions.append(completion_action)
+            updated["status"] = "needs_attention"
+            updated["backlog"] = backlog
+            updated["remediation_actions"] = actions
+        summary["completion_backlog_items"] = self._count_completion_gaps(backlog)
+        summary["total_backlog"] = len(backlog)
+        summary["completion_backlog_ratio"] = (
+            round(summary["completion_backlog_items"] / summary["total_backlog"], 2)
+            if summary["total_backlog"] else 0.0
+        )
+        updated["summary"] = summary
+        return updated
+
     def _build_competitive_feature_alignment(
         self,
         integration_capabilities: Optional[Dict[str, Any]] = None
@@ -4967,6 +5102,2537 @@ class MurphySystem:
             "missing": len([f for f in alignment if f["status"] == self.COMPETITIVE_STATUS_MISSING])
         }
         return {"summary": summary, "features": alignment}
+
+    def _build_summary_surface_bundle(self) -> Dict[str, Any]:
+        integration_capabilities = self._build_integration_capabilities()
+        competitive_feature_alignment = self._build_competitive_feature_alignment(
+            integration_capabilities
+        )
+        module_registry_summary = self._build_module_registry_summary()
+        return {
+            "integration_capabilities": integration_capabilities,
+            "integration_capabilities_summary": integration_capabilities.get("summary", {}),
+            "competitive_feature_alignment": competitive_feature_alignment,
+            "competitive_feature_alignment_summary": competitive_feature_alignment.get("summary", {}),
+            "module_registry_summary": module_registry_summary
+        }
+
+    def _build_completion_snapshot(self) -> Dict[str, Any]:
+        areas = [
+            {"area": key, "percent": value}
+            for key, value in self.COMPLETION_SNAPSHOT_AREAS.items()
+        ]
+        threshold = self.COMPLETION_REMEDIATION_THRESHOLD_PERCENT
+        low_completion_areas = sum(1 for area in areas if area["percent"] < threshold)
+        return {
+            "areas": areas,
+            "summary": {
+                "total_areas": len(areas),
+                "average_percent": round(sum(item["percent"] for item in areas) / len(areas), 2) if areas else 0.0,
+                "remediation_threshold_percent": threshold,
+                "low_completion_areas": low_completion_areas,
+                "low_completion_area_ids": [area["area"] for area in areas if area["percent"] < threshold]
+            }
+        }
+
+    def _build_runtime_execution_profile(
+        self,
+        task_description: str,
+        onboarding_context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        context = onboarding_context if isinstance(onboarding_context, dict) else {}
+        answers = context.get("answers")
+        # Dict-merge precedence: answer keys override context keys when both are present.
+        source = {**context, **answers} if isinstance(answers, dict) else context
+        execution_profile_source = "onboarding" if isinstance(onboarding_context, dict) else "default"
+        text = f"{task_description} {source}".lower()
+        explicit_mode = str(source.get("execution_mode", "")).lower()
+        # risk_level is accepted as a legacy/synonym input for safety_level.
+        safety_level = str(source.get("safety_level") or source.get("risk_level") or "standard").lower()
+        risk_tolerance = str(source.get("risk_tolerance", "moderate")).lower()
+        autonomy_level = str(source.get("autonomy_level", source.get("autonomy_preferences", "balanced"))).lower()
+        strict_signal = (
+            any(token in text for token in self.STRICT_EXECUTION_MODE_TOKENS)
+            or safety_level in {"high", "strict"}
+            or risk_tolerance in {"low", "conservative"}
+        )
+        dynamic_signal = (
+            any(token in text for token in self.DYNAMIC_EXECUTION_MODE_TOKENS)
+            or autonomy_level in {"high", "dynamic"}
+        )
+        if explicit_mode in {"strict", "balanced", "dynamic"}:
+            mode = explicit_mode
+        elif strict_signal:
+            mode = "strict"
+        elif dynamic_signal:
+            mode = "dynamic"
+        else:
+            mode = "balanced"
+        escalation_policy = source.get("escalation_policy")
+        if not escalation_policy:
+            escalation_policy = {
+                "strict": "mandatory",
+                "balanced": "selective",
+                "dynamic": "on_exception"
+            }.get(mode, "selective")
+        audit_requirements = source.get("audit_requirements")
+        if not audit_requirements:
+            audit_requirements = {
+                "strict": "full",
+                "balanced": "standard",
+                "dynamic": "minimal"
+            }.get(mode, "standard")
+        execution_enforcement_level = {
+            "strict": "full_gate_enforcement",
+            "balanced": "policy_guarded",
+            "dynamic": "autonomy_accelerated"
+        }.get(mode, "policy_guarded")
+        control_plane_separation_state = {
+            "strict": "enforced",
+            "balanced": "adaptive",
+            "dynamic": "relaxed"
+        }.get(mode, "adaptive")
+        self_improvement_rd_candidate = {
+            "strict": "governed_policy_tuning_loop",
+            "balanced": "hybrid_governance_feedback_loop",
+            "dynamic": "autonomous_feedback_acceleration_loop"
+        }.get(mode, "hybrid_governance_feedback_loop")
+        approval_checkpoint_policy = {
+            "strict": "mandatory",
+            "balanced": "conditional",
+            "dynamic": "on_demand"
+        }.get(mode, "conditional")
+        budget_enforcement_mode = {
+            "strict": "hard_cap",
+            "balanced": "soft_cap",
+            "dynamic": "user_tunable"
+        }.get(mode, "soft_cap")
+        audit_logging_policy = {
+            "strict": "immutable_full_stream",
+            "balanced": "standard_governance_stream",
+            "dynamic": "sampled_governance_stream"
+        }.get(mode, "standard_governance_stream")
+        escalation_routing_policy = {
+            "strict": "mandatory_human_chain",
+            "balanced": "policy_scored_chain",
+            "dynamic": "exception_only_chain"
+        }.get(mode, "policy_scored_chain")
+        tool_mediation_policy = {
+            "strict": "allowlist_mandatory_mediation",
+            "balanced": "policy_guarded_mediation",
+            "dynamic": "accelerated_mediation_with_guardrails"
+        }.get(mode, "policy_guarded_mediation")
+        deterministic_routing_policy = {
+            "strict": "deterministic_only",
+            "balanced": "deterministic_preferred",
+            "dynamic": "deterministic_fallback"
+        }.get(mode, "deterministic_preferred")
+        compute_routing_policy = {
+            "strict": "deterministic_compute_lane",
+            "balanced": "hybrid_compute_lane",
+            "dynamic": "adaptive_compute_lane"
+        }.get(mode, "hybrid_compute_lane")
+        policy_compiler_mode = {
+            "strict": "locked_policy_compilation",
+            "balanced": "guarded_policy_compilation",
+            "dynamic": "adaptive_policy_compilation"
+        }.get(mode, "guarded_policy_compilation")
+        permission_validation_policy = {
+            "strict": "explicit_role_validation",
+            "balanced": "policy_guided_validation",
+            "dynamic": "adaptive_validation_with_bounds"
+        }.get(mode, "policy_guided_validation")
+        delegation_scope_policy = {
+            "strict": "role_bound_delegation_only",
+            "balanced": "policy_bounded_delegation",
+            "dynamic": "adaptive_delegation_with_caps"
+        }.get(mode, "policy_bounded_delegation")
+        execution_broker_policy = {
+            "strict": "broker_hard_gate",
+            "balanced": "broker_policy_guarded",
+            "dynamic": "broker_adaptive_guardrailed"
+        }.get(mode, "broker_policy_guarded")
+        role_registry_policy = {
+            "strict": "immutable_role_registry",
+            "balanced": "governed_role_registry",
+            "dynamic": "adaptive_role_registry_with_audit"
+        }.get(mode, "governed_role_registry")
+        authority_boundary_policy = {
+            "strict": "hard_authority_boundaries",
+            "balanced": "policy_scoped_authority_boundaries",
+            "dynamic": "adaptive_authority_boundaries_with_audit"
+        }.get(mode, "policy_scoped_authority_boundaries")
+        cross_department_arbitration_policy = {
+            "strict": "explicit_executive_arbitration",
+            "balanced": "policy_scored_arbitration",
+            "dynamic": "adaptive_arbitration_with_audit"
+        }.get(mode, "policy_scored_arbitration")
+        department_memory_isolation_policy = {
+            "strict": "strict_department_isolation",
+            "balanced": "policy_scoped_isolation",
+            "dynamic": "adaptive_isolation_with_audit"
+        }.get(mode, "policy_scoped_isolation")
+        employee_contract_responsibility_policy = {
+            "strict": "contract_bound_responsibilities_required",
+            "balanced": "contract_guided_responsibilities",
+            "dynamic": "contract_aware_adaptive_responsibilities"
+        }.get(mode, "contract_guided_responsibilities")
+        core_responsibility_scope = {
+            "strict": "org_chart_role_and_contract_hard_boundaries",
+            "balanced": "org_chart_role_and_contract_policy_boundaries",
+            "dynamic": "org_chart_role_and_contract_adaptive_boundaries"
+        }.get(mode, "org_chart_role_and_contract_policy_boundaries")
+        shadow_agent_account_policy = {
+            "strict": "identity_bound_shadow_accounts",
+            "balanced": "policy_governed_shadow_accounts",
+            "dynamic": "adaptive_shadow_accounts_with_audit"
+        }.get(mode, "policy_governed_shadow_accounts")
+        user_base_management_surface_policy = {
+            "strict": "admin_ui_only",
+            "balanced": "admin_ui_with_policy_api",
+            "dynamic": "admin_ui_plus_delegated_api_with_audit"
+        }.get(mode, "admin_ui_with_policy_api")
+        employee_contract_change_authority_policy = {
+            "strict": "hr_admin_approval_required",
+            "balanced": "policy_scoped_manager_plus_hr_approval",
+            "dynamic": "delegated_manager_updates_with_hr_audit"
+        }.get(mode, "policy_scoped_manager_plus_hr_approval")
+        employee_contract_management_surface_policy = {
+            "strict": "hr_admin_ui_only",
+            "balanced": "hr_admin_ui_with_policy_api",
+            "dynamic": "hr_admin_ui_plus_delegated_api_with_audit"
+        }.get(mode, "hr_admin_ui_with_policy_api")
+        def _mode_policy(
+            strict_value: str,
+            balanced_value: str,
+            dynamic_value: str
+        ) -> str:
+            return {
+                "strict": strict_value,
+                "balanced": balanced_value,
+                "dynamic": dynamic_value
+            }.get(mode, balanced_value)
+
+        employee_contract_accountability_policy = _mode_policy(
+            "contract_obligation_attestation_required",
+            "contract_obligation_attestation_guided",
+            "contract_obligation_attestation_adaptive"
+        )
+        shadow_agent_org_parity_policy = _mode_policy(
+            "one_to_one_org_role_shadow_required",
+            "policy_validated_org_role_shadowing",
+            "adaptive_org_role_shadowing_with_audit"
+        )
+        shadow_agent_contract_binding_policy = _mode_policy(
+            "contract_binding_mandatory",
+            "contract_binding_policy_guided",
+            "contract_binding_adaptive_with_audit"
+        )
+        user_base_access_governance_policy = _mode_policy(
+            "rbac_and_tenant_controls_mandatory",
+            "rbac_policy_governed_controls",
+            "adaptive_rbac_controls_with_audit"
+        )
+        employee_contract_obligation_tracking_policy = _mode_policy(
+            "obligation_tracking_required",
+            "obligation_tracking_policy_guided",
+            "obligation_tracking_adaptive_with_audit"
+        )
+        employee_contract_escalation_binding_policy = _mode_policy(
+            "contract_escalation_binding_required",
+            "contract_escalation_binding_policy_guided",
+            "contract_escalation_binding_adaptive"
+        )
+        regulatory_context_binding_policy = _mode_policy(
+            "regulatory_context_lockdown_required",
+            "regulatory_context_policy_guided",
+            "regulatory_context_adaptive_with_audit"
+        )
+        autonomy_preference_override_policy = _mode_policy(
+            "autonomy_override_disabled",
+            "autonomy_override_policy_scoped",
+            "autonomy_override_user_tunable_with_audit"
+        )
+        risk_tolerance_enforcement_policy = _mode_policy(
+            "low_risk_mandatory_enforcement",
+            "risk_tolerance_policy_scored",
+            "risk_tolerance_adaptive_with_caps"
+        )
+        safety_level_assurance_policy = _mode_policy(
+            "safety_level_attestation_required",
+            "safety_level_attestation_guided",
+            "safety_level_attestation_adaptive"
+        )
+        delegation_comfort_governance_policy = _mode_policy(
+            "delegation_comfort_hard_limits",
+            "delegation_comfort_policy_bounds",
+            "delegation_comfort_adaptive_bounds"
+        )
+        employee_contract_review_policy = _mode_policy(
+            "hr_legal_review_mandatory",
+            "hr_review_policy_guided",
+            "adaptive_hr_review_with_audit"
+        )
+        employee_contract_versioning_policy = _mode_policy(
+            "immutable_contract_version_history",
+            "governed_contract_version_history",
+            "adaptive_contract_version_history_with_audit"
+        )
+        shadow_agent_account_lifecycle_policy = _mode_policy(
+            "hr_controlled_shadow_lifecycle",
+            "policy_guided_shadow_lifecycle",
+            "adaptive_shadow_lifecycle_with_audit"
+        )
+        user_base_ui_audit_policy = _mode_policy(
+            "immutable_ui_audit_stream",
+            "governed_ui_audit_stream",
+            "sampled_ui_audit_stream_with_escalation"
+        )
+        org_chart_assignment_sync_policy = _mode_policy(
+            "mandatory_org_chart_sync_before_execution",
+            "policy_scoped_org_chart_sync",
+            "adaptive_org_chart_sync_with_audit"
+        )
+        event_queue_durability_policy = _mode_policy(
+            "durable_queue_required",
+            "durable_queue_policy_guided",
+            "durable_queue_adaptive_with_audit"
+        )
+        idempotency_key_enforcement_policy = _mode_policy(
+            "idempotency_keys_mandatory",
+            "idempotency_keys_policy_scoped",
+            "idempotency_keys_adaptive_with_audit"
+        )
+        retry_backoff_policy = _mode_policy(
+            "bounded_retry_with_manual_escalation",
+            "policy_scoped_retry_backoff",
+            "adaptive_retry_backoff_with_guardrails"
+        )
+        circuit_breaker_policy = _mode_policy(
+            "circuit_breaker_hard_fail_closed",
+            "circuit_breaker_policy_guarded",
+            "circuit_breaker_adaptive_with_audit"
+        )
+        rollback_recovery_policy = _mode_policy(
+            "rollback_required_on_policy_breach",
+            "policy_scoped_rollback_recovery",
+            "adaptive_rollback_recovery_with_audit"
+        )
+        planning_plane_decomposition_policy = _mode_policy(
+            "hierarchical_decomposition_mandatory",
+            "policy_guided_decomposition",
+            "adaptive_decomposition_with_audit"
+        )
+        planning_plane_risk_simulation_policy = _mode_policy(
+            "risk_simulation_required_before_execution",
+            "risk_simulation_policy_guided",
+            "adaptive_risk_simulation_with_audit"
+        )
+        execution_plane_permission_gate_policy = _mode_policy(
+            "permission_gates_required",
+            "permission_gates_policy_guided",
+            "adaptive_permission_gates_with_audit"
+        )
+        execution_plane_budget_guardrail_policy = _mode_policy(
+            "hard_budget_guardrails",
+            "policy_scoped_budget_guardrails",
+            "adaptive_budget_guardrails_with_audit"
+        )
+        execution_plane_audit_trail_integrity_policy = _mode_policy(
+            "immutable_audit_trail_required",
+            "governed_audit_trail_integrity",
+            "adaptive_audit_trail_integrity_with_audit"
+        )
+        swarm_spawn_governance_policy = _mode_policy(
+            "spawn_governance_preapproval_required",
+            "spawn_governance_policy_scoped",
+            "spawn_governance_adaptive_with_audit"
+        )
+        swarm_failure_containment_policy = _mode_policy(
+            "failure_containment_hard_isolation",
+            "failure_containment_policy_guided",
+            "failure_containment_adaptive_with_audit"
+        )
+        swarm_budget_expansion_policy = _mode_policy(
+            "swarm_budget_expansion_forbidden",
+            "swarm_budget_expansion_policy_scoped",
+            "swarm_budget_expansion_adaptive_with_caps"
+        )
+        shadow_reinforcement_signal_policy = _mode_policy(
+            "shadow_reinforcement_signals_strictly_scoped",
+            "shadow_reinforcement_signals_policy_guided",
+            "shadow_reinforcement_signals_adaptive_with_audit"
+        )
+        behavioral_divergence_tracking_policy = _mode_policy(
+            "behavioral_divergence_tracking_mandatory",
+            "behavioral_divergence_tracking_policy_scoped",
+            "behavioral_divergence_tracking_adaptive_with_audit"
+        )
+        planning_plane_gate_synthesis_policy = _mode_policy(
+            "gate_synthesis_required_before_execution",
+            "policy_guided_gate_synthesis",
+            "adaptive_gate_synthesis_with_audit"
+        )
+        planning_plane_org_mapping_policy = _mode_policy(
+            "org_mapping_lock_required",
+            "policy_scoped_org_mapping",
+            "adaptive_org_mapping_with_audit"
+        )
+        execution_plane_tool_permission_enforcement_policy = _mode_policy(
+            "tool_permission_enforcement_mandatory",
+            "policy_scoped_tool_permission_enforcement",
+            "adaptive_tool_permission_enforcement_with_audit"
+        )
+        execution_plane_budget_ceiling_override_policy = _mode_policy(
+            "budget_ceiling_override_forbidden",
+            "budget_ceiling_override_policy_scoped",
+            "budget_ceiling_override_adaptive_with_audit"
+        )
+        execution_plane_escalation_checkpoint_policy = _mode_policy(
+            "escalation_checkpoint_required",
+            "escalation_checkpoint_policy_guided",
+            "escalation_checkpoint_adaptive_with_audit"
+        )
+        human_in_the_loop_enforcement_policy = _mode_policy(
+            "human_in_the_loop_enforcement_mandatory",
+            "human_in_the_loop_enforcement_policy_guided",
+            "human_in_the_loop_enforcement_adaptive_with_audit"
+        )
+        regulatory_audit_retention_policy = _mode_policy(
+            "regulatory_audit_retention_mandatory",
+            "regulatory_audit_retention_policy_scoped",
+            "regulatory_audit_retention_adaptive_with_audit"
+        )
+        tenant_boundary_enforcement_policy = _mode_policy(
+            "tenant_boundary_enforcement_required",
+            "tenant_boundary_enforcement_policy_scoped",
+            "tenant_boundary_enforcement_adaptive_with_audit"
+        )
+        policy_exception_handling_policy = _mode_policy(
+            "policy_exception_handling_manual_review_only",
+            "policy_exception_handling_governed_review",
+            "policy_exception_handling_adaptive_with_audit"
+        )
+        runtime_profile_refresh_policy = _mode_policy(
+            "runtime_profile_refresh_pre_execution_required",
+            "runtime_profile_refresh_policy_guided",
+            "runtime_profile_refresh_adaptive_with_audit"
+        )
+        planning_plane_compliance_modeling_policy = _mode_policy(
+            "compliance_modeling_required_before_execution",
+            "compliance_modeling_policy_guided",
+            "compliance_modeling_adaptive_with_audit"
+        )
+        planning_plane_proposal_generation_policy = _mode_policy(
+            "proposal_generation_policy_gated",
+            "proposal_generation_policy_scoped",
+            "proposal_generation_adaptive_with_audit"
+        )
+        execution_plane_policy_compiler_enforcement_policy = _mode_policy(
+            "execution_policy_compiler_enforcement_required",
+            "execution_policy_compiler_enforcement_scoped",
+            "execution_policy_compiler_enforcement_adaptive_with_audit"
+        )
+        execution_plane_deterministic_override_policy = _mode_policy(
+            "deterministic_override_required_for_high_risk",
+            "deterministic_override_policy_scoped",
+            "deterministic_override_adaptive_with_audit"
+        )
+        hitl_escalation_requirement_policy = _mode_policy(
+            "hitl_escalation_requirement_hard",
+            "hitl_escalation_requirement_policy_guided",
+            "hitl_escalation_requirement_adaptive_with_audit"
+        )
+        shadow_peer_role_enforcement_policy = _mode_policy(
+            "shadow_peer_role_enforcement_mandatory",
+            "shadow_peer_role_enforcement_policy_guided",
+            "shadow_peer_role_enforcement_adaptive_with_audit"
+        )
+        shadow_account_user_binding_policy = _mode_policy(
+            "shadow_account_user_binding_mandatory",
+            "shadow_account_user_binding_policy_guided",
+            "shadow_account_user_binding_adaptive_with_audit"
+        )
+        employee_contract_scope_enforcement_policy = _mode_policy(
+            "employee_contract_scope_enforcement_required",
+            "employee_contract_scope_enforcement_policy_guided",
+            "employee_contract_scope_enforcement_adaptive_with_audit"
+        )
+        employee_contract_exception_review_policy = _mode_policy(
+            "employee_contract_exception_review_mandatory",
+            "employee_contract_exception_review_policy_guided",
+            "employee_contract_exception_review_adaptive_with_audit"
+        )
+        user_base_tenant_boundary_policy = _mode_policy(
+            "user_base_tenant_boundary_enforcement_required",
+            "user_base_tenant_boundary_policy_scoped",
+            "user_base_tenant_boundary_adaptive_with_audit"
+        )
+        compliance_event_escalation_policy = _mode_policy(
+            "compliance_event_escalation_immediate",
+            "compliance_event_escalation_policy_guided",
+            "compliance_event_escalation_adaptive_with_audit"
+        )
+        regulatory_override_resolution_policy = _mode_policy(
+            "regulatory_override_resolution_manual_only",
+            "regulatory_override_resolution_policy_scoped",
+            "regulatory_override_resolution_adaptive_with_audit"
+        )
+        budget_ceiling_revision_policy = _mode_policy(
+            "budget_ceiling_revision_manual_approval_only",
+            "budget_ceiling_revision_policy_scoped",
+            "budget_ceiling_revision_adaptive_with_audit"
+        )
+        budget_consumption_alert_policy = _mode_policy(
+            "budget_consumption_alert_realtime_required",
+            "budget_consumption_alert_policy_guided",
+            "budget_consumption_alert_adaptive_with_audit"
+        )
+        approval_checkpoint_timeout_policy = _mode_policy(
+            "approval_checkpoint_timeout_hard_stop",
+            "approval_checkpoint_timeout_policy_scoped",
+            "approval_checkpoint_timeout_adaptive_with_audit"
+        )
+        compliance_sensor_event_policy = _mode_policy(
+            "compliance_sensor_events_mandatory",
+            "compliance_sensor_events_policy_scoped",
+            "compliance_sensor_events_adaptive_with_audit"
+        )
+        policy_drift_detection_policy = _mode_policy(
+            "policy_drift_detection_hard_gate",
+            "policy_drift_detection_governed_review",
+            "policy_drift_detection_adaptive_with_audit"
+        )
+        onboarding_profile_revalidation_policy = _mode_policy(
+            "onboarding_profile_revalidation_required_before_execution",
+            "onboarding_profile_revalidation_policy_scoped",
+            "onboarding_profile_revalidation_adaptive_with_audit"
+        )
+        control_plane_mode_transition_policy = _mode_policy(
+            "control_plane_mode_transition_manual_approval_required",
+            "control_plane_mode_transition_policy_scoped",
+            "control_plane_mode_transition_adaptive_with_audit"
+        )
+        user_autonomy_preference_ui_policy = _mode_policy(
+            "user_autonomy_preference_ui_restricted",
+            "user_autonomy_preference_ui_policy_scoped",
+            "user_autonomy_preference_ui_adaptive_with_audit"
+        )
+        planning_execution_toggle_guard_policy = _mode_policy(
+            "planning_execution_toggle_manual_approval_required",
+            "planning_execution_toggle_policy_scoped",
+            "planning_execution_toggle_adaptive_with_audit"
+        )
+        governance_exception_escalation_policy = _mode_policy(
+            "governance_exception_escalation_immediate",
+            "governance_exception_escalation_policy_guided",
+            "governance_exception_escalation_adaptive_with_audit"
+        )
+        approval_sla_enforcement_policy = _mode_policy(
+            "approval_sla_enforcement_hard_deadline",
+            "approval_sla_enforcement_policy_scoped",
+            "approval_sla_enforcement_adaptive_with_audit"
+        )
+        tenant_residency_control_policy = _mode_policy(
+            "tenant_residency_control_hard_enforced",
+            "tenant_residency_control_policy_scoped",
+            "tenant_residency_control_adaptive_with_audit"
+        )
+        swarm_recursion_guard_policy = _mode_policy(
+            "swarm_recursion_guard_hard_limit",
+            "swarm_recursion_guard_policy_scoped",
+            "swarm_recursion_guard_adaptive_with_audit"
+        )
+        contract_renewal_gate_policy = _mode_policy(
+            "contract_renewal_gate_required",
+            "contract_renewal_gate_policy_scoped",
+            "contract_renewal_gate_adaptive_with_audit"
+        )
+        shadow_account_suspension_policy = _mode_policy(
+            "shadow_account_suspension_manual_approval_required",
+            "shadow_account_suspension_policy_scoped",
+            "shadow_account_suspension_adaptive_with_audit"
+        )
+        user_base_offboarding_policy = _mode_policy(
+            "user_base_offboarding_workflow_required",
+            "user_base_offboarding_policy_scoped",
+            "user_base_offboarding_adaptive_with_audit"
+        )
+        governance_kernel_heartbeat_policy = _mode_policy(
+            "governance_kernel_heartbeat_hard_monitoring",
+            "governance_kernel_heartbeat_policy_scoped",
+            "governance_kernel_heartbeat_adaptive_with_audit"
+        )
+        policy_compiler_change_control_policy = _mode_policy(
+            "policy_compiler_change_control_manual_review_required",
+            "policy_compiler_change_control_policy_scoped",
+            "policy_compiler_change_control_adaptive_with_audit"
+        )
+        replay_reconciliation_policy = _mode_policy(
+            "replay_reconciliation_required",
+            "replay_reconciliation_policy_scoped",
+            "replay_reconciliation_adaptive_with_audit"
+        )
+        audit_artifact_retention_policy = _mode_policy(
+            "audit_artifact_retention_required",
+            "audit_artifact_retention_policy_scoped",
+            "audit_artifact_retention_adaptive_with_audit"
+        )
+        event_backpressure_management_policy = _mode_policy(
+            "event_backpressure_management_required",
+            "event_backpressure_management_policy_scoped",
+            "event_backpressure_management_adaptive_with_audit"
+        )
+        queue_health_slo_policy = _mode_policy(
+            "queue_health_slo_hard_enforced",
+            "queue_health_slo_policy_scoped",
+            "queue_health_slo_adaptive_with_audit"
+        )
+        rollback_compensation_policy = _mode_policy(
+            "rollback_compensation_required",
+            "rollback_compensation_policy_scoped",
+            "rollback_compensation_adaptive_with_audit"
+        )
+        durable_queue_replay_policy = _mode_policy(
+            "durable_queue_replay_required",
+            "durable_queue_replay_policy_scoped",
+            "durable_queue_replay_adaptive_with_audit"
+        )
+        swarm_failure_domain_isolation_policy = _mode_policy(
+            "swarm_failure_domain_isolation_required",
+            "swarm_failure_domain_isolation_policy_scoped",
+            "swarm_failure_domain_isolation_adaptive_with_audit"
+        )
+        idempotent_recovery_validation_policy = _mode_policy(
+            "idempotent_recovery_validation_required",
+            "idempotent_recovery_validation_policy_scoped",
+            "idempotent_recovery_validation_adaptive_with_audit"
+        )
+        agent_spawn_budget_reconciliation_policy = _mode_policy(
+            "agent_spawn_budget_reconciliation_required",
+            "agent_spawn_budget_reconciliation_policy_scoped",
+            "agent_spawn_budget_reconciliation_adaptive_with_audit"
+        )
+        audit_chain_export_policy = _mode_policy(
+            "audit_chain_export_required",
+            "audit_chain_export_policy_scoped",
+            "audit_chain_export_adaptive_with_audit"
+        )
+        semantics_belief_state_policy = _mode_policy(
+            "structured_spec_hypothesis_belief_required",
+            "structured_spec_hypothesis_belief_policy_scoped",
+            "structured_spec_hypothesis_belief_adaptive_with_audit"
+        )
+        semantics_loss_risk_policy = _mode_policy(
+            "loss_and_cvar_risk_evaluation_required",
+            "loss_and_cvar_risk_evaluation_policy_scoped",
+            "loss_and_cvar_risk_evaluation_adaptive_with_audit"
+        )
+        semantics_voi_question_policy = _mode_policy(
+            "voi_questioning_required_before_high_risk_action",
+            "voi_questioning_policy_scoped",
+            "voi_questioning_adaptive_with_audit"
+        )
+        semantics_invariance_boundary_policy = _mode_policy(
+            "invariance_commutation_gate_required",
+            "invariance_commutation_policy_scoped",
+            "invariance_commutation_adaptive_with_audit"
+        )
+        semantics_verification_feedback_policy = _mode_policy(
+            "verification_feedback_loop_required",
+            "verification_feedback_policy_scoped",
+            "verification_feedback_adaptive_with_audit"
+        )
+        semantics_hypothesis_update_policy = _mode_policy(
+            "belief_hypothesis_posterior_update_required",
+            "belief_hypothesis_posterior_update_policy_scoped",
+            "belief_hypothesis_posterior_update_adaptive_with_audit"
+        )
+        semantics_likelihood_scoring_policy = _mode_policy(
+            "answer_likelihood_scoring_required",
+            "answer_likelihood_scoring_policy_scoped",
+            "answer_likelihood_scoring_adaptive_with_audit"
+        )
+        semantics_rvoi_decision_policy = _mode_policy(
+            "rvoi_question_decision_required",
+            "rvoi_question_decision_policy_scoped",
+            "rvoi_question_decision_adaptive_with_audit"
+        )
+        semantics_clarifying_question_budget_policy = _mode_policy(
+            "clarifying_question_budget_enforced",
+            "clarifying_question_budget_policy_scoped",
+            "clarifying_question_budget_adaptive_with_audit"
+        )
+        semantics_invariance_retry_policy = _mode_policy(
+            "invariance_retry_or_ask_required",
+            "invariance_retry_or_ask_policy_scoped",
+            "invariance_retry_or_ask_adaptive_with_audit"
+        )
+        semantics_hypothesis_distribution_policy = _mode_policy(
+            "structured_hypothesis_distribution_required",
+            "structured_hypothesis_distribution_policy_scoped",
+            "structured_hypothesis_distribution_adaptive_with_audit"
+        )
+        semantics_cvar_risk_measure_policy = _mode_policy(
+            "expected_loss_and_cvar_required",
+            "expected_loss_and_cvar_policy_scoped",
+            "expected_loss_and_cvar_adaptive_with_audit"
+        )
+        semantics_question_cost_policy = _mode_policy(
+            "question_cost_and_voi_threshold_required",
+            "question_cost_and_voi_threshold_policy_scoped",
+            "question_cost_and_voi_threshold_adaptive_with_audit"
+        )
+        semantics_invariance_transform_set_policy = _mode_policy(
+            "invariance_transform_set_required",
+            "invariance_transform_set_policy_scoped",
+            "invariance_transform_set_adaptive_with_audit"
+        )
+        semantics_verification_boundary_policy = _mode_policy(
+            "verification_boundary_enforcement_required",
+            "verification_boundary_enforcement_policy_scoped",
+            "verification_boundary_enforcement_adaptive_with_audit"
+        )
+        runtime_telemetry_tokens_to_resolution_policy = _mode_policy(
+            "telemetry_tokens_to_resolution_required",
+            "telemetry_tokens_to_resolution_policy_scoped",
+            "telemetry_tokens_to_resolution_adaptive_with_audit"
+        )
+        runtime_telemetry_question_count_policy = _mode_policy(
+            "telemetry_question_count_required",
+            "telemetry_question_count_policy_scoped",
+            "telemetry_question_count_adaptive_with_audit"
+        )
+        runtime_telemetry_invariance_score_policy = _mode_policy(
+            "telemetry_invariance_score_required",
+            "telemetry_invariance_score_policy_scoped",
+            "telemetry_invariance_score_adaptive_with_audit"
+        )
+        runtime_telemetry_risk_score_policy = _mode_policy(
+            "telemetry_risk_score_required",
+            "telemetry_risk_score_policy_scoped",
+            "telemetry_risk_score_adaptive_with_audit"
+        )
+        runtime_telemetry_verification_feedback_policy = _mode_policy(
+            "telemetry_verification_feedback_required",
+            "telemetry_verification_feedback_policy_scoped",
+            "telemetry_verification_feedback_adaptive_with_audit"
+        )
+        semantics_question_candidate_generation_policy = _mode_policy(
+            "semantics_question_candidate_generation_required",
+            "semantics_question_candidate_generation_policy_scoped",
+            "semantics_question_candidate_generation_adaptive_with_audit"
+        )
+        semantics_answer_prediction_policy = _mode_policy(
+            "semantics_answer_prediction_required",
+            "semantics_answer_prediction_policy_scoped",
+            "semantics_answer_prediction_adaptive_with_audit"
+        )
+        semantics_belief_normalization_policy = _mode_policy(
+            "semantics_belief_normalization_required",
+            "semantics_belief_normalization_policy_scoped",
+            "semantics_belief_normalization_adaptive_with_audit"
+        )
+        semantics_verification_loss_injection_policy = _mode_policy(
+            "semantics_verification_loss_injection_required",
+            "semantics_verification_loss_injection_policy_scoped",
+            "semantics_verification_loss_injection_adaptive_with_audit"
+        )
+        semantics_action_revision_policy = _mode_policy(
+            "semantics_action_revision_required",
+            "semantics_action_revision_policy_scoped",
+            "semantics_action_revision_adaptive_with_audit"
+        )
+        legacy_orchestrator_discovery_policy = _mode_policy(
+            "legacy_orchestrator_inventory_required",
+            "legacy_orchestrator_inventory_policy_scoped",
+            "legacy_orchestrator_inventory_adaptive_with_audit"
+        )
+        rubixcube_orchestrator_adapter_policy = _mode_policy(
+            "rubixcube_adapter_wiring_required",
+            "rubixcube_adapter_wiring_policy_scoped",
+            "rubixcube_adapter_wiring_adaptive_with_audit"
+        )
+        triage_orchestrator_adapter_policy = _mode_policy(
+            "triage_adapter_wiring_required",
+            "triage_adapter_wiring_policy_scoped",
+            "triage_adapter_wiring_adaptive_with_audit"
+        )
+        bot_catalog_capability_mapping_policy = _mode_policy(
+            "bot_catalog_capability_mapping_required",
+            "bot_catalog_capability_mapping_policy_scoped",
+            "bot_catalog_capability_mapping_adaptive_with_audit"
+        )
+        legacy_orchestrator_wiring_priority_policy = _mode_policy(
+            "legacy_orchestrator_wiring_priority_required",
+            "legacy_orchestrator_wiring_priority_policy_scoped",
+            "legacy_orchestrator_wiring_priority_adaptive_with_audit"
+        )
+        modern_arcana_clockwork_bridge_policy = _mode_policy(
+            "modern_arcana_clockwork_bridge_required",
+            "modern_arcana_clockwork_bridge_policy_scoped",
+            "modern_arcana_clockwork_bridge_adaptive_with_audit"
+        )
+        legacy_orchestrator_compatibility_matrix_policy = _mode_policy(
+            "legacy_orchestrator_compatibility_matrix_required",
+            "legacy_orchestrator_compatibility_matrix_policy_scoped",
+            "legacy_orchestrator_compatibility_matrix_adaptive_with_audit"
+        )
+        rubixcube_kaia_mix_scoring_policy = _mode_policy(
+            "rubixcube_kaia_mix_scoring_required",
+            "rubixcube_kaia_mix_scoring_policy_scoped",
+            "rubixcube_kaia_mix_scoring_adaptive_with_audit"
+        )
+        triage_rollcall_selection_policy = _mode_policy(
+            "triage_rollcall_selection_required",
+            "triage_rollcall_selection_policy_scoped",
+            "triage_rollcall_selection_adaptive_with_audit"
+        )
+        legacy_orchestrator_tooling_plan_policy = _mode_policy(
+            "legacy_orchestrator_tooling_plan_required",
+            "legacy_orchestrator_tooling_plan_policy_scoped",
+            "legacy_orchestrator_tooling_plan_adaptive_with_audit"
+        )
+        clockwork_orchestrator_bridge_policy = _mode_policy(
+            "clockwork_orchestrator_bridge_required",
+            "clockwork_orchestrator_bridge_policy_scoped",
+            "clockwork_orchestrator_bridge_adaptive_with_audit"
+        )
+        arcana_pipeline_compatibility_policy = _mode_policy(
+            "arcana_pipeline_compatibility_required",
+            "arcana_pipeline_compatibility_policy_scoped",
+            "arcana_pipeline_compatibility_adaptive_with_audit"
+        )
+        rubixcube_evidence_engine_policy = _mode_policy(
+            "rubixcube_evidence_engine_required",
+            "rubixcube_evidence_engine_policy_scoped",
+            "rubixcube_evidence_engine_adaptive_with_audit"
+        )
+        triage_rollcall_confidence_policy = _mode_policy(
+            "triage_rollcall_confidence_required",
+            "triage_rollcall_confidence_policy_scoped",
+            "triage_rollcall_confidence_adaptive_with_audit"
+        )
+        golden_path_reuse_policy = _mode_policy(
+            "golden_path_reuse_required",
+            "golden_path_reuse_policy_scoped",
+            "golden_path_reuse_adaptive_with_audit"
+        )
+        governance_review_cadence_policy = _mode_policy(
+            "governance_review_cadence_required",
+            "governance_review_cadence_policy_scoped",
+            "governance_review_cadence_adaptive_with_audit"
+        )
+        section_status_reconciliation_policy = _mode_policy(
+            "section_status_reconciliation_required",
+            "section_status_reconciliation_policy_scoped",
+            "section_status_reconciliation_adaptive_with_audit"
+        )
+        orchestrator_wiring_readiness_policy = _mode_policy(
+            "orchestrator_wiring_readiness_required",
+            "orchestrator_wiring_readiness_policy_scoped",
+            "orchestrator_wiring_readiness_adaptive_with_audit"
+        )
+        verification_feedback_closure_policy = _mode_policy(
+            "verification_feedback_closure_required",
+            "verification_feedback_closure_policy_scoped",
+            "verification_feedback_closure_adaptive_with_audit"
+        )
+        self_improvement_backlog_priority_policy = _mode_policy(
+            "self_improvement_backlog_priority_required",
+            "self_improvement_backlog_priority_policy_scoped",
+            "self_improvement_backlog_priority_adaptive_with_audit"
+        )
+        assessment_section_coverage_policy = _mode_policy(
+            "assessment_section_coverage_required",
+            "assessment_section_coverage_policy_scoped",
+            "assessment_section_coverage_adaptive_with_audit"
+        )
+        assessment_recommendation_acceptance_policy = _mode_policy(
+            "assessment_recommendation_acceptance_required",
+            "assessment_recommendation_acceptance_policy_scoped",
+            "assessment_recommendation_acceptance_adaptive_with_audit"
+        )
+        assessment_standardization_governance_policy = _mode_policy(
+            "assessment_standardization_governance_required",
+            "assessment_standardization_governance_policy_scoped",
+            "assessment_standardization_governance_adaptive_with_audit"
+        )
+        assessment_progression_loop_policy = _mode_policy(
+            "assessment_progression_loop_required",
+            "assessment_progression_loop_policy_scoped",
+            "assessment_progression_loop_adaptive_with_audit"
+        )
+        assessment_readme_assessment_sync_policy = _mode_policy(
+            "assessment_readme_assessment_sync_required",
+            "assessment_readme_assessment_sync_policy_scoped",
+            "assessment_readme_assessment_sync_adaptive_with_audit"
+        )
+        process_gate_iteration_policy = _mode_policy(
+            "process_gate_iteration_required",
+            "process_gate_iteration_policy_scoped",
+            "process_gate_iteration_adaptive_with_audit"
+        )
+        process_followup_testing_loop_policy = _mode_policy(
+            "process_followup_testing_loop_required",
+            "process_followup_testing_loop_policy_scoped",
+            "process_followup_testing_loop_adaptive_with_audit"
+        )
+        process_section_sync_audit_policy = _mode_policy(
+            "process_section_sync_audit_required",
+            "process_section_sync_audit_policy_scoped",
+            "process_section_sync_audit_adaptive_with_audit"
+        )
+        process_readme_update_enforcement_policy = _mode_policy(
+            "process_readme_update_enforcement_required",
+            "process_readme_update_enforcement_policy_scoped",
+            "process_readme_update_enforcement_adaptive_with_audit"
+        )
+        process_standardization_hygiene_policy = _mode_policy(
+            "process_standardization_hygiene_required",
+            "process_standardization_hygiene_policy_scoped",
+            "process_standardization_hygiene_adaptive_with_audit"
+        )
+        full_section_coverage_audit_policy = _mode_policy(
+            "full_section_coverage_audit_required",
+            "full_section_coverage_audit_policy_scoped",
+            "full_section_coverage_audit_adaptive_with_audit"
+        )
+        recommendation_acceptance_trace_policy = _mode_policy(
+            "recommendation_acceptance_trace_required",
+            "recommendation_acceptance_trace_policy_scoped",
+            "recommendation_acceptance_trace_adaptive_with_audit"
+        )
+        iterative_test_loop_enforcement_policy = _mode_policy(
+            "iterative_test_loop_enforcement_required",
+            "iterative_test_loop_enforcement_policy_scoped",
+            "iterative_test_loop_enforcement_adaptive_with_audit"
+        )
+        readme_assessment_consistency_policy = _mode_policy(
+            "readme_assessment_consistency_required",
+            "readme_assessment_consistency_policy_scoped",
+            "readme_assessment_consistency_adaptive_with_audit"
+        )
+        standardization_terminology_lock_policy = _mode_policy(
+            "standardization_terminology_lock_required",
+            "standardization_terminology_lock_policy_scoped",
+            "standardization_terminology_lock_adaptive_with_audit"
+        )
+        section_transition_handoff_policy = _mode_policy(
+            "section_transition_handoff_required",
+            "section_transition_handoff_policy_scoped",
+            "section_transition_handoff_adaptive_with_audit"
+        )
+        section_evidence_traceability_policy = _mode_policy(
+            "section_evidence_traceability_required",
+            "section_evidence_traceability_policy_scoped",
+            "section_evidence_traceability_adaptive_with_audit"
+        )
+        section_recommendation_closure_policy = _mode_policy(
+            "section_recommendation_closure_required",
+            "section_recommendation_closure_policy_scoped",
+            "section_recommendation_closure_adaptive_with_audit"
+        )
+        section_quality_gate_policy = _mode_policy(
+            "section_quality_gate_required",
+            "section_quality_gate_policy_scoped",
+            "section_quality_gate_adaptive_with_audit"
+        )
+        section_snapshot_publication_policy = _mode_policy(
+            "section_snapshot_publication_required",
+            "section_snapshot_publication_policy_scoped",
+            "section_snapshot_publication_adaptive_with_audit"
+        )
+        all_section_review_coverage_policy = _mode_policy(
+            "all_section_review_coverage_required",
+            "all_section_review_coverage_policy_scoped",
+            "all_section_review_coverage_adaptive_with_audit"
+        )
+        all_section_recommendation_acceptance_policy = _mode_policy(
+            "all_section_recommendation_acceptance_required",
+            "all_section_recommendation_acceptance_policy_scoped",
+            "all_section_recommendation_acceptance_adaptive_with_audit"
+        )
+        all_section_progression_gate_policy = _mode_policy(
+            "all_section_progression_gate_required",
+            "all_section_progression_gate_policy_scoped",
+            "all_section_progression_gate_adaptive_with_audit"
+        )
+        all_section_standardization_lock_policy = _mode_policy(
+            "all_section_standardization_lock_required",
+            "all_section_standardization_lock_policy_scoped",
+            "all_section_standardization_lock_adaptive_with_audit"
+        )
+        all_section_reporting_sync_policy = _mode_policy(
+            "all_section_reporting_sync_required",
+            "all_section_reporting_sync_policy_scoped",
+            "all_section_reporting_sync_adaptive_with_audit"
+        )
+        recommendation_acceptance_attestation_policy = _mode_policy(
+            "recommendation_acceptance_attestation_required",
+            "recommendation_acceptance_attestation_policy_scoped",
+            "recommendation_acceptance_attestation_adaptive_with_audit"
+        )
+        recommendation_execution_checkpoint_policy = _mode_policy(
+            "recommendation_execution_checkpoint_required",
+            "recommendation_execution_checkpoint_policy_scoped",
+            "recommendation_execution_checkpoint_adaptive_with_audit"
+        )
+        recommendation_test_evidence_policy = _mode_policy(
+            "recommendation_test_evidence_required",
+            "recommendation_test_evidence_policy_scoped",
+            "recommendation_test_evidence_adaptive_with_audit"
+        )
+        recommendation_section_sync_policy = _mode_policy(
+            "recommendation_section_sync_required",
+            "recommendation_section_sync_policy_scoped",
+            "recommendation_section_sync_adaptive_with_audit"
+        )
+        recommendation_completion_report_policy = _mode_policy(
+            "recommendation_completion_report_required",
+            "recommendation_completion_report_policy_scoped",
+            "recommendation_completion_report_adaptive_with_audit"
+        )
+        section_1_to_14_continuity_policy = _mode_policy(
+            "section_1_to_14_continuity_required",
+            "section_1_to_14_continuity_policy_scoped",
+            "section_1_to_14_continuity_adaptive_with_audit"
+        )
+        section_recommendation_acceptance_audit_policy = _mode_policy(
+            "section_recommendation_acceptance_audit_required",
+            "section_recommendation_acceptance_audit_policy_scoped",
+            "section_recommendation_acceptance_audit_adaptive_with_audit"
+        )
+        section_recommendation_implementation_trace_policy = _mode_policy(
+            "section_recommendation_implementation_trace_required",
+            "section_recommendation_implementation_trace_policy_scoped",
+            "section_recommendation_implementation_trace_adaptive_with_audit"
+        )
+        section_followup_test_loop_policy = _mode_policy(
+            "section_followup_test_loop_required",
+            "section_followup_test_loop_policy_scoped",
+            "section_followup_test_loop_adaptive_with_audit"
+        )
+        section_readme_assessment_lockstep_policy = _mode_policy(
+            "section_readme_assessment_lockstep_required",
+            "section_readme_assessment_lockstep_policy_scoped",
+            "section_readme_assessment_lockstep_adaptive_with_audit"
+        )
+        section_completion_delta_reporting_policy = _mode_policy(
+            "section_completion_delta_reporting_required",
+            "section_completion_delta_reporting_policy_scoped",
+            "section_completion_delta_reporting_adaptive_with_audit"
+        )
+        section_micro_build_tracking_policy = _mode_policy(
+            "section_micro_build_tracking_required",
+            "section_micro_build_tracking_policy_scoped",
+            "section_micro_build_tracking_adaptive_with_audit"
+        )
+        section_prompt_increment_logging_policy = _mode_policy(
+            "section_prompt_increment_logging_required",
+            "section_prompt_increment_logging_policy_scoped",
+            "section_prompt_increment_logging_adaptive_with_audit"
+        )
+        section_recommendation_acceptance_evidence_policy = _mode_policy(
+            "section_recommendation_acceptance_evidence_required",
+            "section_recommendation_acceptance_evidence_policy_scoped",
+            "section_recommendation_acceptance_evidence_adaptive_with_audit"
+        )
+        section_change_budget_tracking_policy = _mode_policy(
+            "section_change_budget_tracking_required",
+            "section_change_budget_tracking_policy_scoped",
+            "section_change_budget_tracking_adaptive_with_audit"
+        )
+        section_test_result_reporting_policy = _mode_policy(
+            "section_test_result_reporting_required",
+            "section_test_result_reporting_policy_scoped",
+            "section_test_result_reporting_adaptive_with_audit"
+        )
+        section_warning_budget_policy = _mode_policy(
+            "section_warning_budget_enforced",
+            "section_warning_budget_policy_scoped",
+            "section_warning_budget_adaptive_with_audit"
+        )
+        section_retest_trigger_policy = _mode_policy(
+            "section_retest_trigger_required",
+            "section_retest_trigger_policy_scoped",
+            "section_retest_trigger_adaptive_with_audit"
+        )
+        section_documentation_accuracy_policy = _mode_policy(
+            "section_documentation_accuracy_required",
+            "section_documentation_accuracy_policy_scoped",
+            "section_documentation_accuracy_adaptive_with_audit"
+        )
+        section_loop_exit_criteria_policy = _mode_policy(
+            "section_loop_exit_criteria_required",
+            "section_loop_exit_criteria_policy_scoped",
+            "section_loop_exit_criteria_adaptive_with_audit"
+        )
+        section_recommendation_priority_policy = _mode_policy(
+            "section_recommendation_priority_required",
+            "section_recommendation_priority_policy_scoped",
+            "section_recommendation_priority_adaptive_with_audit"
+        )
+        section_recommendation_dependency_policy = _mode_policy(
+            "section_recommendation_dependency_required",
+            "section_recommendation_dependency_policy_scoped",
+            "section_recommendation_dependency_adaptive_with_audit"
+        )
+        section_risk_escalation_policy = _mode_policy(
+            "section_risk_escalation_required",
+            "section_risk_escalation_policy_scoped",
+            "section_risk_escalation_adaptive_with_audit"
+        )
+        section_completion_signoff_policy = _mode_policy(
+            "section_completion_signoff_required",
+            "section_completion_signoff_policy_scoped",
+            "section_completion_signoff_adaptive_with_audit"
+        )
+        section_continuous_improvement_policy = _mode_policy(
+            "section_continuous_improvement_required",
+            "section_continuous_improvement_policy_scoped",
+            "section_continuous_improvement_adaptive_with_audit"
+        )
+        section_recommendation_conflict_resolution_policy = _mode_policy(
+            "section_recommendation_conflict_resolution_required",
+            "section_recommendation_conflict_resolution_policy_scoped",
+            "section_recommendation_conflict_resolution_adaptive_with_audit"
+        )
+        section_dependency_unblock_policy = _mode_policy(
+            "section_dependency_unblock_required",
+            "section_dependency_unblock_policy_scoped",
+            "section_dependency_unblock_adaptive_with_audit"
+        )
+        section_regression_guard_policy = _mode_policy(
+            "section_regression_guard_required",
+            "section_regression_guard_policy_scoped",
+            "section_regression_guard_adaptive_with_audit"
+        )
+        section_release_readiness_policy = _mode_policy(
+            "section_release_readiness_required",
+            "section_release_readiness_policy_scoped",
+            "section_release_readiness_adaptive_with_audit"
+        )
+        section_traceability_index_policy = _mode_policy(
+            "section_traceability_index_required",
+            "section_traceability_index_policy_scoped",
+            "section_traceability_index_adaptive_with_audit"
+        )
+        section_acceptance_criteria_enforcement_policy = _mode_policy(
+            "section_acceptance_criteria_enforcement_required",
+            "section_acceptance_criteria_enforcement_policy_scoped",
+            "section_acceptance_criteria_enforcement_adaptive_with_audit"
+        )
+        section_artifact_quality_review_policy = _mode_policy(
+            "section_artifact_quality_review_required",
+            "section_artifact_quality_review_policy_scoped",
+            "section_artifact_quality_review_adaptive_with_audit"
+        )
+        section_retest_on_change_policy = _mode_policy(
+            "section_retest_on_change_required",
+            "section_retest_on_change_policy_scoped",
+            "section_retest_on_change_adaptive_with_audit"
+        )
+        section_documentation_trace_policy = _mode_policy(
+            "section_documentation_trace_required",
+            "section_documentation_trace_policy_scoped",
+            "section_documentation_trace_adaptive_with_audit"
+        )
+        section_release_gate_attestation_policy = _mode_policy(
+            "section_release_gate_attestation_required",
+            "section_release_gate_attestation_policy_scoped",
+            "section_release_gate_attestation_adaptive_with_audit"
+        )
+        section_dependency_health_policy = _mode_policy(
+            "section_dependency_health_gate_required",
+            "section_dependency_health_policy_scoped",
+            "section_dependency_health_adaptive_with_audit"
+        )
+        section_recommendation_sla_policy = _mode_policy(
+            "section_recommendation_sla_required",
+            "section_recommendation_sla_policy_scoped",
+            "section_recommendation_sla_adaptive_with_audit"
+        )
+        section_documentation_sync_policy = _mode_policy(
+            "section_documentation_sync_required",
+            "section_documentation_sync_policy_scoped",
+            "section_documentation_sync_adaptive_with_audit"
+        )
+        section_validation_signal_policy = _mode_policy(
+            "section_validation_signal_required",
+            "section_validation_signal_policy_scoped",
+            "section_validation_signal_adaptive_with_audit"
+        )
+        section_handoff_audit_policy = _mode_policy(
+            "section_handoff_audit_required",
+            "section_handoff_audit_policy_scoped",
+            "section_handoff_audit_adaptive_with_audit"
+        )
+
+        section_change_control_policy = _mode_policy(
+            "section_change_control_required",
+            "section_change_control_policy_scoped",
+            "section_change_control_adaptive_with_audit"
+        )
+        section_quality_drift_policy = _mode_policy(
+            "section_quality_drift_monitoring_required",
+            "section_quality_drift_policy_scoped",
+            "section_quality_drift_adaptive_with_audit"
+        )
+        section_verification_retry_policy = _mode_policy(
+            "section_verification_retry_required",
+            "section_verification_retry_policy_scoped",
+            "section_verification_retry_adaptive_with_audit"
+        )
+        section_governance_exception_budget_policy = _mode_policy(
+            "section_governance_exception_budget_required",
+            "section_governance_exception_budget_policy_scoped",
+            "section_governance_exception_budget_adaptive_with_audit"
+        )
+        section_release_documentation_gate_policy = _mode_policy(
+            "section_release_documentation_gate_required",
+            "section_release_documentation_gate_policy_scoped",
+            "section_release_documentation_gate_adaptive_with_audit"
+        )
+        section_contract_compliance_link_policy = _mode_policy(
+            "section_contract_compliance_link_required",
+            "section_contract_compliance_link_policy_scoped",
+            "section_contract_compliance_link_adaptive_with_audit"
+        )
+        section_cost_center_attribution_policy = _mode_policy(
+            "section_cost_center_attribution_required",
+            "section_cost_center_attribution_policy_scoped",
+            "section_cost_center_attribution_adaptive_with_audit"
+        )
+        section_unowned_work_throwback_policy = _mode_policy(
+            "section_unowned_work_throwback_required",
+            "section_unowned_work_throwback_policy_scoped",
+            "section_unowned_work_throwback_adaptive_with_audit"
+        )
+        section_change_order_trigger_policy = _mode_policy(
+            "section_change_order_trigger_required",
+            "section_change_order_trigger_policy_scoped",
+            "section_change_order_trigger_adaptive_with_audit"
+        )
+        section_manager_assignment_policy = _mode_policy(
+            "section_manager_assignment_required",
+            "section_manager_assignment_policy_scoped",
+            "section_manager_assignment_adaptive_with_audit"
+        )
+        section_enterprise_operating_model_policy = _mode_policy(
+            "section_enterprise_operating_model_alignment_required",
+            "section_enterprise_operating_model_policy_scoped",
+            "section_enterprise_operating_model_adaptive_with_audit"
+        )
+        section_unaccounted_work_classification_policy = _mode_policy(
+            "section_unaccounted_work_classification_required",
+            "section_unaccounted_work_classification_policy_scoped",
+            "section_unaccounted_work_classification_adaptive_with_audit"
+        )
+        section_manager_throwback_routing_policy = _mode_policy(
+            "section_manager_throwback_routing_required",
+            "section_manager_throwback_routing_policy_scoped",
+            "section_manager_throwback_routing_adaptive_with_audit"
+        )
+        section_scope_boundary_enforcement_policy = _mode_policy(
+            "section_scope_boundary_enforcement_required",
+            "section_scope_boundary_enforcement_policy_scoped",
+            "section_scope_boundary_enforcement_adaptive_with_audit"
+        )
+        section_change_order_authority_policy = _mode_policy(
+            "section_change_order_authority_gate_required",
+            "section_change_order_authority_policy_scoped",
+            "section_change_order_authority_adaptive_with_audit"
+        )
+        section_completion_verification_policy = _mode_policy(
+            "section_completion_verification_required",
+            "section_completion_verification_policy_scoped",
+            "section_completion_verification_adaptive_with_audit"
+        )
+        section_recommendation_rollforward_policy = _mode_policy(
+            "section_recommendation_rollforward_required",
+            "section_recommendation_rollforward_policy_scoped",
+            "section_recommendation_rollforward_adaptive_with_audit"
+        )
+        section_dependency_traceability_policy = _mode_policy(
+            "section_dependency_traceability_required",
+            "section_dependency_traceability_policy_scoped",
+            "section_dependency_traceability_adaptive_with_audit"
+        )
+        section_operational_readiness_policy = _mode_policy(
+            "section_operational_readiness_required",
+            "section_operational_readiness_policy_scoped",
+            "section_operational_readiness_adaptive_with_audit"
+        )
+        section_reporting_attestation_policy = _mode_policy(
+            "section_reporting_attestation_required",
+            "section_reporting_attestation_policy_scoped",
+            "section_reporting_attestation_adaptive_with_audit"
+        )
+        section_governance_traceability_policy = _mode_policy(
+            "section_governance_traceability_required",
+            "section_governance_traceability_policy_scoped",
+            "section_governance_traceability_adaptive_with_audit"
+        )
+        section_progress_checkpoint_policy = _mode_policy(
+            "section_progress_checkpoint_required",
+            "section_progress_checkpoint_policy_scoped",
+            "section_progress_checkpoint_adaptive_with_audit"
+        )
+        section_acceptance_verification_policy = _mode_policy(
+            "section_acceptance_verification_required",
+            "section_acceptance_verification_policy_scoped",
+            "section_acceptance_verification_adaptive_with_audit"
+        )
+        section_sync_integrity_policy = _mode_policy(
+            "section_sync_integrity_required",
+            "section_sync_integrity_policy_scoped",
+            "section_sync_integrity_adaptive_with_audit"
+        )
+        section_lifecycle_reporting_policy = _mode_policy(
+            "section_lifecycle_reporting_required",
+            "section_lifecycle_reporting_policy_scoped",
+            "section_lifecycle_reporting_adaptive_with_audit"
+        )
+        section_contractual_risk_alignment_policy = _mode_policy(
+            "section_contractual_risk_alignment_required",
+            "section_contractual_risk_alignment_policy_scoped",
+            "section_contractual_risk_alignment_adaptive_with_audit"
+        )
+        section_compliance_rulepack_sync_policy = _mode_policy(
+            "section_compliance_rulepack_sync_required",
+            "section_compliance_rulepack_sync_policy_scoped",
+            "section_compliance_rulepack_sync_adaptive_with_audit"
+        )
+        section_authoritative_source_integrity_policy = _mode_policy(
+            "section_authoritative_source_integrity_required",
+            "section_authoritative_source_integrity_policy_scoped",
+            "section_authoritative_source_integrity_adaptive_with_audit"
+        )
+        section_budget_gate_reconciliation_policy = _mode_policy(
+            "section_budget_gate_reconciliation_required",
+            "section_budget_gate_reconciliation_policy_scoped",
+            "section_budget_gate_reconciliation_adaptive_with_audit"
+        )
+        section_governance_override_hierarchy_policy = _mode_policy(
+            "section_governance_override_hierarchy_required",
+            "section_governance_override_hierarchy_policy_scoped",
+            "section_governance_override_hierarchy_adaptive_with_audit"
+        )
+        section_policy_pack_versioning_policy = _mode_policy(
+            "section_policy_pack_versioning_required",
+            "section_policy_pack_versioning_policy_scoped",
+            "section_policy_pack_versioning_adaptive_with_audit"
+        )
+        section_authority_delegation_revocation_policy = _mode_policy(
+            "section_authority_delegation_revocation_required",
+            "section_authority_delegation_revocation_policy_scoped",
+            "section_authority_delegation_revocation_adaptive_with_audit"
+        )
+        section_evidence_immutability_policy = _mode_policy(
+            "section_evidence_immutability_required",
+            "section_evidence_immutability_policy_scoped",
+            "section_evidence_immutability_adaptive_with_audit"
+        )
+        section_compute_plane_replay_attestation_policy = _mode_policy(
+            "section_compute_plane_replay_attestation_required",
+            "section_compute_plane_replay_attestation_policy_scoped",
+            "section_compute_plane_replay_attestation_adaptive_with_audit"
+        )
+        section_swarm_isolation_boundary_policy = _mode_policy(
+            "section_swarm_isolation_boundary_required",
+            "section_swarm_isolation_boundary_policy_scoped",
+            "section_swarm_isolation_boundary_adaptive_with_audit"
+        )
+        section_risk_tolerance_boundary_policy = _mode_policy(
+            "section_risk_tolerance_boundary_required",
+            "section_risk_tolerance_boundary_policy_scoped",
+            "section_risk_tolerance_boundary_adaptive_with_audit"
+        )
+        section_approval_delegation_integrity_policy = _mode_policy(
+            "section_approval_delegation_integrity_required",
+            "section_approval_delegation_integrity_policy_scoped",
+            "section_approval_delegation_integrity_adaptive_with_audit"
+        )
+        section_budget_anomaly_circuit_breaker_policy = _mode_policy(
+            "section_budget_anomaly_circuit_breaker_required",
+            "section_budget_anomaly_circuit_breaker_policy_scoped",
+            "section_budget_anomaly_circuit_breaker_adaptive_with_audit"
+        )
+        section_compliance_evidence_freshness_policy = _mode_policy(
+            "section_compliance_evidence_freshness_required",
+            "section_compliance_evidence_freshness_policy_scoped",
+            "section_compliance_evidence_freshness_adaptive_with_audit"
+        )
+        section_decision_packet_trace_policy = _mode_policy(
+            "section_decision_packet_trace_required",
+            "section_decision_packet_trace_policy_scoped",
+            "section_decision_packet_trace_adaptive_with_audit"
+        )
+        section_exec_authority_gate_policy = _mode_policy(
+            "section_exec_authority_gate_required",
+            "section_exec_authority_gate_policy_scoped",
+            "section_exec_authority_gate_adaptive_with_audit"
+        )
+        section_compute_plane_determinism_policy = _mode_policy(
+            "section_compute_plane_determinism_required",
+            "section_compute_plane_determinism_policy_scoped",
+            "section_compute_plane_determinism_adaptive_with_audit"
+        )
+        section_change_order_budget_delta_policy = _mode_policy(
+            "section_change_order_budget_delta_required",
+            "section_change_order_budget_delta_policy_scoped",
+            "section_change_order_budget_delta_adaptive_with_audit"
+        )
+        section_domain_swarm_accountability_policy = _mode_policy(
+            "section_domain_swarm_accountability_required",
+            "section_domain_swarm_accountability_policy_scoped",
+            "section_domain_swarm_accountability_adaptive_with_audit"
+        )
+        section_audit_packet_release_policy = _mode_policy(
+            "section_audit_packet_release_required",
+            "section_audit_packet_release_policy_scoped",
+            "section_audit_packet_release_adaptive_with_audit"
+        )
+        section_request_envelope_integrity_policy = _mode_policy(
+            "section_request_envelope_integrity_required",
+            "section_request_envelope_integrity_policy_scoped",
+            "section_request_envelope_integrity_adaptive_with_audit"
+        )
+        section_gate_graph_compilation_policy = _mode_policy(
+            "section_gate_graph_compilation_required",
+            "section_gate_graph_compilation_policy_scoped",
+            "section_gate_graph_compilation_adaptive_with_audit"
+        )
+        section_domain_swarm_routing_policy = _mode_policy(
+            "section_domain_swarm_routing_required",
+            "section_domain_swarm_routing_policy_scoped",
+            "section_domain_swarm_routing_adaptive_with_audit"
+        )
+        section_compute_replay_consistency_policy = _mode_policy(
+            "section_compute_replay_consistency_required",
+            "section_compute_replay_consistency_policy_scoped",
+            "section_compute_replay_consistency_adaptive_with_audit"
+        )
+        section_authority_scope_binding_policy = _mode_policy(
+            "section_authority_scope_binding_required",
+            "section_authority_scope_binding_policy_scoped",
+            "section_authority_scope_binding_adaptive_with_audit"
+        )
+        section_request_envelope_auditability_policy = _mode_policy(
+            "section_request_envelope_auditability_required",
+            "section_request_envelope_auditability_policy_scoped",
+            "section_request_envelope_auditability_adaptive_with_audit"
+        )
+        section_gate_dependency_replay_policy = _mode_policy(
+            "section_gate_dependency_replay_required",
+            "section_gate_dependency_replay_policy_scoped",
+            "section_gate_dependency_replay_adaptive_with_audit"
+        )
+        section_domain_escalation_binding_policy = _mode_policy(
+            "section_domain_escalation_binding_required",
+            "section_domain_escalation_binding_policy_scoped",
+            "section_domain_escalation_binding_adaptive_with_audit"
+        )
+        section_budget_variance_justification_policy = _mode_policy(
+            "section_budget_variance_justification_required",
+            "section_budget_variance_justification_policy_scoped",
+            "section_budget_variance_justification_adaptive_with_audit"
+        )
+        section_release_packet_signoff_policy = _mode_policy(
+            "section_release_packet_signoff_required",
+            "section_release_packet_signoff_policy_scoped",
+            "section_release_packet_signoff_adaptive_with_audit"
+        )
+        section_authority_chain_escalation_policy = _mode_policy(
+            "section_authority_chain_escalation_required",
+            "section_authority_chain_escalation_policy_scoped",
+            "section_authority_chain_escalation_adaptive_with_audit"
+        )
+        section_gate_decision_replay_policy = _mode_policy(
+            "section_gate_decision_replay_required",
+            "section_gate_decision_replay_policy_scoped",
+            "section_gate_decision_replay_adaptive_with_audit"
+        )
+        section_rulepack_refresh_attestation_policy = _mode_policy(
+            "section_rulepack_refresh_attestation_required",
+            "section_rulepack_refresh_attestation_policy_scoped",
+            "section_rulepack_refresh_attestation_adaptive_with_audit"
+        )
+        section_domain_owner_ack_policy = _mode_policy(
+            "section_domain_owner_ack_required",
+            "section_domain_owner_ack_policy_scoped",
+            "section_domain_owner_ack_adaptive_with_audit"
+        )
+        section_handoff_readiness_attestation_policy = _mode_policy(
+            "section_handoff_readiness_attestation_required",
+            "section_handoff_readiness_attestation_policy_scoped",
+            "section_handoff_readiness_attestation_adaptive_with_audit"
+        )
+        section_execution_audit_trail_policy = _mode_policy(
+            "section_execution_audit_trail_required",
+            "section_execution_audit_trail_policy_scoped",
+            "section_execution_audit_trail_adaptive_with_audit"
+        )
+        section_policy_enforcement_checkpoint_policy = _mode_policy(
+            "section_policy_enforcement_checkpoint_required",
+            "section_policy_enforcement_checkpoint_policy_scoped",
+            "section_policy_enforcement_checkpoint_adaptive_with_audit"
+        )
+        section_change_scope_integrity_policy = _mode_policy(
+            "section_change_scope_integrity_required",
+            "section_change_scope_integrity_policy_scoped",
+            "section_change_scope_integrity_adaptive_with_audit"
+        )
+        section_domain_handoff_chain_policy = _mode_policy(
+            "section_domain_handoff_chain_required",
+            "section_domain_handoff_chain_policy_scoped",
+            "section_domain_handoff_chain_adaptive_with_audit"
+        )
+        section_release_attestation_packet_policy = _mode_policy(
+            "section_release_attestation_packet_required",
+            "section_release_attestation_packet_policy_scoped",
+            "section_release_attestation_packet_adaptive_with_audit"
+        )
+        section_contract_scope_recheck_policy = _mode_policy(
+            "section_contract_scope_recheck_required",
+            "section_contract_scope_recheck_policy_scoped",
+            "section_contract_scope_recheck_adaptive_with_audit"
+        )
+        section_proposal_change_order_trace_policy = _mode_policy(
+            "section_proposal_change_order_trace_required",
+            "section_proposal_change_order_trace_policy_scoped",
+            "section_proposal_change_order_trace_adaptive_with_audit"
+        )
+        section_gate_graph_dependency_guard_policy = _mode_policy(
+            "section_gate_graph_dependency_guard_required",
+            "section_gate_graph_dependency_guard_policy_scoped",
+            "section_gate_graph_dependency_guard_adaptive_with_audit"
+        )
+        section_evidence_store_attestation_policy = _mode_policy(
+            "section_evidence_store_attestation_required",
+            "section_evidence_store_attestation_policy_scoped",
+            "section_evidence_store_attestation_adaptive_with_audit"
+        )
+        section_release_readout_integrity_policy = _mode_policy(
+            "section_release_readout_integrity_required",
+            "section_release_readout_integrity_policy_scoped",
+            "section_release_readout_integrity_adaptive_with_audit"
+        )
+        section_governance_sla_policy = _mode_policy(
+            "section_governance_sla_required",
+            "section_governance_sla_policy_scoped",
+            "section_governance_sla_adaptive_with_audit"
+        )
+        section_authority_chain_replay_policy = _mode_policy(
+            "section_authority_chain_replay_required",
+            "section_authority_chain_replay_policy_scoped",
+            "section_authority_chain_replay_adaptive_with_audit"
+        )
+        section_change_order_scope_lock_policy = _mode_policy(
+            "section_change_order_scope_lock_required",
+            "section_change_order_scope_lock_policy_scoped",
+            "section_change_order_scope_lock_adaptive_with_audit"
+        )
+        section_evidence_lineage_policy = _mode_policy(
+            "section_evidence_lineage_required",
+            "section_evidence_lineage_policy_scoped",
+            "section_evidence_lineage_adaptive_with_audit"
+        )
+        section_decision_trace_attestation_policy = _mode_policy(
+            "section_decision_trace_attestation_required",
+            "section_decision_trace_attestation_policy_scoped",
+            "section_decision_trace_attestation_adaptive_with_audit"
+        )
+        section_rulepack_activation_policy = _mode_policy(
+            "section_rulepack_activation_required",
+            "section_rulepack_activation_policy_scoped",
+            "section_rulepack_activation_adaptive_with_audit"
+        )
+        section_gate_input_allowlist_policy = _mode_policy(
+            "section_gate_input_allowlist_required",
+            "section_gate_input_allowlist_policy_scoped",
+            "section_gate_input_allowlist_adaptive_with_audit"
+        )
+        section_nte_change_order_policy = _mode_policy(
+            "section_nte_change_order_required",
+            "section_nte_change_order_policy_scoped",
+            "section_nte_change_order_adaptive_with_audit"
+        )
+        section_approval_identity_binding_policy = _mode_policy(
+            "section_approval_identity_binding_required",
+            "section_approval_identity_binding_policy_scoped",
+            "section_approval_identity_binding_adaptive_with_audit"
+        )
+        section_compute_reproducibility_window_policy = _mode_policy(
+            "section_compute_reproducibility_window_required",
+            "section_compute_reproducibility_window_policy_scoped",
+            "section_compute_reproducibility_window_adaptive_with_audit"
+        )
+        section_refusal_reason_standard_policy = _mode_policy(
+            "section_refusal_reason_standard_required",
+            "section_refusal_reason_standard_policy_scoped",
+            "section_refusal_reason_standard_adaptive_with_audit"
+        )
+        section_escalation_reason_code_policy = _mode_policy(
+            "section_escalation_reason_code_required",
+            "section_escalation_reason_code_policy_scoped",
+            "section_escalation_reason_code_adaptive_with_audit"
+        )
+        section_authority_delegation_expiry_policy = _mode_policy(
+            "section_authority_delegation_expiry_required",
+            "section_authority_delegation_expiry_policy_scoped",
+            "section_authority_delegation_expiry_adaptive_with_audit"
+        )
+        section_budget_tag_enforcement_policy = _mode_policy(
+            "section_budget_tag_enforcement_required",
+            "section_budget_tag_enforcement_policy_scoped",
+            "section_budget_tag_enforcement_adaptive_with_audit"
+        )
+        section_evidence_snapshot_replay_policy = _mode_policy(
+            "section_evidence_snapshot_replay_required",
+            "section_evidence_snapshot_replay_policy_scoped",
+            "section_evidence_snapshot_replay_adaptive_with_audit"
+        )
+        section_budget_circuit_breaker_policy = _mode_policy(
+            "section_budget_circuit_breaker_required",
+            "section_budget_circuit_breaker_policy_scoped",
+            "section_budget_circuit_breaker_adaptive_with_audit"
+        )
+        section_change_order_authority_scope_policy = _mode_policy(
+            "section_change_order_authority_scope_required",
+            "section_change_order_authority_scope_policy_scoped",
+            "section_change_order_authority_scope_adaptive_with_audit"
+        )
+        section_evidence_signature_policy = _mode_policy(
+            "section_evidence_signature_required",
+            "section_evidence_signature_policy_scoped",
+            "section_evidence_signature_adaptive_with_audit"
+        )
+        section_domain_escalation_sla_policy = _mode_policy(
+            "section_domain_escalation_sla_required",
+            "section_domain_escalation_sla_policy_scoped",
+            "section_domain_escalation_sla_adaptive_with_audit"
+        )
+        section_governance_override_precedence_policy = _mode_policy(
+            "section_governance_override_precedence_required",
+            "section_governance_override_precedence_policy_scoped",
+            "section_governance_override_precedence_adaptive_with_audit"
+        )
+        section_gate_outcome_reason_integrity_policy = _mode_policy(
+            "section_gate_outcome_reason_integrity_required",
+            "section_gate_outcome_reason_integrity_policy_scoped",
+            "section_gate_outcome_reason_integrity_adaptive_with_audit"
+        )
+        section_authority_signature_validation_policy = _mode_policy(
+            "section_authority_signature_validation_required",
+            "section_authority_signature_validation_policy_scoped",
+            "section_authority_signature_validation_adaptive_with_audit"
+        )
+        section_compute_replay_snapshot_policy = _mode_policy(
+            "section_compute_replay_snapshot_required",
+            "section_compute_replay_snapshot_policy_scoped",
+            "section_compute_replay_snapshot_adaptive_with_audit"
+        )
+        section_budget_control_trace_policy = _mode_policy(
+            "section_budget_control_trace_required",
+            "section_budget_control_trace_policy_scoped",
+            "section_budget_control_trace_adaptive_with_audit"
+        )
+        section_release_evidence_bundle_policy = _mode_policy(
+            "section_release_evidence_bundle_required",
+            "section_release_evidence_bundle_policy_scoped",
+            "section_release_evidence_bundle_adaptive_with_audit"
+        )
+        section_gate_evaluation_determinism_policy = _mode_policy(
+            "section_gate_evaluation_determinism_required",
+            "section_gate_evaluation_determinism_policy_scoped",
+            "section_gate_evaluation_determinism_adaptive_with_audit"
+        )
+        section_authority_override_documentation_policy = _mode_policy(
+            "section_authority_override_documentation_required",
+            "section_authority_override_documentation_policy_scoped",
+            "section_authority_override_documentation_adaptive_with_audit"
+        )
+        section_change_order_dependency_validation_policy = _mode_policy(
+            "section_change_order_dependency_validation_required",
+            "section_change_order_dependency_validation_policy_scoped",
+            "section_change_order_dependency_validation_adaptive_with_audit"
+        )
+        section_budget_forecast_alignment_policy = _mode_policy(
+            "section_budget_forecast_alignment_required",
+            "section_budget_forecast_alignment_policy_scoped",
+            "section_budget_forecast_alignment_adaptive_with_audit"
+        )
+        section_handoff_audit_completion_policy = _mode_policy(
+            "section_handoff_audit_completion_required",
+            "section_handoff_audit_completion_policy_scoped",
+            "section_handoff_audit_completion_adaptive_with_audit"
+        )
+        section_gate_decision_signature_policy = _mode_policy(
+            "section_gate_decision_signature_required",
+            "section_gate_decision_signature_policy_scoped",
+            "section_gate_decision_signature_adaptive_with_audit"
+        )
+        section_authority_scope_timeout_policy = _mode_policy(
+            "section_authority_scope_timeout_required",
+            "section_authority_scope_timeout_policy_scoped",
+            "section_authority_scope_timeout_adaptive_with_audit"
+        )
+        section_change_order_cost_trace_policy = _mode_policy(
+            "section_change_order_cost_trace_required",
+            "section_change_order_cost_trace_policy_scoped",
+            "section_change_order_cost_trace_adaptive_with_audit"
+        )
+        section_evidence_checkpoint_policy = _mode_policy(
+            "section_evidence_checkpoint_required",
+            "section_evidence_checkpoint_policy_scoped",
+            "section_evidence_checkpoint_adaptive_with_audit"
+        )
+        section_release_packet_consistency_policy = _mode_policy(
+            "section_release_packet_consistency_required",
+            "section_release_packet_consistency_policy_scoped",
+            "section_release_packet_consistency_adaptive_with_audit"
+        )
+        section_authority_recertification_policy = _mode_policy(
+            "section_authority_recertification_required",
+            "section_authority_recertification_policy_scoped",
+            "section_authority_recertification_adaptive_with_audit"
+        )
+        section_budget_forecast_variance_policy = _mode_policy(
+            "section_budget_forecast_variance_required",
+            "section_budget_forecast_variance_policy_scoped",
+            "section_budget_forecast_variance_adaptive_with_audit"
+        )
+        section_evidence_hash_chain_policy = _mode_policy(
+            "section_evidence_hash_chain_required",
+            "section_evidence_hash_chain_policy_scoped",
+            "section_evidence_hash_chain_adaptive_with_audit"
+        )
+        section_gate_timeout_enforcement_policy = _mode_policy(
+            "section_gate_timeout_enforcement_required",
+            "section_gate_timeout_enforcement_policy_scoped",
+            "section_gate_timeout_enforcement_adaptive_with_audit"
+        )
+        section_release_exception_register_policy = _mode_policy(
+            "section_release_exception_register_required",
+            "section_release_exception_register_policy_scoped",
+            "section_release_exception_register_adaptive_with_audit"
+        )
+        section_domain_owner_escalation_policy = _mode_policy(
+            "section_domain_owner_escalation_required",
+            "section_domain_owner_escalation_policy_scoped",
+            "section_domain_owner_escalation_adaptive_with_audit"
+        )
+        section_gate_dependency_trace_policy = _mode_policy(
+            "section_gate_dependency_trace_required",
+            "section_gate_dependency_trace_policy_scoped",
+            "section_gate_dependency_trace_adaptive_with_audit"
+        )
+        section_budget_variance_escalation_policy = _mode_policy(
+            "section_budget_variance_escalation_required",
+            "section_budget_variance_escalation_policy_scoped",
+            "section_budget_variance_escalation_adaptive_with_audit"
+        )
+        section_evidence_lineage_recheck_policy = _mode_policy(
+            "section_evidence_lineage_recheck_required",
+            "section_evidence_lineage_recheck_policy_scoped",
+            "section_evidence_lineage_recheck_adaptive_with_audit"
+        )
+        section_release_authority_replay_policy = _mode_policy(
+            "section_release_authority_replay_required",
+            "section_release_authority_replay_policy_scoped",
+            "section_release_authority_replay_adaptive_with_audit"
+        )
+        section_gate_reason_code_replay_policy = _mode_policy(
+            "section_gate_reason_code_replay_required",
+            "section_gate_reason_code_replay_policy_scoped",
+            "section_gate_reason_code_replay_adaptive_with_audit"
+        )
+        section_approval_delegation_registry_policy = _mode_policy(
+            "section_approval_delegation_registry_required",
+            "section_approval_delegation_registry_policy_scoped",
+            "section_approval_delegation_registry_adaptive_with_audit"
+        )
+        section_budget_cap_change_log_policy = _mode_policy(
+            "section_budget_cap_change_log_required",
+            "section_budget_cap_change_log_policy_scoped",
+            "section_budget_cap_change_log_adaptive_with_audit"
+        )
+        section_evidence_attestation_signature_policy = _mode_policy(
+            "section_evidence_attestation_signature_required",
+            "section_evidence_attestation_signature_policy_scoped",
+            "section_evidence_attestation_signature_adaptive_with_audit"
+        )
+        section_release_governance_manifest_policy = _mode_policy(
+            "section_release_governance_manifest_required",
+            "section_release_governance_manifest_policy_scoped",
+            "section_release_governance_manifest_adaptive_with_audit"
+        )
+        section_governance_path_integrity_policy = _mode_policy(
+            "section_governance_path_integrity_required",
+            "section_governance_path_integrity_policy_scoped",
+            "section_governance_path_integrity_adaptive_with_audit"
+        )
+        section_policy_exception_disposition_policy = _mode_policy(
+            "section_policy_exception_disposition_required",
+            "section_policy_exception_disposition_policy_scoped",
+            "section_policy_exception_disposition_adaptive_with_audit"
+        )
+        section_budget_reforecast_attestation_policy = _mode_policy(
+            "section_budget_reforecast_attestation_required",
+            "section_budget_reforecast_attestation_policy_scoped",
+            "section_budget_reforecast_attestation_adaptive_with_audit"
+        )
+        section_evidence_chain_custody_policy = _mode_policy(
+            "section_evidence_chain_custody_required",
+            "section_evidence_chain_custody_policy_scoped",
+            "section_evidence_chain_custody_adaptive_with_audit"
+        )
+        section_release_authorization_token_policy = _mode_policy(
+            "section_release_authorization_token_required",
+            "section_release_authorization_token_policy_scoped",
+            "section_release_authorization_token_adaptive_with_audit"
+        )
+        section_governance_checkpoint_replay_policy = _mode_policy(
+            "section_governance_checkpoint_replay_required",
+            "section_governance_checkpoint_replay_policy_scoped",
+            "section_governance_checkpoint_replay_adaptive_with_audit"
+        )
+        section_authority_token_rotation_policy = _mode_policy(
+            "section_authority_token_rotation_required",
+            "section_authority_token_rotation_policy_scoped",
+            "section_authority_token_rotation_adaptive_with_audit"
+        )
+        section_budget_spike_containment_policy = _mode_policy(
+            "section_budget_spike_containment_required",
+            "section_budget_spike_containment_policy_scoped",
+            "section_budget_spike_containment_adaptive_with_audit"
+        )
+        section_evidence_bundle_hash_policy = _mode_policy(
+            "section_evidence_bundle_hash_required",
+            "section_evidence_bundle_hash_policy_scoped",
+            "section_evidence_bundle_hash_adaptive_with_audit"
+        )
+        section_release_exception_revalidation_policy = _mode_policy(
+            "section_release_exception_revalidation_required",
+            "section_release_exception_revalidation_policy_scoped",
+            "section_release_exception_revalidation_adaptive_with_audit"
+        )
+        section_governance_policy_reconciliation_policy = _mode_policy(
+            "section_governance_policy_reconciliation_required",
+            "section_governance_policy_reconciliation_policy_scoped",
+            "section_governance_policy_reconciliation_adaptive_with_audit"
+        )
+        section_authority_chain_expiry_policy = _mode_policy(
+            "section_authority_chain_expiry_required",
+            "section_authority_chain_expiry_policy_scoped",
+            "section_authority_chain_expiry_adaptive_with_audit"
+        )
+        section_budget_exception_audit_policy = _mode_policy(
+            "section_budget_exception_audit_required",
+            "section_budget_exception_audit_policy_scoped",
+            "section_budget_exception_audit_adaptive_with_audit"
+        )
+        section_gate_signature_rotation_policy = _mode_policy(
+            "section_gate_signature_rotation_required",
+            "section_gate_signature_rotation_policy_scoped",
+            "section_gate_signature_rotation_adaptive_with_audit"
+        )
+        section_release_packet_attestation_policy = _mode_policy(
+            "section_release_packet_attestation_required",
+            "section_release_packet_attestation_policy_scoped",
+            "section_release_packet_attestation_adaptive_with_audit"
+        )
+        section_governance_rollup_consistency_policy = _mode_policy(
+            "section_governance_rollup_consistency_required",
+            "section_governance_rollup_consistency_policy_scoped",
+            "section_governance_rollup_consistency_adaptive_with_audit"
+        )
+        section_authority_chain_snapshot_policy = _mode_policy(
+            "section_authority_chain_snapshot_required",
+            "section_authority_chain_snapshot_policy_scoped",
+            "section_authority_chain_snapshot_adaptive_with_audit"
+        )
+        section_budget_envelope_audit_policy = _mode_policy(
+            "section_budget_envelope_audit_required",
+            "section_budget_envelope_audit_policy_scoped",
+            "section_budget_envelope_audit_adaptive_with_audit"
+        )
+        section_evidence_manifest_replay_policy = _mode_policy(
+            "section_evidence_manifest_replay_required",
+            "section_evidence_manifest_replay_policy_scoped",
+            "section_evidence_manifest_replay_adaptive_with_audit"
+        )
+        section_release_override_justification_policy = _mode_policy(
+            "section_release_override_justification_required",
+            "section_release_override_justification_policy_scoped",
+            "section_release_override_justification_adaptive_with_audit"
+        )
+        section_governance_decision_envelope_policy = _mode_policy(
+            "section_governance_decision_envelope_required",
+            "section_governance_decision_envelope_policy_scoped",
+            "section_governance_decision_envelope_adaptive_with_audit"
+        )
+        section_authority_recusal_trace_policy = _mode_policy(
+            "section_authority_recusal_trace_required",
+            "section_authority_recusal_trace_policy_scoped",
+            "section_authority_recusal_trace_adaptive_with_audit"
+        )
+        section_budget_guardrail_replay_policy = _mode_policy(
+            "section_budget_guardrail_replay_required",
+            "section_budget_guardrail_replay_policy_scoped",
+            "section_budget_guardrail_replay_adaptive_with_audit"
+        )
+        section_evidence_provenance_reconciliation_policy = _mode_policy(
+            "section_evidence_provenance_reconciliation_required",
+            "section_evidence_provenance_reconciliation_policy_scoped",
+            "section_evidence_provenance_reconciliation_adaptive_with_audit"
+        )
+        section_release_attestation_chain_policy = _mode_policy(
+            "section_release_attestation_chain_required",
+            "section_release_attestation_chain_policy_scoped",
+            "section_release_attestation_chain_adaptive_with_audit"
+        )
+        section_governance_trace_seal_policy = _mode_policy(
+            "section_governance_trace_seal_required",
+            "section_governance_trace_seal_policy_scoped",
+            "section_governance_trace_seal_adaptive_with_audit"
+        )
+        section_authority_replay_token_policy = _mode_policy(
+            "section_authority_replay_token_required",
+            "section_authority_replay_token_policy_scoped",
+            "section_authority_replay_token_adaptive_with_audit"
+        )
+        section_budget_exception_replay_policy = _mode_policy(
+            "section_budget_exception_replay_required",
+            "section_budget_exception_replay_policy_scoped",
+            "section_budget_exception_replay_adaptive_with_audit"
+        )
+        section_evidence_freshness_recertification_policy = _mode_policy(
+            "section_evidence_freshness_recertification_required",
+            "section_evidence_freshness_recertification_policy_scoped",
+            "section_evidence_freshness_recertification_adaptive_with_audit"
+        )
+        section_release_handoff_replay_policy = _mode_policy(
+            "section_release_handoff_replay_required",
+            "section_release_handoff_replay_policy_scoped",
+            "section_release_handoff_replay_adaptive_with_audit"
+        )
+        section_governance_audit_recertification_policy = _mode_policy(
+            "section_governance_audit_recertification_required",
+            "section_governance_audit_recertification_policy_scoped",
+            "section_governance_audit_recertification_adaptive_with_audit"
+        )
+        section_authority_scope_exception_policy = _mode_policy(
+            "section_authority_scope_exception_required",
+            "section_authority_scope_exception_policy_scoped",
+            "section_authority_scope_exception_adaptive_with_audit"
+        )
+        section_budget_change_envelope_policy = _mode_policy(
+            "section_budget_change_envelope_required",
+            "section_budget_change_envelope_policy_scoped",
+            "section_budget_change_envelope_adaptive_with_audit"
+        )
+        section_evidence_chain_seal_policy = _mode_policy(
+            "section_evidence_chain_seal_required",
+            "section_evidence_chain_seal_policy_scoped",
+            "section_evidence_chain_seal_adaptive_with_audit"
+        )
+        section_release_gate_replay_policy = _mode_policy(
+            "section_release_gate_replay_required",
+            "section_release_gate_replay_policy_scoped",
+            "section_release_gate_replay_adaptive_with_audit"
+        )
+        section_governance_exception_timeout_policy = _mode_policy(
+            "section_governance_exception_timeout_required",
+            "section_governance_exception_timeout_policy_scoped",
+            "section_governance_exception_timeout_adaptive_with_audit"
+        )
+        section_authority_delegation_ledger_policy = _mode_policy(
+            "section_authority_delegation_ledger_required",
+            "section_authority_delegation_ledger_policy_scoped",
+            "section_authority_delegation_ledger_adaptive_with_audit"
+        )
+        section_budget_burnrate_attestation_policy = _mode_policy(
+            "section_budget_burnrate_attestation_required",
+            "section_budget_burnrate_attestation_policy_scoped",
+            "section_budget_burnrate_attestation_adaptive_with_audit"
+        )
+        section_evidence_snapshot_expiry_policy = _mode_policy(
+            "section_evidence_snapshot_expiry_required",
+            "section_evidence_snapshot_expiry_policy_scoped",
+            "section_evidence_snapshot_expiry_adaptive_with_audit"
+        )
+        section_release_override_reconciliation_policy = _mode_policy(
+            "section_release_override_reconciliation_required",
+            "section_release_override_reconciliation_policy_scoped",
+            "section_release_override_reconciliation_adaptive_with_audit"
+        )
+        section_governance_ledger_integrity_policy = _mode_policy(
+            "section_governance_ledger_integrity_required",
+            "section_governance_ledger_integrity_policy_scoped",
+            "section_governance_ledger_integrity_adaptive_with_audit"
+        )
+        section_authority_chain_digest_policy = _mode_policy(
+            "section_authority_chain_digest_required",
+            "section_authority_chain_digest_policy_scoped",
+            "section_authority_chain_digest_adaptive_with_audit"
+        )
+        section_budget_reconciliation_digest_policy = _mode_policy(
+            "section_budget_reconciliation_digest_required",
+            "section_budget_reconciliation_digest_policy_scoped",
+            "section_budget_reconciliation_digest_adaptive_with_audit"
+        )
+        section_evidence_checkpoint_digest_policy = _mode_policy(
+            "section_evidence_checkpoint_digest_required",
+            "section_evidence_checkpoint_digest_policy_scoped",
+            "section_evidence_checkpoint_digest_adaptive_with_audit"
+        )
+        section_release_chain_digest_policy = _mode_policy(
+            "section_release_chain_digest_required",
+            "section_release_chain_digest_policy_scoped",
+            "section_release_chain_digest_adaptive_with_audit"
+        )
+        section_governance_policy_replay_lock_policy = _mode_policy(
+            "section_governance_policy_replay_lock_required",
+            "section_governance_policy_replay_lock_policy_scoped",
+            "section_governance_policy_replay_lock_adaptive_with_audit"
+        )
+        section_authority_chain_nonce_policy = _mode_policy(
+            "section_authority_chain_nonce_required",
+            "section_authority_chain_nonce_policy_scoped",
+            "section_authority_chain_nonce_adaptive_with_audit"
+        )
+        section_budget_override_attestation_policy = _mode_policy(
+            "section_budget_override_attestation_required",
+            "section_budget_override_attestation_policy_scoped",
+            "section_budget_override_attestation_adaptive_with_audit"
+        )
+        section_evidence_packet_nonce_policy = _mode_policy(
+            "section_evidence_packet_nonce_required",
+            "section_evidence_packet_nonce_policy_scoped",
+            "section_evidence_packet_nonce_adaptive_with_audit"
+        )
+        section_release_gate_override_policy = _mode_policy(
+            "section_release_gate_override_required",
+            "section_release_gate_override_policy_scoped",
+            "section_release_gate_override_adaptive_with_audit"
+        )
+        section_governance_dependency_sequencing_policy = _mode_policy(
+            "section_governance_dependency_sequencing_required",
+            "section_governance_dependency_sequencing_policy_scoped",
+            "section_governance_dependency_sequencing_adaptive_with_audit"
+        )
+        section_authority_scope_replay_attestation_policy = _mode_policy(
+            "section_authority_scope_replay_attestation_required",
+            "section_authority_scope_replay_attestation_policy_scoped",
+            "section_authority_scope_replay_attestation_adaptive_with_audit"
+        )
+        section_budget_allocation_trace_policy = _mode_policy(
+            "section_budget_allocation_trace_required",
+            "section_budget_allocation_trace_policy_scoped",
+            "section_budget_allocation_trace_adaptive_with_audit"
+        )
+        section_evidence_manifest_freshness_policy = _mode_policy(
+            "section_evidence_manifest_freshness_required",
+            "section_evidence_manifest_freshness_policy_scoped",
+            "section_evidence_manifest_freshness_adaptive_with_audit"
+        )
+        section_release_override_chain_policy = _mode_policy(
+            "section_release_override_chain_required",
+            "section_release_override_chain_policy_scoped",
+            "section_release_override_chain_adaptive_with_audit"
+        )
+        section_governance_verification_digest_policy = _mode_policy(
+            "section_governance_verification_digest_required",
+            "section_governance_verification_digest_policy_scoped",
+            "section_governance_verification_digest_adaptive_with_audit"
+        )
+        section_authority_scope_nonce_rotation_policy = _mode_policy(
+            "section_authority_scope_nonce_rotation_required",
+            "section_authority_scope_nonce_rotation_policy_scoped",
+            "section_authority_scope_nonce_rotation_adaptive_with_audit"
+        )
+        section_budget_forecast_lock_policy = _mode_policy(
+            "section_budget_forecast_lock_required",
+            "section_budget_forecast_lock_policy_scoped",
+            "section_budget_forecast_lock_adaptive_with_audit"
+        )
+        section_evidence_bundle_canonicalization_policy = _mode_policy(
+            "section_evidence_bundle_canonicalization_required",
+            "section_evidence_bundle_canonicalization_policy_scoped",
+            "section_evidence_bundle_canonicalization_adaptive_with_audit"
+        )
+        section_release_attestation_digest_policy = _mode_policy(
+            "section_release_attestation_digest_required",
+            "section_release_attestation_digest_policy_scoped",
+            "section_release_attestation_digest_adaptive_with_audit"
+        )
+        section_governance_dependency_nonce_lock_policy = _mode_policy(
+            "section_governance_dependency_nonce_lock_required",
+            "section_governance_dependency_nonce_lock_policy_scoped",
+            "section_governance_dependency_nonce_lock_adaptive_with_audit"
+        )
+        section_authority_override_recertification_policy = _mode_policy(
+            "section_authority_override_recertification_required",
+            "section_authority_override_recertification_policy_scoped",
+            "section_authority_override_recertification_adaptive_with_audit"
+        )
+        section_budget_exception_rebind_policy = _mode_policy(
+            "section_budget_exception_rebind_required",
+            "section_budget_exception_rebind_policy_scoped",
+            "section_budget_exception_rebind_adaptive_with_audit"
+        )
+        section_evidence_packet_reseal_policy = _mode_policy(
+            "section_evidence_packet_reseal_required",
+            "section_evidence_packet_reseal_policy_scoped",
+            "section_evidence_packet_reseal_adaptive_with_audit"
+        )
+        section_release_gate_drift_policy = _mode_policy(
+            "section_release_gate_drift_required",
+            "section_release_gate_drift_policy_scoped",
+            "section_release_gate_drift_adaptive_with_audit"
+        )
+        hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
+        return {
+            "execution_mode": mode,
+            "execution_profile_source": execution_profile_source,
+            "execution_enforcement_level": execution_enforcement_level,
+            "control_plane_separation_state": control_plane_separation_state,
+            "self_improvement_rd_candidate": self_improvement_rd_candidate,
+            "approval_checkpoint_policy": approval_checkpoint_policy,
+            "budget_enforcement_mode": budget_enforcement_mode,
+            "audit_logging_policy": audit_logging_policy,
+            "escalation_routing_policy": escalation_routing_policy,
+            "tool_mediation_policy": tool_mediation_policy,
+            "deterministic_routing_policy": deterministic_routing_policy,
+            "compute_routing_policy": compute_routing_policy,
+            "policy_compiler_mode": policy_compiler_mode,
+            "permission_validation_policy": permission_validation_policy,
+            "delegation_scope_policy": delegation_scope_policy,
+            "execution_broker_policy": execution_broker_policy,
+            "role_registry_policy": role_registry_policy,
+            "authority_boundary_policy": authority_boundary_policy,
+            "cross_department_arbitration_policy": cross_department_arbitration_policy,
+            "department_memory_isolation_policy": department_memory_isolation_policy,
+            "employee_contract_responsibility_policy": employee_contract_responsibility_policy,
+            "core_responsibility_scope": core_responsibility_scope,
+            "shadow_agent_account_policy": shadow_agent_account_policy,
+            "user_base_management_surface_policy": user_base_management_surface_policy,
+            "employee_contract_change_authority_policy": employee_contract_change_authority_policy,
+            "employee_contract_management_surface_policy": employee_contract_management_surface_policy,
+            "employee_contract_accountability_policy": employee_contract_accountability_policy,
+            "shadow_agent_org_parity_policy": shadow_agent_org_parity_policy,
+            "shadow_agent_contract_binding_policy": shadow_agent_contract_binding_policy,
+            "user_base_access_governance_policy": user_base_access_governance_policy,
+            "employee_contract_obligation_tracking_policy": employee_contract_obligation_tracking_policy,
+            "employee_contract_escalation_binding_policy": employee_contract_escalation_binding_policy,
+            "regulatory_context_binding_policy": regulatory_context_binding_policy,
+            "autonomy_preference_override_policy": autonomy_preference_override_policy,
+            "risk_tolerance_enforcement_policy": risk_tolerance_enforcement_policy,
+            "safety_level_assurance_policy": safety_level_assurance_policy,
+            "delegation_comfort_governance_policy": delegation_comfort_governance_policy,
+            "employee_contract_review_policy": employee_contract_review_policy,
+            "employee_contract_versioning_policy": employee_contract_versioning_policy,
+            "shadow_agent_account_lifecycle_policy": shadow_agent_account_lifecycle_policy,
+            "user_base_ui_audit_policy": user_base_ui_audit_policy,
+            "org_chart_assignment_sync_policy": org_chart_assignment_sync_policy,
+            "event_queue_durability_policy": event_queue_durability_policy,
+            "idempotency_key_enforcement_policy": idempotency_key_enforcement_policy,
+            "retry_backoff_policy": retry_backoff_policy,
+            "circuit_breaker_policy": circuit_breaker_policy,
+            "rollback_recovery_policy": rollback_recovery_policy,
+            "planning_plane_decomposition_policy": planning_plane_decomposition_policy,
+            "planning_plane_risk_simulation_policy": planning_plane_risk_simulation_policy,
+            "execution_plane_permission_gate_policy": execution_plane_permission_gate_policy,
+            "execution_plane_budget_guardrail_policy": execution_plane_budget_guardrail_policy,
+            "execution_plane_audit_trail_integrity_policy": execution_plane_audit_trail_integrity_policy,
+            "swarm_spawn_governance_policy": swarm_spawn_governance_policy,
+            "swarm_failure_containment_policy": swarm_failure_containment_policy,
+            "swarm_budget_expansion_policy": swarm_budget_expansion_policy,
+            "shadow_reinforcement_signal_policy": shadow_reinforcement_signal_policy,
+            "behavioral_divergence_tracking_policy": behavioral_divergence_tracking_policy,
+            "planning_plane_gate_synthesis_policy": planning_plane_gate_synthesis_policy,
+            "planning_plane_org_mapping_policy": planning_plane_org_mapping_policy,
+            "execution_plane_tool_permission_enforcement_policy": execution_plane_tool_permission_enforcement_policy,
+            "execution_plane_budget_ceiling_override_policy": execution_plane_budget_ceiling_override_policy,
+            "execution_plane_escalation_checkpoint_policy": execution_plane_escalation_checkpoint_policy,
+            "human_in_the_loop_enforcement_policy": human_in_the_loop_enforcement_policy,
+            "regulatory_audit_retention_policy": regulatory_audit_retention_policy,
+            "tenant_boundary_enforcement_policy": tenant_boundary_enforcement_policy,
+            "policy_exception_handling_policy": policy_exception_handling_policy,
+            "runtime_profile_refresh_policy": runtime_profile_refresh_policy,
+            "planning_plane_compliance_modeling_policy": planning_plane_compliance_modeling_policy,
+            "planning_plane_proposal_generation_policy": planning_plane_proposal_generation_policy,
+            "execution_plane_policy_compiler_enforcement_policy": execution_plane_policy_compiler_enforcement_policy,
+            "execution_plane_deterministic_override_policy": execution_plane_deterministic_override_policy,
+            "hitl_escalation_requirement_policy": hitl_escalation_requirement_policy,
+            "shadow_peer_role_enforcement_policy": shadow_peer_role_enforcement_policy,
+            "shadow_account_user_binding_policy": shadow_account_user_binding_policy,
+            "employee_contract_scope_enforcement_policy": employee_contract_scope_enforcement_policy,
+            "employee_contract_exception_review_policy": employee_contract_exception_review_policy,
+            "user_base_tenant_boundary_policy": user_base_tenant_boundary_policy,
+            "compliance_event_escalation_policy": compliance_event_escalation_policy,
+            "regulatory_override_resolution_policy": regulatory_override_resolution_policy,
+            "budget_ceiling_revision_policy": budget_ceiling_revision_policy,
+            "budget_consumption_alert_policy": budget_consumption_alert_policy,
+            "approval_checkpoint_timeout_policy": approval_checkpoint_timeout_policy,
+            "compliance_sensor_event_policy": compliance_sensor_event_policy,
+            "policy_drift_detection_policy": policy_drift_detection_policy,
+            "onboarding_profile_revalidation_policy": onboarding_profile_revalidation_policy,
+            "control_plane_mode_transition_policy": control_plane_mode_transition_policy,
+            "user_autonomy_preference_ui_policy": user_autonomy_preference_ui_policy,
+            "planning_execution_toggle_guard_policy": planning_execution_toggle_guard_policy,
+            "governance_exception_escalation_policy": governance_exception_escalation_policy,
+            "approval_sla_enforcement_policy": approval_sla_enforcement_policy,
+            "tenant_residency_control_policy": tenant_residency_control_policy,
+            "swarm_recursion_guard_policy": swarm_recursion_guard_policy,
+            "contract_renewal_gate_policy": contract_renewal_gate_policy,
+            "shadow_account_suspension_policy": shadow_account_suspension_policy,
+            "user_base_offboarding_policy": user_base_offboarding_policy,
+            "governance_kernel_heartbeat_policy": governance_kernel_heartbeat_policy,
+            "policy_compiler_change_control_policy": policy_compiler_change_control_policy,
+            "replay_reconciliation_policy": replay_reconciliation_policy,
+            "audit_artifact_retention_policy": audit_artifact_retention_policy,
+            "event_backpressure_management_policy": event_backpressure_management_policy,
+            "queue_health_slo_policy": queue_health_slo_policy,
+            "rollback_compensation_policy": rollback_compensation_policy,
+            "durable_queue_replay_policy": durable_queue_replay_policy,
+            "swarm_failure_domain_isolation_policy": swarm_failure_domain_isolation_policy,
+            "idempotent_recovery_validation_policy": idempotent_recovery_validation_policy,
+            "agent_spawn_budget_reconciliation_policy": agent_spawn_budget_reconciliation_policy,
+            "audit_chain_export_policy": audit_chain_export_policy,
+            "semantics_belief_state_policy": semantics_belief_state_policy,
+            "semantics_loss_risk_policy": semantics_loss_risk_policy,
+            "semantics_voi_question_policy": semantics_voi_question_policy,
+            "semantics_invariance_boundary_policy": semantics_invariance_boundary_policy,
+            "semantics_verification_feedback_policy": semantics_verification_feedback_policy,
+            "semantics_hypothesis_update_policy": semantics_hypothesis_update_policy,
+            "semantics_likelihood_scoring_policy": semantics_likelihood_scoring_policy,
+            "semantics_rvoi_decision_policy": semantics_rvoi_decision_policy,
+            "semantics_clarifying_question_budget_policy": semantics_clarifying_question_budget_policy,
+            "semantics_invariance_retry_policy": semantics_invariance_retry_policy,
+            "semantics_hypothesis_distribution_policy": semantics_hypothesis_distribution_policy,
+            "semantics_cvar_risk_measure_policy": semantics_cvar_risk_measure_policy,
+            "semantics_question_cost_policy": semantics_question_cost_policy,
+            "semantics_invariance_transform_set_policy": semantics_invariance_transform_set_policy,
+            "semantics_verification_boundary_policy": semantics_verification_boundary_policy,
+            "runtime_telemetry_tokens_to_resolution_policy": runtime_telemetry_tokens_to_resolution_policy,
+            "runtime_telemetry_question_count_policy": runtime_telemetry_question_count_policy,
+            "runtime_telemetry_invariance_score_policy": runtime_telemetry_invariance_score_policy,
+            "runtime_telemetry_risk_score_policy": runtime_telemetry_risk_score_policy,
+            "runtime_telemetry_verification_feedback_policy": runtime_telemetry_verification_feedback_policy,
+            "semantics_question_candidate_generation_policy": semantics_question_candidate_generation_policy,
+            "semantics_answer_prediction_policy": semantics_answer_prediction_policy,
+            "semantics_belief_normalization_policy": semantics_belief_normalization_policy,
+            "semantics_verification_loss_injection_policy": semantics_verification_loss_injection_policy,
+            "semantics_action_revision_policy": semantics_action_revision_policy,
+            "legacy_orchestrator_discovery_policy": legacy_orchestrator_discovery_policy,
+            "rubixcube_orchestrator_adapter_policy": rubixcube_orchestrator_adapter_policy,
+            "triage_orchestrator_adapter_policy": triage_orchestrator_adapter_policy,
+            "bot_catalog_capability_mapping_policy": bot_catalog_capability_mapping_policy,
+            "legacy_orchestrator_wiring_priority_policy": legacy_orchestrator_wiring_priority_policy,
+            "modern_arcana_clockwork_bridge_policy": modern_arcana_clockwork_bridge_policy,
+            "legacy_orchestrator_compatibility_matrix_policy": legacy_orchestrator_compatibility_matrix_policy,
+            "rubixcube_kaia_mix_scoring_policy": rubixcube_kaia_mix_scoring_policy,
+            "triage_rollcall_selection_policy": triage_rollcall_selection_policy,
+            "legacy_orchestrator_tooling_plan_policy": legacy_orchestrator_tooling_plan_policy,
+            "clockwork_orchestrator_bridge_policy": clockwork_orchestrator_bridge_policy,
+            "arcana_pipeline_compatibility_policy": arcana_pipeline_compatibility_policy,
+            "rubixcube_evidence_engine_policy": rubixcube_evidence_engine_policy,
+            "triage_rollcall_confidence_policy": triage_rollcall_confidence_policy,
+            "golden_path_reuse_policy": golden_path_reuse_policy,
+            "governance_review_cadence_policy": governance_review_cadence_policy,
+            "section_status_reconciliation_policy": section_status_reconciliation_policy,
+            "orchestrator_wiring_readiness_policy": orchestrator_wiring_readiness_policy,
+            "verification_feedback_closure_policy": verification_feedback_closure_policy,
+            "self_improvement_backlog_priority_policy": self_improvement_backlog_priority_policy,
+            "assessment_section_coverage_policy": assessment_section_coverage_policy,
+            "assessment_recommendation_acceptance_policy": assessment_recommendation_acceptance_policy,
+            "assessment_standardization_governance_policy": assessment_standardization_governance_policy,
+            "assessment_progression_loop_policy": assessment_progression_loop_policy,
+            "assessment_readme_assessment_sync_policy": assessment_readme_assessment_sync_policy,
+            "process_gate_iteration_policy": process_gate_iteration_policy,
+            "process_followup_testing_loop_policy": process_followup_testing_loop_policy,
+            "process_section_sync_audit_policy": process_section_sync_audit_policy,
+            "process_readme_update_enforcement_policy": process_readme_update_enforcement_policy,
+            "process_standardization_hygiene_policy": process_standardization_hygiene_policy,
+            "full_section_coverage_audit_policy": full_section_coverage_audit_policy,
+            "recommendation_acceptance_trace_policy": recommendation_acceptance_trace_policy,
+            "iterative_test_loop_enforcement_policy": iterative_test_loop_enforcement_policy,
+            "readme_assessment_consistency_policy": readme_assessment_consistency_policy,
+            "standardization_terminology_lock_policy": standardization_terminology_lock_policy,
+            "section_transition_handoff_policy": section_transition_handoff_policy,
+            "section_evidence_traceability_policy": section_evidence_traceability_policy,
+            "section_recommendation_closure_policy": section_recommendation_closure_policy,
+            "section_quality_gate_policy": section_quality_gate_policy,
+            "section_snapshot_publication_policy": section_snapshot_publication_policy,
+            "all_section_review_coverage_policy": all_section_review_coverage_policy,
+            "all_section_recommendation_acceptance_policy": all_section_recommendation_acceptance_policy,
+            "all_section_progression_gate_policy": all_section_progression_gate_policy,
+            "all_section_standardization_lock_policy": all_section_standardization_lock_policy,
+            "all_section_reporting_sync_policy": all_section_reporting_sync_policy,
+            "recommendation_acceptance_attestation_policy": recommendation_acceptance_attestation_policy,
+            "recommendation_execution_checkpoint_policy": recommendation_execution_checkpoint_policy,
+            "recommendation_test_evidence_policy": recommendation_test_evidence_policy,
+            "recommendation_section_sync_policy": recommendation_section_sync_policy,
+            "recommendation_completion_report_policy": recommendation_completion_report_policy,
+            "section_1_to_14_continuity_policy": section_1_to_14_continuity_policy,
+            "section_recommendation_acceptance_audit_policy": section_recommendation_acceptance_audit_policy,
+            "section_recommendation_implementation_trace_policy": section_recommendation_implementation_trace_policy,
+            "section_followup_test_loop_policy": section_followup_test_loop_policy,
+            "section_readme_assessment_lockstep_policy": section_readme_assessment_lockstep_policy,
+            "section_completion_delta_reporting_policy": section_completion_delta_reporting_policy,
+            "section_micro_build_tracking_policy": section_micro_build_tracking_policy,
+            "section_prompt_increment_logging_policy": section_prompt_increment_logging_policy,
+            "section_recommendation_acceptance_evidence_policy": section_recommendation_acceptance_evidence_policy,
+            "section_change_budget_tracking_policy": section_change_budget_tracking_policy,
+            "section_test_result_reporting_policy": section_test_result_reporting_policy,
+            "section_warning_budget_policy": section_warning_budget_policy,
+            "section_retest_trigger_policy": section_retest_trigger_policy,
+            "section_documentation_accuracy_policy": section_documentation_accuracy_policy,
+            "section_loop_exit_criteria_policy": section_loop_exit_criteria_policy,
+            "section_recommendation_priority_policy": section_recommendation_priority_policy,
+            "section_recommendation_dependency_policy": section_recommendation_dependency_policy,
+            "section_risk_escalation_policy": section_risk_escalation_policy,
+            "section_completion_signoff_policy": section_completion_signoff_policy,
+            "section_continuous_improvement_policy": section_continuous_improvement_policy,
+            "section_recommendation_conflict_resolution_policy": section_recommendation_conflict_resolution_policy,
+            "section_dependency_unblock_policy": section_dependency_unblock_policy,
+            "section_regression_guard_policy": section_regression_guard_policy,
+            "section_release_readiness_policy": section_release_readiness_policy,
+            "section_traceability_index_policy": section_traceability_index_policy,
+            "section_acceptance_criteria_enforcement_policy": section_acceptance_criteria_enforcement_policy,
+            "section_artifact_quality_review_policy": section_artifact_quality_review_policy,
+            "section_retest_on_change_policy": section_retest_on_change_policy,
+            "section_documentation_trace_policy": section_documentation_trace_policy,
+            "section_release_gate_attestation_policy": section_release_gate_attestation_policy,
+            "section_dependency_health_policy": section_dependency_health_policy,
+            "section_recommendation_sla_policy": section_recommendation_sla_policy,
+            "section_documentation_sync_policy": section_documentation_sync_policy,
+            "section_validation_signal_policy": section_validation_signal_policy,
+            "section_handoff_audit_policy": section_handoff_audit_policy,
+            "section_change_control_policy": section_change_control_policy,
+            "section_quality_drift_policy": section_quality_drift_policy,
+            "section_verification_retry_policy": section_verification_retry_policy,
+            "section_governance_exception_budget_policy": section_governance_exception_budget_policy,
+            "section_release_documentation_gate_policy": section_release_documentation_gate_policy,
+            "section_contract_compliance_link_policy": section_contract_compliance_link_policy,
+            "section_cost_center_attribution_policy": section_cost_center_attribution_policy,
+            "section_unowned_work_throwback_policy": section_unowned_work_throwback_policy,
+            "section_change_order_trigger_policy": section_change_order_trigger_policy,
+            "section_manager_assignment_policy": section_manager_assignment_policy,
+            "section_enterprise_operating_model_policy": section_enterprise_operating_model_policy,
+            "section_unaccounted_work_classification_policy": section_unaccounted_work_classification_policy,
+            "section_manager_throwback_routing_policy": section_manager_throwback_routing_policy,
+            "section_scope_boundary_enforcement_policy": section_scope_boundary_enforcement_policy,
+            "section_change_order_authority_policy": section_change_order_authority_policy,
+            "section_completion_verification_policy": section_completion_verification_policy,
+            "section_recommendation_rollforward_policy": section_recommendation_rollforward_policy,
+            "section_dependency_traceability_policy": section_dependency_traceability_policy,
+            "section_operational_readiness_policy": section_operational_readiness_policy,
+            "section_reporting_attestation_policy": section_reporting_attestation_policy,
+            "section_governance_traceability_policy": section_governance_traceability_policy,
+            "section_progress_checkpoint_policy": section_progress_checkpoint_policy,
+            "section_acceptance_verification_policy": section_acceptance_verification_policy,
+            "section_sync_integrity_policy": section_sync_integrity_policy,
+            "section_lifecycle_reporting_policy": section_lifecycle_reporting_policy,
+            "section_contractual_risk_alignment_policy": section_contractual_risk_alignment_policy,
+            "section_compliance_rulepack_sync_policy": section_compliance_rulepack_sync_policy,
+            "section_authoritative_source_integrity_policy": section_authoritative_source_integrity_policy,
+            "section_budget_gate_reconciliation_policy": section_budget_gate_reconciliation_policy,
+            "section_governance_override_hierarchy_policy": section_governance_override_hierarchy_policy,
+            "section_policy_pack_versioning_policy": section_policy_pack_versioning_policy,
+            "section_authority_delegation_revocation_policy": section_authority_delegation_revocation_policy,
+            "section_evidence_immutability_policy": section_evidence_immutability_policy,
+            "section_compute_plane_replay_attestation_policy": section_compute_plane_replay_attestation_policy,
+            "section_swarm_isolation_boundary_policy": section_swarm_isolation_boundary_policy,
+            "section_risk_tolerance_boundary_policy": section_risk_tolerance_boundary_policy,
+            "section_approval_delegation_integrity_policy": section_approval_delegation_integrity_policy,
+            "section_budget_anomaly_circuit_breaker_policy": section_budget_anomaly_circuit_breaker_policy,
+            "section_compliance_evidence_freshness_policy": section_compliance_evidence_freshness_policy,
+            "section_decision_packet_trace_policy": section_decision_packet_trace_policy,
+            "section_exec_authority_gate_policy": section_exec_authority_gate_policy,
+            "section_compute_plane_determinism_policy": section_compute_plane_determinism_policy,
+            "section_change_order_budget_delta_policy": section_change_order_budget_delta_policy,
+            "section_domain_swarm_accountability_policy": section_domain_swarm_accountability_policy,
+            "section_audit_packet_release_policy": section_audit_packet_release_policy,
+            "section_request_envelope_integrity_policy": section_request_envelope_integrity_policy,
+            "section_gate_graph_compilation_policy": section_gate_graph_compilation_policy,
+            "section_domain_swarm_routing_policy": section_domain_swarm_routing_policy,
+            "section_compute_replay_consistency_policy": section_compute_replay_consistency_policy,
+            "section_authority_scope_binding_policy": section_authority_scope_binding_policy,
+            "section_request_envelope_auditability_policy": section_request_envelope_auditability_policy,
+            "section_gate_dependency_replay_policy": section_gate_dependency_replay_policy,
+            "section_domain_escalation_binding_policy": section_domain_escalation_binding_policy,
+            "section_budget_variance_justification_policy": section_budget_variance_justification_policy,
+            "section_release_packet_signoff_policy": section_release_packet_signoff_policy,
+            "section_authority_chain_escalation_policy": section_authority_chain_escalation_policy,
+            "section_gate_decision_replay_policy": section_gate_decision_replay_policy,
+            "section_rulepack_refresh_attestation_policy": section_rulepack_refresh_attestation_policy,
+            "section_domain_owner_ack_policy": section_domain_owner_ack_policy,
+            "section_handoff_readiness_attestation_policy": section_handoff_readiness_attestation_policy,
+            "section_execution_audit_trail_policy": section_execution_audit_trail_policy,
+            "section_policy_enforcement_checkpoint_policy": section_policy_enforcement_checkpoint_policy,
+            "section_change_scope_integrity_policy": section_change_scope_integrity_policy,
+            "section_domain_handoff_chain_policy": section_domain_handoff_chain_policy,
+            "section_release_attestation_packet_policy": section_release_attestation_packet_policy,
+            "section_contract_scope_recheck_policy": section_contract_scope_recheck_policy,
+            "section_proposal_change_order_trace_policy": section_proposal_change_order_trace_policy,
+            "section_gate_graph_dependency_guard_policy": section_gate_graph_dependency_guard_policy,
+            "section_evidence_store_attestation_policy": section_evidence_store_attestation_policy,
+            "section_release_readout_integrity_policy": section_release_readout_integrity_policy,
+            "section_governance_sla_policy": section_governance_sla_policy,
+            "section_authority_chain_replay_policy": section_authority_chain_replay_policy,
+            "section_change_order_scope_lock_policy": section_change_order_scope_lock_policy,
+            "section_evidence_lineage_policy": section_evidence_lineage_policy,
+            "section_decision_trace_attestation_policy": section_decision_trace_attestation_policy,
+            "section_rulepack_activation_policy": section_rulepack_activation_policy,
+            "section_gate_input_allowlist_policy": section_gate_input_allowlist_policy,
+            "section_nte_change_order_policy": section_nte_change_order_policy,
+            "section_approval_identity_binding_policy": section_approval_identity_binding_policy,
+            "section_compute_reproducibility_window_policy": section_compute_reproducibility_window_policy,
+            "section_refusal_reason_standard_policy": section_refusal_reason_standard_policy,
+            "section_escalation_reason_code_policy": section_escalation_reason_code_policy,
+            "section_authority_delegation_expiry_policy": section_authority_delegation_expiry_policy,
+            "section_budget_tag_enforcement_policy": section_budget_tag_enforcement_policy,
+            "section_evidence_snapshot_replay_policy": section_evidence_snapshot_replay_policy,
+            "section_budget_circuit_breaker_policy": section_budget_circuit_breaker_policy,
+            "section_change_order_authority_scope_policy": section_change_order_authority_scope_policy,
+            "section_evidence_signature_policy": section_evidence_signature_policy,
+            "section_domain_escalation_sla_policy": section_domain_escalation_sla_policy,
+            "section_governance_override_precedence_policy": section_governance_override_precedence_policy,
+            "section_gate_outcome_reason_integrity_policy": section_gate_outcome_reason_integrity_policy,
+            "section_authority_signature_validation_policy": section_authority_signature_validation_policy,
+            "section_compute_replay_snapshot_policy": section_compute_replay_snapshot_policy,
+            "section_budget_control_trace_policy": section_budget_control_trace_policy,
+            "section_release_evidence_bundle_policy": section_release_evidence_bundle_policy,
+            "section_gate_evaluation_determinism_policy": section_gate_evaluation_determinism_policy,
+            "section_authority_override_documentation_policy": section_authority_override_documentation_policy,
+            "section_change_order_dependency_validation_policy": section_change_order_dependency_validation_policy,
+            "section_budget_forecast_alignment_policy": section_budget_forecast_alignment_policy,
+            "section_handoff_audit_completion_policy": section_handoff_audit_completion_policy,
+            "section_gate_decision_signature_policy": section_gate_decision_signature_policy,
+            "section_authority_scope_timeout_policy": section_authority_scope_timeout_policy,
+            "section_change_order_cost_trace_policy": section_change_order_cost_trace_policy,
+            "section_evidence_checkpoint_policy": section_evidence_checkpoint_policy,
+            "section_release_packet_consistency_policy": section_release_packet_consistency_policy,
+            "section_authority_recertification_policy": section_authority_recertification_policy,
+            "section_budget_forecast_variance_policy": section_budget_forecast_variance_policy,
+            "section_evidence_hash_chain_policy": section_evidence_hash_chain_policy,
+            "section_gate_timeout_enforcement_policy": section_gate_timeout_enforcement_policy,
+            "section_release_exception_register_policy": section_release_exception_register_policy,
+            "section_domain_owner_escalation_policy": section_domain_owner_escalation_policy,
+            "section_gate_dependency_trace_policy": section_gate_dependency_trace_policy,
+            "section_budget_variance_escalation_policy": section_budget_variance_escalation_policy,
+            "section_evidence_lineage_recheck_policy": section_evidence_lineage_recheck_policy,
+            "section_release_authority_replay_policy": section_release_authority_replay_policy,
+            "section_gate_reason_code_replay_policy": section_gate_reason_code_replay_policy,
+            "section_approval_delegation_registry_policy": section_approval_delegation_registry_policy,
+            "section_budget_cap_change_log_policy": section_budget_cap_change_log_policy,
+            "section_evidence_attestation_signature_policy": section_evidence_attestation_signature_policy,
+            "section_release_governance_manifest_policy": section_release_governance_manifest_policy,
+            "section_governance_path_integrity_policy": section_governance_path_integrity_policy,
+            "section_policy_exception_disposition_policy": section_policy_exception_disposition_policy,
+            "section_budget_reforecast_attestation_policy": section_budget_reforecast_attestation_policy,
+            "section_evidence_chain_custody_policy": section_evidence_chain_custody_policy,
+            "section_release_authorization_token_policy": section_release_authorization_token_policy,
+            "section_governance_checkpoint_replay_policy": section_governance_checkpoint_replay_policy,
+            "section_authority_token_rotation_policy": section_authority_token_rotation_policy,
+            "section_budget_spike_containment_policy": section_budget_spike_containment_policy,
+            "section_evidence_bundle_hash_policy": section_evidence_bundle_hash_policy,
+            "section_release_exception_revalidation_policy": section_release_exception_revalidation_policy,
+            "section_governance_policy_reconciliation_policy": section_governance_policy_reconciliation_policy,
+            "section_authority_chain_expiry_policy": section_authority_chain_expiry_policy,
+            "section_budget_exception_audit_policy": section_budget_exception_audit_policy,
+            "section_gate_signature_rotation_policy": section_gate_signature_rotation_policy,
+            "section_release_packet_attestation_policy": section_release_packet_attestation_policy,
+            "section_governance_rollup_consistency_policy": section_governance_rollup_consistency_policy,
+            "section_authority_chain_snapshot_policy": section_authority_chain_snapshot_policy,
+            "section_budget_envelope_audit_policy": section_budget_envelope_audit_policy,
+            "section_evidence_manifest_replay_policy": section_evidence_manifest_replay_policy,
+            "section_release_override_justification_policy": section_release_override_justification_policy,
+            "section_governance_decision_envelope_policy": section_governance_decision_envelope_policy,
+            "section_authority_recusal_trace_policy": section_authority_recusal_trace_policy,
+            "section_budget_guardrail_replay_policy": section_budget_guardrail_replay_policy,
+            "section_evidence_provenance_reconciliation_policy": section_evidence_provenance_reconciliation_policy,
+            "section_release_attestation_chain_policy": section_release_attestation_chain_policy,
+            "section_governance_trace_seal_policy": section_governance_trace_seal_policy,
+            "section_authority_replay_token_policy": section_authority_replay_token_policy,
+            "section_budget_exception_replay_policy": section_budget_exception_replay_policy,
+            "section_evidence_freshness_recertification_policy": section_evidence_freshness_recertification_policy,
+            "section_release_handoff_replay_policy": section_release_handoff_replay_policy,
+            "section_governance_audit_recertification_policy": section_governance_audit_recertification_policy,
+            "section_authority_scope_exception_policy": section_authority_scope_exception_policy,
+            "section_budget_change_envelope_policy": section_budget_change_envelope_policy,
+            "section_evidence_chain_seal_policy": section_evidence_chain_seal_policy,
+            "section_release_gate_replay_policy": section_release_gate_replay_policy,
+            "section_governance_exception_timeout_policy": section_governance_exception_timeout_policy,
+            "section_authority_delegation_ledger_policy": section_authority_delegation_ledger_policy,
+            "section_budget_burnrate_attestation_policy": section_budget_burnrate_attestation_policy,
+            "section_evidence_snapshot_expiry_policy": section_evidence_snapshot_expiry_policy,
+            "section_release_override_reconciliation_policy": section_release_override_reconciliation_policy,
+            "section_governance_ledger_integrity_policy": section_governance_ledger_integrity_policy,
+            "section_authority_chain_digest_policy": section_authority_chain_digest_policy,
+            "section_budget_reconciliation_digest_policy": section_budget_reconciliation_digest_policy,
+            "section_evidence_checkpoint_digest_policy": section_evidence_checkpoint_digest_policy,
+            "section_release_chain_digest_policy": section_release_chain_digest_policy,
+            "section_governance_policy_replay_lock_policy": section_governance_policy_replay_lock_policy,
+            "section_authority_chain_nonce_policy": section_authority_chain_nonce_policy,
+            "section_budget_override_attestation_policy": section_budget_override_attestation_policy,
+            "section_evidence_packet_nonce_policy": section_evidence_packet_nonce_policy,
+            "section_release_gate_override_policy": section_release_gate_override_policy,
+            "section_governance_dependency_sequencing_policy": section_governance_dependency_sequencing_policy,
+            "section_authority_scope_replay_attestation_policy": section_authority_scope_replay_attestation_policy,
+            "section_budget_allocation_trace_policy": section_budget_allocation_trace_policy,
+            "section_evidence_manifest_freshness_policy": section_evidence_manifest_freshness_policy,
+            "section_release_override_chain_policy": section_release_override_chain_policy,
+            "section_governance_verification_digest_policy": section_governance_verification_digest_policy,
+            "section_authority_scope_nonce_rotation_policy": section_authority_scope_nonce_rotation_policy,
+            "section_budget_forecast_lock_policy": section_budget_forecast_lock_policy,
+            "section_evidence_bundle_canonicalization_policy": section_evidence_bundle_canonicalization_policy,
+            "section_release_attestation_digest_policy": section_release_attestation_digest_policy,
+            "section_governance_dependency_nonce_lock_policy": section_governance_dependency_nonce_lock_policy,
+            "section_authority_override_recertification_policy": section_authority_override_recertification_policy,
+            "section_budget_exception_rebind_policy": section_budget_exception_rebind_policy,
+            "section_evidence_packet_reseal_policy": section_evidence_packet_reseal_policy,
+            "section_release_gate_drift_policy": section_release_gate_drift_policy,
+            "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
+            "safety_level": safety_level,
+            "escalation_policy": escalation_policy,
+            "budget_constraints": source.get("budget_constraints", source.get("budget_ceiling", "standard")),
+            "tool_permissions": source.get("tool_permissions", "governed_default"),
+            "audit_requirements": audit_requirements,
+            "autonomy_level": autonomy_level
+        }
+
+    def _build_summary_surface_consistency(
+        self,
+        summary_bundle: Optional[Dict[str, Any]] = None,
+        module_registry_status: Optional[Dict[str, Any]] = None,
+        completion_snapshot: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        bundle = summary_bundle or self._build_summary_surface_bundle()
+        module_status = module_registry_status or self.module_manager.get_module_status()
+        completion_data = completion_snapshot or self._build_completion_snapshot()
+        module_summary = bundle.get("module_registry_summary", {})
+        module_total = module_status.get("total_available")
+        if module_total is None:
+            module_total = len(module_status.get("modules", {}))
+        checks = {
+            "integration_summary_present": bool(bundle.get("integration_capabilities_summary")),
+            "alignment_summary_present": bool(bundle.get("competitive_feature_alignment_summary")),
+            "completion_snapshot_present": bool(completion_data.get("areas")),
+            "registry_total_matches_status": module_summary.get("total_available") == module_total,
+            "registry_core_complete": (
+                module_summary.get("core_registered") == module_summary.get("core_expected")
+            ) and (
+                module_summary.get("core_missing") == []
+            )
+        }
+        status = "consistent" if all(checks.values()) else "drift_detected"
+        return {"status": status, "checks": checks}
 
     def _get_adapter_availability(self) -> Dict[str, bool]:
         if self._adapter_availability is None:
@@ -5606,9 +8272,25 @@ class MurphySystem:
             capability_review
         )
 
-        integration_capabilities = self._build_integration_capabilities()
-        competitive_feature_alignment = self._build_competitive_feature_alignment(
-            integration_capabilities
+        summary_bundle = self._build_summary_surface_bundle()
+        module_registry_status = self.module_manager.get_module_status()
+        completion_snapshot = self._build_completion_snapshot()
+        runtime_execution_profile = self._build_runtime_execution_profile(
+            task_description,
+            onboarding_context
+        )
+        summary_surface_consistency = self._build_summary_surface_consistency(
+            summary_bundle,
+            module_registry_status,
+            completion_snapshot
+        )
+        self_improvement_snapshot = self._apply_summary_consistency_remediation(
+            self_improvement_snapshot,
+            summary_surface_consistency
+        )
+        self_improvement_snapshot = self._apply_completion_snapshot_remediation(
+            self_improvement_snapshot,
+            completion_snapshot
         )
         adapter_execution = self._build_adapter_execution_snapshot()
         execution_wiring = self._build_execution_wiring_snapshot(doc)
@@ -5625,8 +8307,11 @@ class MurphySystem:
             "onboarding_questions": onboarding_questions,
             "constraints": doc.constraints,
             "region": sensor_plan["region"],
-            "module_registry": self.module_manager.get_module_status(),
-            "module_registry_summary": self._build_module_registry_summary(),
+            "module_registry": module_registry_status,
+            "module_registry_summary": summary_bundle["module_registry_summary"],
+            "summary_surface_consistency": summary_surface_consistency,
+            "completion_snapshot": completion_snapshot,
+            "runtime_execution_profile": runtime_execution_profile,
             "registry_health": self._build_registry_health_snapshot(),
             "schema_drift": self._build_schema_drift_snapshot(),
             "capability_alignment": capability_alignment,
@@ -5660,9 +8345,11 @@ class MurphySystem:
             "orchestrator_readiness": orchestrator_readiness,
             "persistence": persistence_status,
             "observability": observability_snapshot,
-            "integration_capabilities": integration_capabilities,
+            "integration_capabilities": summary_bundle["integration_capabilities"],
+            "integration_capabilities_summary": summary_bundle["integration_capabilities_summary"],
             "adapter_execution": adapter_execution,
-            "competitive_feature_alignment": competitive_feature_alignment
+            "competitive_feature_alignment": summary_bundle["competitive_feature_alignment"],
+            "competitive_feature_alignment_summary": summary_bundle["competitive_feature_alignment_summary"]
         }
         if onboarding_context:
             preview["onboarding_context"] = onboarding_context
@@ -6119,6 +8806,26 @@ class MurphySystem:
             latest_preview.get("delivery_readiness"),
             latest_preview.get("external_api_sensors")
         )
+        summary_bundle = self._build_summary_surface_bundle()
+        module_registry_status = self.module_manager.get_module_status()
+        completion_snapshot = self._build_completion_snapshot()
+        runtime_execution_profile = self._build_runtime_execution_profile(
+            latest_preview.get("request_summary", ""),
+            latest_preview.get("onboarding_context")
+        )
+        summary_surface_consistency = self._build_summary_surface_consistency(
+            summary_bundle,
+            module_registry_status,
+            completion_snapshot
+        )
+        self_improvement_snapshot = self._apply_summary_consistency_remediation(
+            self_improvement_snapshot,
+            summary_surface_consistency
+        )
+        self_improvement_snapshot = self._apply_completion_snapshot_remediation(
+            self_improvement_snapshot,
+            completion_snapshot
+        )
         return {
             'version': self.version,
             'status': 'running',
@@ -6147,11 +8854,18 @@ class MurphySystem:
                     else 0.0
                 )
             },
-            'module_registry': self.module_manager.get_module_status(),
-            'module_registry_summary': self._build_module_registry_summary(),
+            'module_registry': module_registry_status,
+            'module_registry_summary': summary_bundle["module_registry_summary"],
+            'summary_surface_consistency': summary_surface_consistency,
+            'completion_snapshot': completion_snapshot,
+            'runtime_execution_profile': runtime_execution_profile,
             'registry_health': self._build_registry_health_snapshot(),
             'schema_drift': self._build_schema_drift_snapshot(),
             'adapter_execution': self._build_adapter_execution_snapshot(),
+            'integration_capabilities': summary_bundle["integration_capabilities"],
+            'integration_capabilities_summary': summary_bundle["integration_capabilities_summary"],
+            'competitive_feature_alignment': summary_bundle["competitive_feature_alignment"],
+            'competitive_feature_alignment_summary': summary_bundle["competitive_feature_alignment_summary"],
             'connector_orchestration': self._build_connector_orchestration_snapshot(),
             'orchestrator_readiness': self._build_orchestrator_readiness_snapshot(),
             'observability': self._build_observability_snapshot(),
@@ -6170,7 +8884,11 @@ class MurphySystem:
     
     def get_system_info(self) -> Dict:
         """Get system information"""
-        
+        summary_bundle = self._build_summary_surface_bundle()
+        module_registry_status = self.module_manager.get_module_status()
+        completion_snapshot = self._build_completion_snapshot()
+        # System info has no request/onboarding context, so use neutral defaults.
+        runtime_execution_profile = self._build_runtime_execution_profile("", None)
         return {
             'name': 'Murphy System',
             'version': self.version,
@@ -6194,7 +8912,17 @@ class MurphySystem:
                 'business_automation': '5 engines (sales, marketing, R&D, business, production)',
                 'integration_engine': '6 components (HITL, safety testing, capability extraction)',
                 'orchestrator': '2-phase execution (setup → execute)'
-            }
+            },
+            'integration_capabilities_summary': summary_bundle["integration_capabilities_summary"],
+            'competitive_feature_alignment_summary': summary_bundle["competitive_feature_alignment_summary"],
+            'module_registry_summary': summary_bundle["module_registry_summary"],
+            'summary_surface_consistency': self._build_summary_surface_consistency(
+                summary_bundle,
+                module_registry_status,
+                completion_snapshot
+            ),
+            'completion_snapshot': completion_snapshot,
+            'runtime_execution_profile': runtime_execution_profile
         }
 
     def get_activation_audit(self) -> Dict[str, Any]:
