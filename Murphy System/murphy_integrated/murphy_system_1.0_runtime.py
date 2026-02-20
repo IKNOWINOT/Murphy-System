@@ -6519,6 +6519,31 @@ class MurphySystem:
             "section_authority_scope_binding_policy_scoped",
             "section_authority_scope_binding_adaptive_with_audit"
         )
+        section_request_envelope_auditability_policy = _mode_policy(
+            "section_request_envelope_auditability_required",
+            "section_request_envelope_auditability_policy_scoped",
+            "section_request_envelope_auditability_adaptive_with_audit"
+        )
+        section_gate_dependency_replay_policy = _mode_policy(
+            "section_gate_dependency_replay_required",
+            "section_gate_dependency_replay_policy_scoped",
+            "section_gate_dependency_replay_adaptive_with_audit"
+        )
+        section_domain_escalation_binding_policy = _mode_policy(
+            "section_domain_escalation_binding_required",
+            "section_domain_escalation_binding_policy_scoped",
+            "section_domain_escalation_binding_adaptive_with_audit"
+        )
+        section_budget_variance_justification_policy = _mode_policy(
+            "section_budget_variance_justification_required",
+            "section_budget_variance_justification_policy_scoped",
+            "section_budget_variance_justification_adaptive_with_audit"
+        )
+        section_release_packet_signoff_policy = _mode_policy(
+            "section_release_packet_signoff_required",
+            "section_release_packet_signoff_policy_scoped",
+            "section_release_packet_signoff_adaptive_with_audit"
+        )
         section_authority_chain_escalation_policy = _mode_policy(
             "section_authority_chain_escalation_required",
             "section_authority_chain_escalation_policy_scoped",
@@ -6813,6 +6838,11 @@ class MurphySystem:
             "section_domain_swarm_routing_policy": section_domain_swarm_routing_policy,
             "section_compute_replay_consistency_policy": section_compute_replay_consistency_policy,
             "section_authority_scope_binding_policy": section_authority_scope_binding_policy,
+            "section_request_envelope_auditability_policy": section_request_envelope_auditability_policy,
+            "section_gate_dependency_replay_policy": section_gate_dependency_replay_policy,
+            "section_domain_escalation_binding_policy": section_domain_escalation_binding_policy,
+            "section_budget_variance_justification_policy": section_budget_variance_justification_policy,
+            "section_release_packet_signoff_policy": section_release_packet_signoff_policy,
             "section_authority_chain_escalation_policy": section_authority_chain_escalation_policy,
             "section_gate_decision_replay_policy": section_gate_decision_replay_policy,
             "section_rulepack_refresh_attestation_policy": section_rulepack_refresh_attestation_policy,
