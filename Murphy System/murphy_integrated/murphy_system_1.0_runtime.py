@@ -7019,6 +7019,31 @@ class MurphySystem:
             "section_release_handoff_replay_policy_scoped",
             "section_release_handoff_replay_adaptive_with_audit"
         )
+        section_governance_audit_recertification_policy = _mode_policy(
+            "section_governance_audit_recertification_required",
+            "section_governance_audit_recertification_policy_scoped",
+            "section_governance_audit_recertification_adaptive_with_audit"
+        )
+        section_authority_scope_exception_policy = _mode_policy(
+            "section_authority_scope_exception_required",
+            "section_authority_scope_exception_policy_scoped",
+            "section_authority_scope_exception_adaptive_with_audit"
+        )
+        section_budget_change_envelope_policy = _mode_policy(
+            "section_budget_change_envelope_required",
+            "section_budget_change_envelope_policy_scoped",
+            "section_budget_change_envelope_adaptive_with_audit"
+        )
+        section_evidence_chain_seal_policy = _mode_policy(
+            "section_evidence_chain_seal_required",
+            "section_evidence_chain_seal_policy_scoped",
+            "section_evidence_chain_seal_adaptive_with_audit"
+        )
+        section_release_gate_replay_policy = _mode_policy(
+            "section_release_gate_replay_required",
+            "section_release_gate_replay_policy_scoped",
+            "section_release_gate_replay_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -7388,6 +7413,11 @@ class MurphySystem:
             "section_budget_exception_replay_policy": section_budget_exception_replay_policy,
             "section_evidence_freshness_recertification_policy": section_evidence_freshness_recertification_policy,
             "section_release_handoff_replay_policy": section_release_handoff_replay_policy,
+            "section_governance_audit_recertification_policy": section_governance_audit_recertification_policy,
+            "section_authority_scope_exception_policy": section_authority_scope_exception_policy,
+            "section_budget_change_envelope_policy": section_budget_change_envelope_policy,
+            "section_evidence_chain_seal_policy": section_evidence_chain_seal_policy,
+            "section_release_gate_replay_policy": section_release_gate_replay_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
