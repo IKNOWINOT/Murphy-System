@@ -7169,6 +7169,31 @@ class MurphySystem:
             "section_release_attestation_digest_policy_scoped",
             "section_release_attestation_digest_adaptive_with_audit"
         )
+        section_governance_dependency_nonce_lock_policy = _mode_policy(
+            "section_governance_dependency_nonce_lock_required",
+            "section_governance_dependency_nonce_lock_policy_scoped",
+            "section_governance_dependency_nonce_lock_adaptive_with_audit"
+        )
+        section_authority_override_recertification_policy = _mode_policy(
+            "section_authority_override_recertification_required",
+            "section_authority_override_recertification_policy_scoped",
+            "section_authority_override_recertification_adaptive_with_audit"
+        )
+        section_budget_exception_rebind_policy = _mode_policy(
+            "section_budget_exception_rebind_required",
+            "section_budget_exception_rebind_policy_scoped",
+            "section_budget_exception_rebind_adaptive_with_audit"
+        )
+        section_evidence_packet_reseal_policy = _mode_policy(
+            "section_evidence_packet_reseal_required",
+            "section_evidence_packet_reseal_policy_scoped",
+            "section_evidence_packet_reseal_adaptive_with_audit"
+        )
+        section_release_gate_drift_policy = _mode_policy(
+            "section_release_gate_drift_required",
+            "section_release_gate_drift_policy_scoped",
+            "section_release_gate_drift_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -7568,6 +7593,11 @@ class MurphySystem:
             "section_budget_forecast_lock_policy": section_budget_forecast_lock_policy,
             "section_evidence_bundle_canonicalization_policy": section_evidence_bundle_canonicalization_policy,
             "section_release_attestation_digest_policy": section_release_attestation_digest_policy,
+            "section_governance_dependency_nonce_lock_policy": section_governance_dependency_nonce_lock_policy,
+            "section_authority_override_recertification_policy": section_authority_override_recertification_policy,
+            "section_budget_exception_rebind_policy": section_budget_exception_rebind_policy,
+            "section_evidence_packet_reseal_policy": section_evidence_packet_reseal_policy,
+            "section_release_gate_drift_policy": section_release_gate_drift_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
