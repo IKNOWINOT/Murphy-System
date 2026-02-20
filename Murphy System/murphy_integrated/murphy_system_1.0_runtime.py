@@ -6944,6 +6944,31 @@ class MurphySystem:
             "section_release_packet_attestation_policy_scoped",
             "section_release_packet_attestation_adaptive_with_audit"
         )
+        section_governance_rollup_consistency_policy = _mode_policy(
+            "section_governance_rollup_consistency_required",
+            "section_governance_rollup_consistency_policy_scoped",
+            "section_governance_rollup_consistency_adaptive_with_audit"
+        )
+        section_authority_chain_snapshot_policy = _mode_policy(
+            "section_authority_chain_snapshot_required",
+            "section_authority_chain_snapshot_policy_scoped",
+            "section_authority_chain_snapshot_adaptive_with_audit"
+        )
+        section_budget_envelope_audit_policy = _mode_policy(
+            "section_budget_envelope_audit_required",
+            "section_budget_envelope_audit_policy_scoped",
+            "section_budget_envelope_audit_adaptive_with_audit"
+        )
+        section_evidence_manifest_replay_policy = _mode_policy(
+            "section_evidence_manifest_replay_required",
+            "section_evidence_manifest_replay_policy_scoped",
+            "section_evidence_manifest_replay_adaptive_with_audit"
+        )
+        section_release_override_justification_policy = _mode_policy(
+            "section_release_override_justification_required",
+            "section_release_override_justification_policy_scoped",
+            "section_release_override_justification_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -7298,6 +7323,11 @@ class MurphySystem:
             "section_budget_exception_audit_policy": section_budget_exception_audit_policy,
             "section_gate_signature_rotation_policy": section_gate_signature_rotation_policy,
             "section_release_packet_attestation_policy": section_release_packet_attestation_policy,
+            "section_governance_rollup_consistency_policy": section_governance_rollup_consistency_policy,
+            "section_authority_chain_snapshot_policy": section_authority_chain_snapshot_policy,
+            "section_budget_envelope_audit_policy": section_budget_envelope_audit_policy,
+            "section_evidence_manifest_replay_policy": section_evidence_manifest_replay_policy,
+            "section_release_override_justification_policy": section_release_override_justification_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,

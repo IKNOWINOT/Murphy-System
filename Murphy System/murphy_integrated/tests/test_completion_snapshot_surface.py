@@ -401,6 +401,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["section_budget_exception_audit_policy"] == status["runtime_execution_profile"]["section_budget_exception_audit_policy"]
     assert preview["runtime_execution_profile"]["section_gate_signature_rotation_policy"] == status["runtime_execution_profile"]["section_gate_signature_rotation_policy"]
     assert preview["runtime_execution_profile"]["section_release_packet_attestation_policy"] == status["runtime_execution_profile"]["section_release_packet_attestation_policy"]
+    assert preview["runtime_execution_profile"]["section_governance_rollup_consistency_policy"] == status["runtime_execution_profile"]["section_governance_rollup_consistency_policy"]
+    assert preview["runtime_execution_profile"]["section_authority_chain_snapshot_policy"] == status["runtime_execution_profile"]["section_authority_chain_snapshot_policy"]
+    assert preview["runtime_execution_profile"]["section_budget_envelope_audit_policy"] == status["runtime_execution_profile"]["section_budget_envelope_audit_policy"]
+    assert preview["runtime_execution_profile"]["section_evidence_manifest_replay_policy"] == status["runtime_execution_profile"]["section_evidence_manifest_replay_policy"]
+    assert preview["runtime_execution_profile"]["section_release_override_justification_policy"] == status["runtime_execution_profile"]["section_release_override_justification_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -1242,5 +1247,10 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["section_budget_exception_audit_policy"] == "section_budget_exception_audit_adaptive_with_audit"
     assert dynamic["section_gate_signature_rotation_policy"] == "section_gate_signature_rotation_adaptive_with_audit"
     assert dynamic["section_release_packet_attestation_policy"] == "section_release_packet_attestation_adaptive_with_audit"
+    assert dynamic["section_governance_rollup_consistency_policy"] == "section_governance_rollup_consistency_adaptive_with_audit"
+    assert dynamic["section_authority_chain_snapshot_policy"] == "section_authority_chain_snapshot_adaptive_with_audit"
+    assert dynamic["section_budget_envelope_audit_policy"] == "section_budget_envelope_audit_adaptive_with_audit"
+    assert dynamic["section_evidence_manifest_replay_policy"] == "section_evidence_manifest_replay_adaptive_with_audit"
+    assert dynamic["section_release_override_justification_policy"] == "section_release_override_justification_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"
