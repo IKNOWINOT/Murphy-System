@@ -469,16 +469,18 @@ This update confirms that sections **1-14** remain active and accepted as the op
 131. Added section reason/signature/replay evidence governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_gate_outcome_reason_integrity_policy`, `section_authority_signature_validation_policy`, `section_compute_replay_snapshot_policy`, `section_budget_control_trace_policy`, and `section_release_evidence_bundle_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
 132. Added section decision-signature/cost-trace governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_gate_decision_signature_policy`, `section_authority_scope_timeout_policy`, `section_change_order_cost_trace_policy`, `section_evidence_checkpoint_policy`, and `section_release_packet_consistency_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
 133. Added section authority/budget/hash-timeout exception governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_authority_recertification_policy`, `section_budget_forecast_variance_policy`, `section_evidence_hash_chain_policy`, `section_gate_timeout_enforcement_policy`, and `section_release_exception_register_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
+134. Previously confirmed section domain-escalation/dependency-trace governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_domain_owner_escalation_policy`, `section_gate_dependency_trace_policy`, `section_budget_variance_escalation_policy`, `section_evidence_lineage_recheck_policy`, and `section_release_authority_replay_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
+135. Added section reason-code/delegation-registry budget-log governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_gate_reason_code_replay_policy`, `section_approval_delegation_registry_policy`, `section_budget_cap_change_log_policy`, `section_evidence_attestation_signature_policy`, and `section_release_governance_manifest_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
 
 **Current completion percentage snapshot (section 9, this iteration):**
-- Execution wiring (gate + swarm + orchestrator): **48.95%**
-- Deterministic + LLM routing: **40.90%**
-- Persistence + replay: **24.55%**
-- Multi-channel delivery: **58.55%**
-- Compliance validation: **39.62%**
-- Operational automation: **23.20%**
-- UI + user testing: **70.95%**
-- Test coverage for dynamic chains: **97.00%**
+- Execution wiring (gate + swarm + orchestrator): **49.05%**
+- Deterministic + LLM routing: **40.94%**
+- Persistence + replay: **24.61%**
+- Multi-channel delivery: **58.57%**
+- Compliance validation: **39.70%**
+- Operational automation: **23.24%**
+- UI + user testing: **70.97%**
+- Test coverage for dynamic chains: **97.08%**
 - **Per-prompt micro-increment delta (this prompt, decimal precision 0.01):**
   - Execution wiring: **+0.05%**
   - Deterministic + LLM routing: **+0.02%**
@@ -489,7 +491,7 @@ This update confirms that sections **1-14** remain active and accepted as the op
   - UI + user testing: **+0.01%**
   - Dynamic-chain tests: **+0.04%**
 - Latest targeted run (`test_completion_snapshot_surface.py`): **2 passed, 0 failed, 0 warnings**
-- Latest governance policy chunk: `section_authority_recertification_policy`, `section_budget_forecast_variance_policy`, `section_evidence_hash_chain_policy`, `section_gate_timeout_enforcement_policy`, and `section_release_exception_register_policy`.
+- Latest governance policy chunk: `section_gate_reason_code_replay_policy`, `section_approval_delegation_registry_policy`, `section_budget_cap_change_log_policy`, `section_evidence_attestation_signature_policy`, and `section_release_governance_manifest_policy`.
 
 ---
 

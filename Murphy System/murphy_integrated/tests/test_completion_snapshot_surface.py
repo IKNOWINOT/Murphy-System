@@ -376,6 +376,16 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["section_evidence_hash_chain_policy"] == status["runtime_execution_profile"]["section_evidence_hash_chain_policy"]
     assert preview["runtime_execution_profile"]["section_gate_timeout_enforcement_policy"] == status["runtime_execution_profile"]["section_gate_timeout_enforcement_policy"]
     assert preview["runtime_execution_profile"]["section_release_exception_register_policy"] == status["runtime_execution_profile"]["section_release_exception_register_policy"]
+    assert preview["runtime_execution_profile"]["section_domain_owner_escalation_policy"] == status["runtime_execution_profile"]["section_domain_owner_escalation_policy"]
+    assert preview["runtime_execution_profile"]["section_gate_dependency_trace_policy"] == status["runtime_execution_profile"]["section_gate_dependency_trace_policy"]
+    assert preview["runtime_execution_profile"]["section_budget_variance_escalation_policy"] == status["runtime_execution_profile"]["section_budget_variance_escalation_policy"]
+    assert preview["runtime_execution_profile"]["section_evidence_lineage_recheck_policy"] == status["runtime_execution_profile"]["section_evidence_lineage_recheck_policy"]
+    assert preview["runtime_execution_profile"]["section_release_authority_replay_policy"] == status["runtime_execution_profile"]["section_release_authority_replay_policy"]
+    assert preview["runtime_execution_profile"]["section_gate_reason_code_replay_policy"] == status["runtime_execution_profile"]["section_gate_reason_code_replay_policy"]
+    assert preview["runtime_execution_profile"]["section_approval_delegation_registry_policy"] == status["runtime_execution_profile"]["section_approval_delegation_registry_policy"]
+    assert preview["runtime_execution_profile"]["section_budget_cap_change_log_policy"] == status["runtime_execution_profile"]["section_budget_cap_change_log_policy"]
+    assert preview["runtime_execution_profile"]["section_evidence_attestation_signature_policy"] == status["runtime_execution_profile"]["section_evidence_attestation_signature_policy"]
+    assert preview["runtime_execution_profile"]["section_release_governance_manifest_policy"] == status["runtime_execution_profile"]["section_release_governance_manifest_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -1187,5 +1197,15 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["section_evidence_hash_chain_policy"] == "section_evidence_hash_chain_adaptive_with_audit"
     assert dynamic["section_gate_timeout_enforcement_policy"] == "section_gate_timeout_enforcement_adaptive_with_audit"
     assert dynamic["section_release_exception_register_policy"] == "section_release_exception_register_adaptive_with_audit"
+    assert dynamic["section_domain_owner_escalation_policy"] == "section_domain_owner_escalation_adaptive_with_audit"
+    assert dynamic["section_gate_dependency_trace_policy"] == "section_gate_dependency_trace_adaptive_with_audit"
+    assert dynamic["section_budget_variance_escalation_policy"] == "section_budget_variance_escalation_adaptive_with_audit"
+    assert dynamic["section_evidence_lineage_recheck_policy"] == "section_evidence_lineage_recheck_adaptive_with_audit"
+    assert dynamic["section_release_authority_replay_policy"] == "section_release_authority_replay_adaptive_with_audit"
+    assert dynamic["section_gate_reason_code_replay_policy"] == "section_gate_reason_code_replay_adaptive_with_audit"
+    assert dynamic["section_approval_delegation_registry_policy"] == "section_approval_delegation_registry_adaptive_with_audit"
+    assert dynamic["section_budget_cap_change_log_policy"] == "section_budget_cap_change_log_adaptive_with_audit"
+    assert dynamic["section_evidence_attestation_signature_policy"] == "section_evidence_attestation_signature_adaptive_with_audit"
+    assert dynamic["section_release_governance_manifest_policy"] == "section_release_governance_manifest_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"

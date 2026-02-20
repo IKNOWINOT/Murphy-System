@@ -6819,6 +6819,56 @@ class MurphySystem:
             "section_release_exception_register_policy_scoped",
             "section_release_exception_register_adaptive_with_audit"
         )
+        section_domain_owner_escalation_policy = _mode_policy(
+            "section_domain_owner_escalation_required",
+            "section_domain_owner_escalation_policy_scoped",
+            "section_domain_owner_escalation_adaptive_with_audit"
+        )
+        section_gate_dependency_trace_policy = _mode_policy(
+            "section_gate_dependency_trace_required",
+            "section_gate_dependency_trace_policy_scoped",
+            "section_gate_dependency_trace_adaptive_with_audit"
+        )
+        section_budget_variance_escalation_policy = _mode_policy(
+            "section_budget_variance_escalation_required",
+            "section_budget_variance_escalation_policy_scoped",
+            "section_budget_variance_escalation_adaptive_with_audit"
+        )
+        section_evidence_lineage_recheck_policy = _mode_policy(
+            "section_evidence_lineage_recheck_required",
+            "section_evidence_lineage_recheck_policy_scoped",
+            "section_evidence_lineage_recheck_adaptive_with_audit"
+        )
+        section_release_authority_replay_policy = _mode_policy(
+            "section_release_authority_replay_required",
+            "section_release_authority_replay_policy_scoped",
+            "section_release_authority_replay_adaptive_with_audit"
+        )
+        section_gate_reason_code_replay_policy = _mode_policy(
+            "section_gate_reason_code_replay_required",
+            "section_gate_reason_code_replay_policy_scoped",
+            "section_gate_reason_code_replay_adaptive_with_audit"
+        )
+        section_approval_delegation_registry_policy = _mode_policy(
+            "section_approval_delegation_registry_required",
+            "section_approval_delegation_registry_policy_scoped",
+            "section_approval_delegation_registry_adaptive_with_audit"
+        )
+        section_budget_cap_change_log_policy = _mode_policy(
+            "section_budget_cap_change_log_required",
+            "section_budget_cap_change_log_policy_scoped",
+            "section_budget_cap_change_log_adaptive_with_audit"
+        )
+        section_evidence_attestation_signature_policy = _mode_policy(
+            "section_evidence_attestation_signature_required",
+            "section_evidence_attestation_signature_policy_scoped",
+            "section_evidence_attestation_signature_adaptive_with_audit"
+        )
+        section_release_governance_manifest_policy = _mode_policy(
+            "section_release_governance_manifest_required",
+            "section_release_governance_manifest_policy_scoped",
+            "section_release_governance_manifest_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -7148,6 +7198,16 @@ class MurphySystem:
             "section_evidence_hash_chain_policy": section_evidence_hash_chain_policy,
             "section_gate_timeout_enforcement_policy": section_gate_timeout_enforcement_policy,
             "section_release_exception_register_policy": section_release_exception_register_policy,
+            "section_domain_owner_escalation_policy": section_domain_owner_escalation_policy,
+            "section_gate_dependency_trace_policy": section_gate_dependency_trace_policy,
+            "section_budget_variance_escalation_policy": section_budget_variance_escalation_policy,
+            "section_evidence_lineage_recheck_policy": section_evidence_lineage_recheck_policy,
+            "section_release_authority_replay_policy": section_release_authority_replay_policy,
+            "section_gate_reason_code_replay_policy": section_gate_reason_code_replay_policy,
+            "section_approval_delegation_registry_policy": section_approval_delegation_registry_policy,
+            "section_budget_cap_change_log_policy": section_budget_cap_change_log_policy,
+            "section_evidence_attestation_signature_policy": section_evidence_attestation_signature_policy,
+            "section_release_governance_manifest_policy": section_release_governance_manifest_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
