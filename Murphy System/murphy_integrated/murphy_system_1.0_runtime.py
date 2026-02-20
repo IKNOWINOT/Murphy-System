@@ -7094,6 +7094,31 @@ class MurphySystem:
             "section_release_gate_override_policy_scoped",
             "section_release_gate_override_adaptive_with_audit"
         )
+        section_governance_dependency_sequencing_policy = _mode_policy(
+            "section_governance_dependency_sequencing_required",
+            "section_governance_dependency_sequencing_policy_scoped",
+            "section_governance_dependency_sequencing_adaptive_with_audit"
+        )
+        section_authority_scope_replay_attestation_policy = _mode_policy(
+            "section_authority_scope_replay_attestation_required",
+            "section_authority_scope_replay_attestation_policy_scoped",
+            "section_authority_scope_replay_attestation_adaptive_with_audit"
+        )
+        section_budget_allocation_trace_policy = _mode_policy(
+            "section_budget_allocation_trace_required",
+            "section_budget_allocation_trace_policy_scoped",
+            "section_budget_allocation_trace_adaptive_with_audit"
+        )
+        section_evidence_manifest_freshness_policy = _mode_policy(
+            "section_evidence_manifest_freshness_required",
+            "section_evidence_manifest_freshness_policy_scoped",
+            "section_evidence_manifest_freshness_adaptive_with_audit"
+        )
+        section_release_override_chain_policy = _mode_policy(
+            "section_release_override_chain_required",
+            "section_release_override_chain_policy_scoped",
+            "section_release_override_chain_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -7478,6 +7503,11 @@ class MurphySystem:
             "section_budget_override_attestation_policy": section_budget_override_attestation_policy,
             "section_evidence_packet_nonce_policy": section_evidence_packet_nonce_policy,
             "section_release_gate_override_policy": section_release_gate_override_policy,
+            "section_governance_dependency_sequencing_policy": section_governance_dependency_sequencing_policy,
+            "section_authority_scope_replay_attestation_policy": section_authority_scope_replay_attestation_policy,
+            "section_budget_allocation_trace_policy": section_budget_allocation_trace_policy,
+            "section_evidence_manifest_freshness_policy": section_evidence_manifest_freshness_policy,
+            "section_release_override_chain_policy": section_release_override_chain_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
