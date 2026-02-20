@@ -7069,6 +7069,31 @@ class MurphySystem:
             "section_release_override_reconciliation_policy_scoped",
             "section_release_override_reconciliation_adaptive_with_audit"
         )
+        section_governance_ledger_integrity_policy = _mode_policy(
+            "section_governance_ledger_integrity_required",
+            "section_governance_ledger_integrity_policy_scoped",
+            "section_governance_ledger_integrity_adaptive_with_audit"
+        )
+        section_authority_chain_digest_policy = _mode_policy(
+            "section_authority_chain_digest_required",
+            "section_authority_chain_digest_policy_scoped",
+            "section_authority_chain_digest_adaptive_with_audit"
+        )
+        section_budget_reconciliation_digest_policy = _mode_policy(
+            "section_budget_reconciliation_digest_required",
+            "section_budget_reconciliation_digest_policy_scoped",
+            "section_budget_reconciliation_digest_adaptive_with_audit"
+        )
+        section_evidence_checkpoint_digest_policy = _mode_policy(
+            "section_evidence_checkpoint_digest_required",
+            "section_evidence_checkpoint_digest_policy_scoped",
+            "section_evidence_checkpoint_digest_adaptive_with_audit"
+        )
+        section_release_chain_digest_policy = _mode_policy(
+            "section_release_chain_digest_required",
+            "section_release_chain_digest_policy_scoped",
+            "section_release_chain_digest_adaptive_with_audit"
+        )
         section_governance_policy_replay_lock_policy = _mode_policy(
             "section_governance_policy_replay_lock_required",
             "section_governance_policy_replay_lock_policy_scoped",
@@ -7498,6 +7523,11 @@ class MurphySystem:
             "section_budget_burnrate_attestation_policy": section_budget_burnrate_attestation_policy,
             "section_evidence_snapshot_expiry_policy": section_evidence_snapshot_expiry_policy,
             "section_release_override_reconciliation_policy": section_release_override_reconciliation_policy,
+            "section_governance_ledger_integrity_policy": section_governance_ledger_integrity_policy,
+            "section_authority_chain_digest_policy": section_authority_chain_digest_policy,
+            "section_budget_reconciliation_digest_policy": section_budget_reconciliation_digest_policy,
+            "section_evidence_checkpoint_digest_policy": section_evidence_checkpoint_digest_policy,
+            "section_release_chain_digest_policy": section_release_chain_digest_policy,
             "section_governance_policy_replay_lock_policy": section_governance_policy_replay_lock_policy,
             "section_authority_chain_nonce_policy": section_authority_chain_nonce_policy,
             "section_budget_override_attestation_policy": section_budget_override_attestation_policy,
