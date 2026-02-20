@@ -406,6 +406,16 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["section_budget_envelope_audit_policy"] == status["runtime_execution_profile"]["section_budget_envelope_audit_policy"]
     assert preview["runtime_execution_profile"]["section_evidence_manifest_replay_policy"] == status["runtime_execution_profile"]["section_evidence_manifest_replay_policy"]
     assert preview["runtime_execution_profile"]["section_release_override_justification_policy"] == status["runtime_execution_profile"]["section_release_override_justification_policy"]
+    assert preview["runtime_execution_profile"]["section_governance_decision_envelope_policy"] == status["runtime_execution_profile"]["section_governance_decision_envelope_policy"]
+    assert preview["runtime_execution_profile"]["section_authority_recusal_trace_policy"] == status["runtime_execution_profile"]["section_authority_recusal_trace_policy"]
+    assert preview["runtime_execution_profile"]["section_budget_guardrail_replay_policy"] == status["runtime_execution_profile"]["section_budget_guardrail_replay_policy"]
+    assert preview["runtime_execution_profile"]["section_evidence_provenance_reconciliation_policy"] == status["runtime_execution_profile"]["section_evidence_provenance_reconciliation_policy"]
+    assert preview["runtime_execution_profile"]["section_release_attestation_chain_policy"] == status["runtime_execution_profile"]["section_release_attestation_chain_policy"]
+    assert preview["runtime_execution_profile"]["section_governance_trace_seal_policy"] == status["runtime_execution_profile"]["section_governance_trace_seal_policy"]
+    assert preview["runtime_execution_profile"]["section_authority_replay_token_policy"] == status["runtime_execution_profile"]["section_authority_replay_token_policy"]
+    assert preview["runtime_execution_profile"]["section_budget_exception_replay_policy"] == status["runtime_execution_profile"]["section_budget_exception_replay_policy"]
+    assert preview["runtime_execution_profile"]["section_evidence_freshness_recertification_policy"] == status["runtime_execution_profile"]["section_evidence_freshness_recertification_policy"]
+    assert preview["runtime_execution_profile"]["section_release_handoff_replay_policy"] == status["runtime_execution_profile"]["section_release_handoff_replay_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -1252,5 +1262,15 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["section_budget_envelope_audit_policy"] == "section_budget_envelope_audit_adaptive_with_audit"
     assert dynamic["section_evidence_manifest_replay_policy"] == "section_evidence_manifest_replay_adaptive_with_audit"
     assert dynamic["section_release_override_justification_policy"] == "section_release_override_justification_adaptive_with_audit"
+    assert dynamic["section_governance_decision_envelope_policy"] == "section_governance_decision_envelope_adaptive_with_audit"
+    assert dynamic["section_authority_recusal_trace_policy"] == "section_authority_recusal_trace_adaptive_with_audit"
+    assert dynamic["section_budget_guardrail_replay_policy"] == "section_budget_guardrail_replay_adaptive_with_audit"
+    assert dynamic["section_evidence_provenance_reconciliation_policy"] == "section_evidence_provenance_reconciliation_adaptive_with_audit"
+    assert dynamic["section_release_attestation_chain_policy"] == "section_release_attestation_chain_adaptive_with_audit"
+    assert dynamic["section_governance_trace_seal_policy"] == "section_governance_trace_seal_adaptive_with_audit"
+    assert dynamic["section_authority_replay_token_policy"] == "section_authority_replay_token_adaptive_with_audit"
+    assert dynamic["section_budget_exception_replay_policy"] == "section_budget_exception_replay_adaptive_with_audit"
+    assert dynamic["section_evidence_freshness_recertification_policy"] == "section_evidence_freshness_recertification_adaptive_with_audit"
+    assert dynamic["section_release_handoff_replay_policy"] == "section_release_handoff_replay_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"

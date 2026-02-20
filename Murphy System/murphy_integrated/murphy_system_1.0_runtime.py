@@ -6969,6 +6969,56 @@ class MurphySystem:
             "section_release_override_justification_policy_scoped",
             "section_release_override_justification_adaptive_with_audit"
         )
+        section_governance_decision_envelope_policy = _mode_policy(
+            "section_governance_decision_envelope_required",
+            "section_governance_decision_envelope_policy_scoped",
+            "section_governance_decision_envelope_adaptive_with_audit"
+        )
+        section_authority_recusal_trace_policy = _mode_policy(
+            "section_authority_recusal_trace_required",
+            "section_authority_recusal_trace_policy_scoped",
+            "section_authority_recusal_trace_adaptive_with_audit"
+        )
+        section_budget_guardrail_replay_policy = _mode_policy(
+            "section_budget_guardrail_replay_required",
+            "section_budget_guardrail_replay_policy_scoped",
+            "section_budget_guardrail_replay_adaptive_with_audit"
+        )
+        section_evidence_provenance_reconciliation_policy = _mode_policy(
+            "section_evidence_provenance_reconciliation_required",
+            "section_evidence_provenance_reconciliation_policy_scoped",
+            "section_evidence_provenance_reconciliation_adaptive_with_audit"
+        )
+        section_release_attestation_chain_policy = _mode_policy(
+            "section_release_attestation_chain_required",
+            "section_release_attestation_chain_policy_scoped",
+            "section_release_attestation_chain_adaptive_with_audit"
+        )
+        section_governance_trace_seal_policy = _mode_policy(
+            "section_governance_trace_seal_required",
+            "section_governance_trace_seal_policy_scoped",
+            "section_governance_trace_seal_adaptive_with_audit"
+        )
+        section_authority_replay_token_policy = _mode_policy(
+            "section_authority_replay_token_required",
+            "section_authority_replay_token_policy_scoped",
+            "section_authority_replay_token_adaptive_with_audit"
+        )
+        section_budget_exception_replay_policy = _mode_policy(
+            "section_budget_exception_replay_required",
+            "section_budget_exception_replay_policy_scoped",
+            "section_budget_exception_replay_adaptive_with_audit"
+        )
+        section_evidence_freshness_recertification_policy = _mode_policy(
+            "section_evidence_freshness_recertification_required",
+            "section_evidence_freshness_recertification_policy_scoped",
+            "section_evidence_freshness_recertification_adaptive_with_audit"
+        )
+        section_release_handoff_replay_policy = _mode_policy(
+            "section_release_handoff_replay_required",
+            "section_release_handoff_replay_policy_scoped",
+            "section_release_handoff_replay_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -7328,6 +7378,16 @@ class MurphySystem:
             "section_budget_envelope_audit_policy": section_budget_envelope_audit_policy,
             "section_evidence_manifest_replay_policy": section_evidence_manifest_replay_policy,
             "section_release_override_justification_policy": section_release_override_justification_policy,
+            "section_governance_decision_envelope_policy": section_governance_decision_envelope_policy,
+            "section_authority_recusal_trace_policy": section_authority_recusal_trace_policy,
+            "section_budget_guardrail_replay_policy": section_budget_guardrail_replay_policy,
+            "section_evidence_provenance_reconciliation_policy": section_evidence_provenance_reconciliation_policy,
+            "section_release_attestation_chain_policy": section_release_attestation_chain_policy,
+            "section_governance_trace_seal_policy": section_governance_trace_seal_policy,
+            "section_authority_replay_token_policy": section_authority_replay_token_policy,
+            "section_budget_exception_replay_policy": section_budget_exception_replay_policy,
+            "section_evidence_freshness_recertification_policy": section_evidence_freshness_recertification_policy,
+            "section_release_handoff_replay_policy": section_release_handoff_replay_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
