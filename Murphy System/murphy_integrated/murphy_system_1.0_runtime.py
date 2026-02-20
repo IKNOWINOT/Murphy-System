@@ -7044,6 +7044,56 @@ class MurphySystem:
             "section_release_gate_replay_policy_scoped",
             "section_release_gate_replay_adaptive_with_audit"
         )
+        section_governance_exception_timeout_policy = _mode_policy(
+            "section_governance_exception_timeout_required",
+            "section_governance_exception_timeout_policy_scoped",
+            "section_governance_exception_timeout_adaptive_with_audit"
+        )
+        section_authority_delegation_ledger_policy = _mode_policy(
+            "section_authority_delegation_ledger_required",
+            "section_authority_delegation_ledger_policy_scoped",
+            "section_authority_delegation_ledger_adaptive_with_audit"
+        )
+        section_budget_burnrate_attestation_policy = _mode_policy(
+            "section_budget_burnrate_attestation_required",
+            "section_budget_burnrate_attestation_policy_scoped",
+            "section_budget_burnrate_attestation_adaptive_with_audit"
+        )
+        section_evidence_snapshot_expiry_policy = _mode_policy(
+            "section_evidence_snapshot_expiry_required",
+            "section_evidence_snapshot_expiry_policy_scoped",
+            "section_evidence_snapshot_expiry_adaptive_with_audit"
+        )
+        section_release_override_reconciliation_policy = _mode_policy(
+            "section_release_override_reconciliation_required",
+            "section_release_override_reconciliation_policy_scoped",
+            "section_release_override_reconciliation_adaptive_with_audit"
+        )
+        section_governance_policy_replay_lock_policy = _mode_policy(
+            "section_governance_policy_replay_lock_required",
+            "section_governance_policy_replay_lock_policy_scoped",
+            "section_governance_policy_replay_lock_adaptive_with_audit"
+        )
+        section_authority_chain_nonce_policy = _mode_policy(
+            "section_authority_chain_nonce_required",
+            "section_authority_chain_nonce_policy_scoped",
+            "section_authority_chain_nonce_adaptive_with_audit"
+        )
+        section_budget_override_attestation_policy = _mode_policy(
+            "section_budget_override_attestation_required",
+            "section_budget_override_attestation_policy_scoped",
+            "section_budget_override_attestation_adaptive_with_audit"
+        )
+        section_evidence_packet_nonce_policy = _mode_policy(
+            "section_evidence_packet_nonce_required",
+            "section_evidence_packet_nonce_policy_scoped",
+            "section_evidence_packet_nonce_adaptive_with_audit"
+        )
+        section_release_gate_override_policy = _mode_policy(
+            "section_release_gate_override_required",
+            "section_release_gate_override_policy_scoped",
+            "section_release_gate_override_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -7418,6 +7468,16 @@ class MurphySystem:
             "section_budget_change_envelope_policy": section_budget_change_envelope_policy,
             "section_evidence_chain_seal_policy": section_evidence_chain_seal_policy,
             "section_release_gate_replay_policy": section_release_gate_replay_policy,
+            "section_governance_exception_timeout_policy": section_governance_exception_timeout_policy,
+            "section_authority_delegation_ledger_policy": section_authority_delegation_ledger_policy,
+            "section_budget_burnrate_attestation_policy": section_budget_burnrate_attestation_policy,
+            "section_evidence_snapshot_expiry_policy": section_evidence_snapshot_expiry_policy,
+            "section_release_override_reconciliation_policy": section_release_override_reconciliation_policy,
+            "section_governance_policy_replay_lock_policy": section_governance_policy_replay_lock_policy,
+            "section_authority_chain_nonce_policy": section_authority_chain_nonce_policy,
+            "section_budget_override_attestation_policy": section_budget_override_attestation_policy,
+            "section_evidence_packet_nonce_policy": section_evidence_packet_nonce_policy,
+            "section_release_gate_override_policy": section_release_gate_override_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
