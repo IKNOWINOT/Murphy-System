@@ -316,6 +316,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["section_domain_swarm_routing_policy"] == status["runtime_execution_profile"]["section_domain_swarm_routing_policy"]
     assert preview["runtime_execution_profile"]["section_compute_replay_consistency_policy"] == status["runtime_execution_profile"]["section_compute_replay_consistency_policy"]
     assert preview["runtime_execution_profile"]["section_authority_scope_binding_policy"] == status["runtime_execution_profile"]["section_authority_scope_binding_policy"]
+    assert preview["runtime_execution_profile"]["section_authority_chain_escalation_policy"] == status["runtime_execution_profile"]["section_authority_chain_escalation_policy"]
+    assert preview["runtime_execution_profile"]["section_gate_decision_replay_policy"] == status["runtime_execution_profile"]["section_gate_decision_replay_policy"]
+    assert preview["runtime_execution_profile"]["section_rulepack_refresh_attestation_policy"] == status["runtime_execution_profile"]["section_rulepack_refresh_attestation_policy"]
+    assert preview["runtime_execution_profile"]["section_domain_owner_ack_policy"] == status["runtime_execution_profile"]["section_domain_owner_ack_policy"]
+    assert preview["runtime_execution_profile"]["section_handoff_readiness_attestation_policy"] == status["runtime_execution_profile"]["section_handoff_readiness_attestation_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -493,6 +498,11 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["section_domain_swarm_routing_policy"] == "section_domain_swarm_routing_policy_scoped"
     assert status["runtime_execution_profile"]["section_compute_replay_consistency_policy"] == "section_compute_replay_consistency_policy_scoped"
     assert status["runtime_execution_profile"]["section_authority_scope_binding_policy"] == "section_authority_scope_binding_policy_scoped"
+    assert status["runtime_execution_profile"]["section_authority_chain_escalation_policy"] == "section_authority_chain_escalation_policy_scoped"
+    assert status["runtime_execution_profile"]["section_gate_decision_replay_policy"] == "section_gate_decision_replay_policy_scoped"
+    assert status["runtime_execution_profile"]["section_rulepack_refresh_attestation_policy"] == "section_rulepack_refresh_attestation_policy_scoped"
+    assert status["runtime_execution_profile"]["section_domain_owner_ack_policy"] == "section_domain_owner_ack_policy_scoped"
+    assert status["runtime_execution_profile"]["section_handoff_readiness_attestation_policy"] == "section_handoff_readiness_attestation_policy_scoped"
     assert status["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_policy_guided"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50

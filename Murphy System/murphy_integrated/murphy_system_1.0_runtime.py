@@ -6519,6 +6519,31 @@ class MurphySystem:
             "section_authority_scope_binding_policy_scoped",
             "section_authority_scope_binding_adaptive_with_audit"
         )
+        section_authority_chain_escalation_policy = _mode_policy(
+            "section_authority_chain_escalation_required",
+            "section_authority_chain_escalation_policy_scoped",
+            "section_authority_chain_escalation_adaptive_with_audit"
+        )
+        section_gate_decision_replay_policy = _mode_policy(
+            "section_gate_decision_replay_required",
+            "section_gate_decision_replay_policy_scoped",
+            "section_gate_decision_replay_adaptive_with_audit"
+        )
+        section_rulepack_refresh_attestation_policy = _mode_policy(
+            "section_rulepack_refresh_attestation_required",
+            "section_rulepack_refresh_attestation_policy_scoped",
+            "section_rulepack_refresh_attestation_adaptive_with_audit"
+        )
+        section_domain_owner_ack_policy = _mode_policy(
+            "section_domain_owner_ack_required",
+            "section_domain_owner_ack_policy_scoped",
+            "section_domain_owner_ack_adaptive_with_audit"
+        )
+        section_handoff_readiness_attestation_policy = _mode_policy(
+            "section_handoff_readiness_attestation_required",
+            "section_handoff_readiness_attestation_policy_scoped",
+            "section_handoff_readiness_attestation_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -6788,6 +6813,11 @@ class MurphySystem:
             "section_domain_swarm_routing_policy": section_domain_swarm_routing_policy,
             "section_compute_replay_consistency_policy": section_compute_replay_consistency_policy,
             "section_authority_scope_binding_policy": section_authority_scope_binding_policy,
+            "section_authority_chain_escalation_policy": section_authority_chain_escalation_policy,
+            "section_gate_decision_replay_policy": section_gate_decision_replay_policy,
+            "section_rulepack_refresh_attestation_policy": section_rulepack_refresh_attestation_policy,
+            "section_domain_owner_ack_policy": section_domain_owner_ack_policy,
+            "section_handoff_readiness_attestation_policy": section_handoff_readiness_attestation_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
