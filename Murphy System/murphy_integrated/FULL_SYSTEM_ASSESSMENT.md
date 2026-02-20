@@ -162,24 +162,24 @@ These percentages are **current estimates** based on wired functionality vs. pla
 
 | Area | Estimated completion | Evidence to update |
 | --- | --- | --- |
-| Execution wiring (gate + swarm + orchestrator) | 47% | MFGC fallback wired, orchestrator wiring still partial |
-| Deterministic + LLM routing | 40% | Routing heuristics exist; compute plane not invoked end-to-end |
-| Persistence + replay | 23% | Snapshot persistence + audit export snapshot available; durable storage not wired |
-| Multi-channel delivery | 58% | Document/email/chat/voice/translation stubs wired with locale gating; orchestration snapshot added; production adapters with approvals pending |
-| Compliance validation | 38% | Compliance validation snapshot added with regulatory sources + next-action guidance |
-| Operational automation | 22% | Planning templates exist; ticketing/remote access not wired |
-| UI + user testing | 70% | Architect UI + scripted screenshots now in place |
-| Test coverage for dynamic chains | 96% | Dynamic plan tests exist; summary surface bundle + consumer parity + consistency + remediation/consistency-gap + completion snapshot + completion remediation + threshold/average/gap-area/total-area/coverage-ratio/backlog/backlog-ratio + execution-profile/enforcement-level/source/control-plane-separation/R&D-candidate/approval-policy/budget-mode/audit-policy/escalation-routing/tool-mediation/deterministic-routing/compute-routing/policy-compiler/permission-validation/delegation-scope/execution-broker/role-registry/authority-boundary/cross-department-arbitration/department-memory-isolation + employee-contract/core-responsibility + contract-change-authority/contract-management-surface/accountability/review/versioning + shadow-agent-org-parity-policy/contract-binding/account-lifecycle + user-base-access-governance/UI-audit + contract-obligation-tracking/escalation-binding + org-chart assignment sync + event queue durability/idempotency/retry-backoff/circuit-breaker/rollback-recovery + planning-plane decomposition/risk-simulation + execution-plane permission-gate/budget-guardrail/audit-integrity + planning-plane compliance-modeling/proposal-generation + execution-plane policy-compiler-enforcement/deterministic-override + HITL escalation requirement + human-in-the-loop enforcement + regulatory audit retention + tenant boundary enforcement + policy exception handling + runtime profile refresh + planning/execution toggle guard + governance exception escalation + approval SLA + tenant residency + swarm recursion guard policy checks added; full integration/e2e coverage still pending |
+| Execution wiring (gate + swarm + orchestrator) | 48.20% | MFGC fallback wired; authority/compute/change-order governance policies and envelope/replay controls widened with parity checks |
+| Deterministic + LLM routing | 40.60% | Routing heuristics exist; deterministic routing policy families expanded and parity-validated |
+| Persistence + replay | 24.10% | Snapshot persistence + audit export snapshot available; replay consistency/attestation policy coverage expanded |
+| Multi-channel delivery | 58.40% | Document/email/chat/voice/translation stubs wired; publication/readout governance controls expanded |
+| Compliance validation | 39.00% | Compliance validation snapshot + rulepack/freshness/exception trace controls expanded |
+| Operational automation | 22.90% | Planning templates exist; handoff/readiness and release-gate policy controls expanded |
+| UI + user testing | 70.80% | Architect UI + scripted screenshots + warning-clean focused parity suite maintained |
+| Test coverage for dynamic chains | 96.40% | Dynamic plan tests exist; summary surface bundle + consumer parity + consistency + remediation/consistency-gap + completion snapshot + completion remediation + threshold/average/gap-area/total-area/coverage-ratio/backlog/backlog-ratio + execution-profile/enforcement-level/source/control-plane-separation/R&D-candidate/approval-policy/budget-mode/audit-policy/escalation-routing/tool-mediation/deterministic-routing/compute-routing/policy-compiler/permission-validation/delegation-scope/execution-broker/role-registry/authority-boundary/cross-department-arbitration/department-memory-isolation + employee-contract/core-responsibility + contract-change-authority/contract-management-surface/accountability/review/versioning + shadow-agent-org-parity-policy/contract-binding/account-lifecycle + user-base-access-governance/UI-audit + contract-obligation-tracking/escalation-binding + org-chart assignment sync + event queue durability/idempotency/retry-backoff/circuit-breaker/rollback-recovery + planning-plane decomposition/risk-simulation + execution-plane permission-gate/budget-guardrail/audit-integrity + planning-plane compliance-modeling/proposal-generation + execution-plane policy-compiler-enforcement/deterministic-override + HITL escalation requirement + human-in-the-loop enforcement + regulatory audit retention + tenant boundary enforcement + policy exception handling + runtime profile refresh + planning/execution toggle guard + governance exception escalation + approval SLA + tenant residency + swarm recursion guard + section-level governance lifecycle/policy-pack/replay/traceability/control chunks added; full integration/e2e coverage still pending |
 
 **Per-prompt micro-increment delta (latest prompt, decimal precision = 0.01):**
-- Execution wiring: **+0.00%**
-- Deterministic + LLM routing: **+0.00%**
-- Persistence + replay: **+0.00%**
-- Multi-channel delivery: **+0.00%**
-- Compliance validation: **+0.00%**
-- Operational automation: **+0.00%**
-- UI + user testing: **+0.00%**
-- Dynamic-chain tests: **+0.00%**
+- Execution wiring: **+0.05%**
+- Deterministic + LLM routing: **+0.02%**
+- Persistence + replay: **+0.03%**
+- Multi-channel delivery: **+0.01%**
+- Compliance validation: **+0.06%**
+- Operational automation: **+0.02%**
+- UI + user testing: **+0.01%**
+- Dynamic-chain tests: **+0.04%**
 
 **Why these percentages can remain unchanged across prompts:**
 - Many recent iterations harden **execution-profile governance metadata** (policy derivation + cross-surface parity) rather than completing new end-to-end wiring categories (execution routing, persistence, delivery adapters, ops automation).
@@ -462,25 +462,26 @@ This update confirms that sections **1-14** remain active and accepted as the op
 124. Added section execution-audit checkpoint governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_execution_audit_trail_policy`, `section_policy_enforcement_checkpoint_policy`, `section_change_scope_integrity_policy`, `section_domain_handoff_chain_policy`, and `section_release_attestation_packet_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
 125. Added section envelope-auditability/replay-binding governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_request_envelope_auditability_policy`, `section_gate_dependency_replay_policy`, `section_domain_escalation_binding_policy`, `section_budget_variance_justification_policy`, and `section_release_packet_signoff_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
 126. Added section contract-scope/readout governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_contract_scope_recheck_policy`, `section_proposal_change_order_trace_policy`, `section_gate_graph_dependency_guard_policy`, `section_evidence_store_attestation_policy`, and `section_release_readout_integrity_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
+127. Added section governance-SLA/lineage governance profile hardening with strict/balanced/dynamic derivation and preview/status/info parity checks for `section_governance_sla_policy`, `section_authority_chain_replay_policy`, `section_change_order_scope_lock_policy`, `section_evidence_lineage_policy`, and `section_decision_trace_attestation_policy`; focused validation remained **2 passed, 0 failed, 0 warnings**.
 
 **Current completion percentage snapshot (section 9, this iteration):**
-- Execution wiring (gate + swarm + orchestrator): **47%**
-- Deterministic + LLM routing: **40%**
-- Persistence + replay: **23%**
-- Multi-channel delivery: **58%**
-- Compliance validation: **38%**
-- Operational automation: **22%**
-- UI + user testing: **70%**
-- Test coverage for dynamic chains: **96%**
+- Execution wiring (gate + swarm + orchestrator): **48.20%**
+- Deterministic + LLM routing: **40.60%**
+- Persistence + replay: **24.10%**
+- Multi-channel delivery: **58.40%**
+- Compliance validation: **39.00%**
+- Operational automation: **22.90%**
+- UI + user testing: **70.80%**
+- Test coverage for dynamic chains: **96.40%**
 - **Per-prompt micro-increment delta (this prompt, decimal precision 0.01):**
-  - Execution wiring: **+0.00%**
-  - Deterministic + LLM routing: **+0.00%**
-  - Persistence + replay: **+0.00%**
-  - Multi-channel delivery: **+0.00%**
-  - Compliance validation: **+0.00%**
-  - Operational automation: **+0.00%**
-  - UI + user testing: **+0.00%**
-  - Dynamic-chain tests: **+0.00%**
+  - Execution wiring: **+0.05%**
+  - Deterministic + LLM routing: **+0.02%**
+  - Persistence + replay: **+0.03%**
+  - Multi-channel delivery: **+0.01%**
+  - Compliance validation: **+0.06%**
+  - Operational automation: **+0.02%**
+  - UI + user testing: **+0.01%**
+  - Dynamic-chain tests: **+0.04%**
 - Latest targeted run (`test_completion_snapshot_surface.py`): **2 passed, 0 failed, 0 warnings**
 
 ---

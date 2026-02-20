@@ -6619,6 +6619,31 @@ class MurphySystem:
             "section_release_readout_integrity_policy_scoped",
             "section_release_readout_integrity_adaptive_with_audit"
         )
+        section_governance_sla_policy = _mode_policy(
+            "section_governance_sla_required",
+            "section_governance_sla_policy_scoped",
+            "section_governance_sla_adaptive_with_audit"
+        )
+        section_authority_chain_replay_policy = _mode_policy(
+            "section_authority_chain_replay_required",
+            "section_authority_chain_replay_policy_scoped",
+            "section_authority_chain_replay_adaptive_with_audit"
+        )
+        section_change_order_scope_lock_policy = _mode_policy(
+            "section_change_order_scope_lock_required",
+            "section_change_order_scope_lock_policy_scoped",
+            "section_change_order_scope_lock_adaptive_with_audit"
+        )
+        section_evidence_lineage_policy = _mode_policy(
+            "section_evidence_lineage_required",
+            "section_evidence_lineage_policy_scoped",
+            "section_evidence_lineage_adaptive_with_audit"
+        )
+        section_decision_trace_attestation_policy = _mode_policy(
+            "section_decision_trace_attestation_required",
+            "section_decision_trace_attestation_policy_scoped",
+            "section_decision_trace_attestation_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -6908,6 +6933,11 @@ class MurphySystem:
             "section_gate_graph_dependency_guard_policy": section_gate_graph_dependency_guard_policy,
             "section_evidence_store_attestation_policy": section_evidence_store_attestation_policy,
             "section_release_readout_integrity_policy": section_release_readout_integrity_policy,
+            "section_governance_sla_policy": section_governance_sla_policy,
+            "section_authority_chain_replay_policy": section_authority_chain_replay_policy,
+            "section_change_order_scope_lock_policy": section_change_order_scope_lock_policy,
+            "section_evidence_lineage_policy": section_evidence_lineage_policy,
+            "section_decision_trace_attestation_policy": section_decision_trace_attestation_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,

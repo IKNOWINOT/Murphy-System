@@ -336,6 +336,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["section_gate_graph_dependency_guard_policy"] == status["runtime_execution_profile"]["section_gate_graph_dependency_guard_policy"]
     assert preview["runtime_execution_profile"]["section_evidence_store_attestation_policy"] == status["runtime_execution_profile"]["section_evidence_store_attestation_policy"]
     assert preview["runtime_execution_profile"]["section_release_readout_integrity_policy"] == status["runtime_execution_profile"]["section_release_readout_integrity_policy"]
+    assert preview["runtime_execution_profile"]["section_governance_sla_policy"] == status["runtime_execution_profile"]["section_governance_sla_policy"]
+    assert preview["runtime_execution_profile"]["section_authority_chain_replay_policy"] == status["runtime_execution_profile"]["section_authority_chain_replay_policy"]
+    assert preview["runtime_execution_profile"]["section_change_order_scope_lock_policy"] == status["runtime_execution_profile"]["section_change_order_scope_lock_policy"]
+    assert preview["runtime_execution_profile"]["section_evidence_lineage_policy"] == status["runtime_execution_profile"]["section_evidence_lineage_policy"]
+    assert preview["runtime_execution_profile"]["section_decision_trace_attestation_policy"] == status["runtime_execution_profile"]["section_decision_trace_attestation_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -518,6 +523,11 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["section_rulepack_refresh_attestation_policy"] == "section_rulepack_refresh_attestation_policy_scoped"
     assert status["runtime_execution_profile"]["section_domain_owner_ack_policy"] == "section_domain_owner_ack_policy_scoped"
     assert status["runtime_execution_profile"]["section_handoff_readiness_attestation_policy"] == "section_handoff_readiness_attestation_policy_scoped"
+    assert status["runtime_execution_profile"]["section_governance_sla_policy"] == "section_governance_sla_policy_scoped"
+    assert status["runtime_execution_profile"]["section_authority_chain_replay_policy"] == "section_authority_chain_replay_policy_scoped"
+    assert status["runtime_execution_profile"]["section_change_order_scope_lock_policy"] == "section_change_order_scope_lock_policy_scoped"
+    assert status["runtime_execution_profile"]["section_evidence_lineage_policy"] == "section_evidence_lineage_policy_scoped"
+    assert status["runtime_execution_profile"]["section_decision_trace_attestation_policy"] == "section_decision_trace_attestation_policy_scoped"
     assert status["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_policy_guided"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
@@ -798,6 +808,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["section_gate_graph_dependency_guard_policy"] == "section_gate_graph_dependency_guard_required"
     assert strict["section_evidence_store_attestation_policy"] == "section_evidence_store_attestation_required"
     assert strict["section_release_readout_integrity_policy"] == "section_release_readout_integrity_required"
+    assert strict["section_governance_sla_policy"] == "section_governance_sla_required"
+    assert strict["section_authority_chain_replay_policy"] == "section_authority_chain_replay_required"
+    assert strict["section_change_order_scope_lock_policy"] == "section_change_order_scope_lock_required"
+    assert strict["section_evidence_lineage_policy"] == "section_evidence_lineage_required"
+    assert strict["section_decision_trace_attestation_policy"] == "section_decision_trace_attestation_required"
     assert strict["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_hard"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
@@ -1082,5 +1097,10 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["section_gate_graph_dependency_guard_policy"] == "section_gate_graph_dependency_guard_adaptive_with_audit"
     assert dynamic["section_evidence_store_attestation_policy"] == "section_evidence_store_attestation_adaptive_with_audit"
     assert dynamic["section_release_readout_integrity_policy"] == "section_release_readout_integrity_adaptive_with_audit"
+    assert dynamic["section_governance_sla_policy"] == "section_governance_sla_adaptive_with_audit"
+    assert dynamic["section_authority_chain_replay_policy"] == "section_authority_chain_replay_adaptive_with_audit"
+    assert dynamic["section_change_order_scope_lock_policy"] == "section_change_order_scope_lock_adaptive_with_audit"
+    assert dynamic["section_evidence_lineage_policy"] == "section_evidence_lineage_adaptive_with_audit"
+    assert dynamic["section_decision_trace_attestation_policy"] == "section_decision_trace_attestation_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"
