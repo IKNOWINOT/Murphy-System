@@ -7144,6 +7144,31 @@ class MurphySystem:
             "section_release_override_chain_policy_scoped",
             "section_release_override_chain_adaptive_with_audit"
         )
+        section_governance_verification_digest_policy = _mode_policy(
+            "section_governance_verification_digest_required",
+            "section_governance_verification_digest_policy_scoped",
+            "section_governance_verification_digest_adaptive_with_audit"
+        )
+        section_authority_scope_nonce_rotation_policy = _mode_policy(
+            "section_authority_scope_nonce_rotation_required",
+            "section_authority_scope_nonce_rotation_policy_scoped",
+            "section_authority_scope_nonce_rotation_adaptive_with_audit"
+        )
+        section_budget_forecast_lock_policy = _mode_policy(
+            "section_budget_forecast_lock_required",
+            "section_budget_forecast_lock_policy_scoped",
+            "section_budget_forecast_lock_adaptive_with_audit"
+        )
+        section_evidence_bundle_canonicalization_policy = _mode_policy(
+            "section_evidence_bundle_canonicalization_required",
+            "section_evidence_bundle_canonicalization_policy_scoped",
+            "section_evidence_bundle_canonicalization_adaptive_with_audit"
+        )
+        section_release_attestation_digest_policy = _mode_policy(
+            "section_release_attestation_digest_required",
+            "section_release_attestation_digest_policy_scoped",
+            "section_release_attestation_digest_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -7538,6 +7563,11 @@ class MurphySystem:
             "section_budget_allocation_trace_policy": section_budget_allocation_trace_policy,
             "section_evidence_manifest_freshness_policy": section_evidence_manifest_freshness_policy,
             "section_release_override_chain_policy": section_release_override_chain_policy,
+            "section_governance_verification_digest_policy": section_governance_verification_digest_policy,
+            "section_authority_scope_nonce_rotation_policy": section_authority_scope_nonce_rotation_policy,
+            "section_budget_forecast_lock_policy": section_budget_forecast_lock_policy,
+            "section_evidence_bundle_canonicalization_policy": section_evidence_bundle_canonicalization_policy,
+            "section_release_attestation_digest_policy": section_release_attestation_digest_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
