@@ -6669,6 +6669,31 @@ class MurphySystem:
             "section_compute_reproducibility_window_policy_scoped",
             "section_compute_reproducibility_window_adaptive_with_audit"
         )
+        section_refusal_reason_standard_policy = _mode_policy(
+            "section_refusal_reason_standard_required",
+            "section_refusal_reason_standard_policy_scoped",
+            "section_refusal_reason_standard_adaptive_with_audit"
+        )
+        section_escalation_reason_code_policy = _mode_policy(
+            "section_escalation_reason_code_required",
+            "section_escalation_reason_code_policy_scoped",
+            "section_escalation_reason_code_adaptive_with_audit"
+        )
+        section_authority_delegation_expiry_policy = _mode_policy(
+            "section_authority_delegation_expiry_required",
+            "section_authority_delegation_expiry_policy_scoped",
+            "section_authority_delegation_expiry_adaptive_with_audit"
+        )
+        section_budget_tag_enforcement_policy = _mode_policy(
+            "section_budget_tag_enforcement_required",
+            "section_budget_tag_enforcement_policy_scoped",
+            "section_budget_tag_enforcement_adaptive_with_audit"
+        )
+        section_evidence_snapshot_replay_policy = _mode_policy(
+            "section_evidence_snapshot_replay_required",
+            "section_evidence_snapshot_replay_policy_scoped",
+            "section_evidence_snapshot_replay_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -6968,6 +6993,11 @@ class MurphySystem:
             "section_nte_change_order_policy": section_nte_change_order_policy,
             "section_approval_identity_binding_policy": section_approval_identity_binding_policy,
             "section_compute_reproducibility_window_policy": section_compute_reproducibility_window_policy,
+            "section_refusal_reason_standard_policy": section_refusal_reason_standard_policy,
+            "section_escalation_reason_code_policy": section_escalation_reason_code_policy,
+            "section_authority_delegation_expiry_policy": section_authority_delegation_expiry_policy,
+            "section_budget_tag_enforcement_policy": section_budget_tag_enforcement_policy,
+            "section_evidence_snapshot_replay_policy": section_evidence_snapshot_replay_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
