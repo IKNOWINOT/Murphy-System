@@ -6569,6 +6569,56 @@ class MurphySystem:
             "section_handoff_readiness_attestation_policy_scoped",
             "section_handoff_readiness_attestation_adaptive_with_audit"
         )
+        section_execution_audit_trail_policy = _mode_policy(
+            "section_execution_audit_trail_required",
+            "section_execution_audit_trail_policy_scoped",
+            "section_execution_audit_trail_adaptive_with_audit"
+        )
+        section_policy_enforcement_checkpoint_policy = _mode_policy(
+            "section_policy_enforcement_checkpoint_required",
+            "section_policy_enforcement_checkpoint_policy_scoped",
+            "section_policy_enforcement_checkpoint_adaptive_with_audit"
+        )
+        section_change_scope_integrity_policy = _mode_policy(
+            "section_change_scope_integrity_required",
+            "section_change_scope_integrity_policy_scoped",
+            "section_change_scope_integrity_adaptive_with_audit"
+        )
+        section_domain_handoff_chain_policy = _mode_policy(
+            "section_domain_handoff_chain_required",
+            "section_domain_handoff_chain_policy_scoped",
+            "section_domain_handoff_chain_adaptive_with_audit"
+        )
+        section_release_attestation_packet_policy = _mode_policy(
+            "section_release_attestation_packet_required",
+            "section_release_attestation_packet_policy_scoped",
+            "section_release_attestation_packet_adaptive_with_audit"
+        )
+        section_contract_scope_recheck_policy = _mode_policy(
+            "section_contract_scope_recheck_required",
+            "section_contract_scope_recheck_policy_scoped",
+            "section_contract_scope_recheck_adaptive_with_audit"
+        )
+        section_proposal_change_order_trace_policy = _mode_policy(
+            "section_proposal_change_order_trace_required",
+            "section_proposal_change_order_trace_policy_scoped",
+            "section_proposal_change_order_trace_adaptive_with_audit"
+        )
+        section_gate_graph_dependency_guard_policy = _mode_policy(
+            "section_gate_graph_dependency_guard_required",
+            "section_gate_graph_dependency_guard_policy_scoped",
+            "section_gate_graph_dependency_guard_adaptive_with_audit"
+        )
+        section_evidence_store_attestation_policy = _mode_policy(
+            "section_evidence_store_attestation_required",
+            "section_evidence_store_attestation_policy_scoped",
+            "section_evidence_store_attestation_adaptive_with_audit"
+        )
+        section_release_readout_integrity_policy = _mode_policy(
+            "section_release_readout_integrity_required",
+            "section_release_readout_integrity_policy_scoped",
+            "section_release_readout_integrity_adaptive_with_audit"
+        )
         hitl_escalation_comfort_policy = hitl_escalation_requirement_policy
         return {
             "execution_mode": mode,
@@ -6848,6 +6898,16 @@ class MurphySystem:
             "section_rulepack_refresh_attestation_policy": section_rulepack_refresh_attestation_policy,
             "section_domain_owner_ack_policy": section_domain_owner_ack_policy,
             "section_handoff_readiness_attestation_policy": section_handoff_readiness_attestation_policy,
+            "section_execution_audit_trail_policy": section_execution_audit_trail_policy,
+            "section_policy_enforcement_checkpoint_policy": section_policy_enforcement_checkpoint_policy,
+            "section_change_scope_integrity_policy": section_change_scope_integrity_policy,
+            "section_domain_handoff_chain_policy": section_domain_handoff_chain_policy,
+            "section_release_attestation_packet_policy": section_release_attestation_packet_policy,
+            "section_contract_scope_recheck_policy": section_contract_scope_recheck_policy,
+            "section_proposal_change_order_trace_policy": section_proposal_change_order_trace_policy,
+            "section_gate_graph_dependency_guard_policy": section_gate_graph_dependency_guard_policy,
+            "section_evidence_store_attestation_policy": section_evidence_store_attestation_policy,
+            "section_release_readout_integrity_policy": section_release_readout_integrity_policy,
             "hitl_escalation_comfort_policy": hitl_escalation_comfort_policy,
             "safety_level": safety_level,
             "escalation_policy": escalation_policy,
