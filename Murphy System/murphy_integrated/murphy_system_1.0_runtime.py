@@ -6419,6 +6419,31 @@ class MurphySystem:
             "section_governance_override_hierarchy_policy_scoped",
             "section_governance_override_hierarchy_adaptive_with_audit"
         )
+        section_policy_pack_versioning_policy = _mode_policy(
+            "section_policy_pack_versioning_required",
+            "section_policy_pack_versioning_policy_scoped",
+            "section_policy_pack_versioning_adaptive_with_audit"
+        )
+        section_authority_delegation_revocation_policy = _mode_policy(
+            "section_authority_delegation_revocation_required",
+            "section_authority_delegation_revocation_policy_scoped",
+            "section_authority_delegation_revocation_adaptive_with_audit"
+        )
+        section_evidence_immutability_policy = _mode_policy(
+            "section_evidence_immutability_required",
+            "section_evidence_immutability_policy_scoped",
+            "section_evidence_immutability_adaptive_with_audit"
+        )
+        section_compute_plane_replay_attestation_policy = _mode_policy(
+            "section_compute_plane_replay_attestation_required",
+            "section_compute_plane_replay_attestation_policy_scoped",
+            "section_compute_plane_replay_attestation_adaptive_with_audit"
+        )
+        section_swarm_isolation_boundary_policy = _mode_policy(
+            "section_swarm_isolation_boundary_required",
+            "section_swarm_isolation_boundary_policy_scoped",
+            "section_swarm_isolation_boundary_adaptive_with_audit"
+        )
         section_risk_tolerance_boundary_policy = _mode_policy(
             "section_risk_tolerance_boundary_required",
             "section_risk_tolerance_boundary_policy_scoped",
@@ -6743,6 +6768,11 @@ class MurphySystem:
             "section_authoritative_source_integrity_policy": section_authoritative_source_integrity_policy,
             "section_budget_gate_reconciliation_policy": section_budget_gate_reconciliation_policy,
             "section_governance_override_hierarchy_policy": section_governance_override_hierarchy_policy,
+            "section_policy_pack_versioning_policy": section_policy_pack_versioning_policy,
+            "section_authority_delegation_revocation_policy": section_authority_delegation_revocation_policy,
+            "section_evidence_immutability_policy": section_evidence_immutability_policy,
+            "section_compute_plane_replay_attestation_policy": section_compute_plane_replay_attestation_policy,
+            "section_swarm_isolation_boundary_policy": section_swarm_isolation_boundary_policy,
             "section_risk_tolerance_boundary_policy": section_risk_tolerance_boundary_policy,
             "section_approval_delegation_integrity_policy": section_approval_delegation_integrity_policy,
             "section_budget_anomaly_circuit_breaker_policy": section_budget_anomaly_circuit_breaker_policy,
