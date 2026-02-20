@@ -441,6 +441,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["section_budget_allocation_trace_policy"] == status["runtime_execution_profile"]["section_budget_allocation_trace_policy"]
     assert preview["runtime_execution_profile"]["section_evidence_manifest_freshness_policy"] == status["runtime_execution_profile"]["section_evidence_manifest_freshness_policy"]
     assert preview["runtime_execution_profile"]["section_release_override_chain_policy"] == status["runtime_execution_profile"]["section_release_override_chain_policy"]
+    assert preview["runtime_execution_profile"]["section_governance_verification_digest_policy"] == status["runtime_execution_profile"]["section_governance_verification_digest_policy"]
+    assert preview["runtime_execution_profile"]["section_authority_scope_nonce_rotation_policy"] == status["runtime_execution_profile"]["section_authority_scope_nonce_rotation_policy"]
+    assert preview["runtime_execution_profile"]["section_budget_forecast_lock_policy"] == status["runtime_execution_profile"]["section_budget_forecast_lock_policy"]
+    assert preview["runtime_execution_profile"]["section_evidence_bundle_canonicalization_policy"] == status["runtime_execution_profile"]["section_evidence_bundle_canonicalization_policy"]
+    assert preview["runtime_execution_profile"]["section_release_attestation_digest_policy"] == status["runtime_execution_profile"]["section_release_attestation_digest_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -1322,6 +1327,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["section_budget_allocation_trace_policy"] == "section_budget_allocation_trace_adaptive_with_audit"
     assert dynamic["section_evidence_manifest_freshness_policy"] == "section_evidence_manifest_freshness_adaptive_with_audit"
     assert dynamic["section_release_override_chain_policy"] == "section_release_override_chain_adaptive_with_audit"
+    assert dynamic["section_governance_verification_digest_policy"] == "section_governance_verification_digest_adaptive_with_audit"
+    assert dynamic["section_authority_scope_nonce_rotation_policy"] == "section_authority_scope_nonce_rotation_adaptive_with_audit"
+    assert dynamic["section_budget_forecast_lock_policy"] == "section_budget_forecast_lock_adaptive_with_audit"
+    assert dynamic["section_evidence_bundle_canonicalization_policy"] == "section_evidence_bundle_canonicalization_adaptive_with_audit"
+    assert dynamic["section_release_attestation_digest_policy"] == "section_release_attestation_digest_adaptive_with_audit"
     assert dynamic["section_governance_ledger_integrity_policy"] == "section_governance_ledger_integrity_adaptive_with_audit"
     assert dynamic["section_authority_chain_digest_policy"] == "section_authority_chain_digest_adaptive_with_audit"
     assert dynamic["section_budget_reconciliation_digest_policy"] == "section_budget_reconciliation_digest_adaptive_with_audit"
