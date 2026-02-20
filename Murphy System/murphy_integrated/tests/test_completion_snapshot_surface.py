@@ -316,6 +316,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["section_domain_swarm_routing_policy"] == status["runtime_execution_profile"]["section_domain_swarm_routing_policy"]
     assert preview["runtime_execution_profile"]["section_compute_replay_consistency_policy"] == status["runtime_execution_profile"]["section_compute_replay_consistency_policy"]
     assert preview["runtime_execution_profile"]["section_authority_scope_binding_policy"] == status["runtime_execution_profile"]["section_authority_scope_binding_policy"]
+    assert preview["runtime_execution_profile"]["section_request_envelope_auditability_policy"] == status["runtime_execution_profile"]["section_request_envelope_auditability_policy"]
+    assert preview["runtime_execution_profile"]["section_gate_dependency_replay_policy"] == status["runtime_execution_profile"]["section_gate_dependency_replay_policy"]
+    assert preview["runtime_execution_profile"]["section_domain_escalation_binding_policy"] == status["runtime_execution_profile"]["section_domain_escalation_binding_policy"]
+    assert preview["runtime_execution_profile"]["section_budget_variance_justification_policy"] == status["runtime_execution_profile"]["section_budget_variance_justification_policy"]
+    assert preview["runtime_execution_profile"]["section_release_packet_signoff_policy"] == status["runtime_execution_profile"]["section_release_packet_signoff_policy"]
     assert preview["runtime_execution_profile"]["section_authority_chain_escalation_policy"] == status["runtime_execution_profile"]["section_authority_chain_escalation_policy"]
     assert preview["runtime_execution_profile"]["section_gate_decision_replay_policy"] == status["runtime_execution_profile"]["section_gate_decision_replay_policy"]
     assert preview["runtime_execution_profile"]["section_rulepack_refresh_attestation_policy"] == status["runtime_execution_profile"]["section_rulepack_refresh_attestation_policy"]
@@ -768,6 +773,11 @@ def test_runtime_execution_profile_mode_derivation():
     assert strict["section_domain_swarm_routing_policy"] == "section_domain_swarm_routing_required"
     assert strict["section_compute_replay_consistency_policy"] == "section_compute_replay_consistency_required"
     assert strict["section_authority_scope_binding_policy"] == "section_authority_scope_binding_required"
+    assert strict["section_request_envelope_auditability_policy"] == "section_request_envelope_auditability_required"
+    assert strict["section_gate_dependency_replay_policy"] == "section_gate_dependency_replay_required"
+    assert strict["section_domain_escalation_binding_policy"] == "section_domain_escalation_binding_required"
+    assert strict["section_budget_variance_justification_policy"] == "section_budget_variance_justification_required"
+    assert strict["section_release_packet_signoff_policy"] == "section_release_packet_signoff_required"
     assert strict["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_hard"
     assert strict["escalation_policy"] == "mandatory"
     assert dynamic["execution_mode"] == "dynamic"
@@ -1037,5 +1047,10 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["section_domain_swarm_routing_policy"] == "section_domain_swarm_routing_adaptive_with_audit"
     assert dynamic["section_compute_replay_consistency_policy"] == "section_compute_replay_consistency_adaptive_with_audit"
     assert dynamic["section_authority_scope_binding_policy"] == "section_authority_scope_binding_adaptive_with_audit"
+    assert dynamic["section_request_envelope_auditability_policy"] == "section_request_envelope_auditability_adaptive_with_audit"
+    assert dynamic["section_gate_dependency_replay_policy"] == "section_gate_dependency_replay_adaptive_with_audit"
+    assert dynamic["section_domain_escalation_binding_policy"] == "section_domain_escalation_binding_adaptive_with_audit"
+    assert dynamic["section_budget_variance_justification_policy"] == "section_budget_variance_justification_adaptive_with_audit"
+    assert dynamic["section_release_packet_signoff_policy"] == "section_release_packet_signoff_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"
