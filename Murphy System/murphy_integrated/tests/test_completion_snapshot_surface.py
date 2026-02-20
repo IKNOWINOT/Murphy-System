@@ -351,6 +351,11 @@ def test_completion_snapshot_surface_parity():
     assert preview["runtime_execution_profile"]["section_authority_delegation_expiry_policy"] == status["runtime_execution_profile"]["section_authority_delegation_expiry_policy"]
     assert preview["runtime_execution_profile"]["section_budget_tag_enforcement_policy"] == status["runtime_execution_profile"]["section_budget_tag_enforcement_policy"]
     assert preview["runtime_execution_profile"]["section_evidence_snapshot_replay_policy"] == status["runtime_execution_profile"]["section_evidence_snapshot_replay_policy"]
+    assert preview["runtime_execution_profile"]["section_budget_circuit_breaker_policy"] == status["runtime_execution_profile"]["section_budget_circuit_breaker_policy"]
+    assert preview["runtime_execution_profile"]["section_change_order_authority_scope_policy"] == status["runtime_execution_profile"]["section_change_order_authority_scope_policy"]
+    assert preview["runtime_execution_profile"]["section_evidence_signature_policy"] == status["runtime_execution_profile"]["section_evidence_signature_policy"]
+    assert preview["runtime_execution_profile"]["section_domain_escalation_sla_policy"] == status["runtime_execution_profile"]["section_domain_escalation_sla_policy"]
+    assert preview["runtime_execution_profile"]["section_governance_override_precedence_policy"] == status["runtime_execution_profile"]["section_governance_override_precedence_policy"]
     assert preview["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == status["runtime_execution_profile"]["hitl_escalation_comfort_policy"]
     assert preview["runtime_execution_profile"]["execution_profile_source"] == "onboarding"
     assert status["runtime_execution_profile"]["execution_profile_source"] == "default"
@@ -548,6 +553,11 @@ def test_completion_snapshot_surface_parity():
     assert status["runtime_execution_profile"]["section_authority_delegation_expiry_policy"] == "section_authority_delegation_expiry_policy_scoped"
     assert status["runtime_execution_profile"]["section_budget_tag_enforcement_policy"] == "section_budget_tag_enforcement_policy_scoped"
     assert status["runtime_execution_profile"]["section_evidence_snapshot_replay_policy"] == "section_evidence_snapshot_replay_policy_scoped"
+    assert status["runtime_execution_profile"]["section_budget_circuit_breaker_policy"] == "section_budget_circuit_breaker_policy_scoped"
+    assert status["runtime_execution_profile"]["section_change_order_authority_scope_policy"] == "section_change_order_authority_scope_policy_scoped"
+    assert status["runtime_execution_profile"]["section_evidence_signature_policy"] == "section_evidence_signature_policy_scoped"
+    assert status["runtime_execution_profile"]["section_domain_escalation_sla_policy"] == "section_domain_escalation_sla_policy_scoped"
+    assert status["runtime_execution_profile"]["section_governance_override_precedence_policy"] == "section_governance_override_precedence_policy_scoped"
     assert status["runtime_execution_profile"]["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_policy_guided"
     assert expected["summary"]["total_areas"] == len(expected["areas"])
     assert expected["summary"]["remediation_threshold_percent"] == 50
@@ -1132,5 +1142,10 @@ def test_runtime_execution_profile_mode_derivation():
     assert dynamic["section_authority_delegation_expiry_policy"] == "section_authority_delegation_expiry_adaptive_with_audit"
     assert dynamic["section_budget_tag_enforcement_policy"] == "section_budget_tag_enforcement_adaptive_with_audit"
     assert dynamic["section_evidence_snapshot_replay_policy"] == "section_evidence_snapshot_replay_adaptive_with_audit"
+    assert dynamic["section_budget_circuit_breaker_policy"] == "section_budget_circuit_breaker_adaptive_with_audit"
+    assert dynamic["section_change_order_authority_scope_policy"] == "section_change_order_authority_scope_adaptive_with_audit"
+    assert dynamic["section_evidence_signature_policy"] == "section_evidence_signature_adaptive_with_audit"
+    assert dynamic["section_domain_escalation_sla_policy"] == "section_domain_escalation_sla_adaptive_with_audit"
+    assert dynamic["section_governance_override_precedence_policy"] == "section_governance_override_precedence_adaptive_with_audit"
     assert dynamic["hitl_escalation_comfort_policy"] == "hitl_escalation_requirement_adaptive_with_audit"
     assert dynamic["audit_requirements"] == "minimal"
