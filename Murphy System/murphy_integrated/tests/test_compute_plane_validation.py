@@ -118,3 +118,22 @@ def test_execute_task_routes_math_task_type_to_compute_plane():
     assert result["status"] == "validated"
     assert result["compute_plane"]["route_source"] == "math_deterministic"
     assert result["metadata"]["mode"] == "compute_plane_validation"
+
+
+def test_execute_task_routes_confidence_task_type_to_compute_plane():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "minimize: x subject to: x >= 0",
+            "confidence_engine",
+            {
+                "compute_language": "lp",
+                "enforce_policy": False
+            },
+            session_id="session-confidence-task-type"
+        )
+    )
+    assert result["status"] == "validated"
+    assert result["compute_plane"]["route_source"] == "confidence_task_type"
+    assert result["metadata"]["mode"] == "compute_plane_validation"

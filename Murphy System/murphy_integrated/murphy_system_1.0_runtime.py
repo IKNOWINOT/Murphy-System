@@ -1854,6 +1854,25 @@ class MurphySystem:
             route_source = "confidence_required"
         if (
             not compute_request
+            and (task_type or "").lower() in {"confidence_engine", "confidence", "confidence_validation"}
+        ):
+            confidence_expression = (
+                input_parameters.get("confidence_expression")
+                or input_parameters.get("compute_expression")
+                or input_parameters.get("expression")
+                or task_description
+            )
+            if confidence_expression:
+                compute_request = {
+                    "expression": confidence_expression,
+                    "language": input_parameters.get(
+                        "confidence_language",
+                        input_parameters.get("compute_language", "sympy")
+                    )
+                }
+                route_source = "confidence_task_type"
+        if (
+            not compute_request
             and (
                 input_parameters.get("math_required")
                 or (task_type or "").lower() in {"math", "calculation", "numeric", "symbolic"}
@@ -2012,6 +2031,7 @@ class MurphySystem:
                     or compute_parameters.get("compute_expression")
                 )
             )
+            or normalized_task_type in {"confidence_engine", "confidence", "confidence_validation"}
             or compute_parameters.get("math_required")
             or normalized_task_type in {"math", "calculation", "numeric", "symbolic"}
             or (
