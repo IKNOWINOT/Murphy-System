@@ -1040,6 +1040,7 @@ class MurphySystem:
         "pending_compliance",
         "blocked"
     }
+    CONFIDENCE_ENGINE_TASK_TYPES = {"confidence_engine", "confidence", "confidence_validation"}
     
     @classmethod
     def create_test_instance(cls) -> "MurphySystem":
@@ -1814,6 +1815,17 @@ class MurphySystem:
                 return None
             return session_payload.get("session_id")
 
+    def _is_compute_expression_candidate(self, value: Optional[str]) -> bool:
+        """Return True when text appears to contain a deterministic compute expression."""
+        if not isinstance(value, str):
+            return False
+        normalized = value.strip()
+        if not normalized:
+            return False
+        return bool(
+            re.search(r"(minimize:|maximize:|subject to|[=+\-*/^()]|<=|>=)", normalized, re.IGNORECASE)
+        )
+
     def _execute_compute_plane_validation(
         self,
         parameters: Optional[Dict[str, Any]],
@@ -1854,13 +1866,18 @@ class MurphySystem:
             route_source = "confidence_required"
         if (
             not compute_request
-            and (task_type or "").lower() in {"confidence_engine", "confidence", "confidence_validation"}
+            and (task_type or "").lower() in self.CONFIDENCE_ENGINE_TASK_TYPES
         ):
+            description_expression = (
+                task_description
+                if self._is_compute_expression_candidate(task_description)
+                else None
+            )
             confidence_expression = (
                 input_parameters.get("confidence_expression")
                 or input_parameters.get("compute_expression")
                 or input_parameters.get("expression")
-                or task_description
+                or description_expression
             )
             if confidence_expression:
                 compute_request = {
@@ -2031,7 +2048,7 @@ class MurphySystem:
                     or compute_parameters.get("compute_expression")
                 )
             )
-            or normalized_task_type in {"confidence_engine", "confidence", "confidence_validation"}
+            or normalized_task_type in self.CONFIDENCE_ENGINE_TASK_TYPES
             or compute_parameters.get("math_required")
             or normalized_task_type in {"math", "calculation", "numeric", "symbolic"}
             or (
