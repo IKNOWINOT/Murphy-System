@@ -1895,13 +1895,18 @@ class MurphySystem:
                 or (task_type or "").lower() in {"math", "calculation", "numeric", "symbolic"}
             )
         ):
+            description_expression = (
+                task_description
+                if self._is_compute_expression_candidate(task_description)
+                else None
+            )
             math_expression = (
                 input_parameters.get("math_expression")
                 or input_parameters.get("equation")
                 or input_parameters.get("formula")
                 or input_parameters.get("compute_expression")
                 or input_parameters.get("expression")
-                or task_description
+                or description_expression
             )
             if math_expression:
                 compute_request = {
