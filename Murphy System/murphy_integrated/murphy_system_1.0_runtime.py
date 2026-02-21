@@ -2001,6 +2001,7 @@ class MurphySystem:
                 }
             )
         compute_parameters = parameters or {}
+        normalized_task_type = (task_type or "").lower()
         requires_compute_validation = bool(
             compute_parameters.get("compute_request")
             or compute_parameters.get("deterministic_request")
@@ -2012,7 +2013,7 @@ class MurphySystem:
                 )
             )
             or compute_parameters.get("math_required")
-            or task_type.lower() in {"math", "calculation", "numeric", "symbolic"}
+            or normalized_task_type in {"math", "calculation", "numeric", "symbolic"}
             or (
                 compute_parameters.get("deterministic_required")
                 and compute_parameters.get("compute_expression")
