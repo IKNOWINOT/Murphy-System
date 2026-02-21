@@ -1816,7 +1816,9 @@ class MurphySystem:
 
     def _execute_compute_plane_validation(
         self,
-        parameters: Optional[Dict[str, Any]]
+        parameters: Optional[Dict[str, Any]],
+        task_description: Optional[str] = None,
+        task_type: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
         """Run deterministic compute-plane validation when compute inputs are provided.
 
@@ -1840,6 +1842,37 @@ class MurphySystem:
                 "language": input_parameters.get("compute_language", "sympy")
             }
             route_source = "deterministic_required"
+        if (
+            not compute_request
+            and input_parameters.get("confidence_required")
+            and (input_parameters.get("confidence_expression") or input_parameters.get("compute_expression"))
+        ):
+            compute_request = {
+                "expression": input_parameters.get("confidence_expression") or input_parameters.get("compute_expression"),
+                "language": input_parameters.get("confidence_language", input_parameters.get("compute_language", "sympy"))
+            }
+            route_source = "confidence_required"
+        if (
+            not compute_request
+            and (
+                input_parameters.get("math_required")
+                or (task_type or "").lower() in {"math", "calculation", "numeric", "symbolic"}
+            )
+        ):
+            math_expression = (
+                input_parameters.get("math_expression")
+                or input_parameters.get("equation")
+                or input_parameters.get("formula")
+                or input_parameters.get("compute_expression")
+                or input_parameters.get("expression")
+                or task_description
+            )
+            if math_expression:
+                compute_request = {
+                    "expression": math_expression,
+                    "language": input_parameters.get("math_language", input_parameters.get("compute_language", "sympy"))
+                }
+                route_source = "math_deterministic"
         if not compute_request:
             return None
         expression = compute_request.get("expression")
@@ -1972,6 +2005,15 @@ class MurphySystem:
             compute_parameters.get("compute_request")
             or compute_parameters.get("deterministic_request")
             or (
+                compute_parameters.get("confidence_required")
+                and (
+                    compute_parameters.get("confidence_expression")
+                    or compute_parameters.get("compute_expression")
+                )
+            )
+            or compute_parameters.get("math_required")
+            or task_type.lower() in {"math", "calculation", "numeric", "symbolic"}
+            or (
                 compute_parameters.get("deterministic_required")
                 and compute_parameters.get("compute_expression")
             )
@@ -1979,7 +2021,11 @@ class MurphySystem:
         resolved_compute_session = None
         if requires_compute_validation:
             resolved_compute_session = self._resolve_compute_session(session_id)
-        compute_plane_result = self._execute_compute_plane_validation(parameters)
+        compute_plane_result = self._execute_compute_plane_validation(
+            parameters,
+            task_description=task_description,
+            task_type=task_type
+        )
         if compute_plane_result:
             status = compute_plane_result.get("status", "error")
             if status == "validated" and resolved_compute_session:
