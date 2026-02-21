@@ -2071,7 +2071,10 @@ class MurphySystem:
                 normalized_task_type in self.CONFIDENCE_ENGINE_TASK_TYPES
                 and self._is_compute_expression_candidate(confidence_expression_candidate)
             )
-            or compute_parameters.get("math_required")
+            or (
+                compute_parameters.get("math_required")
+                and self._is_compute_expression_candidate(math_expression_candidate)
+            )
             or (
                 normalized_task_type in {"math", "calculation", "numeric", "symbolic"}
                 and self._is_compute_expression_candidate(math_expression_candidate)

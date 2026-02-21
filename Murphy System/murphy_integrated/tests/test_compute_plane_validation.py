@@ -191,3 +191,21 @@ def test_math_task_without_expression_skips_compute_plane():
     )
     assert "compute_plane" not in result
     assert len(murphy.sessions) == 0
+
+
+def test_math_required_without_expression_skips_compute_plane_and_session():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Coordinate release checklist with stakeholders",
+            "automation",
+            {
+                "math_required": True,
+                "enforce_policy": False
+            },
+            session_id="session-math-required-non-expression"
+        )
+    )
+    assert "compute_plane" not in result
+    assert len(murphy.sessions) == 0
