@@ -173,3 +173,19 @@ def test_compute_plane_result_embeds_execution_wiring_snapshot():
     assert result["compute_plane"]["route_source"] == "math_deterministic"
     assert "execution_wiring" in result["compute_plane"]
     assert result["compute_plane"]["wiring_enforced"] is False
+
+
+def test_math_task_without_expression_skips_compute_plane():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Prepare a concise launch status summary for stakeholders",
+            "math",
+            {
+                "enforce_policy": False
+            },
+            session_id="session-math-non-expression"
+        )
+    )
+    assert "compute_plane" not in result
