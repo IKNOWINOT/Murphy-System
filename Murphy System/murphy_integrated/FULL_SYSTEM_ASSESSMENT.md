@@ -16,7 +16,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **Business automation planning:** Inoni automation loop outputs outline marketing, operations, and QA flows.
 - **Librarian context:** curated conditions and approval requirements are generated for each request.
 - **Learning-loop plan:** iterative requirement variants are listed with expected output targets.
-- **Compute plane validation path:** deterministic compute requests can now be validated through the runtime for structured checks.
+- **Compute plane validation path:** deterministic compute requests can now be validated through the runtime for structured checks, including `deterministic_request` payloads and `deterministic_required` routing with `compute_expression`.
 - **Execution wiring snapshot:** execute responses now include gate synthesis + swarm task readiness summaries for runtime execution checks.
 - **Swarm execution preview:** `execute_task` can invoke TrueSwarmSystem summaries with `run_swarm_execution` to validate swarm expansion coverage.
 - **Two-phase orchestrator wiring:** `execute_task` now routes through `TwoPhaseOrchestrator` (`create_automation`/`run_automation`) when the async orchestrator interface is unavailable (validated by `tests/test_two_phase_orchestrator_execution.py`); orchestration defaults to the task type only when the domain parameter is omitted, and responses report a dedicated session ID alongside the automation ID with a `session_id_source` fallback indicator.
@@ -49,7 +49,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 1. **Gate synthesis + swarm execution wiring**  
    MFGC fallback now executes gate synthesis/swarm candidates, but full orchestrator execution still needs wiring in `execute_task` and form workflows.
 2. **Compute plane + stability controllers**  
-   Deterministic reasoning exists but is not invoked for tagged tasks.
+   Deterministic reasoning now supports tagged task routing (`deterministic_request` and `deterministic_required` + `compute_expression`), but broader policy-driven compute routing still needs full rollout.
 3. **Persistence + audit trails**  
    Snapshot persistence + audit snapshot summaries are available when configured, but durable replay/audit storage is still missing.
 4. **Multi-channel delivery adapters**  
@@ -142,7 +142,7 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 ## 8) Completion checklist (what remains to be complete)
 
 - **Dynamic execution wiring:** gate synthesis and swarm summaries are available; full chain execution must run through the main runtime paths (no preview-only paths).
-- **Deterministic + LLM routing:** compute plane and LLM orchestration must both be wired with clear task routing rules.
+- **Deterministic + LLM routing:** compute plane and LLM orchestration must both be wired with clear task routing rules; deterministic-tag aliases now route to compute validation in `execute_task`.
 - **Persistence & replay:** store LivingDocument, gate history, librarian context, and automation plans with replay support; audit export snapshot available.
 - **Multi-channel delivery:** document/email/chat/voice/translation stubs wired; chat/voice adapters with approvals and audit trails remain.
 - **Delivery adapter integration:** readiness snapshot plus connector orchestration are available and document/email/chat/voice/translation stub generation is wired; production adapters for chat/voice remain unconfigured.
@@ -163,7 +163,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 | Area | Estimated completion | Evidence to update |
 | --- | --- | --- |
 | Execution wiring (gate + swarm + orchestrator) | 50.15% | MFGC fallback wired; authority/compute/change-order governance policies and envelope/replay controls widened with parity checks |
-| Deterministic + LLM routing | 41.38% | Routing heuristics exist; deterministic routing policy families expanded and parity-validated |
+| Deterministic + LLM routing | 41.56% | Routing heuristics exist; deterministic task aliases now route through compute validation in `execute_task`, with focused tests for alias + required-routing payloads |
 | Persistence + replay | 25.27% | Snapshot persistence + audit export snapshot available; replay consistency/attestation policy coverage expanded |
 | Multi-channel delivery | 58.79% | Document/email/chat/voice/translation stubs wired; publication/readout governance controls expanded |
 | Compliance validation | 40.58% | Compliance validation snapshot + rulepack/freshness/exception trace controls expanded |
@@ -173,7 +173,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 
 **Per-prompt micro-increment delta (latest prompt, decimal precision = 0.01):**
 - Execution wiring: **+0.05%**
-- Deterministic + LLM routing: **+0.02%**
+- Deterministic + LLM routing: **+0.18%**
 - Persistence + replay: **+0.03%**
 - Multi-channel delivery: **+0.01%**
 - Compliance validation: **+0.04%**
@@ -478,7 +478,7 @@ This update confirms that sections **1-14** remain active and accepted as the op
 
 **Current completion percentage snapshot (section 9, this iteration):**
 - Execution wiring (gate + swarm + orchestrator): **50.15%**
-- Deterministic + LLM routing: **41.38%**
+- Deterministic + LLM routing: **41.56%**
 - Persistence + replay: **25.27%**
 - Multi-channel delivery: **58.79%**
 - Compliance validation: **40.58%**
@@ -487,14 +487,14 @@ This update confirms that sections **1-14** remain active and accepted as the op
 - Test coverage for dynamic chains: **97.96%**
 - **Per-prompt micro-increment delta (this prompt, decimal precision 0.01):**
   - Execution wiring: **+0.05%**
-  - Deterministic + LLM routing: **+0.02%**
+  - Deterministic + LLM routing: **+0.18%**
   - Persistence + replay: **+0.03%**
   - Multi-channel delivery: **+0.01%**
   - Compliance validation: **+0.04%**
   - Operational automation: **+0.02%**
   - UI + user testing: **+0.01%**
   - Dynamic-chain tests: **+0.04%**
-- Latest targeted run (`test_completion_snapshot_surface.py`): **2 passed, 0 failed, 0 warnings**
+- Latest targeted run (`test_compute_plane_validation.py`): **4 passed, 0 failed, 41 warnings** (warnings are pre-existing third-party deprecations)
 - Latest governance policy chunk: `section_governance_dependency_nonce_lock_policy`, `section_authority_override_recertification_policy`, `section_budget_exception_rebind_policy`, `section_evidence_packet_reseal_policy`, and `section_release_gate_drift_policy`.
 
 ---

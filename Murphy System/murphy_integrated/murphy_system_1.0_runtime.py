@@ -1823,18 +1823,40 @@ class MurphySystem:
         ComputeService.validate_expression returns either a ValidationResult object or a dict,
         so the payload is normalized to a dictionary for consistent downstream usage.
         """
-        compute_request = (parameters or {}).get("compute_request")
+        input_parameters = parameters or {}
+        compute_request = input_parameters.get("compute_request")
+        route_source = "compute_request"
+        if not compute_request:
+            compute_request = input_parameters.get("deterministic_request")
+            if compute_request:
+                route_source = "deterministic_request"
+        if (
+            not compute_request
+            and input_parameters.get("deterministic_required")
+            and input_parameters.get("compute_expression")
+        ):
+            compute_request = {
+                "expression": input_parameters.get("compute_expression"),
+                "language": input_parameters.get("compute_language", "sympy")
+            }
+            route_source = "deterministic_required"
         if not compute_request:
             return None
         expression = compute_request.get("expression")
         language = compute_request.get("language", "sympy")
         if not expression:
-            return {"status": "error", "language": language, "error": "Missing compute expression."}
+            return {
+                "status": "error",
+                "language": language,
+                "route_source": route_source,
+                "error": "Missing compute expression."
+            }
         service = self._get_compute_service()
         if service is None:
             return {
                 "status": "unavailable",
                 "language": language,
+                "route_source": route_source,
                 "error": "Compute plane unavailable: service not initialized."
             }
         try:
@@ -1846,10 +1868,16 @@ class MurphySystem:
             return {
                 "status": status,
                 "language": language,
+                "route_source": route_source,
                 "validation": validation_payload
             }
         except Exception as exc:
-            return {"status": "error", "language": language, "error": str(exc)}
+            return {
+                "status": "error",
+                "language": language,
+                "route_source": route_source,
+                "error": str(exc)
+            }
     
     async def execute_task(
         self,
@@ -1939,8 +1967,17 @@ class MurphySystem:
                     "doc_id": doc.doc_id
                 }
             )
+        compute_parameters = parameters or {}
+        requires_compute_validation = bool(
+            compute_parameters.get("compute_request")
+            or compute_parameters.get("deterministic_request")
+            or (
+                compute_parameters.get("deterministic_required")
+                and compute_parameters.get("compute_expression")
+            )
+        )
         resolved_compute_session = None
-        if (parameters or {}).get("compute_request"):
+        if requires_compute_validation:
             resolved_compute_session = self._resolve_compute_session(session_id)
         compute_plane_result = self._execute_compute_plane_validation(parameters)
         if compute_plane_result:
