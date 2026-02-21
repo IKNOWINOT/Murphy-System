@@ -16,7 +16,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **Business automation planning:** Inoni automation loop outputs outline marketing, operations, and QA flows.
 - **Librarian context:** curated conditions and approval requirements are generated for each request.
 - **Learning-loop plan:** iterative requirement variants are listed with expected output targets.
-- **Compute plane validation path:** deterministic compute requests can now be validated through the runtime for structured checks, including `deterministic_request`, `deterministic_required` + `compute_expression`, `confidence_required` + `confidence_expression`, confidence-engine task-type deterministic routing, and math task-type deterministic routing.
+- **Compute plane validation path:** deterministic compute requests can now be validated through the runtime for structured checks, including `deterministic_request`, `deterministic_required` + `compute_expression`, `confidence_required` + `confidence_expression`, confidence-engine task-type deterministic routing, and math task-type deterministic routing; compute responses embed execution wiring metadata for deterministic path visibility.
 - **Execution wiring snapshot:** execute responses now include gate synthesis + swarm task readiness summaries for runtime execution checks.
 - **Swarm execution preview:** `execute_task` can invoke TrueSwarmSystem summaries with `run_swarm_execution` to validate swarm expansion coverage.
 - **Two-phase orchestrator wiring:** `execute_task` now routes through `TwoPhaseOrchestrator` (`create_automation`/`run_automation`) when the async orchestrator interface is unavailable (validated by `tests/test_two_phase_orchestrator_execution.py`); orchestration defaults to the task type only when the domain parameter is omitted, and responses report a dedicated session ID alongside the automation ID with a `session_id_source` fallback indicator.
@@ -228,7 +228,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 11. **Multi-loop scheduling tests**: `test_multi_loop_schedule_snapshot.py` validates multi-loop schedule readiness and pending states.
 12. **Compliance + delivery gating tests**: `test_compliance_delivery_gating.py` validates compliance gating before delivery release.
 13. **Two-phase orchestrator execution tests**: `test_two_phase_orchestrator_execution.py` validates create/run automation routing when the async orchestrator interface is unavailable.
-14. **Compute plane validation tests**: `test_compute_plane_validation.py` validates deterministic routing, validation payload handling, and non-expression confidence-task fallback guards.
+14. **Compute plane validation tests**: `test_compute_plane_validation.py` validates deterministic routing, validation payload handling, non-expression confidence-task fallback guards, and compute-response execution-wiring metadata embedding.
 15. **HITL handoff queue snapshot tests**: `test_handoff_queue_snapshot.py` verifies approval backlog visibility for interventions and contracts.
 16. **Self-improvement snapshot tests**: `test_self_improvement_snapshot.py` validates remediation backlog and action outputs.
 17. **Learning backlog routing tests**: `test_learning_backlog_snapshot.py` validates backlog routing summaries for iteration readiness.
@@ -494,7 +494,7 @@ This update confirms that sections **1-14** remain active and accepted as the op
   - Operational automation: **+0.02%**
   - UI + user testing: **+0.01%**
   - Dynamic-chain tests: **+0.04%**
-- Latest targeted run (`test_compute_plane_validation.py`): **8 passed, 0 failed, warnings are pre-existing third-party deprecations**
+- Latest targeted run (`test_compute_plane_validation.py`): **9 passed, 0 failed, warnings are pre-existing third-party deprecations**
 - Latest governance policy chunk: `section_governance_dependency_nonce_lock_policy`, `section_authority_override_recertification_policy`, `section_budget_exception_rebind_policy`, `section_evidence_packet_reseal_policy`, and `section_release_gate_drift_policy`.
 
 ---
