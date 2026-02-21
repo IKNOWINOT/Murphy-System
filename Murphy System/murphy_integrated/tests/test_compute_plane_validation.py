@@ -153,6 +153,7 @@ def test_confidence_task_without_expression_skips_compute_plane():
         )
     )
     assert "compute_plane" not in result
+    assert len(murphy.sessions) == 0
 
 
 def test_compute_plane_result_embeds_execution_wiring_snapshot():
@@ -189,3 +190,4 @@ def test_math_task_without_expression_skips_compute_plane():
         )
     )
     assert "compute_plane" not in result
+    assert len(murphy.sessions) == 0
