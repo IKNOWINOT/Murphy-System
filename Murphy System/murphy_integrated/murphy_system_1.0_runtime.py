@@ -2099,7 +2099,11 @@ class MurphySystem:
                 "execution_wiring": execution_wiring,
                 "execution_policy": execution_policy,
                 "persistence_snapshot": persistence_snapshot,
-                "compute_plane": compute_plane_result,
+                "compute_plane": {
+                    **compute_plane_result,
+                    "execution_wiring": execution_wiring,
+                    "wiring_enforced": execution_policy.get("enforced", True)
+                },
                 "swarm_execution": swarm_execution,
                 "metadata": {
                     "task_description": task_description,

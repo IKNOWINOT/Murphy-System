@@ -153,3 +153,23 @@ def test_confidence_task_without_expression_skips_compute_plane():
         )
     )
     assert "compute_plane" not in result
+
+
+def test_compute_plane_result_embeds_execution_wiring_snapshot():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "minimize: x subject to: x >= 0",
+            "math",
+            {
+                "math_language": "lp",
+                "enforce_policy": False
+            },
+            session_id="session-wiring-snapshot"
+        )
+    )
+    assert result["status"] == "validated"
+    assert result["compute_plane"]["route_source"] == "math_deterministic"
+    assert "execution_wiring" in result["compute_plane"]
+    assert result["compute_plane"]["wiring_enforced"] is False
