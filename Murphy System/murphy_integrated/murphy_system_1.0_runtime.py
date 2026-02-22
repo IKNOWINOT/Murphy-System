@@ -1044,6 +1044,7 @@ class MurphySystem:
     DETERMINISTIC_REQUEST_EXPRESSION_FIELDS = [
         "expression",
         "compute_expression",
+        "input",
         "task_description",
         "description",
         "task",
@@ -1054,6 +1055,7 @@ class MurphySystem:
         "confidence_expression",
         "compute_expression",
         "expression",
+        "input",
         "prompt",
         "task_description",
         "description",
@@ -1066,6 +1068,7 @@ class MurphySystem:
         "formula",
         "compute_expression",
         "expression",
+        "input",
         "prompt",
         "task_description",
         "description",
