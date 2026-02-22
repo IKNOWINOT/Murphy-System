@@ -685,6 +685,29 @@ def test_execute_task_malformed_compute_request_falls_back_to_deterministic_requ
     assert result["compute_plane"]["route_source"] == "deterministic_required"
 
 
+def test_execute_task_malformed_compute_request_falls_back_to_confidence_required():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Execute malformed compute request with confidence fallback",
+            "confidence_engine",
+            {
+                "compute_request": {
+                    "language": "lp"
+                },
+                "confidence_required": True,
+                "confidence_expression": "minimize: x subject to: x >= 0",
+                "confidence_language": "lp",
+                "enforce_policy": False
+            },
+            session_id="session-malformed-compute-with-confidence-required"
+        )
+    )
+    assert result["status"] == "validated"
+    assert result["compute_plane"]["route_source"] == "confidence_required"
+
+
 def test_execute_task_compute_request_error_keeps_compute_validation_mode():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
