@@ -1864,10 +1864,11 @@ class MurphySystem:
         if (
             not compute_request
             and input_parameters.get("deterministic_required")
-            and input_parameters.get("compute_expression")
+            and isinstance(input_parameters.get("compute_expression"), str)
+            and input_parameters.get("compute_expression").strip()
         ):
             compute_request = {
-                "expression": input_parameters.get("compute_expression"),
+                "expression": input_parameters.get("compute_expression").strip(),
                 "language": input_parameters.get("compute_language", "sympy")
             }
             route_source = "deterministic_required"
@@ -2090,7 +2091,8 @@ class MurphySystem:
             )
             or (
                 compute_parameters.get("deterministic_required")
-                and compute_parameters.get("compute_expression")
+                and isinstance(compute_parameters.get("compute_expression"), str)
+                and compute_parameters.get("compute_expression").strip()
             )
         )
         resolved_compute_session = None
