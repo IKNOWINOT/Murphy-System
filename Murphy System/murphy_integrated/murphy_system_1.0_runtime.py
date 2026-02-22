@@ -1863,6 +1863,10 @@ class MurphySystem:
             else None
         )
         deterministic_required_expression = input_parameters.get("compute_expression")
+        confidence_required_expression = (
+            input_parameters.get("confidence_expression")
+            or input_parameters.get("compute_expression")
+        )
         route_source = "compute_request"
         if isinstance(compute_request, dict):
             compute_expression = compute_request.get("expression")
@@ -1873,6 +1877,10 @@ class MurphySystem:
                     or (
                         input_parameters.get("deterministic_required")
                         and self._is_compute_expression_candidate(deterministic_required_expression)
+                    )
+                    or (
+                        input_parameters.get("confidence_required")
+                        and self._is_compute_expression_candidate(confidence_required_expression)
                     )
                 )
             )
