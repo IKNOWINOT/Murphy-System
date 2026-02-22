@@ -223,6 +223,29 @@ def test_execute_task_prefers_compute_request_over_math_required_fallback():
     assert result["compute_plane"]["route_source"] == "compute_request"
 
 
+def test_execute_task_prefers_compute_request_over_math_task_type_fallback():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Solve optimization",
+            "math",
+            {
+                "compute_request": {
+                    "expression": "minimize: x subject to: x >= 0",
+                    "language": "lp"
+                },
+                "math_expression": "maximize: y subject to: y <= 10",
+                "math_language": "lp",
+                "enforce_policy": False
+            },
+            session_id="session-compute-request-math-task-type-precedence"
+        )
+    )
+    assert result["status"] == "validated"
+    assert result["compute_plane"]["route_source"] == "compute_request"
+
+
 def test_execute_task_prefers_compute_request_over_deterministic_required_fallback():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
