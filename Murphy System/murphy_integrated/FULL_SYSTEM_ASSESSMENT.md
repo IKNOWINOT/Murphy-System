@@ -494,7 +494,7 @@ This update confirms that sections **1-14** remain active and accepted as the op
   - Operational automation: **+0.02%**
   - UI + user testing: **+0.01%**
   - Dynamic-chain tests: **+0.04%**
-- Latest targeted run (`test_compute_plane_validation.py`): **67 passed, 0 failed, warnings are pre-existing third-party deprecations**
+- Latest targeted run (`test_compute_plane_validation.py`): **68 passed, 0 failed, warnings are pre-existing third-party deprecations**
 - Latest governance policy chunk: `section_governance_dependency_nonce_lock_policy`, `section_authority_override_recertification_policy`, `section_budget_exception_rebind_policy`, `section_evidence_packet_reseal_policy`, and `section_release_gate_drift_policy`.
 
 ---
