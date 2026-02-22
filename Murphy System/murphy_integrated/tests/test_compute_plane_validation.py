@@ -152,6 +152,30 @@ def test_execute_task_prefers_compute_request_over_malformed_deterministic_reque
     assert result["compute_plane"]["route_source"] == "compute_request"
 
 
+def test_execute_task_prefers_deterministic_request_over_malformed_compute_request():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Execute deterministic request precedence over malformed compute request",
+            "automation",
+            {
+                "deterministic_request": {
+                    "expression": "minimize: x subject to: x >= 0",
+                    "language": "lp"
+                },
+                "compute_request": {
+                    "language": "lp"
+                },
+                "enforce_policy": False
+            },
+            session_id="session-deterministic-request-malformed-compute-precedence"
+        )
+    )
+    assert result["status"] == "validated"
+    assert result["compute_plane"]["route_source"] == "deterministic_request"
+
+
 def test_execute_task_prefers_compute_request_over_confidence_required_fallback():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
