@@ -1871,6 +1871,18 @@ class MurphySystem:
             input_parameters.get("math_expression")
             or input_parameters.get("compute_expression")
         )
+        math_task_expression = None
+        if (task_type or "").lower() in {"math", "calculation", "numeric", "symbolic"}:
+            description_expression = (
+                task_description
+                if self._is_compute_expression_candidate(task_description)
+                else None
+            )
+            math_task_expression = self._first_non_empty_value(
+                input_parameters,
+                ["math_expression", "compute_expression", "expression"],
+                fallback=description_expression
+            )
         confidence_task_expression = None
         if (task_type or "").lower() in self.CONFIDENCE_ENGINE_TASK_TYPES:
             description_expression = (
@@ -1903,6 +1915,7 @@ class MurphySystem:
                         input_parameters.get("math_required")
                         and self._is_compute_expression_candidate(math_required_expression)
                     )
+                    or self._is_compute_expression_candidate(math_task_expression)
                 )
             )
             if should_use_deterministic:
