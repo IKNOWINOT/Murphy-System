@@ -2016,7 +2016,7 @@ class MurphySystem:
             )
             confidence_expression = self._first_non_empty_value(
                 input_parameters,
-                ["confidence_expression", "compute_expression", "expression"],
+                self.CONFIDENCE_REQUIRED_EXPRESSION_FIELDS,
                 fallback=description_expression
             )
             if confidence_expression:
@@ -2042,7 +2042,7 @@ class MurphySystem:
             )
             math_expression = self._first_non_empty_value(
                 input_parameters,
-                ["math_expression", "equation", "formula", "compute_expression", "expression"],
+                self.MATH_REQUIRED_EXPRESSION_FIELDS,
                 fallback=description_expression
             )
             if math_expression:
