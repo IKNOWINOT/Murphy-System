@@ -447,6 +447,25 @@ def test_deterministic_required_without_expression_skips_compute_plane_and_sessi
     assert len(murphy.sessions) == 0
 
 
+def test_deterministic_required_with_blank_expression_skips_compute_plane_and_session():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Assess rollout readiness",
+            "automation",
+            {
+                "deterministic_required": True,
+                "compute_expression": "   ",
+                "enforce_policy": False
+            },
+            session_id="session-deterministic-required-blank-expression"
+        )
+    )
+    assert "compute_plane" not in result
+    assert len(murphy.sessions) == 0
+
+
 def test_math_required_with_expression_routes_to_compute_plane():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
