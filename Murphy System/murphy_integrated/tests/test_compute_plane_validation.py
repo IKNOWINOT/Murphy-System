@@ -81,6 +81,28 @@ def test_execute_task_routes_deterministic_request_to_compute_plane():
     assert result["metadata"]["mode"] == "compute_plane_validation"
 
 
+def test_execute_task_falls_back_to_deterministic_request_prompt_expression():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Fallback deterministic request prompt expression from malformed compute request",
+            "automation",
+            {
+                "compute_request": {"language": "lp"},
+                "deterministic_request": {
+                    "prompt": "minimize: x subject to: x >= 0",
+                    "language": "lp"
+                },
+                "enforce_policy": False
+            },
+            session_id="session-deterministic-request-prompt-expression-fallback"
+        )
+    )
+    assert result["status"] == "validated"
+    assert result["compute_plane"]["route_source"] == "deterministic_request"
+
+
 def test_execute_task_routes_compute_request_to_compute_plane():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
