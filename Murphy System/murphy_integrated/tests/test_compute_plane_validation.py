@@ -223,6 +223,29 @@ def test_execute_task_prefers_compute_request_over_confidence_task_type_fallback
     assert result["compute_plane"]["route_source"] == "compute_request"
 
 
+def test_execute_task_prefers_compute_request_with_blank_confidence_expression():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Assess confidence pathway",
+            "confidence_engine",
+            {
+                "compute_request": {
+                    "expression": "minimize: x subject to: x >= 0",
+                    "language": "lp"
+                },
+                "confidence_required": True,
+                "confidence_expression": "   ",
+                "enforce_policy": False
+            },
+            session_id="session-compute-request-blank-confidence-expression-precedence"
+        )
+    )
+    assert result["status"] == "validated"
+    assert result["compute_plane"]["route_source"] == "compute_request"
+
+
 def test_execute_task_prefers_compute_request_over_math_required_fallback():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
