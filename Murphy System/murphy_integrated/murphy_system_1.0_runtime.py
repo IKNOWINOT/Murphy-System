@@ -1923,7 +1923,7 @@ class MurphySystem:
             )
             math_task_expression = self._first_non_empty_value(
                 input_parameters,
-                ["math_expression", "compute_expression", "expression"],
+                self.MATH_REQUIRED_EXPRESSION_FIELDS,
                 fallback=description_expression
             )
         confidence_task_expression = None
@@ -1935,7 +1935,7 @@ class MurphySystem:
             )
             confidence_task_expression = self._first_non_empty_value(
                 input_parameters,
-                ["confidence_expression", "compute_expression", "expression"],
+                self.CONFIDENCE_REQUIRED_EXPRESSION_FIELDS,
                 fallback=description_expression
             )
         route_source = "compute_request"
