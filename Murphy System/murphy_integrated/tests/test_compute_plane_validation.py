@@ -124,6 +124,27 @@ def test_execute_task_compute_request_missing_expression_returns_failed_route():
     assert result["compute_plane"]["route_source"] == "compute_request"
 
 
+def test_execute_task_deterministic_request_missing_expression_returns_error_route():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Execute malformed deterministic request route",
+            "automation",
+            {
+                "deterministic_request": {
+                    "language": "lp"
+                },
+                "enforce_policy": False
+            },
+            session_id="session-deterministic-request-missing-expression"
+        )
+    )
+    assert result["status"] == "error"
+    assert result["compute_plane"]["status"] == "error"
+    assert result["compute_plane"]["route_source"] == "deterministic_request"
+
+
 def test_execute_task_routes_deterministic_required_to_compute_plane():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
