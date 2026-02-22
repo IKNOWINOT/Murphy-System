@@ -1860,7 +1860,7 @@ class MurphySystem:
         deterministic_expression = (
             self._first_non_empty_value(
                 deterministic_request,
-                ["expression", "compute_expression", "task_description", "task"]
+                ["expression", "compute_expression", "task_description", "description", "task"]
             )
             if isinstance(deterministic_request, dict)
             else None
@@ -1927,7 +1927,7 @@ class MurphySystem:
             if isinstance(deterministic_request, dict):
                 deterministic_request_expression = self._first_non_empty_value(
                     deterministic_request,
-                    ["expression", "compute_expression", "task_description", "task"]
+                    ["expression", "compute_expression", "task_description", "description", "task"]
                 )
                 if self._is_compute_expression_candidate(deterministic_request_expression):
                     compute_request = {
