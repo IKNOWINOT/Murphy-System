@@ -1041,6 +1041,37 @@ class MurphySystem:
         "blocked"
     }
     CONFIDENCE_ENGINE_TASK_TYPES = {"confidence_engine", "confidence", "confidence_validation"}
+    DETERMINISTIC_REQUEST_EXPRESSION_FIELDS = [
+        "expression",
+        "compute_expression",
+        "task_description",
+        "description",
+        "task",
+        "prompt",
+        "query",
+    ]
+    CONFIDENCE_REQUIRED_EXPRESSION_FIELDS = [
+        "confidence_expression",
+        "compute_expression",
+        "expression",
+        "prompt",
+        "task_description",
+        "description",
+        "task",
+        "query",
+    ]
+    MATH_REQUIRED_EXPRESSION_FIELDS = [
+        "math_expression",
+        "equation",
+        "formula",
+        "compute_expression",
+        "expression",
+        "prompt",
+        "task_description",
+        "description",
+        "task",
+        "query",
+    ]
     
     @classmethod
     def create_test_instance(cls) -> "MurphySystem":
@@ -1860,19 +1891,19 @@ class MurphySystem:
         deterministic_expression = (
             self._first_non_empty_value(
                 deterministic_request,
-                ["expression", "compute_expression", "task_description", "description", "task", "prompt"]
+                self.DETERMINISTIC_REQUEST_EXPRESSION_FIELDS
             )
             if isinstance(deterministic_request, dict)
             else None
         )
         deterministic_required_expression = input_parameters.get("compute_expression")
-        confidence_required_expression = (
-            input_parameters.get("confidence_expression")
-            or input_parameters.get("compute_expression")
+        confidence_required_expression = self._first_non_empty_value(
+            input_parameters,
+            self.CONFIDENCE_REQUIRED_EXPRESSION_FIELDS
         )
-        math_required_expression = (
-            input_parameters.get("math_expression")
-            or input_parameters.get("compute_expression")
+        math_required_expression = self._first_non_empty_value(
+            input_parameters,
+            self.MATH_REQUIRED_EXPRESSION_FIELDS
         )
         math_task_expression = None
         if (task_type or "").lower() in {"math", "calculation", "numeric", "symbolic"}:
@@ -1927,7 +1958,7 @@ class MurphySystem:
             if isinstance(deterministic_request, dict):
                 deterministic_request_expression = self._first_non_empty_value(
                     deterministic_request,
-                    ["expression", "compute_expression", "task_description", "description", "task", "prompt"]
+                    self.DETERMINISTIC_REQUEST_EXPRESSION_FIELDS
                 )
                 if self._is_compute_expression_candidate(deterministic_request_expression):
                     compute_request = {
@@ -1958,10 +1989,10 @@ class MurphySystem:
         if (
             not compute_request
             and input_parameters.get("confidence_required")
-            and (input_parameters.get("confidence_expression") or input_parameters.get("compute_expression"))
+            and self._is_compute_expression_candidate(confidence_required_expression)
         ):
             compute_request = {
-                "expression": input_parameters.get("confidence_expression") or input_parameters.get("compute_expression"),
+                "expression": confidence_required_expression,
                 "language": input_parameters.get("confidence_language", input_parameters.get("compute_language", "sympy"))
             }
             route_source = "confidence_required"
