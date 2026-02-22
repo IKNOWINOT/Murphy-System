@@ -495,7 +495,7 @@ This update confirms that sections **1-14** remain active and accepted as the op
   - Operational automation: **+0.02%**
   - UI + user testing: **+0.01%**
   - Dynamic-chain tests: **+0.04%**
-- Latest targeted run (`test_compute_plane_validation.py`): **80 passed, 0 failed, warnings are pre-existing third-party deprecations** (includes malformed `compute_request` fallback coverage for `confidence_required.text`/`confidence_required.content`/`confidence_required.query`/`confidence_required.description`, malformed-compute confidence task-type fallback via `text`, plus standardized deterministic-required and math-required content/text/prompt/input/description/task fallback parity)
+- Latest targeted run (`test_compute_plane_validation.py`): **81 passed, 0 failed, warnings are pre-existing third-party deprecations** (includes malformed `compute_request` fallback coverage for `confidence_required.text`/`confidence_required.content`/`confidence_required.query`/`confidence_required.description`/`confidence_required.task`, malformed-compute confidence task-type fallback via `text`, plus standardized deterministic-required and math-required content/text/prompt/input/description/task fallback parity)
 - Latest governance policy chunk: `section_governance_dependency_nonce_lock_policy`, `section_authority_override_recertification_policy`, `section_budget_exception_rebind_policy`, `section_evidence_packet_reseal_policy`, and `section_release_gate_drift_policy`.
 
 ---
