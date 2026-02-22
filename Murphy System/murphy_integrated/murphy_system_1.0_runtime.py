@@ -1905,7 +1905,10 @@ class MurphySystem:
             if isinstance(deterministic_request, dict)
             else None
         )
-        deterministic_required_expression = input_parameters.get("compute_expression")
+        deterministic_required_expression = self._first_non_empty_value(
+            input_parameters,
+            self.DETERMINISTIC_REQUEST_EXPRESSION_FIELDS
+        )
         confidence_required_expression = self._first_non_empty_value(
             input_parameters,
             self.CONFIDENCE_REQUIRED_EXPRESSION_FIELDS
@@ -1987,11 +1990,10 @@ class MurphySystem:
         if (
             not compute_request
             and input_parameters.get("deterministic_required")
-            and isinstance(input_parameters.get("compute_expression"), str)
-            and input_parameters.get("compute_expression").strip()
+            and self._is_compute_expression_candidate(deterministic_required_expression)
         ):
             compute_request = {
-                "expression": input_parameters.get("compute_expression").strip(),
+                "expression": deterministic_required_expression.strip(),
                 "language": input_parameters.get("compute_language", "sympy")
             }
             route_source = "deterministic_required"
