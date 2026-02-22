@@ -152,6 +152,30 @@ def test_execute_task_prefers_deterministic_request_over_confidence_required_fal
     assert result["compute_plane"]["route_source"] == "deterministic_request"
 
 
+def test_execute_task_prefers_deterministic_request_over_deterministic_required():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Execute deterministic request precedence over deterministic required",
+            "automation",
+            {
+                "deterministic_request": {
+                    "expression": "minimize: x subject to: x >= 0",
+                    "language": "lp"
+                },
+                "deterministic_required": True,
+                "compute_expression": "maximize: y subject to: y <= 10",
+                "compute_language": "lp",
+                "enforce_policy": False
+            },
+            session_id="session-deterministic-request-deterministic-required-precedence"
+        )
+    )
+    assert result["status"] == "validated"
+    assert result["compute_plane"]["route_source"] == "deterministic_request"
+
+
 def test_execute_task_compute_request_missing_expression_returns_failed_route():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
