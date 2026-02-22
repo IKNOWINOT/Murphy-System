@@ -209,3 +209,21 @@ def test_math_required_without_expression_skips_compute_plane_and_session():
     )
     assert "compute_plane" not in result
     assert len(murphy.sessions) == 0
+
+
+def test_confidence_required_without_expression_skips_compute_plane_and_session():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Review stakeholder concerns and summarize next steps",
+            "automation",
+            {
+                "confidence_required": True,
+                "enforce_policy": False
+            },
+            session_id="session-confidence-required-non-expression"
+        )
+    )
+    assert "compute_plane" not in result
+    assert len(murphy.sessions) == 0
