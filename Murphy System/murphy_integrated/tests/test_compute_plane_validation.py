@@ -753,6 +753,28 @@ def test_execute_task_malformed_compute_request_falls_back_to_confidence_task_ty
     assert result["compute_plane"]["route_source"] == "confidence_task_type"
 
 
+def test_execute_task_malformed_compute_request_falls_back_to_confidence_task_type_compute_expression():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Assess confidence pathway",
+            "confidence_engine",
+            {
+                "compute_request": {
+                    "language": "lp"
+                },
+                "compute_expression": "minimize: x subject to: x >= 0",
+                "compute_language": "lp",
+                "enforce_policy": False
+            },
+            session_id="session-malformed-compute-with-confidence-task-type-compute-expression"
+        )
+    )
+    assert result["status"] == "validated"
+    assert result["compute_plane"]["route_source"] == "confidence_task_type"
+
+
 def test_execute_task_malformed_compute_request_falls_back_to_math_required():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
