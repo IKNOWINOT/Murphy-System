@@ -1826,6 +1826,23 @@ class MurphySystem:
             re.search(r"(minimize:|maximize:|subject to|[=+\-*/^()]|<=|>=)", normalized, re.IGNORECASE)
         )
 
+    def _first_non_empty_value(
+        self,
+        parameters: Dict[str, Any],
+        keys: List[str],
+        fallback: Optional[str] = None
+    ) -> Optional[str]:
+        """Return first non-empty value from parameters for the provided keys."""
+        for key in keys:
+            value = parameters.get(key)
+            if isinstance(value, str):
+                if value.strip():
+                    return value
+                continue
+            if value is not None:
+                return value
+        return fallback
+
     def _execute_compute_plane_validation(
         self,
         parameters: Optional[Dict[str, Any]],
@@ -1873,11 +1890,10 @@ class MurphySystem:
                 if self._is_compute_expression_candidate(task_description)
                 else None
             )
-            confidence_expression = (
-                input_parameters.get("confidence_expression")
-                or input_parameters.get("compute_expression")
-                or input_parameters.get("expression")
-                or description_expression
+            confidence_expression = self._first_non_empty_value(
+                input_parameters,
+                ["confidence_expression", "compute_expression", "expression"],
+                fallback=description_expression
             )
             if confidence_expression:
                 compute_request = {
@@ -1900,13 +1916,10 @@ class MurphySystem:
                 if self._is_compute_expression_candidate(task_description)
                 else None
             )
-            math_expression = (
-                input_parameters.get("math_expression")
-                or input_parameters.get("equation")
-                or input_parameters.get("formula")
-                or input_parameters.get("compute_expression")
-                or input_parameters.get("expression")
-                or description_expression
+            math_expression = self._first_non_empty_value(
+                input_parameters,
+                ["math_expression", "equation", "formula", "compute_expression", "expression"],
+                fallback=description_expression
             )
             if math_expression:
                 compute_request = {
@@ -2043,19 +2056,15 @@ class MurphySystem:
             )
         compute_parameters = parameters or {}
         normalized_task_type = (task_type or "").lower()
-        confidence_expression_candidate = (
-            compute_parameters.get("confidence_expression")
-            or compute_parameters.get("compute_expression")
-            or compute_parameters.get("expression")
-            or task_description
+        confidence_expression_candidate = self._first_non_empty_value(
+            compute_parameters,
+            ["confidence_expression", "compute_expression", "expression"],
+            fallback=task_description
         )
-        math_expression_candidate = (
-            compute_parameters.get("math_expression")
-            or compute_parameters.get("equation")
-            or compute_parameters.get("formula")
-            or compute_parameters.get("compute_expression")
-            or compute_parameters.get("expression")
-            or task_description
+        math_expression_candidate = self._first_non_empty_value(
+            compute_parameters,
+            ["math_expression", "equation", "formula", "compute_expression", "expression"],
+            fallback=task_description
         )
         requires_compute_validation = bool(
             compute_parameters.get("compute_request")
