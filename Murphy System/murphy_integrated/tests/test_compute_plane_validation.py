@@ -81,6 +81,28 @@ def test_execute_task_routes_deterministic_request_to_compute_plane():
     assert result["metadata"]["mode"] == "compute_plane_validation"
 
 
+def test_execute_task_routes_compute_request_to_compute_plane():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Execute compute request route",
+            "automation",
+            {
+                "compute_request": {
+                    "expression": "minimize: x subject to: x >= 0",
+                    "language": "lp"
+                },
+                "enforce_policy": False
+            },
+            session_id="session-compute-request"
+        )
+    )
+    assert result["status"] == "validated"
+    assert result["compute_plane"]["route_source"] == "compute_request"
+    assert result["metadata"]["mode"] == "compute_plane_validation"
+
+
 def test_execute_task_routes_deterministic_required_to_compute_plane():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
