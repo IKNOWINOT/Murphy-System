@@ -638,6 +638,30 @@ def test_execute_task_deterministic_request_missing_expression_returns_error_rou
     assert result["compute_plane"]["route_source"] == "deterministic_request"
 
 
+def test_execute_task_malformed_compute_and_deterministic_requests_return_compute_error_route():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Execute malformed compute and deterministic request route",
+            "automation",
+            {
+                "compute_request": {
+                    "language": "lp"
+                },
+                "deterministic_request": {
+                    "language": "lp"
+                },
+                "enforce_policy": False
+            },
+            session_id="session-malformed-compute-and-deterministic"
+        )
+    )
+    assert result["status"] == "error"
+    assert result["compute_plane"]["status"] == "error"
+    assert result["compute_plane"]["route_source"] == "compute_request"
+
+
 def test_execute_task_compute_request_error_keeps_compute_validation_mode():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
