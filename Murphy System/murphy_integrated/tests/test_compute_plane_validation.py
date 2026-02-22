@@ -1110,6 +1110,52 @@ def test_execute_task_malformed_compute_request_falls_back_to_deterministic_requ
     assert result["compute_plane"]["route_source"] == "deterministic_required"
 
 
+def test_execute_task_malformed_compute_request_falls_back_to_deterministic_required_query():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Execute malformed compute request with deterministic query fallback",
+            "automation",
+            {
+                "compute_request": {
+                    "language": "lp"
+                },
+                "deterministic_required": True,
+                "query": "minimize: x subject to: x >= 0",
+                "compute_language": "lp",
+                "enforce_policy": False
+            },
+            session_id="session-malformed-compute-with-deterministic-required-query"
+        )
+    )
+    assert result["status"] == "validated"
+    assert result["compute_plane"]["route_source"] == "deterministic_required"
+
+
+def test_execute_task_malformed_compute_request_falls_back_to_deterministic_required_content():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Execute malformed compute request with deterministic content fallback",
+            "automation",
+            {
+                "compute_request": {
+                    "language": "lp"
+                },
+                "deterministic_required": True,
+                "content": "minimize: x subject to: x >= 0",
+                "compute_language": "lp",
+                "enforce_policy": False
+            },
+            session_id="session-malformed-compute-with-deterministic-required-content"
+        )
+    )
+    assert result["status"] == "validated"
+    assert result["compute_plane"]["route_source"] == "deterministic_required"
+
+
 def test_execute_task_malformed_compute_request_falls_back_to_confidence_required():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
