@@ -1871,6 +1871,18 @@ class MurphySystem:
             input_parameters.get("math_expression")
             or input_parameters.get("compute_expression")
         )
+        confidence_task_expression = None
+        if (task_type or "").lower() in self.CONFIDENCE_ENGINE_TASK_TYPES:
+            description_expression = (
+                task_description
+                if self._is_compute_expression_candidate(task_description)
+                else None
+            )
+            confidence_task_expression = self._first_non_empty_value(
+                input_parameters,
+                ["confidence_expression", "compute_expression", "expression"],
+                fallback=description_expression
+            )
         route_source = "compute_request"
         if isinstance(compute_request, dict):
             compute_expression = compute_request.get("expression")
@@ -1886,6 +1898,7 @@ class MurphySystem:
                         input_parameters.get("confidence_required")
                         and self._is_compute_expression_candidate(confidence_required_expression)
                     )
+                    or self._is_compute_expression_candidate(confidence_task_expression)
                     or (
                         input_parameters.get("math_required")
                         and self._is_compute_expression_candidate(math_required_expression)
