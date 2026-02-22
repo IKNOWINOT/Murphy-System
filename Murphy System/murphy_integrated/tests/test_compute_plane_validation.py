@@ -708,6 +708,29 @@ def test_execute_task_malformed_compute_request_falls_back_to_confidence_require
     assert result["compute_plane"]["route_source"] == "confidence_required"
 
 
+def test_execute_task_malformed_compute_request_falls_back_to_confidence_required_compute_expression():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Execute malformed compute request with confidence compute-expression fallback",
+            "confidence_engine",
+            {
+                "compute_request": {
+                    "language": "lp"
+                },
+                "confidence_required": True,
+                "compute_expression": "minimize: x subject to: x >= 0",
+                "compute_language": "lp",
+                "enforce_policy": False
+            },
+            session_id="session-malformed-compute-with-confidence-required-compute-expression"
+        )
+    )
+    assert result["status"] == "validated"
+    assert result["compute_plane"]["route_source"] == "confidence_required"
+
+
 def test_execute_task_compute_request_error_keeps_compute_validation_mode():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
