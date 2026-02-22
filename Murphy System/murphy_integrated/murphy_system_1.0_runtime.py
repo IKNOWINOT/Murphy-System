@@ -1862,12 +1862,19 @@ class MurphySystem:
             if isinstance(deterministic_request, dict)
             else None
         )
+        deterministic_required_expression = input_parameters.get("compute_expression")
         route_source = "compute_request"
         if isinstance(compute_request, dict):
             compute_expression = compute_request.get("expression")
             should_use_deterministic = (
                 not self._is_compute_expression_candidate(compute_expression)
-                and self._is_compute_expression_candidate(deterministic_expression)
+                and (
+                    self._is_compute_expression_candidate(deterministic_expression)
+                    or (
+                        input_parameters.get("deterministic_required")
+                        and self._is_compute_expression_candidate(deterministic_required_expression)
+                    )
+                )
             )
             if should_use_deterministic:
                 compute_request = None
