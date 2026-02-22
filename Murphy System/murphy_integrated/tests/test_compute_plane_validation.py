@@ -271,7 +271,7 @@ def test_execute_task_prefers_deterministic_request_over_math_task_type_fallback
     assert result["compute_plane"]["route_source"] == "deterministic_request"
 
 
-def test_execute_task_prefers_deterministic_request_over_confidence_task_type_fallback():
+def test_deterministic_request_precedence_over_confidence_task_fallback():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
     result = asyncio.run(
@@ -292,7 +292,7 @@ def test_execute_task_prefers_deterministic_request_over_confidence_task_type_fa
     assert result["compute_plane"]["route_source"] == "deterministic_request"
 
 
-def test_execute_task_prefers_deterministic_request_over_confidence_expression_task_type_fallback():
+def test_deterministic_request_precedence_over_confidence_expression_fallback():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
     result = asyncio.run(
@@ -309,6 +309,29 @@ def test_execute_task_prefers_deterministic_request_over_confidence_expression_t
                 "enforce_policy": False
             },
             session_id="session-deterministic-request-confidence-expression-task-type-precedence"
+        )
+    )
+    assert result["status"] == "validated"
+    assert result["compute_plane"]["route_source"] == "deterministic_request"
+
+
+def test_deterministic_request_precedence_over_blank_confidence_expression():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Assess confidence pathway",
+            "confidence_engine",
+            {
+                "deterministic_request": {
+                    "expression": "minimize: x subject to: x >= 0",
+                    "language": "lp"
+                },
+                "confidence_required": True,
+                "confidence_expression": "   ",
+                "enforce_policy": False
+            },
+            session_id="session-deterministic-request-blank-confidence-expression-precedence"
         )
     )
     assert result["status"] == "validated"
