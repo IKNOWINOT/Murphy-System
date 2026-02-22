@@ -128,6 +128,30 @@ def test_execute_task_prefers_compute_request_over_deterministic_request():
     assert result["compute_plane"]["route_source"] == "compute_request"
 
 
+def test_execute_task_prefers_compute_request_over_confidence_required_fallback():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Execute compute request precedence over confidence fallback",
+            "confidence_engine",
+            {
+                "compute_request": {
+                    "expression": "minimize: x subject to: x >= 0",
+                    "language": "lp"
+                },
+                "confidence_required": True,
+                "confidence_expression": "maximize: y subject to: y <= 10",
+                "confidence_language": "lp",
+                "enforce_policy": False
+            },
+            session_id="session-compute-request-confidence-precedence"
+        )
+    )
+    assert result["status"] == "validated"
+    assert result["compute_plane"]["route_source"] == "compute_request"
+
+
 def test_execute_task_prefers_deterministic_request_over_confidence_required_fallback():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
