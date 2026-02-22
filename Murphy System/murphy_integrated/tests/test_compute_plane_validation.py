@@ -227,3 +227,23 @@ def test_confidence_required_without_expression_skips_compute_plane_and_session(
     )
     assert "compute_plane" not in result
     assert len(murphy.sessions) == 0
+
+
+def test_math_required_with_expression_routes_to_compute_plane():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Route via math_required expression",
+            "automation",
+            {
+                "math_required": True,
+                "compute_expression": "minimize: x subject to: x >= 0",
+                "compute_language": "lp",
+                "enforce_policy": False
+            },
+            session_id="session-math-required-expression"
+        )
+    )
+    assert result["status"] == "validated"
+    assert result["compute_plane"]["route_source"] == "math_deterministic"
