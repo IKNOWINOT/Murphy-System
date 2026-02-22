@@ -1363,6 +1363,29 @@ def test_execute_task_malformed_compute_request_falls_back_to_confidence_require
     assert result["compute_plane"]["route_source"] == "confidence_required"
 
 
+def test_execute_task_malformed_compute_request_falls_back_to_confidence_required_message():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Execute malformed compute request with confidence message fallback",
+            "confidence_engine",
+            {
+                "compute_request": {
+                    "language": "lp"
+                },
+                "confidence_required": True,
+                "message": "minimize: x subject to: x >= 0",
+                "compute_language": "lp",
+                "enforce_policy": False
+            },
+            session_id="session-malformed-compute-with-confidence-required-message"
+        )
+    )
+    assert result["status"] == "validated"
+    assert result["compute_plane"]["route_source"] == "confidence_required"
+
+
 def test_execute_task_malformed_compute_request_falls_back_to_confidence_task_type():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
@@ -1536,6 +1559,29 @@ def test_execute_task_malformed_compute_request_falls_back_to_math_required_cont
                 "enforce_policy": False
             },
             session_id="session-malformed-compute-with-math-required-content"
+        )
+    )
+    assert result["status"] == "validated"
+    assert result["compute_plane"]["route_source"] == "math_deterministic"
+
+
+def test_execute_task_malformed_compute_request_falls_back_to_math_required_prompt():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Execute malformed compute request with math prompt fallback",
+            "automation",
+            {
+                "compute_request": {
+                    "language": "lp"
+                },
+                "math_required": True,
+                "prompt": "minimize: x subject to: x >= 0",
+                "math_language": "lp",
+                "enforce_policy": False
+            },
+            session_id="session-malformed-compute-with-math-required-prompt"
         )
     )
     assert result["status"] == "validated"
