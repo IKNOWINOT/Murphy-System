@@ -200,6 +200,27 @@ def test_execute_task_prefers_deterministic_request_over_math_required_fallback(
     assert result["compute_plane"]["route_source"] == "deterministic_request"
 
 
+def test_execute_task_prefers_deterministic_request_over_confidence_task_type_fallback():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "minimize: z subject to: z >= 1",
+            "confidence_engine",
+            {
+                "deterministic_request": {
+                    "expression": "minimize: x subject to: x >= 0",
+                    "language": "lp"
+                },
+                "enforce_policy": False
+            },
+            session_id="session-deterministic-request-confidence-task-type-precedence"
+        )
+    )
+    assert result["status"] == "validated"
+    assert result["compute_plane"]["route_source"] == "deterministic_request"
+
+
 def test_execute_task_compute_request_missing_expression_returns_failed_route():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
