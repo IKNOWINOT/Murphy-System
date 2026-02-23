@@ -67,6 +67,10 @@ class ComputeService:
             # Check cache
             if self.enable_caching and request.request_id in self.request_cache:
                 return request.request_id
+
+            # Avoid duplicate processing for pending requests
+            if request.request_id in self.pending_requests:
+                return request.request_id
             
             # Store as pending
             self.pending_requests[request.request_id] = request
