@@ -2223,6 +2223,28 @@ def test_deterministic_required_with_blank_expression_skips_compute_plane_and_se
     assert len(murphy.sessions) == 0
 
 
+def test_deterministic_required_text_expression_routes_to_compute_plane_and_binds_session():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Route via deterministic_required text expression",
+            "automation",
+            {
+                "deterministic_required": True,
+                "text": "minimize: x subject to: x >= 0",
+                "compute_language": "lp",
+                "enforce_policy": False
+            },
+            session_id="session-deterministic-required-text-expression"
+        )
+    )
+    assert result["status"] == "validated"
+    assert result["compute_plane"]["route_source"] == "deterministic_required"
+    assert result["session_id"]
+    assert murphy.document_sessions[result["session_id"]] == result["doc_id"]
+
+
 def test_math_required_with_expression_routes_to_compute_plane():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()

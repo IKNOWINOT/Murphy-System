@@ -2195,6 +2195,10 @@ class MurphySystem:
             self.MATH_REQUIRED_EXPRESSION_FIELDS,
             fallback=task_description
         )
+        deterministic_required_expression_candidate = self._first_non_empty_value(
+            compute_parameters,
+            self.DETERMINISTIC_REQUEST_EXPRESSION_FIELDS
+        )
         requires_compute_validation = bool(
             compute_parameters.get("compute_request")
             or compute_parameters.get("deterministic_request")
@@ -2216,8 +2220,7 @@ class MurphySystem:
             )
             or (
                 compute_parameters.get("deterministic_required")
-                and isinstance(compute_parameters.get("compute_expression"), str)
-                and compute_parameters.get("compute_expression").strip()
+                and self._is_compute_expression_candidate(deterministic_required_expression_candidate)
             )
         )
         resolved_compute_session = None
