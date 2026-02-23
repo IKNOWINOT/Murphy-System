@@ -9,6 +9,7 @@ This file stores confirmed completion data and iteration evidence moved out of `
 - Added targeted compute-session gating coverage so malformed compute/deterministic error paths are explicitly verified to keep `session_id=None` (no unnecessary session allocation).
 - Added deterministic task-type compute fallback wiring coverage to ensure malformed `compute_request` + deterministic task-type expression inputs route through deterministic compute validation with session binding when validated.
 - Added compute-service runtime hardening for non-permutation execution behavior: duplicate pending request IDs are deduplicated before worker launch, and long-running compute execution now enforces `timeout` with explicit `TIMEOUT` results.
+- Added compute-service lifecycle hardening for non-permutation execution behavior: requests submitted after `shutdown()` now fail immediately with a deterministic `FAIL` result and do not spawn new background worker threads.
 
 ## 14) Current iteration confirmation (sections 1-14 acceptance)
 
@@ -179,7 +180,7 @@ This update confirms that sections **1-14** remain active and accepted as the op
   - Operational automation: **+0.02%**
   - UI + user testing: **+0.01%**
   - Dynamic-chain tests: **+0.04%**
-- Latest targeted run (`tests/test_compute_plane.py` + `tests/test_compute_plane_validation.py`): **114 passed, 0 failed, 15 skipped** (warnings are pre-existing third-party deprecations), including compute-service pending dedup + timeout + request-id collision cache-safety hardening, deterministic task-type fallback wiring, deterministic-request session continuity checks, and compute/deterministic error-path no-session allocation guard coverage.
+- Latest targeted run (`tests/test_compute_plane.py` + `tests/test_compute_plane_validation.py`): **116 passed, 0 failed, 15 skipped** (warnings are pre-existing third-party deprecations), superseding an older 114-pass snapshot and including compute-service pending dedup + timeout + request-id collision cache-safety hardening, deterministic task-type fallback wiring, deterministic-request session continuity checks, post-shutdown immediate request rejection, and compute/deterministic error-path no-session allocation guard coverage.
 - Latest governance policy chunk: `section_governance_dependency_nonce_lock_policy`, `section_authority_override_recertification_policy`, `section_budget_exception_rebind_policy`, `section_evidence_packet_reseal_policy`, and `section_release_gate_drift_policy`.
 
 ---

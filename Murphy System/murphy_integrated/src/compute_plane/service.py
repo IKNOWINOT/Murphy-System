@@ -53,11 +53,11 @@ class ComputeService:
         self.request_cache: Dict[str, ComputeResult] = {}
         self.pending_requests: Dict[str, ComputeRequest] = {}
         self.request_signatures: Dict[str, str] = {}
+        self._is_shutdown = False
         self._execution_executor = ThreadPoolExecutor(
             max_workers=4,
             thread_name_prefix="compute-service"
         )
-        self._is_shutdown = False
         
         self._lock = threading.Lock()
     
@@ -78,7 +78,7 @@ class ComputeService:
                 result = ComputeResult(
                     request_id=request.request_id,
                     status=ComputeStatus.FAIL,
-                    error_message="Compute service is shut down"
+                    error_message="Compute service has been shut down"
                 )
                 self.request_cache[request.request_id] = result
                 self.request_signatures[request.request_id] = request_signature
@@ -313,7 +313,7 @@ class ComputeService:
         """Shutdown service resources."""
         with self._lock:
             self._is_shutdown = True
-        self._execution_executor.shutdown(wait=False, cancel_futures=True)
+            self._execution_executor.shutdown(wait=False, cancel_futures=True)
 
     def __del__(self):
         try:
