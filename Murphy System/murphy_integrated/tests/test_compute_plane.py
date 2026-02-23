@@ -568,6 +568,26 @@ class TestComputeService(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(result.status, ComputeStatus.UNSUPPORTED)
         self.assertIn("Unsupported language", result.error_message)
+
+    def test_submit_request_unsupported_language_skips_background_worker(self):
+        """Unsupported requests should resolve synchronously without worker threads."""
+        request = ComputeRequest(
+            expression="x + 1",
+            language="sympy",
+            request_id="unsupported-sync-request",
+        )
+        # ComputeRequest validates language at construction time, so mutate after
+        # creation to exercise the runtime unsupported-language guard path.
+        request.language = "python"
+
+        with patch("src.compute_plane.service.threading.Thread") as mock_thread_cls:
+            request_id = self.service.submit_request(request)
+            result = self.service.get_result(request_id)
+
+            self.assertIsNotNone(result)
+            self.assertEqual(result.status, ComputeStatus.UNSUPPORTED)
+            self.assertNotIn(request_id, self.service.pending_requests)
+            mock_thread_cls.assert_not_called()
     
     def test_get_statistics(self):
         """Test getting service statistics"""

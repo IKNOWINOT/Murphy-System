@@ -128,6 +128,16 @@ class ComputeService:
                     request_id=f"{request.request_id}-{uuid.uuid4().hex[:8]}"
                 )
                 request_signature = self._request_signature(request)
+
+            if request.language not in self.SUPPORTED_LANGUAGES:
+                result = ComputeResult(
+                    request_id=request.request_id,
+                    status=ComputeStatus.UNSUPPORTED,
+                    error_message=f"Unsupported language: {request.language}",
+                )
+                self.request_cache[request.request_id] = result
+                self.request_signatures[request.request_id] = request_signature
+                return request.request_id
             
             # Store as pending
             self.pending_requests[request.request_id] = request
