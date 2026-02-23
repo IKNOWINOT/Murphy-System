@@ -8,6 +8,7 @@ import json
 import time
 import threading
 import uuid
+from copy import deepcopy
 from dataclasses import replace
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from typing import Dict, Optional
@@ -137,7 +138,8 @@ class ComputeService:
             ComputeResult if available, None if still pending
         """
         with self._lock:
-            return self.request_cache.get(request_id)
+            result = self.request_cache.get(request_id)
+            return deepcopy(result) if result is not None else None
     
     def validate_expression(self, expression: str, language: str) -> Dict:
         """
