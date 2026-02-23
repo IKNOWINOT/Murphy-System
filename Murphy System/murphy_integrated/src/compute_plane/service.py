@@ -57,6 +57,7 @@ class ComputeService:
             max_workers=4,
             thread_name_prefix="compute-service"
         )
+        self._is_shutdown = False
         
         self._lock = threading.Lock()
     
@@ -73,6 +74,16 @@ class ComputeService:
         request_signature = self._request_signature(request)
 
         with self._lock:
+            if self._is_shutdown:
+                result = ComputeResult(
+                    request_id=request.request_id,
+                    status=ComputeStatus.FAIL,
+                    error_message="Compute service is shut down"
+                )
+                self.request_cache[request.request_id] = result
+                self.request_signatures[request.request_id] = request_signature
+                return request.request_id
+
             # Check cache
             if self.enable_caching and request.request_id in self.request_cache:
                 if self.request_signatures.get(request.request_id) == request_signature:
@@ -300,6 +311,8 @@ class ComputeService:
 
     def shutdown(self):
         """Shutdown service resources."""
+        with self._lock:
+            self._is_shutdown = True
         self._execution_executor.shutdown(wait=False, cancel_futures=True)
 
     def __del__(self):
