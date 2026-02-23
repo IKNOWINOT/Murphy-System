@@ -171,7 +171,8 @@ class ComputeService:
                 execution_time=time.time() - start_time,
             )
             with self._lock:
-                self.request_cache[request.request_id] = result
+                if not (self._is_shutdown and request.request_id in self.request_cache):
+                    self.request_cache[request.request_id] = result
                 if request.request_id in self.pending_requests:
                     del self.pending_requests[request.request_id]
             return
@@ -226,7 +227,8 @@ class ComputeService:
         
         # Store result
         with self._lock:
-            self.request_cache[request.request_id] = result
+            if not (self._is_shutdown and request.request_id in self.request_cache):
+                self.request_cache[request.request_id] = result
             if request.request_id in self.pending_requests:
                 del self.pending_requests[request.request_id]
     
@@ -345,6 +347,14 @@ class ComputeService:
         """Shutdown service resources."""
         with self._lock:
             self._is_shutdown = True
+            for request_id in list(self.pending_requests.keys()):
+                if request_id not in self.request_cache:
+                    self.request_cache[request_id] = ComputeResult(
+                        request_id=request_id,
+                        status=ComputeStatus.FAIL,
+                        error_message="Compute service has been shut down",
+                    )
+            self.pending_requests.clear()
             self._execution_executor.shutdown(wait=False, cancel_futures=True)
 
     def __del__(self):

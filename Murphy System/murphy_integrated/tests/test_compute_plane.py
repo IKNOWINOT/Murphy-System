@@ -14,7 +14,7 @@ import unittest
 import time
 from unittest.mock import patch
 from src.compute_plane.models.compute_request import ComputeRequest
-from src.compute_plane.models.compute_result import ComputeStatus
+from src.compute_plane.models.compute_result import ComputeResult, ComputeStatus
 from src.compute_plane.parsers.expression_parser import ExpressionParser
 from src.compute_plane.solvers.symbolic_solver import SymbolicSolver
 from src.compute_plane.solvers.numeric_solver import NumericSolver
@@ -324,6 +324,60 @@ class TestComputeService(unittest.TestCase):
             self.assertEqual(result.status, ComputeStatus.FAIL)
             self.assertIn("shut down", result.error_message)
             mock_thread_cls.assert_not_called()
+
+    def test_shutdown_clears_pending_requests_with_fail_results(self):
+        """Test that shutdown resolves pending requests to FAIL and clears pending state."""
+        request = ComputeRequest(
+            expression="x + 1",
+            language="sympy",
+            request_id="shutdown-pending-request",
+        )
+
+        with patch("src.compute_plane.service.threading.Thread") as mock_thread_cls:
+            mock_thread = mock_thread_cls.return_value
+            mock_thread.start.return_value = None
+
+            request_id = self.service.submit_request(request)
+            self.assertIn(request_id, self.service.pending_requests)
+
+            self.service.shutdown()
+
+            self.assertNotIn(request_id, self.service.pending_requests)
+            result = self.service.get_result(request_id)
+            self.assertIsNotNone(result)
+            self.assertEqual(result.status, ComputeStatus.FAIL)
+            self.assertIn("shut down", result.error_message)
+
+    def test_inflight_request_does_not_overwrite_shutdown_failure(self):
+        """In-flight workers should not overwrite failure results written during shutdown."""
+        if not self.service.parser.sympy_available:
+            self.skipTest("SymPy not available")
+
+        request = ComputeRequest(
+            expression="x + 1",
+            language="sympy",
+            request_id="shutdown-inflight-request",
+            metadata={"operation": "simplify"},
+        )
+
+        def slow_success(*args, **kwargs):
+            time.sleep(0.3)
+            return ComputeResult(
+                request_id=request.request_id,
+                status=ComputeStatus.SUCCESS,
+                result="unexpected-success-after-shutdown",
+            )
+
+        with patch.object(self.service, "_execute_sympy", side_effect=slow_success):
+            request_id = self.service.submit_request(request)
+            time.sleep(0.05)
+            self.service.shutdown()
+            time.sleep(0.4)
+
+        result = self.service.get_result(request_id)
+        self.assertIsNotNone(result)
+        self.assertEqual(result.status, ComputeStatus.FAIL)
+        self.assertIn("shut down", result.error_message)
 
     def test_submit_request_id_collision_creates_new_request_id(self):
         """Test reused request_id with different payload does not return stale cache."""
