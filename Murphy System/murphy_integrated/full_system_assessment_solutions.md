@@ -169,6 +169,7 @@ This update confirms that sections **1-14** remain active and accepted as the op
 146. Added deterministic-request session continuity regression coverage to ensure same-session validated deterministic requests preserve existing document mapping without unintended remaps.
 147. Added compute-service cache-isolation hardening so `ComputeService.get_result` returns defensive copies and caller-side mutations cannot alter cached result state.
 148. Added compute-service shutdown resubmission cache-integrity hardening so post-shutdown submissions with the same request ID/signature preserve existing successful cached results instead of clobbering them with shutdown `FAIL` outcomes.
+149. Added unsupported-language preflight hardening in `ComputeService.submit_request` so unsupported requests are resolved synchronously as `UNSUPPORTED` without spawning background worker threads, with focused regression coverage to ensure pending state stays clean and threaded execution is skipped.
 
 **Current completion percentage snapshot (section 9, this iteration):**
 - Execution wiring (gate + swarm + orchestrator): **50.15%**
