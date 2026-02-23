@@ -322,6 +322,7 @@ class TestComputeService(unittest.TestCase):
 
         second_id = self.service.submit_request(request_2)
         self.assertNotEqual(second_id, first_id)
+        self.assertEqual(request_2.request_id, request_id)
         time.sleep(1)
         second_result = self.service.get_result(second_id)
         self.assertIsNotNone(second_result)

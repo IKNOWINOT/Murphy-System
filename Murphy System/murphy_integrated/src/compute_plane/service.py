@@ -99,14 +99,20 @@ class ComputeService:
             if self.enable_caching and request.request_id in self.request_cache:
                 if self.request_signatures.get(request.request_id) == request_signature:
                     return request.request_id
-                request.request_id = f"{request.request_id}-{uuid.uuid4().hex[:8]}"
+                request = replace(
+                    request,
+                    request_id=f"{request.request_id}-{uuid.uuid4().hex[:8]}"
+                )
                 request_signature = self._request_signature(request)
 
             # Avoid duplicate processing for pending requests
             if request.request_id in self.pending_requests:
                 if self.request_signatures.get(request.request_id) == request_signature:
                     return request.request_id
-                request.request_id = f"{request.request_id}-{uuid.uuid4().hex[:8]}"
+                request = replace(
+                    request,
+                    request_id=f"{request.request_id}-{uuid.uuid4().hex[:8]}"
+                )
                 request_signature = self._request_signature(request)
             
             # Store as pending
