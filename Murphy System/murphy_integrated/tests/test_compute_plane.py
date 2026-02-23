@@ -276,6 +276,25 @@ class TestComputeService(unittest.TestCase):
             self.assertEqual(result.status, ComputeStatus.TIMEOUT)
             self.assertIn("timed out", result.error_message)
 
+    def test_submit_request_after_shutdown_fails_immediately(self):
+        """Test that requests submitted after shutdown fail without background work."""
+        request = ComputeRequest(
+            expression="x + 1",
+            language="sympy",
+            request_id="shutdown-request",
+        )
+
+        self.service.shutdown()
+
+        with patch("src.compute_plane.service.threading.Thread") as mock_thread_cls:
+            request_id = self.service.submit_request(request)
+            result = self.service.get_result(request_id)
+
+            self.assertIsNotNone(result)
+            self.assertEqual(result.status, ComputeStatus.FAIL)
+            self.assertIn("shut down", result.error_message)
+            mock_thread_cls.assert_not_called()
+
     def test_submit_request_id_collision_creates_new_request_id(self):
         """Test reused request_id with different payload does not return stale cache."""
         if not self.service.parser.sympy_available:
