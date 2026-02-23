@@ -2224,8 +2224,6 @@ class MurphySystem:
             )
         )
         resolved_compute_session = None
-        if requires_compute_validation:
-            resolved_compute_session = self._resolve_compute_session(session_id)
         compute_plane_result = self._execute_compute_plane_validation(
             parameters,
             task_description=task_description,
@@ -2233,6 +2231,8 @@ class MurphySystem:
         )
         if compute_plane_result:
             status = compute_plane_result.get("status", "error")
+            if status == "validated" and requires_compute_validation:
+                resolved_compute_session = self._resolve_compute_session(session_id)
             if status == "validated" and resolved_compute_session:
                 with self._session_lock:
                     previous_doc = self.document_sessions.get(resolved_compute_session)

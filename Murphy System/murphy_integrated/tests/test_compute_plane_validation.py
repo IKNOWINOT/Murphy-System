@@ -1995,6 +1995,27 @@ def test_execute_task_compute_request_error_keeps_compute_validation_mode():
     assert result["metadata"]["mode"] == "compute_plane_validation"
 
 
+def test_execute_task_compute_request_error_does_not_allocate_compute_session():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Execute malformed compute request session allocation check",
+            "automation",
+            {
+                "compute_request": {
+                    "language": "lp"
+                },
+                "enforce_policy": False
+            },
+            session_id="session-compute-request-error-no-session"
+        )
+    )
+    assert result["status"] == "error"
+    assert result["session_id"] is None
+    assert set(murphy.document_sessions.keys()) == {"session-compute-request-error-no-session"}
+
+
 def test_execute_task_routes_deterministic_required_to_compute_plane():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
