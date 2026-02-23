@@ -2089,6 +2089,17 @@ class MurphySystem:
                 route_source = "math_deterministic"
         if not compute_request:
             return None
+        if isinstance(compute_request, str):
+            compute_request = {
+                "expression": compute_request.strip(),
+                "language": input_parameters.get("compute_language", "sympy")
+            }
+        elif not isinstance(compute_request, dict):
+            return {
+                "status": "error",
+                "route_source": route_source,
+                "error": "compute_request must be an object or expression string."
+            }
         expression = compute_request.get("expression")
         language = compute_request.get("language", "sympy")
         if not expression:
