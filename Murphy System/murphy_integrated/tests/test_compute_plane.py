@@ -12,6 +12,7 @@ Tests all components:
 
 import unittest
 import time
+from unittest.mock import patch
 from src.compute_plane.models.compute_request import ComputeRequest
 from src.compute_plane.models.compute_result import ComputeStatus
 from src.compute_plane.parsers.expression_parser import ExpressionParser
@@ -226,6 +227,25 @@ class TestComputeService(unittest.TestCase):
         result = self.service.get_result(request_id)
         self.assertIsNotNone(result)
         self.assertEqual(result.status, ComputeStatus.SUCCESS)
+
+    def test_submit_request_deduplicates_pending_request(self):
+        """Test that duplicate pending requests do not spawn duplicate workers"""
+        request = ComputeRequest(
+            expression="x**2 + 1",
+            language="sympy",
+            request_id="dedup-pending-request"
+        )
+
+        with patch("src.compute_plane.service.threading.Thread") as mock_thread_cls:
+            mock_thread = mock_thread_cls.return_value
+
+            request_id_1 = self.service.submit_request(request)
+            request_id_2 = self.service.submit_request(request)
+
+            self.assertEqual(request_id_1, request.request_id)
+            self.assertEqual(request_id_2, request.request_id)
+            self.assertEqual(mock_thread_cls.call_count, 1)
+            self.assertEqual(mock_thread.start.call_count, 1)
     
     def test_validate_expression(self):
         """Test expression validation"""
