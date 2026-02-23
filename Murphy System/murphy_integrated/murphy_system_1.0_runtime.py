@@ -1041,6 +1041,7 @@ class MurphySystem:
         "blocked"
     }
     CONFIDENCE_ENGINE_TASK_TYPES = {"confidence_engine", "confidence", "confidence_validation"}
+    DETERMINISTIC_ENGINE_TASK_TYPES = {"deterministic_engine", "deterministic", "deterministic_validation"}
     DETERMINISTIC_REQUEST_EXPRESSION_FIELDS = [
         "expression",
         "compute_expression",
@@ -1944,6 +1945,18 @@ class MurphySystem:
                 self.CONFIDENCE_REQUIRED_EXPRESSION_FIELDS,
                 fallback=description_expression
             )
+        deterministic_task_expression = None
+        if (task_type or "").lower() in self.DETERMINISTIC_ENGINE_TASK_TYPES:
+            description_expression = (
+                task_description
+                if self._is_compute_expression_candidate(task_description)
+                else None
+            )
+            deterministic_task_expression = self._first_non_empty_value(
+                input_parameters,
+                self.DETERMINISTIC_REQUEST_EXPRESSION_FIELDS,
+                fallback=description_expression
+            )
         route_source = "compute_request"
         if isinstance(compute_request, dict):
             compute_expression = compute_request.get("expression")
@@ -1955,6 +1968,7 @@ class MurphySystem:
                         input_parameters.get("deterministic_required")
                         and self._is_compute_expression_candidate(deterministic_required_expression)
                     )
+                    or self._is_compute_expression_candidate(deterministic_task_expression)
                     or (
                         input_parameters.get("confidence_required")
                         and self._is_compute_expression_candidate(confidence_required_expression)
@@ -2000,6 +2014,16 @@ class MurphySystem:
                 "language": input_parameters.get("compute_language", "sympy")
             }
             route_source = "deterministic_required"
+        if (
+            not compute_request
+            and (task_type or "").lower() in self.DETERMINISTIC_ENGINE_TASK_TYPES
+            and self._is_compute_expression_candidate(deterministic_task_expression)
+        ):
+            compute_request = {
+                "expression": deterministic_task_expression.strip(),
+                "language": input_parameters.get("compute_language", "sympy")
+            }
+            route_source = "deterministic_task_type"
         if (
             not compute_request
             and input_parameters.get("confidence_required")
@@ -2199,6 +2223,11 @@ class MurphySystem:
             compute_parameters,
             self.DETERMINISTIC_REQUEST_EXPRESSION_FIELDS
         )
+        deterministic_expression_candidate = self._first_non_empty_value(
+            compute_parameters,
+            self.DETERMINISTIC_REQUEST_EXPRESSION_FIELDS,
+            fallback=task_description
+        )
         requires_compute_validation = bool(
             compute_parameters.get("compute_request")
             or compute_parameters.get("deterministic_request")
@@ -2221,6 +2250,10 @@ class MurphySystem:
             or (
                 compute_parameters.get("deterministic_required")
                 and self._is_compute_expression_candidate(deterministic_required_expression_candidate)
+            )
+            or (
+                normalized_task_type in self.DETERMINISTIC_ENGINE_TASK_TYPES
+                and self._is_compute_expression_candidate(deterministic_expression_candidate)
             )
         )
         resolved_compute_session = None
