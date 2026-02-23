@@ -104,6 +104,45 @@ def test_execute_task_deterministic_request_binds_compute_session_mapping():
     assert murphy.document_sessions[result["session_id"]] == result["doc_id"]
 
 
+def test_execute_task_reuses_existing_compute_session_document_mapping():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+
+    first = asyncio.run(
+        murphy.execute_task(
+            "Deterministic request first mapping",
+            "automation",
+            {
+                "deterministic_request": {
+                    "expression": "minimize: x subject to: x >= 0",
+                    "language": "lp"
+                },
+                "enforce_policy": False
+            }
+        )
+    )
+    second = asyncio.run(
+        murphy.execute_task(
+            "Deterministic request second mapping",
+            "automation",
+            {
+                "deterministic_request": {
+                    "expression": "minimize: y subject to: y >= 1",
+                    "language": "lp"
+                },
+                "enforce_policy": False
+            },
+            session_id=first["session_id"]
+        )
+    )
+
+    assert first["status"] == "validated"
+    assert second["status"] == "validated"
+    assert second["session_id"] == first["session_id"]
+    assert second["doc_id"] == first["doc_id"]
+    assert murphy.document_sessions[first["session_id"]] == first["doc_id"]
+
+
 def test_execute_task_falls_back_to_deterministic_request_prompt_expression():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
