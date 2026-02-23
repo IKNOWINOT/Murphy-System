@@ -246,6 +246,35 @@ class TestComputeService(unittest.TestCase):
             self.assertEqual(request_id_2, request.request_id)
             self.assertEqual(mock_thread_cls.call_count, 1)
             self.assertEqual(mock_thread.start.call_count, 1)
+
+    def test_submit_request_respects_timeout(self):
+        """Test that long-running computations return TIMEOUT"""
+        if not self.service.parser.sympy_available:
+            self.skipTest("SymPy not available")
+
+        request = ComputeRequest(
+            expression="x**2 + 1",
+            language="sympy",
+            timeout=1,
+            request_id="timeout-request"
+        )
+
+        def mock_slow_execute(*args, **kwargs):
+            time.sleep(1.5)
+            return None
+
+        with patch.object(self.service, "_execute_sympy", side_effect=mock_slow_execute):
+            request_id = self.service.submit_request(request)
+            result = None
+            for _ in range(20):
+                result = self.service.get_result(request_id)
+                if result is not None:
+                    break
+                time.sleep(0.1)
+
+            self.assertIsNotNone(result)
+            self.assertEqual(result.status, ComputeStatus.TIMEOUT)
+            self.assertIn("timed out", result.error_message)
     
     def test_validate_expression(self):
         """Test expression validation"""

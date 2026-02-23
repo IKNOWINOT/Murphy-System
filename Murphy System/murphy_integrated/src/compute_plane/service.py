@@ -6,6 +6,7 @@ Main service that orchestrates computation requests.
 
 import time
 import threading
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from typing import Dict, Optional
 from queue import Queue
 from .models.compute_request import ComputeRequest
@@ -50,6 +51,10 @@ class ComputeService:
         self.enable_caching = enable_caching
         self.request_cache: Dict[str, ComputeResult] = {}
         self.pending_requests: Dict[str, ComputeRequest] = {}
+        self._execution_executor = ThreadPoolExecutor(
+            max_workers=4,
+            thread_name_prefix="compute-service"
+        )
         
         self._lock = threading.Lock()
     
@@ -129,22 +134,33 @@ class ComputeService:
             # Normalize expression
             normalized = self.parser.normalize(parsed)
             
-            # Execute computation based on language
-            if request.language == "sympy":
-                result = self._execute_sympy(request, normalized)
-            elif request.language == "wolfram":
-                result = self._execute_wolfram(request, normalized)
-            elif request.language == "lp":
-                result = self._execute_lp(request, normalized)
-            elif request.language == "sat":
-                result = self._execute_sat(request, normalized)
-            else:
-                result = ComputeResult(
+            def run_computation():
+                # Execute computation based on language
+                if request.language == "sympy":
+                    return self._execute_sympy(request, normalized)
+                elif request.language == "wolfram":
+                    return self._execute_wolfram(request, normalized)
+                elif request.language == "lp":
+                    return self._execute_lp(request, normalized)
+                elif request.language == "sat":
+                    return self._execute_sat(request, normalized)
+                return ComputeResult(
                     request_id=request.request_id,
                     status=ComputeStatus.UNSUPPORTED,
                     error_message=f"Unsupported language: {request.language}"
                 )
-            
+
+            future = self._execution_executor.submit(run_computation)
+            try:
+                result = future.result(timeout=request.timeout)
+            except FuturesTimeoutError:
+                future.cancel()
+                result = ComputeResult(
+                    request_id=request.request_id,
+                    status=ComputeStatus.TIMEOUT,
+                    error_message=f"Computation timed out after {request.timeout} seconds"
+                )
+
             result.execution_time = time.time() - start_time
             
         except Exception as e:
@@ -255,3 +271,13 @@ class ComputeService:
         
         successful = sum(1 for r in self.request_cache.values() if r.status == ComputeStatus.SUCCESS)
         return successful / len(self.request_cache)
+
+    def shutdown(self):
+        """Shutdown service resources."""
+        self._execution_executor.shutdown(wait=False, cancel_futures=True)
+
+    def __del__(self):
+        try:
+            self.shutdown()
+        except Exception:
+            pass

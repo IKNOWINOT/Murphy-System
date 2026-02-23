@@ -7,6 +7,7 @@ This file stores confirmed completion data and iteration evidence moved out of `
 - Added non-permutation compute-session continuity coverage: validated deterministic-request executions within an existing session now explicitly assert document mapping continuity (same session remains bound to the existing document rather than allocating a new one).
 - Added targeted compute-session gating coverage so malformed compute/deterministic error paths are explicitly verified to keep `session_id=None` (no unnecessary session allocation).
 - Added deterministic task-type compute fallback wiring coverage to ensure malformed `compute_request` + deterministic task-type expression inputs route through deterministic compute validation with session binding when validated.
+- Added compute-service runtime hardening for non-permutation execution behavior: duplicate pending request IDs are deduplicated before worker launch, and long-running compute execution now enforces `timeout` with explicit `TIMEOUT` results.
 
 ## 14) Current iteration confirmation (sections 1-14 acceptance)
 
