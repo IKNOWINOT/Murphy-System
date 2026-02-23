@@ -220,7 +220,8 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **Activation Audit** | `Murphy System/murphy_integrated/ACTIVATION_AUDIT.md` | Inactive subsystem inventory + verification | Review before wiring |
 | **Flow Analysis** | `Murphy System/murphy_integrated/SYSTEM_FLOW_ANALYSIS.md` | User-scripted flow + gate checklist | Use for screenshot testing |
 | **Capability Gaps** | `Murphy System/murphy_integrated/CAPABILITY_GAP_SOLUTIONS.md` | Gaps + closure recommendations | Track upgrades |
-| **Full Assessment** | `Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md` | Completion tracker + finishing plan | Update % completion here |
+| **Full Assessment Plan** | `Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md` | Recalibrated forward execution plan | Update active plan checkpoints here |
+| **Assessment Solutions Log** | `Murphy System/murphy_integrated/full_system_assessment_solutions.md` | Confirmed completion evidence + iteration history | Append confirmed outcomes here |
 | **Screenshot Assets** | `docs/screenshots/` | UI verification images for capability grading | Referenced in `VISUAL_SETUP_GUIDE_WITH_SCREENSHOTS.md` |
 | **Tests** | `Murphy System/murphy_integrated/tests/` | Dynamic chain, gate, and capability tests | `python -m pytest` |
 | **Legacy Archives** | `Murphy System/archive/legacy_versions/` | Historical runtimes + deployments | Read-only reference |
@@ -235,8 +236,9 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **Swarm System** | `src/true_swarm_system.py` | Dynamic swarm generation (wiring ongoing) |
 | **Governance** | `src/governance_framework/` | Scheduler + authority bands |
 
-**Progress tracking:** update completion percentages and screenshot-based validation in
-`Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md`.
+**Progress tracking:** update the forward plan in
+`Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md` and append confirmed completion evidence in
+`Murphy System/murphy_integrated/full_system_assessment_solutions.md`.
 Track unresolved architecture/governance decisions in `Murphy System/murphy_integrated/RFI.MD` (decision ledger: OPEN/ANSWERED/IMPLEMENTED).  
 Current state: `RFI-001`..`RFI-012` recorded as ANSWERED from user guidance, with follow-up precision/terminology items tracked as OPEN (`RFI-013`..`RFI-015`).
 
