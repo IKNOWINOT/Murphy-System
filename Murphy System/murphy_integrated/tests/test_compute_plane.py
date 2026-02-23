@@ -348,6 +348,33 @@ class TestComputeService(unittest.TestCase):
             self.assertEqual(result.status, ComputeStatus.FAIL)
             self.assertIn("shut down", result.error_message)
 
+    def test_shutdown_submit_does_not_overwrite_existing_success_result(self):
+        """Submitting after shutdown should preserve an existing success result for same request ID."""
+        if not self.service.parser.sympy_available:
+            self.skipTest("SymPy not available")
+
+        request = ComputeRequest(
+            expression="x + 1",
+            language="sympy",
+            request_id="shutdown-existing-success",
+            metadata={"operation": "simplify"},
+        )
+
+        request_id = self.service.submit_request(request)
+        time.sleep(1)
+        baseline = self.service.get_result(request_id)
+        self.assertIsNotNone(baseline)
+        self.assertEqual(baseline.status, ComputeStatus.SUCCESS)
+
+        self.service.shutdown()
+        replay_id = self.service.submit_request(request)
+        self.assertEqual(replay_id, request_id)
+
+        after = self.service.get_result(request_id)
+        self.assertIsNotNone(after)
+        self.assertEqual(after.status, ComputeStatus.SUCCESS)
+        self.assertEqual(after.result, baseline.result)
+
     def test_inflight_request_does_not_overwrite_shutdown_failure(self):
         """In-flight workers should not overwrite failure results written during shutdown."""
         if not self.service.parser.sympy_available:
@@ -444,8 +471,8 @@ class TestComputeService(unittest.TestCase):
         self.assertEqual(second_result.status, first_result.status)
         self.assertEqual(second_result.result, first_result.result)
 
-    def test_submit_request_without_caching_clears_stale_result_during_recompute(self):
-        """Re-submission with caching disabled should not expose stale cached results while pending."""
+    def test_submit_without_caching_hides_stale_result_while_pending(self):
+        """Re-submission with caching disabled should hide stale cached results while pending."""
         if not self.service.parser.sympy_available:
             self.skipTest("SymPy not available")
 
@@ -477,6 +504,8 @@ class TestComputeService(unittest.TestCase):
             with patch.object(service, "_execute_sympy", side_effect=slow_second_result):
                 second_id = service.submit_request(request)
                 self.assertEqual(second_id, request_id)
+                self.assertIsNone(service.get_result(request_id))
+                time.sleep(0.05)
                 self.assertIsNone(service.get_result(request_id))
                 time.sleep(0.4)
 
