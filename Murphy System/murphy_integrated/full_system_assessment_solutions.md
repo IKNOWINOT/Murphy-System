@@ -2,6 +2,12 @@
 
 This file stores confirmed completion data and iteration evidence moved out of `FULL_SYSTEM_ASSESSMENT.md` so the primary file remains a recalibrated forward plan.
 
+## Latest confirmed runtime behavior increments
+
+- Added non-permutation compute-session continuity coverage: validated deterministic-request executions within an existing session now explicitly assert document mapping continuity (same session remains bound to the existing document rather than allocating a new one).
+- Added targeted compute-session gating coverage so malformed compute/deterministic error paths are explicitly verified to keep `session_id=None` (no unnecessary session allocation).
+- Added deterministic task-type compute fallback wiring coverage to ensure malformed `compute_request` + deterministic task-type expression inputs route through deterministic compute validation with session binding when validated.
+
 ## 14) Current iteration confirmation (sections 1-14 acceptance)
 
 This update confirms that sections **1-14** remain active and accepted as the operating plan, with this iteration applying the same loop for analysis → implementation → targeted testing → documentation updates:
