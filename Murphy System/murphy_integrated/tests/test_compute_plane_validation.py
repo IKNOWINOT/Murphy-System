@@ -104,6 +104,32 @@ def test_execute_task_deterministic_request_binds_compute_session_mapping():
     assert murphy.document_sessions[result["session_id"]] == result["doc_id"]
 
 
+def test_execute_task_preserves_unknown_supplied_session_for_compute_binding():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    supplied_session = "session-supplied-compute-binding"
+    result = asyncio.run(
+        murphy.execute_task(
+            "Deterministic request supplied session binding",
+            "automation",
+            {
+                "deterministic_request": {
+                    "expression": "minimize: x subject to: x >= 0",
+                    "language": "lp"
+                },
+                "enforce_policy": False
+            },
+            session_id=supplied_session
+        )
+    )
+
+    assert result["status"] == "validated"
+    assert result["session_id"] == supplied_session
+    assert supplied_session in murphy.sessions
+    assert supplied_session in murphy.document_sessions
+    assert murphy.document_sessions[supplied_session] == result["doc_id"]
+
+
 def test_execute_task_reuses_existing_compute_session_document_mapping():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
