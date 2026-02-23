@@ -1837,6 +1837,30 @@ def test_execute_task_malformed_compute_request_falls_back_to_math_task_type_tex
     assert result["compute_plane"]["route_source"] == "math_deterministic"
 
 
+def test_execute_task_malformed_compute_request_math_task_type_text_binds_compute_session():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Solve optimization",
+            "math",
+            {
+                "compute_request": {
+                    "language": "lp"
+                },
+                "text": "minimize: x subject to: x >= 0",
+                "math_language": "lp",
+                "enforce_policy": False
+            },
+            session_id="session-malformed-compute-with-math-task-type-text-bind-session"
+        )
+    )
+    assert result["status"] == "validated"
+    assert result["compute_plane"]["route_source"] == "math_deterministic"
+    assert result["session_id"]
+    assert murphy.document_sessions[result["session_id"]] == result["doc_id"]
+
+
 def test_execute_task_malformed_compute_request_falls_back_to_math_task_type_prompt():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()

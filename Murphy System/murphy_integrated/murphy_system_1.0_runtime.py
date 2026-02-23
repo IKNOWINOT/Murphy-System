@@ -2187,12 +2187,12 @@ class MurphySystem:
         normalized_task_type = (task_type or "").lower()
         confidence_expression_candidate = self._first_non_empty_value(
             compute_parameters,
-            ["confidence_expression", "compute_expression", "expression"],
+            self.CONFIDENCE_REQUIRED_EXPRESSION_FIELDS,
             fallback=task_description
         )
         math_expression_candidate = self._first_non_empty_value(
             compute_parameters,
-            ["math_expression", "equation", "formula", "compute_expression", "expression"],
+            self.MATH_REQUIRED_EXPRESSION_FIELDS,
             fallback=task_description
         )
         requires_compute_validation = bool(
@@ -2200,10 +2200,7 @@ class MurphySystem:
             or compute_parameters.get("deterministic_request")
             or (
                 compute_parameters.get("confidence_required")
-                and (
-                    compute_parameters.get("confidence_expression")
-                    or compute_parameters.get("compute_expression")
-                )
+                and self._is_compute_expression_candidate(confidence_expression_candidate)
             )
             or (
                 normalized_task_type in self.CONFIDENCE_ENGINE_TASK_TYPES
