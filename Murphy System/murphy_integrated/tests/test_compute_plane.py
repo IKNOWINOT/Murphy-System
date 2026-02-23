@@ -228,6 +228,36 @@ class TestComputeService(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(result.status, ComputeStatus.SUCCESS)
 
+    def test_get_result_returns_copy(self):
+        """Mutating retrieved results should not mutate cached results."""
+        if not self.service.parser.sympy_available:
+            self.skipTest("SymPy not available")
+
+        request = ComputeRequest(
+            expression="x + 1",
+            language="sympy",
+            request_id="result-copy-request",
+            metadata={"operation": "simplify"},
+        )
+        request_id = self.service.submit_request(request)
+
+        retrieved = None
+        for _ in range(20):
+            retrieved = self.service.get_result(request_id)
+            if retrieved is not None:
+                break
+            time.sleep(0.1)
+
+        self.assertIsNotNone(retrieved)
+        baseline_metadata = dict(retrieved.metadata)
+        baseline_steps = list(retrieved.derivation_steps)
+        retrieved.metadata["note"] = "mutated"
+        retrieved.derivation_steps.append("step-2")
+
+        fresh = self.service.get_result(request_id)
+        self.assertEqual(fresh.metadata, baseline_metadata)
+        self.assertEqual(fresh.derivation_steps, baseline_steps)
+
     def test_submit_request_deduplicates_pending_request(self):
         """Test that duplicate pending requests do not spawn duplicate workers"""
         request = ComputeRequest(
