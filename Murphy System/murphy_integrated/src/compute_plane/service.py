@@ -87,6 +87,15 @@ class ComputeService:
 
         with self._lock:
             if self._is_shutdown:
+                if request.request_id in self.request_cache:
+                    existing_signature = self.request_signatures.get(request.request_id)
+                    existing_result = self.request_cache.get(request.request_id)
+                    if (
+                        existing_signature == request_signature
+                        and existing_result is not None
+                        and existing_result.status == ComputeStatus.SUCCESS
+                    ):
+                        return request.request_id
                 result = ComputeResult(
                     request_id=request.request_id,
                     status=ComputeStatus.FAIL,
