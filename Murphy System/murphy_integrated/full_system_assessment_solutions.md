@@ -4,6 +4,7 @@ This file stores confirmed completion data and iteration evidence moved out of `
 
 ## Latest confirmed runtime behavior increments
 
+- Added non-permutation compute-session binding hardening: when a compute-validation request supplies an unknown `session_id`, runtime now preserves and materializes that supplied ID (instead of replacing it with a newly generated session), ensuring deterministic traceability for human-provided session references.
 - Added non-permutation compute-session continuity coverage: validated deterministic-request executions within an existing session now explicitly assert document mapping continuity (same session remains bound to the existing document rather than allocating a new one).
 - Added targeted compute-session gating coverage so malformed compute/deterministic error paths are explicitly verified to keep `session_id=None` (no unnecessary session allocation).
 - Added deterministic task-type compute fallback wiring coverage to ensure malformed `compute_request` + deterministic task-type expression inputs route through deterministic compute validation with session binding when validated.

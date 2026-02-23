@@ -1848,9 +1848,16 @@ class MurphySystem:
                 return session_id
             if session_id:
                 logger.warning(
-                    "Unknown session_id '%s' supplied for compute-plane validation; creating new session.",
+                    "Unknown session_id '%s' supplied for compute-plane validation; creating session with supplied ID.",
                     session_id
                 )
+                self.sessions[session_id] = {
+                    "session_id": session_id,
+                    "name": "session",
+                    "created_at": datetime.utcnow().isoformat(),
+                    "source": "compute_validation_autocreate",
+                }
+                return session_id
             session_payload = self.create_session()
             if session_payload is None:
                 logger.warning(
