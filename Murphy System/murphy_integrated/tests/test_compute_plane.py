@@ -443,6 +443,49 @@ class TestComputeService(unittest.TestCase):
         self.assertIsNotNone(second_result)
         self.assertEqual(second_result.status, first_result.status)
         self.assertEqual(second_result.result, first_result.result)
+
+    def test_submit_request_without_caching_clears_stale_result_during_recompute(self):
+        """Re-submission with caching disabled should not expose stale cached results while pending."""
+        if not self.service.parser.sympy_available:
+            self.skipTest("SymPy not available")
+
+        service = ComputeService(enable_caching=False)
+        request_id = "no-cache-repeat-request"
+        request = ComputeRequest(
+            expression="x + 1",
+            language="sympy",
+            request_id=request_id,
+            metadata={"operation": "simplify"},
+        )
+
+        try:
+            first_id = service.submit_request(request)
+            self.assertEqual(first_id, request_id)
+            time.sleep(1)
+            first_result = service.get_result(request_id)
+            self.assertIsNotNone(first_result)
+            self.assertEqual(first_result.status, ComputeStatus.SUCCESS)
+
+            def slow_second_result(*args, **kwargs):
+                time.sleep(0.2)
+                return ComputeResult(
+                    request_id=request_id,
+                    status=ComputeStatus.SUCCESS,
+                    result="second-pass-result",
+                )
+
+            with patch.object(service, "_execute_sympy", side_effect=slow_second_result):
+                second_id = service.submit_request(request)
+                self.assertEqual(second_id, request_id)
+                self.assertIsNone(service.get_result(request_id))
+                time.sleep(0.4)
+
+            second_result = service.get_result(request_id)
+            self.assertIsNotNone(second_result)
+            self.assertEqual(second_result.status, ComputeStatus.SUCCESS)
+            self.assertEqual(second_result.result, "second-pass-result")
+        finally:
+            service.shutdown()
     
     def test_validate_expression(self):
         """Test expression validation"""
