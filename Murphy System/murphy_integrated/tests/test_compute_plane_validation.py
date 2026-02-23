@@ -81,6 +81,29 @@ def test_execute_task_routes_deterministic_request_to_compute_plane():
     assert result["metadata"]["mode"] == "compute_plane_validation"
 
 
+def test_execute_task_deterministic_request_binds_compute_session_mapping():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Deterministic request session binding",
+            "automation",
+            {
+                "deterministic_request": {
+                    "expression": "minimize: x subject to: x >= 0",
+                    "language": "lp"
+                },
+                "enforce_policy": False
+            },
+            session_id="session-deterministic-request-bind-session"
+        )
+    )
+    assert result["status"] == "validated"
+    assert result.get("session_id")
+    assert result["session_id"] in murphy.document_sessions
+    assert murphy.document_sessions[result["session_id"]] == result["doc_id"]
+
+
 def test_execute_task_falls_back_to_deterministic_request_prompt_expression():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
@@ -2014,6 +2037,27 @@ def test_execute_task_compute_request_error_does_not_allocate_compute_session():
     assert result["status"] == "error"
     assert result["session_id"] is None
     assert set(murphy.document_sessions.keys()) == {"session-compute-request-error-no-session"}
+
+
+def test_execute_task_deterministic_request_error_does_not_allocate_compute_session():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Execute malformed deterministic request session allocation check",
+            "automation",
+            {
+                "deterministic_request": {
+                    "language": "lp"
+                },
+                "enforce_policy": False
+            },
+            session_id="session-deterministic-request-error-no-session"
+        )
+    )
+    assert result["status"] == "error"
+    assert result["session_id"] is None
+    assert set(murphy.document_sessions.keys()) == {"session-deterministic-request-error-no-session"}
 
 
 def test_execute_task_routes_deterministic_required_to_compute_plane():
