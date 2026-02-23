@@ -130,6 +130,66 @@ def test_execute_task_preserves_unknown_supplied_session_for_compute_binding():
     assert murphy.document_sessions[supplied_session] == result["doc_id"]
 
 
+def test_execute_task_whitespace_session_id_normalized_for_compute_path():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Deterministic request whitespace session binding",
+            "automation",
+            {
+                "deterministic_request": {
+                    "expression": "minimize: x subject to: x >= 0",
+                    "language": "lp"
+                },
+                "enforce_policy": False
+            },
+            session_id="   "
+        )
+    )
+
+    assert result["status"] == "validated"
+    assert result["session_id"]
+    assert result["session_id"].strip() != ""
+    assert result["session_id"] in murphy.sessions
+    assert result["session_id"] in murphy.document_sessions
+    assert murphy.document_sessions[result["session_id"]] == result["doc_id"]
+
+
+def test_execute_task_whitespace_session_id_normalized_for_non_compute_path():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Non-compute whitespace session normalization",
+            "general",
+            {"enforce_policy": False},
+            session_id="   ",
+        )
+    )
+
+    assert result["session_id"]
+    assert result["session_id"].strip() != ""
+    assert result["session_id"] in murphy.sessions
+    assert "   " not in murphy.sessions
+
+
+def test_execute_task_non_string_session_id_normalized_to_string():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Non-compute integer session normalization",
+            "general",
+            {"enforce_policy": False},
+            session_id=12345,
+        )
+    )
+
+    assert result["session_id"] == "12345"
+    assert 12345 not in murphy.sessions
+
+
 def test_execute_task_reuses_existing_compute_session_document_mapping():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
