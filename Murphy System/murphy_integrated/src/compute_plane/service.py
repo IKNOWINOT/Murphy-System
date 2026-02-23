@@ -96,6 +96,10 @@ class ComputeService:
                 self.request_signatures[request.request_id] = request_signature
                 return request.request_id
 
+            if not self.enable_caching and request.request_id in self.request_cache:
+                self.request_cache.pop(request.request_id, None)
+                self.request_signatures.pop(request.request_id, None)
+
             # Check cache
             if self.enable_caching and request.request_id in self.request_cache:
                 if self.request_signatures.get(request.request_id) == request_signature:
