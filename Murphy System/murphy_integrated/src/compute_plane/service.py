@@ -297,17 +297,18 @@ class ComputeService:
 
     def _request_signature(self, request: ComputeRequest) -> str:
         """Create stable signature for request identity and cache safety."""
-        assumptions = json.dumps(request.assumptions, sort_keys=True, separators=(",", ":"), default=str)
-        metadata = json.dumps(request.metadata, sort_keys=True, separators=(",", ":"), default=str)
-        return "|".join(
-            [
-                request.expression,
-                request.language,
-                str(request.precision),
-                str(request.timeout),
-                str(assumptions),
-                str(metadata),
-            ]
+        return json.dumps(
+            {
+                "expression": request.expression,
+                "language": request.language,
+                "precision": request.precision,
+                "timeout": request.timeout,
+                "assumptions": request.assumptions,
+                "metadata": request.metadata,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+            default=str,
         )
 
     def shutdown(self):
