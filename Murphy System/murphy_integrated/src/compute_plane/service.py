@@ -8,6 +8,7 @@ import json
 import time
 import threading
 import uuid
+from dataclasses import replace
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from typing import Dict, Optional
 from queue import Queue
@@ -38,6 +39,8 @@ class ComputeService:
     - Only returns verified results
     """
     
+    SUPPORTED_LANGUAGES = set(ComputeRequest.SUPPORTED_LANGUAGES)
+
     def __init__(self, enable_caching: bool = True):
         """
         Initialize compute service.
@@ -72,6 +75,13 @@ class ComputeService:
         Returns:
             request_id for tracking
         """
+        if not isinstance(request.assumptions, dict) or not isinstance(request.metadata, dict):
+            request = replace(
+                request,
+                assumptions=request.assumptions if isinstance(request.assumptions, dict) else {},
+                metadata=request.metadata if isinstance(request.metadata, dict) else {},
+            )
+
         request_signature = self._request_signature(request)
 
         with self._lock:
@@ -145,6 +155,18 @@ class ComputeService:
             request: ComputeRequest object
         """
         start_time = time.time()
+        if request.language not in self.SUPPORTED_LANGUAGES:
+            result = ComputeResult(
+                request_id=request.request_id,
+                status=ComputeStatus.UNSUPPORTED,
+                error_message=f"Unsupported language: {request.language}",
+                execution_time=time.time() - start_time,
+            )
+            with self._lock:
+                self.request_cache[request.request_id] = result
+                if request.request_id in self.pending_requests:
+                    del self.pending_requests[request.request_id]
+            return
         
         try:
             # Parse expression

@@ -26,6 +26,8 @@ class ComputeRequest:
         metadata: Additional metadata for tracking
     """
     
+    SUPPORTED_LANGUAGES = ("wolfram", "sympy", "lp", "sat")
+
     expression: str
     language: Literal["wolfram", "sympy", "lp", "sat"]
     request_id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -40,7 +42,7 @@ class ComputeRequest:
         if not self.expression:
             raise ValueError("Expression cannot be empty")
         
-        if self.language not in ["wolfram", "sympy", "lp", "sat"]:
+        if self.language not in self.SUPPORTED_LANGUAGES:
             raise ValueError(f"Unsupported language: {self.language}")
         
         if self.precision < 1 or self.precision > 50:

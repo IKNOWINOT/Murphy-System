@@ -363,6 +363,54 @@ class TestComputeService(unittest.TestCase):
         """Test expression validation"""
         validation = self.service.validate_expression("x**2 + 1", "sympy")
         self.assertIn('is_valid', validation)
+
+    def test_metadata_none_is_normalized_for_sympy_execution(self):
+        """None metadata should be normalized so default sympy execution succeeds."""
+        if not self.service.parser.sympy_available:
+            self.skipTest("SymPy not available")
+
+        request = ComputeRequest(
+            expression="x + 1",
+            language="sympy",
+            request_id="metadata-none-request",
+            metadata=None,
+        )
+
+        request_id = self.service.submit_request(request)
+        result = None
+        max_retries = 20
+        retry_interval_seconds = 0.1
+        for _ in range(max_retries):
+            result = self.service.get_result(request_id)
+            if result is not None:
+                break
+            time.sleep(retry_interval_seconds)
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result.status, ComputeStatus.SUCCESS)
+
+    def test_mutated_unsupported_language_returns_unsupported_status(self):
+        """Runtime should guard against unsupported language values even if object is mutated."""
+        request = ComputeRequest(
+            expression="x + 1",
+            language="sympy",
+            request_id="mutated-unsupported-language",
+        )
+        request.language = "python"
+
+        request_id = self.service.submit_request(request)
+        result = None
+        max_retries = 20
+        retry_interval_seconds = 0.1
+        for _ in range(max_retries):
+            result = self.service.get_result(request_id)
+            if result is not None:
+                break
+            time.sleep(retry_interval_seconds)
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result.status, ComputeStatus.UNSUPPORTED)
+        self.assertIn("Unsupported language", result.error_message)
     
     def test_get_statistics(self):
         """Test getting service statistics"""
