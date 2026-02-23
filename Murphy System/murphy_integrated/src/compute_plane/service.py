@@ -6,6 +6,7 @@ Main service that orchestrates computation requests.
 
 import time
 import threading
+import uuid
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from typing import Dict, Optional
 from queue import Queue
@@ -51,6 +52,7 @@ class ComputeService:
         self.enable_caching = enable_caching
         self.request_cache: Dict[str, ComputeResult] = {}
         self.pending_requests: Dict[str, ComputeRequest] = {}
+        self.request_signatures: Dict[str, str] = {}
         self._execution_executor = ThreadPoolExecutor(
             max_workers=4,
             thread_name_prefix="compute-service"
@@ -68,17 +70,26 @@ class ComputeService:
         Returns:
             request_id for tracking
         """
+        request_signature = self._request_signature(request)
+
         with self._lock:
             # Check cache
             if self.enable_caching and request.request_id in self.request_cache:
-                return request.request_id
+                if self.request_signatures.get(request.request_id) == request_signature:
+                    return request.request_id
+                request.request_id = f"{request.request_id}-{uuid.uuid4().hex[:8]}"
+                request_signature = self._request_signature(request)
 
             # Avoid duplicate processing for pending requests
             if request.request_id in self.pending_requests:
-                return request.request_id
+                if self.request_signatures.get(request.request_id) == request_signature:
+                    return request.request_id
+                request.request_id = f"{request.request_id}-{uuid.uuid4().hex[:8]}"
+                request_signature = self._request_signature(request)
             
             # Store as pending
             self.pending_requests[request.request_id] = request
+            self.request_signatures[request.request_id] = request_signature
             
             # Start computation in background
             thread = threading.Thread(target=self._process_request, args=(request,))
@@ -271,6 +282,21 @@ class ComputeService:
         
         successful = sum(1 for r in self.request_cache.values() if r.status == ComputeStatus.SUCCESS)
         return successful / len(self.request_cache)
+
+    def _request_signature(self, request: ComputeRequest) -> str:
+        """Create stable signature for request identity and cache safety."""
+        assumptions = tuple(sorted(request.assumptions.items()))
+        metadata = tuple(sorted(request.metadata.items()))
+        return "|".join(
+            [
+                request.expression,
+                request.language,
+                str(request.precision),
+                str(request.timeout),
+                str(assumptions),
+                str(metadata),
+            ]
+        )
 
     def shutdown(self):
         """Shutdown service resources."""

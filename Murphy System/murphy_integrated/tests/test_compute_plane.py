@@ -275,6 +275,38 @@ class TestComputeService(unittest.TestCase):
             self.assertIsNotNone(result)
             self.assertEqual(result.status, ComputeStatus.TIMEOUT)
             self.assertIn("timed out", result.error_message)
+
+    def test_submit_request_id_collision_creates_new_request_id(self):
+        """Test reused request_id with different payload does not return stale cache."""
+        if not self.service.parser.sympy_available:
+            self.skipTest("SymPy not available")
+
+        request_id = "collision-request-id"
+        request_1 = ComputeRequest(
+            expression="x + 1",
+            language="sympy",
+            request_id=request_id,
+            metadata={"operation": "simplify"},
+        )
+        request_2 = ComputeRequest(
+            expression="x + 2",
+            language="sympy",
+            request_id=request_id,
+            metadata={"operation": "simplify"},
+        )
+
+        first_id = self.service.submit_request(request_1)
+        time.sleep(1)
+        first_result = self.service.get_result(first_id)
+        self.assertIsNotNone(first_result)
+        self.assertEqual(first_result.status, ComputeStatus.SUCCESS)
+
+        second_id = self.service.submit_request(request_2)
+        self.assertNotEqual(second_id, first_id)
+        time.sleep(1)
+        second_result = self.service.get_result(second_id)
+        self.assertIsNotNone(second_result)
+        self.assertEqual(second_result.status, ComputeStatus.SUCCESS)
     
     def test_validate_expression(self):
         """Test expression validation"""
