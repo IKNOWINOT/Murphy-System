@@ -2101,6 +2101,8 @@ class MurphySystem:
                 "error": "compute_request must be an object or expression string."
             }
         expression = compute_request.get("expression")
+        if isinstance(expression, str):
+            expression = expression.strip()
         language = compute_request.get("language", "sympy")
         if not expression:
             return {

@@ -181,7 +181,7 @@ This update confirms that sections **1-14** remain active and accepted as the op
   - Operational automation: **+0.02%**
   - UI + user testing: **+0.01%**
   - Dynamic-chain tests: **+0.04%**
-- Latest targeted run (`tests/test_compute_plane.py` + `tests/test_compute_plane_validation.py`): **116 passed, 0 failed, 15 skipped** (warnings are pre-existing third-party deprecations), superseding an older 114-pass snapshot and including compute-service pending dedup + timeout + request-id collision cache-safety hardening, deterministic task-type fallback wiring, deterministic-request session continuity checks, post-shutdown immediate request rejection, and compute/deterministic error-path no-session allocation guard coverage.
+- Latest targeted run (`tests/test_compute_plane.py` + `tests/test_compute_plane_validation.py`): **118 passed, 0 failed, 16 skipped** (warnings are pre-existing third-party deprecations), superseding older 114/116-pass snapshots and including compute-service pending dedup + timeout + canonical request-signature hashing for nested metadata/assumption payloads + request-id collision cache-safety hardening, deterministic task-type fallback wiring, deterministic-request session continuity checks, post-shutdown immediate request rejection, compute/deterministic error-path no-session allocation guard coverage, and whitespace-only dict-based `compute_request.expression` normalization to missing-expression error handling.
 - Latest governance policy chunk: `section_governance_dependency_nonce_lock_policy`, `section_authority_override_recertification_policy`, `section_budget_exception_rebind_policy`, `section_evidence_packet_reseal_policy`, and `section_release_gate_drift_policy`.
 
 ---

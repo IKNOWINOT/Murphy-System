@@ -354,6 +354,10 @@ class TestComputeService(unittest.TestCase):
 
         second_id = self.service.submit_request(request_2)
         self.assertEqual(second_id, first_id)
+        second_result = self.service.get_result(second_id)
+        self.assertIsNotNone(second_result)
+        self.assertEqual(second_result.status, first_result.status)
+        self.assertEqual(second_result.result, first_result.result)
     
     def test_validate_expression(self):
         """Test expression validation"""

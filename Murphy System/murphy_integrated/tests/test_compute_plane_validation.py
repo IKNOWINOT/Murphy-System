@@ -747,6 +747,29 @@ def test_execute_task_compute_request_missing_expression_returns_failed_route():
     assert result["compute_plane"]["route_source"] == "compute_request"
 
 
+def test_execute_task_compute_request_whitespace_expression_returns_missing_expression():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Execute whitespace compute request route",
+            "automation",
+            {
+                "compute_request": {
+                    "expression": "   ",
+                    "language": "lp"
+                },
+                "enforce_policy": False
+            },
+            session_id="session-compute-request-whitespace-expression"
+        )
+    )
+    assert result["status"] == "error"
+    assert result["compute_plane"]["status"] == "error"
+    assert result["compute_plane"]["route_source"] == "compute_request"
+    assert result["compute_plane"]["error"] == "Missing compute expression."
+
+
 def test_execute_task_deterministic_request_missing_expression_returns_error_route():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
