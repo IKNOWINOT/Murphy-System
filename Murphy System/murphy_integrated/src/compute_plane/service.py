@@ -4,6 +4,7 @@ Compute Service
 Main service that orchestrates computation requests.
 """
 
+import json
 import time
 import threading
 import uuid
@@ -296,8 +297,8 @@ class ComputeService:
 
     def _request_signature(self, request: ComputeRequest) -> str:
         """Create stable signature for request identity and cache safety."""
-        assumptions = tuple(sorted(request.assumptions.items()))
-        metadata = tuple(sorted(request.metadata.items()))
+        assumptions = json.dumps(request.assumptions, sort_keys=True, separators=(",", ":"), default=str)
+        metadata = json.dumps(request.metadata, sort_keys=True, separators=(",", ":"), default=str)
         return "|".join(
             [
                 request.expression,

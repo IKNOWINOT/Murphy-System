@@ -326,6 +326,34 @@ class TestComputeService(unittest.TestCase):
         second_result = self.service.get_result(second_id)
         self.assertIsNotNone(second_result)
         self.assertEqual(second_result.status, ComputeStatus.SUCCESS)
+
+    def test_submit_request_equivalent_nested_metadata_reuses_cached_request_id(self):
+        """Equivalent nested metadata should not trigger a synthetic request_id suffix."""
+        if not self.service.parser.sympy_available:
+            self.skipTest("SymPy not available")
+
+        request_id = "nested-metadata-collision"
+        request_1 = ComputeRequest(
+            expression="x + 1",
+            language="sympy",
+            request_id=request_id,
+            metadata={"operation": "simplify", "context": {"alpha": 1, "beta": 2}},
+        )
+        request_2 = ComputeRequest(
+            expression="x + 1",
+            language="sympy",
+            request_id=request_id,
+            metadata={"operation": "simplify", "context": {"beta": 2, "alpha": 1}},
+        )
+
+        first_id = self.service.submit_request(request_1)
+        time.sleep(1)
+        first_result = self.service.get_result(first_id)
+        self.assertIsNotNone(first_result)
+        self.assertEqual(first_result.status, ComputeStatus.SUCCESS)
+
+        second_id = self.service.submit_request(request_2)
+        self.assertEqual(second_id, first_id)
     
     def test_validate_expression(self):
         """Test expression validation"""
