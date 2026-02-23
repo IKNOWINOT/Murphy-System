@@ -1843,21 +1843,22 @@ class MurphySystem:
 
     def _resolve_compute_session(self, session_id: Optional[str]) -> Optional[str]:
         """Resolve a valid session ID for compute-plane validation."""
+        normalized_session_id = self._normalize_session_id(session_id)
         with self._session_lock:
-            if session_id and session_id in self.sessions:
-                return session_id
-            if session_id:
+            if normalized_session_id and normalized_session_id in self.sessions:
+                return normalized_session_id
+            if normalized_session_id:
                 logger.warning(
                     "Unknown session_id '%s' supplied for compute-plane validation; creating session with supplied ID.",
-                    session_id
+                    normalized_session_id
                 )
-                self.sessions[session_id] = {
-                    "session_id": session_id,
+                self.sessions[normalized_session_id] = {
+                    "session_id": normalized_session_id,
                     "name": "session",
                     "created_at": datetime.utcnow().isoformat(),
                     "source": "compute_validation_autocreate",
                 }
-                return session_id
+                return normalized_session_id
             session_payload = self.create_session()
             if session_payload is None:
                 logger.warning(
@@ -1865,6 +1866,21 @@ class MurphySystem:
                 )
                 return None
             return session_payload.get("session_id")
+
+    def _normalize_session_id(self, session_id: Optional[Any]) -> Optional[str]:
+        """
+        Normalize optional session IDs by trimming and dropping blank values.
+
+        String values are stripped and converted to `None` when blank.
+        Non-string values are converted to strings, then stripped, so caller-provided
+        scalar identifiers (for example integers) can still be tracked consistently.
+        `None` values are preserved as `None`.
+        """
+        if isinstance(session_id, str):
+            return session_id.strip() or None
+        if session_id is not None:
+            return str(session_id).strip() or None
+        return None
 
     def _is_compute_expression_candidate(self, value: Optional[str]) -> bool:
         """Return True when text appears to contain a deterministic compute expression."""
@@ -2167,6 +2183,8 @@ class MurphySystem:
         logger.info(f"EXECUTING TASK: {task_description}")
         logger.info(f"{'='*80}\n")
 
+        session_id = self._normalize_session_id(session_id)
+
         # Activation preview is returned for both orchestrator and fallback responses.
         doc, activation_preview = self._prepare_activation_preview(
             task_description,
@@ -2467,6 +2485,9 @@ class MurphySystem:
     ) -> Dict:
         """Fallback execution when orchestrator is unavailable."""
         start = time.perf_counter()
+        response_session = self._resolve_orchestrator_session_id(session_id)
+        if response_session is None:
+            response_session = self.create_session().get("session_id")
         mfgc_payload = self._execute_with_mfgc_adapter(task_description, task_type, parameters)
         if mfgc_payload:
             execution_time = mfgc_payload.get("execution_time")
@@ -2514,7 +2535,7 @@ class MurphySystem:
             )
             return {
                 "success": success,
-                "session_id": session_id or self.create_session().get("session_id"),
+                "session_id": response_session,
                 "result": response_payload,
                 "deliverables": deliverables,
                 "mfgc_execution": mfgc_payload,
@@ -2570,7 +2591,7 @@ class MurphySystem:
         )
         return {
             "success": True,
-            "session_id": session_id or self.create_session().get("session_id"),
+            "session_id": response_session,
             "result": summary,
             "deliverables": deliverables,
             "metadata": {
@@ -2601,8 +2622,9 @@ class MurphySystem:
         )
 
     def _resolve_orchestrator_session_id(self, session_id: Optional[str]) -> Optional[str]:
-        if session_id:
-            return session_id
+        normalized_session_id = self._normalize_session_id(session_id)
+        if normalized_session_id:
+            return normalized_session_id
         payload = self.create_session()
         if not payload or not payload.get("session_id"):
             logger.warning(

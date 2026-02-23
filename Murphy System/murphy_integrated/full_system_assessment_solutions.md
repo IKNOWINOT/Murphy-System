@@ -4,6 +4,8 @@ This file stores confirmed completion data and iteration evidence moved out of `
 
 ## Latest confirmed runtime behavior increments
 
+- Added non-permutation session-normalization hardening: whitespace-only user-supplied `session_id` values are now normalized to `None` before runtime task execution, preventing creation/use of blank session identifiers in non-compute orchestration fallback paths.
+- Added non-permutation session-normalization hardening: non-string user-supplied `session_id` values are normalized via string conversion/trim rules before runtime task execution, preventing mixed-type session identifiers from bypassing orchestration fallback guards.
 - Added non-permutation compute-request payload hardening: string `compute_request` inputs are now normalized into deterministic expression dictionaries so runtime compute validation succeeds without type exceptions and continues to honor session/document binding semantics.
 - Added non-permutation compute-request container hardening: non-dict request containers (for example, `metadata=None`) are now normalized before signature generation and execution so compute validation follows the standard deterministic success path instead of failing on container attribute access.
 - Added non-permutation runtime guard coverage for unsupported-language mutations: compute service now explicitly returns `UNSUPPORTED` when a request object’s language is externally mutated to an unsupported value before submission.
