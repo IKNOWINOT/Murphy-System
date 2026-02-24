@@ -1605,6 +1605,7 @@ class MurphySystem:
                     return False
                 if normalized in {"true", "1", "yes", "on"}:
                     return True
+                return default
             return bool(raw_value)
 
         enforce_policy = _parse_policy_flag(params.get("enforce_policy", True), True)
@@ -2701,12 +2702,13 @@ class MurphySystem:
                 "Two-Phase Orchestrator session creation returned an invalid payload; will proceed without session binding."
             )
             return None
-        if not payload.get("session_id"):
+        normalized_payload_session_id = self._normalize_session_id(payload.get("session_id"))
+        if normalized_payload_session_id is None:
             logger.warning(
                 "Two-Phase Orchestrator session creation failed; will fall back to automation_id for session tracking."
             )
             return None
-        return self._normalize_session_id(payload.get("session_id"))
+        return normalized_payload_session_id
 
     def _is_orchestrator_available(self) -> bool:
         return self._supports_async_orchestrator() or self._supports_two_phase_orchestrator()
