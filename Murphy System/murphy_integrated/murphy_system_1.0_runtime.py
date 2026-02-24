@@ -1596,21 +1596,27 @@ class MurphySystem:
         parameters: Optional[Dict[str, Any]]
     ) -> Dict[str, Any]:
         params = parameters or {}
-        enforce_policy_raw = params.get("enforce_policy", True)
-        if isinstance(enforce_policy_raw, str):
-            normalized_enforce_policy = enforce_policy_raw.strip().lower()
-            if normalized_enforce_policy in {"false", "0", "no", "off"}:
-                enforce_policy = False
-            elif normalized_enforce_policy in {"true", "1", "yes", "on"}:
-                enforce_policy = True
-            else:
-                enforce_policy = bool(enforce_policy_raw)
-        else:
-            enforce_policy = bool(enforce_policy_raw)
+        def _parse_policy_flag(raw_value: Any, default: bool) -> bool:
+            if raw_value is None:
+                return default
+            if isinstance(raw_value, str):
+                normalized = raw_value.strip().lower()
+                if normalized in {"false", "0", "no", "off"}:
+                    return False
+                if normalized in {"true", "1", "yes", "on"}:
+                    return True
+            return bool(raw_value)
+
+        enforce_policy = _parse_policy_flag(params.get("enforce_policy", True), True)
+        require_orchestrator_online = _parse_policy_flag(
+            params.get("require_orchestrator_online", params.get("orchestrator_online_required", False)),
+            False
+        )
         if not dynamic_implementation:
             return {
                 "status": "unavailable",
                 "enforced": enforce_policy,
+                "require_orchestrator_online": require_orchestrator_online,
                 "approval_required": False,
                 "execution_blocked": True,
                 "reason": "Dynamic implementation plan unavailable."
@@ -1643,6 +1649,7 @@ class MurphySystem:
         return {
             "status": status,
             "enforced": enforce_policy,
+            "require_orchestrator_online": require_orchestrator_online,
             "approval_required": approval_required,
             "execution_blocked": execution_blocked,
             "approval_status": approval_status,
@@ -2379,8 +2386,10 @@ class MurphySystem:
         if not self._is_orchestrator_available():
             # `_build_execution_policy` maps request parameter `enforce_policy`
             # into the normalized execution_policy field `enforced`.
-            if bool(execution_policy.get("enforced")):
+            if bool(execution_policy.get("enforced")) or bool(execution_policy.get("require_orchestrator_online")):
                 blocked_reason = "Two-Phase Orchestrator unavailable while execution policy enforcement is enabled."
+                if not bool(execution_policy.get("enforced")) and bool(execution_policy.get("require_orchestrator_online")):
+                    blocked_reason = "Two-Phase Orchestrator unavailable while orchestration-online execution is required."
                 final_blocked_reason = execution_policy.get("reason") or blocked_reason
                 blocked_session = self._normalize_session_id(session_id)
                 if blocked_session is None:

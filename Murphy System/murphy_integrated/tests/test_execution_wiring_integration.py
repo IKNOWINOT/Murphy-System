@@ -253,6 +253,69 @@ def test_execute_task_does_not_block_when_enforce_policy_string_false():
     assert response["metadata"]["orchestration_mode"] == "fallback"
 
 
+def test_execute_task_blocks_when_require_orchestrator_online_string_true():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.orchestrator = None
+    murphy._prepare_activation_preview = lambda *_args, **_kwargs: (
+        SimpleNamespace(doc_id="doc-orchestrator-online-string-true"),
+        {
+            "dynamic_implementation": {
+                "status": "ready",
+                "approval_policy": {"status": "ready"},
+                "gate_status": "ready",
+                "execution_strategy": "production",
+            }
+        },
+    )
+    murphy._persist_execution_snapshot = lambda *_args, **_kwargs: {"status": "disabled"}
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Execute with orchestration-online string-true requirement",
+            "automation",
+            {"enforce_policy": False, "require_orchestrator_online": "true"},
+            session_id="session-online-string-true",
+        )
+    )
+
+    assert response["success"] is False
+    assert response["status"] == "blocked"
+    assert response["session_id"] == "session-online-string-true"
+    assert "orchestration-online execution is required" in response["reason"]
+
+
+def test_execute_task_does_not_block_when_require_orchestrator_online_string_false():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.orchestrator = None
+    murphy._prepare_activation_preview = lambda *_args, **_kwargs: (
+        SimpleNamespace(doc_id="doc-orchestrator-online-string-false"),
+        {
+            "dynamic_implementation": {
+                "status": "ready",
+                "approval_policy": {"status": "ready"},
+                "gate_status": "ready",
+                "execution_strategy": "production",
+            }
+        },
+    )
+    murphy._persist_execution_snapshot = lambda *_args, **_kwargs: {"status": "disabled"}
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Execute with orchestration-online string-false requirement",
+            "automation",
+            {"enforce_policy": False, "require_orchestrator_online": "false"},
+            session_id="session-online-string-false",
+        )
+    )
+
+    assert isinstance(response["success"], bool)
+    assert response.get("status") != "blocked"
+    assert response["metadata"]["orchestration_mode"] in {"fallback", "simulation"}
+
+
 def test_execute_task_blocks_when_orchestrator_missing_normalizes_whitespace_session_id():
     runtime = load_runtime_module()
     if runtime.MFGCAdapter is None:
@@ -434,6 +497,38 @@ def test_execute_task_policy_block_with_session_does_not_call_create_session():
     assert response["success"] is False
     assert response["status"] == "blocked"
     assert response["session_id"] == "session-policy-existing"
+
+
+def test_execute_task_blocks_when_orchestrator_online_required_even_if_policy_not_enforced():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.orchestrator = None
+    murphy._prepare_activation_preview = lambda *_args, **_kwargs: (
+        SimpleNamespace(doc_id="doc-orchestrator-online-required"),
+        {
+            "dynamic_implementation": {
+                "status": "ready",
+                "approval_policy": {"status": "ready"},
+                "gate_status": "ready",
+                "execution_strategy": "production",
+            }
+        },
+    )
+    murphy._persist_execution_snapshot = lambda *_args, **_kwargs: {"status": "disabled"}
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Execute with orchestration-online requirement",
+            "automation",
+            {"enforce_policy": False, "require_orchestrator_online": True},
+            session_id="session-online-required",
+        )
+    )
+
+    assert response["success"] is False
+    assert response["status"] == "blocked"
+    assert response["session_id"] == "session-online-required"
+    assert "orchestration-online execution is required" in response["reason"]
 
 
 def test_execute_task_orchestrator_unavailable_with_session_does_not_call_create_session():
