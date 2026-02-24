@@ -1926,7 +1926,10 @@ class MurphySystem:
         if isinstance(session_id, str):
             return session_id.strip() or None
         if session_id is not None:
-            return str(session_id).strip() or None
+            try:
+                return str(session_id).strip() or None
+            except Exception:
+                return None
         return None
 
     def _is_compute_expression_candidate(self, value: Optional[str]) -> bool:
