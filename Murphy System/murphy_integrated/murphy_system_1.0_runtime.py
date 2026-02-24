@@ -1928,6 +1928,13 @@ class MurphySystem:
                 logger.warning(
                     "Compute-plane validation session creation returned an invalid session_id; results will not be linked to a session."
                 )
+            elif resolved_session_id not in self.sessions:
+                self.sessions[resolved_session_id] = {
+                    "session_id": resolved_session_id,
+                    "name": "session",
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "source": "compute_validation_autocreate",
+                }
             return resolved_session_id
 
     def _normalize_session_id(self, session_id: Optional[Any]) -> Optional[str]:
