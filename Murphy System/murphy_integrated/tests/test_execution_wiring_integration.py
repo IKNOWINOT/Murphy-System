@@ -85,6 +85,8 @@ def test_execute_task_uses_mfgc_fallback_when_orchestrator_missing():
     assert isinstance(response["success"], bool)
     assert response["metadata"]["mode"] == "mfgc_fallback"
     assert response["metadata"]["orchestration_mode"] == "fallback"
+    timestamp = datetime.fromisoformat(response["metadata"]["timestamp"])
+    assert timestamp.tzinfo is timezone.utc
     assert response["session_id"] == "session-1"
     assert "mfgc_execution" in response
     assert "execution_ready" in response["activation_preview"]["execution_wiring"]
@@ -314,6 +316,32 @@ def test_execute_task_fallback_rejects_bytes_create_session_payload_id():
     murphy.mfgc_adapter = runtime.MFGCAdapter(murphy.system_integrator)
     murphy.orchestrator = None
     murphy.create_session = lambda *args, **kwargs: {"session_id": b"session-bytes"}
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Draft an automation plan",
+            "automation",
+            {"enforce_policy": False},
+            session_id=None
+        )
+    )
+
+    assert isinstance(response["success"], bool)
+    assert response["metadata"]["mode"] == "mfgc_fallback"
+    assert response["session_id"] is None
+    assert "mfgc_execution" in response
+
+
+def test_execute_task_fallback_rejects_complex_create_session_payload_id():
+    runtime = load_runtime_module()
+    if runtime.MFGCAdapter is None:
+        pytest.skip("MFGC adapter not available in test environment")
+
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.system_integrator = StubIntegrator()
+    murphy.mfgc_adapter = runtime.MFGCAdapter(murphy.system_integrator)
+    murphy.orchestrator = None
+    murphy.create_session = lambda *args, **kwargs: {"session_id": 1 + 2j}
 
     response = asyncio.run(
         murphy.execute_task(
