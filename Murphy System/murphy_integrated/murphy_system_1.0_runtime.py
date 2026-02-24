@@ -1924,9 +1924,9 @@ class MurphySystem:
                     "Compute-plane validation session creation returned an invalid payload; results will not be linked to a session."
                 )
                 return None
-            resolved_session_id = self._normalize_session_id(
-                session_payload.get("session_id", session_payload.get("id"))
-            )
+            resolved_session_id = self._normalize_session_id(session_payload.get("session_id"))
+            if resolved_session_id is None:
+                resolved_session_id = self._normalize_session_id(session_payload.get("id"))
             if resolved_session_id is None:
                 logger.warning(
                     "Compute-plane validation session creation returned an invalid session_id; results will not be linked to a session."
@@ -2811,14 +2811,17 @@ class MurphySystem:
             )
             return None
         payload_session_id = payload.get("session_id")
-        if payload_session_id is None:
-            payload_session_id = payload.get("id")
         if isinstance(payload_session_id, (dict, list, tuple, set, frozenset)):
             logger.warning(
                 "Two-Phase Orchestrator session creation returned an unsupported session_id payload type; will proceed without session binding."
             )
             return None
         normalized_payload_session_id = self._normalize_session_id(payload_session_id)
+        if normalized_payload_session_id is None:
+            payload_session_id = payload.get("id")
+            if isinstance(payload_session_id, (dict, list, tuple, set, frozenset)):
+                payload_session_id = None
+            normalized_payload_session_id = self._normalize_session_id(payload_session_id)
         if normalized_payload_session_id is None:
             logger.warning(
                 "Two-Phase Orchestrator session creation failed; will fall back to automation_id for session tracking."
