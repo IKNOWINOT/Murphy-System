@@ -286,6 +286,38 @@ class TestComputeService(unittest.TestCase):
             self.assertEqual(mock_thread_cls.call_count, 1)
             self.assertEqual(mock_thread.start.call_count, 1)
 
+    def test_submit_request_prevents_caller_mutation_of_queued_request(self):
+        """Caller mutation after submit should not alter the queued compute request."""
+        if not self.service.parser.sympy_available:
+            self.skipTest("SymPy not available")
+
+        request = ComputeRequest(
+            expression="x + 1",
+            language="sympy",
+            request_id="mutation-snapshot-request",
+            metadata={"operation": "simplify"},
+        )
+
+        with patch("src.compute_plane.service.threading.Thread") as mock_thread_cls:
+            mock_thread = mock_thread_cls.return_value
+            mock_thread.start.return_value = None
+
+            request_id = self.service.submit_request(request)
+            submitted_request = mock_thread_cls.call_args.kwargs["args"][0]
+
+            request.expression = "x + 999"
+            request.metadata["operation"] = "expand"
+
+            self.assertEqual(submitted_request.expression, "x + 1")
+            self.assertEqual(submitted_request.metadata.get("operation"), "simplify")
+
+            self.service._process_request(submitted_request)
+
+            result = self.service.get_result(request_id)
+            self.assertIsNotNone(result)
+            self.assertEqual(result.status, ComputeStatus.SUCCESS)
+            self.assertEqual(str(result.result), "x + 1")
+
     def test_submit_request_respects_timeout(self):
         """Test that long-running computations return TIMEOUT"""
         if not self.service.parser.sympy_available:
@@ -697,6 +729,26 @@ class TestComputeService(unittest.TestCase):
             self.assertIn("Expression must be a non-empty string", result.error_message)
             self.assertNotIn(request_id, self.service.pending_requests)
             mock_thread_cls.assert_not_called()
+
+    def test_submit_request_whitespace_request_id_generates_fallback_id(self):
+        """Whitespace request IDs should be normalized to a generated non-empty ID."""
+        request = ComputeRequest(
+            expression="x + 1",
+            language="sympy",
+            request_id="placeholder-id",
+        )
+        # ComputeRequest validates request_id at construction time; mutate afterward
+        # to exercise runtime preflight normalization behavior.
+        request.request_id = "   "
+
+        with patch("src.compute_plane.service.threading.Thread") as mock_thread_cls:
+            request_id = self.service.submit_request(request)
+
+            self.assertIsInstance(request_id, str)
+            self.assertNotEqual(request_id, "")
+            self.assertNotEqual(request_id, "   ")
+            self.assertIn(request_id, self.service.pending_requests)
+            mock_thread_cls.assert_called_once()
     
     def test_get_statistics(self):
         """Test getting service statistics"""

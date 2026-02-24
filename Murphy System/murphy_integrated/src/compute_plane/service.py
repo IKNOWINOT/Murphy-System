@@ -86,6 +86,8 @@ class ComputeService:
                 assumptions=request.assumptions if isinstance(request.assumptions, dict) else {},
                 metadata=request.metadata if isinstance(request.metadata, dict) else {},
             )
+        if not isinstance(request.request_id, str) or not request.request_id.strip():
+            request = replace(request, request_id=str(uuid.uuid4()))
         request_signature = self._request_signature(request)
 
         with self._lock:
@@ -184,12 +186,19 @@ class ComputeService:
                 self.request_signatures[request.request_id] = request_signature
                 return request.request_id
             
+            # Snapshot request to avoid caller-side mutations affecting background execution.
+            request_for_processing = replace(
+                request,
+                assumptions=deepcopy(request.assumptions),
+                metadata=deepcopy(request.metadata),
+            )
+
             # Store as pending
-            self.pending_requests[request.request_id] = request
+            self.pending_requests[request.request_id] = request_for_processing
             self.request_signatures[request.request_id] = request_signature
             
             # Start computation in background
-            thread = threading.Thread(target=self._process_request, args=(request,))
+            thread = threading.Thread(target=self._process_request, args=(request_for_processing,))
             thread.daemon = True
             thread.start()
             
