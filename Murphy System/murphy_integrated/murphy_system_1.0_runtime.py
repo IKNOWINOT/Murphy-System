@@ -1628,7 +1628,13 @@ class MurphySystem:
                     return default
             try:
                 return bool(raw_value)
-            except (TypeError, ValueError, OverflowError):
+            except (TypeError, ValueError, OverflowError, RuntimeError, AttributeError):
+                return default
+            except Exception as exc:
+                logger.warning(
+                    "Execution policy flag bool coercion raised an unexpected exception type (%s); defaulting.",
+                    type(exc).__name__,
+                )
                 return default
 
         enforce_policy = _parse_policy_flag(params.get("enforce_policy", True), True)
