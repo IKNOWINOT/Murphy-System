@@ -4,6 +4,7 @@ This file stores confirmed completion data and iteration evidence moved out of `
 
 ## Latest confirmed runtime behavior increments
 
+- Added non-permutation execution-policy hardening: malformed policy-flag objects whose `__bool__` raises now default safely instead of propagating runtime exceptions or forcing unintended orchestrator-online blocking.
 - Added non-permutation fallback-session hardening: unstringifiable `create_session().session_id` objects now degrade safely to `None` during session normalization instead of raising and breaking fallback execution.
 - Added non-permutation execution-policy hardening: non-finite numeric policy payloads (for example `require_orchestrator_online=NaN`) now default safely instead of coercing truthy and unexpectedly forcing orchestrator-online blocking.
 - Added non-permutation execution-policy hardening: malformed container policy payloads (for example `require_orchestrator_online` dictionaries) now fall back to default policy behavior instead of being coerced truthy and unexpectedly forcing blocked execution.
