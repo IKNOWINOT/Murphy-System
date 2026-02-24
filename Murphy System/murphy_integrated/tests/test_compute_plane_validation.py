@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 import asyncio
+from datetime import datetime
 
 
 def load_runtime_module():
@@ -126,6 +127,9 @@ def test_execute_task_preserves_unknown_supplied_session_for_compute_binding():
     assert result["status"] == "validated"
     assert result["session_id"] == supplied_session
     assert supplied_session in murphy.sessions
+    created_at = murphy.sessions[supplied_session].get("created_at")
+    assert created_at
+    assert datetime.fromisoformat(created_at).tzinfo is not None
     assert supplied_session in murphy.document_sessions
     assert murphy.document_sessions[supplied_session] == result["doc_id"]
 
