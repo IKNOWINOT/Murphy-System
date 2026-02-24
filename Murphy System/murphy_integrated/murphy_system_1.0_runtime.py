@@ -1902,7 +1902,7 @@ class MurphySystem:
                 self.sessions[normalized_session_id] = {
                     "session_id": normalized_session_id,
                     "name": "session",
-                    "created_at": datetime.utcnow().isoformat(),
+                    "created_at": datetime.now(timezone.utc).isoformat(),
                     "source": "compute_validation_autocreate",
                 }
                 return normalized_session_id
