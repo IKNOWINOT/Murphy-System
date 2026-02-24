@@ -785,6 +785,26 @@ class TestComputeService(unittest.TestCase):
             self.assertIn("spaced-request-id", self.service.pending_requests)
             self.assertNotIn("  spaced-request-id  ", self.service.pending_requests)
             mock_thread_cls.assert_called_once()
+
+    def test_submit_request_worker_start_failure_returns_fail_without_pending_leak(self):
+        """Worker start failures should return FAIL and clean pending state."""
+        request = ComputeRequest(
+            expression="x + 1",
+            language="sympy",
+            request_id="worker-start-failure-request",
+        )
+
+        with patch("src.compute_plane.service.threading.Thread") as mock_thread_cls:
+            mock_thread = mock_thread_cls.return_value
+            mock_thread.start.side_effect = RuntimeError("thread start failed")
+
+            request_id = self.service.submit_request(request)
+            result = self.service.get_result(request_id)
+
+            self.assertIsNotNone(result)
+            self.assertEqual(result.status, ComputeStatus.FAIL)
+            self.assertIn("Failed to start compute worker", result.error_message)
+            self.assertNotIn(request_id, self.service.pending_requests)
     
     def test_get_statistics(self):
         """Test getting service statistics"""
