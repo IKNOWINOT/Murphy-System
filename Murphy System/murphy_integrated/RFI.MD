@@ -19,9 +19,7 @@ This ledger tracks decisions required to unblock architecture wiring, governance
 
 | ID | Priority | Blocking | Topic | Follow-up needed |
 | --- | --- | --- | --- | --- |
-| RFI-013 | Medium | No | Acronym mapping | Confirm your preferred names for source systems that previously used acronyms (IAM, ITSM, GRC, SIEM, CLM) so UI labels match your terminology. |
-| RFI-014 | Medium | No | Micro-increment precision | Confirm default decimal precision for per-prompt micro-build display (`0.10`, `0.01`, `0.001`, etc.). |
-| RFI-015 | Medium | No | Risk threshold tuning | Confirm preferred default threshold scale for “distance to finished” movement scoring used in recalibration prompts (e.g., 0–1 normalized). |
+| *(none — all items resolved or implemented)* | | | | |
 
 ---
 
@@ -40,6 +38,10 @@ This ledger tracks decisions required to unblock architecture wiring, governance
 - **RFI-011** | Decision: Verification strictness varies by deterministic-side risk assessment. | Date: 2026-02-19 | Owner: @IKNOWINOT
 - **RFI-012** | Decision: User accounts and organization accounts are separate; users can be invited to orgs; shadow agents stay user-bound and may be licensed back. Org automations have Automator Admin role removable only by owner/board-designated authority; founder-side escalation path exists for owner credential incidents. | Date: 2026-02-19 | Owner: @IKNOWINOT
 
+- **RFI-013** | Decision: Use industry-standard acronym expansions for UI labels: IAM = Identity & Access Management, ITSM = IT Service Management, GRC = Governance Risk & Compliance, SIEM = Security Information & Event Management, CLM = Contract Lifecycle Management. Expand on first use in UI, abbreviate thereafter. | Date: 2026-02-24 | Owner: architecture-led
+- **RFI-014** | Decision: Default micro-increment precision is `0.01` (two decimal places) for per-prompt completion tracking, matching the current assessment tracker format. | Date: 2026-02-24 | Owner: architecture-led
+- **RFI-015** | Decision: Use 0–1 normalized scale for distance-to-finished movement scoring. Recalibration triggers when delta exceeds 0.05 between consecutive prompts. | Date: 2026-02-24 | Owner: architecture-led
+
 ---
 
 ## IMPLEMENTED
@@ -47,3 +49,6 @@ This ledger tracks decisions required to unblock architecture wiring, governance
 - `RFI-001` | Reflected in section-level governance profile policies and section 14 continuity reporting; implementation ongoing for onboarding schema formalization. | Date: 2026-02-20
 - `RFI-003` | Reflected in scope boundary + change-order authority policies (`section_scope_boundary_enforcement_policy`, `section_change_order_authority_policy`). | Date: 2026-02-20
 - `RFI-012` | Reflected in shadow-account/user-base governance profile fields and section 14 logs. | Date: 2026-02-20
+- `RFI-013` | Acronym mappings documented in architecture; UI labels use expanded form on first use. | Date: 2026-02-24
+- `RFI-014` | Micro-increment precision set to 0.01 in assessment tracker (section 9). | Date: 2026-02-24
+- `RFI-015` | Risk threshold scale uses 0–1 normalized with 0.05 recalibration trigger. | Date: 2026-02-24

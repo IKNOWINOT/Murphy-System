@@ -143,6 +143,44 @@ except ImportError as e:
     print(f"Warning: Organization chart system not available: {e}")
     OrganizationChart = None
 
+# New integrated modules
+try:
+    from src.persistence_manager import PersistenceManager
+except ImportError as e:
+    print(f"Warning: Persistence manager not available: {e}")
+    PersistenceManager = None
+
+try:
+    from src.event_backbone import EventBackbone, EventType as BackboneEventType
+except ImportError as e:
+    print(f"Warning: Event backbone not available: {e}")
+    EventBackbone = None
+    BackboneEventType = None
+
+try:
+    from src.delivery_adapters import (
+        DeliveryOrchestrator, DeliveryChannel, DeliveryRequest, DeliveryStatus,
+        DocumentDeliveryAdapter, EmailDeliveryAdapter, ChatDeliveryAdapter,
+        VoiceDeliveryAdapter, TranslationDeliveryAdapter
+    )
+except ImportError as e:
+    print(f"Warning: Delivery adapters not available: {e}")
+    DeliveryOrchestrator = DeliveryChannel = DeliveryRequest = DeliveryStatus = None
+    DocumentDeliveryAdapter = EmailDeliveryAdapter = ChatDeliveryAdapter = None
+    VoiceDeliveryAdapter = TranslationDeliveryAdapter = None
+
+try:
+    from src.gate_execution_wiring import GateExecutionWiring, GateType, GatePolicy
+except ImportError as e:
+    print(f"Warning: Gate execution wiring not available: {e}")
+    GateExecutionWiring = GateType = GatePolicy = None
+
+try:
+    from src.self_improvement_engine import SelfImprovementEngine, ExecutionOutcome, OutcomeType
+except ImportError as e:
+    print(f"Warning: Self-improvement engine not available: {e}")
+    SelfImprovementEngine = ExecutionOutcome = OutcomeType = None
+
 # FastAPI for REST API
 try:
     from fastapi import FastAPI, HTTPException, Request
@@ -472,6 +510,36 @@ class MurphySystem:
             "path": "src.security_plane_adapter",
             "description": "Security plane adapter",
             "capabilities": ["security"]
+        },
+        {
+            "name": "persistence_manager",
+            "path": "src.persistence_manager",
+            "description": "Durable persistence layer for documents, gates, audit trails, and replay",
+            "capabilities": ["persistence", "audit", "replay"]
+        },
+        {
+            "name": "event_backbone",
+            "path": "src.event_backbone",
+            "description": "Event-driven backbone with durable queues, retry, and circuit breakers",
+            "capabilities": ["events", "queues", "retry"]
+        },
+        {
+            "name": "delivery_adapters",
+            "path": "src.delivery_adapters",
+            "description": "Production delivery adapters for document, email, chat, voice, translation",
+            "capabilities": ["delivery", "multi_channel"]
+        },
+        {
+            "name": "gate_execution_wiring",
+            "path": "src.gate_execution_wiring",
+            "description": "Gate synthesis wired into runtime execution with policy enforcement",
+            "capabilities": ["gate_execution", "policy_enforcement"]
+        },
+        {
+            "name": "self_improvement_engine",
+            "path": "src.self_improvement_engine",
+            "description": "Self-improvement engine with feedback loops and confidence calibration",
+            "capabilities": ["self_improvement", "learning_feedback", "confidence_calibration"]
         }
     ]
     MODULE_SCAN_EXCLUDED_DIRS = {"__pycache__", "tests", "test", "docs", "documentation", "examples"}
@@ -1313,9 +1381,92 @@ class MurphySystem:
         self.execution_metrics = {"total": 0, "success": 0, "total_time": 0.0}
         self.chat_sessions: Dict[str, Dict] = {}
 
+        # Initialize new integrated modules
+        self._initialize_integrated_modules()
+
         logger.info("="*80)
         logger.info(f"MURPHY SYSTEM {self.version} - READY")
         logger.info("="*80)
+
+    def _initialize_integrated_modules(self) -> None:
+        """Initialize new integrated modules (persistence, events, delivery, gates, self-improvement)."""
+        # Persistence Manager
+        if PersistenceManager:
+            try:
+                persistence_dir = os.environ.get(self.PERSISTENCE_DIR_ENV)
+                self.persistence_manager = PersistenceManager(persistence_dir=persistence_dir)
+                logger.info("Persistence manager initialized")
+            except Exception as exc:
+                logger.warning("Persistence manager initialization failed: %s", exc)
+                self.persistence_manager = None
+        else:
+            self.persistence_manager = None
+
+        # Event Backbone
+        if EventBackbone:
+            try:
+                self.event_backbone = EventBackbone()
+                logger.info("Event backbone initialized")
+            except Exception as exc:
+                logger.warning("Event backbone initialization failed: %s", exc)
+                self.event_backbone = None
+        else:
+            self.event_backbone = None
+
+        # Delivery Orchestrator
+        if DeliveryOrchestrator:
+            try:
+                self.delivery_orchestrator = DeliveryOrchestrator()
+                # Register all available adapters
+                if DocumentDeliveryAdapter:
+                    self.delivery_orchestrator.register_adapter(
+                        DeliveryChannel.DOCUMENT, DocumentDeliveryAdapter()
+                    )
+                if EmailDeliveryAdapter:
+                    self.delivery_orchestrator.register_adapter(
+                        DeliveryChannel.EMAIL, EmailDeliveryAdapter()
+                    )
+                if ChatDeliveryAdapter:
+                    self.delivery_orchestrator.register_adapter(
+                        DeliveryChannel.CHAT, ChatDeliveryAdapter()
+                    )
+                if VoiceDeliveryAdapter:
+                    self.delivery_orchestrator.register_adapter(
+                        DeliveryChannel.VOICE, VoiceDeliveryAdapter()
+                    )
+                if TranslationDeliveryAdapter:
+                    self.delivery_orchestrator.register_adapter(
+                        DeliveryChannel.TRANSLATION, TranslationDeliveryAdapter()
+                    )
+                logger.info("Delivery orchestrator initialized with %d adapters",
+                            len(self.delivery_orchestrator.adapters))
+            except Exception as exc:
+                logger.warning("Delivery orchestrator initialization failed: %s", exc)
+                self.delivery_orchestrator = None
+        else:
+            self.delivery_orchestrator = None
+
+        # Gate Execution Wiring
+        if GateExecutionWiring:
+            try:
+                self.gate_wiring = GateExecutionWiring(default_policy=GatePolicy.WARN)
+                logger.info("Gate execution wiring initialized")
+            except Exception as exc:
+                logger.warning("Gate execution wiring initialization failed: %s", exc)
+                self.gate_wiring = None
+        else:
+            self.gate_wiring = None
+
+        # Self-Improvement Engine
+        if SelfImprovementEngine:
+            try:
+                self.self_improvement = SelfImprovementEngine()
+                logger.info("Self-improvement engine initialized")
+            except Exception as exc:
+                logger.warning("Self-improvement engine initialization failed: %s", exc)
+                self.self_improvement = None
+        else:
+            self.self_improvement = None
     
     # ==================== CORE EXECUTION ====================
 
@@ -9430,7 +9581,12 @@ class MurphySystem:
                 'form_handler': self._component_status(self.form_handler),
                 'confidence_engine': self._component_status(self.confidence_engine),
                 'correction_system': self._component_status(self.correction_system),
-                'hitl_monitor': self._component_status(self.hitl_monitor)
+                'hitl_monitor': self._component_status(self.hitl_monitor),
+                'persistence_manager': self._component_status(getattr(self, 'persistence_manager', None)),
+                'event_backbone': self._component_status(getattr(self, 'event_backbone', None)),
+                'delivery_orchestrator': self._component_status(getattr(self, 'delivery_orchestrator', None)),
+                'gate_execution_wiring': self._component_status(getattr(self, 'gate_wiring', None)),
+                'self_improvement_engine': self._component_status(getattr(self, 'self_improvement', None))
             },
             'statistics': {
                 'sessions': len(self.sessions),

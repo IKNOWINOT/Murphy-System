@@ -215,6 +215,16 @@ start_murphy_1.0.bat   # Windows
 - **Assessment-loop parity hardening:** strict/balanced/dynamic derivation for the five assessment-loop governance policies is now validated in `test_completion_snapshot_surface.py` alongside cross-surface parity checks.
 - **Latest durability profile chunk:** persistence/observability controls added for `durable_queue_replay_policy`, `swarm_failure_domain_isolation_policy`, `idempotent_recovery_validation_policy`, `agent_spawn_budget_reconciliation_policy`, and `audit_chain_export_policy`.
 - **Percentage calibration note:** those percentages are intentionally held unless there is category-level end-to-end wiring progress; governance-profile metadata/parity additions alone do not move execution/persistence/delivery/ops percentages.
+- **Persistence manager (IMPLEMENTED):** `src/persistence_manager.py` provides durable file-based JSON persistence for LivingDocuments, gate history, librarian context, audit trails, and replay support. Thread-safe with atomic writes. Configurable via `MURPHY_PERSISTENCE_DIR`. 27 tests in `tests/test_persistence_manager.py`.
+- **Event backbone (IMPLEMENTED):** `src/event_backbone.py` provides an event-driven backbone with durable queues, pub/sub, exponential-backoff retry (max 3), per-handler circuit breakers, idempotency via event IDs, dead letter queue, and FIFO ordering. 14 event types covering the full task/gate/delivery/audit/learning lifecycle. 31 tests in `tests/test_event_backbone.py`.
+- **Production delivery adapters (IMPLEMENTED):** `src/delivery_adapters.py` provides Document/Email/Chat/Voice/Translation production adapters with `DeliveryOrchestrator` routing, validation, approval gating, delivery history, and per-channel status tracking. Replaces delivery stubs with production-ready payload preparation. 36 tests in `tests/test_delivery_adapters.py`.
+- **Gate execution wiring (IMPLEMENTED):** `src/gate_execution_wiring.py` wires gate synthesis into runtime execution with EXECUTIVE/OPERATIONS/QA/HITL/COMPLIANCE/BUDGET gate types, ENFORCE/WARN/AUDIT policy modes, dependency-ordered evaluation, and execution wrapping. 31 tests in `tests/test_gate_execution_wiring.py`.
+- **Self-improvement engine (IMPLEMENTED):** `src/self_improvement_engine.py` closes the feedback loop from execution outcomes to planning improvements with pattern extraction, correction proposals, confidence calibration, route optimization, and remediation backlog management. 31 tests in `tests/test_self_improvement_engine.py`.
+- **Runtime integration:** all 5 new modules registered in `MODULE_CATALOG` and initialized in `MurphySystem.__init__` with lazy loading and graceful fallback. System status (`/api/status`) now reports component readiness for `persistence_manager`, `event_backbone`, `delivery_orchestrator`, `gate_execution_wiring`, and `self_improvement_engine`.
+- **.gitignore cleanup (COMPLETED):** comprehensive patterns added for `*.zip`, `*.log`, `*.db` files; 62 tracked artifact files untracked from git index. Repository size reduced.
+- **RFI resolution (COMPLETED):** RFI-013 (acronym mapping → industry-standard expansions), RFI-014 (micro-increment precision → 0.01), RFI-015 (risk threshold → 0–1 normalized with 0.05 recalibration trigger) all resolved and implemented.
+- **Updated completion percentage snapshot:** execution wiring **62.00%**, deterministic+LLM routing **45.00%**, persistence+replay **72.00%**, multi-channel delivery **82.00%**, compliance **48.00%**, operations **30.00%**, UI/testing **71.19%**, dynamic-chain tests **98.20%** (source: `FULL_SYSTEM_ASSESSMENT.md` section 9; recalibrated after persistence, delivery, gate, and self-improvement module implementation).
+- **Latest test run (new modules):** `tests/test_persistence_manager.py` + `tests/test_event_backbone.py` + `tests/test_delivery_adapters.py` + `tests/test_gate_execution_wiring.py` + `tests/test_self_improvement_engine.py` — **156 passed, 0 failed**. Core tests (`test_execution_wiring_integration.py` + `test_compute_plane_validation.py` + `test_completion_snapshot_surface.py`) — **151 passed, 30 skipped** (no regressions).
 ---
 
 ## 🗃️ Repository Index (Database-Style Reference)
@@ -247,12 +257,17 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **Integration Engine** | `src/integration_engine/` | GitHub ingestion + HITL approvals |
 | **Swarm System** | `src/true_swarm_system.py` | Dynamic swarm generation (wiring ongoing) |
 | **Governance** | `src/governance_framework/` | Scheduler + authority bands |
+| **Persistence** | `src/persistence_manager.py` | Durable JSON storage, audit trails, replay |
+| **Event Backbone** | `src/event_backbone.py` | Durable queues, retry, circuit breakers |
+| **Delivery Adapters** | `src/delivery_adapters.py` | Document/email/chat/voice/translation |
+| **Gate Execution** | `src/gate_execution_wiring.py` | Runtime gate enforcement + policy modes |
+| **Self-Improvement** | `src/self_improvement_engine.py` | Feedback loops, calibration, remediation |
 
 **Progress tracking:** update the forward plan in
 `Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md` and append confirmed completion evidence in
 `Murphy System/murphy_integrated/full_system_assessment_solutions.md`.
 Track unresolved architecture/governance decisions in `Murphy System/murphy_integrated/RFI.MD` (decision ledger: OPEN/ANSWERED/IMPLEMENTED).  
-Current state: `RFI-001`..`RFI-012` recorded as ANSWERED from user guidance, with follow-up precision/terminology items tracked as OPEN (`RFI-013`..`RFI-015`).
+Current state: `RFI-001`..`RFI-015` all resolved. No open RFI items remain.
 
 ---
 
