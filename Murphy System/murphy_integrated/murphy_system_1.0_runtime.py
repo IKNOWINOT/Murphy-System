@@ -1959,7 +1959,9 @@ class MurphySystem:
             try:
                 if not math.isfinite(float(session_id)):
                     return None
-            except (TypeError, ValueError, OverflowError):
+            except OverflowError:
+                pass
+            except (TypeError, ValueError):
                 return None
         if isinstance(
             session_id,
