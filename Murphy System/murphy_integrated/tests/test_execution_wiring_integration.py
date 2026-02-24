@@ -3,6 +3,7 @@
 import asyncio
 import importlib.util
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -83,3 +84,33 @@ def test_execute_task_blocks_when_orchestrator_missing_and_policy_enforced():
     assert "mfgc_execution" not in response
     assert "error" in response
     assert "reason" in response
+
+
+def test_execute_task_policy_block_includes_reason_field():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy._prepare_activation_preview = lambda *_args, **_kwargs: (
+        SimpleNamespace(doc_id="doc-policy-block"),
+        {
+            "dynamic_implementation": {
+                "status": "needs_info",
+                "approval_policy": {"status": "needs_info"},
+                "gate_status": "ready",
+                "execution_strategy": "simulation",
+            }
+        },
+    )
+    murphy._persist_execution_snapshot = lambda *_args, **_kwargs: {"status": "disabled"}
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Run policy block check",
+            "automation",
+            {"enforce_policy": True},
+            session_id="session-policy",
+        )
+    )
+
+    assert response["success"] is False
+    assert response["status"] == "blocked"
+    assert response["error"] == response["reason"]
