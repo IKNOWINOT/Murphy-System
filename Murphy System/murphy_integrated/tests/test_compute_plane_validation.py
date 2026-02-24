@@ -190,6 +190,24 @@ def test_execute_task_non_string_session_id_normalized_to_string():
     assert 12345 not in murphy.sessions
 
 
+def test_execute_task_boolean_session_id_normalized_as_missing():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    result = asyncio.run(
+        murphy.execute_task(
+            "Non-compute boolean session normalization",
+            "general",
+            {"enforce_policy": False},
+            session_id=True,
+        )
+    )
+
+    assert result["session_id"]
+    assert result["session_id"] != "True"
+    assert result["session_id"] in murphy.sessions
+    assert True not in murphy.sessions
+
+
 def test_execute_task_reuses_existing_compute_session_document_mapping():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
