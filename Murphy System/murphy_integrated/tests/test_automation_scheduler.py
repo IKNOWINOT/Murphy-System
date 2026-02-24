@@ -12,6 +12,7 @@ from src.automation_scheduler import (
     ScheduledExecution,
     SchedulePriority,
 )
+from src.automation_scheduler import ScheduledExecution as SE
 
 
 # ------------------------------------------------------------------
@@ -186,7 +187,6 @@ class TestLoadBalancing:
         batch = scheduler.get_next_batch()
         scheduler.start_execution(batch[0].execution_id)
         # Add another execution manually for the same project
-        from src.automation_scheduler import ScheduledExecution as SE
         with scheduler._lock:
             exe = SE(execution_id="extra-1", project_id="p1")
             scheduler._executions[exe.execution_id] = exe
@@ -197,7 +197,6 @@ class TestLoadBalancing:
     def test_max_concurrent_two(self, scheduler):
         scheduler.add_project(_make_schedule(project_id="p1", max_concurrent=2))
         # Add a second pending execution
-        from src.automation_scheduler import ScheduledExecution as SE
         with scheduler._lock:
             exe = SE(execution_id="extra-1", project_id="p1")
             scheduler._executions[exe.execution_id] = exe
@@ -213,7 +212,6 @@ class TestLoadBalancing:
             _make_schedule(project_id="slow", max_concurrent=1, priority=SchedulePriority.LOW)
         )
         # Add extra pending for "fast"
-        from src.automation_scheduler import ScheduledExecution as SE
         with scheduler._lock:
             exe = SE(execution_id="fast-extra", project_id="fast")
             scheduler._executions[exe.execution_id] = exe
