@@ -88,6 +88,8 @@ def test_execute_task_uses_mfgc_fallback_when_orchestrator_missing():
     assert response["metadata"]["orchestration_mode"] == "fallback"
     timestamp = datetime.fromisoformat(response["metadata"]["timestamp"])
     assert timestamp.tzinfo is timezone.utc
+    fallback_timestamp = datetime.fromisoformat(response["mfgc_execution"]["timestamp"])
+    assert fallback_timestamp.tzinfo is timezone.utc
     assert response["session_id"] == "session-1"
     assert "mfgc_execution" in response
     assert "execution_ready" in response["activation_preview"]["execution_wiring"]
@@ -118,7 +120,7 @@ def test_simulate_execution_mfgc_fallback_timestamp_is_timezone_aware_without_ad
     assert response["session_id"] == "session-fallback"
 
 
-def test_execute_task_fallback_registers_valid_create_session_id_payload():
+def test_execute_task_registers_valid_create_session_id_in_fallback():
     runtime = load_runtime_module()
     if runtime.MFGCAdapter is None:
         pytest.skip("MFGC adapter not available in test environment")
@@ -140,6 +142,8 @@ def test_execute_task_fallback_registers_valid_create_session_id_payload():
 
     assert response["session_id"] == "external-fallback-session"
     assert murphy.sessions["external-fallback-session"]["source"] == "orchestrator_session_autocreate"
+    created_at = datetime.fromisoformat(murphy.sessions["external-fallback-session"]["created_at"])
+    assert created_at.tzinfo is timezone.utc
 
 
 def test_execute_task_fallback_handles_missing_create_session_payload():
