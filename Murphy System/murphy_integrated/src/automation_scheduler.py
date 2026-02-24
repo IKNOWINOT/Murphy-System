@@ -87,7 +87,7 @@ class AutomationScheduler:
         with self._lock:
             self._projects[schedule.project_id] = schedule
             execution = ScheduledExecution(
-                execution_id=f"exec-{uuid.uuid4().hex[:8]}",
+                execution_id=f"exec-{uuid.uuid4().hex[:12]}",
                 project_id=schedule.project_id,
             )
             self._executions[execution.execution_id] = execution
@@ -206,7 +206,7 @@ class AutomationScheduler:
             schedule = self._projects.get(exe.project_id)
             if schedule is not None and schedule.cron_expression is not None:
                 new_exe = ScheduledExecution(
-                    execution_id=f"exec-{uuid.uuid4().hex[:8]}",
+                    execution_id=f"exec-{uuid.uuid4().hex[:12]}",
                     project_id=exe.project_id,
                 )
                 self._executions[new_exe.execution_id] = new_exe
