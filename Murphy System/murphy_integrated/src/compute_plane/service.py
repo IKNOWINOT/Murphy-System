@@ -210,7 +210,17 @@ class ComputeService:
             # Start computation in background
             thread = threading.Thread(target=self._process_request, args=(request_for_processing,))
             thread.daemon = True
-            thread.start()
+            try:
+                thread.start()
+            except Exception as exc:
+                self.pending_requests.pop(request.request_id, None)
+                result = ComputeResult(
+                    request_id=request.request_id,
+                    status=ComputeStatus.FAIL,
+                    error_message=f"Failed to start compute worker: {exc}",
+                )
+                self.request_cache[request.request_id] = result
+                self.request_signatures[request.request_id] = request_signature
             
             return request.request_id
     
