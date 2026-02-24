@@ -85,6 +85,36 @@ def test_execute_task_fallback_handles_missing_create_session_payload():
     assert "mfgc_execution" in response
 
 
+def test_execute_task_fallback_handles_create_session_exception():
+    runtime = load_runtime_module()
+    if runtime.MFGCAdapter is None:
+        pytest.skip("MFGC adapter not available in test environment")
+
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.system_integrator = StubIntegrator()
+    murphy.mfgc_adapter = runtime.MFGCAdapter(murphy.system_integrator)
+    murphy.orchestrator = None
+
+    def _raise_create_session(*_args, **_kwargs):
+        raise RuntimeError("session creation unavailable")
+
+    murphy.create_session = _raise_create_session
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Draft an automation plan",
+            "automation",
+            {"enforce_policy": False},
+            session_id=None
+        )
+    )
+
+    assert isinstance(response["success"], bool)
+    assert response["metadata"]["mode"] == "mfgc_fallback"
+    assert response["session_id"] is None
+    assert "mfgc_execution" in response
+
+
 def test_execute_task_blocks_when_orchestrator_missing_and_policy_enforced():
     runtime = load_runtime_module()
     if runtime.MFGCAdapter is None:
