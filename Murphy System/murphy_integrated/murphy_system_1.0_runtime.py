@@ -1912,6 +1912,11 @@ class MurphySystem:
                     "Compute-plane validation session creation failed; results will not be linked to a session."
                 )
                 return None
+            if not isinstance(session_payload, dict):
+                logger.warning(
+                    "Compute-plane validation session creation returned an invalid payload; results will not be linked to a session."
+                )
+                return None
             return session_payload.get("session_id")
 
     def _normalize_session_id(self, session_id: Optional[Any]) -> Optional[str]:
