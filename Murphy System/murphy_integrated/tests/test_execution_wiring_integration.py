@@ -305,6 +305,38 @@ def test_execute_task_fallback_uses_id_key_when_session_id_is_mapping():
     assert "mfgc_execution" in response
 
 
+def test_execute_task_fallback_uses_id_key_when_session_id_access_raises():
+    runtime = load_runtime_module()
+    if runtime.MFGCAdapter is None:
+        pytest.skip("MFGC adapter not available in test environment")
+
+    class _SessionPayload(dict):
+        def get(self, key, default=None):
+            if key == "session_id":
+                raise RuntimeError("session_id access failed")
+            return super().get(key, default)
+
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.system_integrator = StubIntegrator()
+    murphy.mfgc_adapter = runtime.MFGCAdapter(murphy.system_integrator)
+    murphy.orchestrator = None
+    murphy.create_session = lambda *args, **kwargs: _SessionPayload({"id": "session-from-id-access-fallback"})
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Draft an automation plan",
+            "automation",
+            {"enforce_policy": False},
+            session_id=None
+        )
+    )
+
+    assert isinstance(response["success"], bool)
+    assert response["metadata"]["mode"] == "mfgc_fallback"
+    assert response["session_id"] == "session-from-id-access-fallback"
+    assert "mfgc_execution" in response
+
+
 def test_execute_task_fallback_accepts_mapping_create_session_payload():
     runtime = load_runtime_module()
     if runtime.MFGCAdapter is None:
@@ -1213,6 +1245,38 @@ def test_execute_task_policy_block_handles_missing_create_session_payload():
     assert response["error"] == response["reason"]
 
 
+def test_execute_task_policy_block_uses_id_key_when_session_id_missing():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy._prepare_activation_preview = lambda *_args, **_kwargs: (
+        SimpleNamespace(doc_id="doc-policy-block-id-key-session"),
+        {
+            "dynamic_implementation": {
+                "status": "needs_info",
+                "approval_policy": {"status": "needs_info"},
+                "gate_status": "ready",
+                "execution_strategy": "simulation",
+            }
+        },
+    )
+    murphy._persist_execution_snapshot = lambda *_args, **_kwargs: {"status": "disabled"}
+    murphy.create_session = lambda: {"id": "session-policy-id-key"}
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Run policy block check with id-key session payload",
+            "automation",
+            {"enforce_policy": True},
+            session_id=None,
+        )
+    )
+
+    assert response["success"] is False
+    assert response["status"] == "blocked"
+    assert response["session_id"] == "session-policy-id-key"
+    assert response["error"] == response["reason"]
+
+
 def test_execute_task_policy_block_normalizes_whitespace_create_session_id():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
@@ -1339,6 +1403,44 @@ def test_execute_task_blocks_when_orchestrator_online_required_even_if_policy_no
     assert response["success"] is False
     assert response["status"] == "blocked"
     assert response["session_id"] == "session-online-required"
+    assert "orchestration-online execution is required" in response["reason"]
+
+
+def test_execute_task_blocks_when_orchestrator_online_required_uses_id_key_session_payload():
+    runtime = load_runtime_module()
+    if runtime.MFGCAdapter is None:
+        pytest.skip("MFGC adapter not available in test environment")
+
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.system_integrator = StubIntegrator()
+    murphy.mfgc_adapter = runtime.MFGCAdapter(murphy.system_integrator)
+    murphy.orchestrator = None
+    murphy._prepare_activation_preview = lambda *_args, **_kwargs: (
+        SimpleNamespace(doc_id="doc-orchestrator-online-required-id-key"),
+        {
+            "dynamic_implementation": {
+                "status": "ready",
+                "approval_policy": {"status": "ready"},
+                "gate_status": "ready",
+                "execution_strategy": "production",
+            }
+        },
+    )
+    murphy._persist_execution_snapshot = lambda *_args, **_kwargs: {"status": "disabled"}
+    murphy.create_session = lambda: {"id": "session-online-required-id-key"}
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Execute with orchestration-online requirement and id-key session payload",
+            "automation",
+            {"enforce_policy": False, "require_orchestrator_online": True},
+            session_id=None,
+        )
+    )
+
+    assert response["success"] is False
+    assert response["status"] == "blocked"
+    assert response["session_id"] == "session-online-required-id-key"
     assert "orchestration-online execution is required" in response["reason"]
 
 
