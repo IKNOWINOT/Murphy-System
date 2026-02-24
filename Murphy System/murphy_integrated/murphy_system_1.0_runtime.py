@@ -1962,7 +1962,10 @@ class MurphySystem:
                     return None
             except (TypeError, ValueError, OverflowError):
                 return None
-        if isinstance(session_id, (bool, complex, bytes, bytearray, memoryview, dict, list, tuple, set, frozenset)):
+        if isinstance(
+            session_id,
+            (bool, complex, bytes, bytearray, memoryview, Mapping, list, tuple, set, frozenset, range),
+        ):
             return None
         if isinstance(session_id, str):
             return session_id.strip() or None
