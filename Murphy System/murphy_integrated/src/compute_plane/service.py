@@ -108,7 +108,6 @@ class ComputeService:
                     if (
                         existing_signature == request_signature
                         and existing_result is not None
-                        and existing_result.status == ComputeStatus.SUCCESS
                     ):
                         return request.request_id
                     # Preserve existing cache entry by suffixing conflicting IDs during shutdown.
