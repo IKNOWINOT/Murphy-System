@@ -4,6 +4,7 @@ This file stores confirmed completion data and iteration evidence moved out of `
 
 ## Latest confirmed runtime behavior increments
 
+- Added non-permutation compute-validation session-payload compatibility hardening: `_resolve_compute_session` now accepts valid `create_session()` IDs from both `session_id` and `id` payload keys, preserving document binding continuity without requiring payload-shape permutations.
 - Added non-permutation compute-validation session-binding hardening: `_resolve_compute_session` now treats non-dictionary `create_session()` payloads as invalid and degrades to `session_id=None` instead of raising, preserving validated compute-plane execution responses.
 - Added non-permutation execution-policy hardening: malformed policy-flag objects whose `__bool__` raises generic `Exception` values now default safely instead of propagating runtime exceptions or forcing unintended orchestrator-online blocking.
 - Added non-permutation execution-policy hardening: malformed policy-flag objects whose `__bool__` raises now default safely instead of propagating runtime exceptions or forcing unintended orchestrator-online blocking.

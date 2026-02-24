@@ -1923,7 +1923,9 @@ class MurphySystem:
                     "Compute-plane validation session creation returned an invalid payload; results will not be linked to a session."
                 )
                 return None
-            resolved_session_id = self._normalize_session_id(session_payload.get("session_id"))
+            resolved_session_id = self._normalize_session_id(
+                session_payload.get("session_id", session_payload.get("id"))
+            )
             if resolved_session_id is None:
                 logger.warning(
                     "Compute-plane validation session creation returned an invalid session_id; results will not be linked to a session."
