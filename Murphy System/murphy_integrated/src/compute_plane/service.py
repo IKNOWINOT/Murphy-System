@@ -41,6 +41,10 @@ class ComputeService:
     """
     
     SUPPORTED_LANGUAGES = set(ComputeRequest.SUPPORTED_LANGUAGES)
+    MIN_TIMEOUT = 1
+    MAX_TIMEOUT = 300
+    MIN_PRECISION = 1
+    MAX_PRECISION = 50
 
     def __init__(self, enable_caching: bool = True):
         """
@@ -96,6 +100,12 @@ class ComputeService:
                         and existing_result.status == ComputeStatus.SUCCESS
                     ):
                         return request.request_id
+                    # Preserve existing cache entry by suffixing conflicting IDs during shutdown.
+                    request = replace(
+                        request,
+                        request_id=f"{request.request_id}-{uuid.uuid4().hex[:8]}"
+                    )
+                    request_signature = self._request_signature(request)
                 result = ComputeResult(
                     request_id=request.request_id,
                     status=ComputeStatus.FAIL,
@@ -134,6 +144,28 @@ class ComputeService:
                     request_id=request.request_id,
                     status=ComputeStatus.UNSUPPORTED,
                     error_message=f"Unsupported language: {request.language}",
+                )
+                self.request_cache[request.request_id] = result
+                self.request_signatures[request.request_id] = request_signature
+                return request.request_id
+
+            if not self._validate_numeric_range(request.timeout, self.MIN_TIMEOUT, self.MAX_TIMEOUT):
+                result = ComputeResult(
+                    request_id=request.request_id,
+                    status=ComputeStatus.FAIL,
+                    error_message=f"Timeout must be between {self.MIN_TIMEOUT} and {self.MAX_TIMEOUT} seconds",
+                )
+                self.request_cache[request.request_id] = result
+                self.request_signatures[request.request_id] = request_signature
+                return request.request_id
+
+            if not self._validate_numeric_range(
+                request.precision, self.MIN_PRECISION, self.MAX_PRECISION, allow_float=False
+            ):
+                result = ComputeResult(
+                    request_id=request.request_id,
+                    status=ComputeStatus.FAIL,
+                    error_message=f"Precision must be between {self.MIN_PRECISION} and {self.MAX_PRECISION}",
                 )
                 self.request_cache[request.request_id] = result
                 self.request_signatures[request.request_id] = request_signature
@@ -365,6 +397,17 @@ class ComputeService:
             separators=(",", ":"),
             default=str,
         )
+
+    @staticmethod
+    def _validate_numeric_range(value, min_value: float, max_value: float, allow_float: bool = True) -> bool:
+        """Validate numeric range while excluding booleans."""
+        if allow_float:
+            if not isinstance(value, (int, float)) or isinstance(value, bool):
+                return False
+        else:
+            if not isinstance(value, int) or isinstance(value, bool):
+                return False
+        return min_value <= value <= max_value
 
     def shutdown(self):
         """Shutdown service resources."""

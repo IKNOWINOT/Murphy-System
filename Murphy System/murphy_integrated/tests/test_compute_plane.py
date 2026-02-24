@@ -206,6 +206,15 @@ class TestComputeService(unittest.TestCase):
     
     def setUp(self):
         self.service = ComputeService(enable_caching=True)
+
+    def _wait_for_result(self, request_id, retries=20, interval=0.1):
+        result = None
+        for _ in range(retries):
+            result = self.service.get_result(request_id)
+            if result is not None:
+                return result
+            time.sleep(interval)
+        return result
     
     def test_submit_and_get_result(self):
         """Test submitting request and getting result"""
@@ -361,8 +370,7 @@ class TestComputeService(unittest.TestCase):
         )
 
         request_id = self.service.submit_request(request)
-        time.sleep(1)
-        baseline = self.service.get_result(request_id)
+        baseline = self._wait_for_result(request_id)
         self.assertIsNotNone(baseline)
         self.assertEqual(baseline.status, ComputeStatus.SUCCESS)
 
@@ -374,6 +382,44 @@ class TestComputeService(unittest.TestCase):
         self.assertIsNotNone(after)
         self.assertEqual(after.status, ComputeStatus.SUCCESS)
         self.assertEqual(after.result, baseline.result)
+
+    def test_shutdown_submit_with_different_signature_uses_new_request_id(self):
+        """Submitting a different payload after shutdown should not clobber an existing success."""
+        if not self.service.parser.sympy_available:
+            self.skipTest("SymPy not available")
+
+        request_id = "shutdown-existing-success-different-payload"
+        request_1 = ComputeRequest(
+            expression="x + 1",
+            language="sympy",
+            request_id=request_id,
+            metadata={"operation": "simplify"},
+        )
+        request_2 = ComputeRequest(
+            expression="x + 2",
+            language="sympy",
+            request_id=request_id,
+            metadata={"operation": "simplify"},
+        )
+
+        first_id = self.service.submit_request(request_1)
+        baseline = self._wait_for_result(first_id)
+        self.assertIsNotNone(baseline)
+        self.assertEqual(baseline.status, ComputeStatus.SUCCESS)
+
+        self.service.shutdown()
+        second_id = self.service.submit_request(request_2)
+        self.assertNotEqual(second_id, first_id)
+        self.assertTrue(second_id.startswith(f"{first_id}-"))
+        self.assertEqual(request_2.request_id, request_id)
+
+        original_after = self.service.get_result(first_id)
+        shutdown_after = self.service.get_result(second_id)
+        self.assertIsNotNone(original_after)
+        self.assertEqual(original_after.status, ComputeStatus.SUCCESS)
+        self.assertIsNotNone(shutdown_after)
+        self.assertEqual(shutdown_after.status, ComputeStatus.FAIL)
+        self.assertIn("shut down", shutdown_after.error_message)
 
     def test_inflight_request_does_not_overwrite_shutdown_failure(self):
         """In-flight workers should not overwrite failure results written during shutdown."""
@@ -586,6 +632,48 @@ class TestComputeService(unittest.TestCase):
 
             self.assertIsNotNone(result)
             self.assertEqual(result.status, ComputeStatus.UNSUPPORTED)
+            self.assertNotIn(request_id, self.service.pending_requests)
+            mock_thread_cls.assert_not_called()
+
+    def test_submit_request_invalid_timeout_skips_background_worker(self):
+        """Invalid timeout values should fail preflight without worker threads."""
+        request = ComputeRequest(
+            expression="x + 1",
+            language="sympy",
+            request_id="invalid-timeout-sync-request",
+        )
+        # ComputeRequest validates timeout at construction time, so mutate after
+        # creation to exercise runtime preflight guard behavior.
+        request.timeout = "forever"
+
+        with patch("src.compute_plane.service.threading.Thread") as mock_thread_cls:
+            request_id = self.service.submit_request(request)
+            result = self.service.get_result(request_id)
+
+            self.assertIsNotNone(result)
+            self.assertEqual(result.status, ComputeStatus.FAIL)
+            self.assertIn("Timeout must be between 1 and 300 seconds", result.error_message)
+            self.assertNotIn(request_id, self.service.pending_requests)
+            mock_thread_cls.assert_not_called()
+
+    def test_submit_request_invalid_precision_skips_background_worker(self):
+        """Invalid precision values should fail preflight without worker threads."""
+        request = ComputeRequest(
+            expression="x + 1",
+            language="sympy",
+            request_id="invalid-precision-sync-request",
+        )
+        # ComputeRequest validates precision at construction time, so mutate after
+        # creation to exercise runtime preflight guard behavior.
+        request.precision = "max"
+
+        with patch("src.compute_plane.service.threading.Thread") as mock_thread_cls:
+            request_id = self.service.submit_request(request)
+            result = self.service.get_result(request_id)
+
+            self.assertIsNotNone(result)
+            self.assertEqual(result.status, ComputeStatus.FAIL)
+            self.assertIn("Precision must be between 1 and 50", result.error_message)
             self.assertNotIn(request_id, self.service.pending_requests)
             mock_thread_cls.assert_not_called()
     
