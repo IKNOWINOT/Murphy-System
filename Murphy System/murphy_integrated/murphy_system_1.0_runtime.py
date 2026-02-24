@@ -2558,7 +2558,7 @@ class MurphySystem:
                 session_id=session_id,
             )
             duration = time.perf_counter() - execution_start
-            self._record_execution(success=False, duration=duration)
+            self._record_execution(success=False, duration=duration, task_type=task_type, failure_reason="gate_blocked")
             self._record_self_improvement_outcome(
                 task_description, task_type, session_id,
                 success=False, duration=duration, gate_evaluations=gate_result,
@@ -2986,7 +2986,7 @@ class MurphySystem:
             self._record_self_improvement_outcome(
                 task_description, task_type, session_id,
                 success=False, duration=exception_duration,
-                gate_evaluations=gate_result if 'gate_result' in dir() else None,
+                gate_evaluations=gate_result,
             )
             return {
                 'success': False,
