@@ -589,6 +589,37 @@ def test_execute_task_does_not_block_when_require_orchestrator_online_string_inv
     assert response["metadata"]["orchestration_mode"] in {"fallback", "simulation"}
 
 
+def test_execute_task_does_not_block_when_require_orchestrator_online_container():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.orchestrator = None
+    murphy._prepare_activation_preview = lambda *_args, **_kwargs: (
+        SimpleNamespace(doc_id="doc-orchestrator-online-container"),
+        {
+            "dynamic_implementation": {
+                "status": "ready",
+                "approval_policy": {"status": "ready"},
+                "gate_status": "ready",
+                "execution_strategy": "production",
+            }
+        },
+    )
+    murphy._persist_execution_snapshot = lambda *_args, **_kwargs: {"status": "disabled"}
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Execute with orchestration-online container requirement",
+            "automation",
+            {"enforce_policy": False, "require_orchestrator_online": {"enabled": False}},
+            session_id="session-online-container",
+        )
+    )
+
+    assert isinstance(response["success"], bool)
+    assert response.get("status") != "blocked"
+    assert response["metadata"]["orchestration_mode"] in {"fallback", "simulation"}
+
+
 def test_execute_task_blocks_when_orchestrator_missing_normalizes_whitespace_session_id():
     runtime = load_runtime_module()
     if runtime.MFGCAdapter is None:
