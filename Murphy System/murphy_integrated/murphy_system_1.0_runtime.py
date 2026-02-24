@@ -1616,8 +1616,10 @@ class MurphySystem:
                     return True
                 return default
             # `bool` is intentionally excluded so explicit boolean flags still use direct
-            # truthiness; `complex` is excluded because math.isfinite() does not accept it.
-            if isinstance(raw_value, numbers.Number) and not isinstance(raw_value, (bool, complex)):
+            # truthiness.
+            if isinstance(raw_value, complex):
+                return default
+            if isinstance(raw_value, numbers.Number) and not isinstance(raw_value, bool):
                 # Non-standard numeric objects can still raise during float conversion.
                 try:
                     if not math.isfinite(float(raw_value)):
