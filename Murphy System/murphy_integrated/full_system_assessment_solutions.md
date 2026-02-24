@@ -4,6 +4,7 @@ This file stores confirmed completion data and iteration evidence moved out of `
 
 ## Latest confirmed runtime behavior increments
 
+- Added Phase 1 execution-readiness hardening: orchestrator-unavailable execution-policy blocking now uses consistent canonical `reason`/`error` messaging, deterministic-required route-affinity and gate/swarm execution-mode metadata are explicitly surfaced in runtime execution responses, and focused integration coverage validates these wiring semantics.
 - Added non-permutation session-normalization hardening: whitespace-only user-supplied `session_id` values are now normalized to `None` before runtime task execution, preventing creation/use of blank session identifiers in non-compute orchestration fallback paths.
 - Added non-permutation session-normalization hardening: non-string user-supplied `session_id` values are normalized via string conversion/trim rules before runtime task execution, preventing mixed-type session identifiers from bypassing orchestration fallback guards.
 - Added non-permutation compute-request payload hardening: string `compute_request` inputs are now normalized into deterministic expression dictionaries so runtime compute validation succeeds without type exceptions and continues to honor session/document binding semantics.
