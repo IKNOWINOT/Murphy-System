@@ -16,6 +16,7 @@ This file stores confirmed completion data and iteration evidence moved out of `
 - Added deterministic task-type compute fallback wiring coverage to ensure malformed `compute_request` + deterministic task-type expression inputs route through deterministic compute validation with session binding when validated.
 - Added compute-service runtime hardening for non-permutation execution behavior: duplicate pending request IDs are deduplicated before worker launch, and long-running compute execution now enforces `timeout` with explicit `TIMEOUT` results.
 - Added compute-service lifecycle hardening for non-permutation execution behavior: requests submitted after `shutdown()` now fail immediately with a deterministic `FAIL` result and do not spawn new background worker threads.
+- Added non-permutation request identity hardening: non-empty `request_id` values with surrounding whitespace are now trimmed during submit preflight so semantically equivalent request IDs share the same pending/cache keyspace.
 
 ## 14) Current iteration confirmation (sections 1-14 acceptance)
 
