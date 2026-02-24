@@ -389,6 +389,25 @@ class TestComputeService(unittest.TestCase):
             self.assertEqual(result.status, ComputeStatus.FAIL)
             self.assertIn("shut down", result.error_message)
 
+    def test_shutdown_submit_same_signature_reuses_existing_fail_result(self):
+        """Repeated same-signature submissions after shutdown should reuse one fail cache entry."""
+        request = ComputeRequest(
+            expression="x + 1",
+            language="sympy",
+            request_id="shutdown-repeat-fail",
+        )
+
+        self.service.shutdown()
+
+        first_id = self.service.submit_request(request)
+        second_id = self.service.submit_request(request)
+        self.assertEqual(first_id, second_id)
+
+        result = self.service.get_result(first_id)
+        self.assertIsNotNone(result)
+        self.assertEqual(result.status, ComputeStatus.FAIL)
+        self.assertIn("shut down", result.error_message)
+
     def test_shutdown_submit_does_not_overwrite_existing_success_result(self):
         """Submitting after shutdown should preserve an existing success result for same request ID."""
         if not self.service.parser.sympy_available:
