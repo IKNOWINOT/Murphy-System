@@ -2213,6 +2213,7 @@ class MurphySystem:
         )
         if execution_policy["enforced"] and execution_policy["status"] != "ready":
             blocked_session = session_id or self.create_session().get("session_id")
+            blocked_reason = execution_policy.get("reason") or "Execution policy blocked."
             return {
                 "success": False,
                 "status": "blocked",
@@ -2222,7 +2223,8 @@ class MurphySystem:
                 "execution_wiring": execution_wiring,
                 "execution_policy": execution_policy,
                 "persistence_snapshot": persistence_snapshot,
-                "error": execution_policy.get("reason") or "Execution policy blocked."
+                "error": blocked_reason,
+                "reason": blocked_reason,
             }
 
         if self.librarian:
