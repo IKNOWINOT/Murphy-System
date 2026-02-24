@@ -2355,6 +2355,19 @@ class MurphySystem:
             }
         
         if not self._is_orchestrator_available():
+            if execution_policy.get("enforced", True):
+                blocked_session = session_id or self.create_session().get("session_id")
+                return {
+                    "success": False,
+                    "status": "blocked",
+                    "session_id": blocked_session,
+                    "doc_id": doc.doc_id,
+                    "activation_preview": activation_preview,
+                    "execution_wiring": execution_wiring,
+                    "execution_policy": execution_policy,
+                    "persistence_snapshot": persistence_snapshot,
+                    "error": "Two-Phase Orchestrator unavailable while execution policy enforcement is enabled."
+                }
             logger.warning("Two-Phase Orchestrator unavailable; using MFGC fallback or simulation mode.")
             fallback = self._simulate_execution(task_description, task_type, parameters, session_id)
             fallback["activation_preview"] = activation_preview
