@@ -238,6 +238,58 @@ def test_execute_task_fallback_rejects_container_create_session_id():
     assert "mfgc_execution" in response
 
 
+def test_execute_task_fallback_rejects_container_input_session_id():
+    runtime = load_runtime_module()
+    if runtime.MFGCAdapter is None:
+        pytest.skip("MFGC adapter not available in test environment")
+
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.system_integrator = StubIntegrator()
+    murphy.mfgc_adapter = runtime.MFGCAdapter(murphy.system_integrator)
+    murphy.orchestrator = None
+    murphy.create_session = lambda *args, **kwargs: {"session_id": "fallback-session-id"}
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Draft an automation plan",
+            "automation",
+            {"enforce_policy": False},
+            session_id={"invalid": "session-container"}
+        )
+    )
+
+    assert isinstance(response["success"], bool)
+    assert response["metadata"]["mode"] == "mfgc_fallback"
+    assert response["session_id"] == "fallback-session-id"
+    assert "mfgc_execution" in response
+
+
+def test_execute_task_fallback_rejects_bytes_create_session_payload_id():
+    runtime = load_runtime_module()
+    if runtime.MFGCAdapter is None:
+        pytest.skip("MFGC adapter not available in test environment")
+
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.system_integrator = StubIntegrator()
+    murphy.mfgc_adapter = runtime.MFGCAdapter(murphy.system_integrator)
+    murphy.orchestrator = None
+    murphy.create_session = lambda *args, **kwargs: {"session_id": b"session-bytes"}
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Draft an automation plan",
+            "automation",
+            {"enforce_policy": False},
+            session_id=None
+        )
+    )
+
+    assert isinstance(response["success"], bool)
+    assert response["metadata"]["mode"] == "mfgc_fallback"
+    assert response["session_id"] is None
+    assert "mfgc_execution" in response
+
+
 def test_execute_task_fallback_handles_create_session_exception():
     runtime = load_runtime_module()
     if runtime.MFGCAdapter is None:

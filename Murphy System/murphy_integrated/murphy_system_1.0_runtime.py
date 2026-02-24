@@ -1891,11 +1891,15 @@ class MurphySystem:
 
         String values are stripped and converted to `None` when blank.
         Boolean values are treated as missing IDs (rather than `"True"`/`"False"`).
+        Byte-oriented values are treated as missing IDs to avoid byte representation
+        strings being used as session identifiers.
+        Container values are treated as missing IDs to avoid serializing object
+        representations like dictionaries/lists into session identifiers.
         Non-string values are converted to strings, then stripped, so caller-provided
         scalar identifiers (for example integers) can still be tracked consistently.
         `None` values are preserved as `None`.
         """
-        if isinstance(session_id, bool):
+        if isinstance(session_id, (bool, bytes, bytearray, memoryview, dict, list, tuple, set)):
             return None
         if isinstance(session_id, str):
             return session_id.strip() or None
