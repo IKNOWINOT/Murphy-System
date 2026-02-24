@@ -2374,7 +2374,7 @@ class MurphySystem:
                     "persistence_snapshot": persistence_snapshot,
                     # Keep `error` for backward compatibility while using `reason`
                     # as the canonical blocked-state message.
-                    "error": blocked_reason,
+                    "error": final_blocked_reason,
                     "reason": final_blocked_reason,
                 }
             logger.warning("Two-Phase Orchestrator unavailable; using MFGC fallback or simulation mode.")

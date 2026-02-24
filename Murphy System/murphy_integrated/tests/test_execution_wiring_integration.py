@@ -84,6 +84,7 @@ def test_execute_task_blocks_when_orchestrator_missing_and_policy_enforced():
     assert "mfgc_execution" not in response
     assert "error" in response
     assert "reason" in response
+    assert response["error"] == response["reason"]
 
 
 def test_execute_task_policy_block_includes_reason_field():
