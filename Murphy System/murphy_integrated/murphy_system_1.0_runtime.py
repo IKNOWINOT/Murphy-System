@@ -1596,7 +1596,17 @@ class MurphySystem:
         parameters: Optional[Dict[str, Any]]
     ) -> Dict[str, Any]:
         params = parameters or {}
-        enforce_policy = params.get("enforce_policy", True)
+        enforce_policy_raw = params.get("enforce_policy", True)
+        if isinstance(enforce_policy_raw, str):
+            normalized_enforce_policy = enforce_policy_raw.strip().lower()
+            if normalized_enforce_policy in {"false", "0", "no", "off"}:
+                enforce_policy = False
+            elif normalized_enforce_policy in {"true", "1", "yes", "on"}:
+                enforce_policy = True
+            else:
+                enforce_policy = bool(enforce_policy_raw)
+        else:
+            enforce_policy = bool(enforce_policy_raw)
         if not dynamic_implementation:
             return {
                 "status": "unavailable",
