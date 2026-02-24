@@ -2819,6 +2819,14 @@ class MurphySystem:
                 "Two-Phase Orchestrator session creation failed; will fall back to automation_id for session tracking."
             )
             return None
+        with self._session_lock:
+            if normalized_payload_session_id not in self.sessions:
+                self.sessions[normalized_payload_session_id] = {
+                    "session_id": normalized_payload_session_id,
+                    "name": "session",
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "source": "orchestrator_session_autocreate",
+                }
         return normalized_payload_session_id
 
     def _is_orchestrator_available(self) -> bool:

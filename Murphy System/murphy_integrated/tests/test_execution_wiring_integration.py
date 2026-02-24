@@ -118,6 +118,30 @@ def test_simulate_execution_mfgc_fallback_timestamp_is_timezone_aware_without_ad
     assert response["session_id"] == "session-fallback"
 
 
+def test_execute_task_fallback_registers_valid_create_session_id_payload():
+    runtime = load_runtime_module()
+    if runtime.MFGCAdapter is None:
+        pytest.skip("MFGC adapter not available in test environment")
+
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.system_integrator = StubIntegrator()
+    murphy.mfgc_adapter = runtime.MFGCAdapter(murphy.system_integrator)
+    murphy.orchestrator = None
+    murphy.create_session = lambda *args, **kwargs: {"session_id": "external-fallback-session"}
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Draft an automation plan",
+            "automation",
+            {"enforce_policy": False},
+            session_id=None
+        )
+    )
+
+    assert response["session_id"] == "external-fallback-session"
+    assert murphy.sessions["external-fallback-session"]["source"] == "orchestrator_session_autocreate"
+
+
 def test_execute_task_fallback_handles_missing_create_session_payload():
     runtime = load_runtime_module()
     if runtime.MFGCAdapter is None:
