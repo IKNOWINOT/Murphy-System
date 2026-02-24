@@ -2593,7 +2593,7 @@ class MurphySystem:
                 'metadata': {
                     'task_description': task_description,
                     'task_type': task_type,
-                    'timestamp': datetime.utcnow().isoformat()
+                    'timestamp': datetime.now(timezone.utc).isoformat()
                 }
             }
         
