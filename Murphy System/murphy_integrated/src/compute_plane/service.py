@@ -80,12 +80,6 @@ class ComputeService:
         Returns:
             request_id for tracking
         """
-        if not isinstance(request.assumptions, dict) or not isinstance(request.metadata, dict):
-            request = replace(
-                request,
-                assumptions=request.assumptions if isinstance(request.assumptions, dict) else {},
-                metadata=request.metadata if isinstance(request.metadata, dict) else {},
-            )
         if not isinstance(request.request_id, str):
             request = replace(request, request_id=str(uuid.uuid4()))
         else:
@@ -158,6 +152,24 @@ class ComputeService:
                 self.request_cache[request.request_id] = result
                 self.request_signatures[request.request_id] = request_signature
                 return request.request_id
+
+            # Preflight returns on the first invalid container field so callers
+            # can fix issues incrementally with deterministic error semantics.
+            # Validation order is intentional: assumptions are checked first,
+            # then metadata, to keep error messaging stable.
+            for value, error_message in (
+                (request.assumptions, "Assumptions must be a dictionary"),
+                (request.metadata, "Metadata must be a dictionary"),
+            ):
+                if not isinstance(value, dict):
+                    result = ComputeResult(
+                        request_id=request.request_id,
+                        status=ComputeStatus.FAIL,
+                        error_message=error_message,
+                    )
+                    self.request_cache[request.request_id] = result
+                    self.request_signatures[request.request_id] = request_signature
+                    return request.request_id
 
             if (
                 not isinstance(request.expression, str)
