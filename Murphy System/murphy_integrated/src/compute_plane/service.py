@@ -4,8 +4,13 @@ Compute Service
 Main service that orchestrates computation requests.
 """
 
+import json
 import time
 import threading
+import uuid
+from copy import deepcopy
+from dataclasses import replace
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from typing import Dict, Optional
 from queue import Queue
 from .models.compute_request import ComputeRequest
@@ -35,6 +40,12 @@ class ComputeService:
     - Only returns verified results
     """
     
+    SUPPORTED_LANGUAGES = set(ComputeRequest.SUPPORTED_LANGUAGES)
+    MIN_TIMEOUT = 1
+    MAX_TIMEOUT = 300
+    MIN_PRECISION = 1
+    MAX_PRECISION = 50
+
     def __init__(self, enable_caching: bool = True):
         """
         Initialize compute service.
@@ -50,6 +61,12 @@ class ComputeService:
         self.enable_caching = enable_caching
         self.request_cache: Dict[str, ComputeResult] = {}
         self.pending_requests: Dict[str, ComputeRequest] = {}
+        self.request_signatures: Dict[str, str] = {}
+        self._is_shutdown = False
+        self._execution_executor = ThreadPoolExecutor(
+            max_workers=4,
+            thread_name_prefix="compute-service"
+        )
         
         self._lock = threading.Lock()
     
@@ -63,18 +80,158 @@ class ComputeService:
         Returns:
             request_id for tracking
         """
+        if not isinstance(request.request_id, str):
+            request = replace(request, request_id=str(uuid.uuid4()))
+        else:
+            normalized_request_id = request.request_id.strip()
+            if not normalized_request_id:
+                request = replace(request, request_id=str(uuid.uuid4()))
+            elif normalized_request_id != request.request_id:
+                request = replace(request, request_id=normalized_request_id)
+        if isinstance(request.language, str):
+            normalized_language = request.language.strip().lower()
+            if normalized_language != request.language:
+                request = replace(request, language=normalized_language)
+        request_signature = self._request_signature(request)
+
         with self._lock:
+            if self._is_shutdown:
+                if request.request_id in self.request_cache:
+                    existing_signature = self.request_signatures.get(request.request_id)
+                    existing_result = self.request_cache.get(request.request_id)
+                    if (
+                        existing_signature == request_signature
+                        and existing_result is not None
+                    ):
+                        return request.request_id
+                    # Preserve existing cache entry by suffixing conflicting IDs during shutdown.
+                    request = replace(
+                        request,
+                        request_id=f"{request.request_id}-{uuid.uuid4().hex[:8]}"
+                    )
+                    request_signature = self._request_signature(request)
+                result = ComputeResult(
+                    request_id=request.request_id,
+                    status=ComputeStatus.FAIL,
+                    error_message="Compute service has been shut down"
+                )
+                self.request_cache[request.request_id] = result
+                self.request_signatures[request.request_id] = request_signature
+                return request.request_id
+
+            if not self.enable_caching and request.request_id in self.request_cache:
+                self.request_cache.pop(request.request_id, None)
+                self.request_signatures.pop(request.request_id, None)
+
             # Check cache
             if self.enable_caching and request.request_id in self.request_cache:
+                if self.request_signatures.get(request.request_id) == request_signature:
+                    return request.request_id
+                request = replace(
+                    request,
+                    request_id=f"{request.request_id}-{uuid.uuid4().hex[:8]}"
+                )
+                request_signature = self._request_signature(request)
+
+            # Avoid duplicate processing for pending requests
+            if request.request_id in self.pending_requests:
+                if self.request_signatures.get(request.request_id) == request_signature:
+                    return request.request_id
+                request = replace(
+                    request,
+                    request_id=f"{request.request_id}-{uuid.uuid4().hex[:8]}"
+                )
+                request_signature = self._request_signature(request)
+
+            if request.language not in self.SUPPORTED_LANGUAGES:
+                result = ComputeResult(
+                    request_id=request.request_id,
+                    status=ComputeStatus.UNSUPPORTED,
+                    error_message=f"Unsupported language: {request.language}",
+                )
+                self.request_cache[request.request_id] = result
+                self.request_signatures[request.request_id] = request_signature
+                return request.request_id
+
+            # Preflight returns on the first invalid container field so callers
+            # can fix issues incrementally with deterministic error semantics.
+            # Validation order is intentional: assumptions are checked first,
+            # then metadata, to keep error messaging stable.
+            for value, error_message in (
+                (request.assumptions, "Assumptions must be a dictionary"),
+                (request.metadata, "Metadata must be a dictionary"),
+            ):
+                if not isinstance(value, dict):
+                    result = ComputeResult(
+                        request_id=request.request_id,
+                        status=ComputeStatus.FAIL,
+                        error_message=error_message,
+                    )
+                    self.request_cache[request.request_id] = result
+                    self.request_signatures[request.request_id] = request_signature
+                    return request.request_id
+
+            if (
+                not isinstance(request.expression, str)
+                or not request.expression
+                or not request.expression.strip()
+            ):
+                result = ComputeResult(
+                    request_id=request.request_id,
+                    status=ComputeStatus.FAIL,
+                    error_message="Expression must be a non-empty string",
+                )
+                self.request_cache[request.request_id] = result
+                self.request_signatures[request.request_id] = request_signature
+                return request.request_id
+
+            if not self._validate_numeric_range(request.timeout, self.MIN_TIMEOUT, self.MAX_TIMEOUT):
+                result = ComputeResult(
+                    request_id=request.request_id,
+                    status=ComputeStatus.FAIL,
+                    error_message=f"Timeout must be between {self.MIN_TIMEOUT} and {self.MAX_TIMEOUT} seconds",
+                )
+                self.request_cache[request.request_id] = result
+                self.request_signatures[request.request_id] = request_signature
+                return request.request_id
+
+            if not self._validate_numeric_range(
+                request.precision, self.MIN_PRECISION, self.MAX_PRECISION, allow_float=False
+            ):
+                result = ComputeResult(
+                    request_id=request.request_id,
+                    status=ComputeStatus.FAIL,
+                    error_message=f"Precision must be between {self.MIN_PRECISION} and {self.MAX_PRECISION}",
+                )
+                self.request_cache[request.request_id] = result
+                self.request_signatures[request.request_id] = request_signature
                 return request.request_id
             
+            # Snapshot request to avoid caller-side mutations affecting background execution.
+            request_for_processing = replace(
+                request,
+                assumptions=deepcopy(request.assumptions),
+                metadata=deepcopy(request.metadata),
+            )
+
             # Store as pending
-            self.pending_requests[request.request_id] = request
+            self.pending_requests[request.request_id] = request_for_processing
+            self.request_signatures[request.request_id] = request_signature
             
             # Start computation in background
-            thread = threading.Thread(target=self._process_request, args=(request,))
+            thread = threading.Thread(target=self._process_request, args=(request_for_processing,))
             thread.daemon = True
-            thread.start()
+            try:
+                thread.start()
+            except Exception as exc:
+                self.pending_requests.pop(request.request_id, None)
+                result = ComputeResult(
+                    request_id=request.request_id,
+                    status=ComputeStatus.FAIL,
+                    error_message=f"Failed to start compute worker: {exc}",
+                )
+                self.request_cache[request.request_id] = result
+                self.request_signatures[request.request_id] = request_signature
             
             return request.request_id
     
@@ -89,7 +246,8 @@ class ComputeService:
             ComputeResult if available, None if still pending
         """
         with self._lock:
-            return self.request_cache.get(request_id)
+            result = self.request_cache.get(request_id)
+            return deepcopy(result) if result is not None else None
     
     def validate_expression(self, expression: str, language: str) -> Dict:
         """
@@ -113,6 +271,19 @@ class ComputeService:
             request: ComputeRequest object
         """
         start_time = time.time()
+        if request.language not in self.SUPPORTED_LANGUAGES:
+            result = ComputeResult(
+                request_id=request.request_id,
+                status=ComputeStatus.UNSUPPORTED,
+                error_message=f"Unsupported language: {request.language}",
+                execution_time=time.time() - start_time,
+            )
+            with self._lock:
+                if not (self._is_shutdown and request.request_id in self.request_cache):
+                    self.request_cache[request.request_id] = result
+                if request.request_id in self.pending_requests:
+                    del self.pending_requests[request.request_id]
+            return
         
         try:
             # Parse expression
@@ -125,22 +296,33 @@ class ComputeService:
             # Normalize expression
             normalized = self.parser.normalize(parsed)
             
-            # Execute computation based on language
-            if request.language == "sympy":
-                result = self._execute_sympy(request, normalized)
-            elif request.language == "wolfram":
-                result = self._execute_wolfram(request, normalized)
-            elif request.language == "lp":
-                result = self._execute_lp(request, normalized)
-            elif request.language == "sat":
-                result = self._execute_sat(request, normalized)
-            else:
-                result = ComputeResult(
+            def run_computation():
+                # Execute computation based on language
+                if request.language == "sympy":
+                    return self._execute_sympy(request, normalized)
+                elif request.language == "wolfram":
+                    return self._execute_wolfram(request, normalized)
+                elif request.language == "lp":
+                    return self._execute_lp(request, normalized)
+                elif request.language == "sat":
+                    return self._execute_sat(request, normalized)
+                return ComputeResult(
                     request_id=request.request_id,
                     status=ComputeStatus.UNSUPPORTED,
                     error_message=f"Unsupported language: {request.language}"
                 )
-            
+
+            future = self._execution_executor.submit(run_computation)
+            try:
+                result = future.result(timeout=request.timeout)
+            except FuturesTimeoutError:
+                future.cancel()
+                result = ComputeResult(
+                    request_id=request.request_id,
+                    status=ComputeStatus.TIMEOUT,
+                    error_message=f"Computation timed out after {request.timeout} seconds"
+                )
+
             result.execution_time = time.time() - start_time
             
         except Exception as e:
@@ -153,7 +335,8 @@ class ComputeService:
         
         # Store result
         with self._lock:
-            self.request_cache[request.request_id] = result
+            if not (self._is_shutdown and request.request_id in self.request_cache):
+                self.request_cache[request.request_id] = result
             if request.request_id in self.pending_requests:
                 del self.pending_requests[request.request_id]
     
@@ -251,3 +434,50 @@ class ComputeService:
         
         successful = sum(1 for r in self.request_cache.values() if r.status == ComputeStatus.SUCCESS)
         return successful / len(self.request_cache)
+
+    def _request_signature(self, request: ComputeRequest) -> str:
+        """Create stable signature for request identity and cache safety."""
+        return json.dumps(
+            {
+                "expression": request.expression,
+                "language": request.language,
+                "precision": request.precision,
+                "timeout": request.timeout,
+                "assumptions": request.assumptions,
+                "metadata": request.metadata,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+            default=str,
+        )
+
+    @staticmethod
+    def _validate_numeric_range(value, min_value: float, max_value: float, allow_float: bool = True) -> bool:
+        """Validate numeric range while excluding booleans."""
+        if allow_float:
+            if not isinstance(value, (int, float)) or isinstance(value, bool):
+                return False
+        else:
+            if not isinstance(value, int) or isinstance(value, bool):
+                return False
+        return min_value <= value <= max_value
+
+    def shutdown(self):
+        """Shutdown service resources."""
+        with self._lock:
+            self._is_shutdown = True
+            for request_id in list(self.pending_requests.keys()):
+                if request_id not in self.request_cache:
+                    self.request_cache[request_id] = ComputeResult(
+                        request_id=request_id,
+                        status=ComputeStatus.FAIL,
+                        error_message="Compute service has been shut down",
+                    )
+            self.pending_requests.clear()
+            self._execution_executor.shutdown(wait=False, cancel_futures=True)
+
+    def __del__(self):
+        try:
+            self.shutdown()
+        except Exception:
+            pass
