@@ -1907,7 +1907,7 @@ class MurphySystem:
         """
         if isinstance(session_id, float) and not math.isfinite(session_id):
             return None
-        if isinstance(session_id, (bool, bytes, bytearray, memoryview, dict, list, tuple, set)):
+        if isinstance(session_id, (bool, complex, bytes, bytearray, memoryview, dict, list, tuple, set)):
             return None
         if isinstance(session_id, str):
             return session_id.strip() or None
@@ -2398,7 +2398,7 @@ class MurphySystem:
                 "metadata": {
                     "task_description": task_description,
                     "task_type": task_type,
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     "mode": "compute_plane_validation"
                 }
             }
@@ -2711,7 +2711,7 @@ class MurphySystem:
             "metadata": {
                 "task_description": task_description,
                 "task_type": task_type,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "mode": "simulation",
                 "orchestration_mode": "simulation"
             }
