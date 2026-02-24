@@ -2214,12 +2214,15 @@ class MurphySystem:
         if execution_policy["enforced"] and execution_policy["status"] != "ready":
             blocked_session = session_id
             if blocked_session is None:
-                created_session = self.create_session()
-                blocked_session = (
-                    created_session.get("session_id")
-                    if isinstance(created_session, dict)
-                    else None
-                )
+                try:
+                    created_session = self.create_session()
+                    blocked_session = (
+                        created_session.get("session_id")
+                        if isinstance(created_session, dict)
+                        else None
+                    )
+                except Exception:
+                    blocked_session = None
             blocked_reason = execution_policy.get("reason") or "Execution policy blocked."
             return {
                 "success": False,
@@ -2371,12 +2374,15 @@ class MurphySystem:
                 final_blocked_reason = execution_policy.get("reason") or blocked_reason
                 blocked_session = session_id
                 if blocked_session is None:
-                    created_session = self.create_session()
-                    blocked_session = (
-                        created_session.get("session_id")
-                        if isinstance(created_session, dict)
-                        else None
-                    )
+                    try:
+                        created_session = self.create_session()
+                        blocked_session = (
+                            created_session.get("session_id")
+                            if isinstance(created_session, dict)
+                            else None
+                        )
+                    except Exception:
+                        blocked_session = None
                 return {
                     "success": False,
                     "status": "blocked",
