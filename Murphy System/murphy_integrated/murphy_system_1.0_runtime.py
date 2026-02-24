@@ -2675,7 +2675,12 @@ class MurphySystem:
                 "Two-Phase Orchestrator session creation raised unexpectedly; will proceed without session binding."
             )
             return None
-        if not payload or not payload.get("session_id"):
+        if not isinstance(payload, dict):
+            logger.warning(
+                "Two-Phase Orchestrator session creation returned an invalid payload; will proceed without session binding."
+            )
+            return None
+        if not payload.get("session_id"):
             logger.warning(
                 "Two-Phase Orchestrator session creation failed; will fall back to automation_id for session tracking."
             )
