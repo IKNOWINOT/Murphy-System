@@ -678,6 +678,37 @@ def test_execute_task_does_not_block_when_require_orchestrator_online_non_finite
     assert response["metadata"]["orchestration_mode"] in {"fallback", "simulation"}
 
 
+def test_execute_task_does_not_block_when_require_orchestrator_online_complex_numeric():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.orchestrator = None
+    murphy._prepare_activation_preview = lambda *_args, **_kwargs: (
+        SimpleNamespace(doc_id="doc-orchestrator-online-complex"),
+        {
+            "dynamic_implementation": {
+                "status": "ready",
+                "approval_policy": {"status": "ready"},
+                "gate_status": "ready",
+                "execution_strategy": "production",
+            }
+        },
+    )
+    murphy._persist_execution_snapshot = lambda *_args, **_kwargs: {"status": "disabled"}
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Execute with orchestration-online complex requirement",
+            "automation",
+            {"enforce_policy": False, "require_orchestrator_online": complex(1, 0)},
+            session_id="session-online-complex",
+        )
+    )
+
+    assert isinstance(response["success"], bool)
+    assert response.get("status") != "blocked"
+    assert response["metadata"]["orchestration_mode"] in {"fallback", "simulation"}
+
+
 def test_execute_task_fallback_with_non_finite_decimal_policy_flag():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
