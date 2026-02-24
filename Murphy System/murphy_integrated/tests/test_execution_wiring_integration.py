@@ -81,3 +81,5 @@ def test_execute_task_blocks_when_orchestrator_missing_and_policy_enforced():
     assert response["status"] == "blocked"
     assert response["session_id"] == "session-1"
     assert "mfgc_execution" not in response
+    assert "error" in response
+    assert "reason" in response
