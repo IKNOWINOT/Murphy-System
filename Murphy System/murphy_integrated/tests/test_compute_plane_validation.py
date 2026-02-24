@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 import asyncio
+from collections import deque
 from datetime import datetime
 from types import MappingProxyType
 
@@ -318,6 +319,35 @@ def test_execute_task_compute_validation_uses_id_key_when_session_id_is_mapping(
     assert murphy.document_sessions[created_session_id] == result["doc_id"]
 
 
+def test_execute_task_compute_validation_uses_id_key_when_session_id_is_deque():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    created_session_id = "compute-created-session-id-deque-fallback"
+    murphy.create_session = lambda: {
+        "session_id": deque(["invalid"]),
+        "id": created_session_id,
+    }
+    result = asyncio.run(
+        murphy.execute_task(
+            "Test compute validation session registration using id fallback for deque session_id",
+            "automation",
+            {
+                "deterministic_request": {
+                    "expression": "minimize: x subject to: x >= 0",
+                    "language": "lp"
+                },
+                "enforce_policy": False
+            },
+        )
+    )
+
+    assert result["status"] == "validated"
+    assert result["success"] is True
+    assert result["session_id"] == created_session_id
+    assert created_session_id in murphy.sessions
+    assert murphy.document_sessions[created_session_id] == result["doc_id"]
+
+
 def test_execute_task_compute_validation_uses_id_key_when_session_id_access_raises():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
@@ -333,6 +363,37 @@ def test_execute_task_compute_validation_uses_id_key_when_session_id_access_rais
     result = asyncio.run(
         murphy.execute_task(
             "Test compute validation session registration using id fallback when session_id access fails",
+            "automation",
+            {
+                "deterministic_request": {
+                    "expression": "minimize: x subject to: x >= 0",
+                    "language": "lp"
+                },
+                "enforce_policy": False
+            },
+        )
+    )
+
+    assert result["status"] == "validated"
+    assert result["success"] is True
+    assert result["session_id"] == created_session_id
+    assert created_session_id in murphy.sessions
+    assert murphy.document_sessions[created_session_id] == result["doc_id"]
+
+
+def test_execute_task_compute_validation_uses_id_key_when_payload_get_access_raises():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    created_session_id = "compute-created-session-id-get-access-fallback"
+
+    class _SessionPayload(dict):
+        def get(self, key, default=None):
+            raise RuntimeError(f"{key} access failed")
+
+    murphy.create_session = lambda: _SessionPayload({"id": created_session_id})
+    result = asyncio.run(
+        murphy.execute_task(
+            "Test compute validation session registration using id fallback when payload get access fails",
             "automation",
             {
                 "deterministic_request": {

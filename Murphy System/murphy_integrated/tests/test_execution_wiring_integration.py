@@ -2,6 +2,7 @@
 
 import asyncio
 import importlib.util
+from collections import deque
 from decimal import Decimal
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -305,6 +306,35 @@ def test_execute_task_fallback_uses_id_key_when_session_id_is_mapping():
     assert "mfgc_execution" in response
 
 
+def test_execute_task_fallback_uses_id_key_when_session_id_is_deque():
+    runtime = load_runtime_module()
+    if runtime.MFGCAdapter is None:
+        pytest.skip("MFGC adapter not available in test environment")
+
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.system_integrator = StubIntegrator()
+    murphy.mfgc_adapter = runtime.MFGCAdapter(murphy.system_integrator)
+    murphy.orchestrator = None
+    murphy.create_session = lambda *args, **kwargs: {
+        "session_id": deque(["invalid"]),
+        "id": "session-from-id-deque-fallback",
+    }
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Draft an automation plan",
+            "automation",
+            {"enforce_policy": False},
+            session_id=None
+        )
+    )
+
+    assert isinstance(response["success"], bool)
+    assert response["metadata"]["mode"] == "mfgc_fallback"
+    assert response["session_id"] == "session-from-id-deque-fallback"
+    assert "mfgc_execution" in response
+
+
 def test_execute_task_fallback_uses_id_key_when_session_id_access_raises():
     runtime = load_runtime_module()
     if runtime.MFGCAdapter is None:
@@ -334,6 +364,36 @@ def test_execute_task_fallback_uses_id_key_when_session_id_access_raises():
     assert isinstance(response["success"], bool)
     assert response["metadata"]["mode"] == "mfgc_fallback"
     assert response["session_id"] == "session-from-id-access-fallback"
+    assert "mfgc_execution" in response
+
+
+def test_execute_task_fallback_uses_id_key_when_payload_get_access_raises():
+    runtime = load_runtime_module()
+    if runtime.MFGCAdapter is None:
+        pytest.skip("MFGC adapter not available in test environment")
+
+    class _SessionPayload(dict):
+        def get(self, key, default=None):
+            raise RuntimeError(f"{key} access failed")
+
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.system_integrator = StubIntegrator()
+    murphy.mfgc_adapter = runtime.MFGCAdapter(murphy.system_integrator)
+    murphy.orchestrator = None
+    murphy.create_session = lambda *args, **kwargs: _SessionPayload({"id": "session-from-id-get-access-fallback"})
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Draft an automation plan",
+            "automation",
+            {"enforce_policy": False},
+            session_id=None
+        )
+    )
+
+    assert isinstance(response["success"], bool)
+    assert response["metadata"]["mode"] == "mfgc_fallback"
+    assert response["session_id"] == "session-from-id-get-access-fallback"
     assert "mfgc_execution" in response
 
 

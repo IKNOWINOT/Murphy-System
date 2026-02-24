@@ -20,6 +20,7 @@ import json
 import importlib.util
 from copy import deepcopy
 from pathlib import Path
+from collections import deque
 from collections.abc import Mapping
 from typing import Dict, List, Optional, Any, Tuple, Literal, Set, TYPE_CHECKING
 from dataclasses import asdict, is_dataclass
@@ -1924,17 +1925,7 @@ class MurphySystem:
                     "Compute-plane validation session creation returned an invalid payload; results will not be linked to a session."
                 )
                 return None
-            try:
-                primary_session_id = session_payload.get("session_id")
-            except Exception:
-                primary_session_id = None
-            resolved_session_id = self._normalize_session_id(primary_session_id)
-            if resolved_session_id is None:
-                try:
-                    fallback_session_id = session_payload.get("id")
-                except Exception:
-                    fallback_session_id = None
-                resolved_session_id = self._normalize_session_id(fallback_session_id)
+            resolved_session_id = self._resolve_session_id_from_payload(session_payload)
             if resolved_session_id is None:
                 logger.warning(
                     "Compute-plane validation session creation returned an invalid session_id; results will not be linked to a session."
@@ -1972,7 +1963,7 @@ class MurphySystem:
                 return None
         if isinstance(
             session_id,
-            (bool, complex, bytes, bytearray, memoryview, Mapping, list, tuple, set, frozenset, range),
+            (bool, complex, bytes, bytearray, memoryview, Mapping, list, tuple, set, frozenset, range, deque),
         ):
             return None
         if isinstance(session_id, str):
@@ -1982,6 +1973,35 @@ class MurphySystem:
                 return str(session_id).strip() or None
             except Exception:
                 return None
+        return None
+
+    def _resolve_session_id_from_payload(self, payload: Mapping[str, Any]) -> Optional[str]:
+        """Resolve session IDs from payloads, preferring `session_id` then `id`."""
+
+        for key in ("session_id", "id"):
+            raw_value = None
+            fetched = False
+
+            try:
+                raw_value = payload.get(key)  # type: ignore[attr-defined]
+                fetched = True
+            except Exception:
+                fetched = False
+
+            if not fetched:
+                try:
+                    raw_value = payload[key]
+                    fetched = True
+                except Exception:
+                    fetched = False
+
+            if not fetched:
+                continue
+
+            normalized = self._normalize_session_id(raw_value)
+            if normalized is not None:
+                return normalized
+
         return None
 
     def _is_compute_expression_candidate(self, value: Optional[str]) -> bool:
@@ -2316,17 +2336,7 @@ class MurphySystem:
                 try:
                     created_session = self.create_session()
                     if isinstance(created_session, Mapping):
-                        try:
-                            created_session_id = created_session.get("session_id")
-                        except Exception:
-                            created_session_id = None
-                        blocked_session = self._normalize_session_id(created_session_id)
-                        if blocked_session is None:
-                            try:
-                                fallback_created_session_id = created_session.get("id")
-                            except Exception:
-                                fallback_created_session_id = None
-                            blocked_session = self._normalize_session_id(fallback_created_session_id)
+                        blocked_session = self._resolve_session_id_from_payload(created_session)
                     else:
                         blocked_session = None
                 except Exception:
@@ -2494,17 +2504,7 @@ class MurphySystem:
                     try:
                         created_session = self.create_session()
                         if isinstance(created_session, Mapping):
-                            try:
-                                created_session_id = created_session.get("session_id")
-                            except Exception:
-                                created_session_id = None
-                            blocked_session = self._normalize_session_id(created_session_id)
-                            if blocked_session is None:
-                                try:
-                                    fallback_created_session_id = created_session.get("id")
-                                except Exception:
-                                    fallback_created_session_id = None
-                                blocked_session = self._normalize_session_id(fallback_created_session_id)
+                            blocked_session = self._resolve_session_id_from_payload(created_session)
                         else:
                             blocked_session = None
                     except Exception:
@@ -2839,24 +2839,7 @@ class MurphySystem:
                 "Two-Phase Orchestrator session creation returned an invalid payload; will proceed without session binding."
             )
             return None
-        try:
-            payload_session_id = payload.get("session_id")
-        except Exception:
-            payload_session_id = None
-        if isinstance(payload_session_id, (dict, list, tuple, set, frozenset)):
-            logger.warning(
-                "Two-Phase Orchestrator session creation returned an unsupported session_id payload type; will proceed without session binding."
-            )
-            return None
-        normalized_payload_session_id = self._normalize_session_id(payload_session_id)
-        if normalized_payload_session_id is None:
-            try:
-                payload_session_id = payload.get("id")
-            except Exception:
-                payload_session_id = None
-            if isinstance(payload_session_id, (dict, list, tuple, set, frozenset)):
-                payload_session_id = None
-            normalized_payload_session_id = self._normalize_session_id(payload_session_id)
+        normalized_payload_session_id = self._resolve_session_id_from_payload(payload)
         if normalized_payload_session_id is None:
             logger.warning(
                 "Two-Phase Orchestrator session creation failed; will fall back to automation_id for session tracking."
