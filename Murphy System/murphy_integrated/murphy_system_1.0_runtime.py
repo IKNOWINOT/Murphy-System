@@ -1614,6 +1614,8 @@ class MurphySystem:
                 if normalized in {"true", "1", "yes", "on"}:
                     return True
                 return default
+            if isinstance(raw_value, float) and not math.isfinite(raw_value):
+                return default
             return bool(raw_value)
 
         enforce_policy = _parse_policy_flag(params.get("enforce_policy", True), True)
