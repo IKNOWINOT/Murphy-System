@@ -156,6 +156,31 @@ def test_execute_task_whitespace_session_id_normalized_for_compute_path():
     assert murphy.document_sessions[result["session_id"]] == result["doc_id"]
 
 
+def test_execute_task_compute_validation_handles_invalid_create_session_payload():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    # create_session() is expected to return a dict; returning a string simulates
+    # an invalid payload type from a broken session provider.
+    murphy.create_session = lambda: "invalid-session-payload"
+    result = asyncio.run(
+        murphy.execute_task(
+            "Compute validation with invalid create_session payload",
+            "automation",
+            {
+                "deterministic_request": {
+                    "expression": "minimize: x subject to: x >= 0",
+                    "language": "lp"
+                },
+                "enforce_policy": False
+            },
+        )
+    )
+
+    assert result["status"] == "validated"
+    assert result["success"] is True
+    assert result["session_id"] is None
+
+
 def test_execute_task_whitespace_session_id_normalized_for_non_compute_path():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
