@@ -92,6 +92,31 @@ def test_execute_task_uses_mfgc_fallback_when_orchestrator_missing():
     assert "execution_ready" in response["activation_preview"]["execution_wiring"]
 
 
+def test_simulate_execution_mfgc_fallback_timestamp_is_timezone_aware_without_adapter():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.orchestrator = None
+    murphy._execute_with_mfgc_adapter = lambda *_args, **_kwargs: {
+        "success": True,
+        "execution_time": 0.01,
+        "integrator_response": {"status": "ok"},
+    }
+    murphy.create_session = lambda *args, **kwargs: {"session_id": "session-fallback"}
+
+    response = murphy._simulate_execution(
+        "Draft an automation plan",
+        "automation",
+        {"enforce_policy": False},
+        session_id=None,
+    )
+
+    timestamp = datetime.fromisoformat(response["metadata"]["timestamp"])
+    assert timestamp.tzinfo is timezone.utc
+    assert response["metadata"]["mode"] == "mfgc_fallback"
+    assert response["metadata"]["orchestration_mode"] == "fallback"
+    assert response["session_id"] == "session-fallback"
+
+
 def test_execute_task_fallback_handles_missing_create_session_payload():
     runtime = load_runtime_module()
     if runtime.MFGCAdapter is None:
