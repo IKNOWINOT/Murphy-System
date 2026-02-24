@@ -1600,6 +1600,8 @@ class MurphySystem:
         def _parse_policy_flag(raw_value: Any, default: bool) -> bool:
             if raw_value is None:
                 return default
+            if isinstance(raw_value, (dict, list, tuple, set)):
+                return default
             if isinstance(raw_value, (bytes, bytearray, memoryview)):
                 try:
                     raw_value = bytes(raw_value).decode("utf-8")
