@@ -228,6 +228,31 @@ def test_execute_task_blocks_when_orchestrator_missing_and_policy_enforced():
     assert response["error"] == response["reason"]
 
 
+def test_execute_task_does_not_block_when_enforce_policy_string_false():
+    runtime = load_runtime_module()
+    if runtime.MFGCAdapter is None:
+        pytest.skip("MFGC adapter not available in test environment")
+
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.system_integrator = StubIntegrator()
+    murphy.mfgc_adapter = runtime.MFGCAdapter(murphy.system_integrator)
+    murphy.orchestrator = None
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Draft an automation plan",
+            "automation",
+            {"enforce_policy": "false"},
+            session_id="session-1"
+        )
+    )
+
+    assert isinstance(response["success"], bool)
+    assert response["status"] != "blocked"
+    assert response["metadata"]["mode"] == "mfgc_fallback"
+    assert response["metadata"]["orchestration_mode"] == "fallback"
+
+
 def test_execute_task_blocks_when_orchestrator_missing_normalizes_whitespace_session_id():
     runtime = load_runtime_module()
     if runtime.MFGCAdapter is None:
