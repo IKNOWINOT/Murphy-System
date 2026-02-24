@@ -2355,7 +2355,11 @@ class MurphySystem:
             }
         
         if not self._is_orchestrator_available():
-            if execution_policy.get("enforced", True):
+            # `_build_execution_policy` maps request parameter `enforce_policy`
+            # into the normalized execution_policy field `enforced`.
+            if bool(execution_policy.get("enforced")):
+                blocked_reason = "Two-Phase Orchestrator unavailable while execution policy enforcement is enabled."
+                final_blocked_reason = execution_policy.get("reason") or blocked_reason
                 blocked_session = session_id or self.create_session().get("session_id")
                 return {
                     "success": False,
@@ -2366,7 +2370,10 @@ class MurphySystem:
                     "execution_wiring": execution_wiring,
                     "execution_policy": execution_policy,
                     "persistence_snapshot": persistence_snapshot,
-                    "error": "Two-Phase Orchestrator unavailable while execution policy enforcement is enabled."
+                    # Keep `error` for backward compatibility while using `reason`
+                    # as the canonical blocked-state message.
+                    "error": blocked_reason,
+                    "reason": final_blocked_reason,
                 }
             logger.warning("Two-Phase Orchestrator unavailable; using MFGC fallback or simulation mode.")
             fallback = self._simulate_execution(task_description, task_type, parameters, session_id)
