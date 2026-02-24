@@ -2532,7 +2532,15 @@ class MurphySystem:
         start = time.perf_counter()
         response_session = self._resolve_orchestrator_session_id(session_id)
         if response_session is None:
-            response_session = self.create_session().get("session_id")
+            created_session = self.create_session()
+            created_session_id = (
+                created_session.get("session_id")
+                if isinstance(created_session, dict)
+                else None
+            )
+            response_session = self._normalize_session_id(
+                created_session_id
+            )
         mfgc_payload = self._execute_with_mfgc_adapter(task_description, task_type, parameters)
         if mfgc_payload:
             execution_time = mfgc_payload.get("execution_time")
