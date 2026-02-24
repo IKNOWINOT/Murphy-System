@@ -4,6 +4,7 @@ This file stores confirmed completion data and iteration evidence moved out of `
 
 ## Latest confirmed runtime behavior increments
 
+- Added non-permutation execution-policy hardening: non-finite numeric policy payloads (for example `require_orchestrator_online=NaN`) now default safely instead of coercing truthy and unexpectedly forcing orchestrator-online blocking.
 - Added non-permutation execution-policy hardening: malformed container policy payloads (for example `require_orchestrator_online` dictionaries) now fall back to default policy behavior instead of being coerced truthy and unexpectedly forcing blocked execution.
 - Added Phase 1 execution-readiness hardening: orchestrator-unavailable execution-policy blocking now uses consistent canonical `reason`/`error` messaging, deterministic-required route-affinity and gate/swarm execution-mode metadata are explicitly surfaced in runtime execution responses, and focused integration coverage validates these wiring semantics.
 - Added non-permutation session-normalization hardening: whitespace-only user-supplied `session_id` values are now normalized to `None` before runtime task execution, preventing creation/use of blank session identifiers in non-compute orchestration fallback paths.
