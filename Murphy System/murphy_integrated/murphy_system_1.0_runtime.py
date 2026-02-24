@@ -22,7 +22,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple, Literal, Set, TYPE_CHECKING
 from dataclasses import asdict, is_dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 import asyncio
 import time
@@ -1600,6 +1600,11 @@ class MurphySystem:
         def _parse_policy_flag(raw_value: Any, default: bool) -> bool:
             if raw_value is None:
                 return default
+            if isinstance(raw_value, (bytes, bytearray, memoryview)):
+                try:
+                    raw_value = bytes(raw_value).decode("utf-8")
+                except (UnicodeDecodeError, TypeError, ValueError):
+                    return default
             if isinstance(raw_value, str):
                 normalized = raw_value.strip().lower()
                 if normalized in {"false", "0", "no", "off"}:
@@ -2260,6 +2265,13 @@ class MurphySystem:
                 "persistence_snapshot": persistence_snapshot,
                 "error": blocked_reason,
                 "reason": blocked_reason,
+                "metadata": {
+                    "task_description": task_description,
+                    "task_type": task_type,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "mode": "blocked",
+                    "orchestration_mode": "blocked"
+                },
             }
 
         if self.librarian:
@@ -2423,6 +2435,13 @@ class MurphySystem:
                     # as the canonical blocked-state message.
                     "error": final_blocked_reason,
                     "reason": final_blocked_reason,
+                    "metadata": {
+                        "task_description": task_description,
+                        "task_type": task_type,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "mode": "blocked",
+                        "orchestration_mode": "blocked"
+                    },
                 }
             logger.warning("Two-Phase Orchestrator unavailable; using MFGC fallback or simulation mode.")
             fallback = self._simulate_execution(task_description, task_type, parameters, session_id)
