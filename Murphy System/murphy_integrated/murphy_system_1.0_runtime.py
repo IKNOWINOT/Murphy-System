@@ -1906,7 +1906,13 @@ class MurphySystem:
                     "source": "compute_validation_autocreate",
                 }
                 return normalized_session_id
-            session_payload = self.create_session()
+            try:
+                session_payload = self.create_session()
+            except Exception:
+                logger.warning(
+                    "Compute-plane validation session creation raised an exception; results will not be linked to a session."
+                )
+                return None
             if session_payload is None:
                 logger.warning(
                     "Compute-plane validation session creation failed; results will not be linked to a session."
