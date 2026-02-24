@@ -676,6 +676,27 @@ class TestComputeService(unittest.TestCase):
             self.assertIn("Precision must be between 1 and 50", result.error_message)
             self.assertNotIn(request_id, self.service.pending_requests)
             mock_thread_cls.assert_not_called()
+
+    def test_submit_request_whitespace_expression_skips_background_worker(self):
+        """Whitespace-only expressions should fail preflight without worker threads."""
+        request = ComputeRequest(
+            expression="placeholder",
+            language="sympy",
+            request_id="invalid-expression-sync-request",
+        )
+        # ComputeRequest validates expression at construction time, so mutate after
+        # creation to exercise runtime preflight guard behavior.
+        request.expression = "   "
+
+        with patch("src.compute_plane.service.threading.Thread") as mock_thread_cls:
+            request_id = self.service.submit_request(request)
+            result = self.service.get_result(request_id)
+
+            self.assertIsNotNone(result)
+            self.assertEqual(result.status, ComputeStatus.FAIL)
+            self.assertIn("Expression must be a non-empty string", result.error_message)
+            self.assertNotIn(request_id, self.service.pending_requests)
+            mock_thread_cls.assert_not_called()
     
     def test_get_statistics(self):
         """Test getting service statistics"""

@@ -86,7 +86,6 @@ class ComputeService:
                 assumptions=request.assumptions if isinstance(request.assumptions, dict) else {},
                 metadata=request.metadata if isinstance(request.metadata, dict) else {},
             )
-
         request_signature = self._request_signature(request)
 
         with self._lock:
@@ -144,6 +143,20 @@ class ComputeService:
                     request_id=request.request_id,
                     status=ComputeStatus.UNSUPPORTED,
                     error_message=f"Unsupported language: {request.language}",
+                )
+                self.request_cache[request.request_id] = result
+                self.request_signatures[request.request_id] = request_signature
+                return request.request_id
+
+            if (
+                not isinstance(request.expression, str)
+                or not request.expression
+                or not request.expression.strip()
+            ):
+                result = ComputeResult(
+                    request_id=request.request_id,
+                    status=ComputeStatus.FAIL,
+                    error_message="Expression must be a non-empty string",
                 )
                 self.request_cache[request.request_id] = result
                 self.request_signatures[request.request_id] = request_signature
