@@ -2531,19 +2531,6 @@ class MurphySystem:
         """Fallback execution when orchestrator is unavailable."""
         start = time.perf_counter()
         response_session = self._resolve_orchestrator_session_id(session_id)
-        if response_session is None:
-            try:
-                created_session = self.create_session()
-            except Exception:
-                created_session = None
-            created_session_id = (
-                created_session.get("session_id")
-                if isinstance(created_session, dict)
-                else None
-            )
-            response_session = self._normalize_session_id(
-                created_session_id
-            )
         mfgc_payload = self._execute_with_mfgc_adapter(task_description, task_type, parameters)
         if mfgc_payload:
             execution_time = mfgc_payload.get("execution_time")
@@ -2693,7 +2680,7 @@ class MurphySystem:
                 "Two-Phase Orchestrator session creation failed; will fall back to automation_id for session tracking."
             )
             return None
-        return payload["session_id"]
+        return self._normalize_session_id(payload.get("session_id"))
 
     def _is_orchestrator_available(self) -> bool:
         return self._supports_async_orchestrator() or self._supports_two_phase_orchestrator()
