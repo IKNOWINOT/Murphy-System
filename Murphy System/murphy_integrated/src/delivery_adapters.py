@@ -488,6 +488,11 @@ class DeliveryOrchestrator:
         self._history: List[Dict[str, Any]] = []
         self._pending_approvals: List[DeliveryRequest] = []
 
+    @property
+    def adapters(self) -> Dict[DeliveryChannel, "BaseDeliveryAdapter"]:
+        """Read-only view of registered adapters."""
+        return dict(self._adapters)
+
     # -- adapter management --------------------------------------------------
 
     def register_adapter(
