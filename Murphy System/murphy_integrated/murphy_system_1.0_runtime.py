@@ -20,13 +20,17 @@ import json
 import importlib.util
 from copy import deepcopy
 from pathlib import Path
+from collections import deque
+from collections.abc import Mapping
 from typing import Dict, List, Optional, Any, Tuple, Literal, Set, TYPE_CHECKING
 from dataclasses import asdict, is_dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 import asyncio
 import time
 import re
+import math
+import numbers
 from uuid import uuid4
 from threading import Lock
 
@@ -1040,6 +1044,51 @@ class MurphySystem:
         "pending_compliance",
         "blocked"
     }
+    CONFIDENCE_ENGINE_TASK_TYPES = {"confidence_engine", "confidence", "confidence_validation"}
+    DETERMINISTIC_ENGINE_TASK_TYPES = {"deterministic_engine", "deterministic", "deterministic_validation"}
+    DETERMINISTIC_REQUEST_EXPRESSION_FIELDS = [
+        "expression",
+        "compute_expression",
+        "input",
+        "text",
+        "content",
+        "message",
+        "task_description",
+        "description",
+        "task",
+        "prompt",
+        "query",
+    ]
+    CONFIDENCE_REQUIRED_EXPRESSION_FIELDS = [
+        "confidence_expression",
+        "compute_expression",
+        "expression",
+        "input",
+        "text",
+        "content",
+        "message",
+        "prompt",
+        "task_description",
+        "description",
+        "task",
+        "query",
+    ]
+    MATH_REQUIRED_EXPRESSION_FIELDS = [
+        "math_expression",
+        "equation",
+        "formula",
+        "compute_expression",
+        "expression",
+        "input",
+        "text",
+        "content",
+        "message",
+        "prompt",
+        "task_description",
+        "description",
+        "task",
+        "query",
+    ]
     
     @classmethod
     def create_test_instance(cls) -> "MurphySystem":
@@ -1551,11 +1600,55 @@ class MurphySystem:
         parameters: Optional[Dict[str, Any]]
     ) -> Dict[str, Any]:
         params = parameters or {}
-        enforce_policy = params.get("enforce_policy", True)
+        def _parse_policy_flag(raw_value: Any, default: bool) -> bool:
+            if raw_value is None:
+                return default
+            if isinstance(raw_value, (dict, list, tuple, set, frozenset)):
+                return default
+            if isinstance(raw_value, (bytes, bytearray, memoryview)):
+                try:
+                    raw_value = bytes(raw_value).decode("utf-8")
+                except (UnicodeDecodeError, TypeError, ValueError):
+                    return default
+            if isinstance(raw_value, str):
+                normalized = raw_value.strip().lower()
+                if normalized in {"false", "0", "no", "off"}:
+                    return False
+                if normalized in {"true", "1", "yes", "on"}:
+                    return True
+                return default
+            # `bool` is intentionally excluded so explicit boolean flags still use direct
+            # truthiness.
+            if isinstance(raw_value, complex):
+                return default
+            if isinstance(raw_value, numbers.Number) and not isinstance(raw_value, bool):
+                # Non-standard numeric objects can still raise during float conversion.
+                try:
+                    if not math.isfinite(float(raw_value)):
+                        return default
+                except (TypeError, ValueError, OverflowError):
+                    return default
+            try:
+                return bool(raw_value)
+            except (TypeError, ValueError, OverflowError, RuntimeError, AttributeError):
+                return default
+            except Exception as exc:
+                logger.warning(
+                    "Execution policy flag bool coercion raised an unexpected exception type (%s); defaulting.",
+                    type(exc).__name__,
+                )
+                return default
+
+        enforce_policy = _parse_policy_flag(params.get("enforce_policy", True), True)
+        require_orchestrator_online = _parse_policy_flag(
+            params.get("require_orchestrator_online", params.get("orchestrator_online_required", False)),
+            False
+        )
         if not dynamic_implementation:
             return {
                 "status": "unavailable",
                 "enforced": enforce_policy,
+                "require_orchestrator_online": require_orchestrator_online,
                 "approval_required": False,
                 "execution_blocked": True,
                 "reason": "Dynamic implementation plan unavailable."
@@ -1588,6 +1681,7 @@ class MurphySystem:
         return {
             "status": status,
             "enforced": enforce_policy,
+            "require_orchestrator_online": require_orchestrator_online,
             "approval_required": approval_required,
             "execution_blocked": execution_blocked,
             "approval_status": approval_status,
@@ -1782,7 +1876,7 @@ class MurphySystem:
             "message": "MFGC execution completed with a fallback response payload.",
             "warnings": ["Integrator response unavailable; using fallback payload."],
             "triggers": [],
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
     def _get_compute_service(self) -> Optional[ComputeServiceType]:
@@ -1798,43 +1892,371 @@ class MurphySystem:
 
     def _resolve_compute_session(self, session_id: Optional[str]) -> Optional[str]:
         """Resolve a valid session ID for compute-plane validation."""
+        normalized_session_id = self._normalize_session_id(session_id)
         with self._session_lock:
-            if session_id and session_id in self.sessions:
-                return session_id
-            if session_id:
+            if normalized_session_id and normalized_session_id in self.sessions:
+                return normalized_session_id
+            if normalized_session_id:
                 logger.warning(
-                    "Unknown session_id '%s' supplied for compute-plane validation; creating new session.",
-                    session_id
+                    "Unknown session_id '%s' supplied for compute-plane validation; creating session with supplied ID.",
+                    normalized_session_id
                 )
-            session_payload = self.create_session()
+                self.sessions[normalized_session_id] = {
+                    "session_id": normalized_session_id,
+                    "name": "session",
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "source": "compute_validation_autocreate",
+                }
+                return normalized_session_id
+            try:
+                session_payload = self.create_session()
+            except Exception:
+                logger.warning(
+                    "Compute-plane validation session creation raised an exception; results will not be linked to a session."
+                )
+                return None
             if session_payload is None:
                 logger.warning(
                     "Compute-plane validation session creation failed; results will not be linked to a session."
                 )
                 return None
-            return session_payload.get("session_id")
+            if not isinstance(session_payload, Mapping):
+                logger.warning(
+                    "Compute-plane validation session creation returned an invalid payload; results will not be linked to a session."
+                )
+                return None
+            resolved_session_id = self._resolve_session_id_from_payload(session_payload)
+            if resolved_session_id is None:
+                logger.warning(
+                    "Compute-plane validation session creation returned an invalid session_id; results will not be linked to a session."
+                )
+            elif resolved_session_id not in self.sessions:
+                self.sessions[resolved_session_id] = {
+                    "session_id": resolved_session_id,
+                    "name": "session",
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "source": "compute_validation_autocreate",
+                }
+            return resolved_session_id
+
+    def _normalize_session_id(self, session_id: Optional[Any]) -> Optional[str]:
+        """
+        Normalize optional session IDs by trimming and dropping blank values.
+
+        String values are stripped and converted to `None` when blank.
+        Boolean values are treated as missing IDs (rather than `"True"`/`"False"`).
+        Byte-oriented values are treated as missing IDs to avoid byte representation
+        strings being used as session identifiers.
+        Container values are treated as missing IDs to avoid serializing object
+        representations like dictionaries/lists into session identifiers.
+        Non-string values are converted to strings, then stripped, so caller-provided
+        scalar identifiers (for example integers) can still be tracked consistently.
+        `None` values are preserved as `None`.
+        """
+        if isinstance(session_id, float) and not math.isfinite(session_id):
+            return None
+        if isinstance(session_id, numbers.Real) and not isinstance(session_id, numbers.Integral):
+            try:
+                if not math.isfinite(float(session_id)):
+                    return None
+            except OverflowError:
+                pass
+            except (TypeError, ValueError):
+                return None
+        if isinstance(
+            session_id,
+            (bool, complex, bytes, bytearray, memoryview, Mapping, list, tuple, set, frozenset, range, deque),
+        ):
+            return None
+        if isinstance(session_id, str):
+            return session_id.strip() or None
+        if session_id is not None:
+            try:
+                return str(session_id).strip() or None
+            except Exception:
+                return None
+        return None
+
+    def _resolve_session_id_from_payload(self, payload: Mapping[str, Any]) -> Optional[str]:
+        """Resolve session IDs from payloads, preferring `session_id` then `id`."""
+
+        for key in ("session_id", "id"):
+            raw_value = None
+            fetched = False
+
+            try:
+                raw_value = payload.get(key)  # type: ignore[attr-defined]
+                fetched = True
+            except Exception:
+                fetched = False
+
+            if not fetched:
+                try:
+                    raw_value = payload[key]
+                    fetched = True
+                except Exception:
+                    fetched = False
+
+            if not fetched:
+                continue
+
+            normalized = self._normalize_session_id(raw_value)
+            if normalized is not None:
+                return normalized
+
+        return None
+
+    def _is_compute_expression_candidate(self, value: Optional[str]) -> bool:
+        """Return True when text appears to contain a deterministic compute expression."""
+        if not isinstance(value, str):
+            return False
+        normalized = value.strip()
+        if not normalized:
+            return False
+        return bool(
+            re.search(r"(minimize:|maximize:|subject to|[=+\-*/^()]|<=|>=)", normalized, re.IGNORECASE)
+        )
+
+    def _first_non_empty_value(
+        self,
+        parameters: Dict[str, Any],
+        keys: List[str],
+        fallback: Optional[str] = None
+    ) -> Optional[str]:
+        """Return first non-empty value from parameters for the provided keys."""
+        for key in keys:
+            value = parameters.get(key)
+            if isinstance(value, str):
+                if value.strip():
+                    return value
+                continue
+            if value is not None:
+                return value
+        return fallback
 
     def _execute_compute_plane_validation(
         self,
-        parameters: Optional[Dict[str, Any]]
+        parameters: Optional[Dict[str, Any]],
+        task_description: Optional[str] = None,
+        task_type: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
         """Run deterministic compute-plane validation when compute inputs are provided.
 
         ComputeService.validate_expression returns either a ValidationResult object or a dict,
         so the payload is normalized to a dictionary for consistent downstream usage.
         """
-        compute_request = (parameters or {}).get("compute_request")
+        input_parameters = parameters or {}
+        compute_request = input_parameters.get("compute_request")
+        deterministic_request = input_parameters.get("deterministic_request")
+        deterministic_expression = (
+            self._first_non_empty_value(
+                deterministic_request,
+                self.DETERMINISTIC_REQUEST_EXPRESSION_FIELDS
+            )
+            if isinstance(deterministic_request, dict)
+            else None
+        )
+        deterministic_required_expression = self._first_non_empty_value(
+            input_parameters,
+            self.DETERMINISTIC_REQUEST_EXPRESSION_FIELDS
+        )
+        confidence_required_expression = self._first_non_empty_value(
+            input_parameters,
+            self.CONFIDENCE_REQUIRED_EXPRESSION_FIELDS
+        )
+        math_required_expression = self._first_non_empty_value(
+            input_parameters,
+            self.MATH_REQUIRED_EXPRESSION_FIELDS
+        )
+        math_task_expression = None
+        if (task_type or "").lower() in {"math", "calculation", "numeric", "symbolic"}:
+            description_expression = (
+                task_description
+                if self._is_compute_expression_candidate(task_description)
+                else None
+            )
+            math_task_expression = self._first_non_empty_value(
+                input_parameters,
+                self.MATH_REQUIRED_EXPRESSION_FIELDS,
+                fallback=description_expression
+            )
+        confidence_task_expression = None
+        if (task_type or "").lower() in self.CONFIDENCE_ENGINE_TASK_TYPES:
+            description_expression = (
+                task_description
+                if self._is_compute_expression_candidate(task_description)
+                else None
+            )
+            confidence_task_expression = self._first_non_empty_value(
+                input_parameters,
+                self.CONFIDENCE_REQUIRED_EXPRESSION_FIELDS,
+                fallback=description_expression
+            )
+        deterministic_task_expression = None
+        if (task_type or "").lower() in self.DETERMINISTIC_ENGINE_TASK_TYPES:
+            description_expression = (
+                task_description
+                if self._is_compute_expression_candidate(task_description)
+                else None
+            )
+            deterministic_task_expression = self._first_non_empty_value(
+                input_parameters,
+                self.DETERMINISTIC_REQUEST_EXPRESSION_FIELDS,
+                fallback=description_expression
+            )
+        route_source = "compute_request"
+        if isinstance(compute_request, dict):
+            compute_expression = compute_request.get("expression")
+            should_use_deterministic = (
+                not self._is_compute_expression_candidate(compute_expression)
+                and (
+                    self._is_compute_expression_candidate(deterministic_expression)
+                    or (
+                        input_parameters.get("deterministic_required")
+                        and self._is_compute_expression_candidate(deterministic_required_expression)
+                    )
+                    or self._is_compute_expression_candidate(deterministic_task_expression)
+                    or (
+                        input_parameters.get("confidence_required")
+                        and self._is_compute_expression_candidate(confidence_required_expression)
+                    )
+                    or self._is_compute_expression_candidate(confidence_task_expression)
+                    or (
+                        input_parameters.get("math_required")
+                        and self._is_compute_expression_candidate(math_required_expression)
+                    )
+                    or self._is_compute_expression_candidate(math_task_expression)
+                )
+            )
+            if should_use_deterministic:
+                compute_request = None
+        if not compute_request and deterministic_request:
+            if isinstance(deterministic_request, dict):
+                deterministic_request_expression = self._first_non_empty_value(
+                    deterministic_request,
+                    self.DETERMINISTIC_REQUEST_EXPRESSION_FIELDS
+                )
+                if self._is_compute_expression_candidate(deterministic_request_expression):
+                    compute_request = {
+                        "expression": deterministic_request_expression.strip(),
+                        "language": (
+                            deterministic_request.get("language")
+                            or deterministic_request.get("compute_language")
+                            or "sympy"
+                        )
+                    }
+                else:
+                    compute_request = deterministic_request
+            else:
+                compute_request = deterministic_request
+            if compute_request:
+                route_source = "deterministic_request"
+        if (
+            not compute_request
+            and input_parameters.get("deterministic_required")
+            and self._is_compute_expression_candidate(deterministic_required_expression)
+        ):
+            compute_request = {
+                "expression": deterministic_required_expression.strip(),
+                "language": input_parameters.get("compute_language", "sympy")
+            }
+            route_source = "deterministic_required"
+        if (
+            not compute_request
+            and (task_type or "").lower() in self.DETERMINISTIC_ENGINE_TASK_TYPES
+            and self._is_compute_expression_candidate(deterministic_task_expression)
+        ):
+            compute_request = {
+                "expression": deterministic_task_expression.strip(),
+                "language": input_parameters.get("compute_language", "sympy")
+            }
+            route_source = "deterministic_task_type"
+        if (
+            not compute_request
+            and input_parameters.get("confidence_required")
+            and self._is_compute_expression_candidate(confidence_required_expression)
+        ):
+            compute_request = {
+                "expression": confidence_required_expression,
+                "language": input_parameters.get("confidence_language", input_parameters.get("compute_language", "sympy"))
+            }
+            route_source = "confidence_required"
+        if (
+            not compute_request
+            and (task_type or "").lower() in self.CONFIDENCE_ENGINE_TASK_TYPES
+        ):
+            description_expression = (
+                task_description
+                if self._is_compute_expression_candidate(task_description)
+                else None
+            )
+            confidence_expression = self._first_non_empty_value(
+                input_parameters,
+                self.CONFIDENCE_REQUIRED_EXPRESSION_FIELDS,
+                fallback=description_expression
+            )
+            if confidence_expression:
+                compute_request = {
+                    "expression": confidence_expression,
+                    "language": input_parameters.get(
+                        "confidence_language",
+                        input_parameters.get("compute_language", "sympy")
+                    )
+                }
+                route_source = "confidence_task_type"
+        if (
+            not compute_request
+            and (
+                input_parameters.get("math_required")
+                or (task_type or "").lower() in {"math", "calculation", "numeric", "symbolic"}
+            )
+        ):
+            description_expression = (
+                task_description
+                if self._is_compute_expression_candidate(task_description)
+                else None
+            )
+            math_expression = self._first_non_empty_value(
+                input_parameters,
+                self.MATH_REQUIRED_EXPRESSION_FIELDS,
+                fallback=description_expression
+            )
+            if math_expression:
+                compute_request = {
+                    "expression": math_expression,
+                    "language": input_parameters.get("math_language", input_parameters.get("compute_language", "sympy"))
+                }
+                route_source = "math_deterministic"
         if not compute_request:
             return None
+        if isinstance(compute_request, str):
+            compute_request = {
+                "expression": compute_request.strip(),
+                "language": input_parameters.get("compute_language", "sympy")
+            }
+        elif not isinstance(compute_request, dict):
+            return {
+                "status": "error",
+                "route_source": route_source,
+                "error": "compute_request must be an object or expression string."
+            }
         expression = compute_request.get("expression")
+        if isinstance(expression, str):
+            expression = expression.strip()
         language = compute_request.get("language", "sympy")
         if not expression:
-            return {"status": "error", "language": language, "error": "Missing compute expression."}
+            return {
+                "status": "error",
+                "language": language,
+                "route_source": route_source,
+                "error": "Missing compute expression."
+            }
         service = self._get_compute_service()
         if service is None:
             return {
                 "status": "unavailable",
                 "language": language,
+                "route_source": route_source,
                 "error": "Compute plane unavailable: service not initialized."
             }
         try:
@@ -1846,10 +2268,16 @@ class MurphySystem:
             return {
                 "status": status,
                 "language": language,
+                "route_source": route_source,
                 "validation": validation_payload
             }
         except Exception as exc:
-            return {"status": "error", "language": language, "error": str(exc)}
+            return {
+                "status": "error",
+                "language": language,
+                "route_source": route_source,
+                "error": str(exc)
+            }
     
     async def execute_task(
         self,
@@ -1879,6 +2307,8 @@ class MurphySystem:
         logger.info(f"EXECUTING TASK: {task_description}")
         logger.info(f"{'='*80}\n")
 
+        session_id = self._normalize_session_id(session_id)
+
         # Activation preview is returned for both orchestrator and fallback responses.
         doc, activation_preview = self._prepare_activation_preview(
             task_description,
@@ -1903,7 +2333,17 @@ class MurphySystem:
             parameters
         )
         if execution_policy["enforced"] and execution_policy["status"] != "ready":
-            blocked_session = session_id or self.create_session().get("session_id")
+            blocked_session = self._normalize_session_id(session_id)
+            if blocked_session is None:
+                try:
+                    created_session = self.create_session()
+                    if isinstance(created_session, Mapping):
+                        blocked_session = self._resolve_session_id_from_payload(created_session)
+                    else:
+                        blocked_session = None
+                except Exception:
+                    blocked_session = None
+            blocked_reason = execution_policy.get("reason") or "Execution policy blocked."
             return {
                 "success": False,
                 "status": "blocked",
@@ -1913,7 +2353,15 @@ class MurphySystem:
                 "execution_wiring": execution_wiring,
                 "execution_policy": execution_policy,
                 "persistence_snapshot": persistence_snapshot,
-                "error": execution_policy.get("reason") or "Execution policy blocked."
+                "error": blocked_reason,
+                "reason": blocked_reason,
+                "metadata": {
+                    "task_description": task_description,
+                    "task_type": task_type,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "mode": "blocked",
+                    "orchestration_mode": "blocked"
+                },
             }
 
         if self.librarian:
@@ -1939,12 +2387,65 @@ class MurphySystem:
                     "doc_id": doc.doc_id
                 }
             )
+        compute_parameters = parameters or {}
+        normalized_task_type = (task_type or "").lower()
+        confidence_expression_candidate = self._first_non_empty_value(
+            compute_parameters,
+            self.CONFIDENCE_REQUIRED_EXPRESSION_FIELDS,
+            fallback=task_description
+        )
+        math_expression_candidate = self._first_non_empty_value(
+            compute_parameters,
+            self.MATH_REQUIRED_EXPRESSION_FIELDS,
+            fallback=task_description
+        )
+        deterministic_required_expression_candidate = self._first_non_empty_value(
+            compute_parameters,
+            self.DETERMINISTIC_REQUEST_EXPRESSION_FIELDS
+        )
+        deterministic_expression_candidate = self._first_non_empty_value(
+            compute_parameters,
+            self.DETERMINISTIC_REQUEST_EXPRESSION_FIELDS,
+            fallback=task_description
+        )
+        requires_compute_validation = bool(
+            compute_parameters.get("compute_request")
+            or compute_parameters.get("deterministic_request")
+            or (
+                compute_parameters.get("confidence_required")
+                and self._is_compute_expression_candidate(confidence_expression_candidate)
+            )
+            or (
+                normalized_task_type in self.CONFIDENCE_ENGINE_TASK_TYPES
+                and self._is_compute_expression_candidate(confidence_expression_candidate)
+            )
+            or (
+                compute_parameters.get("math_required")
+                and self._is_compute_expression_candidate(math_expression_candidate)
+            )
+            or (
+                normalized_task_type in {"math", "calculation", "numeric", "symbolic"}
+                and self._is_compute_expression_candidate(math_expression_candidate)
+            )
+            or (
+                compute_parameters.get("deterministic_required")
+                and self._is_compute_expression_candidate(deterministic_required_expression_candidate)
+            )
+            or (
+                normalized_task_type in self.DETERMINISTIC_ENGINE_TASK_TYPES
+                and self._is_compute_expression_candidate(deterministic_expression_candidate)
+            )
+        )
         resolved_compute_session = None
-        if (parameters or {}).get("compute_request"):
-            resolved_compute_session = self._resolve_compute_session(session_id)
-        compute_plane_result = self._execute_compute_plane_validation(parameters)
+        compute_plane_result = self._execute_compute_plane_validation(
+            parameters,
+            task_description=task_description,
+            task_type=task_type
+        )
         if compute_plane_result:
             status = compute_plane_result.get("status", "error")
+            if status == "validated" and requires_compute_validation:
+                resolved_compute_session = self._resolve_compute_session(session_id)
             if status == "validated" and resolved_compute_session:
                 with self._session_lock:
                     previous_doc = self.document_sessions.get(resolved_compute_session)
@@ -1978,17 +2479,59 @@ class MurphySystem:
                 "execution_wiring": execution_wiring,
                 "execution_policy": execution_policy,
                 "persistence_snapshot": persistence_snapshot,
-                "compute_plane": compute_plane_result,
+                "compute_plane": {
+                    **compute_plane_result,
+                    "execution_wiring": execution_wiring,
+                    "wiring_enforced": execution_policy.get("enforced", True)
+                },
                 "swarm_execution": swarm_execution,
                 "metadata": {
                     "task_description": task_description,
                     "task_type": task_type,
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     "mode": "compute_plane_validation"
                 }
             }
         
         if not self._is_orchestrator_available():
+            # `_build_execution_policy` maps request parameter `enforce_policy`
+            # into the normalized execution_policy field `enforced`.
+            if bool(execution_policy.get("enforced")) or bool(execution_policy.get("require_orchestrator_online")):
+                blocked_reason = "Two-Phase Orchestrator unavailable while execution policy enforcement is enabled."
+                if not bool(execution_policy.get("enforced")) and bool(execution_policy.get("require_orchestrator_online")):
+                    blocked_reason = "Two-Phase Orchestrator unavailable while orchestration-online execution is required."
+                final_blocked_reason = execution_policy.get("reason") or blocked_reason
+                blocked_session = self._normalize_session_id(session_id)
+                if blocked_session is None:
+                    try:
+                        created_session = self.create_session()
+                        if isinstance(created_session, Mapping):
+                            blocked_session = self._resolve_session_id_from_payload(created_session)
+                        else:
+                            blocked_session = None
+                    except Exception:
+                        blocked_session = None
+                return {
+                    "success": False,
+                    "status": "blocked",
+                    "session_id": blocked_session,
+                    "doc_id": doc.doc_id,
+                    "activation_preview": activation_preview,
+                    "execution_wiring": execution_wiring,
+                    "execution_policy": execution_policy,
+                    "persistence_snapshot": persistence_snapshot,
+                    # Keep `error` for backward compatibility while using `reason`
+                    # as the canonical blocked-state message.
+                    "error": final_blocked_reason,
+                    "reason": final_blocked_reason,
+                    "metadata": {
+                        "task_description": task_description,
+                        "task_type": task_type,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "mode": "blocked",
+                        "orchestration_mode": "blocked"
+                    },
+                }
             logger.warning("Two-Phase Orchestrator unavailable; using MFGC fallback or simulation mode.")
             fallback = self._simulate_execution(task_description, task_type, parameters, session_id)
             fallback["activation_preview"] = activation_preview
@@ -2027,10 +2570,28 @@ class MurphySystem:
                 return {
                     'success': False,
                     'error': setup_result.get('error', 'Setup failed'),
-                    'phase': 'setup'
+                    'phase': 'setup',
+                    'doc_id': doc.doc_id,
+                    'activation_preview': activation_preview,
+                    'execution_wiring': execution_wiring,
+                    'execution_policy': execution_policy,
+                    'persistence_snapshot': persistence_snapshot,
+                    'swarm_execution': swarm_execution,
                 }
             
-            session_id = setup_result['session_id']
+            session_id = self._normalize_session_id(setup_result.get('session_id'))
+            if session_id is None:
+                return {
+                    'success': False,
+                    'error': 'Invalid orchestrator session_id returned from setup',
+                    'phase': 'setup',
+                    'doc_id': doc.doc_id,
+                    'activation_preview': activation_preview,
+                    'execution_wiring': execution_wiring,
+                    'execution_policy': execution_policy,
+                    'persistence_snapshot': persistence_snapshot,
+                    'swarm_execution': swarm_execution,
+                }
             execution_packet = setup_result['execution_packet']
             
             logger.info(f"✓ Setup complete. Session: {session_id}")
@@ -2047,7 +2608,13 @@ class MurphySystem:
                     'success': False,
                     'error': execution_result.get('error', 'Execution failed'),
                     'phase': 'execution',
-                    'session_id': session_id
+                    'session_id': session_id,
+                    'doc_id': doc.doc_id,
+                    'activation_preview': activation_preview,
+                    'execution_wiring': execution_wiring,
+                    'execution_policy': execution_policy,
+                    'persistence_snapshot': persistence_snapshot,
+                    'swarm_execution': swarm_execution,
                 }
             
             logger.info(f"✓ Execution complete")
@@ -2098,7 +2665,7 @@ class MurphySystem:
                 'metadata': {
                     'task_description': task_description,
                     'task_type': task_type,
-                    'timestamp': datetime.utcnow().isoformat()
+                    'timestamp': datetime.now(timezone.utc).isoformat()
                 }
             }
         
@@ -2122,6 +2689,7 @@ class MurphySystem:
     ) -> Dict:
         """Fallback execution when orchestrator is unavailable."""
         start = time.perf_counter()
+        response_session = self._resolve_orchestrator_session_id(session_id)
         mfgc_payload = self._execute_with_mfgc_adapter(task_description, task_type, parameters)
         if mfgc_payload:
             execution_time = mfgc_payload.get("execution_time")
@@ -2169,15 +2737,16 @@ class MurphySystem:
             )
             return {
                 "success": success,
-                "session_id": session_id or self.create_session().get("session_id"),
+                "session_id": response_session,
                 "result": response_payload,
                 "deliverables": deliverables,
                 "mfgc_execution": mfgc_payload,
                 "metadata": {
                     "task_description": task_description,
                     "task_type": task_type,
-                    "timestamp": datetime.utcnow().isoformat(),
-                    "mode": "mfgc_fallback"
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "mode": "mfgc_fallback",
+                    "orchestration_mode": "fallback"
                 }
             }
         summary = {
@@ -2225,14 +2794,15 @@ class MurphySystem:
         )
         return {
             "success": True,
-            "session_id": session_id or self.create_session().get("session_id"),
+            "session_id": response_session,
             "result": summary,
             "deliverables": deliverables,
             "metadata": {
                 "task_description": task_description,
                 "task_type": task_type,
-                "timestamp": datetime.utcnow().isoformat(),
-                "mode": "simulation"
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "mode": "simulation",
+                "orchestration_mode": "simulation"
             }
         }
 
@@ -2256,15 +2826,36 @@ class MurphySystem:
         )
 
     def _resolve_orchestrator_session_id(self, session_id: Optional[str]) -> Optional[str]:
-        if session_id:
-            return session_id
-        payload = self.create_session()
-        if not payload or not payload.get("session_id"):
+        normalized_session_id = self._normalize_session_id(session_id)
+        if normalized_session_id:
+            return normalized_session_id
+        try:
+            payload = self.create_session()
+        except Exception:
+            logger.warning(
+                "Two-Phase Orchestrator session creation raised unexpectedly; will proceed without session binding."
+            )
+            return None
+        if not isinstance(payload, Mapping):
+            logger.warning(
+                "Two-Phase Orchestrator session creation returned an invalid payload; will proceed without session binding."
+            )
+            return None
+        normalized_payload_session_id = self._resolve_session_id_from_payload(payload)
+        if normalized_payload_session_id is None:
             logger.warning(
                 "Two-Phase Orchestrator session creation failed; will fall back to automation_id for session tracking."
             )
             return None
-        return payload["session_id"]
+        with self._session_lock:
+            if normalized_payload_session_id not in self.sessions:
+                self.sessions[normalized_payload_session_id] = {
+                    "session_id": normalized_payload_session_id,
+                    "name": "session",
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "source": "orchestrator_session_autocreate",
+                }
+        return normalized_payload_session_id
 
     def _is_orchestrator_available(self) -> bool:
         return self._supports_async_orchestrator() or self._supports_two_phase_orchestrator()

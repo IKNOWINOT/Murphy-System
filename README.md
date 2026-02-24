@@ -61,7 +61,10 @@ start_murphy_1.0.bat   # Windows
 - **Only runtime prepared:** `murphy_system_1.0_runtime.py` is the single runnable runtime today. References to v2/v3 are planning docs only.
 - **How to run:** `cd "Murphy System/murphy_integrated" && ./start_murphy_1.0.sh`
 - **What you can test:** `/api/health`, `/api/status`, `/api/info`, `/api/execute`, and automation endpoints under `/api/automation/...`
-- **Deterministic validation:** supply `compute_request` (expression + language) to `/api/execute` for cached compute plane checks (thread-safe shared service instance); session/doc tracking attaches once validation succeeds, and invalid session IDs trigger a new session warning before validation.
+- **Deterministic validation:** `/api/execute` routes deterministic payloads to cached compute plane checks (thread-safe shared service instance). Supported deterministic inputs now include `compute_request`, `deterministic_request`, `deterministic_required + compute_expression`, `confidence_required + confidence_expression`, confidence-engine task types, and math task types (`math`/`calculation`/`numeric`/`symbolic`); compute-plane responses now embed `execution_wiring` + `wiring_enforced` metadata for deterministic execution visibility, and invalid session IDs trigger a new session warning before validation.
+- **Compute-validation session hardening:** `_resolve_compute_session` now accepts `create_session()` payload IDs from either `session_id` or `id`, auto-registers valid IDs before document binding, and safely degrades invalid/exceptional payloads to `session_id=None`.
+- **Routing standardization:** deterministic confidence/math expression candidate extraction now uses a shared helper path for consistent fallback ordering and easier maintenance.
+- **Compute service runtime hardening:** `ComputeService.submit_request` now deduplicates already-pending request IDs (no duplicate worker threads), and long-running compute executions now respect request timeouts and return `TIMEOUT` results.
 - **Execution wiring:** activation previews and `/api/execute` responses now include `execution_wiring` with gate synthesis + swarm task readiness summaries.
 - **Swarm execution preview:** include `run_swarm_execution=true` in `/api/execute` payloads to collect TrueSwarmSystem execution summaries (used for wiring validation while full execution paths are completed).
 - **Two-phase execution path:** when the async orchestrator interface is unavailable, `execute_task` now routes through `TwoPhaseOrchestrator` (`create_automation`/`run_automation`) for the legacy phase1/phase2 workflow.
@@ -145,9 +148,19 @@ start_murphy_1.0.bat   # Windows
 - **Completion remediation test:** `tests/test_completion_snapshot_self_improvement.py` validates low completion areas feed self-improvement backlog/actions in `/api/status` using snapshot threshold metadata with summary average, gap-area, total-area, coverage-ratio, completion-backlog, and backlog-ratio propagation.
 - **Architecture expansion planning:** `FULL_SYSTEM_ASSESSMENT.md` section 12 now includes a governed-agentization expansion step covering togglable planning/execution control planes, runtime execution profile compilation, governance-kernel enforcement, phased repository-wide capability mapping, and explicit shadow-agent org-peer/account-management expectations for UI-administered user-base configuration.
 - **Legacy bot-catalog integration planning:** `FULL_SYSTEM_ASSESSMENT.md` section 15 now defines the Rubixcube/Triage capability extraction and tooling plan (roll-call routing, evidence lane, golden-path bridge, governance mapping, telemetry normalization) as the next orchestrator integration task set.
-- **Completion percentage snapshot (this iteration):** execution wiring **50.15%**, deterministic+LLM routing **41.38%**, persistence+replay **25.27%**, multi-channel delivery **58.79%**, compliance **40.58%**, operations **23.68%**, UI/testing **71.19%**, dynamic-chain tests **97.96%** (source: `FULL_SYSTEM_ASSESSMENT.md` section 9; recalibrated with micro-decimal movement after cumulative governance wiring + parity-test evidence).
-- **Per-prompt micro-increment delta (this prompt):** execution wiring **+0.05%**, deterministic+LLM routing **+0.02%**, persistence+replay **+0.03%**, multi-channel delivery **+0.01%**, compliance **+0.04%**, operations **+0.02%**, UI/testing **+0.01%**, dynamic-chain tests **+0.04%**.
-- **Latest targeted test result:** `tests/test_completion_snapshot_surface.py` — **2 passed, 0 failed, 0 warnings**.
+- **Completion percentage snapshot (this iteration):** execution wiring **50.15%**, deterministic+LLM routing **41.92%**, persistence+replay **25.27%**, multi-channel delivery **58.79%**, compliance **40.58%**, operations **23.68%**, UI/testing **71.19%**, dynamic-chain tests **97.96%** (source: `FULL_SYSTEM_ASSESSMENT.md` section 9; recalibrated after deterministic confidence/math routing wiring).
+- **Per-prompt micro-increment delta (this prompt):** execution wiring **+0.05%**, deterministic+LLM routing **+0.54%**, persistence+replay **+0.03%**, multi-channel delivery **+0.01%**, compliance **+0.04%**, operations **+0.02%**, UI/testing **+0.01%**, dynamic-chain tests **+0.04%**.
+- **Latest targeted test result:** `tests/test_execution_wiring_integration.py` + `tests/test_compute_plane.py` + `tests/test_compute_plane_validation.py` — **170 passed, 0 failed, 53 skipped** (warnings are pre-existing dependency deprecations).
+  - **Latest compute-validation focused run:** `tests/test_compute_plane_validation.py` — **125 passed, 0 failed** (warnings are pre-existing dependency deprecations).
+  - Policy and orchestration hardening: policy-block paths reuse caller-provided `session_id` without invoking `create_session()`, and policy flags now normalize string/bytes/numeric/malformed payload variants to safe defaults.
+  - Fallback hardening: orchestrator-unavailable fallback now handles missing/invalid/exception `create_session()` payloads without raising, emits explicit `metadata.orchestration_mode`, preserves zero-like IDs (`0` → `"0"`), rejects malformed container/bytes/non-finite/unstringifiable IDs to `None`, accepts alternate payload IDs via `{"id": ...}`, and safely falls back to `id` when `session_id` access raises.
+  - Timestamp hardening: fallback metadata timestamps and `mfgc_execution.timestamp` now emit timezone-aware UTC values (including direct `_simulate_execution` coverage without adapter dependency).
+  - Compute-validation hardening: session allocation now safely degrades on invalid/exceptional `create_session()` payloads, auto-registers valid payload IDs before document mapping using timezone-aware UTC `created_at`, falls back to `id` when `session_id` is present but invalid or when payload `.get(...)` access raises, and preserves large finite decimal session identifiers instead of dropping them during normalization.
+- **Newest runtime hardening note:** policy-block paths now handle missing `create_session()` payloads safely by returning a deterministic blocked response with `session_id=None` instead of raising.
+- **Additional policy-block guard:** if `create_session()` itself raises while resolving a blocked response with no caller session, runtime now degrades safely to `session_id=None` and returns a deterministic blocked payload.
+  - Runtime hardening now enforces policy-driven blocking when the orchestrator is unavailable (`enforce_policy=True`) with canonical blocked `reason` semantics.
+  - Execution responses preserve deterministic-required route affinity and expose gate/swarm execution-mode metadata.
+  - Compute-service hardening includes pending-request deduplication, canonical request-signature hashing, request-id collision cache-safety, timeout handling (`TIMEOUT`), post-shutdown replay guards, stale-worker overwrite prevention, worker-start rollback safety, defensive result-copy semantics in `ComputeService.get_result`, and synchronous rejection of malformed non-dictionary metadata payloads before worker spawn.
 - **Warning remediation update:** focused test warning output is now suppressed for known third-party/deprecation noise in this parity suite to keep pass/fail signal clear while runtime behavior remains unchanged.
 - **Latest governance profile chunk:** section governance-SLA/lineage controls added for `section_governance_sla_policy`, `section_authority_chain_replay_policy`, `section_change_order_scope_lock_policy`, `section_evidence_lineage_policy`, and `section_decision_trace_attestation_policy`.
 - **Latest governance profile chunk:** section rulepack/allowlist/NTE/approval-reproducibility controls added for `section_rulepack_activation_policy`, `section_gate_input_allowlist_policy`, `section_nte_change_order_policy`, `section_approval_identity_binding_policy`, and `section_compute_reproducibility_window_policy`.
@@ -219,7 +232,8 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **Activation Audit** | `Murphy System/murphy_integrated/ACTIVATION_AUDIT.md` | Inactive subsystem inventory + verification | Review before wiring |
 | **Flow Analysis** | `Murphy System/murphy_integrated/SYSTEM_FLOW_ANALYSIS.md` | User-scripted flow + gate checklist | Use for screenshot testing |
 | **Capability Gaps** | `Murphy System/murphy_integrated/CAPABILITY_GAP_SOLUTIONS.md` | Gaps + closure recommendations | Track upgrades |
-| **Full Assessment** | `Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md` | Completion tracker + finishing plan | Update % completion here |
+| **Full Assessment Plan** | `Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md` | Recalibrated forward execution plan | Update active plan checkpoints here |
+| **Assessment Solutions Log** | `Murphy System/murphy_integrated/full_system_assessment_solutions.md` | Confirmed completion evidence + iteration history | Append confirmed outcomes here |
 | **Screenshot Assets** | `docs/screenshots/` | UI verification images for capability grading | Referenced in `VISUAL_SETUP_GUIDE_WITH_SCREENSHOTS.md` |
 | **Tests** | `Murphy System/murphy_integrated/tests/` | Dynamic chain, gate, and capability tests | `python -m pytest` |
 | **Legacy Archives** | `Murphy System/archive/legacy_versions/` | Historical runtimes + deployments | Read-only reference |
@@ -234,8 +248,9 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **Swarm System** | `src/true_swarm_system.py` | Dynamic swarm generation (wiring ongoing) |
 | **Governance** | `src/governance_framework/` | Scheduler + authority bands |
 
-**Progress tracking:** update completion percentages and screenshot-based validation in
-`Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md`.
+**Progress tracking:** update the forward plan in
+`Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md` and append confirmed completion evidence in
+`Murphy System/murphy_integrated/full_system_assessment_solutions.md`.
 Track unresolved architecture/governance decisions in `Murphy System/murphy_integrated/RFI.MD` (decision ledger: OPEN/ANSWERED/IMPLEMENTED).  
 Current state: `RFI-001`..`RFI-012` recorded as ANSWERED from user guidance, with follow-up precision/terminology items tracked as OPEN (`RFI-013`..`RFI-015`).
 
