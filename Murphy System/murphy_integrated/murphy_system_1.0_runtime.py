@@ -2212,7 +2212,7 @@ class MurphySystem:
             parameters
         )
         if execution_policy["enforced"] and execution_policy["status"] != "ready":
-            blocked_session = session_id
+            blocked_session = self._normalize_session_id(session_id)
             if blocked_session is None:
                 try:
                     created_session = self.create_session()
@@ -2372,7 +2372,7 @@ class MurphySystem:
             if bool(execution_policy.get("enforced")):
                 blocked_reason = "Two-Phase Orchestrator unavailable while execution policy enforcement is enabled."
                 final_blocked_reason = execution_policy.get("reason") or blocked_reason
-                blocked_session = session_id
+                blocked_session = self._normalize_session_id(session_id)
                 if blocked_session is None:
                     try:
                         created_session = self.create_session()
@@ -2586,7 +2586,8 @@ class MurphySystem:
                     "task_description": task_description,
                     "task_type": task_type,
                     "timestamp": datetime.utcnow().isoformat(),
-                    "mode": "mfgc_fallback"
+                    "mode": "mfgc_fallback",
+                    "orchestration_mode": "fallback"
                 }
             }
         summary = {
@@ -2641,7 +2642,8 @@ class MurphySystem:
                 "task_description": task_description,
                 "task_type": task_type,
                 "timestamp": datetime.utcnow().isoformat(),
-                "mode": "simulation"
+                "mode": "simulation",
+                "orchestration_mode": "simulation"
             }
         }
 
