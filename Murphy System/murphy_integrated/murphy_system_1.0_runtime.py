@@ -1872,10 +1872,13 @@ class MurphySystem:
         Normalize optional session IDs by trimming and dropping blank values.
 
         String values are stripped and converted to `None` when blank.
+        Boolean values are treated as missing IDs (rather than `"True"`/`"False"`).
         Non-string values are converted to strings, then stripped, so caller-provided
         scalar identifiers (for example integers) can still be tracked consistently.
         `None` values are preserved as `None`.
         """
+        if isinstance(session_id, bool):
+            return None
         if isinstance(session_id, str):
             return session_id.strip() or None
         if session_id is not None:
