@@ -2532,7 +2532,10 @@ class MurphySystem:
         start = time.perf_counter()
         response_session = self._resolve_orchestrator_session_id(session_id)
         if response_session is None:
-            created_session = self.create_session()
+            try:
+                created_session = self.create_session()
+            except Exception:
+                created_session = None
             created_session_id = (
                 created_session.get("session_id")
                 if isinstance(created_session, dict)
@@ -2678,7 +2681,13 @@ class MurphySystem:
         normalized_session_id = self._normalize_session_id(session_id)
         if normalized_session_id:
             return normalized_session_id
-        payload = self.create_session()
+        try:
+            payload = self.create_session()
+        except Exception:
+            logger.warning(
+                "Two-Phase Orchestrator session creation raised unexpectedly; will proceed without session binding."
+            )
+            return None
         if not payload or not payload.get("session_id"):
             logger.warning(
                 "Two-Phase Orchestrator session creation failed; will fall back to automation_id for session tracking."
