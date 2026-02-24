@@ -2808,6 +2808,8 @@ class MurphySystem:
             )
             return None
         payload_session_id = payload.get("session_id")
+        if payload_session_id is None:
+            payload_session_id = payload.get("id")
         if isinstance(payload_session_id, (dict, list, tuple, set, frozenset)):
             logger.warning(
                 "Two-Phase Orchestrator session creation returned an unsupported session_id payload type; will proceed without session binding."
