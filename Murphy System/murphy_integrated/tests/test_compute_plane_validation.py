@@ -206,6 +206,32 @@ def test_execute_task_compute_validation_rejects_invalid_create_session_id_paylo
     assert result["session_id"] is None
 
 
+def test_execute_task_compute_validation_registers_valid_create_session_id_payload():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    created_session_id = "compute-created-session"
+    murphy.create_session = lambda: {"session_id": created_session_id}
+    result = asyncio.run(
+        murphy.execute_task(
+            "Test compute validation session registration",
+            "automation",
+            {
+                "deterministic_request": {
+                    "expression": "minimize: x subject to: x >= 0",
+                    "language": "lp"
+                },
+                "enforce_policy": False
+            },
+        )
+    )
+
+    assert result["status"] == "validated"
+    assert result["success"] is True
+    assert result["session_id"] == created_session_id
+    assert created_session_id in murphy.sessions
+    assert murphy.document_sessions[created_session_id] == result["doc_id"]
+
+
 def test_execute_task_compute_validation_handles_create_session_exception():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
