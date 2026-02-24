@@ -20,6 +20,7 @@ import json
 import importlib.util
 from copy import deepcopy
 from pathlib import Path
+from collections.abc import Mapping
 from typing import Dict, List, Optional, Any, Tuple, Literal, Set, TYPE_CHECKING
 from dataclasses import asdict, is_dataclass
 from datetime import datetime, timedelta, timezone
@@ -1918,7 +1919,7 @@ class MurphySystem:
                     "Compute-plane validation session creation failed; results will not be linked to a session."
                 )
                 return None
-            if not isinstance(session_payload, dict):
+            if not isinstance(session_payload, Mapping):
                 logger.warning(
                     "Compute-plane validation session creation returned an invalid payload; results will not be linked to a session."
                 )
@@ -2804,7 +2805,7 @@ class MurphySystem:
                 "Two-Phase Orchestrator session creation raised unexpectedly; will proceed without session binding."
             )
             return None
-        if not isinstance(payload, dict):
+        if not isinstance(payload, Mapping):
             logger.warning(
                 "Two-Phase Orchestrator session creation returned an invalid payload; will proceed without session binding."
             )

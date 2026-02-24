@@ -2,6 +2,7 @@ import importlib.util
 from pathlib import Path
 import asyncio
 from datetime import datetime
+from types import MappingProxyType
 
 
 def load_runtime_module():
@@ -244,6 +245,32 @@ def test_execute_task_compute_validation_uses_id_key_create_session_payload():
     result = asyncio.run(
         murphy.execute_task(
             "Test compute validation session registration using id key",
+            "automation",
+            {
+                "deterministic_request": {
+                    "expression": "minimize: x subject to: x >= 0",
+                    "language": "lp"
+                },
+                "enforce_policy": False
+            },
+        )
+    )
+
+    assert result["status"] == "validated"
+    assert result["success"] is True
+    assert result["session_id"] == created_session_id
+    assert created_session_id in murphy.sessions
+    assert murphy.document_sessions[created_session_id] == result["doc_id"]
+
+
+def test_execute_task_compute_validation_accepts_mapping_create_session_payload():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    created_session_id = "compute-created-session-mapping"
+    murphy.create_session = lambda: MappingProxyType({"session_id": created_session_id})
+    result = asyncio.run(
+        murphy.execute_task(
+            "Test compute validation session registration using mapping payload",
             "automation",
             {
                 "deterministic_request": {

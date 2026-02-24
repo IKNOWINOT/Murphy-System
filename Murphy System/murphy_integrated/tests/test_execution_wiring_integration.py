@@ -5,7 +5,7 @@ import importlib.util
 from decimal import Decimal
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from types import SimpleNamespace
+from types import MappingProxyType, SimpleNamespace
 
 import pytest
 
@@ -244,6 +244,32 @@ def test_execute_task_fallback_uses_id_key_from_create_session_payload():
     assert isinstance(response["success"], bool)
     assert response["metadata"]["mode"] == "mfgc_fallback"
     assert response["session_id"] == "session-from-id-key"
+    assert "mfgc_execution" in response
+
+
+def test_execute_task_fallback_accepts_mapping_create_session_payload():
+    runtime = load_runtime_module()
+    if runtime.MFGCAdapter is None:
+        pytest.skip("MFGC adapter not available in test environment")
+
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.system_integrator = StubIntegrator()
+    murphy.mfgc_adapter = runtime.MFGCAdapter(murphy.system_integrator)
+    murphy.orchestrator = None
+    murphy.create_session = lambda *args, **kwargs: MappingProxyType({"session_id": "mapped-session-id"})
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Draft an automation plan",
+            "automation",
+            {"enforce_policy": False},
+            session_id=None
+        )
+    )
+
+    assert isinstance(response["success"], bool)
+    assert response["metadata"]["mode"] == "mfgc_fallback"
+    assert response["session_id"] == "mapped-session-id"
     assert "mfgc_execution" in response
 
 
