@@ -149,6 +149,38 @@ def test_execute_task_policy_block_handles_missing_create_session_payload():
     assert response["error"] == response["reason"]
 
 
+def test_execute_task_policy_block_normalizes_whitespace_create_session_id():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy._prepare_activation_preview = lambda *_args, **_kwargs: (
+        SimpleNamespace(doc_id="doc-policy-block-whitespace-session"),
+        {
+            "dynamic_implementation": {
+                "status": "needs_info",
+                "approval_policy": {"status": "needs_info"},
+                "gate_status": "ready",
+                "execution_strategy": "simulation",
+            }
+        },
+    )
+    murphy._persist_execution_snapshot = lambda *_args, **_kwargs: {"status": "disabled"}
+    murphy.create_session = lambda: {"session_id": "   "}
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Run policy block check with whitespace session id",
+            "automation",
+            {"enforce_policy": True},
+            session_id=None,
+        )
+    )
+
+    assert response["success"] is False
+    assert response["status"] == "blocked"
+    assert response["session_id"] is None
+    assert response["error"] == response["reason"]
+
+
 def test_execute_task_policy_block_handles_create_session_exception():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()

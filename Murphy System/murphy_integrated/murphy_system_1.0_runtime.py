@@ -2216,7 +2216,7 @@ class MurphySystem:
             if blocked_session is None:
                 try:
                     created_session = self.create_session()
-                    blocked_session = (
+                    blocked_session = self._normalize_session_id(
                         created_session.get("session_id")
                         if isinstance(created_session, dict)
                         else None
@@ -2376,7 +2376,7 @@ class MurphySystem:
                 if blocked_session is None:
                     try:
                         created_session = self.create_session()
-                        blocked_session = (
+                        blocked_session = self._normalize_session_id(
                             created_session.get("session_id")
                             if isinstance(created_session, dict)
                             else None
