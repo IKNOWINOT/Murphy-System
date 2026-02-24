@@ -94,6 +94,10 @@ class ComputeService:
                 request = replace(request, request_id=str(uuid.uuid4()))
             elif normalized_request_id != request.request_id:
                 request = replace(request, request_id=normalized_request_id)
+        if isinstance(request.language, str):
+            normalized_language = request.language.strip().lower()
+            if normalized_language != request.language:
+                request = replace(request, language=normalized_language)
         request_signature = self._request_signature(request)
 
         with self._lock:

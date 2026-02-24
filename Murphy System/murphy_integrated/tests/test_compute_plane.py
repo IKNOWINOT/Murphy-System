@@ -667,6 +667,24 @@ class TestComputeService(unittest.TestCase):
             self.assertNotIn(request_id, self.service.pending_requests)
             mock_thread_cls.assert_not_called()
 
+    def test_submit_request_normalizes_supported_language_variant(self):
+        """Whitespace/case variants of supported language should normalize preflight."""
+        request = ComputeRequest(
+            expression="x + 1",
+            language="sympy",
+            request_id="supported-language-variant",
+        )
+        # ComputeRequest validates language at construction time, so mutate after
+        # creation to exercise runtime language normalization behavior.
+        request.language = "  SyMpY  "
+
+        request_id = self.service.submit_request(request)
+        result = self._wait_for_result(request_id)
+
+        self.assertIsNotNone(result)
+        self.assertNotEqual(result.status, ComputeStatus.UNSUPPORTED)
+        self.assertNotIn(request_id, self.service.pending_requests)
+
     def test_submit_request_invalid_timeout_skips_background_worker(self):
         """Invalid timeout values should fail preflight without worker threads."""
         request = ComputeRequest(
