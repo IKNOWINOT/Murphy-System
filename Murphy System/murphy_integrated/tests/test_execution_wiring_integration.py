@@ -894,6 +894,76 @@ def test_execute_task_fallback_with_uncoercible_policy_flag_object():
     assert response["metadata"]["orchestration_mode"] in {"fallback", "simulation"}
 
 
+def test_execute_task_fallback_with_runtimeerror_policy_flag_object():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.orchestrator = None
+    murphy._prepare_activation_preview = lambda *_args, **_kwargs: (
+        SimpleNamespace(doc_id="doc-orchestrator-online-runtimeerror-policy-flag"),
+        {
+            "dynamic_implementation": {
+                "status": "ready",
+                "approval_policy": {"status": "ready"},
+                "gate_status": "ready",
+                "execution_strategy": "production",
+            }
+        },
+    )
+    murphy._persist_execution_snapshot = lambda *_args, **_kwargs: {"status": "disabled"}
+
+    class _RuntimeErrorFlag:
+        def __bool__(self):
+            raise RuntimeError("runtime bool coercion failed")
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Execute with runtime-error policy-flag object",
+            "automation",
+            {"enforce_policy": False, "require_orchestrator_online": _RuntimeErrorFlag()},
+            session_id="session-online-runtimeerror-flag",
+        )
+    )
+
+    assert isinstance(response["success"], bool)
+    assert response.get("status") != "blocked"
+    assert response["metadata"]["orchestration_mode"] in {"fallback", "simulation"}
+
+
+def test_execute_task_fallback_with_generic_exception_policy_flag_object():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.orchestrator = None
+    murphy._prepare_activation_preview = lambda *_args, **_kwargs: (
+        SimpleNamespace(doc_id="doc-orchestrator-online-generic-exception-policy-flag"),
+        {
+            "dynamic_implementation": {
+                "status": "ready",
+                "approval_policy": {"status": "ready"},
+                "gate_status": "ready",
+                "execution_strategy": "production",
+            }
+        },
+    )
+    murphy._persist_execution_snapshot = lambda *_args, **_kwargs: {"status": "disabled"}
+
+    class _GenericExceptionFlag:
+        def __bool__(self):
+            raise Exception("generic bool coercion failed")
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Execute with generic-exception policy-flag object",
+            "automation",
+            {"enforce_policy": False, "require_orchestrator_online": _GenericExceptionFlag()},
+            session_id="session-online-generic-exception-flag",
+        )
+    )
+
+    assert isinstance(response["success"], bool)
+    assert response.get("status") != "blocked"
+    assert response["metadata"]["orchestration_mode"] in {"fallback", "simulation"}
+
+
 def test_execute_task_blocks_when_orchestrator_missing_normalizes_whitespace_session_id():
     runtime = load_runtime_module()
     if runtime.MFGCAdapter is None:
