@@ -27,6 +27,7 @@ import logging
 import asyncio
 import time
 import re
+import math
 from uuid import uuid4
 from threading import Lock
 
@@ -1899,6 +1900,8 @@ class MurphySystem:
         scalar identifiers (for example integers) can still be tracked consistently.
         `None` values are preserved as `None`.
         """
+        if isinstance(session_id, float) and not math.isfinite(session_id):
+            return None
         if isinstance(session_id, (bool, bytes, bytearray, memoryview, dict, list, tuple, set)):
             return None
         if isinstance(session_id, str):
@@ -2468,7 +2471,19 @@ class MurphySystem:
                     'swarm_execution': swarm_execution,
                 }
             
-            session_id = setup_result['session_id']
+            session_id = self._normalize_session_id(setup_result.get('session_id'))
+            if session_id is None:
+                return {
+                    'success': False,
+                    'error': 'Invalid orchestrator session_id returned from setup',
+                    'phase': 'setup',
+                    'doc_id': doc.doc_id,
+                    'activation_preview': activation_preview,
+                    'execution_wiring': execution_wiring,
+                    'execution_policy': execution_policy,
+                    'persistence_snapshot': persistence_snapshot,
+                    'swarm_execution': swarm_execution,
+                }
             execution_packet = setup_result['execution_packet']
             
             logger.info(f"✓ Setup complete. Session: {session_id}")
