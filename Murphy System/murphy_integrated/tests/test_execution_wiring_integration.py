@@ -64,14 +64,6 @@ class StubAsyncOrchestratorInvalidSessionId:
         return {"success": True}
 
 
-class StubAsyncOrchestratorSuccess:
-    async def phase1_generative_setup(self, **_kwargs):
-        return {"success": True, "session_id": "async-session-success", "execution_packet": {"id": "pkt-success"}}
-
-    async def phase2_production_execution(self, **_kwargs):
-        return {"success": True, "result": {"status": "ok"}, "deliverables": []}
-
-
 def test_execute_task_uses_mfgc_fallback_when_orchestrator_missing():
     runtime = load_runtime_module()
     if runtime.MFGCAdapter is None:
@@ -810,6 +802,41 @@ def test_execute_task_fallback_with_infinite_decimal_policy_flag():
     assert response["metadata"]["orchestration_mode"] in {"fallback", "simulation"}
 
 
+def test_execute_task_fallback_with_uncoercible_policy_flag_object():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.orchestrator = None
+    murphy._prepare_activation_preview = lambda *_args, **_kwargs: (
+        SimpleNamespace(doc_id="doc-orchestrator-online-uncoercible-policy-flag"),
+        {
+            "dynamic_implementation": {
+                "status": "ready",
+                "approval_policy": {"status": "ready"},
+                "gate_status": "ready",
+                "execution_strategy": "production",
+            }
+        },
+    )
+    murphy._persist_execution_snapshot = lambda *_args, **_kwargs: {"status": "disabled"}
+
+    class _UncoercibleFlag:
+        def __bool__(self):
+            raise TypeError("bool coercion failed")
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Execute with uncoercible policy-flag object",
+            "automation",
+            {"enforce_policy": False, "require_orchestrator_online": _UncoercibleFlag()},
+            session_id="session-online-uncoercible-flag",
+        )
+    )
+
+    assert isinstance(response["success"], bool)
+    assert response.get("status") != "blocked"
+    assert response["metadata"]["orchestration_mode"] in {"fallback", "simulation"}
+
+
 def test_execute_task_blocks_when_orchestrator_missing_normalizes_whitespace_session_id():
     runtime = load_runtime_module()
     if runtime.MFGCAdapter is None:
@@ -1135,7 +1162,14 @@ def test_execute_task_async_setup_rejects_invalid_session_id():
 def test_execute_task_async_success_timestamp_is_timezone_aware():
     runtime = load_runtime_module()
     murphy = runtime.MurphySystem.create_test_instance()
-    murphy.orchestrator = StubAsyncOrchestratorSuccess()
+    class _StubAsyncOrchestratorSuccess:
+        async def phase1_generative_setup(self, **_kwargs):
+            return {"success": True, "session_id": "async-session-success", "execution_packet": {"id": "pkt-success"}}
+
+        async def phase2_production_execution(self, **_kwargs):
+            return {"success": True, "result": {"status": "ok"}, "deliverables": []}
+
+    murphy.orchestrator = _StubAsyncOrchestratorSuccess()
 
     response = asyncio.run(
         murphy.execute_task(
@@ -1147,5 +1181,7 @@ def test_execute_task_async_success_timestamp_is_timezone_aware():
     )
 
     assert response["success"] is True
+    assert response["session_id"] == "async-session-success"
+    assert response["execution_packet"]["id"] == "pkt-success"
     timestamp = datetime.fromisoformat(response["metadata"]["timestamp"])
     assert timestamp.tzinfo is timezone.utc

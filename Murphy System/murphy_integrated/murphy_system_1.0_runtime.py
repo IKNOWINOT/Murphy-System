@@ -1626,7 +1626,10 @@ class MurphySystem:
                         return default
                 except (TypeError, ValueError):
                     return default
-            return bool(raw_value)
+            try:
+                return bool(raw_value)
+            except (TypeError, ValueError):
+                return default
 
         enforce_policy = _parse_policy_flag(params.get("enforce_policy", True), True)
         require_orchestrator_online = _parse_policy_flag(
