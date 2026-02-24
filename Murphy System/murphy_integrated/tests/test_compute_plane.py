@@ -746,6 +746,27 @@ class TestComputeService(unittest.TestCase):
             self.assertNotIn(request_id, self.service.pending_requests)
             mock_thread_cls.assert_not_called()
 
+    def test_submit_request_invalid_metadata_type_skips_background_worker(self):
+        """Invalid metadata container types should fail preflight without worker threads."""
+        request = ComputeRequest(
+            expression="x + 1",
+            language="sympy",
+            request_id="invalid-metadata-sync-request",
+        )
+        # ComputeRequest defaults metadata to dict, so mutate post-creation to
+        # exercise runtime preflight guard behavior.
+        request.metadata = "not-a-dict"
+
+        with patch("src.compute_plane.service.threading.Thread") as mock_thread_cls:
+            request_id = self.service.submit_request(request)
+            result = self.service.get_result(request_id)
+
+            self.assertIsNotNone(result)
+            self.assertEqual(result.status, ComputeStatus.FAIL)
+            self.assertIn("Metadata must be a dictionary", result.error_message)
+            self.assertNotIn(request_id, self.service.pending_requests)
+            mock_thread_cls.assert_not_called()
+
     def test_submit_request_whitespace_expression_skips_background_worker(self):
         """Whitespace-only expressions should fail preflight without worker threads."""
         request = ComputeRequest(
