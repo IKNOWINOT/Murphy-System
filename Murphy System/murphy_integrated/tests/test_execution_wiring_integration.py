@@ -33,6 +33,22 @@ class StubIntegrator:
         return StubResponse()
 
 
+class StubAsyncOrchestratorSetupFailure:
+    async def phase1_generative_setup(self, **_kwargs):
+        return {"success": False, "error": "setup unavailable"}
+
+    async def phase2_production_execution(self, **_kwargs):
+        return {"success": True}
+
+
+class StubAsyncOrchestratorExecutionFailure:
+    async def phase1_generative_setup(self, **_kwargs):
+        return {"success": True, "session_id": "async-session-1", "execution_packet": {"id": "pkt-1"}}
+
+    async def phase2_production_execution(self, **_kwargs):
+        return {"success": False, "error": "execution unavailable"}
+
+
 def test_execute_task_uses_mfgc_fallback_when_orchestrator_missing():
     runtime = load_runtime_module()
     if runtime.MFGCAdapter is None:
@@ -193,6 +209,32 @@ def test_execute_task_fallback_preserves_zero_like_create_session_id():
     assert isinstance(response["success"], bool)
     assert response["metadata"]["mode"] == "mfgc_fallback"
     assert response["session_id"] == "0"
+    assert "mfgc_execution" in response
+
+
+def test_execute_task_fallback_rejects_container_create_session_id():
+    runtime = load_runtime_module()
+    if runtime.MFGCAdapter is None:
+        pytest.skip("MFGC adapter not available in test environment")
+
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.system_integrator = StubIntegrator()
+    murphy.mfgc_adapter = runtime.MFGCAdapter(murphy.system_integrator)
+    murphy.orchestrator = None
+    murphy.create_session = lambda *args, **kwargs: {"session_id": ["session-invalid-container"]}
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Draft an automation plan",
+            "automation",
+            {"enforce_policy": False},
+            session_id=None
+        )
+    )
+
+    assert isinstance(response["success"], bool)
+    assert response["metadata"]["mode"] == "mfgc_fallback"
+    assert response["session_id"] is None
     assert "mfgc_execution" in response
 
 
@@ -613,3 +655,54 @@ def test_execute_task_orchestrator_unavailable_with_session_does_not_call_create
     assert response["success"] is False
     assert response["status"] == "blocked"
     assert response["session_id"] == "session-policy-existing"
+
+
+def test_execute_task_async_setup_failure_includes_execution_context():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.orchestrator = StubAsyncOrchestratorSetupFailure()
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Execute with async setup failure",
+            "automation",
+            {"enforce_policy": False},
+            session_id="session-async-setup-failure",
+        )
+    )
+
+    assert response["success"] is False
+    assert response["phase"] == "setup"
+    assert response["error"] == "setup unavailable"
+    assert "doc_id" in response
+    assert "activation_preview" in response
+    assert "execution_wiring" in response
+    assert "execution_policy" in response
+    assert "persistence_snapshot" in response
+    assert "swarm_execution" in response
+
+
+def test_execute_task_async_execution_failure_includes_execution_context():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.orchestrator = StubAsyncOrchestratorExecutionFailure()
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Execute with async execution failure",
+            "automation",
+            {"enforce_policy": False},
+            session_id="session-async-execution-failure",
+        )
+    )
+
+    assert response["success"] is False
+    assert response["phase"] == "execution"
+    assert response["error"] == "execution unavailable"
+    assert response["session_id"] == "async-session-1"
+    assert "doc_id" in response
+    assert "activation_preview" in response
+    assert "execution_wiring" in response
+    assert "execution_policy" in response
+    assert "persistence_snapshot" in response
+    assert "swarm_execution" in response

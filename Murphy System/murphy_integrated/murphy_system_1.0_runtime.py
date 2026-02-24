@@ -2455,7 +2455,13 @@ class MurphySystem:
                 return {
                     'success': False,
                     'error': setup_result.get('error', 'Setup failed'),
-                    'phase': 'setup'
+                    'phase': 'setup',
+                    'doc_id': doc.doc_id,
+                    'activation_preview': activation_preview,
+                    'execution_wiring': execution_wiring,
+                    'execution_policy': execution_policy,
+                    'persistence_snapshot': persistence_snapshot,
+                    'swarm_execution': swarm_execution,
                 }
             
             session_id = setup_result['session_id']
@@ -2475,7 +2481,13 @@ class MurphySystem:
                     'success': False,
                     'error': execution_result.get('error', 'Execution failed'),
                     'phase': 'execution',
-                    'session_id': session_id
+                    'session_id': session_id,
+                    'doc_id': doc.doc_id,
+                    'activation_preview': activation_preview,
+                    'execution_wiring': execution_wiring,
+                    'execution_policy': execution_policy,
+                    'persistence_snapshot': persistence_snapshot,
+                    'swarm_execution': swarm_execution,
                 }
             
             logger.info(f"✓ Execution complete")
@@ -2702,7 +2714,13 @@ class MurphySystem:
                 "Two-Phase Orchestrator session creation returned an invalid payload; will proceed without session binding."
             )
             return None
-        normalized_payload_session_id = self._normalize_session_id(payload.get("session_id"))
+        payload_session_id = payload.get("session_id")
+        if isinstance(payload_session_id, (dict, list, tuple, set)):
+            logger.warning(
+                "Two-Phase Orchestrator session creation returned an unsupported session_id payload type; will proceed without session binding."
+            )
+            return None
+        normalized_payload_session_id = self._normalize_session_id(payload_session_id)
         if normalized_payload_session_id is None:
             logger.warning(
                 "Two-Phase Orchestrator session creation failed; will fall back to automation_id for session tracking."
