@@ -1624,11 +1624,11 @@ class MurphySystem:
                 try:
                     if not math.isfinite(float(raw_value)):
                         return default
-                except (TypeError, ValueError):
+                except (TypeError, ValueError, OverflowError):
                     return default
             try:
                 return bool(raw_value)
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):
                 return default
 
         enforce_policy = _parse_policy_flag(params.get("enforce_policy", True), True)
@@ -1924,6 +1924,12 @@ class MurphySystem:
         """
         if isinstance(session_id, float) and not math.isfinite(session_id):
             return None
+        if isinstance(session_id, numbers.Real) and not isinstance(session_id, numbers.Integral):
+            try:
+                if not math.isfinite(float(session_id)):
+                    return None
+            except (TypeError, ValueError, OverflowError):
+                return None
         if isinstance(session_id, (bool, complex, bytes, bytearray, memoryview, dict, list, tuple, set, frozenset)):
             return None
         if isinstance(session_id, str):
