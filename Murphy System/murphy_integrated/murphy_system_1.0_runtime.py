@@ -1874,7 +1874,7 @@ class MurphySystem:
             "message": "MFGC execution completed with a fallback response payload.",
             "warnings": ["Integrator response unavailable; using fallback payload."],
             "triggers": [],
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
     def _get_compute_service(self) -> Optional[ComputeServiceType]:
