@@ -2212,12 +2212,14 @@ class MurphySystem:
             parameters
         )
         if execution_policy["enforced"] and execution_policy["status"] != "ready":
-            created_session = self.create_session()
-            blocked_session = session_id or (
-                created_session.get("session_id")
-                if isinstance(created_session, dict)
-                else None
-            )
+            blocked_session = session_id
+            if blocked_session is None:
+                created_session = self.create_session()
+                blocked_session = (
+                    created_session.get("session_id")
+                    if isinstance(created_session, dict)
+                    else None
+                )
             blocked_reason = execution_policy.get("reason") or "Execution policy blocked."
             return {
                 "success": False,
@@ -2367,12 +2369,14 @@ class MurphySystem:
             if bool(execution_policy.get("enforced")):
                 blocked_reason = "Two-Phase Orchestrator unavailable while execution policy enforcement is enabled."
                 final_blocked_reason = execution_policy.get("reason") or blocked_reason
-                created_session = self.create_session()
-                blocked_session = session_id or (
-                    created_session.get("session_id")
-                    if isinstance(created_session, dict)
-                    else None
-                )
+                blocked_session = session_id
+                if blocked_session is None:
+                    created_session = self.create_session()
+                    blocked_session = (
+                        created_session.get("session_id")
+                        if isinstance(created_session, dict)
+                        else None
+                    )
                 return {
                     "success": False,
                     "status": "blocked",
