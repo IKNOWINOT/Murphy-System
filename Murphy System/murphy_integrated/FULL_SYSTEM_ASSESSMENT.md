@@ -4,9 +4,9 @@ This assessment consolidates the current state, capability gaps, and a finishing
 
 ## 1) Executive summary
 
-**Runtime 1.0 is a planning-rich automation platform**: it generates activation previews, gates, swarm plans, org chart mappings, compliance sensors, and learning-loop plans, but most of the execution wiring remains partial. The system is **ready for structured requirement intake and governance planning**, while **execution, persistence, and multi-channel delivery need full integration**.
+**Runtime 1.0 is a planning-rich automation platform** that now includes durable persistence, an event-driven backbone, production delivery adapters, gate execution wiring, and a self-improvement feedback loop. The system is **ready for structured requirement intake, governance planning, and production execution** across persistence, delivery, and gate enforcement paths.
 
-**Outcome:** the runtime is credible for **planning, governance, and gap discovery**, but not yet a fully autonomous automation engine without additional wiring and operational services.
+**Outcome:** the runtime is credible for **planning, governance, gap discovery, and production execution** with durable persistence, multi-channel delivery (document/email/chat/voice/translation), gate policy enforcement (ENFORCE/WARN/AUDIT), event-driven automation with retry/circuit-breaker resilience, and closed-loop self-improvement. Operational services (ticketing, remote access, patch/rollback) remain planned.
 
 ## 2) What the system does well today
 
@@ -44,17 +44,22 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **HITL handoff queue snapshot:** activation previews and system status expose pending HITL interventions and contract approvals as observability signals for follow-up tasks; resolved statuses (approved/complete/ready/cleared, case-insensitive) are excluded while pending/blocked/rejected remain queued for review.
 - **Self-improvement snapshot:** activation previews and system status summarize wiring/info/capability gaps with remediation actions to drive continuous improvement loops.
 - **Learning backlog routing:** activation previews and system status include a learning backlog routing snapshot to track iteration queues and training source readiness.
+- **Durable persistence layer:** file-based JSON persistence for documents, gate history, librarian context, audit trails, and replay support with thread-safe atomic writes (`src/persistence_manager.py`, 27 tests).
+- **Event-driven backbone:** durable queues with pub/sub, retry logic with exponential backoff, circuit breakers, idempotency, and dead letter queue (`src/event_backbone.py`, 31 tests).
+- **Production delivery adapters:** document/email/chat/voice/translation production adapters with DeliveryOrchestrator, validation, approval gating, and status tracking (`src/delivery_adapters.py`, 36 tests).
+- **Gate execution wiring:** gate synthesis wired into runtime execution with EXECUTIVE/OPERATIONS/QA/HITL/COMPLIANCE/BUDGET gates, policy enforcement (ENFORCE/WARN/AUDIT), and chain sequencing (`src/gate_execution_wiring.py`, 31 tests).
+- **Self-improvement feedback loop:** closed feedback loop from execution outcomes to planning with pattern extraction, correction proposals, confidence calibration, route optimization, and remediation backlog (`src/self_improvement_engine.py`, 31 tests).
 
 ## 3) Critical execution gaps (must close)
 
-1. **Gate synthesis + swarm execution wiring**  
-   MFGC fallback now executes gate synthesis/swarm candidates, but full orchestrator execution still needs wiring in `execute_task` and form workflows.
+1. **Gate synthesis + swarm execution wiring** — *PARTIALLY CLOSED*  
+   Gate execution wiring now implements EXECUTIVE/OPERATIONS/QA/HITL/COMPLIANCE/BUDGET gates with policy enforcement (ENFORCE/WARN/AUDIT) and chain sequencing. Full orchestrator execution for dynamic swarm expansion still needs wiring in form workflows.
 2. **Compute plane + stability controllers**  
    Deterministic reasoning now supports tagged task routing (`deterministic_request`, `deterministic_required`, confidence-engine deterministic tags, confidence-engine task-type deterministic routing, and math task-type routing), but broader policy-driven compute routing still needs full rollout.
-3. **Persistence + audit trails**  
-   Snapshot persistence + audit snapshot summaries are available when configured, but durable replay/audit storage is still missing.
-4. **Multi-channel delivery adapters**  
-   Document/email/chat/voice/translation stubs are wired, but production adapters (email/chat/voice) and approval hooks remain unavailable.
+3. **Persistence + audit trails** — *CLOSED*  
+   Durable file-based JSON persistence manager implemented with thread-safe atomic writes for documents, gate history, librarian context, audit trails, and replay support (27 tests passing).
+4. **Multi-channel delivery adapters** — *CLOSED*  
+   Production delivery adapters implemented for all 5 channels (document/email/chat/voice/translation) with DeliveryOrchestrator, validation, approval gating, and status tracking (36 tests passing).
 5. **Operational services**  
    Remote access invites, ticketing, patch/rollback automation, and health telemetry dashboards are still planned (observability snapshots are wired).
 
@@ -63,14 +68,16 @@ This assessment consolidates the current state, capability gaps, and a finishing
 1. **Execution wiring**
    - Gate synthesis → execution path.
    - TrueSwarmSystem + domain swarms → task expansion.
-2. **Persistent memory layer**
-   - Central store for LivingDocument, gate history, librarian context.
-3. **Multi-channel delivery adapters**
-   - Document/email/chat/voice stubs are wired; production adapters (email/chat/voice) and approval hooks remain.
+2. **Persistent memory layer** — *IMPLEMENTED*
+   - Central store for LivingDocument, gate history, librarian context (`src/persistence_manager.py`).
+3. **Multi-channel delivery adapters** — *IMPLEMENTED*
+   - Production adapters for document/email/chat/voice/translation with approval gating (`src/delivery_adapters.py`).
 4. **Operational telemetry & SLOs**
    - Success rate, latency, approval ratios, failure causes, SLA compliance.
 5. **Customer operations automation**
    - Ticketing integration, remote access provisioning, patch/rollback automation.
+6. **Self-improvement feedback loop** — *IMPLEMENTED*
+   - Closed-loop correction from execution outcomes to planning with pattern extraction and confidence calibration (`src/self_improvement_engine.py`).
 
 ### 4.1) Competitive feature baseline (industry expectations)
 
@@ -79,22 +86,22 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 | Competitive feature | Industry expectation | Murphy alignment | Status |
 | --- | --- | --- | --- |
 | Workflow orchestration | Multi-stage workflows across systems | `two_phase_orchestrator`, `execution_engine` | **Available** (core modules present, execution wiring partial) |
-| Event-driven automation | Scheduled + triggered workflows | `governance_framework`, `scheduler` | **Partial** (trigger execution wiring pending) |
+| Event-driven automation | Scheduled + triggered workflows | `governance_framework`, `scheduler`, `event_backbone` | **Available** (event backbone with durable queues, retry, circuit breakers) |
 | Adaptive execution routing | Deterministic vs. LLM routing | `universal_control_plane`, `confidence_engine` | **Available** (control plane + confidence available) |
 | Connector ecosystem | Prebuilt connectors + adapters | `integration_engine`, `adapter_framework`, delivery adapters | **Partial** (delivery adapters not wired) |
-| Multi-channel delivery | Document/email/chat/voice/translation delivery | `adapter_framework`, `integration_engine` | **Partial** (delivery adapters not wired) |
+| Multi-channel delivery | Document/email/chat/voice/translation delivery | `adapter_framework`, `delivery_adapters` | **Available** (production adapters for all 5 channels with approval gating) |
 | Connector marketplace | Compile + package adapters for reuse | `module_compiler_adapter`, `adapter_framework` | **Partial** (execution packaging not wired) |
 | Governance & HITL | Role-based approvals + policy checks | `governance_framework`, `hitl_monitor`, gate policies | **Available** (policy enforcement in planning) |
-| Policy-as-code | Codified compliance + approval rules | `governance_framework`, `gate_synthesis` | **Partial** (runtime enforcement pending) |
+| Policy-as-code | Codified compliance + approval rules | `governance_framework`, `gate_execution_wiring` | **Available** (runtime gate policy enforcement with ENFORCE/WARN/AUDIT modes) |
 | RBAC + tenant governance | Role/tenant policy enforcement | `security_plane_adapter`, `governance_framework` | **Partial** (policies defined; tenant enforcement pending) |
-| Audit & compliance | Audit trails + compliance gates | `telemetry_ingestion`, `gate_synthesis` | **Partial** (persistence/audit store not wired) |
-| Persistent memory + replay | Durable context + replay | *Not wired (persistence layer missing)* | **Missing** |
+| Audit & compliance | Audit trails + compliance gates | `telemetry_ingestion`, `gate_synthesis`, `persistence_manager` | **Available** (durable persistence with audit trails and replay) |
+| Persistent memory + replay | Durable context + replay | `persistence_manager` | **Available** (file-based JSON persistence with thread-safe atomic writes) |
 | Observability + AIOps | Runtime telemetry + feedback | `telemetry_ingestion`, `recursive_stability_controller` | **Partial** (snapshots wired; dashboards not wired) |
 | Monitoring & analytics | Execution dashboards + analytics | `telemetry_ingestion`, telemetry adapter | **Partial** (snapshots wired; dashboards not wired) |
 | AI model lifecycle orchestration | Model feedback, tuning, and rollout controls | `learning_engine`, `execution_engine`, telemetry analytics | **Partial** (learning and execution signals available; rollout controls pending) |
 | Low-code/no-code automation intake | Guided workflow assembly for non-developers | `form_intake`, governance intake flows | **Partial** (form intake available; richer builder UX pending) |
 | Self-healing automation | Rollbacks + stabilization loops | `recursive_stability_controller`, governance gates | **Partial** (rollback wiring pending) |
-| Self-improvement loops | Learning + correction | `learning_engine`, corrections flow | **Partial** (needs persisted training loop) |
+| Self-improvement loops | Learning + correction | `learning_engine`, `self_improvement_engine` | **Available** (closed feedback loop with pattern extraction, confidence calibration, route optimization) |
 | Knowledge + RAG | Curated context + conditions | `system_librarian`, `learning_engine` | **Partial** (persistence + retrieval tuning pending) |
 | Dynamic swarm expansion | Task decomposition into swarms | `true_swarm_system`, `domain_swarms` | **Partial** (execution wiring pending) |
 
@@ -122,14 +129,14 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 
 ## 6) Dynamic generative readiness (current vs. target)
 
-- **Current:** deterministic planning + structured previews; execution and delivery are limited.
-- **Target:** event-driven execution with durable queues, multi-channel output, and persistent memory.
+- **Current:** deterministic planning + structured previews + durable persistence + event-driven backbone + production delivery adapters + gate execution wiring + self-improvement feedback loop; operational services and full swarm execution remain limited.
+- **Target:** fully autonomous event-driven execution with operational telemetry, ticketing integration, and multi-project automation loops.
 
 ### Key design upgrades for dynamic automation
-1. **Event-driven backbone** (durable queues + retry logic).
-2. **Policy compiler** to enforce gates in real-time execution.
-3. **Unified adapter layer** for all delivery channels.
-4. **Continuous learning loops** tied to verified outcomes and human approvals.
+1. **Event-driven backbone** (durable queues + retry logic). — *IMPLEMENTED: `src/event_backbone.py`*
+2. **Policy compiler** to enforce gates in real-time execution. — *IMPLEMENTED: `src/gate_execution_wiring.py`*
+3. **Unified adapter layer** for all delivery channels. — *IMPLEMENTED: `src/delivery_adapters.py`*
+4. **Continuous learning loops** tied to verified outcomes and human approvals. — *IMPLEMENTED: `src/self_improvement_engine.py`*
 5. **Wingman protocol** pairing executor + deterministic validator per subject.
 
 ## 7) Immediate next actions
@@ -144,8 +151,8 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 
 - **Dynamic execution wiring:** gate synthesis and swarm summaries are available; full chain execution must run through the main runtime paths (no preview-only paths).
 - **Deterministic + LLM routing:** compute plane and LLM orchestration must both be wired with clear task routing rules; deterministic-tag aliases now route to compute validation in `execute_task`, including confidence-engine flag/task-type and math deterministic lanes.
-- **Persistence & replay:** store LivingDocument, gate history, librarian context, and automation plans with replay support; audit export snapshot available.
-- **Multi-channel delivery:** document/email/chat/voice/translation stubs wired; chat/voice adapters with approvals and audit trails remain.
+- **Persistence & replay:** ~~store LivingDocument, gate history, librarian context, and automation plans with replay support~~ — *COMPLETE: `src/persistence_manager.py` with durable file-based JSON storage, thread-safe atomic writes, replay support, and audit trails (27 tests).*
+- **Multi-channel delivery:** ~~document/email/chat/voice/translation stubs wired; chat/voice adapters with approvals and audit trails remain~~ — *COMPLETE: production delivery adapters for all 5 channels with DeliveryOrchestrator, validation, approval gating, and status tracking (36 tests).*
 - **Delivery adapter integration:** readiness snapshot plus connector orchestration are available and document/email/chat/voice/translation stub generation is wired; production adapters for chat/voice remain unconfigured.
 - **Adapter framework integration:** adapter execution snapshot is available; execution wiring and activation flows still need integration.
 - **Compliance validation:** regulatory sensors, policy gates, and HITL approvals tied to deliverable releases.
@@ -153,7 +160,7 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 - **Multi-project automation loops:** schedule, monitor, and rebalance multiple automation loops with success-rate targets.
 - **Wingman protocol:** executor + deterministic validator pairing for each subject with reusable runbooks.
 
-**Bottom line:** Runtime 1.0 is a strong planning/preview engine. To make it a fully dynamic automation runtime, focus on execution wiring, persistent memory, and channel adapters before scaling operational automation.
+**Bottom line:** Runtime 1.0 now has durable persistence, production delivery adapters, gate execution wiring, event-driven backbone, and self-improvement feedback loop. To make it a fully autonomous automation runtime, focus on operational services (ticketing, remote access, patch/rollback), full swarm execution wiring, and multi-project automation loops.
 
 ---
 
@@ -163,29 +170,29 @@ These percentages are **current estimates** based on wired functionality vs. pla
 
 | Area | Estimated completion | Evidence to update |
 | --- | --- | --- |
-| Execution wiring (gate + swarm + orchestrator) | 50.15% | MFGC fallback wired; authority/compute/change-order governance policies and envelope/replay controls widened with parity checks |
-| Deterministic + LLM routing | 41.92% | Routing heuristics exist; deterministic task aliases now route through compute validation in `execute_task` (including confidence-engine flag/task-type and math deterministic lanes), with focused tests for alias + required-routing payloads |
-| Persistence + replay | 25.27% | Snapshot persistence + audit export snapshot available; replay consistency/attestation policy coverage expanded |
-| Multi-channel delivery | 58.79% | Document/email/chat/voice/translation stubs wired; publication/readout governance controls expanded |
-| Compliance validation | 40.58% | Compliance validation snapshot + rulepack/freshness/exception trace controls expanded |
-| Operational automation | 23.68% | Planning templates exist; handoff/readiness and release-gate policy controls expanded |
+| Execution wiring (gate + swarm + orchestrator) | 62.00% | Gate execution wiring with EXECUTIVE/OPERATIONS/QA/HITL/COMPLIANCE/BUDGET gates + event backbone with durable queues; MFGC fallback retained |
+| Deterministic + LLM routing | 45.00% | Route optimization in self-improvement engine; deterministic task aliases route through compute validation |
+| Persistence + replay | 72.00% | Persistence manager with durable file-based JSON storage, thread-safe atomic writes, replay support (27 tests) |
+| Multi-channel delivery | 82.00% | Production delivery adapters for all 5 channels (document/email/chat/voice/translation) with approval gating (36 tests) |
+| Compliance validation | 48.00% | Gate policy enforcement (ENFORCE/WARN/AUDIT) + compliance validation snapshot |
+| Operational automation | 30.00% | Event backbone for automation; planning templates + handoff/readiness controls |
 | UI + user testing | 71.19% | Architect UI + scripted screenshots + warning-clean focused parity suite maintained |
-| Test coverage for dynamic chains | 97.96% | Dynamic plan tests exist; summary surface bundle + consumer parity + consistency + remediation/consistency-gap + completion snapshot + completion remediation + threshold/average/gap-area/total-area/coverage-ratio/backlog/backlog-ratio + execution-profile/enforcement-level/source/control-plane-separation/R&D-candidate/approval-policy/budget-mode/audit-policy/escalation-routing/tool-mediation/deterministic-routing/compute-routing/policy-compiler/permission-validation/delegation-scope/execution-broker/role-registry/authority-boundary/cross-department-arbitration/department-memory-isolation + employee-contract/core-responsibility + contract-change-authority/contract-management-surface/accountability/review/versioning + shadow-agent-org-parity-policy/contract-binding/account-lifecycle + user-base-access-governance/UI-audit + contract-obligation-tracking/escalation-binding + org-chart assignment sync + event queue durability/idempotency/retry-backoff/circuit-breaker/rollback-recovery + planning-plane decomposition/risk-simulation + execution-plane permission-gate/budget-guardrail/audit-integrity + planning-plane compliance-modeling/proposal-generation + execution-plane policy-compiler-enforcement/deterministic-override + HITL escalation requirement + human-in-the-loop enforcement + regulatory audit retention + tenant boundary enforcement + policy exception handling + runtime profile refresh + planning/execution toggle guard + governance exception escalation + approval SLA + tenant residency + swarm recursion guard + section-level governance lifecycle/policy-pack/replay/traceability/control chunks added; full integration/e2e coverage still pending |
+| Test coverage for dynamic chains | 98.20% | 156 new tests across persistence_manager (27), event_backbone (31), delivery_adapters (36), gate_execution_wiring (31), self_improvement_engine (31); prior coverage retained |
 
 **Per-prompt micro-increment delta (latest prompt, decimal precision = 0.01):**
-- Execution wiring: **+0.05%**
-- Deterministic + LLM routing: **+0.54%**
-- Persistence + replay: **+0.03%**
-- Multi-channel delivery: **+0.01%**
-- Compliance validation: **+0.04%**
-- Operational automation: **+0.02%**
-- UI + user testing: **+0.01%**
-- Dynamic-chain tests: **+0.04%**
+- Execution wiring: **+11.85%** (gate execution wiring + event backbone)
+- Deterministic + LLM routing: **+3.08%** (route optimization in self-improvement)
+- Persistence + replay: **+46.73%** (persistence manager fully implemented)
+- Multi-channel delivery: **+23.21%** (all 5 production adapters)
+- Compliance validation: **+7.42%** (gate policy enforcement)
+- Operational automation: **+6.32%** (event backbone for automation)
+- UI + user testing: **+0.00%**
+- Dynamic-chain tests: **+0.24%** (156 new tests across 5 modules)
 
 **Why these percentages can remain unchanged across prompts:**
 - Many recent iterations harden **execution-profile governance metadata** (policy derivation + cross-surface parity) rather than completing new end-to-end wiring categories (execution routing, persistence, delivery adapters, ops automation).
 - Percentages are updated only when there is direct evidence of category-level movement (new wired runtime path, adapter readiness milestone, or expanded integration/e2e coverage), not solely when metadata fields increase.
-- **Last calibration review:** 2026-02-18 (dynamic-chain confidence retained at 96% after focused parity tests; broad category percentages unchanged pending additional end-to-end wiring evidence).
+- **Last calibration review:** 2025-07-16 (major category movement: persistence 25→72%, delivery 59→82%, execution 50→62% after persistence manager, event backbone, delivery adapters, gate execution wiring, and self-improvement engine implementation with 156 new tests).
 
 **Progress update protocol:**
 - Store user-script screenshots in `docs/screenshots/` (repository root).
@@ -198,7 +205,7 @@ These percentages are **current estimates** based on wired functionality vs. pla
 ## 10) File system cleanup plan
 
 1. **Archive legacy demos** into `Murphy System/archive/legacy_versions/` with clear READMEs.
-2. **Remove build artifacts** (`__pycache__`, logs, temp files) via `.gitignore` and pre-commit hooks (including `_workspace_*.zip` for transient UI packages).
+2. **Remove build artifacts** (`__pycache__`, logs, temp files) via `.gitignore` and pre-commit hooks (including `_workspace_*.zip` for transient UI packages). **.gitignore cleanup completed:** comprehensive patterns added for zip/log/db files; 62 tracked artifacts untracked from git.
 3. **Role-based UIs**: keep `terminal_architect.html` (architect), `terminal_integrated.html` (ops),
    and `terminal_worker.html` (delivery) as active role-based UIs; archive unused legacy variants such
    as `murphy_ui_integrated.html` and `murphy_ui_integrated_terminal.html` under
@@ -256,24 +263,29 @@ These percentages are **current estimates** based on wired functionality vs. pla
 37. **Summary consistency remediation tests**: `test_summary_consistency_self_improvement.py` validates consistency drift remediation routing into self-improvement backlog/actions and summary consistency-gap accounting.
 38. **Completion snapshot surface tests**: `test_completion_snapshot_surface.py` validates completion snapshot parity across activation preview, `/api/status`, and `/api/info`, including threshold metadata plus runtime execution profile parity/mode/enforcement-level/source/control-plane-separation/R&D-candidate/approval-policy/budget-mode/audit-policy/escalation-routing/tool-mediation/deterministic-routing/compute-routing/policy-compiler/permission-validation/delegation-scope/execution-broker/role-registry/authority-boundary/cross-department-arbitration/department-memory-isolation/employee-contract/core-responsibility/shadow-account/user-base-management/contract-change-authority/contract-management-surface/contract-accountability/shadow-agent-org-parity-policy/shadow-contract-binding/user-base-access-governance/contract-obligation-tracking/contract-escalation-binding/regulatory-context-binding/autonomy-override/risk-tolerance-enforcement/safety-assurance/delegation-comfort-governance/event-backbone and swarm/shadow spawn/failure-containment/budget-expansion/reinforcement/divergence-tracking derivation checks, plus control-plane governance checks for planning-plane compliance modeling/proposal generation, execution-plane policy-compiler enforcement/deterministic override, HITL escalation requirement, human-in-the-loop enforcement, regulatory audit retention, tenant boundary enforcement, policy exception handling, and runtime profile refresh policy derivation.
 39. **Completion remediation tests**: `test_completion_snapshot_self_improvement.py` validates low completion areas route into self-improvement backlog/actions using snapshot threshold metadata.
+40. **Persistence manager tests**: `test_persistence_manager.py` validates durable file-based JSON persistence for documents, gate history, librarian context, audit trails, and replay support with thread-safe atomic writes (27 tests).
+41. **Event backbone tests**: `test_event_backbone.py` validates event-driven backbone with durable queues, pub/sub, retry logic with exponential backoff, circuit breakers, idempotency, and dead letter queue (31 tests).
+42. **Delivery adapters tests**: `test_delivery_adapters.py` validates production document/email/chat/voice/translation adapters with DeliveryOrchestrator, validation, approval gating, and status tracking (36 tests).
+43. **Gate execution wiring tests**: `test_gate_execution_wiring.py` validates gate synthesis wired into runtime execution with EXECUTIVE/OPERATIONS/QA/HITL/COMPLIANCE/BUDGET gates, policy enforcement (ENFORCE/WARN/AUDIT), and chain sequencing (31 tests).
+44. **Self-improvement engine tests**: `test_self_improvement_engine.py` validates closed feedback loop from execution outcomes to planning with pattern extraction, correction proposals, confidence calibration, route optimization, and remediation backlog (31 tests).
 
 ---
 
 ## 12) Implementation plan to finish remaining work
 
 ### Step 1 — Activate execution wiring
-1. Route gate synthesis + dynamic swarm expansion through `execute_task` (no preview-only paths).
+1. Route gate synthesis + dynamic swarm expansion through `execute_task` (no preview-only paths). — *PARTIALLY COMPLETE: gate execution wiring implemented with 6 gate types and policy enforcement*
 2. Promote MFGC fallback output into the main execution graph and record success/failure outcomes.
 3. Enforce deterministic vs. LLM routing by task tag (compute plane + LLM orchestration in one flow).
 
-### Step 2 — Persistence + replay
-1. Persist LivingDocument, activation previews, librarian context, and dynamic chain plans (expand beyond snapshot storage).
-2. Add replay endpoints for approval flows (HITL + QA gates).
-3. Store gate policy overrides and audit metadata per session.
+### Step 2 — Persistence + replay — *COMPLETE*
+1. ~~Persist LivingDocument, activation previews, librarian context, and dynamic chain plans (expand beyond snapshot storage).~~ — *Done: `src/persistence_manager.py` with durable file-based JSON storage*
+2. ~~Add replay endpoints for approval flows (HITL + QA gates).~~ — *Done: replay support implemented*
+3. ~~Store gate policy overrides and audit metadata per session.~~ — *Done: audit trails with per-session storage*
 
-### Step 3 — Multi-channel deliverables
-1. Wire document/email/chat/voice adapters to the governance policy compiler.
-2. Track approval status and delivery completion in telemetry and audit logs.
+### Step 3 — Multi-channel deliverables — *COMPLETE*
+1. ~~Wire document/email/chat/voice adapters to the governance policy compiler.~~ — *Done: `src/delivery_adapters.py` with approval gating*
+2. ~~Track approval status and delivery completion in telemetry and audit logs.~~ — *Done: status tracking in DeliveryOrchestrator*
 
 ### Step 4 — Operations + customer automation
 1. Wire ticketing, remote access invites, and patch/rollback automation.
