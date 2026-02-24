@@ -28,6 +28,7 @@ import asyncio
 import time
 import re
 import math
+import numbers
 from uuid import uuid4
 from threading import Lock
 
@@ -1600,7 +1601,7 @@ class MurphySystem:
         def _parse_policy_flag(raw_value: Any, default: bool) -> bool:
             if raw_value is None:
                 return default
-            if isinstance(raw_value, (dict, list, tuple, set)):
+            if isinstance(raw_value, (dict, list, tuple, set, frozenset)):
                 return default
             if isinstance(raw_value, (bytes, bytearray, memoryview)):
                 try:
@@ -1614,8 +1615,15 @@ class MurphySystem:
                 if normalized in {"true", "1", "yes", "on"}:
                     return True
                 return default
-            if isinstance(raw_value, float) and not math.isfinite(raw_value):
-                return default
+            # `bool` is intentionally excluded so explicit boolean flags still use direct
+            # truthiness; `complex` is excluded because math.isfinite() does not accept it.
+            if isinstance(raw_value, numbers.Number) and not isinstance(raw_value, (bool, complex)):
+                # Non-standard numeric objects can still raise during float conversion.
+                try:
+                    if not math.isfinite(float(raw_value)):
+                        return default
+                except (TypeError, ValueError):
+                    return default
             return bool(raw_value)
 
         enforce_policy = _parse_policy_flag(params.get("enforce_policy", True), True)
@@ -1911,7 +1919,7 @@ class MurphySystem:
         """
         if isinstance(session_id, float) and not math.isfinite(session_id):
             return None
-        if isinstance(session_id, (bool, complex, bytes, bytearray, memoryview, dict, list, tuple, set)):
+        if isinstance(session_id, (bool, complex, bytes, bytearray, memoryview, dict, list, tuple, set, frozenset)):
             return None
         if isinstance(session_id, str):
             return session_id.strip() or None
@@ -2757,7 +2765,7 @@ class MurphySystem:
             )
             return None
         payload_session_id = payload.get("session_id")
-        if isinstance(payload_session_id, (dict, list, tuple, set)):
+        if isinstance(payload_session_id, (dict, list, tuple, set, frozenset)):
             logger.warning(
                 "Two-Phase Orchestrator session creation returned an unsupported session_id payload type; will proceed without session binding."
             )
