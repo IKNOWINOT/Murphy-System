@@ -86,8 +86,14 @@ class ComputeService:
                 assumptions=request.assumptions if isinstance(request.assumptions, dict) else {},
                 metadata=request.metadata if isinstance(request.metadata, dict) else {},
             )
-        if not isinstance(request.request_id, str) or not request.request_id.strip():
+        if not isinstance(request.request_id, str):
             request = replace(request, request_id=str(uuid.uuid4()))
+        else:
+            normalized_request_id = request.request_id.strip()
+            if not normalized_request_id:
+                request = replace(request, request_id=str(uuid.uuid4()))
+            elif normalized_request_id != request.request_id:
+                request = replace(request, request_id=normalized_request_id)
         request_signature = self._request_signature(request)
 
         with self._lock:

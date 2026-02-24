@@ -749,6 +749,24 @@ class TestComputeService(unittest.TestCase):
             self.assertNotEqual(request_id, "   ")
             self.assertIn(request_id, self.service.pending_requests)
             mock_thread_cls.assert_called_once()
+
+    def test_submit_request_trims_request_id_whitespace(self):
+        """Request IDs with surrounding whitespace should be normalized before pending registration."""
+        request = ComputeRequest(
+            expression="x + 1",
+            language="sympy",
+            request_id="placeholder-id",
+        )
+        # Mutate after creation to exercise runtime normalization behavior.
+        request.request_id = "  spaced-request-id  "
+
+        with patch("src.compute_plane.service.threading.Thread") as mock_thread_cls:
+            request_id = self.service.submit_request(request)
+
+            self.assertEqual(request_id, "spaced-request-id")
+            self.assertIn("spaced-request-id", self.service.pending_requests)
+            self.assertNotIn("  spaced-request-id  ", self.service.pending_requests)
+            mock_thread_cls.assert_called_once()
     
     def test_get_statistics(self):
         """Test getting service statistics"""
