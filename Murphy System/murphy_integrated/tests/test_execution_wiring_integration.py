@@ -2,6 +2,7 @@
 
 import asyncio
 import importlib.util
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -385,6 +386,10 @@ def test_execute_task_blocks_when_orchestrator_missing_and_policy_enforced():
     assert "error" in response
     assert "reason" in response
     assert response["error"] == response["reason"]
+    assert response["metadata"]["task_description"] == "Draft an automation plan"
+    assert response["metadata"]["task_type"] == "automation"
+    timestamp = datetime.fromisoformat(response["metadata"]["timestamp"])
+    assert timestamp <= datetime.now(timezone.utc) + timedelta(seconds=1)
 
 
 def test_execute_task_does_not_block_when_enforce_policy_string_false():
@@ -402,6 +407,31 @@ def test_execute_task_does_not_block_when_enforce_policy_string_false():
             "Draft an automation plan",
             "automation",
             {"enforce_policy": "false"},
+            session_id="session-1"
+        )
+    )
+
+    assert isinstance(response["success"], bool)
+    assert response["status"] != "blocked"
+    assert response["metadata"]["mode"] == "mfgc_fallback"
+    assert response["metadata"]["orchestration_mode"] == "fallback"
+
+
+def test_execute_task_does_not_block_when_enforce_policy_bytes_false():
+    runtime = load_runtime_module()
+    if runtime.MFGCAdapter is None:
+        pytest.skip("MFGC adapter not available in test environment")
+
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.system_integrator = StubIntegrator()
+    murphy.mfgc_adapter = runtime.MFGCAdapter(murphy.system_integrator)
+    murphy.orchestrator = None
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Draft an automation plan",
+            "automation",
+            {"enforce_policy": b"false"},
             session_id="session-1"
         )
     )
@@ -558,6 +588,8 @@ def test_execute_task_policy_block_includes_reason_field():
     assert response["success"] is False
     assert response["status"] == "blocked"
     assert response["error"] == response["reason"]
+    assert response["metadata"]["mode"] == "blocked"
+    assert response["metadata"]["orchestration_mode"] == "blocked"
 
 
 def test_execute_task_policy_block_handles_missing_create_session_payload():
