@@ -181,6 +181,18 @@ except ImportError as e:
     print(f"Warning: Self-improvement engine not available: {e}")
     SelfImprovementEngine = ExecutionOutcome = OutcomeType = None
 
+try:
+    from src.operational_slo_tracker import OperationalSLOTracker, SLOTarget, ExecutionRecord as SLOExecutionRecord
+except ImportError as e:
+    print(f"Warning: Operational SLO tracker not available: {e}")
+    OperationalSLOTracker = SLOTarget = SLOExecutionRecord = None
+
+try:
+    from src.automation_scheduler import AutomationScheduler, ProjectSchedule, SchedulePriority
+except ImportError as e:
+    print(f"Warning: Automation scheduler not available: {e}")
+    AutomationScheduler = ProjectSchedule = SchedulePriority = None
+
 # FastAPI for REST API
 try:
     from fastapi import FastAPI, HTTPException, Request
@@ -540,6 +552,18 @@ class MurphySystem:
             "path": "src.self_improvement_engine",
             "description": "Self-improvement engine with feedback loops and confidence calibration",
             "capabilities": ["self_improvement", "learning_feedback", "confidence_calibration"]
+        },
+        {
+            "name": "operational_slo_tracker",
+            "path": "src.operational_slo_tracker",
+            "description": "Operational SLO tracker with success rate, latency percentiles, and compliance checks",
+            "capabilities": ["slo_tracking", "operational_telemetry", "compliance_monitoring"]
+        },
+        {
+            "name": "automation_scheduler",
+            "path": "src.automation_scheduler",
+            "description": "Multi-project automation scheduler with priority-based load balancing",
+            "capabilities": ["scheduling", "multi_project", "load_balancing"]
         }
     ]
     MODULE_SCAN_EXCLUDED_DIRS = {"__pycache__", "tests", "test", "docs", "documentation", "examples"}
@@ -1467,6 +1491,42 @@ class MurphySystem:
                 self.self_improvement = None
         else:
             self.self_improvement = None
+
+        # Operational SLO Tracker
+        if OperationalSLOTracker:
+            try:
+                self.slo_tracker = OperationalSLOTracker()
+                # Register default SLO targets
+                if SLOTarget:
+                    self.slo_tracker.add_slo_target(SLOTarget(
+                        target_name="execution_success_rate",
+                        metric="success_rate",
+                        threshold=0.95,
+                        window_seconds=3600,
+                    ))
+                    self.slo_tracker.add_slo_target(SLOTarget(
+                        target_name="execution_latency_p95",
+                        metric="latency_p95",
+                        threshold=30.0,
+                        window_seconds=3600,
+                    ))
+                logger.info("Operational SLO tracker initialized")
+            except Exception as exc:
+                logger.warning("SLO tracker initialization failed: %s", exc)
+                self.slo_tracker = None
+        else:
+            self.slo_tracker = None
+
+        # Automation Scheduler
+        if AutomationScheduler:
+            try:
+                self.automation_scheduler = AutomationScheduler()
+                logger.info("Automation scheduler initialized")
+            except Exception as exc:
+                logger.warning("Automation scheduler initialization failed: %s", exc)
+                self.automation_scheduler = None
+        else:
+            self.automation_scheduler = None
     
     # ==================== CORE EXECUTION ====================
 
@@ -2754,7 +2814,7 @@ class MurphySystem:
             return fallback
 
         if not self._supports_async_orchestrator():
-            return self._execute_two_phase_orchestrator(
+            two_phase_result = self._execute_two_phase_orchestrator(
                 task_description,
                 task_type,
                 parameters,
@@ -2766,6 +2826,23 @@ class MurphySystem:
                 persistence_snapshot,
                 swarm_execution
             )
+            two_phase_result["gate_evaluations"] = gate_result
+            two_phase_success = two_phase_result.get("success", False)
+            two_phase_duration = time.perf_counter() - execution_start
+            self._publish_execution_event(
+                "TASK_COMPLETED" if two_phase_success else "TASK_FAILED",
+                {"task_description": task_description, "success": two_phase_success, "mode": "two_phase"},
+                session_id=session_id,
+            )
+            self._record_execution(success=two_phase_success, duration=two_phase_duration, task_type=task_type)
+            self._persist_execution_result(session_id, task_description, task_type, two_phase_result)
+            self._record_self_improvement_outcome(
+                task_description, task_type, session_id,
+                success=two_phase_success, duration=two_phase_duration,
+                gate_evaluations=gate_result,
+            )
+            two_phase_result["integrated_modules"] = self._build_integrated_execution_summary()
+            return two_phase_result
 
         try:
             # Phase 1: Generative Setup
@@ -9196,7 +9273,7 @@ class MurphySystem:
             )
         return preview
 
-    def _record_execution(self, success: bool, duration: float) -> None:
+    def _record_execution(self, success: bool, duration: float, task_type: str = "general", failure_reason: Optional[str] = None) -> None:
         self.execution_metrics["total"] += 1
         if success:
             self.execution_metrics["success"] += 1
@@ -9207,6 +9284,18 @@ class MurphySystem:
         self.mfgc_statistics["total_executions"] = total
         self.mfgc_statistics["success_rate"] = f"{success_rate:.1f}%"
         self.mfgc_statistics["average_execution_time"] = f"{avg_time:.3f}s"
+        # Feed SLO tracker
+        slo = getattr(self, "slo_tracker", None)
+        if slo is not None and SLOExecutionRecord is not None:
+            try:
+                slo.record_execution(SLOExecutionRecord(
+                    task_type=task_type,
+                    success=success,
+                    duration=duration,
+                    failure_reason=failure_reason,
+                ))
+            except Exception as exc:
+                logger.debug("SLO tracker record failed: %s", exc)
 
     # ==================== INTEGRATED MODULE EXECUTION WIRING ====================
 
@@ -9392,12 +9481,30 @@ class MurphySystem:
             except Exception:
                 persistence_status = {"error": "status unavailable"}
 
+        slo_status = {}
+        slo = getattr(self, "slo_tracker", None)
+        if slo is not None:
+            try:
+                slo_status = slo.get_status()
+            except Exception:
+                slo_status = {"error": "status unavailable"}
+
+        scheduler_status = {}
+        sched = getattr(self, "automation_scheduler", None)
+        if sched is not None:
+            try:
+                scheduler_status = sched.get_status()
+            except Exception:
+                scheduler_status = {"error": "status unavailable"}
+
         return {
             "gate_execution_wiring": gate_status,
             "event_backbone": event_status,
             "delivery_orchestrator": delivery_status,
             "self_improvement_engine": improvement_status,
             "persistence_manager": persistence_status,
+            "slo_tracker": slo_status,
+            "automation_scheduler": scheduler_status,
         }
 
     def _build_confidence_report(self, task_description: str) -> Dict[str, Any]:
@@ -9864,7 +9971,9 @@ class MurphySystem:
                 'event_backbone': self._component_status(getattr(self, 'event_backbone', None)),
                 'delivery_orchestrator': self._component_status(getattr(self, 'delivery_orchestrator', None)),
                 'gate_execution_wiring': self._component_status(getattr(self, 'gate_wiring', None)),
-                'self_improvement_engine': self._component_status(getattr(self, 'self_improvement', None))
+                'self_improvement_engine': self._component_status(getattr(self, 'self_improvement', None)),
+                'slo_tracker': self._component_status(getattr(self, 'slo_tracker', None)),
+                'automation_scheduler': self._component_status(getattr(self, 'automation_scheduler', None))
             },
             'statistics': {
                 'sessions': len(self.sessions),
