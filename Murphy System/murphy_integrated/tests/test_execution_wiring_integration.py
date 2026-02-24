@@ -49,6 +49,19 @@ class StubAsyncOrchestratorExecutionFailure:
         return {"success": False, "error": "execution unavailable"}
 
 
+class StubAsyncOrchestratorInvalidSessionId:
+    def __init__(self):
+        self.phase2_called = False
+
+    async def phase1_generative_setup(self, **_kwargs):
+        # Whitespace-only session IDs must be normalized as invalid.
+        return {"success": True, "session_id": "   ", "execution_packet": {"id": "pkt-invalid"}}
+
+    async def phase2_production_execution(self, **_kwargs):
+        self.phase2_called = True
+        return {"success": True}
+
+
 def test_execute_task_uses_mfgc_fallback_when_orchestrator_missing():
     runtime = load_runtime_module()
     if runtime.MFGCAdapter is None:
@@ -209,6 +222,32 @@ def test_execute_task_fallback_preserves_zero_like_create_session_id():
     assert isinstance(response["success"], bool)
     assert response["metadata"]["mode"] == "mfgc_fallback"
     assert response["session_id"] == "0"
+    assert "mfgc_execution" in response
+
+
+def test_execute_task_fallback_rejects_non_finite_numeric_create_session_id():
+    runtime = load_runtime_module()
+    if runtime.MFGCAdapter is None:
+        pytest.skip("MFGC adapter not available in test environment")
+
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.system_integrator = StubIntegrator()
+    murphy.mfgc_adapter = runtime.MFGCAdapter(murphy.system_integrator)
+    murphy.orchestrator = None
+    murphy.create_session = lambda *args, **kwargs: {"session_id": float("nan")}
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Draft an automation plan",
+            "automation",
+            {"enforce_policy": False},
+            session_id=None
+        )
+    )
+
+    assert isinstance(response["success"], bool)
+    assert response["metadata"]["mode"] == "mfgc_fallback"
+    assert response["session_id"] is None
     assert "mfgc_execution" in response
 
 
@@ -758,3 +797,30 @@ def test_execute_task_async_execution_failure_includes_execution_context():
     assert "execution_policy" in response
     assert "persistence_snapshot" in response
     assert "swarm_execution" in response
+
+
+def test_execute_task_async_setup_rejects_invalid_session_id():
+    runtime = load_runtime_module()
+    orchestrator = StubAsyncOrchestratorInvalidSessionId()
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.orchestrator = orchestrator
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Execute with invalid async setup session id",
+            "automation",
+            {"enforce_policy": False},
+            session_id="session-async-invalid-session",
+        )
+    )
+
+    assert response["success"] is False
+    assert response["phase"] == "setup"
+    assert response["error"] == "Invalid orchestrator session_id returned from setup"
+    assert "doc_id" in response
+    assert "activation_preview" in response
+    assert "execution_wiring" in response
+    assert "execution_policy" in response
+    assert "persistence_snapshot" in response
+    assert "swarm_execution" in response
+    assert orchestrator.phase2_called is False
