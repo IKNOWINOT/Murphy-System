@@ -170,6 +170,32 @@ def test_execute_task_fallback_normalizes_whitespace_create_session_id():
     assert "mfgc_execution" in response
 
 
+def test_execute_task_fallback_preserves_zero_like_create_session_id():
+    runtime = load_runtime_module()
+    if runtime.MFGCAdapter is None:
+        pytest.skip("MFGC adapter not available in test environment")
+
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.system_integrator = StubIntegrator()
+    murphy.mfgc_adapter = runtime.MFGCAdapter(murphy.system_integrator)
+    murphy.orchestrator = None
+    murphy.create_session = lambda *args, **kwargs: {"session_id": 0}
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Draft an automation plan",
+            "automation",
+            {"enforce_policy": False},
+            session_id=None
+        )
+    )
+
+    assert isinstance(response["success"], bool)
+    assert response["metadata"]["mode"] == "mfgc_fallback"
+    assert response["session_id"] == "0"
+    assert "mfgc_execution" in response
+
+
 def test_execute_task_fallback_handles_create_session_exception():
     runtime = load_runtime_module()
     if runtime.MFGCAdapter is None:
@@ -308,6 +334,37 @@ def test_execute_task_does_not_block_when_require_orchestrator_online_string_fal
             "automation",
             {"enforce_policy": False, "require_orchestrator_online": "false"},
             session_id="session-online-string-false",
+        )
+    )
+
+    assert isinstance(response["success"], bool)
+    assert response.get("status") != "blocked"
+    assert response["metadata"]["orchestration_mode"] in {"fallback", "simulation"}
+
+
+def test_execute_task_does_not_block_when_require_orchestrator_online_string_invalid():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.orchestrator = None
+    murphy._prepare_activation_preview = lambda *_args, **_kwargs: (
+        SimpleNamespace(doc_id="doc-orchestrator-online-string-invalid"),
+        {
+            "dynamic_implementation": {
+                "status": "ready",
+                "approval_policy": {"status": "ready"},
+                "gate_status": "ready",
+                "execution_strategy": "production",
+            }
+        },
+    )
+    murphy._persist_execution_snapshot = lambda *_args, **_kwargs: {"status": "disabled"}
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Execute with orchestration-online string-invalid requirement",
+            "automation",
+            {"enforce_policy": False, "require_orchestrator_online": "definitely-maybe"},
+            session_id="session-online-string-invalid",
         )
     )
 
