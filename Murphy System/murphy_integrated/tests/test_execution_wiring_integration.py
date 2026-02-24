@@ -64,6 +64,14 @@ class StubAsyncOrchestratorInvalidSessionId:
         return {"success": True}
 
 
+class StubAsyncOrchestratorSuccess:
+    async def phase1_generative_setup(self, **_kwargs):
+        return {"success": True, "session_id": "async-session-success", "execution_packet": {"id": "pkt-success"}}
+
+    async def phase2_production_execution(self, **_kwargs):
+        return {"success": True, "result": {"status": "ok"}, "deliverables": []}
+
+
 def test_execute_task_uses_mfgc_fallback_when_orchestrator_missing():
     runtime = load_runtime_module()
     if runtime.MFGCAdapter is None:
@@ -1122,3 +1130,22 @@ def test_execute_task_async_setup_rejects_invalid_session_id():
     assert "persistence_snapshot" in response
     assert "swarm_execution" in response
     assert orchestrator.phase2_called is False
+
+
+def test_execute_task_async_success_timestamp_is_timezone_aware():
+    runtime = load_runtime_module()
+    murphy = runtime.MurphySystem.create_test_instance()
+    murphy.orchestrator = StubAsyncOrchestratorSuccess()
+
+    response = asyncio.run(
+        murphy.execute_task(
+            "Execute with async success",
+            "automation",
+            {"enforce_policy": False},
+            session_id="session-async-success",
+        )
+    )
+
+    assert response["success"] is True
+    timestamp = datetime.fromisoformat(response["metadata"]["timestamp"])
+    assert timestamp.tzinfo is timezone.utc
