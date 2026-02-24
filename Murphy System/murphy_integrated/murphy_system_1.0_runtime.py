@@ -2460,6 +2460,14 @@ class MurphySystem:
 
         session_id = self._normalize_session_id(session_id)
 
+        # Publish task-submitted event through event backbone
+        self._publish_execution_event(
+            "TASK_SUBMITTED",
+            {"task_description": task_description, "task_type": task_type},
+            session_id=session_id,
+        )
+        execution_start = time.perf_counter()
+
         # Activation preview is returned for both orchestrator and fallback responses.
         doc, activation_preview = self._prepare_activation_preview(
             task_description,
@@ -2478,6 +2486,42 @@ class MurphySystem:
         )
         if isinstance(activation_preview.get("persistence"), dict):
             activation_preview["persistence"]["snapshot"] = persistence_snapshot
+
+        # Evaluate execution gates before proceeding
+        gate_result = self._evaluate_execution_gates(
+            task_description, task_type, session_id, parameters
+        )
+        if not gate_result["allowed"]:
+            self._publish_execution_event(
+                "GATE_BLOCKED",
+                {"task_description": task_description, "blocked_reasons": gate_result["blocked_reasons"]},
+                session_id=session_id,
+            )
+            duration = time.perf_counter() - execution_start
+            self._record_execution(success=False, duration=duration)
+            self._record_self_improvement_outcome(
+                task_description, task_type, session_id,
+                success=False, duration=duration, gate_evaluations=gate_result,
+            )
+            return {
+                "success": False,
+                "status": "gate_blocked",
+                "session_id": session_id,
+                "doc_id": doc.doc_id,
+                "activation_preview": activation_preview,
+                "gate_evaluations": gate_result,
+                "persistence_snapshot": persistence_snapshot,
+                "error": "; ".join(gate_result["blocked_reasons"]),
+                "metadata": {
+                    "task_description": task_description,
+                    "task_type": task_type,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "mode": "gate_blocked",
+                    "orchestration_mode": "gate_blocked",
+                    "duration": duration,
+                },
+            }
+
         execution_wiring = activation_preview.get("execution_wiring")
         execution_policy = self._build_execution_policy(
             activation_preview.get("dynamic_implementation"),
@@ -2691,6 +2735,22 @@ class MurphySystem:
             fallback["execution_policy"] = execution_policy
             fallback["persistence_snapshot"] = persistence_snapshot
             fallback["swarm_execution"] = swarm_execution
+            fallback["gate_evaluations"] = gate_result
+            # Wire integrated modules into fallback path
+            fallback_success = fallback.get("success", False)
+            fallback_duration = time.perf_counter() - execution_start
+            self._publish_execution_event(
+                "TASK_COMPLETED" if fallback_success else "TASK_FAILED",
+                {"task_description": task_description, "success": fallback_success, "mode": "fallback"},
+                session_id=session_id,
+            )
+            self._persist_execution_result(session_id, task_description, task_type, fallback)
+            self._record_self_improvement_outcome(
+                task_description, task_type, session_id,
+                success=fallback_success, duration=fallback_duration,
+                gate_evaluations=gate_result,
+            )
+            fallback["integrated_modules"] = self._build_integrated_execution_summary()
             return fallback
 
         if not self._supports_async_orchestrator():
@@ -2801,7 +2861,18 @@ class MurphySystem:
                 parameters
             )
             # Return complete result
-            return {
+            orchestrator_duration = time.perf_counter() - execution_start
+            self._record_self_improvement_outcome(
+                task_description, task_type, session_id,
+                success=True, duration=orchestrator_duration,
+                gate_evaluations=gate_result,
+            )
+            self._publish_execution_event(
+                "TASK_COMPLETED",
+                {"task_description": task_description, "success": True, "mode": "orchestrator"},
+                session_id=session_id,
+            )
+            orchestrator_result = {
                 'success': True,
                 'session_id': session_id,
                 'execution_packet': execution_packet,
@@ -2813,18 +2884,33 @@ class MurphySystem:
                 'execution_policy': execution_policy,
                 'persistence_snapshot': persistence_snapshot,
                 'swarm_execution': swarm_execution,
+                'gate_evaluations': gate_result,
+                'integrated_modules': self._build_integrated_execution_summary(),
                 'metadata': {
                     'task_description': task_description,
                     'task_type': task_type,
-                    'timestamp': datetime.now(timezone.utc).isoformat()
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'duration': orchestrator_duration,
                 }
             }
+            self._persist_execution_result(session_id, task_description, task_type, orchestrator_result)
+            return orchestrator_result
         
         except Exception as e:
             logger.error(f"Task execution failed: {e}")
             import traceback
             traceback.print_exc()
-            
+            exception_duration = time.perf_counter() - execution_start
+            self._publish_execution_event(
+                "TASK_FAILED",
+                {"task_description": task_description, "error": str(e), "mode": "exception"},
+                session_id=session_id,
+            )
+            self._record_self_improvement_outcome(
+                task_description, task_type, session_id,
+                success=False, duration=exception_duration,
+                gate_evaluations=gate_result if 'gate_result' in dir() else None,
+            )
             return {
                 'success': False,
                 'error': str(e),
@@ -9122,6 +9208,198 @@ class MurphySystem:
         self.mfgc_statistics["success_rate"] = f"{success_rate:.1f}%"
         self.mfgc_statistics["average_execution_time"] = f"{avg_time:.3f}s"
 
+    # ==================== INTEGRATED MODULE EXECUTION WIRING ====================
+
+    def _evaluate_execution_gates(
+        self,
+        task_description: str,
+        task_type: str,
+        session_id: Optional[str],
+        parameters: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Evaluate gate policies before task execution.
+
+        Returns a dict with ``allowed`` (bool), the list of ``evaluations``,
+        and a ``blocked_reasons`` list (empty when allowed).
+        """
+        gate_wiring = getattr(self, "gate_wiring", None)
+        if gate_wiring is None:
+            return {"allowed": True, "evaluations": [], "blocked_reasons": []}
+
+        task_payload = {
+            "task_description": task_description,
+            "task_type": task_type,
+            "session_id": session_id,
+            "parameters": parameters or {},
+        }
+        try:
+            allowed, evaluations = gate_wiring.can_execute(task_payload, session_id or "default")
+        except Exception as exc:
+            logger.warning("Gate evaluation failed (%s); allowing execution.", exc)
+            return {"allowed": True, "evaluations": [], "blocked_reasons": [], "error": str(exc)}
+
+        blocked_reasons = []
+        for ev in evaluations:
+            decision = getattr(ev, "decision", None)
+            if decision is not None and hasattr(decision, "value"):
+                decision = decision.value
+            if decision == "blocked":
+                reason = getattr(ev, "reason", "Gate blocked")
+                blocked_reasons.append(reason)
+
+        return {
+            "allowed": allowed,
+            "evaluations": [
+                {
+                    "gate_id": getattr(ev, "gate_id", "unknown"),
+                    "gate_type": getattr(getattr(ev, "gate_type", None), "value", str(getattr(ev, "gate_type", "unknown"))),
+                    "decision": getattr(getattr(ev, "decision", None), "value", str(getattr(ev, "decision", "unknown"))),
+                    "reason": getattr(ev, "reason", ""),
+                    "policy": getattr(getattr(ev, "policy", None), "value", str(getattr(ev, "policy", "unknown"))),
+                }
+                for ev in evaluations
+            ],
+            "blocked_reasons": blocked_reasons,
+        }
+
+    def _publish_execution_event(
+        self,
+        event_type_name: str,
+        payload: Dict[str, Any],
+        session_id: Optional[str] = None,
+    ) -> Optional[str]:
+        """Publish an event through the event backbone if available.
+
+        *event_type_name* should match an ``EventType`` member name (e.g.
+        ``"TASK_SUBMITTED"``).  Returns the event id or ``None``.
+        """
+        backbone = getattr(self, "event_backbone", None)
+        if backbone is None or BackboneEventType is None:
+            return None
+        try:
+            event_type = BackboneEventType[event_type_name]
+        except (KeyError, TypeError):
+            logger.debug("Unknown event type %s; skipping publish.", event_type_name)
+            return None
+        try:
+            return backbone.publish(
+                event_type=event_type,
+                payload=payload,
+                session_id=session_id,
+                source="murphy_runtime",
+            )
+        except Exception as exc:
+            logger.warning("Event publish failed for %s: %s", event_type_name, exc)
+            return None
+
+    def _persist_execution_result(
+        self,
+        session_id: Optional[str],
+        task_description: str,
+        task_type: str,
+        result: Dict[str, Any],
+    ) -> Optional[str]:
+        """Persist an execution result via the persistence manager."""
+        pm = getattr(self, "persistence_manager", None)
+        if pm is None:
+            return None
+        doc_data = {
+            "session_id": session_id,
+            "task_description": task_description,
+            "task_type": task_type,
+            "success": result.get("success"),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "metadata": result.get("metadata"),
+        }
+        try:
+            return pm.save_document(
+                doc_id=f"exec_{session_id or 'no_session'}_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+                document=doc_data,
+            )
+        except Exception as exc:
+            logger.warning("Persist execution result failed: %s", exc)
+            return None
+
+    def _record_self_improvement_outcome(
+        self,
+        task_description: str,
+        task_type: str,
+        session_id: Optional[str],
+        success: bool,
+        duration: float,
+        gate_evaluations: Optional[Dict[str, Any]] = None,
+    ) -> Optional[str]:
+        """Feed execution outcome into the self-improvement engine."""
+        engine = getattr(self, "self_improvement", None)
+        if engine is None or ExecutionOutcome is None or OutcomeType is None:
+            return None
+        try:
+            outcome_type = OutcomeType.SUCCESS if success else OutcomeType.FAILURE
+            outcome = ExecutionOutcome(
+                task_id=f"{task_type}_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+                session_id=session_id or "unknown",
+                outcome=outcome_type,
+                metrics={
+                    "duration": duration,
+                    "task_type": task_type,
+                    "gate_evaluations": gate_evaluations,
+                },
+            )
+            return engine.record_outcome(outcome)
+        except Exception as exc:
+            logger.warning("Self-improvement outcome recording failed: %s", exc)
+            return None
+
+    def _build_integrated_execution_summary(self) -> Dict[str, Any]:
+        """Build a summary of all integrated module statuses for API responses."""
+        gate_status = {}
+        gate_wiring = getattr(self, "gate_wiring", None)
+        if gate_wiring is not None:
+            try:
+                gate_status = gate_wiring.get_status()
+            except Exception:
+                gate_status = {"error": "status unavailable"}
+
+        event_status = {}
+        backbone = getattr(self, "event_backbone", None)
+        if backbone is not None:
+            try:
+                event_status = backbone.get_status()
+            except Exception:
+                event_status = {"error": "status unavailable"}
+
+        delivery_status = {}
+        delivery_orch = getattr(self, "delivery_orchestrator", None)
+        if delivery_orch is not None:
+            try:
+                delivery_status = delivery_orch.get_channel_status()
+            except Exception:
+                delivery_status = {"error": "status unavailable"}
+
+        improvement_status = {}
+        engine = getattr(self, "self_improvement", None)
+        if engine is not None:
+            try:
+                improvement_status = engine.get_status()
+            except Exception:
+                improvement_status = {"error": "status unavailable"}
+
+        persistence_status = {}
+        pm = getattr(self, "persistence_manager", None)
+        if pm is not None:
+            try:
+                persistence_status = pm.get_status()
+            except Exception:
+                persistence_status = {"error": "status unavailable"}
+
+        return {
+            "gate_execution_wiring": gate_status,
+            "event_backbone": event_status,
+            "delivery_orchestrator": delivery_status,
+            "self_improvement_engine": improvement_status,
+            "persistence_manager": persistence_status,
+        }
+
     def _build_confidence_report(self, task_description: str) -> Dict[str, Any]:
         base = min(0.92, 0.45 + (len(task_description) / 200))
         uncertainty = max(0.05, 1.0 - base)
@@ -9621,6 +9899,7 @@ class MurphySystem:
             'governance_dashboard': governance_dashboard,
             'learning_backlog': learning_backlog,
             'self_improvement': self_improvement_snapshot,
+            'integrated_modules': self._build_integrated_execution_summary(),
             'self_operation': {
                 'enabled': self_operation_enabled,
                 'can_work_on_self': self_operation_enabled and correction_system_available,
