@@ -19,7 +19,9 @@ This ledger tracks decisions required to unblock architecture wiring, governance
 
 | ID | Priority | Blocking | Topic | Follow-up needed |
 | --- | --- | --- | --- | --- |
-| *(none — all items resolved or implemented)* | | | | |
+| RFI-016 | Low | No | External Module Source | `universal_control_plane`, `inoni_business_automation`, `two_phase_orchestrator` exist in MODULE_CATALOG but their source packages are not in the `murphy_integrated/` tree. They import via try/except and gracefully degrade. Should they be ported into `src/` as stubs or remain external? |
+| RFI-017 | Low | No | Uncatalogued Source Files | 263 Python files in `src/` are sub-modules of catalogued packages (e.g., `confidence_engine/`, `execution_engine/`, `learning_engine/` internals). These are indirectly covered by their parent catalog entry. Confirm this indirect coverage model is acceptable vs. explicit registration. |
+| RFI-018 | Medium | No | Screenshot Currency | `docs/screenshots/` contains 40 screenshots from system setup (Feb 9, 2026). New modules added since then (ML strategy, content creator, digital assets, video streaming, remote access, security hardening) have no corresponding screenshots. Should new screenshots be generated? |
 
 ---
 
