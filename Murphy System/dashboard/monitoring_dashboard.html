@@ -12,9 +12,9 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #00ff41;
             min-height: 100vh;
             padding: 20px;
         }
@@ -28,28 +28,29 @@
             text-align: center;
             margin-bottom: 30px;
             padding: 20px;
-            background: rgba(255, 255, 255, 0.05);
+            background: #111;
             border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid #00ff41;
+            box-shadow: 0 0 10px rgba(0,255,65,0.3);
         }
 
         .header h1 {
             font-size: 2.5em;
             margin-bottom: 10px;
-            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            background: linear-gradient(90deg, #00ff41, #00e5ff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
         .header p {
-            color: #a0a0a0;
+            color: #00e5ff;
             font-size: 1.1em;
         }
 
         .refresh-info {
             text-align: right;
-            color: #a0a0a0;
+            color: #00e5ff;
             font-size: 0.9em;
             margin-bottom: 10px;
         }
@@ -62,11 +63,12 @@
         }
 
         .metric-card {
-            background: rgba(255, 255, 255, 0.05);
+            background: #111;
             border-radius: 10px;
             padding: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid #00ff41;
             transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 0 10px rgba(0,255,65,0.3);
         }
 
         .metric-card:hover {
@@ -92,7 +94,7 @@
 
         .metric-title {
             font-size: 0.9em;
-            color: #a0a0a0;
+            color: #00e5ff;
             text-transform: uppercase;
             letter-spacing: 1px;
             margin-bottom: 10px;
@@ -101,13 +103,13 @@
         .metric-value {
             font-size: 2.5em;
             font-weight: bold;
-            color: #fff;
+            color: #00ff41;
             margin-bottom: 5px;
         }
 
         .metric-unit {
             font-size: 1em;
-            color: #a0a0a0;
+            color: #00e5ff;
             margin-left: 5px;
         }
 
@@ -132,26 +134,27 @@
         }
 
         .chart-card {
-            background: rgba(255, 255, 255, 0.05);
+            background: #111;
             border-radius: 10px;
             padding: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid #00ff41;
+            box-shadow: 0 0 10px rgba(0,255,65,0.3);
         }
 
         .chart-card h3 {
             font-size: 1.2em;
             margin-bottom: 15px;
-            color: #fff;
+            color: #00e5ff;
         }
 
         .chart-placeholder {
             height: 200px;
-            background: rgba(0, 0, 0, 0.2);
+            background: #0a0a0a;
             border-radius: 5px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #a0a0a0;
+            color: #00e5ff;
         }
 
         .tables-section {
@@ -161,17 +164,18 @@
         }
 
         .table-card {
-            background: rgba(255, 255, 255, 0.05);
+            background: #111;
             border-radius: 10px;
             padding: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid #00ff41;
             overflow-x: auto;
+            box-shadow: 0 0 10px rgba(0,255,65,0.3);
         }
 
         .table-card h3 {
             font-size: 1.2em;
             margin-bottom: 15px;
-            color: #fff;
+            color: #00e5ff;
         }
 
         table {
@@ -182,24 +186,24 @@
         th, td {
             padding: 12px;
             text-align: left;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid #222;
         }
 
         th {
-            background: rgba(255, 255, 255, 0.05);
+            background: #1a1a1a;
             font-weight: 600;
-            color: #fff;
+            color: #00e5ff;
             text-transform: uppercase;
             font-size: 0.85em;
             letter-spacing: 0.5px;
         }
 
         td {
-            color: #e0e0e0;
+            color: #00ff41;
         }
 
         tr:hover {
-            background: rgba(255, 255, 255, 0.02);
+            background: #1a1a1a;
         }
 
         .status-badge {
@@ -248,7 +252,7 @@
         .loading {
             text-align: center;
             padding: 40px;
-            color: #a0a0a0;
+            color: #00e5ff;
         }
 
         .error-message {
@@ -263,7 +267,7 @@
         .no-data {
             text-align: center;
             padding: 20px;
-            color: #a0a0a0;
+            color: #00e5ff;
             font-style: italic;
         }
     </style>
