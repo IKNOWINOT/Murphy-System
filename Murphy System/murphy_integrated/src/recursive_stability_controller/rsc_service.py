@@ -6,10 +6,9 @@ Main service that integrates all components and provides REST API.
 Port: 8061
 """
 
-from flask import Flask, jsonify, request
-from flask_cors import CORS
-import time
+from flask import Flask, request, jsonify
 from typing import Dict, Optional
+import time
 
 from .state_variables import StateCollector, StateNormalizer
 from .recursion_energy import RecursionEnergyEstimator, RecursionEnergyCoefficients
@@ -198,7 +197,12 @@ class RecursiveStabilityController:
 
 # Flask application
 app = Flask(__name__)
-CORS(app)
+try:
+    from flask_security import configure_secure_app
+    configure_secure_app(app, service_name="recursive-stability-controller")
+except ImportError:
+    from flask_cors import CORS
+    CORS(app)
 
 # Global controller instance
 controller: Optional[RecursiveStabilityController] = None
