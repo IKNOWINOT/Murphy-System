@@ -107,6 +107,22 @@ class TestIntegratedModuleInitialization:
         system = MurphySystem()
         assert hasattr(system, "golden_path_bridge")
 
+    def test_org_chart_enforcement_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "org_chart_enforcement")
+
+    def test_shadow_agent_integration_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "shadow_agent_integration")
+
+    def test_triage_rollcall_adapter_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "triage_rollcall_adapter")
+
+    def test_rubix_evidence_adapter_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "rubix_evidence_adapter")
+
 
 class TestExecuteTaskIntegration:
     """Verify execute_task wires through integrated modules."""
@@ -178,6 +194,10 @@ class TestSystemStatusIntegration:
         assert "control_plane_separation" in components
         assert "durable_swarm_orchestrator" in components
         assert "golden_path_bridge" in components
+        assert "org_chart_enforcement" in components
+        assert "shadow_agent_integration" in components
+        assert "triage_rollcall_adapter" in components
+        assert "rubix_evidence_adapter" in components
 
     def test_integrated_summary_has_all_keys(self):
         system = MurphySystem()
@@ -201,5 +221,9 @@ class TestSystemStatusIntegration:
             "control_plane_separation",
             "durable_swarm_orchestrator",
             "golden_path_bridge",
+            "org_chart_enforcement",
+            "shadow_agent_integration",
+            "triage_rollcall_adapter",
+            "rubix_evidence_adapter",
         }
         assert expected_keys.issubset(set(modules.keys()))
