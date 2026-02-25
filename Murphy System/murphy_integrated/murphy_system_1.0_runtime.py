@@ -2493,6 +2493,125 @@ class MurphySystem:
         else:
             self.content_creator_platform_modulator = None
 
+        # ---- Wire all integration modules into executive planning binder ----
+        self._wire_integrations_to_planning_engine()
+
+    def _wire_integrations_to_planning_engine(self) -> None:
+        """Register all active integration modules with the executive planning
+        engine's IntegrationAutomationBinder so they are available for
+        objective-driven workflow generation."""
+        epe = getattr(self, 'executive_planning_engine', None)
+        if epe is None:
+            return
+        binder = epe.binder
+        wired = 0
+
+        # Platform Connector Framework
+        pcf = getattr(self, 'platform_connector_framework', None)
+        if pcf is not None:
+            for c in pcf.list_available_connectors():
+                binder.register_integration({
+                    "integration_id": f"pcf_{c['connector_id']}",
+                    "name": c["name"],
+                    "category": c.get("category", "custom"),
+                    "capability": ",".join(c.get("capabilities", [])[:3]),
+                    "source": "platform_connector_framework",
+                })
+                wired += 1
+
+        # Enterprise Integrations
+        ei = getattr(self, 'enterprise_integrations', None)
+        if ei is not None:
+            for pt in ei.list_platforms():
+                conn = ei.get_connector(pt)
+                binder.register_integration({
+                    "integration_id": f"ei_{pt}",
+                    "name": conn.name if conn else pt,
+                    "category": conn.category.value if conn else "unknown",
+                    "capability": ",".join((conn.capabilities or [])[:3]) if conn else "",
+                    "source": "enterprise_integrations",
+                })
+                wired += 1
+
+        # Building Automation
+        ba = getattr(self, 'building_automation_registry', None)
+        if ba is not None:
+            for d in ba.discover():
+                binder.register_integration({
+                    "integration_id": f"ba_{d.get('protocol', 'unknown')}",
+                    "name": d.get("name", d.get("protocol", "building")),
+                    "category": "building_automation",
+                    "capability": d.get("protocol", "bas"),
+                    "source": "building_automation_connectors",
+                })
+                wired += 1
+
+        # Manufacturing Automation
+        ma = getattr(self, 'manufacturing_automation_registry', None)
+        if ma is not None:
+            for d in ma.discover():
+                binder.register_integration({
+                    "integration_id": f"ma_{d.get('standard', 'unknown')}",
+                    "name": d.get("name", d.get("standard", "mfg")),
+                    "category": "manufacturing_automation",
+                    "capability": d.get("standard", "isa95"),
+                    "source": "manufacturing_automation_standards",
+                })
+                wired += 1
+
+        # Energy Management
+        em = getattr(self, 'energy_management_registry', None)
+        if em is not None:
+            for d in em.discover():
+                binder.register_integration({
+                    "integration_id": f"em_{d.get('platform', 'unknown')}",
+                    "name": d.get("name", d.get("platform", "energy")),
+                    "category": "energy_management",
+                    "capability": d.get("platform", "ems"),
+                    "source": "energy_management_connectors",
+                })
+                wired += 1
+
+        # Digital Asset Generator
+        dag = getattr(self, 'digital_asset_generator', None)
+        if dag is not None:
+            for p in dag.list_platforms():
+                binder.register_integration({
+                    "integration_id": f"dag_{p}",
+                    "name": f"Digital Asset – {p}",
+                    "category": "digital_asset_generation",
+                    "capability": "asset_pipeline",
+                    "source": "digital_asset_generator",
+                })
+                wired += 1
+
+        # Rosetta Stone Heartbeat
+        rsh = getattr(self, 'rosetta_stone_heartbeat', None)
+        if rsh is not None:
+            binder.register_integration({
+                "integration_id": "rosetta_stone_heartbeat",
+                "name": "Rosetta Stone Heartbeat",
+                "category": "operational_efficiency",
+                "capability": "org_sync",
+                "source": "rosetta_stone_heartbeat",
+            })
+            wired += 1
+
+        # Content Creator Platforms
+        ccp = getattr(self, 'content_creator_platform_modulator', None)
+        if ccp is not None:
+            for p in ccp.list_platforms():
+                binder.register_integration({
+                    "integration_id": f"ccp_{p.get('platform_type', 'unknown')}",
+                    "name": p.get("name", "creator_platform"),
+                    "category": "content_creator",
+                    "capability": ",".join(p.get("capabilities", [])[:3]),
+                    "source": "content_creator_platform_modulator",
+                })
+                wired += 1
+
+        logger.info("Wired %d integration modules into executive planning engine binder", wired)
+
     # ==================== CORE EXECUTION ====================
 
     def _prepare_activation_preview(
