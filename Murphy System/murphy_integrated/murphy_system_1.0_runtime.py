@@ -313,6 +313,18 @@ except ImportError as e:
     print(f"Warning: Compliance region validator not available: {e}")
     ComplianceRegionValidator = None
 
+try:
+    from src.observability_counters import ObservabilitySummaryCounters
+except ImportError as e:
+    print(f"Warning: Observability summary counters not available: {e}")
+    ObservabilitySummaryCounters = None
+
+try:
+    from src.deterministic_routing_engine import DeterministicRoutingEngine
+except ImportError as e:
+    print(f"Warning: Deterministic routing engine not available: {e}")
+    DeterministicRoutingEngine = None
+
 # FastAPI for REST API
 try:
     from fastapi import FastAPI, HTTPException, Request
@@ -804,6 +816,18 @@ class MurphySystem:
             "path": "src.compliance_region_validator",
             "description": "Region-specific compliance sensor validation before delivery with cross-border checks",
             "capabilities": ["region_compliance", "cross_border_validation", "data_residency", "retention_checks"]
+        },
+        {
+            "name": "observability_counters",
+            "path": "src.observability_counters",
+            "description": "Summary counters distinguishing behavior fixes from permutation-only coverage for closed-loop improvement",
+            "capabilities": ["behavior_tracking", "coverage_tracking", "improvement_velocity", "fix_ratio_analysis"]
+        },
+        {
+            "name": "deterministic_routing_engine",
+            "path": "src.deterministic_routing_engine",
+            "description": "Policy-driven deterministic vs LLM routing with guardrails, fallback promotion, and parity validation",
+            "capabilities": ["deterministic_routing", "llm_routing", "hybrid_routing", "route_parity", "fallback_promotion"]
         }
     ]
     MODULE_SCAN_EXCLUDED_DIRS = {"__pycache__", "tests", "test", "docs", "documentation", "examples"}
@@ -1994,6 +2018,28 @@ class MurphySystem:
                 self.compliance_region_validator = None
         else:
             self.compliance_region_validator = None
+
+        # Observability Summary Counters
+        if ObservabilitySummaryCounters:
+            try:
+                self.observability_counters = ObservabilitySummaryCounters()
+                logger.info("Observability summary counters initialized")
+            except Exception as exc:
+                logger.warning("Observability summary counters initialization failed: %s", exc)
+                self.observability_counters = None
+        else:
+            self.observability_counters = None
+
+        # Deterministic Routing Engine
+        if DeterministicRoutingEngine:
+            try:
+                self.deterministic_routing_engine = DeterministicRoutingEngine()
+                logger.info("Deterministic routing engine initialized with default policies")
+            except Exception as exc:
+                logger.warning("Deterministic routing engine initialization failed: %s", exc)
+                self.deterministic_routing_engine = None
+        else:
+            self.deterministic_routing_engine = None
 
     # ==================== CORE EXECUTION ====================
 
@@ -10124,6 +10170,22 @@ class MurphySystem:
             except Exception:
                 crv_status = {"error": "status unavailable"}
 
+        oc_status = {}
+        oc = getattr(self, "observability_counters", None)
+        if oc is not None:
+            try:
+                oc_status = oc.get_status()
+            except Exception:
+                oc_status = {"error": "status unavailable"}
+
+        dre_status = {}
+        dre = getattr(self, "deterministic_routing_engine", None)
+        if dre is not None:
+            try:
+                dre_status = dre.get_status()
+            except Exception:
+                dre_status = {"error": "status unavailable"}
+
         return {
             "gate_execution_wiring": gate_status,
             "event_backbone": event_status,
@@ -10152,6 +10214,8 @@ class MurphySystem:
             "legacy_compatibility_matrix": lcm_status,
             "hitl_autonomy_controller": hac_status,
             "compliance_region_validator": crv_status,
+            "observability_counters": oc_status,
+            "deterministic_routing_engine": dre_status,
         }
 
     def _build_confidence_report(self, task_description: str) -> Dict[str, Any]:
@@ -10640,7 +10704,9 @@ class MurphySystem:
                 'bot_telemetry_normalizer': self._component_status(getattr(self, 'bot_telemetry_normalizer', None)),
                 'legacy_compatibility_matrix': self._component_status(getattr(self, 'legacy_compatibility_matrix', None)),
                 'hitl_autonomy_controller': self._component_status(getattr(self, 'hitl_autonomy_controller', None)),
-                'compliance_region_validator': self._component_status(getattr(self, 'compliance_region_validator', None))
+                'compliance_region_validator': self._component_status(getattr(self, 'compliance_region_validator', None)),
+                'observability_counters': self._component_status(getattr(self, 'observability_counters', None)),
+                'deterministic_routing_engine': self._component_status(getattr(self, 'deterministic_routing_engine', None))
             },
             'statistics': {
                 'sessions': len(self.sessions),

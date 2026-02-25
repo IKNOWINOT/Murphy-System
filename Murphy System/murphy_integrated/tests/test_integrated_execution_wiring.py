@@ -147,6 +147,14 @@ class TestIntegratedModuleInitialization:
         system = MurphySystem()
         assert hasattr(system, "compliance_region_validator")
 
+    def test_observability_counters_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "observability_counters")
+
+    def test_deterministic_routing_engine_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "deterministic_routing_engine")
+
 
 class TestExecuteTaskIntegration:
     """Verify execute_task wires through integrated modules."""
@@ -228,6 +236,8 @@ class TestSystemStatusIntegration:
         assert "legacy_compatibility_matrix" in components
         assert "hitl_autonomy_controller" in components
         assert "compliance_region_validator" in components
+        assert "observability_counters" in components
+        assert "deterministic_routing_engine" in components
 
     def test_integrated_summary_has_all_keys(self):
         system = MurphySystem()
@@ -261,5 +271,7 @@ class TestSystemStatusIntegration:
             "legacy_compatibility_matrix",
             "hitl_autonomy_controller",
             "compliance_region_validator",
+            "observability_counters",
+            "deterministic_routing_engine",
         }
         assert expected_keys.issubset(set(modules.keys()))
