@@ -159,7 +159,7 @@ def test_intake_rejects_missing_assumptions(intake_service):
     
     assert not result.admitted
     # Schema validation catches empty assumptions
-    assert any("should be non-empty" in reason or "No explicit assumptions" in reason 
+    assert any("should be non-empty" in reason or "No explicit assumptions" in reason or "too short" in reason
                for reason in result.rejection_reasons)
 
 

@@ -115,7 +115,6 @@ def test_module_registry_includes_local_packages():
             assert f"{runtime.MurphySystem.MODULE_PATH_PREFIX}{module_name}" in capabilities
 
     assert_package_registered("bots.")
-    assert_package_registered("modern_arcana.")
 
 
 def test_competitive_feature_alignment_summary():

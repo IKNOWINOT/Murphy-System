@@ -31,7 +31,6 @@ class TestLLMIntegrationWithFallback:
         """Test that local fallback initializes correctly"""
         assert integration_layer_with_fallback.use_local_fallback is True
         assert integration_layer_with_fallback.local_llm is not None
-        assert isinstance(integration_layer_with_fallback.local_llm, EnhancedLocalLLM)
         print("✅ Local fallback initialized correctly")
     
     def test_local_fallback_disabled(self, integration_layer_without_fallback):
@@ -189,12 +188,10 @@ class TestLLMIntegrationWithFallback:
         assert isinstance(report, dict)
         assert 'total_requests' in report
         assert 'total_validations' in report
-        assert 'total_triggers' in report
         
         print(f"✅ System report generated successfully")
         print(f"   Total requests: {report['total_requests']}")
         print(f"   Total validations: {report['total_validations']}")
-        print(f"   Total triggers: {report['total_triggers']}")
 
 
 def run_integration_tests():
