@@ -579,7 +579,7 @@ class TestRuntimeModuleCatalogWiring(unittest.TestCase):
         self.assertIsNotNone(getattr(self.ms, 'enterprise_integrations', None))
 
     def test_module_catalog_count(self):
-        self.assertGreaterEqual(len(self.ms.MODULE_CATALOG), 73)
+        self.assertGreaterEqual(len(self.ms.MODULE_CATALOG), 75)
 
 
 if __name__ == '__main__':

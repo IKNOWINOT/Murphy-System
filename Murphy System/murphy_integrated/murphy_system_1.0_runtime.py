@@ -427,6 +427,20 @@ except ImportError as e:
     print(f"Warning: Enterprise integrations not available: {e}")
     EnterpriseIntegrationRegistry = None
 
+# Digital Asset Generator
+try:
+    from src.digital_asset_generator import DigitalAssetGenerator
+except ImportError as e:
+    print(f"Warning: Digital asset generator not available: {e}")
+    DigitalAssetGenerator = None
+
+# Rosetta Stone Heartbeat
+try:
+    from src.rosetta_stone_heartbeat import RosettaStoneHeartbeat
+except ImportError as e:
+    print(f"Warning: Rosetta stone heartbeat not available: {e}")
+    RosettaStoneHeartbeat = None
+
 # FastAPI for REST API
 try:
     from fastapi import FastAPI, HTTPException, Request
@@ -1026,6 +1040,18 @@ class MurphySystem:
             "path": "src.enterprise_integrations",
             "description": "Enterprise integration registry for accounting, engineering, project management, document, communication, DevOps, analytics, and ERP platforms with DAG workflow binding",
             "capabilities": ["enterprise_connectors", "quickbooks", "autocad", "blender", "sap", "dynamics365", "workflow_binding", "capability_mapping"]
+        },
+        {
+            "name": "digital_asset_generator",
+            "path": "src.digital_asset_generator",
+            "description": "Digital asset generation pipeline for Unreal Engine, Maya, Blender, Fortnite Creative/UEFN, Unity, Godot with sprite sheets, texture atlases, 3D model descriptors, material/shader generation, and batch pipeline orchestration",
+            "capabilities": ["asset_generation", "sprite_sheets", "texture_atlas", "unreal_engine", "maya", "blender", "fortnite_creative", "unity", "godot", "pipeline_orchestration"]
+        },
+        {
+            "name": "rosetta_stone_heartbeat",
+            "path": "src.rosetta_stone_heartbeat",
+            "description": "Organization-wide heartbeat synchronization with executive-origin pulse propagation, tier-based translators, and sync verification across executive/management/operations/worker/integration tiers",
+            "capabilities": ["heartbeat_sync", "pulse_propagation", "tier_translation", "sync_verification", "executive_directives", "org_health"]
         }
     ]
     MODULE_SCAN_EXCLUDED_DIRS = {"__pycache__", "tests", "test", "docs", "documentation", "examples"}
@@ -2418,6 +2444,29 @@ class MurphySystem:
                 self.enterprise_integrations = None
         else:
             self.enterprise_integrations = None
+
+        # Digital Asset Generator
+        if DigitalAssetGenerator:
+            try:
+                self.digital_asset_generator = DigitalAssetGenerator()
+                logger.info("Digital asset generator initialized with %d platforms",
+                            len(self.digital_asset_generator.list_platforms()))
+            except Exception as exc:
+                logger.warning("Digital asset generator initialization failed: %s", exc)
+                self.digital_asset_generator = None
+        else:
+            self.digital_asset_generator = None
+
+        # Rosetta Stone Heartbeat
+        if RosettaStoneHeartbeat:
+            try:
+                self.rosetta_stone_heartbeat = RosettaStoneHeartbeat()
+                logger.info("Rosetta stone heartbeat initialized")
+            except Exception as exc:
+                logger.warning("Rosetta stone heartbeat initialization failed: %s", exc)
+                self.rosetta_stone_heartbeat = None
+        else:
+            self.rosetta_stone_heartbeat = None
 
     # ==================== CORE EXECUTION ====================
 
@@ -11184,7 +11233,9 @@ class MurphySystem:
                 'plugin_extension_sdk': self._component_status(getattr(self, 'plugin_extension_sdk', None)),
                 'ai_workflow_generator': self._component_status(getattr(self, 'ai_workflow_generator', None)),
                 'workflow_template_marketplace': self._component_status(getattr(self, 'workflow_template_marketplace', None)),
-                'cross_platform_data_sync': self._component_status(getattr(self, 'cross_platform_data_sync', None))
+                'cross_platform_data_sync': self._component_status(getattr(self, 'cross_platform_data_sync', None)),
+                'digital_asset_generator': self._component_status(getattr(self, 'digital_asset_generator', None)),
+                'rosetta_stone_heartbeat': self._component_status(getattr(self, 'rosetta_stone_heartbeat', None))
             },
             'statistics': {
                 'sessions': len(self.sessions),
