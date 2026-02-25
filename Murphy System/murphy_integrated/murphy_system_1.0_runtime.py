@@ -325,6 +325,36 @@ except ImportError as e:
     print(f"Warning: Deterministic routing engine not available: {e}")
     DeterministicRoutingEngine = None
 
+try:
+    from src.platform_connector_framework import PlatformConnectorFramework
+except ImportError as e:
+    print(f"Warning: Platform connector framework not available: {e}")
+    PlatformConnectorFramework = None
+
+try:
+    from src.workflow_dag_engine import WorkflowDAGEngine
+except ImportError as e:
+    print(f"Warning: Workflow DAG engine not available: {e}")
+    WorkflowDAGEngine = None
+
+try:
+    from src.automation_type_registry import AutomationTypeRegistry
+except ImportError as e:
+    print(f"Warning: Automation type registry not available: {e}")
+    AutomationTypeRegistry = None
+
+try:
+    from src.api_gateway_adapter import APIGatewayAdapter
+except ImportError as e:
+    print(f"Warning: API gateway adapter not available: {e}")
+    APIGatewayAdapter = None
+
+try:
+    from src.webhook_event_processor import WebhookEventProcessor
+except ImportError as e:
+    print(f"Warning: Webhook event processor not available: {e}")
+    WebhookEventProcessor = None
+
 # FastAPI for REST API
 try:
     from fastapi import FastAPI, HTTPException, Request
@@ -828,6 +858,36 @@ class MurphySystem:
             "path": "src.deterministic_routing_engine",
             "description": "Policy-driven deterministic vs LLM routing with guardrails, fallback promotion, and parity validation",
             "capabilities": ["deterministic_routing", "llm_routing", "hybrid_routing", "route_parity", "fallback_promotion"]
+        },
+        {
+            "name": "platform_connector_framework",
+            "path": "src.platform_connector_framework",
+            "description": "Unified connector SDK for popular platforms (Slack, Jira, Salesforce, GitHub, AWS, Azure, GCP, Stripe, etc.) with auth, rate limiting, retry, health checks",
+            "capabilities": ["platform_connectors", "crm_integration", "communication_integration", "cloud_integration", "devops_integration", "payment_integration"]
+        },
+        {
+            "name": "workflow_dag_engine",
+            "path": "src.workflow_dag_engine",
+            "description": "DAG-based workflow definition and execution with topological sort, parallel groups, conditional branching, checkpoint/resume",
+            "capabilities": ["workflow_dag", "topological_execution", "parallel_steps", "conditional_branching", "checkpoint_resume"]
+        },
+        {
+            "name": "automation_type_registry",
+            "path": "src.automation_type_registry",
+            "description": "Registry of all automation types (IT, business process, data pipeline, marketing, customer service, HR, financial, content, security, DevOps, compliance) with templates",
+            "capabilities": ["automation_templates", "it_automation", "business_process_automation", "data_pipeline", "marketing_automation", "security_automation"]
+        },
+        {
+            "name": "api_gateway_adapter",
+            "path": "src.api_gateway_adapter",
+            "description": "Unified API gateway for external integrations with rate limiting, auth management, webhook dispatch, circuit breaker, and response caching",
+            "capabilities": ["api_gateway", "rate_limiting", "auth_management", "webhook_dispatch", "circuit_breaker", "response_caching"]
+        },
+        {
+            "name": "webhook_event_processor",
+            "path": "src.webhook_event_processor",
+            "description": "Inbound webhook handling for event-driven integrations with signature verification, payload normalization, and event routing",
+            "capabilities": ["webhook_processing", "signature_verification", "event_normalization", "event_routing", "platform_webhooks"]
         }
     ]
     MODULE_SCAN_EXCLUDED_DIRS = {"__pycache__", "tests", "test", "docs", "documentation", "examples"}
@@ -2040,6 +2100,61 @@ class MurphySystem:
                 self.deterministic_routing_engine = None
         else:
             self.deterministic_routing_engine = None
+
+        # Platform Connector Framework
+        if PlatformConnectorFramework:
+            try:
+                self.platform_connector_framework = PlatformConnectorFramework()
+                logger.info("Platform connector framework initialized with %d default connectors", len(self.platform_connector_framework.list_available_connectors()))
+            except Exception as exc:
+                logger.warning("Platform connector framework initialization failed: %s", exc)
+                self.platform_connector_framework = None
+        else:
+            self.platform_connector_framework = None
+
+        # Workflow DAG Engine
+        if WorkflowDAGEngine:
+            try:
+                self.workflow_dag_engine = WorkflowDAGEngine()
+                logger.info("Workflow DAG engine initialized")
+            except Exception as exc:
+                logger.warning("Workflow DAG engine initialization failed: %s", exc)
+                self.workflow_dag_engine = None
+        else:
+            self.workflow_dag_engine = None
+
+        # Automation Type Registry
+        if AutomationTypeRegistry:
+            try:
+                self.automation_type_registry = AutomationTypeRegistry()
+                logger.info("Automation type registry initialized with %d templates", len(self.automation_type_registry.list_templates()))
+            except Exception as exc:
+                logger.warning("Automation type registry initialization failed: %s", exc)
+                self.automation_type_registry = None
+        else:
+            self.automation_type_registry = None
+
+        # API Gateway Adapter
+        if APIGatewayAdapter:
+            try:
+                self.api_gateway_adapter = APIGatewayAdapter()
+                logger.info("API gateway adapter initialized")
+            except Exception as exc:
+                logger.warning("API gateway adapter initialization failed: %s", exc)
+                self.api_gateway_adapter = None
+        else:
+            self.api_gateway_adapter = None
+
+        # Webhook Event Processor
+        if WebhookEventProcessor:
+            try:
+                self.webhook_event_processor = WebhookEventProcessor()
+                logger.info("Webhook event processor initialized with %d default sources", len(self.webhook_event_processor.list_sources()))
+            except Exception as exc:
+                logger.warning("Webhook event processor initialization failed: %s", exc)
+                self.webhook_event_processor = None
+        else:
+            self.webhook_event_processor = None
 
     # ==================== CORE EXECUTION ====================
 
@@ -10186,6 +10301,46 @@ class MurphySystem:
             except Exception:
                 dre_status = {"error": "status unavailable"}
 
+        pcf_status = {}
+        pcf = getattr(self, "platform_connector_framework", None)
+        if pcf is not None:
+            try:
+                pcf_status = pcf.status()
+            except Exception:
+                pcf_status = {"error": "status unavailable"}
+
+        wde_status = {}
+        wde = getattr(self, "workflow_dag_engine", None)
+        if wde is not None:
+            try:
+                wde_status = wde.status()
+            except Exception:
+                wde_status = {"error": "status unavailable"}
+
+        atr_status = {}
+        atr = getattr(self, "automation_type_registry", None)
+        if atr is not None:
+            try:
+                atr_status = atr.status()
+            except Exception:
+                atr_status = {"error": "status unavailable"}
+
+        aga_status = {}
+        aga = getattr(self, "api_gateway_adapter", None)
+        if aga is not None:
+            try:
+                aga_status = aga.status()
+            except Exception:
+                aga_status = {"error": "status unavailable"}
+
+        wep_status = {}
+        wep = getattr(self, "webhook_event_processor", None)
+        if wep is not None:
+            try:
+                wep_status = wep.status()
+            except Exception:
+                wep_status = {"error": "status unavailable"}
+
         return {
             "gate_execution_wiring": gate_status,
             "event_backbone": event_status,
@@ -10216,6 +10371,11 @@ class MurphySystem:
             "compliance_region_validator": crv_status,
             "observability_counters": oc_status,
             "deterministic_routing_engine": dre_status,
+            "platform_connector_framework": pcf_status,
+            "workflow_dag_engine": wde_status,
+            "automation_type_registry": atr_status,
+            "api_gateway_adapter": aga_status,
+            "webhook_event_processor": wep_status,
         }
 
     def _build_confidence_report(self, task_description: str) -> Dict[str, Any]:
@@ -10706,7 +10866,12 @@ class MurphySystem:
                 'hitl_autonomy_controller': self._component_status(getattr(self, 'hitl_autonomy_controller', None)),
                 'compliance_region_validator': self._component_status(getattr(self, 'compliance_region_validator', None)),
                 'observability_counters': self._component_status(getattr(self, 'observability_counters', None)),
-                'deterministic_routing_engine': self._component_status(getattr(self, 'deterministic_routing_engine', None))
+                'deterministic_routing_engine': self._component_status(getattr(self, 'deterministic_routing_engine', None)),
+                'platform_connector_framework': self._component_status(getattr(self, 'platform_connector_framework', None)),
+                'workflow_dag_engine': self._component_status(getattr(self, 'workflow_dag_engine', None)),
+                'automation_type_registry': self._component_status(getattr(self, 'automation_type_registry', None)),
+                'api_gateway_adapter': self._component_status(getattr(self, 'api_gateway_adapter', None)),
+                'webhook_event_processor': self._component_status(getattr(self, 'webhook_event_processor', None))
             },
             'statistics': {
                 'sessions': len(self.sessions),

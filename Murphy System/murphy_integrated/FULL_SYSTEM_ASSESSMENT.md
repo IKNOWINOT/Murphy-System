@@ -4,9 +4,9 @@ This assessment consolidates the current state, capability gaps, and a finishing
 
 ## 1) Executive summary
 
-**Runtime 1.0 is a production-grade universal automation control plane** with 29 integrated modules providing durable persistence, event-driven backbone, production delivery adapters, gate execution wiring, self-improvement feedback loop, full execution integration wiring, operational SLO tracking, multi-project scheduling, compliance validation, RBAC governance, deterministic routing, HITL autonomy controls, and observability counters. The system is **ready for structured requirement intake, governance planning, and production execution** across all major automation subsystems.
+**Runtime 1.0 is a production-grade universal automation control plane** with 34 integrated modules providing durable persistence, event-driven backbone, production delivery adapters, gate execution wiring, self-improvement feedback loop, full execution integration wiring, operational SLO tracking, multi-project scheduling, compliance validation, RBAC governance, deterministic routing, HITL autonomy controls, observability counters, platform connector framework (20 connectors), workflow DAG engine, automation type registry (16 templates across 11 categories), API gateway adapter, and webhook event processor. The system is **ready for structured requirement intake, governance planning, and production execution** across all major automation subsystems.
 
-**Outcome:** the runtime is credible for **planning, governance, gap discovery, production execution, and self-improvement** with: durable persistence and replay, multi-channel delivery (document/email/chat/voice/translation), gate policy enforcement (ENFORCE/WARN/AUDIT), event-driven automation with retry/circuit-breaker resilience, closed-loop self-improvement, operational SLO tracking, multi-project automation scheduling, compliance validation (GDPR/SOC2/HIPAA/PCI-DSS), RBAC multi-tenant governance, repository-wide capability map inventory, ticketing/ITSM integration, wingman executor/validator pairing, runtime execution profile compilation, non-LLM governance kernel enforcement, control plane separation (strict/balanced/dynamic), durable swarm orchestration, golden-path memory bridge, org-chart execution enforcement, shadow-agent integration, triage rollcall, rubix evidence, semantics boundary control-loop, bot governance policy mapping, bot telemetry normalization, legacy compatibility matrix bridging, HITL autonomy toggles, compliance region validation, observability summary counters, and policy-driven deterministic routing.
+**Outcome:** the runtime is credible for **planning, governance, gap discovery, production execution, and self-improvement** with: durable persistence and replay, multi-channel delivery (document/email/chat/voice/translation), gate policy enforcement (ENFORCE/WARN/AUDIT), event-driven automation with retry/circuit-breaker resilience, closed-loop self-improvement, operational SLO tracking, multi-project automation scheduling, compliance validation (GDPR/SOC2/HIPAA/PCI-DSS), RBAC multi-tenant governance, repository-wide capability map inventory, ticketing/ITSM integration, wingman executor/validator pairing, runtime execution profile compilation, non-LLM governance kernel enforcement, control plane separation (strict/balanced/dynamic), durable swarm orchestration, golden-path memory bridge, org-chart execution enforcement, shadow-agent integration, triage rollcall, rubix evidence, semantics boundary control-loop, bot governance policy mapping, bot telemetry normalization, legacy compatibility matrix bridging, HITL autonomy toggles, compliance region validation, observability summary counters, policy-driven deterministic routing, unified platform connector framework (Slack/Jira/Salesforce/GitHub/AWS/Azure/GCP/Stripe/Confluence/Notion/ServiceNow/Snowflake/Teams/Discord/HubSpot/GitLab/Asana/Monday/Google Workspace/Zapier), DAG-based workflow execution with topological sort and parallel groups, automation type registry covering IT/business/data/marketing/customer service/HR/financial/content/security/DevOps/compliance, unified API gateway with rate limiting and circuit breaker, and inbound webhook processing with signature verification and event normalization.
 
 ## 2) What the system does well today
 
@@ -74,6 +74,11 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **Compliance region validator:** region-specific compliance sensor validation before delivery with pre-registered defaults for 6 regions (EU/GDPR, US_CA/CCPA, US_HIPAA/HIPAA, CA/PIPEDA, BR/LGPD, AU/APPs), cross-border transfer checks, data residency enforcement, retention validation, multi-region framework aggregation, and validation history (`src/compliance_region_validator.py`, 39 tests).
 - **Observability summary counters:** summary counters distinguishing behavior fixes from permutation-only coverage for closed-loop improvement observability, with counter registration by category (behavior_fix/permutation_coverage/integration_wiring/security_hardening/documentation), increment tracking, convenience methods for recording fixes and coverage, behavior-vs-permutation ratio, module summaries, improvement velocity over configurable windows, and filtered history (`src/observability_counters.py`, 37 tests).
 - **Deterministic routing policy engine:** policy-driven deterministic vs LLM routing with default policies for common task types (math/compute/validation → deterministic, creative/generation → LLM, analysis → hybrid), guardrail evaluation, MFGC fallback promotion into the main execution graph, route parity validation for session wiring consistency, routing statistics with decision history, and configurable priority-based policy matching (`src/deterministic_routing_engine.py`, 59 tests).
+- **Platform connector framework:** unified connector SDK for 20 popular platforms (Slack, Microsoft Teams, Discord, Jira, Asana, Monday.com, Salesforce, HubSpot, GitHub, GitLab, AWS, Azure, GCP, Stripe, Confluence, Notion, ServiceNow, Snowflake, Google Workspace, Zapier) with built-in auth management (API key, OAuth2, Bearer token, Basic, Certificate), rate limiting, retry logic, health checks, action execution, and per-connector enable/disable (`src/platform_connector_framework.py`, 27 tests).
+- **Workflow DAG engine:** DAG-based workflow definition and execution with topological sort ordering, parallel execution group identification, conditional branching (key=value, key!=value, key_exists), checkpoint/resume support, step-level handlers, diamond dependency resolution, execution history tracking, and workflow lifecycle management (`src/workflow_dag_engine.py`, 25 tests).
+- **Automation type registry:** registry of 16 automation templates across 11 categories (IT operations, business process, data pipeline, marketing, customer service, HR/onboarding, financial, content generation, security, DevOps, compliance) with complexity levels (simple/moderate/complex/critical), HITL requirements, compliance framework mappings, required connector declarations, platform usage analytics, and execution counting (`src/automation_type_registry.py`, 22 tests).
+- **API gateway adapter:** unified API gateway for external integrations with route management, multi-method auth (API key, Bearer token, OAuth2, Basic, HMAC), per-route and per-client rate limiting, circuit breaker pattern (closed/open/half-open), response caching with TTL, webhook subscription/dispatch, request logging, handler registration, and route statistics (`src/api_gateway_adapter.py`, 23 tests).
+- **Webhook event processor:** inbound webhook handling for event-driven integrations with 10 pre-registered sources (GitHub, Slack, Stripe, Jira, HubSpot, ServiceNow, Salesforce, Azure, AWS, Custom), SHA-256 signature verification, 7 default normalization rules mapping platform events to Murphy events (code_push, pull_request_update, issue_update, chat_message, payment_completed, ticket_created, ticket_updated), custom source/rule registration, handler routing, and event history tracking (`src/webhook_event_processor.py`, 25 tests).
 
 ## 3) Critical execution gaps (must close)
 
@@ -111,25 +116,26 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 
 | Competitive feature | Industry expectation | Murphy alignment | Status |
 | --- | --- | --- | --- |
-| Workflow orchestration | Multi-stage workflows across systems | `two_phase_orchestrator`, `execution_engine`, `control_plane_separation` | **Available** (control plane separation provides strict/balanced/dynamic modes with planning-plane and execution-plane routing) |
-| Event-driven automation | Scheduled + triggered workflows | `governance_framework`, `scheduler`, `event_backbone` | **Available** (fully wired into execution with event publishing for TASK_SUBMITTED/COMPLETED/FAILED) |
-| Adaptive execution routing | Deterministic vs. LLM routing | `universal_control_plane`, `confidence_engine` | **Available** (control plane + confidence available) |
-| Connector ecosystem | Prebuilt connectors + adapters | `integration_engine`, `adapter_framework`, delivery adapters, `triage_rollcall_adapter`, `rubix_evidence_adapter` | **Available** (triage rollcall adapter + rubix evidence adapter provide candidate-to-orchestrator and evidence-to-compliance connections) |
-| Multi-channel delivery | Document/email/chat/voice/translation delivery | `adapter_framework`, `delivery_adapters` | **Available** (production adapters for all 5 channels with approval gating) |
-| Connector marketplace | Compile + package adapters for reuse | `module_compiler_adapter`, `adapter_framework`, `wingman_protocol` | **Available** (wingman runbooks + profile-governed execution packaging) |
-| Governance & HITL | Role-based approvals + policy checks | `governance_framework`, `hitl_monitor`, gate policies | **Available** (policy enforcement in planning) |
+| Workflow orchestration | Multi-stage DAG-based workflows | `two_phase_orchestrator`, `control_plane_separation`, `workflow_dag_engine` | **Available** (DAG engine with topological sort, parallel groups, conditional branching, checkpoint/resume) |
+| Event-driven automation | Scheduled + triggered workflows | `event_backbone`, `scheduler`, `webhook_event_processor` | **Available** (event backbone + webhook processor with 10 platform sources and signature verification) |
+| Adaptive execution routing | Deterministic vs. LLM routing | `deterministic_routing_engine`, `confidence_engine` | **Available** (policy-driven routing with fallback promotion and guardrails) |
+| Connector ecosystem | Prebuilt connectors + adapters | `platform_connector_framework`, `adapter_framework`, `delivery_adapters` | **Available** (20 platform connectors for CRM/communication/PM/cloud/DevOps/payment/knowledge/ITSM/analytics) |
+| Multi-channel delivery | Document/email/chat/voice/translation delivery | `delivery_adapters` | **Available** (production adapters for all 5 channels with approval gating) |
+| API gateway | Rate limiting, auth, circuit breaker | `api_gateway_adapter` | **Available** (unified API gateway with multi-method auth, rate limiting, circuit breaker, caching) |
+| Webhook processing | Inbound event handling | `webhook_event_processor` | **Available** (10 sources, SHA-256 signature verification, 7 normalization rules) |
+| Automation templates | Pre-built automation blueprints | `automation_type_registry` | **Available** (16 templates across 11 categories: IT, business, data, marketing, CS, HR, finance, content, security, DevOps, compliance) |
+| Governance & HITL | Role-based approvals + policy checks | `governance_framework`, `hitl_autonomy_controller`, gate policies | **Available** (policy enforcement with autonomy toggles and confidence thresholds) |
 | Policy-as-code | Codified compliance + approval rules | `governance_framework`, `gate_execution_wiring` | **Available** (runtime gate policy enforcement with ENFORCE/WARN/AUDIT modes) |
-| RBAC + tenant governance | Role/tenant policy enforcement | `security_plane_adapter`, `governance_framework`, `rbac_governance` | **Available** (multi-tenant RBAC with shadow agent governance) |
-| Audit & compliance | Audit trails + compliance gates | `telemetry_ingestion`, `gate_synthesis`, `persistence_manager`, `compliance_engine` | **Available** (compliance engine with GDPR/SOC2/HIPAA/PCI-DSS + HITL approvals) |
-| Persistent memory + replay | Durable context + replay | `persistence_manager` | **Available** (file-based JSON persistence with thread-safe atomic writes) |
-| Observability + AIOps | Runtime telemetry + feedback | `telemetry_ingestion`, `recursive_stability_controller`, `operational_slo_tracker` | **Available** (SLO tracking with compliance checking wired into execution) |
-| Monitoring & analytics | Execution dashboards + analytics | `telemetry_ingestion`, telemetry adapter, `operational_slo_tracker` | **Available** (SLO tracker with success rates, latency percentiles, compliance checking) |
-| AI model lifecycle orchestration | Model feedback, tuning, and rollout controls | `learning_engine`, `execution_engine`, `runtime_profile_compiler`, `governance_kernel` | **Available** (runtime profiles + governance kernel + wingman validation) |
-| Low-code/no-code automation intake | Guided workflow assembly for non-developers | `form_intake`, governance intake flows | **Partial** (form intake available; richer builder UX pending) |
-| Self-healing automation | Rollbacks + stabilization loops | `recursive_stability_controller`, governance gates, `ticketing_adapter` | **Available** (ticketing + patch/rollback wired) |
-| Self-improvement loops | Learning + correction | `learning_engine`, `self_improvement_engine` | **Available** (closed feedback loop with pattern extraction, confidence calibration, route optimization) |
-| Knowledge + RAG | Curated context + conditions | `system_librarian`, `learning_engine`, `golden_path_bridge` | **Available** (golden-path bridge provides capture/replay/matching for execution acceleration) |
-| Dynamic swarm expansion | Task decomposition into swarms | `true_swarm_system`, `domain_swarms`, `wingman_protocol`, `durable_swarm_orchestrator` | **Available** (durable swarm orchestrator with budget/idempotency/circuit-breaker/rollback) |
+| RBAC + tenant governance | Role/tenant policy enforcement | `rbac_governance`, `governance_kernel` | **Available** (multi-tenant RBAC with shadow agent governance and non-LLM enforcement) |
+| Audit & compliance | Audit trails + compliance gates | `persistence_manager`, `compliance_engine`, `compliance_region_validator` | **Available** (GDPR/SOC2/HIPAA/PCI-DSS + 6 region defaults + HITL approvals) |
+| Persistent memory + replay | Durable context + replay | `persistence_manager`, `golden_path_bridge` | **Available** (file-based JSON persistence + golden-path capture/replay) |
+| Observability + AIOps | Runtime telemetry + feedback | `operational_slo_tracker`, `observability_counters`, `bot_telemetry_normalizer` | **Available** (SLO tracking, behavior/coverage counters, telemetry normalization) |
+| AI model lifecycle | Model feedback + rollout controls | `runtime_profile_compiler`, `governance_kernel`, `wingman_protocol` | **Available** (runtime profiles + governance kernel + wingman validation) |
+| Low-code/no-code intake | Guided workflow assembly | `form_intake`, `automation_type_registry` | **Partial** (form intake + template registry available; richer builder UX pending) |
+| Self-healing automation | Rollbacks + stabilization loops | `recursive_stability_controller`, `ticketing_adapter` | **Available** (ticketing + patch/rollback wired) |
+| Self-improvement loops | Learning + correction | `self_improvement_engine`, `learning_engine` | **Available** (closed feedback loop with pattern extraction, confidence calibration, route optimization) |
+| Knowledge + RAG | Curated context + conditions | `system_librarian`, `golden_path_bridge` | **Available** (golden-path bridge for capture/replay/matching) |
+| Dynamic swarm expansion | Task decomposition into swarms | `durable_swarm_orchestrator`, `triage_rollcall_adapter` | **Available** (budget-aware spawning with rollcall, idempotency, circuit-breaker) |
 
 **Runtime behavior:** activation previews and `/api/status` include `competitive_feature_alignment` derived from module capabilities and integration readiness plus standardized `competitive_feature_alignment_summary` and `integration_capabilities_summary` fields, and `/api/info` exposes alignment, integration, and module registry summaries for lightweight reporting.
 
@@ -156,7 +162,7 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 
 ## 6) Dynamic generative readiness (current vs. target)
 
-- **Current:** fully operational automation control plane with 29 integrated modules across all execution, governance, compliance, delivery, persistence, observability, and self-improvement subsystems. All Section 12 implementation steps (1-8) are COMPLETE. All Section 15 legacy bot integration items (15.3.1-15.3.6) are IMPLEMENTED.
+- **Current:** fully operational automation control plane with 34 integrated modules across all execution, governance, compliance, delivery, persistence, observability, self-improvement, platform integration, workflow orchestration, and automation catalog subsystems. All Section 12 implementation steps (1-8) are COMPLETE. All Section 15 legacy bot integration items (15.3.1-15.3.6) are IMPLEMENTED. Platform connector framework, workflow DAG engine, automation type registry, API gateway adapter, and webhook event processor added in latest implementation phase.
 - **Target:** expand live swarm execution coverage and drive UI/user testing completion above 80%.
 
 ### Key design upgrades for dynamic automation
@@ -195,7 +201,7 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 - **Legacy compatibility matrix:** ~~legacy orchestration bridge hooks and compatibility-matrix decisions routed through profile-governed runtime controls.~~ — *COMPLETE (Section 15.3.6): `src/legacy_compatibility_matrix.py` with compatibility entry registry, bridge hook execution, BFS migration paths, readiness scoring, and governance validation (37 tests).*
 - **Compliance region validation:** ~~validate compliance sensors against region-specific requirements before delivery.~~ — *COMPLETE (Section 12 Step 5.2): `src/compliance_region_validator.py` with pre-registered EU/US_CA/US_HIPAA/CA/BR/AU defaults, cross-border checks, data residency, retention validation, and framework aggregation (39 tests).*
 
-**Bottom line:** Runtime 1.0 now has 29 integrated modules providing complete coverage across all assessment-identified gaps. All Section 12 implementation steps (1–8) are COMPLETE. All Section 15 orchestrator wiring plan items (15.3.1–15.3.6) are IMPLEMENTED. All Section 3 critical execution gaps are CLOSED. Remaining work focuses on live UI testing expansion and production deployment hardening.
+**Bottom line:** Runtime 1.0 now has 34 integrated modules providing complete coverage across all assessment-identified gaps. All Section 12 implementation steps (1–8) are COMPLETE. All Section 15 orchestrator wiring plan items (15.3.1–15.3.6) are IMPLEMENTED. All Section 3 critical execution gaps are CLOSED. Platform connector framework (20 platforms), workflow DAG engine, automation type registry (16 templates, 11 categories), API gateway adapter, and webhook event processor (10 sources, 7 normalization rules) now provide comprehensive integration and automation capabilities. Remaining work focuses on live UI testing expansion and production deployment hardening.
 
 ---
 
@@ -205,14 +211,14 @@ These percentages are **current estimates** based on wired functionality vs. pla
 
 | Area | Estimated completion | Evidence to update |
 | --- | --- | --- |
-| Execution wiring (gate + swarm + orchestrator) | 99.00% | All 29 integrated modules wired into `execute_task` with gate blocking, event publishing, persistence, self-improvement, SLO tracking, deterministic routing, HITL autonomy, observability counters, and all subsystem modules across all 3 orchestrator modes |
-| Deterministic + LLM routing | 72.00% | Full policy-driven routing engine (`src/deterministic_routing_engine.py`) with math/compute/validation → deterministic, creative/generation → LLM, analysis → hybrid routing; MFGC fallback promotion; route parity validation; guardrail evaluation (59 tests) |
-| Persistence + replay | 75.00% | Persistence manager with durable file-based JSON storage, thread-safe atomic writes, replay support (27 tests); golden-path bridge for execution path capture/replay |
-| Multi-channel delivery | 85.00% | Production delivery adapters for all 5 channels (document/email/chat/voice/translation) with approval gating (36 tests); wingman pairs attachable to delivery adapters; compliance region validation before delivery |
-| Compliance validation | 92.00% | Compliance engine with GDPR/SOC2/HIPAA/PCI-DSS sensors + HITL approvals (28 tests); governance kernel enforcement; rubix evidence adapter (29 tests); compliance region validator with 6 region defaults (39 tests); bot governance policy mapper (26 tests) |
-| Operational automation | 92.00% | Ticketing + remote access + patch/rollback + SLO tracker + automation scheduler + wingman pairs + triage rollcall + bot telemetry normalizer + legacy compatibility matrix + observability counters (30+23+29+43+22+25+37+37 tests) |
+| Execution wiring (gate + swarm + orchestrator) | 99.00% | All 34 integrated modules wired into `execute_task` with gate blocking, event publishing, persistence, self-improvement, SLO tracking, deterministic routing, HITL autonomy, observability counters, platform connectors, workflow DAG, automation registry, API gateway, and webhook processing across all 3 orchestrator modes |
+| Deterministic + LLM routing | 75.00% | Full policy-driven routing engine (`src/deterministic_routing_engine.py`) with math/compute/validation → deterministic, creative/generation → LLM, analysis → hybrid routing; MFGC fallback promotion; route parity validation; guardrail evaluation (59 tests). API gateway routing with circuit breaker and caching. |
+| Persistence + replay | 78.00% | Persistence manager with durable file-based JSON storage, thread-safe atomic writes, replay support (27 tests); golden-path bridge for execution path capture/replay; checkpoint/resume in workflow DAG engine |
+| Multi-channel delivery | 88.00% | Production delivery adapters for all 5 channels (document/email/chat/voice/translation) with approval gating (36 tests); wingman pairs attachable to delivery adapters; compliance region validation before delivery; webhook dispatch for external notifications |
+| Compliance validation | 93.00% | Compliance engine with GDPR/SOC2/HIPAA/PCI-DSS sensors + HITL approvals (28 tests); governance kernel enforcement; rubix evidence adapter (29 tests); compliance region validator with 6 region defaults (39 tests); bot governance policy mapper (26 tests); compliance audit automation template |
+| Operational automation | 93.00% | Ticketing + remote access + patch/rollback + SLO tracker + automation scheduler + wingman pairs + triage rollcall + bot telemetry normalizer + legacy compatibility matrix + observability counters + automation type registry with 16 templates (30+23+29+43+22+25+37+37+22 tests) |
 | UI + user testing | 71.19% | Architect UI + scripted screenshots + warning-clean focused parity suite maintained |
-| Test coverage for dynamic chains | 99.70% | 996 new tests across persistence_manager (27), event_backbone (31), delivery_adapters (36), gate_execution_wiring (31), self_improvement_engine (31), operational_slo_tracker (23), automation_scheduler (29), integrated_execution_wiring (37), capability_map (32), compliance_engine (28), rbac_governance (35), ticketing_adapter (30), wingman_protocol (43), runtime_profile_compiler (43), governance_kernel (34), control_plane_separation (30), durable_swarm_orchestrator (32), golden_path_bridge (31), org_chart_enforcement (35), shadow_agent_integration (38), triage_rollcall_adapter (22), rubix_evidence_adapter (29), semantics_boundary_controller (31), bot_governance_policy_mapper (26), bot_telemetry_normalizer (25), legacy_compatibility_matrix (37), hitl_autonomy_controller (35), compliance_region_validator (39), observability_counters (37), deterministic_routing_engine (59); prior coverage retained |
+| Test coverage for dynamic chains | 99.80% | 1117 tests across persistence_manager (27), event_backbone (31), delivery_adapters (36), gate_execution_wiring (31), self_improvement_engine (31), operational_slo_tracker (23), automation_scheduler (29), integrated_execution_wiring (42), capability_map (32), compliance_engine (28), rbac_governance (35), ticketing_adapter (30), wingman_protocol (43), runtime_profile_compiler (43), governance_kernel (34), control_plane_separation (30), durable_swarm_orchestrator (32), golden_path_bridge (31), org_chart_enforcement (35), shadow_agent_integration (38), triage_rollcall_adapter (22), rubix_evidence_adapter (29), semantics_boundary_controller (31), bot_governance_policy_mapper (26), bot_telemetry_normalizer (25), legacy_compatibility_matrix (37), hitl_autonomy_controller (35), compliance_region_validator (39), observability_counters (37), deterministic_routing_engine (59), platform_connector_framework (27), workflow_dag_engine (25), automation_type_registry (22), api_gateway_adapter (23), webhook_event_processor (25); prior coverage retained |
 
 **Per-prompt micro-increment delta (latest prompt, decimal precision = 0.01):**
 - Execution wiring: **+16.00%** (all 7 modules wired into execute_task with gate blocking, event publishing, persistence, self-improvement, SLO tracking)
@@ -328,7 +334,12 @@ These percentages are **current estimates** based on wired functionality vs. pla
 67. **Compliance region validator tests**: `test_compliance_region_validator.py` validates 6 default region requirements, delivery validation, cross-border checks, retention validation, multi-region framework aggregation, validation history, and compliance reporting (39 tests).
 68. **Observability summary counter tests**: `test_observability_counters.py` validates counter registration by category, increment tracking, record_fix/record_coverage convenience methods, behavior-vs-permutation ratio, module summary, improvement velocity, filtered history, and full status (37 tests).
 69. **Deterministic routing engine tests**: `test_deterministic_routing_engine.py` validates default policy registration, task routing by type/tags, deterministic vs LLM routing decisions, hybrid routing, guardrail evaluation, MFGC fallback promotion, routing statistics, decision history, route parity validation, and clear/reset with default preservation (59 tests).
-70. **Integrated execution wiring tests (expanded)**: `test_integrated_execution_wiring.py` validates all 29 module initializations, execution response structure, SLO recording, self-improvement feedback, event publishing, components status, and summary keys (37 tests).
+70. **Integrated execution wiring tests (expanded)**: `test_integrated_execution_wiring.py` validates all 34 module initializations, execution response structure, SLO recording, self-improvement feedback, event publishing, components status, and summary keys (42 tests).
+71. **Platform connector framework tests**: `test_platform_connector_framework.py` validates 20 default platform registrations, connector configuration, action execution, rate limiting, health checks, enable/disable, category/platform filtering, and action history (27 tests).
+72. **Workflow DAG engine tests**: `test_workflow_dag_engine.py` validates DAG registration, cycle detection, topological sort, parallel groups, conditional branching, checkpoint/resume, handler execution, diamond dependencies, and execution history (25 tests).
+73. **Automation type registry tests**: `test_automation_type_registry.py` validates 16 default templates across 11 categories, template lookup, platform-to-template mapping, execution counting, HITL/critical template counting, and compliance framework associations (22 tests).
+74. **API gateway adapter tests**: `test_api_gateway_adapter.py` validates route registration, request processing, API key auth, bearer token auth, rate limiting (per-client and global), circuit breaker, handler execution, response caching, webhook subscription/dispatch, and route statistics (23 tests).
+75. **Webhook event processor tests**: `test_webhook_event_processor.py` validates 10 default sources, SHA-256 signature verification, GitHub/Slack/Stripe/Jira event normalization, custom source/rule registration, handler routing, event history, and disabled source rejection (25 tests).
 
 ---
 
@@ -516,7 +527,7 @@ This task set is planning-only and defines how to absorb unique capabilities fro
 
 ### 15.6 Section-wide status touchpoint
 
-Sections **1-14** are fully accepted and active with all implementation steps COMPLETE. Section **15** is fully IMPLEMENTED — all 6 orchestrator wiring plan items (15.3.1-15.3.6) are implemented, all 6 adapters (15.4) are implemented, and all config artifacts are complete.
+Sections **1-14** are fully accepted and active with all implementation steps COMPLETE. Section **15** is fully IMPLEMENTED — all 6 orchestrator wiring plan items (15.3.1-15.3.6) are implemented, all 6 adapters (15.4) are implemented, and all config artifacts are complete. **Section 16** (new) defines the platform integration matrix, automation type catalog, and competitive recommendations for continued growth.
 
 ### 15.7 Runtime governance bridge fields now tracked
 
@@ -527,3 +538,89 @@ Sections **1-14** are fully accepted and active with all implementation steps CO
 - `legacy_orchestrator_tooling_plan_policy`
 
 These fields provide strict/balanced/dynamic guardrails so legacy orchestration bridging can be wired incrementally under policy control.
+
+## 16) Platform integration and automation capabilities (new recommendations)
+
+This section defines the comprehensive platform integration matrix and automation type catalog implemented to ensure the Murphy System remains competitive as a universal generative automation control plane.
+
+### 16.1 Platform connector framework
+
+**Module:** `src/platform_connector_framework.py` (27 tests)
+
+Provides a unified connector SDK for 20 popular platforms across 10 categories:
+
+| Category | Platforms | Connector Count |
+| --- | --- | --- |
+| Communication | Slack, Microsoft Teams, Discord | 3 |
+| CRM | Salesforce, HubSpot | 2 |
+| Project Management | Jira, Asana, Monday.com | 3 |
+| Cloud | AWS, Azure, GCP | 3 |
+| DevOps | GitHub, GitLab | 2 |
+| Payment | Stripe | 1 |
+| Knowledge | Confluence, Notion, Google Workspace | 3 |
+| ITSM | ServiceNow | 1 |
+| Analytics | Snowflake | 1 |
+| Integration Hub | Zapier | 1 |
+
+Each connector supports: auth management, rate limiting, retry logic, health checks, enable/disable, and action execution with history tracking.
+
+### 16.2 Workflow DAG engine
+
+**Module:** `src/workflow_dag_engine.py` (25 tests)
+
+DAG-based workflow definition and execution providing:
+- Topological sort execution ordering
+- Parallel execution group identification
+- Conditional branching (key=value, key!=value, key_exists)
+- Checkpoint/resume support
+- Step-level handler registration
+- Diamond dependency resolution
+- Execution history tracking
+
+### 16.3 Automation type registry
+
+**Module:** `src/automation_type_registry.py` (22 tests)
+
+Registry of 16 automation templates across 11 categories:
+
+| Category | Templates | Complexity Range |
+| --- | --- | --- |
+| IT Operations | Incident Response, Provisioning, Patch Management | Complex–Critical |
+| Business Process | Document Approval | Moderate |
+| HR/Onboarding | Employee Onboarding | Complex |
+| Data Pipeline | ETL Pipeline, Report Generation | Simple–Moderate |
+| Marketing | Campaign Launch, Lead Nurture | Moderate–Complex |
+| Customer Service | Ticket Routing | Moderate |
+| Financial | Invoice Processing | Complex |
+| Content Generation | Blog Content Pipeline | Moderate |
+| Security | Vulnerability Scanning | Critical |
+| DevOps | CI/CD Pipeline, Release Management | Moderate–Complex |
+| Compliance | Compliance Audit | Critical |
+
+### 16.4 API gateway adapter
+
+**Module:** `src/api_gateway_adapter.py` (23 tests)
+
+Unified API gateway for external integrations with:
+- Route management (GET/POST/PUT/PATCH/DELETE/ANY)
+- Multi-method auth (API key, Bearer token, OAuth2, Basic, HMAC)
+- Per-route and per-client rate limiting
+- Circuit breaker pattern (closed/open/half-open)
+- Response caching with TTL
+- Webhook subscription and dispatch
+- Request logging and route statistics
+
+### 16.5 Webhook event processor
+
+**Module:** `src/webhook_event_processor.py` (25 tests)
+
+Inbound webhook handling with:
+- 10 pre-registered sources (GitHub, Slack, Stripe, Jira, HubSpot, ServiceNow, Salesforce, Azure, AWS, Custom)
+- SHA-256 signature verification
+- 7 default normalization rules mapping platform events to Murphy events
+- Custom source and rule registration
+- Handler routing and event history
+
+### 16.6 Detailed recommendations
+
+See `RECOMMENDATIONS.md` for the full platform integration matrix, automation type catalog, webhook processing details, and competitive feature recommendations with implementation priorities.

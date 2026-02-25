@@ -254,8 +254,13 @@ start_murphy_1.0.bat   # Windows
 - **Compliance region validator (IMPLEMENTED):** `src/compliance_region_validator.py` validates compliance sensors against region-specific requirements before delivery. Pre-registered defaults for 6 regions (EU/GDPR, US_CA/CCPA, US_HIPAA/HIPAA, CA/PIPEDA, BR/LGPD, AU/APPs), cross-border checks, data residency, retention validation, and framework aggregation. 39 tests in `tests/test_compliance_region_validator.py`.
 - **Observability summary counters (IMPLEMENTED):** `src/observability_counters.py` provides summary counters distinguishing behavior fixes from permutation-only coverage for closed-loop improvement. Counter registration by category, increment tracking, behavior-vs-permutation ratio, module summary, improvement velocity, and filtered history. 37 tests in `tests/test_observability_counters.py`.
 - **Deterministic routing engine (IMPLEMENTED):** `src/deterministic_routing_engine.py` provides policy-driven deterministic vs LLM routing with default policies (math/compute/validation → deterministic, creative/generation → LLM, analysis → hybrid), guardrail evaluation, MFGC fallback promotion, route parity validation, and routing statistics. 59 tests in `tests/test_deterministic_routing_engine.py`.
-- **Updated completion percentage snapshot (current):** execution wiring **99.00%**, deterministic+LLM routing **72.00%**, persistence+replay **75.00%**, multi-channel delivery **85.00%**, compliance **92.00%**, operations **92.00%**, UI/testing **71.19%**, dynamic-chain tests **99.70%** (source: `FULL_SYSTEM_ASSESSMENT.md` section 9; all Section 12 steps COMPLETE, all Section 14 priorities COMPLETE, all Section 15 items IMPLEMENTED).
-- **Latest test run (all 29 modules):** 996 module tests passed — **0 failures**.
+- **Platform connector framework (IMPLEMENTED):** `src/platform_connector_framework.py` provides a unified connector SDK for 20 popular platforms (Slack, Jira, Salesforce, GitHub, AWS, Azure, GCP, Stripe, Teams, Discord, HubSpot, GitLab, Asana, Monday, Confluence, Notion, ServiceNow, Snowflake, Google Workspace, Zapier) with auth management, rate limiting, retry logic, and health checks. 27 tests in `tests/test_platform_connector_framework.py`.
+- **Workflow DAG engine (IMPLEMENTED):** `src/workflow_dag_engine.py` provides DAG-based workflow definition and execution with topological sort, parallel execution groups, conditional branching, checkpoint/resume, and step-level handlers. 25 tests in `tests/test_workflow_dag_engine.py`.
+- **Automation type registry (IMPLEMENTED):** `src/automation_type_registry.py` provides 16 automation templates across 11 categories (IT, business, data, marketing, customer service, HR, financial, content, security, DevOps, compliance) with complexity levels, HITL requirements, and connector declarations. 22 tests in `tests/test_automation_type_registry.py`.
+- **API gateway adapter (IMPLEMENTED):** `src/api_gateway_adapter.py` provides unified API gateway for external integrations with rate limiting, multi-method auth, circuit breaker, response caching, and webhook dispatch. 23 tests in `tests/test_api_gateway_adapter.py`.
+- **Webhook event processor (IMPLEMENTED):** `src/webhook_event_processor.py` provides inbound webhook handling with 10 default sources, SHA-256 signature verification, 7 normalization rules, and event routing. 25 tests in `tests/test_webhook_event_processor.py`.
+- **Updated completion percentage snapshot (current):** execution wiring **99.00%**, deterministic+LLM routing **75.00%**, persistence+replay **78.00%**, multi-channel delivery **88.00%**, compliance **93.00%**, operations **93.00%**, UI/testing **71.19%**, dynamic-chain tests **99.80%** (source: `FULL_SYSTEM_ASSESSMENT.md` section 9; all Section 12 steps COMPLETE, all Section 14 priorities COMPLETE, all Section 15 items IMPLEMENTED, Section 16 platform/integration recommendations IMPLEMENTED).
+- **Latest test run (all 34 modules):** 1117 module tests passed — **0 failures**.
 ---
 
 ## 🗃️ Repository Index (Database-Style Reference)
@@ -317,6 +322,11 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **Compliance Region Validator** | `src/compliance_region_validator.py` | Region-specific compliance validation, cross-border checks, data residency |
 | **Observability Summary Counters** | `src/observability_counters.py` | Behavior fix vs coverage tracking, improvement velocity, closed-loop metrics |
 | **Deterministic Routing Engine** | `src/deterministic_routing_engine.py` | Policy-driven deterministic/LLM/hybrid routing, fallback promotion, parity |
+| **Platform Connector Framework** | `src/platform_connector_framework.py` | 20 platform connectors (Slack, Jira, Salesforce, GitHub, AWS, etc.) |
+| **Workflow DAG Engine** | `src/workflow_dag_engine.py` | DAG workflows: topological sort, parallel groups, conditional branching |
+| **Automation Type Registry** | `src/automation_type_registry.py` | 16 templates across 11 categories (IT, DevOps, marketing, etc.) |
+| **API Gateway Adapter** | `src/api_gateway_adapter.py` | Rate limiting, auth, circuit breaker, caching, webhook dispatch |
+| **Webhook Event Processor** | `src/webhook_event_processor.py` | 10 webhook sources, signature verification, event normalization |
 
 **Progress tracking:** update the forward plan in
 `Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md` and append confirmed completion evidence in

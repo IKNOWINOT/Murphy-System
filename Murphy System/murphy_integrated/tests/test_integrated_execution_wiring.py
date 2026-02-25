@@ -155,6 +155,26 @@ class TestIntegratedModuleInitialization:
         system = MurphySystem()
         assert hasattr(system, "deterministic_routing_engine")
 
+    def test_platform_connector_framework_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "platform_connector_framework")
+
+    def test_workflow_dag_engine_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "workflow_dag_engine")
+
+    def test_automation_type_registry_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "automation_type_registry")
+
+    def test_api_gateway_adapter_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "api_gateway_adapter")
+
+    def test_webhook_event_processor_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "webhook_event_processor")
+
 
 class TestExecuteTaskIntegration:
     """Verify execute_task wires through integrated modules."""
@@ -238,6 +258,11 @@ class TestSystemStatusIntegration:
         assert "compliance_region_validator" in components
         assert "observability_counters" in components
         assert "deterministic_routing_engine" in components
+        assert "platform_connector_framework" in components
+        assert "workflow_dag_engine" in components
+        assert "automation_type_registry" in components
+        assert "api_gateway_adapter" in components
+        assert "webhook_event_processor" in components
 
     def test_integrated_summary_has_all_keys(self):
         system = MurphySystem()
@@ -273,5 +298,10 @@ class TestSystemStatusIntegration:
             "compliance_region_validator",
             "observability_counters",
             "deterministic_routing_engine",
+            "platform_connector_framework",
+            "workflow_dag_engine",
+            "automation_type_registry",
+            "api_gateway_adapter",
+            "webhook_event_processor",
         }
         assert expected_keys.issubset(set(modules.keys()))
