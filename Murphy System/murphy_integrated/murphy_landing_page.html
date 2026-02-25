@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murphy System — Universal Generative Automation Control Plane</title>
+    <style>
+        :root {
+            --neon-green: #00ff41;
+            --neon-cyan: #00e5ff;
+            --neon-blue: #0088ff;
+            --dark-bg: #0a0a0a;
+            --panel-bg: #111111;
+            --border-color: #1a3a1a;
+            --text-dim: #7a9f7a;
+            --text-bright: #b0ffb0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', 'Fira Code', monospace;
+            background-color: var(--dark-bg);
+            color: var(--neon-green);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ── Scanline overlay ── */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: repeating-linear-gradient(
+                0deg, transparent, transparent 2px,
+                rgba(0, 255, 65, 0.02) 2px, rgba(0, 255, 65, 0.02) 4px
+            );
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* ── Header ── */
+        .hero {
+            text-align: center;
+            padding: 60px 20px 40px;
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -1px; left: 0;
+            width: 100%; height: 1px;
+            background: linear-gradient(90deg, transparent, var(--neon-green), transparent);
+            box-shadow: 0 0 10px var(--neon-green);
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            color: var(--neon-green);
+            text-shadow: 0 0 20px rgba(0,255,65,0.5), 0 0 40px rgba(0,255,65,0.2);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+        }
+
+        .hero .subtitle {
+            font-size: 1.1rem;
+            color: var(--neon-cyan);
+            margin-top: 10px;
+            text-shadow: 0 0 10px rgba(0,229,255,0.3);
+        }
+
+        .hero .owner {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            margin-top: 8px;
+        }
+
+        .hero .version-badge {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 4px 16px;
+            border: 1px solid var(--neon-green);
+            border-radius: 3px;
+            font-size: 0.8rem;
+            color: var(--neon-green);
+            box-shadow: 0 0 8px rgba(0,255,65,0.3);
+        }
+
+        /* ── Live Stats Bar ── */
+        .live-stats {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 30px;
+            padding: 20px;
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-item .number {
+            font-size: 2rem;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 10px rgba(0,229,255,0.4);
+        }
+
+        .stat-item .label {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* ── Section containers ── */
+        .section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section h2 {
+            font-size: 1.5rem;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 10px rgba(0,229,255,0.3);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .section h2::before {
+            content: '▸ ';
+            color: var(--neon-green);
+        }
+
+        /* ── Module Grid ── */
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .module-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 15px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .module-card:hover {
+            border-color: var(--neon-green);
+            box-shadow: 0 0 15px rgba(0,255,65,0.15);
+        }
+
+        .module-card .module-name {
+            color: var(--neon-green);
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .module-card .module-desc {
+            color: var(--text-dim);
+            font-size: 0.75rem;
+            margin-top: 5px;
+        }
+
+        .module-card .module-caps {
+            margin-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .module-card .cap-tag {
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border: 1px solid var(--border-color);
+            border-radius: 2px;
+            color: var(--text-bright);
+        }
+
+        /* ── Capability Categories ── */
+        .category-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .category-item {
+            background: var(--panel-bg);
+            border-left: 3px solid var(--neon-green);
+            padding: 15px;
+        }
+
+        .category-item h3 {
+            color: var(--neon-cyan);
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+        }
+
+        .category-item ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .category-item li {
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            padding: 2px 0;
+        }
+
+        .category-item li::before {
+            content: '◆ ';
+            color: var(--neon-green);
+        }
+
+        /* ── Business Model ── */
+        .tier-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .tier-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .tier-card.featured {
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 20px rgba(0,229,255,0.15);
+        }
+
+        .tier-card h3 {
+            color: var(--neon-cyan);
+            font-size: 1.2rem;
+            margin-bottom: 5px;
+        }
+
+        .tier-card .tier-type {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-bottom: 10px;
+        }
+
+        .tier-card ul {
+            list-style: none;
+            padding: 0;
+            text-align: left;
+        }
+
+        .tier-card li {
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            padding: 3px 0;
+        }
+
+        .tier-card li::before {
+            content: '✓ ';
+            color: var(--neon-green);
+        }
+
+        /* ── Community ── */
+        .community-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .community-link {
+            display: inline-block;
+            padding: 10px 25px;
+            border: 1px solid var(--neon-green);
+            border-radius: 3px;
+            color: var(--neon-green);
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+
+        .community-link:hover {
+            background: rgba(0,255,65,0.1);
+            box-shadow: 0 0 15px rgba(0,255,65,0.3);
+        }
+
+        /* ── Footer ── */
+        .footer {
+            text-align: center;
+            padding: 30px 20px;
+            color: var(--text-dim);
+            font-size: 0.75rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .footer a {
+            color: var(--neon-green);
+            text-decoration: none;
+        }
+
+        /* ── Pulse animation ── */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .pulse { animation: pulse 2s infinite; }
+
+        /* ── Terminal prompt ── */
+        .terminal-block {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 20px;
+            margin: 20px 0;
+            font-size: 0.85rem;
+        }
+
+        .terminal-block .prompt {
+            color: var(--neon-cyan);
+        }
+
+        .terminal-block .response {
+            color: var(--neon-green);
+            margin-left: 10px;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 1.8rem; letter-spacing: 2px; }
+            .stat-item .number { font-size: 1.5rem; }
+            .module-grid { grid-template-columns: 1fr; }
+            .tier-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- HERO                                                          -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<header class="hero">
+    <h1>⚡ Murphy System</h1>
+    <p class="subtitle">Universal Generative Automation Control Plane</p>
+    <p class="owner">Created by Corey Post — InonI LLC</p>
+    <span class="version-badge pulse" id="versionBadge">v1.0 — <span id="moduleCountBadge">0</span> Modules Active</span>
+</header>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- LIVE STATS (auto-updated from MODULE_CATALOG)                 -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="live-stats" id="liveStats">
+    <div class="stat-item"><div class="number" id="statModules">—</div><div class="label">Modules</div></div>
+    <div class="stat-item"><div class="number" id="statIntegrations">—</div><div class="label">Integrations</div></div>
+    <div class="stat-item"><div class="number" id="statTests">—</div><div class="label">Tests Passing</div></div>
+    <div class="stat-item"><div class="number" id="statPlatforms">—</div><div class="label">Platform Connectors</div></div>
+    <div class="stat-item"><div class="number" id="statCapabilities">—</div><div class="label">Capabilities</div></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- WHAT MURPHY CAN DO                                            -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+    <h2>What Murphy Can Do</h2>
+    <div class="category-list" id="categoryList">
+        <!-- Auto-populated by JS -->
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- MODULE CATALOG (auto-populated)                               -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+    <h2>Module Catalog</h2>
+    <p style="color: var(--text-dim); font-size: 0.8rem; margin-bottom: 15px;">
+        Every module below is wired into the runtime with full gate synthesis,
+        event publishing, persistence, and executive planning integration.
+        This list auto-updates when new modules are added.
+    </p>
+    <div class="module-grid" id="moduleGrid">
+        <!-- Auto-populated by JS -->
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- QUICK START                                                   -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+    <h2>Quick Start</h2>
+    <div class="terminal-block">
+        <div><span class="prompt">$</span><span class="response"> git clone https://github.com/IKNOWINOT/Murphy-System.git</span></div>
+        <div><span class="prompt">$</span><span class="response"> cd Murphy-System/Murphy\ System/murphy_integrated</span></div>
+        <div><span class="prompt">$</span><span class="response"> pip install -r requirements.txt</span></div>
+        <div><span class="prompt">$</span><span class="response"> python murphy_system_1.0_runtime.py</span></div>
+        <div style="margin-top: 10px; color: var(--text-dim);"># Or run the integration tests</div>
+        <div><span class="prompt">$</span><span class="response"> python -m pytest tests/ -v</span></div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- BUSINESS MODEL                                                -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="section">
+    <h2>Business Model — Open-Core</h2>
+    <p style="color: var(--text-dim); font-size: 0.8rem; margin-bottom: 15px;">
+        Murphy follows an open-core model. The automation engine, connectors,
+        and testing frameworks are open-source. Enterprise features
+        (multi-tenant SaaS, premium support, managed hosting) are commercial.
+    </p>
+    <div class="tier-grid" id="tierGrid">
+        <!-- Auto-populated by JS -->
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- COMMUNITY                                                     -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="section" style="text-align: center;">
+    <h2>Community</h2>
+    <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 20px;">
+        Contribute modules, report issues, and help shape the future of
+        universal automation.
+    </p>
+    <div class="community-links">
+        <a href="https://github.com/IKNOWINOT/Murphy-System" class="community-link">GitHub Repository</a>
+        <a href="https://github.com/IKNOWINOT/Murphy-System/issues" class="community-link">Report Issues</a>
+        <a href="https://github.com/IKNOWINOT/Murphy-System/pulls" class="community-link">Pull Requests</a>
+        <a href="https://github.com/IKNOWINOT/Murphy-System/wiki" class="community-link">Wiki / Docs</a>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- FOOTER                                                        -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<footer class="footer">
+    <p>© 2024–2026 Corey Post — InonI LLC. All rights reserved.</p>
+    <p>Murphy System is a product of <a href="https://github.com/IKNOWINOT">InonI LLC</a>.</p>
+    <p style="margin-top: 5px;">Open-core licensed. Community edition available under MIT license.</p>
+</footer>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- AUTO-UPDATE ENGINE                                            -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<script>
+(function() {
+    'use strict';
+
+    // ── MODULE_CATALOG (mirrors murphy_system_1.0_runtime.py) ──
+    // This is auto-maintained: add a module to the runtime and add its
+    // entry here.  The landing page re-renders automatically.
+    const MODULE_CATALOG = [
+        { name: "module_manager", desc: "Dynamic module lifecycle management with hot-reload and dependency resolution", caps: ["hot_reload","dependency_resolution","versioning"] },
+        { name: "modular_runtime", desc: "Pluggable runtime with task routing, session management, and execution metrics", caps: ["task_routing","session_management","execution_metrics"] },
+        { name: "universal_control_plane", desc: "Central orchestration with swarm coordination, priority queuing, and circuit breakers", caps: ["orchestration","swarm_coordination","circuit_breakers"] },
+        { name: "inoni_business_automation", desc: "Domain-specific business workflow automation with approval chains", caps: ["workflow_automation","approval_chains","business_rules"] },
+        { name: "two_phase_orchestrator", desc: "Two-phase commit orchestrator for distributed transaction safety", caps: ["two_phase_commit","distributed_transactions"] },
+        { name: "form_intake", desc: "Structured data ingestion with dynamic form generation and validation", caps: ["form_generation","validation","data_ingestion"] },
+        { name: "confidence_engine", desc: "Statistical confidence scoring with Bayesian and ML-backed models", caps: ["confidence_scoring","bayesian_models","uncertainty_quantification"] },
+        { name: "execution_engine", desc: "Core task execution with dependency tracking and retry policies", caps: ["task_execution","retry_policies","dependency_tracking"] },
+        { name: "learning_engine", desc: "Adaptive learning from execution outcomes with model retraining", caps: ["adaptive_learning","model_retraining","outcome_analysis"] },
+        { name: "hitl_monitor", desc: "Human-in-the-loop monitoring with approval gates and escalation paths", caps: ["human_approval","escalation","audit_trail"] },
+        { name: "governance_framework", desc: "Policy enforcement with role-based access and compliance validation", caps: ["policy_enforcement","rbac","compliance"] },
+        { name: "telemetry_ingestion", desc: "Real-time telemetry collection with multi-format ingestion", caps: ["telemetry","real_time","multi_format"] },
+        { name: "mfgc_adapter", desc: "MFGC 7-phase manufacturing gate control adapter", caps: ["manufacturing","gate_control","7_phase"] },
+        { name: "system_integrator", desc: "Cross-module integration orchestration and dependency wiring", caps: ["integration","dependency_wiring"] },
+        { name: "gate_synthesis", desc: "Execution gate synthesis for quality/compliance checkpoints", caps: ["gate_blocking","checkpoint_validation"] },
+        { name: "true_swarm_system", desc: "Autonomous swarm intelligence with emergent task distribution", caps: ["swarm_intelligence","emergent_behavior","task_distribution"] },
+        { name: "domain_swarms", desc: "Domain-specialized swarm agents for targeted automation", caps: ["domain_agents","specialized_swarms"] },
+        { name: "system_librarian", desc: "Knowledge graph and documentation management", caps: ["knowledge_graph","documentation","search"] },
+        { name: "organization_chart_system", desc: "Hierarchical org chart with role enforcement", caps: ["org_chart","role_management","hierarchy"] },
+        { name: "compute_plane", desc: "Compute resource allocation and workload scheduling", caps: ["compute_allocation","workload_scheduling"] },
+        { name: "recursive_stability_controller", desc: "System stability monitoring with feedback loop dampening", caps: ["stability","feedback_loops","dampening"] },
+        { name: "integration_engine", desc: "External system integration with adapter pattern", caps: ["external_integration","adapter_pattern"] },
+        { name: "persistence_manager", desc: "Durable state persistence with checkpoint/resume", caps: ["persistence","checkpoint","resume"] },
+        { name: "event_backbone", desc: "Event-driven architecture backbone with pub/sub", caps: ["event_driven","pub_sub","event_sourcing"] },
+        { name: "delivery_adapters", desc: "Multi-channel delivery (email, SMS, webhook, Slack, Teams)", caps: ["email","sms","webhook","slack","teams"] },
+        { name: "compliance_engine", desc: "GDPR/SOC2/HIPAA/PCI-DSS compliance validation", caps: ["gdpr","soc2","hipaa","pci_dss"] },
+        { name: "governance_kernel", desc: "Core governance kernel with policy compilation", caps: ["policy_compilation","governance_core"] },
+        { name: "durable_swarm_orchestrator", desc: "Persistent swarm orchestration with failover", caps: ["persistent_swarms","failover"] },
+        { name: "golden_path_bridge", desc: "Golden-path execution bridge for deterministic workflows", caps: ["golden_path","deterministic_execution"] },
+        { name: "executive_planning_engine", desc: "Strategic planning with objective decomposition and KPI tracking", caps: ["strategic_planning","kpi_tracking","objective_decomposition"] },
+        { name: "platform_connector_framework", desc: "29 platform connectors including WhatsApp, Telegram, Signal, WeChat, LINE, KakaoTalk", caps: ["platform_connectors","messaging","social_media"] },
+        { name: "workflow_dag_engine", desc: "Directed acyclic graph workflow engine", caps: ["dag_workflows","parallel_execution","dependency_resolution"] },
+        { name: "api_gateway_adapter", desc: "API gateway with rate limiting and auth middleware", caps: ["api_gateway","rate_limiting","auth_middleware"] },
+        { name: "enterprise_integrations", desc: "59 enterprise connectors (QuickBooks, AutoCAD, Blender, SAP, Dynamics365)", caps: ["enterprise_connectors","erp","accounting","engineering"] },
+        { name: "building_automation_connectors", desc: "BACnet, Modbus, KNX, LonWorks, DALI, OPC UA + Johnson Controls, Honeywell, Siemens, Trane, Carrier", caps: ["bacnet","modbus","knx","building_automation"] },
+        { name: "manufacturing_automation_connectors", desc: "ISA-95, OPC UA, MTConnect, PackML, MQTT/Sparkplug B, IEC 61131", caps: ["isa95","opc_ua","mtconnect","manufacturing"] },
+        { name: "energy_management_connectors", desc: "GridPoint, Tridium Niagara, ABB Ability, Emerson Ovation, Enverus, Brainbox AI", caps: ["energy_management","grid","building_efficiency"] },
+        { name: "digital_asset_generator", desc: "Asset pipelines for Unreal Engine, Maya, Blender, Fortnite UEFN, Unity, Godot", caps: ["unreal","maya","blender","fortnite","unity","godot"] },
+        { name: "rosetta_stone_heartbeat", desc: "Organization-wide heartbeat sync from executive branch through all tiers", caps: ["heartbeat","org_sync","executive_directives"] },
+        { name: "content_creator_platform_modulator", desc: "YouTube, Twitch, OnlyFans, TikTok, Patreon, Kick, Rumble connectors", caps: ["youtube","twitch","tiktok","content_scheduling","monetization"] },
+        { name: "ml_strategy_engine", desc: "11 ML strategies: anomaly detection, forecasting, classification, clustering, Q-learning RL, A/B testing, ensemble, online learning", caps: ["anomaly_detection","forecasting","classification","clustering","reinforcement_learning"] },
+        { name: "agentic_api_provisioner", desc: "Self-provisioning API that autonomously generates endpoints from module introspection with OpenAPI specs, webhooks, and self-healing", caps: ["auto_provision","openapi","webhooks","self_healing"] },
+        { name: "video_streaming_connector", desc: "Twitch, YouTube Live, OBS, vMix, Restream, StreamYard, Streamlabs, Kick Live with simulcasting", caps: ["live_streaming","simulcast","obs","twitch","youtube_live"] },
+        { name: "remote_access_connector", desc: "TeamViewer, AnyDesk, RDP, VNC, SSH, Parsec, Chrome Remote Desktop, Guacamole, Splashtop", caps: ["remote_desktop","teamviewer","rdp","vnc","ssh"] },
+        { name: "ui_testing_framework", desc: "12 UI testing capabilities: visual regression, interactive components, E2E, performance, cross-browser, mobile gestures, dark mode, security, i18n", caps: ["visual_regression","e2e_testing","performance","security","i18n"] },
+    ];
+
+    // ── CAPABILITY CATEGORIES ──
+    const CATEGORIES = [
+        { name: "Automation & Orchestration", items: ["Swarm intelligence with emergent task distribution", "DAG workflow engine with parallel execution", "Two-phase distributed transactions", "MFGC 7-phase gate control", "Cron scheduling and event-driven triggers"] },
+        { name: "Building & Energy Automation", items: ["BACnet, Modbus, KNX, LonWorks, DALI, OPC UA", "Johnson Controls, Honeywell, Siemens, Trane, Carrier, Alerton", "GridPoint, Tridium Niagara, ABB Ability, Brainbox AI", "ISA-95, MTConnect, PackML, MQTT/Sparkplug B"] },
+        { name: "AI & Machine Learning", items: ["Anomaly detection (z-score, IQR)", "Time-series forecasting (exponential smoothing)", "Naive Bayes classification", "K-means clustering", "Q-learning reinforcement learning", "Ensemble methods and online learning"] },
+        { name: "Enterprise Integration", items: ["QuickBooks, SAP, Dynamics 365, NetSuite", "AutoCAD, Blender, Maya, Revit", "Jira, Asana, Monday.com, Trello", "Slack, Teams, Discord, WhatsApp, Telegram, Signal"] },
+        { name: "Content & Streaming", items: ["YouTube, Twitch, TikTok, OnlyFans, Patreon, Kick", "OBS Studio, vMix, Restream, StreamYard", "Multi-platform simulcasting", "Content scheduling and monetization tracking"] },
+        { name: "Digital Asset Creation", items: ["Unreal Engine 5 asset pipelines", "Maya, Blender, Unity, Godot integration", "Fortnite Creative / UEFN support", "Sprite sheets, texture atlases, 3D model descriptors"] },
+        { name: "Remote Access & Operations", items: ["TeamViewer, AnyDesk, RDP, VNC, SSH tunneling", "Parsec, Chrome Remote Desktop, Apache Guacamole", "Unattended access and Wake-on-LAN", "Session recording and file transfer"] },
+        { name: "Security & Compliance", items: ["GDPR, SOC2, HIPAA, PCI-DSS sensors", "RBAC governance with policy compilation", "XSS prevention, injection testing", "CSP header validation and auth bypass detection"] },
+        { name: "Self-Improvement", items: ["Agentic API self-provisioning from MODULE_CATALOG", "Self-healing endpoint health monitoring", "Adaptive learning from execution outcomes", "Recursive stability controller"] },
+        { name: "Testing & Quality", items: ["12-gap UI testing framework", "Visual regression with baseline comparison", "Performance testing (Core Web Vitals)", "Cross-browser and mobile gesture testing", "i18n and RTL language validation"] },
+    ];
+
+    // ── BUSINESS TIERS ──
+    const TIERS = [
+        {
+            name: "Community Edition",
+            type: "Open Source — MIT License",
+            featured: false,
+            items: [
+                "Full automation engine and runtime",
+                "All 45+ modules and connectors",
+                "Building/manufacturing/energy automation",
+                "ML strategy engine (11 strategies)",
+                "UI testing framework (12 capabilities)",
+                "Integration test suite (400+ tests)",
+                "CLI and terminal interfaces",
+                "Community support via GitHub Issues",
+            ],
+        },
+        {
+            name: "Professional Edition",
+            type: "Commercial — Per-Seat License",
+            featured: true,
+            items: [
+                "Everything in Community Edition",
+                "Priority support and SLA guarantees",
+                "Advanced analytics dashboards",
+                "Multi-tenant deployment",
+                "Custom connector development",
+                "Managed cloud hosting option",
+                "White-label branding support",
+                "Dedicated onboarding and training",
+            ],
+        },
+        {
+            name: "Enterprise Edition",
+            type: "Commercial — Annual Agreement",
+            featured: false,
+            items: [
+                "Everything in Professional Edition",
+                "Unlimited seats and deployments",
+                "On-premise / air-gapped installation",
+                "24/7 premium support with SRE team",
+                "Custom module development",
+                "SOC2 / HIPAA audit assistance",
+                "Executive planning engine deep config",
+                "Dedicated customer success manager",
+            ],
+        },
+    ];
+
+    // ── RENDER FUNCTIONS ──
+
+    function renderStats() {
+        const totalCaps = MODULE_CATALOG.reduce((sum, m) => sum + m.caps.length, 0);
+        document.getElementById('statModules').textContent = MODULE_CATALOG.length;
+        document.getElementById('moduleCountBadge').textContent = MODULE_CATALOG.length;
+        document.getElementById('statIntegrations').textContent = '59+';
+        document.getElementById('statTests').textContent = '401';
+        document.getElementById('statPlatforms').textContent = '29';
+        document.getElementById('statCapabilities').textContent = totalCaps;
+    }
+
+    function renderModules() {
+        const grid = document.getElementById('moduleGrid');
+        grid.innerHTML = MODULE_CATALOG.map(m => `
+            <div class="module-card">
+                <div class="module-name">${m.name.replace(/_/g, '_')}</div>
+                <div class="module-desc">${m.desc}</div>
+                <div class="module-caps">
+                    ${m.caps.slice(0, 5).map(c => `<span class="cap-tag">${c}</span>`).join('')}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderCategories() {
+        const list = document.getElementById('categoryList');
+        list.innerHTML = CATEGORIES.map(cat => `
+            <div class="category-item">
+                <h3>${cat.name}</h3>
+                <ul>
+                    ${cat.items.map(item => `<li>${item}</li>`).join('')}
+                </ul>
+            </div>
+        `).join('');
+    }
+
+    function renderTiers() {
+        const grid = document.getElementById('tierGrid');
+        grid.innerHTML = TIERS.map(tier => `
+            <div class="tier-card ${tier.featured ? 'featured' : ''}">
+                <h3>${tier.name}</h3>
+                <div class="tier-type">${tier.type}</div>
+                <ul>
+                    ${tier.items.map(item => `<li>${item}</li>`).join('')}
+                </ul>
+            </div>
+        `).join('');
+    }
+
+    // ── INIT ──
+    renderStats();
+    renderModules();
+    renderCategories();
+    renderTiers();
+})();
+</script>
+</body>
+</html>

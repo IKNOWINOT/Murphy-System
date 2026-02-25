@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Dashboard - Automation Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: #111;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0,255,65,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #001a00, #002200);
+            color: #00ff41;
+            padding: 30px;
+            text-align: center;
+            border-bottom: 2px solid #00ff41;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            color: #00e5ff;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #0a0a0a;
+        }
+        
+        .stat-card {
+            background: #1a1a1a;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,255,65,0.3);
+            text-align: center;
+            transition: transform 0.3s ease;
+            border: 1px solid #00ff41;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-card .value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #00ff41;
+            margin-bottom: 10px;
+        }
+        
+        .stat-card .label {
+            font-size: 1em;
+            color: #00e5ff;
+            font-weight: 500;
+        }
+        
+        .filters {
+            padding: 20px 30px;
+            background: #1a1a1a;
+            border-bottom: 1px solid #333;
+        }
+        
+        .filters select {
+            padding: 10px 15px;
+            border: 1px solid #00ff41;
+            border-radius: 5px;
+            font-size: 14px;
+            margin-right: 10px;
+            cursor: pointer;
+            background: #0a0a0a;
+            color: #00ff41;
+        }
+        
+        .tasks-table-container {
+            padding: 30px;
+            overflow-x: auto;
+        }
+        
+        .tasks-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        
+        .tasks-table th {
+            background: #1a1a1a;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #00e5ff;
+            border-bottom: 2px solid #333;
+        }
+        
+        .tasks-table td {
+            padding: 15px;
+            border-bottom: 1px solid #222;
+            color: #00ff41;
+        }
+        
+        .tasks-table tr:hover {
+            background: #1a1a1a;
+        }
+        
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-pending {
+            background: #332b00;
+            color: #ffa502;
+        }
+        
+        .status-in_progress {
+            background: #002233;
+            color: #00e5ff;
+        }
+        
+        .status-completed {
+            background: #003300;
+            color: #2ed573;
+        }
+        
+        .status-cancelled {
+            background: #330000;
+            color: #ff4757;
+        }
+        
+        .priority-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .priority-urgent {
+            background: #330000;
+            color: #ff4757;
+        }
+        
+        .priority-high {
+            background: #332200;
+            color: #ffa502;
+        }
+        
+        .priority-medium {
+            background: #1a1a2e;
+            color: #00e5ff;
+        }
+        
+        .priority-low {
+            background: #003322;
+            color: #2ed573;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #00e5ff;
+            font-size: 18px;
+        }
+        
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #ff4757;
+            font-size: 18px;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #00e5ff;
+            font-size: 16px;
+        }
+        
+        .team-performance {
+            padding: 30px;
+            background: #0a0a0a;
+        }
+        
+        .team-performance h3 {
+            margin-bottom: 20px;
+            color: #00e5ff;
+        }
+        
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .team-card {
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,255,65,0.3);
+            border: 1px solid #00ff41;
+            color: #00ff41;
+        }
+        
+        .team-card h4 {
+            color: #00e5ff;
+            margin-bottom: 15px;
+        }
+        
+        .team-card .stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #222;
+        }
+        
+        .team-card .stat:last-child {
+            border-bottom: none;
+        }
+        
+        .refresh-btn {
+            padding: 10px 20px;
+            background: #1a1a1a;
+            color: #00ff41;
+            border: 1px solid #00ff41;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.3s ease;
+        }
+        
+        .refresh-btn:hover {
+            background: #002200;
+        }
+    </style>
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 Task Dashboard</h1>
+            <p>Real-time Task Management Overview</p>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="value" id="total-tasks">0</div>
+                <div class="label">Total Tasks</div>
+            </div>
+            <div class="stat-card">
+                <div class="value" id="completed-tasks">0</div>
+                <div class="label">Completed</div>
+            </div>
+            <div class="stat-card">
+                <div class="value" id="in-progress-tasks">0</div>
+                <div class="label">In Progress</div>
+            </div>
+            <div class="stat-card">
+                <div class="value" id="overdue-tasks">0</div>
+                <div class="label">Overdue</div>
+            </div>
+            <div class="stat-card">
+                <div class="value" id="completion-rate">0%</div>
+                <div class="label">Completion Rate</div>
+            </div>
+        </div>
+        
+        <div class="filters">
+            <select id="status-filter">
+                <option value="">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+            </select>
+            <select id="priority-filter">
+                <option value="">All Priorities</option>
+                <option value="urgent">Urgent</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+            </select>
+            <select id="client-filter">
+                <option value="">All Clients</option>
+            </select>
+            <button class="refresh-btn" onclick="loadTasks()">🔄 Refresh</button>
+        </div>
+        
+        <div class="tasks-table-container">
+            <table class="tasks-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Status</th>
+                        <th>Priority</th>
+                        <th>Assigned To</th>
+                        <th>Due Date</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+                <tbody id="tasks-table-body">
+                    <tr>
+                        <td colspan="7" class="loading">Loading tasks...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="team-performance">
+            <h3>👥 Team Performance</h3>
+            <div class="team-grid" id="team-grid">
+                <div class="loading">Loading team performance...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/tasks';
+        
+        async function loadTasks() {
+            try {
+                const statusFilter = document.getElementById('status-filter').value;
+                const priorityFilter = document.getElementById('priority-filter').value;
+                const clientFilter = document.getElementById('client-filter').value;
+                
+                let url = API_BASE;
+                const params = new URLSearchParams();
+                if (statusFilter) params.append('status', statusFilter);
+                if (priorityFilter) params.append('priority', priorityFilter);
+                if (clientFilter) params.append('client_id', clientFilter);
+                if (params.toString()) url += '?' + params.toString();
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayTasks(data.tasks);
+                    displayStats(data.stats);
+                    displayTeamPerformance(data.team_performance);
+                } else {
+                    showError('Failed to load tasks');
+                }
+            } catch (error) {
+                showError('Error loading tasks: ' + error.message);
+            }
+        }
+        
+        function displayTasks(tasks) {
+            const tbody = document.getElementById('tasks-table-body');
+            
+            if (!tasks || tasks.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-data">No tasks found</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = tasks.map(task => `
+                <tr>
+                    <td>${task.id}</td>
+                    <td><strong>${task.title}</strong></td>
+                    <td><span class="status-badge status-${task.status}">${task.status.replace('_', ' ')}</span></td>
+                    <td><span class="priority-badge priority-${task.priority}">${task.priority}</span></td>
+                    <td>${task.assignee_name || 'Unassigned'}</td>
+                    <td>${task.due_date ? new Date(task.due_date).toLocaleDateString() : 'N/A'}</td>
+                    <td>${new Date(task.created_at).toLocaleDateString()}</td>
+                </tr>
+            `).join('');
+        }
+        
+        function displayStats(stats) {
+            document.getElementById('total-tasks').textContent = stats.total || 0;
+            document.getElementById('completed-tasks').textContent = stats.completed || 0;
+            document.getElementById('in-progress-tasks').textContent = stats.in_progress || 0;
+            document.getElementById('overdue-tasks').textContent = stats.overdue || 0;
+            document.getElementById('completion-rate').textContent = stats.completion_rate || '0%';
+        }
+        
+        function displayTeamPerformance(teamData) {
+            const grid = document.getElementById('team-grid');
+            
+            if (!teamData || teamData.length === 0) {
+                grid.innerHTML = '<div class="no-data">No team data available</div>';
+                return;
+            }
+            
+            grid.innerHTML = teamData.map(member => `
+                <div class="team-card">
+                    <h4>👤 ${member.name}</h4>
+                    <div class="stat">
+                        <span>Assigned Tasks</span>
+                        <strong>${member.assigned_tasks}</strong>
+                    </div>
+                    <div class="stat">
+                        <span>Completed</span>
+                        <strong>${member.completed_tasks}</strong>
+                    </div>
+                    <div class="stat">
+                        <span>In Progress</span>
+                        <strong>${member.in_progress_tasks}</strong>
+                    </div>
+                    <div class="stat">
+                        <span>Pending</span>
+                        <strong>${member.pending_tasks}</strong>
+                    </div>
+                    <div class="stat">
+                        <span>Avg Completion</span>
+                        <strong>${member.avg_completion_hours || 0}h</strong>
+                    </div>
+                    <div class="stat">
+                        <span>Overdue</span>
+                        <strong>${member.overdue_tasks}</strong>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function showError(message) {
+            const tbody = document.getElementById('tasks-table-body');
+            tbody.innerHTML = `<tr><td colspan="7" class="error">${message}</td></tr>`;
+        }
+        
+        async function loadClients() {
+            try {
+                const response = await fetch('/api/clients');
+                const data = await response.json();
+                
+                if (data.success && data.clients) {
+                    const select = document.getElementById('client-filter');
+                    data.clients.forEach(client => {
+                        const option = document.createElement('option');
+                        option.value = client.id;
+                        option.textContent = client.name;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading clients:', error);
+            }
+        }
+        
+        // Event listeners for filters
+        document.getElementById('status-filter').addEventListener('change', loadTasks);
+        document.getElementById('priority-filter').addEventListener('change', loadTasks);
+        document.getElementById('client-filter').addEventListener('change', loadTasks);
+        
+        // Initial load
+        loadClients();
+        loadTasks();
+        
+        // Auto-refresh every 30 seconds
+        setInterval(loadTasks, 30000);
+    </script>
+</body>
+</html>

@@ -385,6 +385,111 @@ except ImportError as e:
     print(f"Warning: Cross-platform data sync not available: {e}")
     CrossPlatformDataSync = None
 
+# Building Automation Connectors
+try:
+    from src.building_automation_connectors import BuildingAutomationRegistry
+except ImportError as e:
+    print(f"Warning: Building automation connectors not available: {e}")
+    BuildingAutomationRegistry = None
+
+# Manufacturing Automation Standards
+try:
+    from src.manufacturing_automation_standards import ManufacturingAutomationRegistry
+except ImportError as e:
+    print(f"Warning: Manufacturing automation standards not available: {e}")
+    ManufacturingAutomationRegistry = None
+
+# Energy Management Connectors
+try:
+    from src.energy_management_connectors import EnergyManagementRegistry
+except ImportError as e:
+    print(f"Warning: Energy management connectors not available: {e}")
+    EnergyManagementRegistry = None
+
+# Analytics Dashboard
+try:
+    from src.analytics_dashboard import AnalyticsDashboard
+except ImportError as e:
+    print(f"Warning: Analytics dashboard not available: {e}")
+    AnalyticsDashboard = None
+
+# Executive Planning Engine
+try:
+    from src.executive_planning_engine import ExecutivePlanningEngine
+except ImportError as e:
+    print(f"Warning: Executive planning engine not available: {e}")
+    ExecutivePlanningEngine = None
+
+# Enterprise Integrations
+try:
+    from src.enterprise_integrations import EnterpriseIntegrationRegistry
+except ImportError as e:
+    print(f"Warning: Enterprise integrations not available: {e}")
+    EnterpriseIntegrationRegistry = None
+
+# Digital Asset Generator
+try:
+    from src.digital_asset_generator import DigitalAssetGenerator
+except ImportError as e:
+    print(f"Warning: Digital asset generator not available: {e}")
+    DigitalAssetGenerator = None
+
+# Rosetta Stone Heartbeat
+try:
+    from src.rosetta_stone_heartbeat import RosettaStoneHeartbeat
+except ImportError as e:
+    print(f"Warning: Rosetta stone heartbeat not available: {e}")
+    RosettaStoneHeartbeat = None
+
+# Content Creator Platform Modulator
+try:
+    from src.content_creator_platform_modulator import ContentCreatorPlatformRegistry
+except ImportError as e:
+    print(f"Warning: Content creator platform modulator not available: {e}")
+    ContentCreatorPlatformRegistry = None
+
+# ML Strategy Engine
+try:
+    from src.ml_strategy_engine import MLStrategyEngine
+except ImportError as e:
+    print(f"Warning: ML strategy engine not available: {e}")
+    MLStrategyEngine = None
+
+# Agentic API Provisioner
+try:
+    from src.agentic_api_provisioner import AgenticAPIProvisioner
+except ImportError as e:
+    print(f"Warning: Agentic API provisioner not available: {e}")
+    AgenticAPIProvisioner = None
+
+# Video Streaming Connector
+try:
+    from src.video_streaming_connector import VideoStreamingRegistry
+except ImportError as e:
+    print(f"Warning: Video streaming connector not available: {e}")
+    VideoStreamingRegistry = None
+
+# Remote Access Connector
+try:
+    from src.remote_access_connector import RemoteAccessRegistry
+except ImportError as e:
+    print(f"Warning: Remote access connector not available: {e}")
+    RemoteAccessRegistry = None
+
+# UI Testing Framework
+try:
+    from src.ui_testing_framework import UITestingFramework
+except ImportError as e:
+    print(f"Warning: UI testing framework not available: {e}")
+    UITestingFramework = None
+
+# Security Hardening Config
+try:
+    from src.security_hardening_config import SecurityHardeningConfig
+except ImportError as e:
+    print(f"Warning: Security hardening config not available: {e}")
+    SecurityHardeningConfig = None
+
 # FastAPI for REST API
 try:
     from fastapi import FastAPI, HTTPException, Request
@@ -948,6 +1053,96 @@ class MurphySystem:
             "path": "src.cross_platform_data_sync",
             "description": "Real-time bidirectional data synchronization between platforms with field mapping and conflict resolution",
             "capabilities": ["data_sync", "field_mapping", "conflict_resolution", "change_tracking", "bidirectional_sync"]
+        },
+        {
+            "name": "building_automation_connectors",
+            "path": "src.building_automation_connectors",
+            "description": "Building automation protocol connectors (BACnet, Modbus, KNX, LonWorks, DALI, OPC UA) with Johnson Controls, Honeywell, Siemens, Alerton, Trane, Carrier/Automated Logic, Schneider Electric, ABB, Delta Controls, Distech vendor integrations",
+            "capabilities": ["bacnet", "modbus", "knx", "lonworks", "dali", "opc_ua", "hvac_control", "lighting_control", "vendor_integration"]
+        },
+        {
+            "name": "manufacturing_automation_standards",
+            "path": "src.manufacturing_automation_standards",
+            "description": "Manufacturing automation standards (ISA-95, OPC UA, MTConnect, PackML, MQTT/Sparkplug B, IEC 61131) with ISA-95 layer-aware workflow orchestration",
+            "capabilities": ["isa_95", "opc_ua_manufacturing", "mtconnect", "packml", "mqtt_sparkplug_b", "iec_61131", "production_management", "plc_integration"]
+        },
+        {
+            "name": "energy_management_connectors",
+            "path": "src.energy_management_connectors",
+            "description": "Energy management system connectors (Johnson Controls OpenBlue, Honeywell Forge, Schneider EcoStruxure, Siemens Navigator, EnergyCAP, ENERGY STAR, Enel X, Alerton EMS, SolarEdge, GridPoint, Tridium Niagara, ABB Ability, Emerson Ovation, Enverus, Brainbox AI) with demand response and renewables",
+            "capabilities": ["energy_monitoring", "utility_analytics", "demand_response", "sustainability_reporting", "renewable_integration", "carbon_tracking"]
+        },
+        {
+            "name": "analytics_dashboard",
+            "path": "src.analytics_dashboard",
+            "description": "Real-time analytics dashboard with execution analytics, compliance tracking, performance metrics, business intelligence, and alert rules engine",
+            "capabilities": ["execution_analytics", "compliance_analytics", "performance_metrics", "business_intelligence", "alerting", "real_time_dashboard"]
+        },
+        {
+            "name": "executive_planning_engine",
+            "path": "src.executive_planning_engine",
+            "description": "Executive strategy planning with business gate generation, integration automation binding, and executive dashboard generation",
+            "capabilities": ["strategy_planning", "business_gates", "integration_binding", "executive_dashboard", "response_engine"]
+        },
+        {
+            "name": "enterprise_integrations",
+            "path": "src.enterprise_integrations",
+            "description": "Enterprise integration registry for accounting, engineering, project management, document, communication, DevOps, analytics, and ERP platforms with DAG workflow binding",
+            "capabilities": ["enterprise_connectors", "quickbooks", "autocad", "blender", "sap", "dynamics365", "workflow_binding", "capability_mapping"]
+        },
+        {
+            "name": "digital_asset_generator",
+            "path": "src.digital_asset_generator",
+            "description": "Digital asset generation pipeline for Unreal Engine, Maya, Blender, Fortnite Creative/UEFN, Unity, Godot with sprite sheets, texture atlases, 3D model descriptors, material/shader generation, and batch pipeline orchestration",
+            "capabilities": ["asset_generation", "sprite_sheets", "texture_atlas", "unreal_engine", "maya", "blender", "fortnite_creative", "unity", "godot", "pipeline_orchestration"]
+        },
+        {
+            "name": "rosetta_stone_heartbeat",
+            "path": "src.rosetta_stone_heartbeat",
+            "description": "Organization-wide heartbeat synchronization with executive-origin pulse propagation, tier-based translators, and sync verification across executive/management/operations/worker/integration tiers",
+            "capabilities": ["heartbeat_sync", "pulse_propagation", "tier_translation", "sync_verification", "executive_directives", "org_health"]
+        },
+        {
+            "name": "content_creator_platform_modulator",
+            "path": "src.content_creator_platform_modulator",
+            "description": "Content creator platform connectors for YouTube, Twitch, OnlyFans, TikTok, Patreon, Kick, Rumble with content scheduling, analytics, monetization tracking, audience management, cross-platform syndication, and live stream orchestration",
+            "capabilities": ["youtube", "twitch", "onlyfans", "tiktok", "patreon", "kick", "rumble", "content_scheduling", "cross_platform_syndication", "analytics_aggregation", "monetization_tracking", "live_stream_orchestration"]
+        },
+        {
+            "name": "ml_strategy_engine",
+            "path": "src.ml_strategy_engine",
+            "description": "Pure-Python ML strategy engine providing anomaly detection (z-score/IQR), time-series forecasting (exponential smoothing/moving average), Naive Bayes classification, content-based and collaborative recommendation, K-means clustering, Q-learning reinforcement learning, feature importance analysis, A/B testing framework, ensemble methods, and online incremental learning",
+            "capabilities": ["anomaly_detection", "time_series_forecasting", "naive_bayes_classification", "recommendation_engine", "kmeans_clustering", "q_learning", "feature_importance", "ab_testing", "ensemble_methods", "online_learning", "reinforcement_learning"]
+        },
+        {
+            "name": "agentic_api_provisioner",
+            "path": "src.agentic_api_provisioner",
+            "description": "Self-provisioning API infrastructure that autonomously discovers modules, generates REST/GraphQL/WebSocket endpoints, auto-configures auth and rate limits, generates OpenAPI specs, registers webhooks, and performs self-healing health monitoring",
+            "capabilities": ["auto_provision", "endpoint_registration", "openapi_generation", "webhook_management", "health_monitoring", "self_healing", "module_introspection", "rate_limiting", "auth_policy", "api_versioning"]
+        },
+        {
+            "name": "video_streaming_connector",
+            "path": "src.video_streaming_connector",
+            "description": "Unified live video streaming connectors for Twitch, YouTube Live, OBS Studio, vMix, Restream, StreamYard, Streamlabs, Kick Live, and Facebook Live with simulcast orchestration, stream health monitoring, recording management, and chat integration",
+            "capabilities": ["live_streaming", "simulcasting", "recording", "chat_integration", "stream_health", "twitch", "youtube_live", "obs_studio", "vmix", "restream", "streamyard"]
+        },
+        {
+            "name": "remote_access_connector",
+            "path": "src.remote_access_connector",
+            "description": "Remote desktop and administration connectors for TeamViewer, AnyDesk, RDP, VNC, SSH Tunneling, Parsec, Chrome Remote Desktop, Apache Guacamole, and Splashtop with session management, file transfer, unattended access, session recording, and Wake-on-LAN",
+            "capabilities": ["remote_desktop", "file_transfer", "unattended_access", "session_recording", "teamviewer", "anydesk", "rdp", "vnc", "ssh_tunnel", "parsec", "wake_on_lan"]
+        },
+        {
+            "name": "ui_testing_framework",
+            "path": "src.ui_testing_framework",
+            "description": "Comprehensive UI testing infrastructure covering all 12 testing gaps: visual regression, interactive components, E2E browser harness, performance/Core Web Vitals, cross-browser compatibility, mobile gestures, animation/transition validation, error state handling, dark mode, API integration, security (XSS/injection), and i18n/RTL",
+            "capabilities": ["visual_regression", "interactive_testing", "e2e_browser", "performance_testing", "cross_browser", "mobile_gesture", "animation_testing", "error_state", "dark_mode", "security_testing", "i18n_testing", "accessibility"]
+        },
+        {
+            "name": "security_hardening_config",
+            "path": "src.security_hardening_config",
+            "description": "Centralized security hardening orchestrator with input sanitization (XSS/SQLi/path traversal), CORS lockdown, token-bucket rate limiting, CSP headers, API key rotation enforcement, structured audit logging, and session security controls (MFA, concurrent limits, timeout)",
+            "capabilities": ["input_sanitization", "cors_lockdown", "rate_limiting", "csp_headers", "api_key_rotation", "audit_logging", "session_security", "injection_prevention", "path_traversal_prevention"]
         }
     ]
     MODULE_SCAN_EXCLUDED_DIRS = {"__pycache__", "tests", "test", "docs", "documentation", "examples"}
@@ -2270,6 +2465,328 @@ class MurphySystem:
                 self.cross_platform_data_sync = None
         else:
             self.cross_platform_data_sync = None
+
+        # Building Automation Connectors
+        if BuildingAutomationRegistry:
+            try:
+                self.building_automation_registry = BuildingAutomationRegistry()
+                logger.info("Building automation registry initialized with %d connectors",
+                            len(self.building_automation_registry.discover()))
+            except Exception as exc:
+                logger.warning("Building automation registry initialization failed: %s", exc)
+                self.building_automation_registry = None
+        else:
+            self.building_automation_registry = None
+
+        # Manufacturing Automation Standards
+        if ManufacturingAutomationRegistry:
+            try:
+                self.manufacturing_automation_registry = ManufacturingAutomationRegistry()
+                logger.info("Manufacturing automation registry initialized with %d connectors",
+                            len(self.manufacturing_automation_registry.discover()))
+            except Exception as exc:
+                logger.warning("Manufacturing automation registry initialization failed: %s", exc)
+                self.manufacturing_automation_registry = None
+        else:
+            self.manufacturing_automation_registry = None
+
+        # Energy Management Connectors
+        if EnergyManagementRegistry:
+            try:
+                self.energy_management_registry = EnergyManagementRegistry()
+                logger.info("Energy management registry initialized with %d connectors",
+                            len(self.energy_management_registry.discover()))
+            except Exception as exc:
+                logger.warning("Energy management registry initialization failed: %s", exc)
+                self.energy_management_registry = None
+        else:
+            self.energy_management_registry = None
+
+        # Analytics Dashboard
+        if AnalyticsDashboard:
+            try:
+                self.analytics_dashboard = AnalyticsDashboard()
+                logger.info("Analytics dashboard initialized")
+            except Exception as exc:
+                logger.warning("Analytics dashboard initialization failed: %s", exc)
+                self.analytics_dashboard = None
+        else:
+            self.analytics_dashboard = None
+
+        # Executive Planning Engine
+        if ExecutivePlanningEngine:
+            try:
+                self.executive_planning_engine = ExecutivePlanningEngine()
+                logger.info("Executive planning engine initialized")
+            except Exception as exc:
+                logger.warning("Executive planning engine initialization failed: %s", exc)
+                self.executive_planning_engine = None
+        else:
+            self.executive_planning_engine = None
+
+        # Enterprise Integrations
+        if EnterpriseIntegrationRegistry:
+            try:
+                self.enterprise_integrations = EnterpriseIntegrationRegistry()
+                logger.info("Enterprise integrations initialized with %d connectors",
+                            len(self.enterprise_integrations.list_platforms()))
+            except Exception as exc:
+                logger.warning("Enterprise integrations initialization failed: %s", exc)
+                self.enterprise_integrations = None
+        else:
+            self.enterprise_integrations = None
+
+        # Digital Asset Generator
+        if DigitalAssetGenerator:
+            try:
+                self.digital_asset_generator = DigitalAssetGenerator()
+                logger.info("Digital asset generator initialized with %d platforms",
+                            len(self.digital_asset_generator.list_platforms()))
+            except Exception as exc:
+                logger.warning("Digital asset generator initialization failed: %s", exc)
+                self.digital_asset_generator = None
+        else:
+            self.digital_asset_generator = None
+
+        # Rosetta Stone Heartbeat
+        if RosettaStoneHeartbeat:
+            try:
+                self.rosetta_stone_heartbeat = RosettaStoneHeartbeat()
+                logger.info("Rosetta stone heartbeat initialized")
+            except Exception as exc:
+                logger.warning("Rosetta stone heartbeat initialization failed: %s", exc)
+                self.rosetta_stone_heartbeat = None
+        else:
+            self.rosetta_stone_heartbeat = None
+
+        # Content Creator Platform Modulator
+        if ContentCreatorPlatformRegistry:
+            try:
+                self.content_creator_platform_modulator = ContentCreatorPlatformRegistry()
+                logger.info("Content creator platform modulator initialized with %d platforms",
+                            len(self.content_creator_platform_modulator.list_platforms()))
+            except Exception as exc:
+                logger.warning("Content creator platform modulator initialization failed: %s", exc)
+                self.content_creator_platform_modulator = None
+        else:
+            self.content_creator_platform_modulator = None
+
+        # ML Strategy Engine
+        if MLStrategyEngine:
+            try:
+                self.ml_strategy_engine = MLStrategyEngine()
+                status = self.ml_strategy_engine.status()
+                logger.info("ML strategy engine initialized with %d strategies",
+                            status.get("strategy_count", 0))
+            except Exception as exc:
+                logger.warning("ML strategy engine initialization failed: %s", exc)
+                self.ml_strategy_engine = None
+        else:
+            self.ml_strategy_engine = None
+
+        # Agentic API Provisioner
+        if AgenticAPIProvisioner:
+            try:
+                self.agentic_api_provisioner = AgenticAPIProvisioner()
+                logger.info("Agentic API provisioner initialized")
+            except Exception as exc:
+                logger.warning("Agentic API provisioner initialization failed: %s", exc)
+                self.agentic_api_provisioner = None
+        else:
+            self.agentic_api_provisioner = None
+
+        # Video Streaming Connector
+        if VideoStreamingRegistry:
+            try:
+                self.video_streaming_connector = VideoStreamingRegistry()
+                logger.info("Video streaming connector initialized with %d platforms",
+                            len(self.video_streaming_connector.list_platforms()))
+            except Exception as exc:
+                logger.warning("Video streaming connector initialization failed: %s", exc)
+                self.video_streaming_connector = None
+        else:
+            self.video_streaming_connector = None
+
+        # Remote Access Connector
+        if RemoteAccessRegistry:
+            try:
+                self.remote_access_connector = RemoteAccessRegistry()
+                logger.info("Remote access connector initialized with %d platforms",
+                            len(self.remote_access_connector.list_platforms()))
+            except Exception as exc:
+                logger.warning("Remote access connector initialization failed: %s", exc)
+                self.remote_access_connector = None
+        else:
+            self.remote_access_connector = None
+
+        # UI Testing Framework
+        if UITestingFramework:
+            try:
+                self.ui_testing_framework = UITestingFramework()
+                logger.info("UI testing framework initialized with %d capabilities",
+                            self.ui_testing_framework.status().get("capabilities_available", 0))
+            except Exception as exc:
+                logger.warning("UI testing framework initialization failed: %s", exc)
+                self.ui_testing_framework = None
+        else:
+            self.ui_testing_framework = None
+
+        # Security Hardening Config
+        if SecurityHardeningConfig:
+            try:
+                self.security_hardening_config = SecurityHardeningConfig()
+                logger.info("Security hardening config initialized with %d components",
+                            len(self.security_hardening_config.status().get("components", {})))
+            except Exception as exc:
+                logger.warning("Security hardening config initialization failed: %s", exc)
+                self.security_hardening_config = None
+        else:
+            self.security_hardening_config = None
+
+        # ---- Wire all integration modules into executive planning binder ----
+        self._wire_integrations_to_planning_engine()
+
+    def _wire_integrations_to_planning_engine(self) -> None:
+        """Register all active integration modules with the executive planning
+        engine's IntegrationAutomationBinder so they are available for
+        objective-driven workflow generation."""
+        epe = getattr(self, 'executive_planning_engine', None)
+        if epe is None:
+            return
+        binder = epe.binder
+        wired = 0
+
+        # Platform Connector Framework
+        pcf = getattr(self, 'platform_connector_framework', None)
+        if pcf is not None:
+            for c in pcf.list_available_connectors():
+                binder.register_integration({
+                    "integration_id": f"pcf_{c['connector_id']}",
+                    "name": c["name"],
+                    "category": c.get("category", "custom"),
+                    "capability": ",".join(c.get("capabilities", [])[:3]),
+                    "source": "platform_connector_framework",
+                })
+                wired += 1
+
+        # Enterprise Integrations
+        ei = getattr(self, 'enterprise_integrations', None)
+        if ei is not None:
+            for pt in ei.list_platforms():
+                conn = ei.get_connector(pt)
+                binder.register_integration({
+                    "integration_id": f"ei_{pt}",
+                    "name": conn.name if conn else pt,
+                    "category": conn.category.value if conn else "unknown",
+                    "capability": ",".join((conn.capabilities or [])[:3]) if conn else "",
+                    "source": "enterprise_integrations",
+                })
+                wired += 1
+
+        # Building Automation
+        ba = getattr(self, 'building_automation_registry', None)
+        if ba is not None:
+            for d in ba.discover():
+                binder.register_integration({
+                    "integration_id": f"ba_{d.get('protocol', 'unknown')}",
+                    "name": d.get("name", d.get("protocol", "building")),
+                    "category": "building_automation",
+                    "capability": d.get("protocol", "bas"),
+                    "source": "building_automation_connectors",
+                })
+                wired += 1
+
+        # Manufacturing Automation
+        ma = getattr(self, 'manufacturing_automation_registry', None)
+        if ma is not None:
+            for d in ma.discover():
+                binder.register_integration({
+                    "integration_id": f"ma_{d.get('standard', 'unknown')}",
+                    "name": d.get("name", d.get("standard", "mfg")),
+                    "category": "manufacturing_automation",
+                    "capability": d.get("standard", "isa95"),
+                    "source": "manufacturing_automation_standards",
+                })
+                wired += 1
+
+        # Energy Management
+        em = getattr(self, 'energy_management_registry', None)
+        if em is not None:
+            for d in em.discover():
+                binder.register_integration({
+                    "integration_id": f"em_{d.get('platform', 'unknown')}",
+                    "name": d.get("name", d.get("platform", "energy")),
+                    "category": "energy_management",
+                    "capability": d.get("platform", "ems"),
+                    "source": "energy_management_connectors",
+                })
+                wired += 1
+
+        # Digital Asset Generator
+        dag = getattr(self, 'digital_asset_generator', None)
+        if dag is not None:
+            for p in dag.list_platforms():
+                binder.register_integration({
+                    "integration_id": f"dag_{p}",
+                    "name": f"Digital Asset – {p}",
+                    "category": "digital_asset_generation",
+                    "capability": "asset_pipeline",
+                    "source": "digital_asset_generator",
+                })
+                wired += 1
+
+        # Rosetta Stone Heartbeat
+        rsh = getattr(self, 'rosetta_stone_heartbeat', None)
+        if rsh is not None:
+            binder.register_integration({
+                "integration_id": "rosetta_stone_heartbeat",
+                "name": "Rosetta Stone Heartbeat",
+                "category": "operational_efficiency",
+                "capability": "org_sync",
+                "source": "rosetta_stone_heartbeat",
+            })
+            wired += 1
+
+        # Content Creator Platforms
+        ccp = getattr(self, 'content_creator_platform_modulator', None)
+        if ccp is not None:
+            for p in ccp.list_platforms():
+                binder.register_integration({
+                    "integration_id": f"ccp_{p.get('platform_type', 'unknown')}",
+                    "name": p.get("name", "creator_platform"),
+                    "category": "content_creator",
+                    "capability": ",".join(p.get("capabilities", [])[:3]),
+                    "source": "content_creator_platform_modulator",
+                })
+                wired += 1
+
+        # Video Streaming Connector
+        vsc = getattr(self, 'video_streaming_connector', None)
+        if vsc is not None:
+            for p in vsc.list_platforms():
+                binder.register_integration({
+                    "integration_id": f"vsc_{p.get('platform', 'unknown')}",
+                    "name": f"Video Streaming – {p.get('platform', 'unknown')}",
+                    "category": "video_streaming",
+                    "capability": "live_streaming",
+                    "source": "video_streaming_connector",
+                })
+                wired += 1
+
+        # Remote Access Connector
+        rac = getattr(self, 'remote_access_connector', None)
+        if rac is not None:
+            for p in rac.list_platforms():
+                binder.register_integration({
+                    "integration_id": f"rac_{p.get('platform', 'unknown')}",
+                    "name": f"Remote Access – {p.get('platform', 'unknown')}",
+                    "category": "remote_access",
+                    "capability": "remote_desktop",
+                    "source": "remote_access_connector",
+                })
+                wired += 1
+
+        logger.info("Wired %d integration modules into executive planning engine binder", wired)
 
     # ==================== CORE EXECUTION ====================
 
@@ -11036,7 +11553,16 @@ class MurphySystem:
                 'plugin_extension_sdk': self._component_status(getattr(self, 'plugin_extension_sdk', None)),
                 'ai_workflow_generator': self._component_status(getattr(self, 'ai_workflow_generator', None)),
                 'workflow_template_marketplace': self._component_status(getattr(self, 'workflow_template_marketplace', None)),
-                'cross_platform_data_sync': self._component_status(getattr(self, 'cross_platform_data_sync', None))
+                'cross_platform_data_sync': self._component_status(getattr(self, 'cross_platform_data_sync', None)),
+                'digital_asset_generator': self._component_status(getattr(self, 'digital_asset_generator', None)),
+                'rosetta_stone_heartbeat': self._component_status(getattr(self, 'rosetta_stone_heartbeat', None)),
+                'content_creator_platform_modulator': self._component_status(getattr(self, 'content_creator_platform_modulator', None)),
+                'ml_strategy_engine': self._component_status(getattr(self, 'ml_strategy_engine', None)),
+                'agentic_api_provisioner': self._component_status(getattr(self, 'agentic_api_provisioner', None)),
+                'video_streaming_connector': self._component_status(getattr(self, 'video_streaming_connector', None)),
+                'remote_access_connector': self._component_status(getattr(self, 'remote_access_connector', None)),
+                'ui_testing_framework': self._component_status(getattr(self, 'ui_testing_framework', None)),
+                'security_hardening_config': self._component_status(getattr(self, 'security_hardening_config', None))
             },
             'statistics': {
                 'sessions': len(self.sessions),
