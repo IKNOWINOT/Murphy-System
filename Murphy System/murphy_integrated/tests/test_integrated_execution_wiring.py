@@ -83,6 +83,18 @@ class TestIntegratedModuleInitialization:
         system = MurphySystem()
         assert hasattr(system, "ticketing_adapter")
 
+    def test_wingman_protocol_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "wingman_protocol")
+
+    def test_runtime_profile_compiler_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "runtime_profile_compiler")
+
+    def test_governance_kernel_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "governance_kernel")
+
 
 class TestExecuteTaskIntegration:
     """Verify execute_task wires through integrated modules."""
@@ -148,6 +160,9 @@ class TestSystemStatusIntegration:
         assert "compliance_engine" in components
         assert "rbac_governance" in components
         assert "ticketing_adapter" in components
+        assert "wingman_protocol" in components
+        assert "runtime_profile_compiler" in components
+        assert "governance_kernel" in components
 
     def test_integrated_summary_has_all_keys(self):
         system = MurphySystem()
@@ -165,5 +180,8 @@ class TestSystemStatusIntegration:
             "compliance_engine",
             "rbac_governance",
             "ticketing_adapter",
+            "wingman_protocol",
+            "runtime_profile_compiler",
+            "governance_kernel",
         }
         assert expected_keys.issubset(set(modules.keys()))

@@ -217,6 +217,24 @@ except ImportError as e:
     print(f"Warning: Ticketing adapter not available: {e}")
     TicketingAdapter = None
 
+try:
+    from src.wingman_protocol import WingmanProtocol
+except ImportError as e:
+    print(f"Warning: Wingman protocol not available: {e}")
+    WingmanProtocol = None
+
+try:
+    from src.runtime_profile_compiler import RuntimeProfileCompiler
+except ImportError as e:
+    print(f"Warning: Runtime profile compiler not available: {e}")
+    RuntimeProfileCompiler = None
+
+try:
+    from src.governance_kernel import GovernanceKernel
+except ImportError as e:
+    print(f"Warning: Governance kernel not available: {e}")
+    GovernanceKernel = None
+
 # FastAPI for REST API
 try:
     from fastapi import FastAPI, HTTPException, Request
@@ -612,6 +630,24 @@ class MurphySystem:
             "path": "src.ticketing_adapter",
             "description": "ITSM ticketing adapter with remote access and patch/rollback automation",
             "capabilities": ["ticketing", "remote_access", "patch_rollback"]
+        },
+        {
+            "name": "wingman_protocol",
+            "path": "src.wingman_protocol",
+            "description": "Executor/validator pairing with deterministic runbook-based validation",
+            "capabilities": ["wingman_pairing", "deterministic_validation", "runbooks"]
+        },
+        {
+            "name": "runtime_profile_compiler",
+            "path": "src.runtime_profile_compiler",
+            "description": "Compile onboarding data into runtime execution profiles with safety/budget/autonomy controls",
+            "capabilities": ["profile_compilation", "execution_governance", "autonomy_control"]
+        },
+        {
+            "name": "governance_kernel",
+            "path": "src.governance_kernel",
+            "description": "Non-LLM governance enforcement layer with budget tracking and audit emission",
+            "capabilities": ["governance_enforcement", "budget_control", "audit_emission"]
         }
     ]
     MODULE_SCAN_EXCLUDED_DIRS = {"__pycache__", "tests", "test", "docs", "documentation", "examples"}
@@ -1624,6 +1660,39 @@ class MurphySystem:
                 self.ticketing_adapter = None
         else:
             self.ticketing_adapter = None
+
+        # Wingman Protocol
+        if WingmanProtocol:
+            try:
+                self.wingman_protocol = WingmanProtocol()
+                logger.info("Wingman protocol initialized")
+            except Exception as exc:
+                logger.warning("Wingman protocol initialization failed: %s", exc)
+                self.wingman_protocol = None
+        else:
+            self.wingman_protocol = None
+
+        # Runtime Profile Compiler
+        if RuntimeProfileCompiler:
+            try:
+                self.runtime_profile_compiler = RuntimeProfileCompiler()
+                logger.info("Runtime profile compiler initialized")
+            except Exception as exc:
+                logger.warning("Runtime profile compiler initialization failed: %s", exc)
+                self.runtime_profile_compiler = None
+        else:
+            self.runtime_profile_compiler = None
+
+        # Governance Kernel
+        if GovernanceKernel:
+            try:
+                self.governance_kernel = GovernanceKernel()
+                logger.info("Governance kernel initialized")
+            except Exception as exc:
+                logger.warning("Governance kernel initialization failed: %s", exc)
+                self.governance_kernel = None
+        else:
+            self.governance_kernel = None
     
     # ==================== CORE EXECUTION ====================
 
@@ -9626,6 +9695,30 @@ class MurphySystem:
             except Exception:
                 ticketing_status = {"error": "status unavailable"}
 
+        wingman_status = {}
+        wingman = getattr(self, "wingman_protocol", None)
+        if wingman is not None:
+            try:
+                wingman_status = wingman.get_status()
+            except Exception:
+                wingman_status = {"error": "status unavailable"}
+
+        profile_status = {}
+        profile_compiler = getattr(self, "runtime_profile_compiler", None)
+        if profile_compiler is not None:
+            try:
+                profile_status = profile_compiler.get_status()
+            except Exception:
+                profile_status = {"error": "status unavailable"}
+
+        kernel_status = {}
+        kernel = getattr(self, "governance_kernel", None)
+        if kernel is not None:
+            try:
+                kernel_status = kernel.get_status()
+            except Exception:
+                kernel_status = {"error": "status unavailable"}
+
         return {
             "gate_execution_wiring": gate_status,
             "event_backbone": event_status,
@@ -9638,6 +9731,9 @@ class MurphySystem:
             "compliance_engine": compliance_status,
             "rbac_governance": rbac_status,
             "ticketing_adapter": ticketing_status,
+            "wingman_protocol": wingman_status,
+            "runtime_profile_compiler": profile_status,
+            "governance_kernel": kernel_status,
         }
 
     def _build_confidence_report(self, task_description: str) -> Dict[str, Any]:
@@ -10110,7 +10206,10 @@ class MurphySystem:
                 'capability_map': self._component_status(getattr(self, 'capability_map', None)),
                 'compliance_engine': self._component_status(getattr(self, 'compliance_engine', None)),
                 'rbac_governance': self._component_status(getattr(self, 'rbac_governance', None)),
-                'ticketing_adapter': self._component_status(getattr(self, 'ticketing_adapter', None))
+                'ticketing_adapter': self._component_status(getattr(self, 'ticketing_adapter', None)),
+                'wingman_protocol': self._component_status(getattr(self, 'wingman_protocol', None)),
+                'runtime_profile_compiler': self._component_status(getattr(self, 'runtime_profile_compiler', None)),
+                'governance_kernel': self._component_status(getattr(self, 'governance_kernel', None))
             },
             'statistics': {
                 'sessions': len(self.sessions),
