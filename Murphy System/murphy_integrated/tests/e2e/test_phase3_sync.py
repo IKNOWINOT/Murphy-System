@@ -15,7 +15,8 @@ from typing import Dict, List, Any, Optional
 # Import from confidence engine
 from src.confidence_engine import (
     GraphAnalyzer, ConfidenceCalculator, MurphyCalculator, 
-    AuthorityMapper, PhaseController, ArtifactNode, ArtifactGraph
+    AuthorityMapper, PhaseController, ArtifactNode, ArtifactGraph,
+    ArtifactType, ArtifactSource
 )
 
 # Mock enterprise systems for testing
@@ -510,23 +511,26 @@ class TestPhase3SynchronousWorkflows:
         # Add nodes
         registration_node = ArtifactNode(
             id="registration",
-            type="employee_registration",
-            content=json.dumps(self.employee_data),
-            confidence=0.9
+            type=ArtifactType.FACT,
+            source=ArtifactSource.HUMAN,
+            content=json.loads(json.dumps(self.employee_data)),
+            confidence_weight=0.9
         )
         
         credentials_node = ArtifactNode(
             id="credentials", 
-            type="system_credentials",
-            content=json.dumps({"username": "john.doe", "generated": True}),
-            confidence=0.95
+            type=ArtifactType.FACT,
+            source=ArtifactSource.API,
+            content={"username": "john.doe", "generated": True},
+            confidence_weight=0.95
         )
         
         approval_node = ArtifactNode(
             id="approval",
-            type="manager_approval",
-            content=json.dumps({"status": "approved", "approver": "MGR-001"}),
-            confidence=0.85
+            type=ArtifactType.DECISION,
+            source=ArtifactSource.HUMAN,
+            content={"status": "approved", "approver": "MGR-001"},
+            confidence_weight=0.85
         )
         
         graph.nodes["registration"] = registration_node
@@ -673,9 +677,10 @@ class TestPhase3SynchronousWorkflows:
             graph = ArtifactGraph()
             node = ArtifactNode(
                 id=f"node-{i}",
-                type="test",
-                content="test content",
-                confidence=0.9
+                type=ArtifactType.FACT,
+                source=ArtifactSource.HUMAN,
+                content={"test": "content"},
+                confidence_weight=0.9
             )
             graph.nodes[f"node-{i}"] = node
             

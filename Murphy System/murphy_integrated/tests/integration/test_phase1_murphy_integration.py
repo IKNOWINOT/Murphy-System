@@ -31,19 +31,32 @@ def test_sit_int_001_confidence_to_gate_synthesis():
     """
     from src.confidence_engine.confidence_calculator import ConfidenceCalculator
     from src.gate_synthesis.gate_generator import GateGenerator
+    from src.gate_synthesis.models import FailureMode
+    from src.confidence_engine.models import Phase, AuthorityBand
     
     # Setup
     confidence_calc = ConfidenceCalculator()
     gate_gen = GateGenerator()
     
     # Test Case 1: High Confidence Scenario
-    # Use actual generate_gates method
     high_murphy_index = 0.1  # Low risk
     
+    failure_modes_high = [
+        FailureMode(
+            id="fm_1",
+            name="minor_issue",
+            description="A minor failure",
+            probability=high_murphy_index,
+            impact=0.3,
+            category="operational"
+        )
+    ]
+    
     gates_high = gate_gen.generate_gates(
-        murphy_index=high_murphy_index,
-        phase="execution",
-        context={"confidence": 0.9}
+        failure_modes=failure_modes_high,
+        current_phase=Phase.EXECUTION,
+        current_authority=AuthorityBand.FULL_AUTO,
+        murphy_probabilities={"fm_1": high_murphy_index}
     )
     
     assert len(gates_high) <= 3, \
@@ -54,10 +67,30 @@ def test_sit_int_001_confidence_to_gate_synthesis():
     # Test Case 2: Low Confidence Scenario
     low_murphy_index = 0.8  # High risk
     
+    failure_modes_low = [
+        FailureMode(
+            id="fm_2",
+            name="critical_issue",
+            description="A critical failure",
+            probability=low_murphy_index,
+            impact=0.9,
+            category="safety"
+        ),
+        FailureMode(
+            id="fm_3",
+            name="secondary_issue",
+            description="Another failure",
+            probability=0.6,
+            impact=0.7,
+            category="operational"
+        )
+    ]
+    
     gates_low = gate_gen.generate_gates(
-        murphy_index=low_murphy_index,
-        phase="execution",
-        context={"confidence": 0.3}
+        failure_modes=failure_modes_low,
+        current_phase=Phase.EXECUTION,
+        current_authority=AuthorityBand.SUPERVISED,
+        murphy_probabilities={"fm_2": low_murphy_index, "fm_3": 0.6}
     )
     
     assert len(gates_low) >= 2, \
@@ -120,7 +153,7 @@ def test_sit_int_002_component_health_checks():
     
     # Test Bridge Layer
     try:
-        from src.bridge_layer.intake import HypothesisIntake
+        from src.bridge_layer.intake import HypothesisIntakeService as HypothesisIntake
         intake = HypothesisIntake()
         components_tested.append("Bridge Layer")
         print("✓ Bridge Layer: OK")
@@ -166,7 +199,7 @@ def test_sit_int_003_data_flow_integration():
     artifact = ArtifactNode(
         id="test_001",
         type=ArtifactType.HYPOTHESIS,
-        source=ArtifactSource.SYSTEM_A,
+        source=ArtifactSource.API,
         content={"text": "Test hypothesis"},
         confidence_weight=0.8
     )
