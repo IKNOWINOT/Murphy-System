@@ -448,6 +448,13 @@ except ImportError as e:
     print(f"Warning: Content creator platform modulator not available: {e}")
     ContentCreatorPlatformRegistry = None
 
+# ML Strategy Engine
+try:
+    from src.ml_strategy_engine import MLStrategyEngine
+except ImportError as e:
+    print(f"Warning: ML strategy engine not available: {e}")
+    MLStrategyEngine = None
+
 # FastAPI for REST API
 try:
     from fastapi import FastAPI, HTTPException, Request
@@ -1065,6 +1072,12 @@ class MurphySystem:
             "path": "src.content_creator_platform_modulator",
             "description": "Content creator platform connectors for YouTube, Twitch, OnlyFans, TikTok, Patreon, Kick, Rumble with content scheduling, analytics, monetization tracking, audience management, cross-platform syndication, and live stream orchestration",
             "capabilities": ["youtube", "twitch", "onlyfans", "tiktok", "patreon", "kick", "rumble", "content_scheduling", "cross_platform_syndication", "analytics_aggregation", "monetization_tracking", "live_stream_orchestration"]
+        },
+        {
+            "name": "ml_strategy_engine",
+            "path": "src.ml_strategy_engine",
+            "description": "Pure-Python ML strategy engine providing anomaly detection (z-score/IQR), time-series forecasting (exponential smoothing/moving average), Naive Bayes classification, content-based and collaborative recommendation, K-means clustering, Q-learning reinforcement learning, feature importance analysis, A/B testing framework, ensemble methods, and online incremental learning",
+            "capabilities": ["anomaly_detection", "time_series_forecasting", "naive_bayes_classification", "recommendation_engine", "kmeans_clustering", "q_learning", "feature_importance", "ab_testing", "ensemble_methods", "online_learning", "reinforcement_learning"]
         }
     ]
     MODULE_SCAN_EXCLUDED_DIRS = {"__pycache__", "tests", "test", "docs", "documentation", "examples"}
@@ -2492,6 +2505,19 @@ class MurphySystem:
                 self.content_creator_platform_modulator = None
         else:
             self.content_creator_platform_modulator = None
+
+        # ML Strategy Engine
+        if MLStrategyEngine:
+            try:
+                self.ml_strategy_engine = MLStrategyEngine()
+                status = self.ml_strategy_engine.status()
+                logger.info("ML strategy engine initialized with %d strategies",
+                            status.get("strategy_count", 0))
+            except Exception as exc:
+                logger.warning("ML strategy engine initialization failed: %s", exc)
+                self.ml_strategy_engine = None
+        else:
+            self.ml_strategy_engine = None
 
         # ---- Wire all integration modules into executive planning binder ----
         self._wire_integrations_to_planning_engine()
@@ -11380,7 +11406,8 @@ class MurphySystem:
                 'cross_platform_data_sync': self._component_status(getattr(self, 'cross_platform_data_sync', None)),
                 'digital_asset_generator': self._component_status(getattr(self, 'digital_asset_generator', None)),
                 'rosetta_stone_heartbeat': self._component_status(getattr(self, 'rosetta_stone_heartbeat', None)),
-                'content_creator_platform_modulator': self._component_status(getattr(self, 'content_creator_platform_modulator', None))
+                'content_creator_platform_modulator': self._component_status(getattr(self, 'content_creator_platform_modulator', None)),
+                'ml_strategy_engine': self._component_status(getattr(self, 'ml_strategy_engine', None))
             },
             'statistics': {
                 'sessions': len(self.sessions),
