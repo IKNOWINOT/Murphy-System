@@ -164,7 +164,7 @@ and competitive features for the Murphy System universal generative automation c
 
 ## 6) Competitive Feature Recommendations (Priority Order)
 
-### 6.1 Implemented (34 modules)
+### 6.1 Implemented (35 modules)
 1. ✅ Workflow orchestration (two-phase + control plane separation)
 2. ✅ Event-driven automation (event backbone + webhook processor)
 3. ✅ Platform connector ecosystem (20 default connectors)
@@ -180,6 +180,7 @@ and competitive features for the Murphy System universal generative automation c
 13. ✅ Automation type registry (16 templates across 11 categories)
 14. ✅ API gateway with rate limiting and circuit breaker
 15. ✅ Webhook event processing with signature verification
+16. ✅ Self-automation orchestrator (prompt chain + task queue + gap analysis)
 
 ### 6.2 Recommended Next Phase
 1. **Live connector activation** — Configure actual API credentials for production platforms
@@ -190,6 +191,63 @@ and competitive features for the Murphy System universal generative automation c
 6. **Plugin/extension SDK** — Allow third-party module development and registration
 7. **Multi-region deployment** — Distributed execution across cloud regions
 8. **Advanced RAG integration** — Connect golden-path bridge with vector databases for semantic retrieval
+
+### 6.3 Additional Platform Integrations (Recommended)
+
+| Platform | Category | Priority | Use Case |
+|----------|----------|----------|----------|
+| Datadog | Observability | High | APM, log aggregation, infrastructure monitoring |
+| PagerDuty | Incident Management | High | On-call scheduling, incident escalation, alerting |
+| Twilio | Communication | High | SMS, voice calls, WhatsApp messaging for notifications |
+| SendGrid | Email | High | Transactional email delivery, marketing campaigns |
+| Okta / Auth0 | Identity | High | SSO, user provisioning, access management |
+| Terraform | Infrastructure-as-Code | Medium | Infrastructure provisioning, state management |
+| Kubernetes | Container Orchestration | Medium | Pod management, deployment, scaling |
+| Power BI / Tableau | Analytics | Medium | Dashboard creation, report scheduling |
+| Zendesk | Customer Support | Medium | Ticket management, customer communication |
+| Intercom | Customer Engagement | Medium | In-app messaging, product tours, helpdesk |
+| DocuSign | Document Signing | Medium | Contract signing, approval workflows |
+| Splunk | SIEM | Medium | Security event monitoring, threat detection |
+| Elastic / OpenSearch | Search & Analytics | Low | Log search, full-text search, analytics |
+| Airtable | Database | Low | Low-code data management, form intake |
+| Figma | Design | Low | Design asset management, design-to-code |
+
+---
+
+## 9) Self-Automation Capabilities
+
+### 9.1 Self-Automation Orchestrator
+
+**Module:** `src/self_automation_orchestrator.py` (45 tests)
+
+Enables the Murphy System to define, queue, and execute its own improvement tasks:
+
+- **Task categories:** coverage_gap, integration_gap, competitive_gap, quality_gap, documentation_gap, self_improvement, feature_request, bug_fix
+- **Priority queue:** Priority 1-5 with dependency resolution
+- **Prompt chain:** 7-step cycle (analysis → planning → implementation → testing → review → documentation → iteration)
+- **Cycle management:** Start/complete improvement cycles with gap tracking
+- **Gap analysis:** Automated detection of under-tested modules and missing integrations
+- **Retry logic:** Failed tasks retry up to 3 times with step reset
+
+### 9.2 Prompt Chain Templates
+
+See `PROMPT_CHAIN.md` for the complete set of structured prompts that enable:
+
+1. **System Analysis** — Automated assessment of current state and gap identification
+2. **Planning** — Task list creation from gap analysis
+3. **Implementation** — Module creation following system conventions
+4. **Testing** — Validation with focused and integration tests
+5. **Code Review** — Quality and security checks
+6. **Documentation** — Automated doc updates across all assessment sections
+7. **Iteration** — Continuous improvement loop back to analysis
+
+### 9.3 Collaborator Mode
+
+The system supports working alongside AI agents (GitHub Copilot, LLM assistants) with:
+
+- **Onboarding prompt** — Context setup for new collaborator sessions
+- **Handoff prompt** — Structured session-to-session knowledge transfer
+- **Self-improvement task generation** — Automated task discovery and queuing
 
 ---
 
@@ -212,7 +270,7 @@ and competitive features for the Murphy System universal generative automation c
 
 ---
 
-## 8) Module Summary (34 Integrated Modules)
+## 10) Module Summary (35 Integrated Modules)
 
 | # | Module | Tests | Category |
 |---|--------|-------|----------|
@@ -250,5 +308,6 @@ and competitive features for the Murphy System universal generative automation c
 | 32 | automation_type_registry | 22 | Catalog |
 | 33 | api_gateway_adapter | 23 | Integration |
 | 34 | webhook_event_processor | 25 | Integration |
+| 35 | self_automation_orchestrator | 45 | Self-Improvement |
 
-**Total: 1117 module tests passing**
+**Total: 1162 module tests passing**
