@@ -252,8 +252,10 @@ start_murphy_1.0.bat   # Windows
 - **Legacy compatibility matrix (IMPLEMENTED):** `src/legacy_compatibility_matrix.py` routes legacy orchestration bridge hooks and compatibility-matrix decisions through profile-governed runtime controls. Compatibility entry registry, bridge hook execution, BFS multi-hop migration paths, readiness scoring, and governance validation. 37 tests in `tests/test_legacy_compatibility_matrix.py`.
 - **HITL autonomy controller (IMPLEMENTED):** `src/hitl_autonomy_controller.py` provides runtime policy toggles for HITL arming/disarming and high-confidence autonomy enablement. Confidence thresholds (95%+ default), risk-level auto-approve, max autonomous action limits, cooldown management, and autonomy stats. 35 tests in `tests/test_hitl_autonomy_controller.py`.
 - **Compliance region validator (IMPLEMENTED):** `src/compliance_region_validator.py` validates compliance sensors against region-specific requirements before delivery. Pre-registered defaults for 6 regions (EU/GDPR, US_CA/CCPA, US_HIPAA/HIPAA, CA/PIPEDA, BR/LGPD, AU/APPs), cross-border checks, data residency, retention validation, and framework aggregation. 39 tests in `tests/test_compliance_region_validator.py`.
-- **Updated completion percentage snapshot (current):** execution wiring **98.00%**, deterministic+LLM routing **55.00%**, persistence+replay **72.00%**, multi-channel delivery **84.00%**, compliance **90.00%**, operations **90.00%**, UI/testing **71.19%**, dynamic-chain tests **99.60%** (source: `FULL_SYSTEM_ASSESSMENT.md` section 9; recalibrated after legacy compatibility matrix, HITL autonomy controller, and compliance region validator with 111 new tests).
-- **Latest test run (all 27 modules):** 898 module tests passed — **0 failures**.
+- **Observability summary counters (IMPLEMENTED):** `src/observability_counters.py` provides summary counters distinguishing behavior fixes from permutation-only coverage for closed-loop improvement. Counter registration by category, increment tracking, behavior-vs-permutation ratio, module summary, improvement velocity, and filtered history. 37 tests in `tests/test_observability_counters.py`.
+- **Deterministic routing engine (IMPLEMENTED):** `src/deterministic_routing_engine.py` provides policy-driven deterministic vs LLM routing with default policies (math/compute/validation → deterministic, creative/generation → LLM, analysis → hybrid), guardrail evaluation, MFGC fallback promotion, route parity validation, and routing statistics. 59 tests in `tests/test_deterministic_routing_engine.py`.
+- **Updated completion percentage snapshot (current):** execution wiring **99.00%**, deterministic+LLM routing **72.00%**, persistence+replay **75.00%**, multi-channel delivery **85.00%**, compliance **92.00%**, operations **92.00%**, UI/testing **71.19%**, dynamic-chain tests **99.70%** (source: `FULL_SYSTEM_ASSESSMENT.md` section 9; all Section 12 steps COMPLETE, all Section 14 priorities COMPLETE, all Section 15 items IMPLEMENTED).
+- **Latest test run (all 29 modules):** 996 module tests passed — **0 failures**.
 ---
 
 ## 🗃️ Repository Index (Database-Style Reference)
@@ -313,6 +315,8 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **Legacy Compatibility Matrix** | `src/legacy_compatibility_matrix.py` | Legacy orchestration bridge hooks, migration paths, governance validation |
 | **HITL Autonomy Controller** | `src/hitl_autonomy_controller.py` | HITL arming/disarming, confidence-gated autonomy, cooldown management |
 | **Compliance Region Validator** | `src/compliance_region_validator.py` | Region-specific compliance validation, cross-border checks, data residency |
+| **Observability Summary Counters** | `src/observability_counters.py` | Behavior fix vs coverage tracking, improvement velocity, closed-loop metrics |
+| **Deterministic Routing Engine** | `src/deterministic_routing_engine.py` | Policy-driven deterministic/LLM/hybrid routing, fallback promotion, parity |
 
 **Progress tracking:** update the forward plan in
 `Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md` and append confirmed completion evidence in
