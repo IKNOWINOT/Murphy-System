@@ -385,6 +385,48 @@ except ImportError as e:
     print(f"Warning: Cross-platform data sync not available: {e}")
     CrossPlatformDataSync = None
 
+# Building Automation Connectors
+try:
+    from src.building_automation_connectors import BuildingAutomationRegistry
+except ImportError as e:
+    print(f"Warning: Building automation connectors not available: {e}")
+    BuildingAutomationRegistry = None
+
+# Manufacturing Automation Standards
+try:
+    from src.manufacturing_automation_standards import ManufacturingAutomationRegistry
+except ImportError as e:
+    print(f"Warning: Manufacturing automation standards not available: {e}")
+    ManufacturingAutomationRegistry = None
+
+# Energy Management Connectors
+try:
+    from src.energy_management_connectors import EnergyManagementRegistry
+except ImportError as e:
+    print(f"Warning: Energy management connectors not available: {e}")
+    EnergyManagementRegistry = None
+
+# Analytics Dashboard
+try:
+    from src.analytics_dashboard import AnalyticsDashboard
+except ImportError as e:
+    print(f"Warning: Analytics dashboard not available: {e}")
+    AnalyticsDashboard = None
+
+# Executive Planning Engine
+try:
+    from src.executive_planning_engine import ExecutivePlanningEngine
+except ImportError as e:
+    print(f"Warning: Executive planning engine not available: {e}")
+    ExecutivePlanningEngine = None
+
+# Enterprise Integrations
+try:
+    from src.enterprise_integrations import EnterpriseIntegrationRegistry
+except ImportError as e:
+    print(f"Warning: Enterprise integrations not available: {e}")
+    EnterpriseIntegrationRegistry = None
+
 # FastAPI for REST API
 try:
     from fastapi import FastAPI, HTTPException, Request
@@ -948,6 +990,42 @@ class MurphySystem:
             "path": "src.cross_platform_data_sync",
             "description": "Real-time bidirectional data synchronization between platforms with field mapping and conflict resolution",
             "capabilities": ["data_sync", "field_mapping", "conflict_resolution", "change_tracking", "bidirectional_sync"]
+        },
+        {
+            "name": "building_automation_connectors",
+            "path": "src.building_automation_connectors",
+            "description": "Building automation protocol connectors (BACnet, Modbus, KNX, LonWorks, DALI, OPC UA) with Johnson Controls, Honeywell, Siemens, Alerton vendor integrations",
+            "capabilities": ["bacnet", "modbus", "knx", "lonworks", "dali", "opc_ua", "hvac_control", "lighting_control", "vendor_integration"]
+        },
+        {
+            "name": "manufacturing_automation_standards",
+            "path": "src.manufacturing_automation_standards",
+            "description": "Manufacturing automation standards (ISA-95, OPC UA, MTConnect, PackML, MQTT/Sparkplug B, IEC 61131) with ISA-95 layer-aware workflow orchestration",
+            "capabilities": ["isa_95", "opc_ua_manufacturing", "mtconnect", "packml", "mqtt_sparkplug_b", "iec_61131", "production_management", "plc_integration"]
+        },
+        {
+            "name": "energy_management_connectors",
+            "path": "src.energy_management_connectors",
+            "description": "Energy management system connectors (Johnson Controls OpenBlue, Honeywell Forge, Schneider EcoStruxure, Siemens Navigator, EnergyCAP, ENERGY STAR) with demand response and renewables",
+            "capabilities": ["energy_monitoring", "utility_analytics", "demand_response", "sustainability_reporting", "renewable_integration", "carbon_tracking"]
+        },
+        {
+            "name": "analytics_dashboard",
+            "path": "src.analytics_dashboard",
+            "description": "Real-time analytics dashboard with execution analytics, compliance tracking, performance metrics, business intelligence, and alert rules engine",
+            "capabilities": ["execution_analytics", "compliance_analytics", "performance_metrics", "business_intelligence", "alerting", "real_time_dashboard"]
+        },
+        {
+            "name": "executive_planning_engine",
+            "path": "src.executive_planning_engine",
+            "description": "Executive strategy planning with business gate generation, integration automation binding, and executive dashboard generation",
+            "capabilities": ["strategy_planning", "business_gates", "integration_binding", "executive_dashboard", "response_engine"]
+        },
+        {
+            "name": "enterprise_integrations",
+            "path": "src.enterprise_integrations",
+            "description": "Enterprise integration registry for accounting, engineering, project management, document, communication, DevOps, analytics, and ERP platforms with DAG workflow binding",
+            "capabilities": ["enterprise_connectors", "quickbooks", "autocad", "blender", "sap", "dynamics365", "workflow_binding", "capability_mapping"]
         }
     ]
     MODULE_SCAN_EXCLUDED_DIRS = {"__pycache__", "tests", "test", "docs", "documentation", "examples"}
@@ -2270,6 +2348,76 @@ class MurphySystem:
                 self.cross_platform_data_sync = None
         else:
             self.cross_platform_data_sync = None
+
+        # Building Automation Connectors
+        if BuildingAutomationRegistry:
+            try:
+                self.building_automation_registry = BuildingAutomationRegistry()
+                logger.info("Building automation registry initialized with %d connectors",
+                            len(self.building_automation_registry.discover()))
+            except Exception as exc:
+                logger.warning("Building automation registry initialization failed: %s", exc)
+                self.building_automation_registry = None
+        else:
+            self.building_automation_registry = None
+
+        # Manufacturing Automation Standards
+        if ManufacturingAutomationRegistry:
+            try:
+                self.manufacturing_automation_registry = ManufacturingAutomationRegistry()
+                logger.info("Manufacturing automation registry initialized with %d connectors",
+                            len(self.manufacturing_automation_registry.discover()))
+            except Exception as exc:
+                logger.warning("Manufacturing automation registry initialization failed: %s", exc)
+                self.manufacturing_automation_registry = None
+        else:
+            self.manufacturing_automation_registry = None
+
+        # Energy Management Connectors
+        if EnergyManagementRegistry:
+            try:
+                self.energy_management_registry = EnergyManagementRegistry()
+                logger.info("Energy management registry initialized with %d connectors",
+                            len(self.energy_management_registry.discover()))
+            except Exception as exc:
+                logger.warning("Energy management registry initialization failed: %s", exc)
+                self.energy_management_registry = None
+        else:
+            self.energy_management_registry = None
+
+        # Analytics Dashboard
+        if AnalyticsDashboard:
+            try:
+                self.analytics_dashboard = AnalyticsDashboard()
+                logger.info("Analytics dashboard initialized")
+            except Exception as exc:
+                logger.warning("Analytics dashboard initialization failed: %s", exc)
+                self.analytics_dashboard = None
+        else:
+            self.analytics_dashboard = None
+
+        # Executive Planning Engine
+        if ExecutivePlanningEngine:
+            try:
+                self.executive_planning_engine = ExecutivePlanningEngine()
+                logger.info("Executive planning engine initialized")
+            except Exception as exc:
+                logger.warning("Executive planning engine initialization failed: %s", exc)
+                self.executive_planning_engine = None
+        else:
+            self.executive_planning_engine = None
+
+        # Enterprise Integrations
+        if EnterpriseIntegrationRegistry:
+            try:
+                self.enterprise_integrations = EnterpriseIntegrationRegistry()
+                logger.info("Enterprise integrations initialized with %d connectors",
+                            len(self.enterprise_integrations.list_platforms()))
+            except Exception as exc:
+                logger.warning("Enterprise integrations initialization failed: %s", exc)
+                self.enterprise_integrations = None
+        else:
+            self.enterprise_integrations = None
 
     # ==================== CORE EXECUTION ====================
 
