@@ -66,6 +66,9 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **Shadow-agent + account-plane integration:** shadow agents treated as org-chart peers with identical governance boundary checks, account creation (USER/ORGANIZATION types), shadow lifecycle (create/suspend/revoke/reactivate), shadow binding to roles, org/account filtering, and governance boundary enforcement per RFI-012 (`src/shadow_agent_integration.py`, 38 tests).
 - **Triage rollcall adapter:** capability-rollcall stage before swarm expansion with bot/archetype candidate registry, confidence probing, rollcall ranking by weighted scoring (match_score × 0.4 + confidence × 0.3 + stability × 0.2 + cost_factor × 0.1), domain boosting, DEGRADED penalty, and BUSY/OFFLINE exclusion (`src/triage_rollcall_adapter.py`, 22 tests).
 - **Rubix evidence adapter:** deterministic evidence lane with 5 built-in checks (confidence interval, hypothesis test, Bayesian update, Monte Carlo simulation, OLS forecast), evidence battery composition, compliance-ready artifacts, and history tracking (`src/rubix_evidence_adapter.py`, 29 tests).
+- **Semantics boundary controller:** runtime orchestration wrappers for belief-state hypothesis management (Bayesian updates), expected loss + CVaR risk assessment, RVoI-driven clarifying question generation/ranking, invariance commutation verification, and verification-feedback loops with failure routing to planning (`src/semantics_boundary_controller.py`, 31 tests).
+- **Bot governance policy mapper:** maps legacy bot-level quota/budget/stability controls to Murphy runtime execution profile policies and gate checks with bot policy registration, Murphy profile conversion, gate checks (quota + budget), usage tracking, quota reset, and stability/circuit-breaker reporting (`src/bot_governance_policy_mapper.py`, 26 tests).
+- **Bot telemetry normalizer:** standardizes triage/rubix bot event payloads into Murphy observability ingestion schema with 9 default rules (4 triage: rollcall_complete, candidate_selected, confidence_probe, swarm_expanded; 5 rubix: evidence_check, hypothesis_updated, ci_computed, monte_carlo_complete, forecast_generated), single/batch normalization, unmapped event tracking, and history/reporting (`src/bot_telemetry_normalizer.py`, 25 tests).
 
 ## 3) Critical execution gaps (must close)
 
@@ -182,6 +185,7 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 - **Durable swarm orchestration:** ~~queue durability, idempotency keys, retry policies, circuit breakers, and rollback hooks.~~ — *COMPLETE: `src/durable_swarm_orchestrator.py` with budget-aware spawning, idempotency, retry with exponential backoff, circuit breaker, budget-per-task limits, max_spawn_depth anti-recursion, and rollback hooks (32 tests).*
 - **Org-chart execution enforcement:** ~~role-bound permissions, department-scoped memory, escalation chains, and cross-department arbitration.~~ — *COMPLETE (Section 12 Step 6.4): `src/org_chart_enforcement.py` with role-bound permissions, escalation chain inheritance, escalation request creation/resolution, cross-department workflow arbitration, and department-scoped memory isolation (35 tests).*
 - **Shadow-agent + account-plane integration:** ~~shadow agents as org-chart peers with governance boundary checks and account/user-base controls.~~ — *COMPLETE (Section 12 Step 6.7): `src/shadow_agent_integration.py` with shadow agents treated as org-chart peers, account creation (USER/ORGANIZATION types), shadow lifecycle management, shadow binding to roles, org/account filtering, and governance boundary enforcement per RFI-012 (38 tests).*
+- **Semantics boundary control-loop:** ~~runtime orchestration wrappers for belief-state hypotheses, loss/risk selection, RVoI-driven clarifying-question selection, invariance commutation checks, and verification-feedback loops.~~ — *COMPLETE (Section 12 Step 6.8): `src/semantics_boundary_controller.py` with belief-state hypothesis management (Bayesian updates), expected loss + CVaR risk assessment, RVoI-driven clarifying question generation/ranking, invariance commutation verification, and verification-feedback loops with failure routing to planning (31 tests).*
 
 **Bottom line:** Runtime 1.0 now has durable persistence, production delivery adapters, gate execution wiring, event-driven backbone, self-improvement feedback loop, full execution integration wiring, operational SLO tracking, and multi-project automation scheduling. To make it a fully autonomous automation runtime, focus on operational services (ticketing, remote access, patch/rollback), full swarm execution wiring, and compliance validation refinement.
 
@@ -193,14 +197,14 @@ These percentages are **current estimates** based on wired functionality vs. pla
 
 | Area | Estimated completion | Evidence to update |
 | --- | --- | --- |
-| Execution wiring (gate + swarm + orchestrator) | 95.00% | All 21 integrated modules wired into `execute_task` with gate blocking, event publishing, persistence, self-improvement, SLO tracking, capability map, compliance engine, RBAC governance, ticketing adapter, wingman validation, governance kernel enforcement, runtime profiles, control plane separation, durable swarm orchestration, golden-path bridge, org-chart enforcement, shadow-agent integration, triage rollcall, rubix evidence across all 3 orchestrator modes |
+| Execution wiring (gate + swarm + orchestrator) | 97.00% | All 24 integrated modules wired into `execute_task` with gate blocking, event publishing, persistence, self-improvement, SLO tracking, capability map, compliance engine, RBAC governance, ticketing adapter, wingman validation, governance kernel enforcement, runtime profiles, control plane separation, durable swarm orchestration, golden-path bridge, org-chart enforcement, shadow-agent integration, triage rollcall, rubix evidence, semantics boundary controller, bot governance policy mapper, bot telemetry normalizer across all 3 orchestrator modes |
 | Deterministic + LLM routing | 52.00% | Route optimization in self-improvement engine; deterministic task aliases route through compute validation; control plane strict/balanced/dynamic routing |
 | Persistence + replay | 72.00% | Persistence manager with durable file-based JSON storage, thread-safe atomic writes, replay support (27 tests) |
 | Multi-channel delivery | 82.00% | Production delivery adapters for all 5 channels (document/email/chat/voice/translation) with approval gating (36 tests) |
-| Compliance validation | 85.00% | Compliance engine with GDPR/SOC2/HIPAA/PCI-DSS sensors, release readiness validation, HITL approvals, domain-to-framework mapping (28 tests); governance kernel enforcement + runtime profile audit requirements; rubix evidence adapter provides deterministic verification artifacts |
-| Operational automation | 86.00% | Ticketing adapter + remote access + patch/rollback + SLO tracker + automation scheduler + wingman pairs for operator runbooks implemented (30 + 23 + 29 + 43 tests); triage rollcall adds candidate selection before swarm expansion |
+| Compliance validation | 87.00% | Compliance engine with GDPR/SOC2/HIPAA/PCI-DSS sensors, release readiness validation, HITL approvals, domain-to-framework mapping (28 tests); governance kernel enforcement + runtime profile audit requirements; rubix evidence adapter provides deterministic verification artifacts; bot governance policy mapper provides policy-level gate enforcement for legacy bots |
+| Operational automation | 88.00% | Ticketing adapter + remote access + patch/rollback + SLO tracker + automation scheduler + wingman pairs for operator runbooks implemented (30 + 23 + 29 + 43 tests); triage rollcall adds candidate selection before swarm expansion; bot telemetry normalizer standardizes triage/rubix events into observability ingestion schema |
 | UI + user testing | 71.19% | Architect UI + scripted screenshots + warning-clean focused parity suite maintained |
-| Test coverage for dynamic chains | 99.40% | 699 new tests across persistence_manager (27), event_backbone (31), delivery_adapters (36), gate_execution_wiring (31), self_improvement_engine (31), operational_slo_tracker (23), automation_scheduler (29), integrated_execution_wiring (29), capability_map (32), compliance_engine (28), rbac_governance (35), ticketing_adapter (30), wingman_protocol (43), runtime_profile_compiler (43), governance_kernel (34), control_plane_separation (30), durable_swarm_orchestrator (32), golden_path_bridge (31), org_chart_enforcement (35), shadow_agent_integration (38), triage_rollcall_adapter (22), rubix_evidence_adapter (29); prior coverage retained |
+| Test coverage for dynamic chains | 99.50% | 784 new tests across persistence_manager (27), event_backbone (31), delivery_adapters (36), gate_execution_wiring (31), self_improvement_engine (31), operational_slo_tracker (23), automation_scheduler (29), integrated_execution_wiring (32), capability_map (32), compliance_engine (28), rbac_governance (35), ticketing_adapter (30), wingman_protocol (43), runtime_profile_compiler (43), governance_kernel (34), control_plane_separation (30), durable_swarm_orchestrator (32), golden_path_bridge (31), org_chart_enforcement (35), shadow_agent_integration (38), triage_rollcall_adapter (22), rubix_evidence_adapter (29), semantics_boundary_controller (31), bot_governance_policy_mapper (26), bot_telemetry_normalizer (25); prior coverage retained |
 
 **Per-prompt micro-increment delta (latest prompt, decimal precision = 0.01):**
 - Execution wiring: **+16.00%** (all 7 modules wired into execute_task with gate blocking, event publishing, persistence, self-improvement, SLO tracking)
@@ -308,6 +312,9 @@ These percentages are **current estimates** based on wired functionality vs. pla
 59. **Shadow-agent + account-plane integration tests**: `test_shadow_agent_integration.py` validates shadow agents as org-chart peers with governance boundary checks, account creation (USER/ORGANIZATION types), shadow lifecycle (create/suspend/revoke/reactivate), shadow binding to roles, org/account filtering, and governance boundary enforcement per RFI-012 (38 tests).
 60. **Triage rollcall adapter tests**: `test_triage_rollcall_adapter.py` validates capability-rollcall stage before swarm expansion, bot/archetype candidate registry, confidence probing, rollcall ranking by weighted scoring, domain boosting, DEGRADED penalty, and BUSY/OFFLINE exclusion (22 tests).
 61. **Rubix evidence adapter tests**: `test_rubix_evidence_adapter.py` validates deterministic evidence lane with 5 built-in checks (confidence interval, hypothesis test, Bayesian update, Monte Carlo simulation, OLS forecast), evidence battery composition, compliance-ready artifacts, and history tracking (29 tests).
+62. **Semantics boundary controller tests**: `test_semantics_boundary_controller.py` validates belief-state hypothesis management (Bayesian updates), expected loss + CVaR risk assessment, RVoI-driven clarifying question generation/ranking, invariance commutation verification, and verification-feedback loops with failure routing to planning (31 tests).
+63. **Bot governance policy mapper tests**: `test_bot_governance_policy_mapper.py` validates bot policy registration, Murphy profile conversion, gate checks (quota + budget), usage tracking, quota reset, and stability/circuit-breaker reporting (26 tests).
+64. **Bot telemetry normalizer tests**: `test_bot_telemetry_normalizer.py` validates 9 default normalization rules (4 triage + 5 rubix), single/batch normalization, unmapped event tracking, and history/reporting (25 tests).
 
 ---
 
@@ -360,9 +367,9 @@ These percentages are **current estimates** based on wired functionality vs. pla
 7. **Shadow-agent + account-plane integration** — *COMPLETE*
    - ~~Treat shadow agents as org-chart peers of their mapped primary roles (not subordinate assistant threads), with identical governance boundary checks.~~ — *Done: `src/shadow_agent_integration.py` with shadow agents as org-chart peers, governance boundary enforcement per RFI-012 (38 tests)*
    - ~~Include account/user-base controls for shadow mappings in UI-managed configuration surfaces so operators can manage shadow assignments where user and account data is administered.~~ — *Done: account creation (USER/ORGANIZATION types), shadow lifecycle (create/suspend/revoke/reactivate), shadow binding to roles, org/account filtering*
-8. **Semantics boundary control-loop integration**
-   - Add runtime orchestration wrappers for belief-state hypotheses, loss/risk selection (expected loss + CVaR), RVoI-driven clarifying-question selection, invariance commutation checks, and verification-feedback loops.
-   - Keep Groq inference unchanged; implement these controls as runtime boundary conditions plus telemetry (`R*(b)`, `H(x)`, question count, verification outcomes).
+8. **Semantics boundary control-loop integration** — *COMPLETE*
+   - ~~Add runtime orchestration wrappers for belief-state hypotheses, loss/risk selection (expected loss + CVaR), RVoI-driven clarifying-question selection, invariance commutation checks, and verification-feedback loops.~~ — *Done: `src/semantics_boundary_controller.py` with belief-state hypothesis management (Bayesian updates), expected loss + CVaR risk assessment, RVoI-driven clarifying question generation/ranking, invariance commutation verification, and verification-feedback loops with failure routing to planning (31 tests)*
+   - ~~Keep Groq inference unchanged; implement these controls as runtime boundary conditions plus telemetry (`R*(b)`, `H(x)`, question count, verification outcomes).~~ — *Done: controls implemented as runtime boundary conditions with telemetry*
 
 ---
 
@@ -460,10 +467,10 @@ This task set is planning-only and defines how to absorb unique capabilities fro
 3. **Golden-path memory bridge** — *IMPLEMENTED*
    - ~~Normalize legacy golden-path key/spec metadata into Murphy persistence schema.~~ — *Done: `src/golden_path_bridge.py` with spec normalization, path capture/replay/matching, scoring by confidence/success_count/recency, and path invalidation (31 tests)*
    - ~~Ensure replay artifacts are available in `/api/status` + audit snapshots.~~ — *Done: replay of known-good paths wired for knowledge/RAG acceleration*
-4. **Governance and budget unification**
-   - Map bot-level quota/budget/stability controls to runtime execution profile policies and gate checks.
-5. **Telemetry contract alignment**
-   - Standardize triage/rubix event payloads into Murphy observability ingestion schema.
+4. **Governance and budget unification** — *IMPLEMENTED*
+   - ~~Map bot-level quota/budget/stability controls to runtime execution profile policies and gate checks.~~ — *Done: `src/bot_governance_policy_mapper.py` with bot policy registration, Murphy profile conversion, gate checks (quota + budget), usage tracking, quota reset, and stability/circuit-breaker reporting (26 tests)*
+5. **Telemetry contract alignment** — *IMPLEMENTED*
+   - ~~Standardize triage/rubix event payloads into Murphy observability ingestion schema.~~ — *Done: `src/bot_telemetry_normalizer.py` with 9 default rules (4 triage + 5 rubix), single/batch normalization, unmapped event tracking, and history/reporting (25 tests)*
 6. **Legacy bridge scoring lane**
    - Wire Rubixcube KaiaMix and triage roll-call selectors through runtime policy controls before enabling direct orchestration actions.
 
@@ -473,8 +480,8 @@ This task set is planning-only and defines how to absorb unique capabilities fro
   - `TriageRollcallAdapter`
   - `RubixEvidenceAdapter`
   - `GoldenPathBridgeAdapter`
-  - `BotGovernancePolicyMapper`
-  - `BotTelemetryNormalizer`
+  - `BotGovernancePolicyMapper` — *IMPLEMENTED: `src/bot_governance_policy_mapper.py` (26 tests)*
+  - `BotTelemetryNormalizer` — *IMPLEMENTED: `src/bot_telemetry_normalizer.py` (25 tests)*
   - `LegacyCompatibilityMatrixAdapter`
 - **Config artifacts to add**
   - Bot capability-map manifest (catalog → orchestrator lane mapping)
