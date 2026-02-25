@@ -8,6 +8,7 @@ Owner: INONI LLC / Corey Post (corey.gfc@gmail.com)
 
 import json
 import os
+import tempfile
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from ..models.module_spec import ModuleSpec, Capability
@@ -24,13 +25,15 @@ class ModuleRegistry:
     - Version management
     """
     
-    def __init__(self, storage_path: str = "/workspace/module_registry"):
+    def __init__(self, storage_path: Optional[str] = None):
         """
         Initialize module registry.
         
         Args:
             storage_path: Path to store module specs
         """
+        if storage_path is None:
+            storage_path = os.path.join(tempfile.gettempdir(), "module_registry")
         self.storage_path = storage_path
         self.modules_path = os.path.join(storage_path, "modules")
         self.index_path = os.path.join(storage_path, "index.json")
