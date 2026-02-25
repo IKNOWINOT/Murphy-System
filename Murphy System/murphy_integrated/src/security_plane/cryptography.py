@@ -3,6 +3,21 @@ Cryptographic Foundation for Security Plane
 
 Implements post-quantum cryptography with hybrid classical+PQC mode.
 
+SECURITY WARNING — SIMULATED CRYPTOGRAPHY
+==========================================
+The key generation, signing, and verification routines in this module are
+**simulated stubs** using HMAC-SHA256/SHA3.  They are structurally correct
+(hybrid classical + PQC dual-sign/verify flow) but do NOT provide real
+post-quantum security.
+
+Before any public or production deployment, replace the simulated
+implementations below with a vetted PQC library such as:
+  - liboqs (Open Quantum Safe)           — pip install liboqs-python
+  - pqcrypto                              — pip install pqcrypto
+  - cryptography >= 42 (ML-KEM support)  — pip install cryptography
+
+TODO(SEC-003): Replace simulated crypto with real PQC library bindings.
+
 CRITICAL SECURITY REQUIREMENTS:
 1. All cryptography must support hybrid classical + PQC today
 2. Full PQC tomorrow
