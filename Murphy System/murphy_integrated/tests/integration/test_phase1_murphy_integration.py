@@ -31,7 +31,7 @@ def test_sit_int_001_confidence_to_gate_synthesis():
     """
     from src.confidence_engine.confidence_calculator import ConfidenceCalculator
     from src.gate_synthesis.gate_generator import GateGenerator
-    from src.gate_synthesis.models import FailureMode
+    from src.gate_synthesis.models import FailureMode, FailureModeType, RiskVector
     from src.confidence_engine.models import Phase, AuthorityBand
     
     # Setup
@@ -44,18 +44,18 @@ def test_sit_int_001_confidence_to_gate_synthesis():
     failure_modes_high = [
         FailureMode(
             id="fm_1",
-            name="minor_issue",
+            type=FailureModeType.SEMANTIC_DRIFT,
             description="A minor failure",
             probability=high_murphy_index,
             impact=0.3,
-            category="operational"
+            risk_vector=RiskVector(H=high_murphy_index, one_minus_D=0.7, exposure=0.3, authority_risk=0.1)
         )
     ]
     
     gates_high = gate_gen.generate_gates(
         failure_modes=failure_modes_high,
-        current_phase=Phase.EXECUTION,
-        current_authority=AuthorityBand.FULL_AUTO,
+        current_phase=Phase.EXECUTE,
+        current_authority=AuthorityBand.EXECUTE,
         murphy_probabilities={"fm_1": high_murphy_index}
     )
     
@@ -70,26 +70,26 @@ def test_sit_int_001_confidence_to_gate_synthesis():
     failure_modes_low = [
         FailureMode(
             id="fm_2",
-            name="critical_issue",
+            type=FailureModeType.CONSTRAINT_VIOLATION,
             description="A critical failure",
             probability=low_murphy_index,
             impact=0.9,
-            category="safety"
+            risk_vector=RiskVector(H=low_murphy_index, one_minus_D=0.1, exposure=0.9, authority_risk=0.8)
         ),
         FailureMode(
             id="fm_3",
-            name="secondary_issue",
+            type=FailureModeType.SEMANTIC_DRIFT,
             description="Another failure",
             probability=0.6,
             impact=0.7,
-            category="operational"
+            risk_vector=RiskVector(H=0.6, one_minus_D=0.3, exposure=0.7, authority_risk=0.5)
         )
     ]
     
     gates_low = gate_gen.generate_gates(
         failure_modes=failure_modes_low,
-        current_phase=Phase.EXECUTION,
-        current_authority=AuthorityBand.SUPERVISED,
+        current_phase=Phase.EXECUTE,
+        current_authority=AuthorityBand.PROPOSE,
         murphy_probabilities={"fm_2": low_murphy_index, "fm_3": 0.6}
     )
     
@@ -163,7 +163,13 @@ def test_sit_int_002_component_health_checks():
     # Test Supervisor System
     try:
         from src.supervisor_system.supervisor_loop import SupervisorInterface
-        supervisor = SupervisorInterface()
+        from src.supervisor_system.assumption_management import (
+            AssumptionRegistry, AssumptionValidator, AssumptionLifecycleManager
+        )
+        registry = AssumptionRegistry()
+        validator = AssumptionValidator(registry)
+        lifecycle_manager = AssumptionLifecycleManager(registry)
+        supervisor = SupervisorInterface(registry, validator, lifecycle_manager)
         components_tested.append("Supervisor System")
         print("✓ Supervisor System: OK")
     except Exception as e:
@@ -211,8 +217,8 @@ def test_sit_int_003_data_flow_integration():
     # Test Case 2: Gate Creation
     gate = Gate(
         id="gate_001",
-        type=GateType.CONFIDENCE_THRESHOLD,
-        category=GateCategory.SAFETY,
+        type=GateType.CONSTRAINT,
+        category=GateCategory.SEMANTIC_STABILITY,
         target="execution",
         trigger_condition={"threshold": 0.7},
         enforcement_effect={"action": "block"},
@@ -220,7 +226,7 @@ def test_sit_int_003_data_flow_integration():
     )
     
     assert gate.id == "gate_001"
-    assert gate.type == GateType.CONFIDENCE_THRESHOLD
+    assert gate.type == GateType.CONSTRAINT
     print("✓ Gate creation: OK")
     
     # Test Case 3: Data Serialization

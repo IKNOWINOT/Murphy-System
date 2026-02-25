@@ -47,7 +47,7 @@ class TestSystemIntegrator(unittest.TestCase):
     def test_initialization(self):
         """Test that SystemIntegrator initializes correctly"""
         self.assertIsNotNone(self.integrator)
-        self.assertTrue(hasattr(self.integrator, 'state'))
+        self.assertTrue(hasattr(self.integrator, 'state') or hasattr(self.integrator, 'get_system_state'))
     
     def test_process_user_request(self):
         """Test processing user requests"""

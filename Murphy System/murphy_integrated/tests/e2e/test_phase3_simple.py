@@ -302,7 +302,7 @@ class TestPhase3SimplifiedWorkflows:
     """Simplified end-to-end workflow tests"""
     
     @pytest.fixture
-    async def setup(self):
+    def setup(self):
         """Setup test environment with mocked components"""
         # Initialize core Murphy components
         self.graph_analyzer = GraphAnalyzer()
@@ -338,10 +338,17 @@ class TestPhase3SimplifiedWorkflows:
         yield
         
         # Cleanup
-        await self.orchestrator.shutdown()
+        loop = asyncio.new_event_loop()
+        try:
+            loop.run_until_complete(self.orchestrator.shutdown())
+        finally:
+            loop.close()
     
-    async def test_01_hr_onboarding_complete_workflow(self, setup):
+    def test_01_hr_onboarding_complete_workflow(self, setup):
         """Test complete HR onboarding workflow end-to-end"""
+        asyncio.run(self._test_01_hr_onboarding_complete_workflow())
+
+    async def _test_01_hr_onboarding_complete_workflow(self):
         print("\n=== Testing Complete HR Onboarding Workflow ===")
         
         # Step 1: Register employee
@@ -468,8 +475,11 @@ class TestPhase3SimplifiedWorkflows:
         
         print("✅ COMPLETE HR ONBOARDING WORKFLOW TEST PASSED")
     
-    async def test_02_confidence_computation_integration(self, setup):
+    def test_02_confidence_computation_integration(self, setup):
         """Test confidence computation integration"""
+        asyncio.run(self._test_02_confidence_computation_integration())
+
+    async def _test_02_confidence_computation_integration(self):
         print("\n=== Testing Confidence Computation Integration ===")
         
         # Step 1: Create artifact graph for employee onboarding
@@ -539,8 +549,11 @@ class TestPhase3SimplifiedWorkflows:
         
         print("✅ CONFIDENCE COMPUTATION INTEGRATION TEST PASSED")
     
-    async def test_03_error_handling_and_recovery(self, setup):
+    def test_03_error_handling_and_recovery(self, setup):
         """Test error handling and recovery scenarios"""
+        asyncio.run(self._test_03_error_handling_and_recovery())
+
+    async def _test_03_error_handling_and_recovery(self):
         print("\n=== Testing Error Handling and Recovery ===")
         
         # Step 1: Test invalid employee data
@@ -596,8 +609,11 @@ class TestPhase3SimplifiedWorkflows:
         
         print("✅ ERROR HANDLING AND RECOVERY TEST PASSED")
     
-    async def test_04_performance_and_scalability(self, setup):
+    def test_04_performance_and_scalability(self, setup):
         """Test performance and scalability"""
+        asyncio.run(self._test_04_performance_and_scalability())
+
+    async def _test_04_performance_and_scalability(self):
         print("\n=== Testing Performance and Scalability ===")
         
         # Step 1: Test concurrent employee registrations

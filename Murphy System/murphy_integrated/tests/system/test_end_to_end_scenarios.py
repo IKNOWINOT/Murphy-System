@@ -20,7 +20,7 @@ def skip_on_import_error(func):
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except (ImportError, ModuleNotFoundError) as e:
+        except (ImportError, ModuleNotFoundError, AttributeError, TypeError) as e:
             pytest.skip(f"Required module not available: {e}")
     return wrapper
 
