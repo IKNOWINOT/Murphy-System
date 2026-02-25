@@ -235,6 +235,24 @@ except ImportError as e:
     print(f"Warning: Governance kernel not available: {e}")
     GovernanceKernel = None
 
+try:
+    from src.control_plane_separation import ControlPlaneSeparation
+except ImportError as e:
+    print(f"Warning: Control plane separation not available: {e}")
+    ControlPlaneSeparation = None
+
+try:
+    from src.durable_swarm_orchestrator import DurableSwarmOrchestrator
+except ImportError as e:
+    print(f"Warning: Durable swarm orchestrator not available: {e}")
+    DurableSwarmOrchestrator = None
+
+try:
+    from src.golden_path_bridge import GoldenPathBridge
+except ImportError as e:
+    print(f"Warning: Golden path bridge not available: {e}")
+    GoldenPathBridge = None
+
 # FastAPI for REST API
 try:
     from fastapi import FastAPI, HTTPException, Request
@@ -648,6 +666,24 @@ class MurphySystem:
             "path": "src.governance_kernel",
             "description": "Non-LLM governance enforcement layer with budget tracking and audit emission",
             "capabilities": ["governance_enforcement", "budget_control", "audit_emission"]
+        },
+        {
+            "name": "control_plane_separation",
+            "path": "src.control_plane_separation",
+            "description": "Planning-plane / execution-plane separation with strict/balanced/dynamic mode switching",
+            "capabilities": ["plane_routing", "mode_switching", "planning_execution_separation"]
+        },
+        {
+            "name": "durable_swarm_orchestrator",
+            "path": "src.durable_swarm_orchestrator",
+            "description": "Budget-aware durable swarm orchestration with idempotency, retry, circuit breaker, and anti-recursion",
+            "capabilities": ["swarm_spawning", "budget_control", "circuit_breaker", "idempotency"]
+        },
+        {
+            "name": "golden_path_bridge",
+            "path": "src.golden_path_bridge",
+            "description": "Golden-path capture and replay for execution acceleration and knowledge/RAG",
+            "capabilities": ["golden_path_capture", "path_matching", "replay_acceleration"]
         }
     ]
     MODULE_SCAN_EXCLUDED_DIRS = {"__pycache__", "tests", "test", "docs", "documentation", "examples"}
@@ -1693,6 +1729,39 @@ class MurphySystem:
                 self.governance_kernel = None
         else:
             self.governance_kernel = None
+
+        # Control Plane Separation
+        if ControlPlaneSeparation:
+            try:
+                self.control_plane_separation = ControlPlaneSeparation()
+                logger.info("Control plane separation initialized")
+            except Exception as exc:
+                logger.warning("Control plane separation initialization failed: %s", exc)
+                self.control_plane_separation = None
+        else:
+            self.control_plane_separation = None
+
+        # Durable Swarm Orchestrator
+        if DurableSwarmOrchestrator:
+            try:
+                self.durable_swarm_orchestrator = DurableSwarmOrchestrator()
+                logger.info("Durable swarm orchestrator initialized")
+            except Exception as exc:
+                logger.warning("Durable swarm orchestrator initialization failed: %s", exc)
+                self.durable_swarm_orchestrator = None
+        else:
+            self.durable_swarm_orchestrator = None
+
+        # Golden Path Bridge
+        if GoldenPathBridge:
+            try:
+                self.golden_path_bridge = GoldenPathBridge()
+                logger.info("Golden path bridge initialized")
+            except Exception as exc:
+                logger.warning("Golden path bridge initialization failed: %s", exc)
+                self.golden_path_bridge = None
+        else:
+            self.golden_path_bridge = None
     
     # ==================== CORE EXECUTION ====================
 
@@ -9719,6 +9788,30 @@ class MurphySystem:
             except Exception:
                 kernel_status = {"error": "status unavailable"}
 
+        cps_status = {}
+        cps = getattr(self, "control_plane_separation", None)
+        if cps is not None:
+            try:
+                cps_status = cps.get_status()
+            except Exception:
+                cps_status = {"error": "status unavailable"}
+
+        dso_status = {}
+        dso = getattr(self, "durable_swarm_orchestrator", None)
+        if dso is not None:
+            try:
+                dso_status = dso.get_status()
+            except Exception:
+                dso_status = {"error": "status unavailable"}
+
+        gpb_status = {}
+        gpb = getattr(self, "golden_path_bridge", None)
+        if gpb is not None:
+            try:
+                gpb_status = gpb.get_status()
+            except Exception:
+                gpb_status = {"error": "status unavailable"}
+
         return {
             "gate_execution_wiring": gate_status,
             "event_backbone": event_status,
@@ -9734,6 +9827,9 @@ class MurphySystem:
             "wingman_protocol": wingman_status,
             "runtime_profile_compiler": profile_status,
             "governance_kernel": kernel_status,
+            "control_plane_separation": cps_status,
+            "durable_swarm_orchestrator": dso_status,
+            "golden_path_bridge": gpb_status,
         }
 
     def _build_confidence_report(self, task_description: str) -> Dict[str, Any]:
@@ -10209,7 +10305,10 @@ class MurphySystem:
                 'ticketing_adapter': self._component_status(getattr(self, 'ticketing_adapter', None)),
                 'wingman_protocol': self._component_status(getattr(self, 'wingman_protocol', None)),
                 'runtime_profile_compiler': self._component_status(getattr(self, 'runtime_profile_compiler', None)),
-                'governance_kernel': self._component_status(getattr(self, 'governance_kernel', None))
+                'governance_kernel': self._component_status(getattr(self, 'governance_kernel', None)),
+                'control_plane_separation': self._component_status(getattr(self, 'control_plane_separation', None)),
+                'durable_swarm_orchestrator': self._component_status(getattr(self, 'durable_swarm_orchestrator', None)),
+                'golden_path_bridge': self._component_status(getattr(self, 'golden_path_bridge', None))
             },
             'statistics': {
                 'sessions': len(self.sessions),

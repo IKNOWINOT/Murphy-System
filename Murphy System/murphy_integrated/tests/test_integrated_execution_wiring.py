@@ -95,6 +95,18 @@ class TestIntegratedModuleInitialization:
         system = MurphySystem()
         assert hasattr(system, "governance_kernel")
 
+    def test_control_plane_separation_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "control_plane_separation")
+
+    def test_durable_swarm_orchestrator_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "durable_swarm_orchestrator")
+
+    def test_golden_path_bridge_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "golden_path_bridge")
+
 
 class TestExecuteTaskIntegration:
     """Verify execute_task wires through integrated modules."""
@@ -163,6 +175,9 @@ class TestSystemStatusIntegration:
         assert "wingman_protocol" in components
         assert "runtime_profile_compiler" in components
         assert "governance_kernel" in components
+        assert "control_plane_separation" in components
+        assert "durable_swarm_orchestrator" in components
+        assert "golden_path_bridge" in components
 
     def test_integrated_summary_has_all_keys(self):
         system = MurphySystem()
@@ -183,5 +198,8 @@ class TestSystemStatusIntegration:
             "wingman_protocol",
             "runtime_profile_compiler",
             "governance_kernel",
+            "control_plane_separation",
+            "durable_swarm_orchestrator",
+            "golden_path_bridge",
         }
         assert expected_keys.issubset(set(modules.keys()))
