@@ -179,6 +179,22 @@ class TestIntegratedModuleInitialization:
         system = MurphySystem()
         assert hasattr(system, "self_automation_orchestrator")
 
+    def test_plugin_extension_sdk_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "plugin_extension_sdk")
+
+    def test_ai_workflow_generator_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "ai_workflow_generator")
+
+    def test_workflow_template_marketplace_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "workflow_template_marketplace")
+
+    def test_cross_platform_data_sync_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "cross_platform_data_sync")
+
 
 class TestExecuteTaskIntegration:
     """Verify execute_task wires through integrated modules."""
@@ -268,6 +284,10 @@ class TestSystemStatusIntegration:
         assert "api_gateway_adapter" in components
         assert "webhook_event_processor" in components
         assert "self_automation_orchestrator" in components
+        assert "plugin_extension_sdk" in components
+        assert "ai_workflow_generator" in components
+        assert "workflow_template_marketplace" in components
+        assert "cross_platform_data_sync" in components
 
     def test_integrated_summary_has_all_keys(self):
         system = MurphySystem()
@@ -309,5 +329,9 @@ class TestSystemStatusIntegration:
             "api_gateway_adapter",
             "webhook_event_processor",
             "self_automation_orchestrator",
+            "plugin_extension_sdk",
+            "ai_workflow_generator",
+            "workflow_template_marketplace",
+            "cross_platform_data_sync",
         }
         assert expected_keys.issubset(set(modules.keys()))

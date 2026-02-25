@@ -361,6 +361,30 @@ except ImportError as e:
     print(f"Warning: Self-automation orchestrator not available: {e}")
     SelfAutomationOrchestrator = None
 
+try:
+    from src.plugin_extension_sdk import PluginExtensionSDK
+except ImportError as e:
+    print(f"Warning: Plugin extension SDK not available: {e}")
+    PluginExtensionSDK = None
+
+try:
+    from src.ai_workflow_generator import AIWorkflowGenerator
+except ImportError as e:
+    print(f"Warning: AI workflow generator not available: {e}")
+    AIWorkflowGenerator = None
+
+try:
+    from src.workflow_template_marketplace import WorkflowTemplateMarketplace
+except ImportError as e:
+    print(f"Warning: Workflow template marketplace not available: {e}")
+    WorkflowTemplateMarketplace = None
+
+try:
+    from src.cross_platform_data_sync import CrossPlatformDataSync
+except ImportError as e:
+    print(f"Warning: Cross-platform data sync not available: {e}")
+    CrossPlatformDataSync = None
+
 # FastAPI for REST API
 try:
     from fastapi import FastAPI, HTTPException, Request
@@ -900,6 +924,30 @@ class MurphySystem:
             "path": "src.self_automation_orchestrator",
             "description": "Self-automation task queue with prompt chain templates for continuous self-improvement cycles",
             "capabilities": ["self_automation", "task_queue", "prompt_chain", "gap_analysis", "improvement_cycles"]
+        },
+        {
+            "name": "plugin_extension_sdk",
+            "path": "src.plugin_extension_sdk",
+            "description": "Third-party plugin lifecycle management with manifest validation, sandboxed execution, and capability gating",
+            "capabilities": ["plugin_management", "manifest_validation", "sandboxed_execution", "capability_gating", "lifecycle_management"]
+        },
+        {
+            "name": "ai_workflow_generator",
+            "path": "src.ai_workflow_generator",
+            "description": "Natural language to DAG workflow translation using template matching, keyword inference, and dependency resolution",
+            "capabilities": ["workflow_generation", "template_matching", "keyword_inference", "dependency_resolution", "natural_language"]
+        },
+        {
+            "name": "workflow_template_marketplace",
+            "path": "src.workflow_template_marketplace",
+            "description": "Marketplace for publishing, searching, installing, rating, and versioning community workflow templates",
+            "capabilities": ["template_marketplace", "publishing", "search", "rating", "versioning"]
+        },
+        {
+            "name": "cross_platform_data_sync",
+            "path": "src.cross_platform_data_sync",
+            "description": "Real-time bidirectional data synchronization between platforms with field mapping and conflict resolution",
+            "capabilities": ["data_sync", "field_mapping", "conflict_resolution", "change_tracking", "bidirectional_sync"]
         }
     ]
     MODULE_SCAN_EXCLUDED_DIRS = {"__pycache__", "tests", "test", "docs", "documentation", "examples"}
@@ -2178,6 +2226,50 @@ class MurphySystem:
                 self.self_automation_orchestrator = None
         else:
             self.self_automation_orchestrator = None
+
+        # Plugin Extension SDK
+        if PluginExtensionSDK:
+            try:
+                self.plugin_extension_sdk = PluginExtensionSDK(murphy_version="1.0.0")
+                logger.info("Plugin extension SDK initialized")
+            except Exception as exc:
+                logger.warning("Plugin extension SDK initialization failed: %s", exc)
+                self.plugin_extension_sdk = None
+        else:
+            self.plugin_extension_sdk = None
+
+        # AI Workflow Generator
+        if AIWorkflowGenerator:
+            try:
+                self.ai_workflow_generator = AIWorkflowGenerator()
+                logger.info("AI workflow generator initialized")
+            except Exception as exc:
+                logger.warning("AI workflow generator initialization failed: %s", exc)
+                self.ai_workflow_generator = None
+        else:
+            self.ai_workflow_generator = None
+
+        # Workflow Template Marketplace
+        if WorkflowTemplateMarketplace:
+            try:
+                self.workflow_template_marketplace = WorkflowTemplateMarketplace()
+                logger.info("Workflow template marketplace initialized")
+            except Exception as exc:
+                logger.warning("Workflow template marketplace initialization failed: %s", exc)
+                self.workflow_template_marketplace = None
+        else:
+            self.workflow_template_marketplace = None
+
+        # Cross-Platform Data Sync
+        if CrossPlatformDataSync:
+            try:
+                self.cross_platform_data_sync = CrossPlatformDataSync()
+                logger.info("Cross-platform data sync initialized")
+            except Exception as exc:
+                logger.warning("Cross-platform data sync initialization failed: %s", exc)
+                self.cross_platform_data_sync = None
+        else:
+            self.cross_platform_data_sync = None
 
     # ==================== CORE EXECUTION ====================
 
@@ -10372,6 +10464,38 @@ class MurphySystem:
             except Exception:
                 sao_status = {"error": "status unavailable"}
 
+        pes_status = {}
+        pes = getattr(self, "plugin_extension_sdk", None)
+        if pes is not None:
+            try:
+                pes_status = pes.get_status()
+            except Exception:
+                pes_status = {"error": "status unavailable"}
+
+        awg_status = {}
+        awg = getattr(self, "ai_workflow_generator", None)
+        if awg is not None:
+            try:
+                awg_status = awg.get_status()
+            except Exception:
+                awg_status = {"error": "status unavailable"}
+
+        wtm_status = {}
+        wtm = getattr(self, "workflow_template_marketplace", None)
+        if wtm is not None:
+            try:
+                wtm_status = wtm.get_status()
+            except Exception:
+                wtm_status = {"error": "status unavailable"}
+
+        cpds_status = {}
+        cpds = getattr(self, "cross_platform_data_sync", None)
+        if cpds is not None:
+            try:
+                cpds_status = cpds.get_status()
+            except Exception:
+                cpds_status = {"error": "status unavailable"}
+
         return {
             "gate_execution_wiring": gate_status,
             "event_backbone": event_status,
@@ -10408,6 +10532,10 @@ class MurphySystem:
             "api_gateway_adapter": aga_status,
             "webhook_event_processor": wep_status,
             "self_automation_orchestrator": sao_status,
+            "plugin_extension_sdk": pes_status,
+            "ai_workflow_generator": awg_status,
+            "workflow_template_marketplace": wtm_status,
+            "cross_platform_data_sync": cpds_status,
         }
 
     def _build_confidence_report(self, task_description: str) -> Dict[str, Any]:
@@ -10904,7 +11032,11 @@ class MurphySystem:
                 'automation_type_registry': self._component_status(getattr(self, 'automation_type_registry', None)),
                 'api_gateway_adapter': self._component_status(getattr(self, 'api_gateway_adapter', None)),
                 'webhook_event_processor': self._component_status(getattr(self, 'webhook_event_processor', None)),
-                'self_automation_orchestrator': self._component_status(getattr(self, 'self_automation_orchestrator', None))
+                'self_automation_orchestrator': self._component_status(getattr(self, 'self_automation_orchestrator', None)),
+                'plugin_extension_sdk': self._component_status(getattr(self, 'plugin_extension_sdk', None)),
+                'ai_workflow_generator': self._component_status(getattr(self, 'ai_workflow_generator', None)),
+                'workflow_template_marketplace': self._component_status(getattr(self, 'workflow_template_marketplace', None)),
+                'cross_platform_data_sync': self._component_status(getattr(self, 'cross_platform_data_sync', None))
             },
             'statistics': {
                 'sessions': len(self.sessions),
