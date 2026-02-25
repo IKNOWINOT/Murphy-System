@@ -20,7 +20,7 @@ def test_gate_synthesis_includes_control_metrics():
         content="Automate marketing approvals with QA review",
         doc_type="automation"
     )
-    result = system._attempt_gate_synthesis(doc.content, doc)
+    result = system._attempt_gate_synthesis(doc.content, doc, None)
     assert result["status"] == "ok"
     gate = result["gates"][0]
     assert gate["control_metric"]["name"]

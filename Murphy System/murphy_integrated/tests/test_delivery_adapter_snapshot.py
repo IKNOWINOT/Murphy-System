@@ -45,7 +45,7 @@ def test_delivery_adapter_snapshot_in_preview():
     }
     for adapter_id, adapter in adapter_entries.items():
         assert adapter["id"] == adapter_id
-        assert adapter["channel"] in {"document", "email", "chat", "voice"}
+        assert adapter["channel"] in {"document", "email", "chat", "voice", "translation"}
         assert adapter["status"] in {"available", "needs_integration", "configured"}
     output_stage = next(
         (stage for stage in preview["dynamic_implementation"]["stages"] if stage["id"] == "output_delivery"),
