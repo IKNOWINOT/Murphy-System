@@ -335,6 +335,85 @@ def _build_defaults() -> List[BuildingAutomationConnector]:
                 "alarm_management", "remote_monitoring",
             ],
         },
+        # ---- Extended Vendor Connectors ----
+        {
+            "name": "Trane Tracer SC/ES",
+            "protocol": BuildingAutomationProtocol.BACNET,
+            "system_category": BuildingSystemCategory.HVAC,
+            "vendor": "trane",
+            "connection_config": {"transport": "ip", "port": 47808, "platform": "tracer_sc", "requests_per_minute": 180, "burst_limit": 25},
+            "capabilities": [
+                "chiller_plant_management", "air_handler_control",
+                "variable_frequency_drive", "energy_optimization",
+                "fault_detection_diagnostics", "comfort_management",
+                "equipment_scheduling", "trend_logging",
+            ],
+        },
+        {
+            "name": "Carrier i-Vu/Automated Logic WebCTRL",
+            "protocol": BuildingAutomationProtocol.BACNET,
+            "system_category": BuildingSystemCategory.HVAC,
+            "vendor": "carrier_automated_logic",
+            "connection_config": {"transport": "ip", "port": 47808, "platform": "webctrl", "requests_per_minute": 180, "burst_limit": 25},
+            "capabilities": [
+                "webctrl_server_management", "environmental_index_control",
+                "energy_reports", "equipment_scheduling",
+                "alarm_console", "trend_viewer",
+                "optimal_start_stop", "demand_limiting",
+            ],
+        },
+        {
+            "name": "Schneider Electric EcoStruxure BMS",
+            "protocol": BuildingAutomationProtocol.BACNET,
+            "system_category": BuildingSystemCategory.HVAC,
+            "vendor": "schneider_electric",
+            "connection_config": {"transport": "ip", "port": 47808, "platform": "ecostruxure_bms", "requests_per_minute": 200, "burst_limit": 30},
+            "capabilities": [
+                "smartx_controller_management", "room_automation",
+                "energy_management", "fire_safety_integration",
+                "access_control_integration", "building_analytics",
+                "sustainability_reporting", "asset_management",
+            ],
+        },
+        {
+            "name": "ABB HVAC Controls",
+            "protocol": BuildingAutomationProtocol.BACNET,
+            "system_category": BuildingSystemCategory.HVAC,
+            "vendor": "abb",
+            "connection_config": {"transport": "ip", "port": 47808, "platform": "ability_bms", "requests_per_minute": 150, "burst_limit": 20},
+            "capabilities": [
+                "variable_speed_drives", "motor_control",
+                "energy_efficiency_monitoring", "predictive_maintenance",
+                "building_energy_management", "power_quality",
+                "remote_monitoring", "asset_health",
+            ],
+        },
+        {
+            "name": "Delta Controls enteliWEB",
+            "protocol": BuildingAutomationProtocol.BACNET,
+            "system_category": BuildingSystemCategory.HVAC,
+            "vendor": "delta_controls",
+            "connection_config": {"transport": "ip", "port": 47808, "platform": "enteliweb", "requests_per_minute": 150, "burst_limit": 20},
+            "capabilities": [
+                "enteliweb_management", "o3_sensor_integration",
+                "orca_controller_programming", "energy_dashboards",
+                "trend_analysis", "alarm_management",
+                "scheduling", "remote_access",
+            ],
+        },
+        {
+            "name": "Distech Controls ECLYPSE",
+            "protocol": BuildingAutomationProtocol.BACNET,
+            "system_category": BuildingSystemCategory.HVAC,
+            "vendor": "distech",
+            "connection_config": {"transport": "ip", "port": 47808, "platform": "eclypse", "requests_per_minute": 150, "burst_limit": 20},
+            "capabilities": [
+                "eclypse_connected_controller", "envysion_web_interface",
+                "allure_unitouch_integration", "room_automation",
+                "energy_optimization", "iot_edge_computing",
+                "cloud_analytics", "scheduling",
+            ],
+        },
     ]
     return [BuildingAutomationConnector(**s) for s in specs]
 

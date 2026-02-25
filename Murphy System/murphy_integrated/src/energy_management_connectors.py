@@ -331,6 +331,85 @@ def _build_defaults() -> List[EnergyManagementConnector]:
                 "battery_management", "environmental_benefit_tracking",
             ],
         },
+        # ---- Extended EMS Platforms ----
+        {
+            "name": "GridPoint Energy Management",
+            "category": EnergyManagementCategory.BUILDING_EMS,
+            "vendor": "gridpoint",
+            "protocol": EnergyProtocol.REST_API,
+            "connection_config": {"rate_limit": {"requests_per_minute": 80, "burst_limit": 12}},
+            "capabilities": [
+                "energy_optimization", "hvac_control_optimization",
+                "demand_management", "portfolio_analytics",
+                "fault_detection", "comfort_management",
+                "sustainability_tracking", "utility_rate_analysis",
+            ],
+        },
+        {
+            "name": "Tridium Niagara Framework",
+            "category": EnergyManagementCategory.BUILDING_EMS,
+            "vendor": "tridium",
+            "protocol": EnergyProtocol.REST_API,
+            "connection_config": {"rate_limit": {"requests_per_minute": 120, "burst_limit": 18}},
+            "capabilities": [
+                "open_framework_integration", "multi_protocol_normalization",
+                "energy_dashboards", "analytics_engine",
+                "alarm_management", "equipment_scheduling",
+                "data_historian", "edge_computing",
+            ],
+        },
+        {
+            "name": "ABB Ability Energy Manager",
+            "category": EnergyManagementCategory.BUILDING_EMS,
+            "vendor": "abb",
+            "protocol": EnergyProtocol.REST_API,
+            "connection_config": {"rate_limit": {"requests_per_minute": 90, "burst_limit": 14}},
+            "capabilities": [
+                "energy_monitoring", "power_quality_analysis",
+                "load_management", "demand_forecasting",
+                "energy_cost_optimization", "carbon_tracking",
+                "asset_performance", "microgrid_management",
+            ],
+        },
+        {
+            "name": "Emerson Ovation/DeltaV Energy",
+            "category": EnergyManagementCategory.GRID_MANAGEMENT,
+            "vendor": "emerson",
+            "protocol": EnergyProtocol.OPC_UA,
+            "connection_config": {"rate_limit": {"requests_per_minute": 100, "burst_limit": 15}},
+            "capabilities": [
+                "power_plant_optimization", "turbine_control",
+                "heat_rate_optimization", "emissions_monitoring",
+                "grid_synchronization", "predictive_maintenance",
+                "energy_efficiency_analytics", "asset_management",
+            ],
+        },
+        {
+            "name": "Enverus Power & Renewables",
+            "category": EnergyManagementCategory.RENEWABLE_INTEGRATION,
+            "vendor": "enverus",
+            "protocol": EnergyProtocol.REST_API,
+            "connection_config": {"rate_limit": {"requests_per_minute": 60, "burst_limit": 10}},
+            "capabilities": [
+                "renewable_asset_analytics", "power_market_data",
+                "generation_forecasting", "ppa_management",
+                "curtailment_analysis", "grid_integration",
+                "environmental_credit_tracking", "portfolio_optimization",
+            ],
+        },
+        {
+            "name": "Brainbox AI",
+            "category": EnergyManagementCategory.BUILDING_EMS,
+            "vendor": "brainbox_ai",
+            "protocol": EnergyProtocol.REST_API,
+            "connection_config": {"rate_limit": {"requests_per_minute": 60, "burst_limit": 10}},
+            "capabilities": [
+                "autonomous_hvac_optimization", "deep_learning_prediction",
+                "energy_reduction", "carbon_footprint_reduction",
+                "occupant_comfort_optimization", "predictive_control",
+                "cloud_ai_analytics", "real_time_monitoring",
+            ],
+        },
     ]
     return [EnergyManagementConnector(**s) for s in specs]
 

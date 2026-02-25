@@ -95,6 +95,52 @@ class TestBuildingAutomationConnectors(unittest.TestCase):
         )
         self.assertTrue(step.get("success"))
 
+    # ---- Extended vendor connector tests ----
+
+    def test_trane_connector(self):
+        c = self.registry.get_connector("trane_bacnet")
+        self.assertIsNotNone(c, "Trane Tracer SC/ES connector missing")
+        self.assertIn("chiller_plant_management", c.capabilities)
+
+    def test_carrier_automated_logic_connector(self):
+        c = self.registry.get_connector("carrier_automated_logic_bacnet")
+        self.assertIsNotNone(c, "Carrier/Automated Logic WebCTRL connector missing")
+        self.assertIn("webctrl_server_management", c.capabilities)
+
+    def test_schneider_bms_connector(self):
+        c = self.registry.get_connector("schneider_electric_bacnet")
+        self.assertIsNotNone(c, "Schneider Electric EcoStruxure BMS connector missing")
+        self.assertIn("smartx_controller_management", c.capabilities)
+
+    def test_abb_connector(self):
+        c = self.registry.get_connector("abb_bacnet")
+        self.assertIsNotNone(c, "ABB HVAC Controls connector missing")
+        self.assertIn("variable_speed_drives", c.capabilities)
+
+    def test_delta_controls_connector(self):
+        c = self.registry.get_connector("delta_controls_bacnet")
+        self.assertIsNotNone(c, "Delta Controls enteliWEB connector missing")
+        self.assertIn("enteliweb_management", c.capabilities)
+
+    def test_distech_connector(self):
+        c = self.registry.get_connector("distech_bacnet")
+        self.assertIsNotNone(c, "Distech Controls ECLYPSE connector missing")
+        self.assertIn("eclypse_connected_controller", c.capabilities)
+
+    def test_extended_vendor_list(self):
+        vendors = self.registry.list_vendors()
+        for vendor in ["trane", "carrier_automated_logic", "schneider_electric", "abb",
+                        "delta_controls", "distech"]:
+            self.assertIn(vendor, vendors, f"Missing extended vendor: {vendor}")
+
+    def test_extended_connector_count(self):
+        stats = self.registry.statistics()
+        self.assertGreaterEqual(stats["total_connectors"], 16)
+
+    def test_trane_execute_action(self):
+        result = self.registry.execute("trane_bacnet", "chiller_plant_management")
+        self.assertTrue(result.get("success"))
+
 
 class TestManufacturingAutomationStandards(unittest.TestCase):
     """Test Manufacturing Automation Standards module."""
@@ -266,6 +312,55 @@ class TestEnergyManagementConnectors(unittest.TestCase):
         self.assertEqual(status["module"], "energy_management_connectors")
         self.assertEqual(status["status"], "operational")
 
+    # ---- Extended EMS connector tests ----
+
+    def test_gridpoint(self):
+        c = self.registry.get_connector("gridpoint")
+        self.assertIsNotNone(c, "GridPoint Energy Management missing")
+        self.assertIn("energy_optimization", c.capabilities)
+
+    def test_tridium_niagara(self):
+        c = self.registry.get_connector("tridium")
+        self.assertIsNotNone(c, "Tridium Niagara Framework missing")
+        self.assertIn("open_framework_integration", c.capabilities)
+
+    def test_abb_ability(self):
+        c = self.registry.get_connector("abb")
+        self.assertIsNotNone(c, "ABB Ability Energy Manager missing")
+        self.assertIn("energy_monitoring", c.capabilities)
+
+    def test_emerson_ovation(self):
+        c = self.registry.get_connector("emerson")
+        self.assertIsNotNone(c, "Emerson Ovation/DeltaV Energy missing")
+        self.assertIn("power_plant_optimization", c.capabilities)
+
+    def test_enverus(self):
+        c = self.registry.get_connector("enverus")
+        self.assertIsNotNone(c, "Enverus Power & Renewables missing")
+        self.assertIn("renewable_asset_analytics", c.capabilities)
+
+    def test_brainbox_ai(self):
+        c = self.registry.get_connector("brainbox_ai")
+        self.assertIsNotNone(c, "Brainbox AI missing")
+        self.assertIn("autonomous_hvac_optimization", c.capabilities)
+
+    def test_extended_vendor_list(self):
+        vendors = self.registry.list_vendors()
+        for vendor in ["gridpoint", "tridium", "abb", "emerson", "enverus", "brainbox_ai"]:
+            self.assertIn(vendor, vendors, f"Missing extended vendor: {vendor}")
+
+    def test_extended_connector_count(self):
+        stats = self.registry.statistics()
+        self.assertGreaterEqual(stats["total_connectors"], 16)
+
+    def test_gridpoint_execute_action(self):
+        result = self.registry.execute("gridpoint", "energy_optimization")
+        self.assertTrue(result.get("success"))
+
+    def test_extended_category_coverage(self):
+        categories = self.registry.list_categories()
+        self.assertGreaterEqual(len(categories), 5)
+
 
 class TestEnterpriseIntegrationsBuildingEnergy(unittest.TestCase):
     """Test Building Automation and Energy Management categories in Enterprise Integrations."""
@@ -331,11 +426,58 @@ class TestEnterpriseIntegrationsBuildingEnergy(unittest.TestCase):
 
     def test_total_connector_count(self):
         stats = self.registry.statistics()
-        self.assertGreaterEqual(stats["total_connectors"], 36)
+        self.assertGreaterEqual(stats["total_connectors"], 45)
 
     def test_total_categories(self):
         cats = self.registry.list_categories()
         self.assertGreaterEqual(len(cats), 10)
+
+    # ---- Extended enterprise vendor tests ----
+
+    def test_trane_tracer_in_enterprise(self):
+        c = self.registry.get_connector("trane_tracer")
+        self.assertIsNotNone(c, "Trane Tracer missing from enterprise registry")
+        self.assertEqual(c.category, self.Category.BUILDING_AUTOMATION)
+
+    def test_carrier_webctrl_in_enterprise(self):
+        c = self.registry.get_connector("carrier_webctrl")
+        self.assertIsNotNone(c, "Carrier/Automated Logic WebCTRL missing from enterprise registry")
+        self.assertEqual(c.category, self.Category.BUILDING_AUTOMATION)
+
+    def test_schneider_bms_in_enterprise(self):
+        c = self.registry.get_connector("schneider_bms")
+        self.assertIsNotNone(c, "Schneider BMS missing from enterprise registry")
+        self.assertEqual(c.category, self.Category.BUILDING_AUTOMATION)
+
+    def test_delta_enteliweb_in_enterprise(self):
+        c = self.registry.get_connector("delta_enteliweb")
+        self.assertIsNotNone(c, "Delta Controls enteliWEB missing from enterprise registry")
+        self.assertEqual(c.category, self.Category.BUILDING_AUTOMATION)
+
+    def test_distech_eclypse_in_enterprise(self):
+        c = self.registry.get_connector("distech_eclypse")
+        self.assertIsNotNone(c, "Distech ECLYPSE missing from enterprise registry")
+        self.assertEqual(c.category, self.Category.BUILDING_AUTOMATION)
+
+    def test_gridpoint_in_enterprise(self):
+        c = self.registry.get_connector("gridpoint")
+        self.assertIsNotNone(c, "GridPoint missing from enterprise registry")
+        self.assertEqual(c.category, self.Category.ENERGY_MANAGEMENT)
+
+    def test_tridium_niagara_in_enterprise(self):
+        c = self.registry.get_connector("tridium_niagara")
+        self.assertIsNotNone(c, "Tridium Niagara missing from enterprise registry")
+        self.assertEqual(c.category, self.Category.ENERGY_MANAGEMENT)
+
+    def test_abb_ability_in_enterprise(self):
+        c = self.registry.get_connector("abb_ability")
+        self.assertIsNotNone(c, "ABB Ability missing from enterprise registry")
+        self.assertEqual(c.category, self.Category.ENERGY_MANAGEMENT)
+
+    def test_brainbox_ai_in_enterprise(self):
+        c = self.registry.get_connector("brainbox_ai")
+        self.assertIsNotNone(c, "Brainbox AI missing from enterprise registry")
+        self.assertEqual(c.category, self.Category.ENERGY_MANAGEMENT)
 
 
 class TestAnalyticsDashboardIntegration(unittest.TestCase):
