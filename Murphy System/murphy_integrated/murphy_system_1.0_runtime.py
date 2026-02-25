@@ -295,6 +295,24 @@ except ImportError as e:
     print(f"Warning: Bot telemetry normalizer not available: {e}")
     BotTelemetryNormalizer = None
 
+try:
+    from src.legacy_compatibility_matrix import LegacyCompatibilityMatrixAdapter
+except ImportError as e:
+    print(f"Warning: Legacy compatibility matrix not available: {e}")
+    LegacyCompatibilityMatrixAdapter = None
+
+try:
+    from src.hitl_autonomy_controller import HITLAutonomyController
+except ImportError as e:
+    print(f"Warning: HITL autonomy controller not available: {e}")
+    HITLAutonomyController = None
+
+try:
+    from src.compliance_region_validator import ComplianceRegionValidator
+except ImportError as e:
+    print(f"Warning: Compliance region validator not available: {e}")
+    ComplianceRegionValidator = None
+
 # FastAPI for REST API
 try:
     from fastapi import FastAPI, HTTPException, Request
@@ -768,6 +786,24 @@ class MurphySystem:
             "path": "src.bot_telemetry_normalizer",
             "description": "Standardizes triage/rubix bot event payloads into Murphy observability schema",
             "capabilities": ["event_normalization", "triage_rules", "rubix_rules", "telemetry_alignment"]
+        },
+        {
+            "name": "legacy_compatibility_matrix",
+            "path": "src.legacy_compatibility_matrix",
+            "description": "Legacy orchestration bridge hooks and compatibility-matrix decisions as profile-governed runtime controls",
+            "capabilities": ["compatibility_matrix", "bridge_hooks", "migration_paths", "governance_validation"]
+        },
+        {
+            "name": "hitl_autonomy_controller",
+            "path": "src.hitl_autonomy_controller",
+            "description": "Runtime policy toggles for HITL arming/disarming and high-confidence autonomy enablement",
+            "capabilities": ["hitl_toggle", "autonomy_policy", "confidence_threshold", "cooldown_management"]
+        },
+        {
+            "name": "compliance_region_validator",
+            "path": "src.compliance_region_validator",
+            "description": "Region-specific compliance sensor validation before delivery with cross-border checks",
+            "capabilities": ["region_compliance", "cross_border_validation", "data_residency", "retention_checks"]
         }
     ]
     MODULE_SCAN_EXCLUDED_DIRS = {"__pycache__", "tests", "test", "docs", "documentation", "examples"}
@@ -1926,6 +1962,39 @@ class MurphySystem:
         else:
             self.bot_telemetry_normalizer = None
     
+        # Legacy Compatibility Matrix
+        if LegacyCompatibilityMatrixAdapter:
+            try:
+                self.legacy_compatibility_matrix = LegacyCompatibilityMatrixAdapter()
+                logger.info("Legacy compatibility matrix adapter initialized")
+            except Exception as exc:
+                logger.warning("Legacy compatibility matrix initialization failed: %s", exc)
+                self.legacy_compatibility_matrix = None
+        else:
+            self.legacy_compatibility_matrix = None
+
+        # HITL Autonomy Controller
+        if HITLAutonomyController:
+            try:
+                self.hitl_autonomy_controller = HITLAutonomyController()
+                logger.info("HITL autonomy controller initialized")
+            except Exception as exc:
+                logger.warning("HITL autonomy controller initialization failed: %s", exc)
+                self.hitl_autonomy_controller = None
+        else:
+            self.hitl_autonomy_controller = None
+
+        # Compliance Region Validator
+        if ComplianceRegionValidator:
+            try:
+                self.compliance_region_validator = ComplianceRegionValidator()
+                logger.info("Compliance region validator initialized with default regions")
+            except Exception as exc:
+                logger.warning("Compliance region validator initialization failed: %s", exc)
+                self.compliance_region_validator = None
+        else:
+            self.compliance_region_validator = None
+
     # ==================== CORE EXECUTION ====================
 
     def _prepare_activation_preview(
@@ -10031,6 +10100,30 @@ class MurphySystem:
             except Exception:
                 btn_status = {"error": "status unavailable"}
 
+        lcm_status = {}
+        lcm = getattr(self, "legacy_compatibility_matrix", None)
+        if lcm is not None:
+            try:
+                lcm_status = lcm.get_matrix_report()
+            except Exception:
+                lcm_status = {"error": "status unavailable"}
+
+        hac_status = {}
+        hac = getattr(self, "hitl_autonomy_controller", None)
+        if hac is not None:
+            try:
+                hac_status = hac.get_autonomy_stats()
+            except Exception:
+                hac_status = {"error": "status unavailable"}
+
+        crv_status = {}
+        crv = getattr(self, "compliance_region_validator", None)
+        if crv is not None:
+            try:
+                crv_status = crv.get_compliance_report()
+            except Exception:
+                crv_status = {"error": "status unavailable"}
+
         return {
             "gate_execution_wiring": gate_status,
             "event_backbone": event_status,
@@ -10056,6 +10149,9 @@ class MurphySystem:
             "semantics_boundary_controller": sbc_status,
             "bot_governance_policy_mapper": bgpm_status,
             "bot_telemetry_normalizer": btn_status,
+            "legacy_compatibility_matrix": lcm_status,
+            "hitl_autonomy_controller": hac_status,
+            "compliance_region_validator": crv_status,
         }
 
     def _build_confidence_report(self, task_description: str) -> Dict[str, Any]:
@@ -10541,7 +10637,10 @@ class MurphySystem:
                 'rubix_evidence_adapter': self._component_status(getattr(self, 'rubix_evidence_adapter', None)),
                 'semantics_boundary_controller': self._component_status(getattr(self, 'semantics_boundary_controller', None)),
                 'bot_governance_policy_mapper': self._component_status(getattr(self, 'bot_governance_policy_mapper', None)),
-                'bot_telemetry_normalizer': self._component_status(getattr(self, 'bot_telemetry_normalizer', None))
+                'bot_telemetry_normalizer': self._component_status(getattr(self, 'bot_telemetry_normalizer', None)),
+                'legacy_compatibility_matrix': self._component_status(getattr(self, 'legacy_compatibility_matrix', None)),
+                'hitl_autonomy_controller': self._component_status(getattr(self, 'hitl_autonomy_controller', None)),
+                'compliance_region_validator': self._component_status(getattr(self, 'compliance_region_validator', None))
             },
             'statistics': {
                 'sessions': len(self.sessions),

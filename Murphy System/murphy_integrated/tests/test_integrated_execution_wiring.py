@@ -135,6 +135,18 @@ class TestIntegratedModuleInitialization:
         system = MurphySystem()
         assert hasattr(system, "bot_telemetry_normalizer")
 
+    def test_legacy_compatibility_matrix_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "legacy_compatibility_matrix")
+
+    def test_hitl_autonomy_controller_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "hitl_autonomy_controller")
+
+    def test_compliance_region_validator_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "compliance_region_validator")
+
 
 class TestExecuteTaskIntegration:
     """Verify execute_task wires through integrated modules."""
@@ -213,6 +225,9 @@ class TestSystemStatusIntegration:
         assert "semantics_boundary_controller" in components
         assert "bot_governance_policy_mapper" in components
         assert "bot_telemetry_normalizer" in components
+        assert "legacy_compatibility_matrix" in components
+        assert "hitl_autonomy_controller" in components
+        assert "compliance_region_validator" in components
 
     def test_integrated_summary_has_all_keys(self):
         system = MurphySystem()
@@ -243,5 +258,8 @@ class TestSystemStatusIntegration:
             "semantics_boundary_controller",
             "bot_governance_policy_mapper",
             "bot_telemetry_normalizer",
+            "legacy_compatibility_matrix",
+            "hitl_autonomy_controller",
+            "compliance_region_validator",
         }
         assert expected_keys.issubset(set(modules.keys()))

@@ -249,8 +249,11 @@ start_murphy_1.0.bat   # Windows
 - **Semantics boundary controller (IMPLEMENTED):** `src/semantics_boundary_controller.py` provides runtime orchestration wrappers for belief-state hypothesis management (Bayesian updates), expected loss + CVaR risk assessment, RVoI-driven clarifying question generation, invariance commutation checks, and verification-feedback loops with failure routing. 31 tests in `tests/test_semantics_boundary_controller.py`.
 - **Bot governance policy mapper (IMPLEMENTED):** `src/bot_governance_policy_mapper.py` maps legacy bot quota/budget/stability controls to Murphy runtime execution profiles and gate checks. Supports policy registration, Murphy profile conversion, gate checks, usage tracking, and stability reporting. 26 tests in `tests/test_bot_governance_policy_mapper.py`.
 - **Bot telemetry normalizer (IMPLEMENTED):** `src/bot_telemetry_normalizer.py` standardizes triage/rubix bot event payloads into Murphy observability schema with 9 default rules. Single/batch normalization, unmapped event tracking, and reporting. 25 tests in `tests/test_bot_telemetry_normalizer.py`.
-- **Updated completion percentage snapshot (current):** execution wiring **97.00%**, deterministic+LLM routing **52.00%**, persistence+replay **72.00%**, multi-channel delivery **82.00%**, compliance **87.00%**, operations **88.00%**, UI/testing **71.19%**, dynamic-chain tests **99.50%** (source: `FULL_SYSTEM_ASSESSMENT.md` section 9; recalibrated after semantics boundary controller, bot governance mapper, and bot telemetry normalizer with 82 new tests).
-- **Latest test run (all 24 modules):** 784 module tests passed + 149 core tests passed (30 skipped) — **0 failures**.
+- **Legacy compatibility matrix (IMPLEMENTED):** `src/legacy_compatibility_matrix.py` routes legacy orchestration bridge hooks and compatibility-matrix decisions through profile-governed runtime controls. Compatibility entry registry, bridge hook execution, BFS multi-hop migration paths, readiness scoring, and governance validation. 37 tests in `tests/test_legacy_compatibility_matrix.py`.
+- **HITL autonomy controller (IMPLEMENTED):** `src/hitl_autonomy_controller.py` provides runtime policy toggles for HITL arming/disarming and high-confidence autonomy enablement. Confidence thresholds (95%+ default), risk-level auto-approve, max autonomous action limits, cooldown management, and autonomy stats. 35 tests in `tests/test_hitl_autonomy_controller.py`.
+- **Compliance region validator (IMPLEMENTED):** `src/compliance_region_validator.py` validates compliance sensors against region-specific requirements before delivery. Pre-registered defaults for 6 regions (EU/GDPR, US_CA/CCPA, US_HIPAA/HIPAA, CA/PIPEDA, BR/LGPD, AU/APPs), cross-border checks, data residency, retention validation, and framework aggregation. 39 tests in `tests/test_compliance_region_validator.py`.
+- **Updated completion percentage snapshot (current):** execution wiring **98.00%**, deterministic+LLM routing **55.00%**, persistence+replay **72.00%**, multi-channel delivery **84.00%**, compliance **90.00%**, operations **90.00%**, UI/testing **71.19%**, dynamic-chain tests **99.60%** (source: `FULL_SYSTEM_ASSESSMENT.md` section 9; recalibrated after legacy compatibility matrix, HITL autonomy controller, and compliance region validator with 111 new tests).
+- **Latest test run (all 27 modules):** 898 module tests passed — **0 failures**.
 ---
 
 ## 🗃️ Repository Index (Database-Style Reference)
@@ -307,6 +310,9 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **Semantics Boundary Controller** | `src/semantics_boundary_controller.py` | Belief-state, risk/CVaR, RVoI questions, invariance, verification-feedback |
 | **Bot Governance Policy Mapper** | `src/bot_governance_policy_mapper.py` | Legacy bot quota/budget/stability → Murphy runtime profiles |
 | **Bot Telemetry Normalizer** | `src/bot_telemetry_normalizer.py` | Triage/rubix bot events → Murphy observability schema |
+| **Legacy Compatibility Matrix** | `src/legacy_compatibility_matrix.py` | Legacy orchestration bridge hooks, migration paths, governance validation |
+| **HITL Autonomy Controller** | `src/hitl_autonomy_controller.py` | HITL arming/disarming, confidence-gated autonomy, cooldown management |
+| **Compliance Region Validator** | `src/compliance_region_validator.py` | Region-specific compliance validation, cross-border checks, data residency |
 
 **Progress tracking:** update the forward plan in
 `Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md` and append confirmed completion evidence in
