@@ -277,6 +277,24 @@ except ImportError as e:
     print(f"Warning: Rubix evidence adapter not available: {e}")
     RubixEvidenceAdapter = None
 
+try:
+    from src.semantics_boundary_controller import SemanticsBoundaryController
+except ImportError as e:
+    print(f"Warning: Semantics boundary controller not available: {e}")
+    SemanticsBoundaryController = None
+
+try:
+    from src.bot_governance_policy_mapper import BotGovernancePolicyMapper
+except ImportError as e:
+    print(f"Warning: Bot governance policy mapper not available: {e}")
+    BotGovernancePolicyMapper = None
+
+try:
+    from src.bot_telemetry_normalizer import BotTelemetryNormalizer
+except ImportError as e:
+    print(f"Warning: Bot telemetry normalizer not available: {e}")
+    BotTelemetryNormalizer = None
+
 # FastAPI for REST API
 try:
     from fastapi import FastAPI, HTTPException, Request
@@ -732,6 +750,24 @@ class MurphySystem:
             "path": "src.rubix_evidence_adapter",
             "description": "Deterministic evidence lane for CI/hypothesis/Bayesian/Monte Carlo/forecast checks",
             "capabilities": ["evidence_checks", "compliance_artifacts", "deterministic_verification"]
+        },
+        {
+            "name": "semantics_boundary_controller",
+            "path": "src.semantics_boundary_controller",
+            "description": "Runtime semantics boundary control-loop with belief-state, risk/CVaR, RVoI, invariance, verification-feedback",
+            "capabilities": ["belief_state", "risk_assessment", "rvoi_questions", "invariance_checks", "verification_feedback"]
+        },
+        {
+            "name": "bot_governance_policy_mapper",
+            "path": "src.bot_governance_policy_mapper",
+            "description": "Maps legacy bot quota/budget/stability controls to Murphy runtime execution profiles",
+            "capabilities": ["policy_mapping", "gate_checks", "budget_tracking", "quota_management"]
+        },
+        {
+            "name": "bot_telemetry_normalizer",
+            "path": "src.bot_telemetry_normalizer",
+            "description": "Standardizes triage/rubix bot event payloads into Murphy observability schema",
+            "capabilities": ["event_normalization", "triage_rules", "rubix_rules", "telemetry_alignment"]
         }
     ]
     MODULE_SCAN_EXCLUDED_DIRS = {"__pycache__", "tests", "test", "docs", "documentation", "examples"}
@@ -1854,6 +1890,41 @@ class MurphySystem:
                 self.rubix_evidence_adapter = None
         else:
             self.rubix_evidence_adapter = None
+
+        # Semantics Boundary Controller
+        if SemanticsBoundaryController:
+            try:
+                self.semantics_boundary_controller = SemanticsBoundaryController()
+                logger.info("Semantics boundary controller initialized")
+            except Exception as exc:
+                logger.warning("Semantics boundary controller initialization failed: %s", exc)
+                self.semantics_boundary_controller = None
+        else:
+            self.semantics_boundary_controller = None
+
+        # Bot Governance Policy Mapper
+        if BotGovernancePolicyMapper:
+            try:
+                self.bot_governance_policy_mapper = BotGovernancePolicyMapper()
+                logger.info("Bot governance policy mapper initialized")
+            except Exception as exc:
+                logger.warning("Bot governance policy mapper initialization failed: %s", exc)
+                self.bot_governance_policy_mapper = None
+        else:
+            self.bot_governance_policy_mapper = None
+
+        # Bot Telemetry Normalizer
+        if BotTelemetryNormalizer:
+            try:
+                self.bot_telemetry_normalizer = BotTelemetryNormalizer()
+                self.bot_telemetry_normalizer.register_default_triage_rules()
+                self.bot_telemetry_normalizer.register_default_rubix_rules()
+                logger.info("Bot telemetry normalizer initialized with default rules")
+            except Exception as exc:
+                logger.warning("Bot telemetry normalizer initialization failed: %s", exc)
+                self.bot_telemetry_normalizer = None
+        else:
+            self.bot_telemetry_normalizer = None
     
     # ==================== CORE EXECUTION ====================
 
@@ -9936,6 +10007,30 @@ class MurphySystem:
             except Exception:
                 rea_status = {"error": "status unavailable"}
 
+        sbc_status = {}
+        sbc = getattr(self, "semantics_boundary_controller", None)
+        if sbc is not None:
+            try:
+                sbc_status = sbc.get_status()
+            except Exception:
+                sbc_status = {"error": "status unavailable"}
+
+        bgpm_status = {}
+        bgpm = getattr(self, "bot_governance_policy_mapper", None)
+        if bgpm is not None:
+            try:
+                bgpm_status = bgpm.get_status()
+            except Exception:
+                bgpm_status = {"error": "status unavailable"}
+
+        btn_status = {}
+        btn = getattr(self, "bot_telemetry_normalizer", None)
+        if btn is not None:
+            try:
+                btn_status = btn.get_status()
+            except Exception:
+                btn_status = {"error": "status unavailable"}
+
         return {
             "gate_execution_wiring": gate_status,
             "event_backbone": event_status,
@@ -9958,6 +10053,9 @@ class MurphySystem:
             "shadow_agent_integration": sai_status,
             "triage_rollcall_adapter": tra_status,
             "rubix_evidence_adapter": rea_status,
+            "semantics_boundary_controller": sbc_status,
+            "bot_governance_policy_mapper": bgpm_status,
+            "bot_telemetry_normalizer": btn_status,
         }
 
     def _build_confidence_report(self, task_description: str) -> Dict[str, Any]:
@@ -10440,7 +10538,10 @@ class MurphySystem:
                 'org_chart_enforcement': self._component_status(getattr(self, 'org_chart_enforcement', None)),
                 'shadow_agent_integration': self._component_status(getattr(self, 'shadow_agent_integration', None)),
                 'triage_rollcall_adapter': self._component_status(getattr(self, 'triage_rollcall_adapter', None)),
-                'rubix_evidence_adapter': self._component_status(getattr(self, 'rubix_evidence_adapter', None))
+                'rubix_evidence_adapter': self._component_status(getattr(self, 'rubix_evidence_adapter', None)),
+                'semantics_boundary_controller': self._component_status(getattr(self, 'semantics_boundary_controller', None)),
+                'bot_governance_policy_mapper': self._component_status(getattr(self, 'bot_governance_policy_mapper', None)),
+                'bot_telemetry_normalizer': self._component_status(getattr(self, 'bot_telemetry_normalizer', None))
             },
             'statistics': {
                 'sessions': len(self.sessions),
