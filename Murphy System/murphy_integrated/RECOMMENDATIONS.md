@@ -164,7 +164,7 @@ and competitive features for the Murphy System universal generative automation c
 
 ## 6) Competitive Feature Recommendations (Priority Order)
 
-### 6.1 Implemented (35 modules)
+### 6.1 Implemented (39 modules)
 1. ✅ Workflow orchestration (two-phase + control plane separation)
 2. ✅ Event-driven automation (event backbone + webhook processor)
 3. ✅ Platform connector ecosystem (20 default connectors)
@@ -181,14 +181,18 @@ and competitive features for the Murphy System universal generative automation c
 14. ✅ API gateway with rate limiting and circuit breaker
 15. ✅ Webhook event processing with signature verification
 16. ✅ Self-automation orchestrator (prompt chain + task queue + gap analysis)
+17. ✅ Plugin/extension SDK (manifest validation, sandboxed execution, lifecycle management)
+18. ✅ AI-powered workflow generation (NL-to-DAG, template matching, keyword inference)
+19. ✅ Workflow template marketplace (publish, search, install, rate, version)
+20. ✅ Cross-platform data sync (bidirectional sync, field mapping, conflict resolution)
 
 ### 6.2 Recommended Next Phase
 1. **Live connector activation** — Configure actual API credentials for production platforms
-2. **Workflow template marketplace** — Package and share workflow DAG templates
-3. **AI-powered workflow generation** — Generate DAG workflows from natural language descriptions
-4. **Cross-platform data sync** — Real-time data synchronization between connected platforms
+2. ~~**Workflow template marketplace**~~ → ✅ IMPLEMENTED (src/workflow_template_marketplace.py)
+3. ~~**AI-powered workflow generation**~~ → ✅ IMPLEMENTED (src/ai_workflow_generator.py)
+4. ~~**Cross-platform data sync**~~ → ✅ IMPLEMENTED (src/cross_platform_data_sync.py)
 5. **Advanced analytics dashboard** — Visual analytics for execution, compliance, and performance metrics
-6. **Plugin/extension SDK** — Allow third-party module development and registration
+6. ~~**Plugin/extension SDK**~~ → ✅ IMPLEMENTED (src/plugin_extension_sdk.py)
 7. **Multi-region deployment** — Distributed execution across cloud regions
 8. **Advanced RAG integration** — Connect golden-path bridge with vector databases for semantic retrieval
 

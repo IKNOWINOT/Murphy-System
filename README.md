@@ -260,8 +260,12 @@ start_murphy_1.0.bat   # Windows
 - **API gateway adapter (IMPLEMENTED):** `src/api_gateway_adapter.py` provides unified API gateway for external integrations with rate limiting, multi-method auth, circuit breaker, response caching, and webhook dispatch. 23 tests in `tests/test_api_gateway_adapter.py`.
 - **Webhook event processor (IMPLEMENTED):** `src/webhook_event_processor.py` provides inbound webhook handling with 10 default sources, SHA-256 signature verification, 7 normalization rules, and event routing. 25 tests in `tests/test_webhook_event_processor.py`.
 - **Self-automation orchestrator (IMPLEMENTED):** `src/self_automation_orchestrator.py` provides self-improvement task queue with prompt chain templates (7-step cycle), priority queue with dependency resolution, improvement cycle management, gap analysis, and AI collaborator mode. 45 tests in `tests/test_self_automation_orchestrator.py`. See `PROMPT_CHAIN.md` for structured prompts enabling system self-automation.
-- **Updated completion percentage snapshot (current):** execution wiring **99.00%**, deterministic+LLM routing **75.00%**, persistence+replay **78.00%**, multi-channel delivery **88.00%**, compliance **93.00%**, operations **93.00%**, UI/testing **71.19%**, dynamic-chain tests **99.80%** (source: `FULL_SYSTEM_ASSESSMENT.md` section 9; all Section 12 steps COMPLETE, all Section 14 priorities COMPLETE, all Section 15 items IMPLEMENTED, Section 16 platform/integration recommendations IMPLEMENTED, Section 17 self-automation IMPLEMENTED).
-- **Latest test run (all 35 modules):** 1162 module tests passed — **0 failures**.
+- **Plugin/extension SDK (IMPLEMENTED):** `src/plugin_extension_sdk.py` provides third-party plugin lifecycle management with manifest validation, sandboxed execution with rate limiting, 8 capability types, hook system, and per-plugin execution statistics. 29 tests in `tests/test_plugin_extension_sdk.py`.
+- **AI workflow generator (IMPLEMENTED):** `src/ai_workflow_generator.py` translates natural language descriptions into DAG workflows using template matching (6 built-in templates), keyword inference (60+ keywords, 14 step types), and implicit dependency resolution. 22 tests in `tests/test_ai_workflow_generator.py`.
+- **Workflow template marketplace (IMPLEMENTED):** `src/workflow_template_marketplace.py` provides community template marketplace with publish, search, install, rate (1-5 stars), and version management across 11 categories. 28 tests in `tests/test_workflow_template_marketplace.py`.
+- **Cross-platform data sync (IMPLEMENTED):** `src/cross_platform_data_sync.py` provides real-time bidirectional data sync with field mapping, 5 conflict resolution strategies, incremental change tracking, and custom transforms. 26 tests in `tests/test_cross_platform_data_sync.py`.
+- **Updated completion percentage snapshot (current):** execution wiring **99.00%**, deterministic+LLM routing **77.00%**, persistence+replay **80.00%**, multi-channel delivery **89.00%**, compliance **93.00%**, operations **94.00%**, UI/testing **71.19%**, dynamic-chain tests **99.85%** (source: `FULL_SYSTEM_ASSESSMENT.md` section 9; all Section 12 steps COMPLETE, all Section 14 priorities COMPLETE, all Section 15 items IMPLEMENTED, Section 16 platform/integration/marketplace/SDK IMPLEMENTED, Section 17 self-automation IMPLEMENTED).
+- **Latest test run (all 39 modules):** 1259 module tests passed — **0 failures**.
 ---
 
 ## 🗃️ Repository Index (Database-Style Reference)
@@ -329,6 +333,10 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **API Gateway Adapter** | `src/api_gateway_adapter.py` | Rate limiting, auth, circuit breaker, caching, webhook dispatch |
 | **Webhook Event Processor** | `src/webhook_event_processor.py` | 10 webhook sources, signature verification, event normalization |
 | **Self-Automation Orchestrator** | `src/self_automation_orchestrator.py` | Prompt chain, task queue, gap analysis, AI collaborator mode |
+| **Plugin/Extension SDK** | `src/plugin_extension_sdk.py` | Third-party plugin lifecycle, manifest validation, sandboxed execution |
+| **AI Workflow Generator** | `src/ai_workflow_generator.py` | Natural language → DAG workflows, template matching, keyword inference |
+| **Workflow Template Marketplace** | `src/workflow_template_marketplace.py` | Publish, search, install, rate community workflow templates |
+| **Cross-Platform Data Sync** | `src/cross_platform_data_sync.py` | Bidirectional sync, field mapping, conflict resolution, change tracking |
 
 **Progress tracking:** update the forward plan in
 `Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md` and append confirmed completion evidence in
