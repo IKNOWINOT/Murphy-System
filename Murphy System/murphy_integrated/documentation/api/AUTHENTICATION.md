@@ -1,5 +1,17 @@
 # API Authentication Guide
 
+## Current Implementation Status
+
+> **Security Hardening Applied (2026-02):** All Murphy System Flask API servers now enforce
+> authentication, CORS origin allowlisting, rate limiting, input sanitization, and security
+> headers via `src/flask_security.py`. See `docs/QA_AUDIT_REPORT.md` for full details.
+>
+> **Quick Start:**
+> - In **development** mode (`MURPHY_ENV=development`): Auth is optional — requests without API keys are allowed.
+> - In **production** mode (`MURPHY_ENV=production`): All non-health endpoints require a valid API key via `Authorization: Bearer <key>` or `X-API-Key` header.
+> - Configure keys via `MURPHY_API_KEYS` environment variable (comma-separated).
+> - Configure allowed CORS origins via `MURPHY_CORS_ORIGINS` environment variable.
+
 ## Overview
 
 The Murphy System Runtime provides comprehensive authentication and authorization mechanisms to secure API access. This guide covers all authentication methods, security best practices, and implementation details.
