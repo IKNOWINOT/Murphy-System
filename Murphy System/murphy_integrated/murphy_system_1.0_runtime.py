@@ -483,6 +483,13 @@ except ImportError as e:
     print(f"Warning: UI testing framework not available: {e}")
     UITestingFramework = None
 
+# Security Hardening Config
+try:
+    from src.security_hardening_config import SecurityHardeningConfig
+except ImportError as e:
+    print(f"Warning: Security hardening config not available: {e}")
+    SecurityHardeningConfig = None
+
 # FastAPI for REST API
 try:
     from fastapi import FastAPI, HTTPException, Request
@@ -1130,6 +1137,12 @@ class MurphySystem:
             "path": "src.ui_testing_framework",
             "description": "Comprehensive UI testing infrastructure covering all 12 testing gaps: visual regression, interactive components, E2E browser harness, performance/Core Web Vitals, cross-browser compatibility, mobile gestures, animation/transition validation, error state handling, dark mode, API integration, security (XSS/injection), and i18n/RTL",
             "capabilities": ["visual_regression", "interactive_testing", "e2e_browser", "performance_testing", "cross_browser", "mobile_gesture", "animation_testing", "error_state", "dark_mode", "security_testing", "i18n_testing", "accessibility"]
+        },
+        {
+            "name": "security_hardening_config",
+            "path": "src.security_hardening_config",
+            "description": "Centralized security hardening orchestrator with input sanitization (XSS/SQLi/path traversal), CORS lockdown, token-bucket rate limiting, CSP headers, API key rotation enforcement, structured audit logging, and session security controls (MFA, concurrent limits, timeout)",
+            "capabilities": ["input_sanitization", "cors_lockdown", "rate_limiting", "csp_headers", "api_key_rotation", "audit_logging", "session_security", "injection_prevention", "path_traversal_prevention"]
         }
     ]
     MODULE_SCAN_EXCLUDED_DIRS = {"__pycache__", "tests", "test", "docs", "documentation", "examples"}
@@ -2617,6 +2630,18 @@ class MurphySystem:
                 self.ui_testing_framework = None
         else:
             self.ui_testing_framework = None
+
+        # Security Hardening Config
+        if SecurityHardeningConfig:
+            try:
+                self.security_hardening_config = SecurityHardeningConfig()
+                logger.info("Security hardening config initialized with %d components",
+                            len(self.security_hardening_config.status().get("components", {})))
+            except Exception as exc:
+                logger.warning("Security hardening config initialization failed: %s", exc)
+                self.security_hardening_config = None
+        else:
+            self.security_hardening_config = None
 
         # ---- Wire all integration modules into executive planning binder ----
         self._wire_integrations_to_planning_engine()
@@ -11536,7 +11561,8 @@ class MurphySystem:
                 'agentic_api_provisioner': self._component_status(getattr(self, 'agentic_api_provisioner', None)),
                 'video_streaming_connector': self._component_status(getattr(self, 'video_streaming_connector', None)),
                 'remote_access_connector': self._component_status(getattr(self, 'remote_access_connector', None)),
-                'ui_testing_framework': self._component_status(getattr(self, 'ui_testing_framework', None))
+                'ui_testing_framework': self._component_status(getattr(self, 'ui_testing_framework', None)),
+                'security_hardening_config': self._component_status(getattr(self, 'security_hardening_config', None))
             },
             'statistics': {
                 'sessions': len(self.sessions),
