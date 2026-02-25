@@ -441,6 +441,13 @@ except ImportError as e:
     print(f"Warning: Rosetta stone heartbeat not available: {e}")
     RosettaStoneHeartbeat = None
 
+# Content Creator Platform Modulator
+try:
+    from src.content_creator_platform_modulator import ContentCreatorPlatformRegistry
+except ImportError as e:
+    print(f"Warning: Content creator platform modulator not available: {e}")
+    ContentCreatorPlatformRegistry = None
+
 # FastAPI for REST API
 try:
     from fastapi import FastAPI, HTTPException, Request
@@ -1052,6 +1059,12 @@ class MurphySystem:
             "path": "src.rosetta_stone_heartbeat",
             "description": "Organization-wide heartbeat synchronization with executive-origin pulse propagation, tier-based translators, and sync verification across executive/management/operations/worker/integration tiers",
             "capabilities": ["heartbeat_sync", "pulse_propagation", "tier_translation", "sync_verification", "executive_directives", "org_health"]
+        },
+        {
+            "name": "content_creator_platform_modulator",
+            "path": "src.content_creator_platform_modulator",
+            "description": "Content creator platform connectors for YouTube, Twitch, OnlyFans, TikTok, Patreon, Kick, Rumble with content scheduling, analytics, monetization tracking, audience management, cross-platform syndication, and live stream orchestration",
+            "capabilities": ["youtube", "twitch", "onlyfans", "tiktok", "patreon", "kick", "rumble", "content_scheduling", "cross_platform_syndication", "analytics_aggregation", "monetization_tracking", "live_stream_orchestration"]
         }
     ]
     MODULE_SCAN_EXCLUDED_DIRS = {"__pycache__", "tests", "test", "docs", "documentation", "examples"}
@@ -2467,6 +2480,18 @@ class MurphySystem:
                 self.rosetta_stone_heartbeat = None
         else:
             self.rosetta_stone_heartbeat = None
+
+        # Content Creator Platform Modulator
+        if ContentCreatorPlatformRegistry:
+            try:
+                self.content_creator_platform_modulator = ContentCreatorPlatformRegistry()
+                logger.info("Content creator platform modulator initialized with %d platforms",
+                            len(self.content_creator_platform_modulator.list_platforms()))
+            except Exception as exc:
+                logger.warning("Content creator platform modulator initialization failed: %s", exc)
+                self.content_creator_platform_modulator = None
+        else:
+            self.content_creator_platform_modulator = None
 
     # ==================== CORE EXECUTION ====================
 
@@ -11235,7 +11260,8 @@ class MurphySystem:
                 'workflow_template_marketplace': self._component_status(getattr(self, 'workflow_template_marketplace', None)),
                 'cross_platform_data_sync': self._component_status(getattr(self, 'cross_platform_data_sync', None)),
                 'digital_asset_generator': self._component_status(getattr(self, 'digital_asset_generator', None)),
-                'rosetta_stone_heartbeat': self._component_status(getattr(self, 'rosetta_stone_heartbeat', None))
+                'rosetta_stone_heartbeat': self._component_status(getattr(self, 'rosetta_stone_heartbeat', None)),
+                'content_creator_platform_modulator': self._component_status(getattr(self, 'content_creator_platform_modulator', None))
             },
             'statistics': {
                 'sessions': len(self.sessions),
