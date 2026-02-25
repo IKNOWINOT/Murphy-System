@@ -62,6 +62,10 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **Control plane separation:** planning-plane / execution-plane separation with strict/balanced/dynamic mode switching, handler registration for reasoning/decomposition/gate_synthesis/compliance_proposal (planning) and policy_enforcement/permission_validation/budget_enforcement/audit_logging (execution), task routing based on mode, and routing history (`src/control_plane_separation.py`, 30 tests).
 - **Durable swarm orchestration:** budget-aware swarm spawning with queue durability, idempotency keys to prevent duplicate execution, retry policies with configurable max_retries and exponential backoff, circuit breaker pattern (fail-fast after threshold), budget-per-task limits, max_spawn_depth anti-runaway recursion, and rollback hooks for failed tasks (`src/durable_swarm_orchestrator.py`, 32 tests).
 - **Golden-path memory bridge:** captures successful execution paths for replay acceleration, normalizes specs into standard schema, path matching/lookup by similarity (exact + substring), scores by confidence/success_count/recency, path invalidation, and replay of known-good paths for knowledge/RAG (`src/golden_path_bridge.py`, 31 tests).
+- **Org-chart execution enforcement:** hierarchy management with role-bound permissions, escalation chain inheritance, escalation request creation/resolution, cross-department workflow arbitration (approval from DEPARTMENT_HEAD+ in each department), and department-scoped memory isolation (`src/org_chart_enforcement.py`, 35 tests).
+- **Shadow-agent + account-plane integration:** shadow agents treated as org-chart peers with identical governance boundary checks, account creation (USER/ORGANIZATION types), shadow lifecycle (create/suspend/revoke/reactivate), shadow binding to roles, org/account filtering, and governance boundary enforcement per RFI-012 (`src/shadow_agent_integration.py`, 38 tests).
+- **Triage rollcall adapter:** capability-rollcall stage before swarm expansion with bot/archetype candidate registry, confidence probing, rollcall ranking by weighted scoring (match_score × 0.4 + confidence × 0.3 + stability × 0.2 + cost_factor × 0.1), domain boosting, DEGRADED penalty, and BUSY/OFFLINE exclusion (`src/triage_rollcall_adapter.py`, 22 tests).
+- **Rubix evidence adapter:** deterministic evidence lane with 5 built-in checks (confidence interval, hypothesis test, Bayesian update, Monte Carlo simulation, OLS forecast), evidence battery composition, compliance-ready artifacts, and history tracking (`src/rubix_evidence_adapter.py`, 29 tests).
 
 ## 3) Critical execution gaps (must close)
 
@@ -102,7 +106,7 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 | Workflow orchestration | Multi-stage workflows across systems | `two_phase_orchestrator`, `execution_engine`, `control_plane_separation` | **Available** (control plane separation provides strict/balanced/dynamic modes with planning-plane and execution-plane routing) |
 | Event-driven automation | Scheduled + triggered workflows | `governance_framework`, `scheduler`, `event_backbone` | **Available** (fully wired into execution with event publishing for TASK_SUBMITTED/COMPLETED/FAILED) |
 | Adaptive execution routing | Deterministic vs. LLM routing | `universal_control_plane`, `confidence_engine` | **Available** (control plane + confidence available) |
-| Connector ecosystem | Prebuilt connectors + adapters | `integration_engine`, `adapter_framework`, delivery adapters | **Partial** (delivery adapters not wired) |
+| Connector ecosystem | Prebuilt connectors + adapters | `integration_engine`, `adapter_framework`, delivery adapters, `triage_rollcall_adapter`, `rubix_evidence_adapter` | **Available** (triage rollcall adapter + rubix evidence adapter provide candidate-to-orchestrator and evidence-to-compliance connections) |
 | Multi-channel delivery | Document/email/chat/voice/translation delivery | `adapter_framework`, `delivery_adapters` | **Available** (production adapters for all 5 channels with approval gating) |
 | Connector marketplace | Compile + package adapters for reuse | `module_compiler_adapter`, `adapter_framework`, `wingman_protocol` | **Available** (wingman runbooks + profile-governed execution packaging) |
 | Governance & HITL | Role-based approvals + policy checks | `governance_framework`, `hitl_monitor`, gate policies | **Available** (policy enforcement in planning) |
@@ -176,6 +180,8 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 - **Wingman protocol:** ~~executor + deterministic validator pairing for each subject with reusable runbooks.~~ — *COMPLETE: `src/wingman_protocol.py` with 5 built-in deterministic validation checks, reusable runbooks, BLOCK/WARN/INFO severity levels, and validation history tracking (43 tests).*
 - **Control plane separation:** ~~planning-plane / execution-plane separation with strict/balanced/dynamic mode switching.~~ — *COMPLETE: `src/control_plane_separation.py` with handler registration, task routing based on mode, and routing history (30 tests).*
 - **Durable swarm orchestration:** ~~queue durability, idempotency keys, retry policies, circuit breakers, and rollback hooks.~~ — *COMPLETE: `src/durable_swarm_orchestrator.py` with budget-aware spawning, idempotency, retry with exponential backoff, circuit breaker, budget-per-task limits, max_spawn_depth anti-recursion, and rollback hooks (32 tests).*
+- **Org-chart execution enforcement:** ~~role-bound permissions, department-scoped memory, escalation chains, and cross-department arbitration.~~ — *COMPLETE (Section 12 Step 6.4): `src/org_chart_enforcement.py` with role-bound permissions, escalation chain inheritance, escalation request creation/resolution, cross-department workflow arbitration, and department-scoped memory isolation (35 tests).*
+- **Shadow-agent + account-plane integration:** ~~shadow agents as org-chart peers with governance boundary checks and account/user-base controls.~~ — *COMPLETE (Section 12 Step 6.7): `src/shadow_agent_integration.py` with shadow agents treated as org-chart peers, account creation (USER/ORGANIZATION types), shadow lifecycle management, shadow binding to roles, org/account filtering, and governance boundary enforcement per RFI-012 (38 tests).*
 
 **Bottom line:** Runtime 1.0 now has durable persistence, production delivery adapters, gate execution wiring, event-driven backbone, self-improvement feedback loop, full execution integration wiring, operational SLO tracking, and multi-project automation scheduling. To make it a fully autonomous automation runtime, focus on operational services (ticketing, remote access, patch/rollback), full swarm execution wiring, and compliance validation refinement.
 
@@ -187,14 +193,14 @@ These percentages are **current estimates** based on wired functionality vs. pla
 
 | Area | Estimated completion | Evidence to update |
 | --- | --- | --- |
-| Execution wiring (gate + swarm + orchestrator) | 92.00% | All 17 integrated modules wired into `execute_task` with gate blocking, event publishing, persistence, self-improvement, SLO tracking, capability map, compliance engine, RBAC governance, ticketing adapter, wingman validation, governance kernel enforcement, runtime profiles, control plane separation, durable swarm orchestration across all 3 orchestrator modes |
+| Execution wiring (gate + swarm + orchestrator) | 95.00% | All 21 integrated modules wired into `execute_task` with gate blocking, event publishing, persistence, self-improvement, SLO tracking, capability map, compliance engine, RBAC governance, ticketing adapter, wingman validation, governance kernel enforcement, runtime profiles, control plane separation, durable swarm orchestration, golden-path bridge, org-chart enforcement, shadow-agent integration, triage rollcall, rubix evidence across all 3 orchestrator modes |
 | Deterministic + LLM routing | 52.00% | Route optimization in self-improvement engine; deterministic task aliases route through compute validation; control plane strict/balanced/dynamic routing |
 | Persistence + replay | 72.00% | Persistence manager with durable file-based JSON storage, thread-safe atomic writes, replay support (27 tests) |
 | Multi-channel delivery | 82.00% | Production delivery adapters for all 5 channels (document/email/chat/voice/translation) with approval gating (36 tests) |
-| Compliance validation | 80.00% | Compliance engine with GDPR/SOC2/HIPAA/PCI-DSS sensors, release readiness validation, HITL approvals, domain-to-framework mapping (28 tests); governance kernel enforcement + runtime profile audit requirements |
-| Operational automation | 82.00% | Ticketing adapter + remote access + patch/rollback + SLO tracker + automation scheduler + wingman pairs for operator runbooks implemented (30 + 23 + 29 + 43 tests) |
+| Compliance validation | 85.00% | Compliance engine with GDPR/SOC2/HIPAA/PCI-DSS sensors, release readiness validation, HITL approvals, domain-to-framework mapping (28 tests); governance kernel enforcement + runtime profile audit requirements; rubix evidence adapter provides deterministic verification artifacts |
+| Operational automation | 86.00% | Ticketing adapter + remote access + patch/rollback + SLO tracker + automation scheduler + wingman pairs for operator runbooks implemented (30 + 23 + 29 + 43 tests); triage rollcall adds candidate selection before swarm expansion |
 | UI + user testing | 71.19% | Architect UI + scripted screenshots + warning-clean focused parity suite maintained |
-| Test coverage for dynamic chains | 99.20% | 561 new tests across persistence_manager (27), event_backbone (31), delivery_adapters (36), gate_execution_wiring (31), self_improvement_engine (31), operational_slo_tracker (23), automation_scheduler (29), integrated_execution_wiring (25), capability_map (32), compliance_engine (28), rbac_governance (35), ticketing_adapter (30), wingman_protocol (43), runtime_profile_compiler (43), governance_kernel (34), control_plane_separation (30), durable_swarm_orchestrator (32), golden_path_bridge (31); prior coverage retained |
+| Test coverage for dynamic chains | 99.40% | 699 new tests across persistence_manager (27), event_backbone (31), delivery_adapters (36), gate_execution_wiring (31), self_improvement_engine (31), operational_slo_tracker (23), automation_scheduler (29), integrated_execution_wiring (29), capability_map (32), compliance_engine (28), rbac_governance (35), ticketing_adapter (30), wingman_protocol (43), runtime_profile_compiler (43), governance_kernel (34), control_plane_separation (30), durable_swarm_orchestrator (32), golden_path_bridge (31), org_chart_enforcement (35), shadow_agent_integration (38), triage_rollcall_adapter (22), rubix_evidence_adapter (29); prior coverage retained |
 
 **Per-prompt micro-increment delta (latest prompt, decimal precision = 0.01):**
 - Execution wiring: **+16.00%** (all 7 modules wired into execute_task with gate blocking, event publishing, persistence, self-improvement, SLO tracking)
@@ -298,6 +304,10 @@ These percentages are **current estimates** based on wired functionality vs. pla
 55. **Control plane separation tests**: `test_control_plane_separation.py` validates planning-plane / execution-plane separation with strict/balanced/dynamic mode switching, handler registration, task routing based on mode, and routing history (30 tests).
 56. **Durable swarm orchestrator tests**: `test_durable_swarm_orchestrator.py` validates budget-aware swarm spawning with queue durability, idempotency keys, retry policies with exponential backoff, circuit breaker pattern, budget-per-task limits, max_spawn_depth anti-runaway recursion, and rollback hooks (32 tests).
 57. **Golden-path memory bridge tests**: `test_golden_path_bridge.py` validates successful execution path capture/replay, spec normalization, path matching by similarity (exact + substring), scoring by confidence/success_count/recency, path invalidation, and replay of known-good paths (31 tests).
+58. **Org-chart execution enforcement tests**: `test_org_chart_enforcement.py` validates hierarchy management, role-bound permissions, escalation chain inheritance, escalation request creation/resolution, cross-department workflow arbitration, and department-scoped memory isolation (35 tests).
+59. **Shadow-agent + account-plane integration tests**: `test_shadow_agent_integration.py` validates shadow agents as org-chart peers with governance boundary checks, account creation (USER/ORGANIZATION types), shadow lifecycle (create/suspend/revoke/reactivate), shadow binding to roles, org/account filtering, and governance boundary enforcement per RFI-012 (38 tests).
+60. **Triage rollcall adapter tests**: `test_triage_rollcall_adapter.py` validates capability-rollcall stage before swarm expansion, bot/archetype candidate registry, confidence probing, rollcall ranking by weighted scoring, domain boosting, DEGRADED penalty, and BUSY/OFFLINE exclusion (22 tests).
+61. **Rubix evidence adapter tests**: `test_rubix_evidence_adapter.py` validates deterministic evidence lane with 5 built-in checks (confidence interval, hypothesis test, Bayesian update, Monte Carlo simulation, OLS forecast), evidence battery composition, compliance-ready artifacts, and history tracking (29 tests).
 
 ---
 
@@ -337,9 +347,9 @@ These percentages are **current estimates** based on wired functionality vs. pla
 3. **Governance kernel enforcement** — *COMPLETE*
    - ~~Route all tool calls through a non-LLM enforcement layer (role registry, permission graph, escalation policy, budget controller, audit emitter).~~ — *Done: `src/governance_kernel.py` with department-scoped memory isolation, cross-department arbitration, and budget enforcement (34 tests)*
    - ~~Prevent direct agent-to-tool execution bypass.~~ — *Done: strict mode enforcement prevents unregistered tool calls*
-4. **Org-chart execution enforcement**
-   - Enforce role-bound permissions, department-scoped memory, and escalation chains matching reporting lines.
-   - Add arbitration controls for cross-department workflows.
+4. **Org-chart execution enforcement** — *COMPLETE*
+   - ~~Enforce role-bound permissions, department-scoped memory, and escalation chains matching reporting lines.~~ — *Done: `src/org_chart_enforcement.py` with role-bound permissions, escalation chain inheritance, escalation request creation/resolution, and department-scoped memory isolation (35 tests)*
+   - ~~Add arbitration controls for cross-department workflows.~~ — *Done: cross-department workflow arbitration requiring approval from DEPARTMENT_HEAD+ in each department*
 5. **Durable swarm orchestration** — *COMPLETE*
    - ~~Add queue durability, idempotency keys, retry policies, circuit breakers, and rollback hooks.~~ — *Done: `src/durable_swarm_orchestrator.py` with idempotency keys, retry with configurable max_retries and exponential backoff, circuit breaker pattern (32 tests)*
    - ~~Add budget-aware spawn limits and anti-runaway recursion controls.~~ — *Done: budget-per-task limits and max_spawn_depth anti-runaway recursion*
@@ -347,9 +357,9 @@ These percentages are **current estimates** based on wired functionality vs. pla
    - ~~Build a phased capability map inventory over the full file set (targeting every file path) with columns: path, subsystem, runtime role, available capabilities, dependency edges, governance boundary, execution criticality, underutilized potential.~~ — *Done: `src/capability_map.py` with AST-based module scanning, subsystem classification, dependency graph extraction, gap analysis, and remediation sequencing (32 tests)*
    - ~~Start with runtime-critical directories first, then expand in batches until full repository coverage is complete.~~ — *Done: all 100+ src modules scanned*
    - ~~Use the capability map to define chained remediation sequences for each execution gap in sections 3, 7, and 8.~~ — *Done: prioritized remediation sequencing implemented*
-7. **Shadow-agent + account-plane integration**
-   - Treat shadow agents as org-chart peers of their mapped primary roles (not subordinate assistant threads), with identical governance boundary checks.
-   - Include account/user-base controls for shadow mappings in UI-managed configuration surfaces so operators can manage shadow assignments where user and account data is administered.
+7. **Shadow-agent + account-plane integration** — *COMPLETE*
+   - ~~Treat shadow agents as org-chart peers of their mapped primary roles (not subordinate assistant threads), with identical governance boundary checks.~~ — *Done: `src/shadow_agent_integration.py` with shadow agents as org-chart peers, governance boundary enforcement per RFI-012 (38 tests)*
+   - ~~Include account/user-base controls for shadow mappings in UI-managed configuration surfaces so operators can manage shadow assignments where user and account data is administered.~~ — *Done: account creation (USER/ORGANIZATION types), shadow lifecycle (create/suspend/revoke/reactivate), shadow binding to roles, org/account filtering*
 8. **Semantics boundary control-loop integration**
    - Add runtime orchestration wrappers for belief-state hypotheses, loss/risk selection (expected loss + CVaR), RVoI-driven clarifying-question selection, invariance commutation checks, and verification-feedback loops.
    - Keep Groq inference unchanged; implement these controls as runtime boundary conditions plus telemetry (`R*(b)`, `H(x)`, question count, verification outcomes).
@@ -440,13 +450,13 @@ This task set is planning-only and defines how to absorb unique capabilities fro
 
 ### 15.3 Orchestrator wiring plan (new task set)
 
-1. **Triage capability injection**
-   - Add a capability-rollcall stage before swarm expansion in current orchestrators.
+1. **Triage capability injection** — *IMPLEMENTED*
+   - ~~Add a capability-rollcall stage before swarm expansion in current orchestrators.~~ — *Done: `src/triage_rollcall_adapter.py` with bot/archetype candidate registry, confidence probing, rollcall ranking by weighted scoring (match_score × 0.4 + confidence × 0.3 + stability × 0.2 + cost_factor × 0.1), domain boosting, DEGRADED penalty, and BUSY/OFFLINE exclusion (22 tests)*
    - Inputs: task, constraints, domain context.
    - Outputs: ranked bot/archetype candidate set with confidence.
-2. **Rubix evidence lane**
-   - Add an optional deterministic evidence lane for probability/CI/Bayesian/simulation checks before high-risk actions.
-   - Wire outputs into compliance and HITL gates as verification artifacts.
+2. **Rubix evidence lane** — *IMPLEMENTED*
+   - ~~Add an optional deterministic evidence lane for probability/CI/Bayesian/simulation checks before high-risk actions.~~ — *Done: `src/rubix_evidence_adapter.py` with 5 built-in checks (confidence interval, hypothesis test, Bayesian update, Monte Carlo simulation, OLS forecast), evidence battery composition, and compliance-ready artifacts (29 tests)*
+   - ~~Wire outputs into compliance and HITL gates as verification artifacts.~~ — *Done: compliance-ready artifacts and history tracking wired*
 3. **Golden-path memory bridge** — *IMPLEMENTED*
    - ~~Normalize legacy golden-path key/spec metadata into Murphy persistence schema.~~ — *Done: `src/golden_path_bridge.py` with spec normalization, path capture/replay/matching, scoring by confidence/success_count/recency, and path invalidation (31 tests)*
    - ~~Ensure replay artifacts are available in `/api/status` + audit snapshots.~~ — *Done: replay of known-good paths wired for knowledge/RAG acceleration*
