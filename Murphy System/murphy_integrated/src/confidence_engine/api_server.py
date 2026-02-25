@@ -4,7 +4,6 @@ REST API for confidence, risk, and authority computation
 """
 
 from flask import Flask, request, jsonify
-from flask_cors import CORS
 from typing import Dict, Any, List
 import logging
 from datetime import datetime
@@ -26,10 +25,12 @@ from confidence_engine.murphy_calculator import MurphyCalculator
 from confidence_engine.authority_mapper import AuthorityMapper
 from confidence_engine.phase_controller import PhaseController
 
+from flask_security import configure_secure_app
+
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)
+configure_secure_app(app, service_name="confidence-engine")
 
 # Configure logging
 logging.basicConfig(

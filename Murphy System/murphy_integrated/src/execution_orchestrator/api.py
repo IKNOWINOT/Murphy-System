@@ -19,7 +19,6 @@ Endpoints:
 """
 
 from flask import Flask, request, jsonify
-from flask_cors import CORS
 from datetime import datetime
 import threading
 from typing import Dict, Optional
@@ -38,9 +37,11 @@ from .risk_monitor import RuntimeRiskMonitor
 from .rollback import RollbackEnforcer
 from .completion import CompletionCertifier
 
+from flask_security import configure_secure_app
+
 
 app = Flask(__name__)
-CORS(app)
+configure_secure_app(app, service_name="execution-orchestrator")
 
 # Initialize components
 validator = PreExecutionValidator()

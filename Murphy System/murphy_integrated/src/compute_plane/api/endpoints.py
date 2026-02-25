@@ -16,6 +16,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 from compute_plane.service import ComputeService
 from compute_plane.models.compute_request import ComputeRequest
 
+from flask_security import configure_secure_app
+
 
 def create_app(compute_service: ComputeService = None) -> Flask:
     """
@@ -28,7 +30,7 @@ def create_app(compute_service: ComputeService = None) -> Flask:
         Flask app
     """
     app = Flask(__name__)
-    CORS(app)
+    configure_secure_app(app, service_name="compute-plane")
     
     # Create or use provided service
     service = compute_service or ComputeService(enable_caching=True)

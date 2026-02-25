@@ -452,10 +452,10 @@ def create_standalone_app():
         Flask application
     """
     from flask import Flask
-    from flask_cors import CORS
+    from flask_security import configure_secure_app
     
     app = Flask(__name__)
-    CORS(app)
+    configure_secure_app(app, service_name="module-compiler")
     
     # Register API blueprint
     api = create_api()

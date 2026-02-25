@@ -4,7 +4,6 @@ REST API for compiling sealed execution packets
 """
 
 from flask import Flask, request, jsonify
-from flask_cors import CORS
 from typing import Dict, Any, List, Optional
 import logging
 from datetime import datetime
@@ -44,9 +43,11 @@ from confidence_engine.models import (
     ArtifactSource
 )
 
+from flask_security import configure_secure_app
+
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)
+configure_secure_app(app, service_name="execution-packet-compiler")
 
 # Configure logging
 logging.basicConfig(

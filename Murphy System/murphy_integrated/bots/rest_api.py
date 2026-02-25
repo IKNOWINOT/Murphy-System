@@ -11,6 +11,11 @@ except Exception:  # pragma: no cover - optional dependency
     request = None
     jsonify = None
 
+try:
+    from flask_security import configure_secure_app
+except Exception:  # pragma: no cover - optional dependency
+    configure_secure_app = None
+
 from .plugin_loader import load_plugins
 
 BOTS: dict[str, Any] = {}
@@ -22,6 +27,8 @@ app: Flask | None
 
 if Flask:
     app = Flask(__name__)
+    if configure_secure_app:
+        configure_secure_app(app, service_name="bots-api")
 
     @app.route('/bots/<bot_id>/action', methods=['POST'])
     def execute(bot_id: str) -> Any:

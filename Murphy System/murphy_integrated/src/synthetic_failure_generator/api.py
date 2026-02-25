@@ -38,9 +38,11 @@ from .training_output import TrainingOutputGenerator
 from .test_modes import TestModeExecutor
 from .safety_enforcer import SafetyEnforcer
 
+from flask_security import configure_secure_app
+
 
 app = Flask(__name__)
-CORS(app)
+configure_secure_app(app, service_name="synthetic-failure-generator")
 
 # Initialize components
 semantic_gen = SemanticFailureGenerator()
