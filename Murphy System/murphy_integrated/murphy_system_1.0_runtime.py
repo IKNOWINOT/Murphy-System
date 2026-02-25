@@ -193,6 +193,30 @@ except ImportError as e:
     print(f"Warning: Automation scheduler not available: {e}")
     AutomationScheduler = ProjectSchedule = SchedulePriority = None
 
+try:
+    from src.capability_map import CapabilityMap
+except ImportError as e:
+    print(f"Warning: Capability map not available: {e}")
+    CapabilityMap = None
+
+try:
+    from src.compliance_engine import ComplianceEngine, ComplianceFramework
+except ImportError as e:
+    print(f"Warning: Compliance engine not available: {e}")
+    ComplianceEngine = ComplianceFramework = None
+
+try:
+    from src.rbac_governance import RBACGovernance, TenantPolicy, UserIdentity, Role as RBACRole, Permission as RBACPermission
+except ImportError as e:
+    print(f"Warning: RBAC governance not available: {e}")
+    RBACGovernance = TenantPolicy = UserIdentity = RBACRole = RBACPermission = None
+
+try:
+    from src.ticketing_adapter import TicketingAdapter
+except ImportError as e:
+    print(f"Warning: Ticketing adapter not available: {e}")
+    TicketingAdapter = None
+
 # FastAPI for REST API
 try:
     from fastapi import FastAPI, HTTPException, Request
@@ -564,6 +588,30 @@ class MurphySystem:
             "path": "src.automation_scheduler",
             "description": "Multi-project automation scheduler with priority-based load balancing",
             "capabilities": ["scheduling", "multi_project", "load_balancing"]
+        },
+        {
+            "name": "capability_map",
+            "path": "src.capability_map",
+            "description": "Repository-wide capability map with gap analysis and remediation sequencing",
+            "capabilities": ["capability_inventory", "gap_analysis", "remediation_planning"]
+        },
+        {
+            "name": "compliance_engine",
+            "path": "src.compliance_engine",
+            "description": "Compliance validation engine with GDPR/SOC2/HIPAA/PCI-DSS sensors and HITL approvals",
+            "capabilities": ["compliance_validation", "regulatory_sensors", "release_readiness"]
+        },
+        {
+            "name": "rbac_governance",
+            "path": "src.rbac_governance",
+            "description": "Role-based access control with multi-tenant isolation and shadow agent governance",
+            "capabilities": ["rbac", "tenant_isolation", "shadow_agent_governance"]
+        },
+        {
+            "name": "ticketing_adapter",
+            "path": "src.ticketing_adapter",
+            "description": "ITSM ticketing adapter with remote access and patch/rollback automation",
+            "capabilities": ["ticketing", "remote_access", "patch_rollback"]
         }
     ]
     MODULE_SCAN_EXCLUDED_DIRS = {"__pycache__", "tests", "test", "docs", "documentation", "examples"}
@@ -1527,6 +1575,55 @@ class MurphySystem:
                 self.automation_scheduler = None
         else:
             self.automation_scheduler = None
+
+        # Capability Map
+        if CapabilityMap:
+            try:
+                self.capability_map = CapabilityMap()
+                # scan() expects base_path that contains both src/ and the runtime file
+                scan_base = str(Path(__file__).parent)
+                self.capability_map.scan(scan_base)
+                logger.info("Capability map initialized with %d modules",
+                            self.capability_map.get_status().get("total_modules", 0))
+            except Exception as exc:
+                logger.warning("Capability map initialization failed: %s", exc)
+                self.capability_map = None
+        else:
+            self.capability_map = None
+
+        # Compliance Engine
+        if ComplianceEngine:
+            try:
+                self.compliance_engine = ComplianceEngine()
+                logger.info("Compliance engine initialized with %d requirements",
+                            len(self.compliance_engine._requirements))
+            except Exception as exc:
+                logger.warning("Compliance engine initialization failed: %s", exc)
+                self.compliance_engine = None
+        else:
+            self.compliance_engine = None
+
+        # RBAC Governance
+        if RBACGovernance:
+            try:
+                self.rbac_governance = RBACGovernance()
+                logger.info("RBAC governance initialized")
+            except Exception as exc:
+                logger.warning("RBAC governance initialization failed: %s", exc)
+                self.rbac_governance = None
+        else:
+            self.rbac_governance = None
+
+        # Ticketing Adapter
+        if TicketingAdapter:
+            try:
+                self.ticketing_adapter = TicketingAdapter()
+                logger.info("Ticketing adapter initialized")
+            except Exception as exc:
+                logger.warning("Ticketing adapter initialization failed: %s", exc)
+                self.ticketing_adapter = None
+        else:
+            self.ticketing_adapter = None
     
     # ==================== CORE EXECUTION ====================
 
@@ -9497,6 +9594,38 @@ class MurphySystem:
             except Exception:
                 scheduler_status = {"error": "status unavailable"}
 
+        cap_map_status = {}
+        cap_map = getattr(self, "capability_map", None)
+        if cap_map is not None:
+            try:
+                cap_map_status = cap_map.get_status()
+            except Exception:
+                cap_map_status = {"error": "status unavailable"}
+
+        compliance_status = {}
+        compliance = getattr(self, "compliance_engine", None)
+        if compliance is not None:
+            try:
+                compliance_status = compliance.get_status()
+            except Exception:
+                compliance_status = {"error": "status unavailable"}
+
+        rbac_status = {}
+        rbac = getattr(self, "rbac_governance", None)
+        if rbac is not None:
+            try:
+                rbac_status = rbac.get_status()
+            except Exception:
+                rbac_status = {"error": "status unavailable"}
+
+        ticketing_status = {}
+        ticketing = getattr(self, "ticketing_adapter", None)
+        if ticketing is not None:
+            try:
+                ticketing_status = ticketing.get_status()
+            except Exception:
+                ticketing_status = {"error": "status unavailable"}
+
         return {
             "gate_execution_wiring": gate_status,
             "event_backbone": event_status,
@@ -9505,6 +9634,10 @@ class MurphySystem:
             "persistence_manager": persistence_status,
             "slo_tracker": slo_status,
             "automation_scheduler": scheduler_status,
+            "capability_map": cap_map_status,
+            "compliance_engine": compliance_status,
+            "rbac_governance": rbac_status,
+            "ticketing_adapter": ticketing_status,
         }
 
     def _build_confidence_report(self, task_description: str) -> Dict[str, Any]:
@@ -9973,7 +10106,11 @@ class MurphySystem:
                 'gate_execution_wiring': self._component_status(getattr(self, 'gate_wiring', None)),
                 'self_improvement_engine': self._component_status(getattr(self, 'self_improvement', None)),
                 'slo_tracker': self._component_status(getattr(self, 'slo_tracker', None)),
-                'automation_scheduler': self._component_status(getattr(self, 'automation_scheduler', None))
+                'automation_scheduler': self._component_status(getattr(self, 'automation_scheduler', None)),
+                'capability_map': self._component_status(getattr(self, 'capability_map', None)),
+                'compliance_engine': self._component_status(getattr(self, 'compliance_engine', None)),
+                'rbac_governance': self._component_status(getattr(self, 'rbac_governance', None)),
+                'ticketing_adapter': self._component_status(getattr(self, 'ticketing_adapter', None))
             },
             'statistics': {
                 'sessions': len(self.sessions),

@@ -67,6 +67,22 @@ class TestIntegratedModuleInitialization:
         system = MurphySystem()
         assert hasattr(system, "automation_scheduler")
 
+    def test_capability_map_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "capability_map")
+
+    def test_compliance_engine_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "compliance_engine")
+
+    def test_rbac_governance_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "rbac_governance")
+
+    def test_ticketing_adapter_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "ticketing_adapter")
+
 
 class TestExecuteTaskIntegration:
     """Verify execute_task wires through integrated modules."""
@@ -128,6 +144,10 @@ class TestSystemStatusIntegration:
         components = status["components"]
         assert "slo_tracker" in components
         assert "automation_scheduler" in components
+        assert "capability_map" in components
+        assert "compliance_engine" in components
+        assert "rbac_governance" in components
+        assert "ticketing_adapter" in components
 
     def test_integrated_summary_has_all_keys(self):
         system = MurphySystem()
@@ -141,5 +161,9 @@ class TestSystemStatusIntegration:
             "persistence_manager",
             "slo_tracker",
             "automation_scheduler",
+            "capability_map",
+            "compliance_engine",
+            "rbac_governance",
+            "ticketing_adapter",
         }
         assert expected_keys.issubset(set(modules.keys()))
