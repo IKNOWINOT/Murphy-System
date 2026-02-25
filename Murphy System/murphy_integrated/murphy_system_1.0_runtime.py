@@ -253,6 +253,30 @@ except ImportError as e:
     print(f"Warning: Golden path bridge not available: {e}")
     GoldenPathBridge = None
 
+try:
+    from src.org_chart_enforcement import OrgChartEnforcement
+except ImportError as e:
+    print(f"Warning: Org chart enforcement not available: {e}")
+    OrgChartEnforcement = None
+
+try:
+    from src.shadow_agent_integration import ShadowAgentIntegration
+except ImportError as e:
+    print(f"Warning: Shadow agent integration not available: {e}")
+    ShadowAgentIntegration = None
+
+try:
+    from src.triage_rollcall_adapter import TriageRollcallAdapter
+except ImportError as e:
+    print(f"Warning: Triage rollcall adapter not available: {e}")
+    TriageRollcallAdapter = None
+
+try:
+    from src.rubix_evidence_adapter import RubixEvidenceAdapter
+except ImportError as e:
+    print(f"Warning: Rubix evidence adapter not available: {e}")
+    RubixEvidenceAdapter = None
+
 # FastAPI for REST API
 try:
     from fastapi import FastAPI, HTTPException, Request
@@ -684,6 +708,30 @@ class MurphySystem:
             "path": "src.golden_path_bridge",
             "description": "Golden-path capture and replay for execution acceleration and knowledge/RAG",
             "capabilities": ["golden_path_capture", "path_matching", "replay_acceleration"]
+        },
+        {
+            "name": "org_chart_enforcement",
+            "path": "src.org_chart_enforcement",
+            "description": "Role-bound permissions, escalation chains, and cross-department workflow arbitration",
+            "capabilities": ["permission_enforcement", "escalation_chains", "cross_dept_arbitration"]
+        },
+        {
+            "name": "shadow_agent_integration",
+            "path": "src.shadow_agent_integration",
+            "description": "Shadow-agent org-chart parity with account/user-base controls and governance boundaries",
+            "capabilities": ["shadow_agent_lifecycle", "org_chart_parity", "account_management"]
+        },
+        {
+            "name": "triage_rollcall_adapter",
+            "path": "src.triage_rollcall_adapter",
+            "description": "Capability-rollcall stage before swarm expansion with ranked candidate selection",
+            "capabilities": ["candidate_registry", "rollcall_ranking", "confidence_probing"]
+        },
+        {
+            "name": "rubix_evidence_adapter",
+            "path": "src.rubix_evidence_adapter",
+            "description": "Deterministic evidence lane for CI/hypothesis/Bayesian/Monte Carlo/forecast checks",
+            "capabilities": ["evidence_checks", "compliance_artifacts", "deterministic_verification"]
         }
     ]
     MODULE_SCAN_EXCLUDED_DIRS = {"__pycache__", "tests", "test", "docs", "documentation", "examples"}
@@ -1762,6 +1810,50 @@ class MurphySystem:
                 self.golden_path_bridge = None
         else:
             self.golden_path_bridge = None
+
+        # Org Chart Enforcement
+        if OrgChartEnforcement:
+            try:
+                self.org_chart_enforcement = OrgChartEnforcement()
+                logger.info("Org chart enforcement initialized")
+            except Exception as exc:
+                logger.warning("Org chart enforcement initialization failed: %s", exc)
+                self.org_chart_enforcement = None
+        else:
+            self.org_chart_enforcement = None
+
+        # Shadow Agent Integration
+        if ShadowAgentIntegration:
+            try:
+                self.shadow_agent_integration = ShadowAgentIntegration()
+                logger.info("Shadow agent integration initialized")
+            except Exception as exc:
+                logger.warning("Shadow agent integration initialization failed: %s", exc)
+                self.shadow_agent_integration = None
+        else:
+            self.shadow_agent_integration = None
+
+        # Triage Rollcall Adapter
+        if TriageRollcallAdapter:
+            try:
+                self.triage_rollcall_adapter = TriageRollcallAdapter()
+                logger.info("Triage rollcall adapter initialized")
+            except Exception as exc:
+                logger.warning("Triage rollcall adapter initialization failed: %s", exc)
+                self.triage_rollcall_adapter = None
+        else:
+            self.triage_rollcall_adapter = None
+
+        # Rubix Evidence Adapter
+        if RubixEvidenceAdapter:
+            try:
+                self.rubix_evidence_adapter = RubixEvidenceAdapter()
+                logger.info("Rubix evidence adapter initialized")
+            except Exception as exc:
+                logger.warning("Rubix evidence adapter initialization failed: %s", exc)
+                self.rubix_evidence_adapter = None
+        else:
+            self.rubix_evidence_adapter = None
     
     # ==================== CORE EXECUTION ====================
 
@@ -9812,6 +9904,38 @@ class MurphySystem:
             except Exception:
                 gpb_status = {"error": "status unavailable"}
 
+        oce_status = {}
+        oce = getattr(self, "org_chart_enforcement", None)
+        if oce is not None:
+            try:
+                oce_status = oce.get_status()
+            except Exception:
+                oce_status = {"error": "status unavailable"}
+
+        sai_status = {}
+        sai = getattr(self, "shadow_agent_integration", None)
+        if sai is not None:
+            try:
+                sai_status = sai.get_status()
+            except Exception:
+                sai_status = {"error": "status unavailable"}
+
+        tra_status = {}
+        tra = getattr(self, "triage_rollcall_adapter", None)
+        if tra is not None:
+            try:
+                tra_status = tra.get_status()
+            except Exception:
+                tra_status = {"error": "status unavailable"}
+
+        rea_status = {}
+        rea = getattr(self, "rubix_evidence_adapter", None)
+        if rea is not None:
+            try:
+                rea_status = rea.get_status()
+            except Exception:
+                rea_status = {"error": "status unavailable"}
+
         return {
             "gate_execution_wiring": gate_status,
             "event_backbone": event_status,
@@ -9830,6 +9954,10 @@ class MurphySystem:
             "control_plane_separation": cps_status,
             "durable_swarm_orchestrator": dso_status,
             "golden_path_bridge": gpb_status,
+            "org_chart_enforcement": oce_status,
+            "shadow_agent_integration": sai_status,
+            "triage_rollcall_adapter": tra_status,
+            "rubix_evidence_adapter": rea_status,
         }
 
     def _build_confidence_report(self, task_description: str) -> Dict[str, Any]:
@@ -10308,7 +10436,11 @@ class MurphySystem:
                 'governance_kernel': self._component_status(getattr(self, 'governance_kernel', None)),
                 'control_plane_separation': self._component_status(getattr(self, 'control_plane_separation', None)),
                 'durable_swarm_orchestrator': self._component_status(getattr(self, 'durable_swarm_orchestrator', None)),
-                'golden_path_bridge': self._component_status(getattr(self, 'golden_path_bridge', None))
+                'golden_path_bridge': self._component_status(getattr(self, 'golden_path_bridge', None)),
+                'org_chart_enforcement': self._component_status(getattr(self, 'org_chart_enforcement', None)),
+                'shadow_agent_integration': self._component_status(getattr(self, 'shadow_agent_integration', None)),
+                'triage_rollcall_adapter': self._component_status(getattr(self, 'triage_rollcall_adapter', None)),
+                'rubix_evidence_adapter': self._component_status(getattr(self, 'rubix_evidence_adapter', None))
             },
             'statistics': {
                 'sessions': len(self.sessions),
