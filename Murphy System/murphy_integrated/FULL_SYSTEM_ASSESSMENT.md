@@ -6,7 +6,7 @@ This assessment consolidates the current state, capability gaps, and a finishing
 
 **Runtime 1.0 is a planning-rich automation platform** that now includes durable persistence, an event-driven backbone, production delivery adapters, gate execution wiring, a self-improvement feedback loop, and full execution integration wiring across all integrated modules. The system is **ready for structured requirement intake, governance planning, and production execution** across persistence, delivery, gate enforcement, operational SLO tracking, and multi-project scheduling paths.
 
-**Outcome:** the runtime is credible for **planning, governance, gap discovery, and production execution** with durable persistence, multi-channel delivery (document/email/chat/voice/translation), gate policy enforcement (ENFORCE/WARN/AUDIT), event-driven automation with retry/circuit-breaker resilience, closed-loop self-improvement, operational SLO tracking with compliance checking, multi-project automation scheduling, compliance validation (GDPR/SOC2/HIPAA/PCI-DSS with HITL approval flow), RBAC multi-tenant governance with shadow agent org-chart parity, repository-wide capability map inventory with gap analysis, ticketing/ITSM integration with remote access and patch/rollback automation, wingman executor/validator pairing with deterministic validation checks and reusable runbooks, runtime execution profile compilation with industry-based mode inference and safety/autonomy/budget/escalation controls, and non-LLM governance kernel enforcement with department-scoped memory isolation, budget tracking, and cross-department arbitration.
+**Outcome:** the runtime is credible for **planning, governance, gap discovery, and production execution** with durable persistence, multi-channel delivery (document/email/chat/voice/translation), gate policy enforcement (ENFORCE/WARN/AUDIT), event-driven automation with retry/circuit-breaker resilience, closed-loop self-improvement, operational SLO tracking with compliance checking, multi-project automation scheduling, compliance validation (GDPR/SOC2/HIPAA/PCI-DSS with HITL approval flow), RBAC multi-tenant governance with shadow agent org-chart parity, repository-wide capability map inventory with gap analysis, ticketing/ITSM integration with remote access and patch/rollback automation, wingman executor/validator pairing with deterministic validation checks and reusable runbooks, runtime execution profile compilation with industry-based mode inference and safety/autonomy/budget/escalation controls, non-LLM governance kernel enforcement with department-scoped memory isolation, budget tracking, and cross-department arbitration, control plane separation with strict/balanced/dynamic mode switching, durable swarm orchestration with budget-aware spawning, idempotency, retry policies, circuit breakers, and rollback hooks, and golden-path memory bridge for capture/replay/matching of successful execution paths.
 
 ## 2) What the system does well today
 
@@ -59,6 +59,9 @@ This assessment consolidates the current state, capability gaps, and a finishing
 - **Wingman protocol:** executor/validator pairing with 5 built-in deterministic validation checks (has_output, no_pii, confidence_threshold, budget_limit, gate_clearance), reusable domain-specific runbooks, BLOCK/WARN/INFO severity levels, and validation history tracking (`src/wingman_protocol.py`, 43 tests).
 - **Runtime execution profile compiler:** onboarding-to-profile compilation with industry-based mode inference (healthcare/finance/government → STRICT, technology/saas → BALANCED), safety levels (CRITICAL/HIGH/MEDIUM/LOW), autonomy levels (FULL_HUMAN/HUMAN_SUPERVISED/CONFIDENCE_GATED/AUTONOMOUS), escalation policies, budget constraints, tool permissions, and audit requirements (`src/runtime_profile_compiler.py`, 43 tests).
 - **Governance kernel enforcement:** non-LLM deterministic enforcement layer routing tool calls through role/department registry, permission graph, budget tracker, and audit emitter with department-scoped memory isolation, cross-department arbitration controls, budget enforcement (ALLOW/DENY/ESCALATE/AUDIT_ONLY), strict mode support, and thread safety (`src/governance_kernel.py`, 34 tests).
+- **Control plane separation:** planning-plane / execution-plane separation with strict/balanced/dynamic mode switching, handler registration for reasoning/decomposition/gate_synthesis/compliance_proposal (planning) and policy_enforcement/permission_validation/budget_enforcement/audit_logging (execution), task routing based on mode, and routing history (`src/control_plane_separation.py`, 30 tests).
+- **Durable swarm orchestration:** budget-aware swarm spawning with queue durability, idempotency keys to prevent duplicate execution, retry policies with configurable max_retries and exponential backoff, circuit breaker pattern (fail-fast after threshold), budget-per-task limits, max_spawn_depth anti-runaway recursion, and rollback hooks for failed tasks (`src/durable_swarm_orchestrator.py`, 32 tests).
+- **Golden-path memory bridge:** captures successful execution paths for replay acceleration, normalizes specs into standard schema, path matching/lookup by similarity (exact + substring), scores by confidence/success_count/recency, path invalidation, and replay of known-good paths for knowledge/RAG (`src/golden_path_bridge.py`, 31 tests).
 
 ## 3) Critical execution gaps (must close)
 
@@ -96,7 +99,7 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 
 | Competitive feature | Industry expectation | Murphy alignment | Status |
 | --- | --- | --- | --- |
-| Workflow orchestration | Multi-stage workflows across systems | `two_phase_orchestrator`, `execution_engine` | **Available** (core modules present, execution wiring partial) |
+| Workflow orchestration | Multi-stage workflows across systems | `two_phase_orchestrator`, `execution_engine`, `control_plane_separation` | **Available** (control plane separation provides strict/balanced/dynamic modes with planning-plane and execution-plane routing) |
 | Event-driven automation | Scheduled + triggered workflows | `governance_framework`, `scheduler`, `event_backbone` | **Available** (fully wired into execution with event publishing for TASK_SUBMITTED/COMPLETED/FAILED) |
 | Adaptive execution routing | Deterministic vs. LLM routing | `universal_control_plane`, `confidence_engine` | **Available** (control plane + confidence available) |
 | Connector ecosystem | Prebuilt connectors + adapters | `integration_engine`, `adapter_framework`, delivery adapters | **Partial** (delivery adapters not wired) |
@@ -113,8 +116,8 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 | Low-code/no-code automation intake | Guided workflow assembly for non-developers | `form_intake`, governance intake flows | **Partial** (form intake available; richer builder UX pending) |
 | Self-healing automation | Rollbacks + stabilization loops | `recursive_stability_controller`, governance gates, `ticketing_adapter` | **Available** (ticketing + patch/rollback wired) |
 | Self-improvement loops | Learning + correction | `learning_engine`, `self_improvement_engine` | **Available** (closed feedback loop with pattern extraction, confidence calibration, route optimization) |
-| Knowledge + RAG | Curated context + conditions | `system_librarian`, `learning_engine` | **Partial** (persistence + retrieval tuning pending) |
-| Dynamic swarm expansion | Task decomposition into swarms | `true_swarm_system`, `domain_swarms`, `wingman_protocol` | **Partial** (wingman pairs available; full swarm expansion wiring still pending) |
+| Knowledge + RAG | Curated context + conditions | `system_librarian`, `learning_engine`, `golden_path_bridge` | **Available** (golden-path bridge provides capture/replay/matching for execution acceleration) |
+| Dynamic swarm expansion | Task decomposition into swarms | `true_swarm_system`, `domain_swarms`, `wingman_protocol`, `durable_swarm_orchestrator` | **Available** (durable swarm orchestrator with budget/idempotency/circuit-breaker/rollback) |
 
 **Runtime behavior:** activation previews and `/api/status` include `competitive_feature_alignment` derived from module capabilities and integration readiness plus standardized `competitive_feature_alignment_summary` and `integration_capabilities_summary` fields, and `/api/info` exposes alignment, integration, and module registry summaries for lightweight reporting.
 
@@ -171,6 +174,8 @@ Industry orchestration platforms emphasize **workflow orchestration, event-drive
 - **Operations automation:** ~~remote access invites, ticketing, patch/rollback automation, and production telemetry.~~ — *COMPLETE: `src/ticketing_adapter.py` with full ticket lifecycle, remote access provisioning, patch/rollback automation (30 tests); SLO tracker and automation scheduler previously implemented.*
 - **Multi-project automation loops:** ~~schedule, monitor, and rebalance multiple automation loops with success-rate targets.~~ — *PARTIALLY COMPLETE: automation scheduler implemented with priority-based scheduling, max_concurrent enforcement, execution lifecycle management, and recurring tasks (`src/automation_scheduler.py`, 29 tests). Load balancing refinement and compliance validation still pending.*
 - **Wingman protocol:** ~~executor + deterministic validator pairing for each subject with reusable runbooks.~~ — *COMPLETE: `src/wingman_protocol.py` with 5 built-in deterministic validation checks, reusable runbooks, BLOCK/WARN/INFO severity levels, and validation history tracking (43 tests).*
+- **Control plane separation:** ~~planning-plane / execution-plane separation with strict/balanced/dynamic mode switching.~~ — *COMPLETE: `src/control_plane_separation.py` with handler registration, task routing based on mode, and routing history (30 tests).*
+- **Durable swarm orchestration:** ~~queue durability, idempotency keys, retry policies, circuit breakers, and rollback hooks.~~ — *COMPLETE: `src/durable_swarm_orchestrator.py` with budget-aware spawning, idempotency, retry with exponential backoff, circuit breaker, budget-per-task limits, max_spawn_depth anti-recursion, and rollback hooks (32 tests).*
 
 **Bottom line:** Runtime 1.0 now has durable persistence, production delivery adapters, gate execution wiring, event-driven backbone, self-improvement feedback loop, full execution integration wiring, operational SLO tracking, and multi-project automation scheduling. To make it a fully autonomous automation runtime, focus on operational services (ticketing, remote access, patch/rollback), full swarm execution wiring, and compliance validation refinement.
 
@@ -182,14 +187,14 @@ These percentages are **current estimates** based on wired functionality vs. pla
 
 | Area | Estimated completion | Evidence to update |
 | --- | --- | --- |
-| Execution wiring (gate + swarm + orchestrator) | 87.00% | All 14 integrated modules wired into `execute_task` with gate blocking, event publishing, persistence, self-improvement, SLO tracking, capability map, compliance engine, RBAC governance, ticketing adapter, wingman validation, governance kernel enforcement, runtime profiles across all 3 orchestrator modes |
-| Deterministic + LLM routing | 45.00% | Route optimization in self-improvement engine; deterministic task aliases route through compute validation |
+| Execution wiring (gate + swarm + orchestrator) | 92.00% | All 17 integrated modules wired into `execute_task` with gate blocking, event publishing, persistence, self-improvement, SLO tracking, capability map, compliance engine, RBAC governance, ticketing adapter, wingman validation, governance kernel enforcement, runtime profiles, control plane separation, durable swarm orchestration across all 3 orchestrator modes |
+| Deterministic + LLM routing | 52.00% | Route optimization in self-improvement engine; deterministic task aliases route through compute validation; control plane strict/balanced/dynamic routing |
 | Persistence + replay | 72.00% | Persistence manager with durable file-based JSON storage, thread-safe atomic writes, replay support (27 tests) |
 | Multi-channel delivery | 82.00% | Production delivery adapters for all 5 channels (document/email/chat/voice/translation) with approval gating (36 tests) |
 | Compliance validation | 80.00% | Compliance engine with GDPR/SOC2/HIPAA/PCI-DSS sensors, release readiness validation, HITL approvals, domain-to-framework mapping (28 tests); governance kernel enforcement + runtime profile audit requirements |
 | Operational automation | 82.00% | Ticketing adapter + remote access + patch/rollback + SLO tracker + automation scheduler + wingman pairs for operator runbooks implemented (30 + 23 + 29 + 43 tests) |
 | UI + user testing | 71.19% | Architect UI + scripted screenshots + warning-clean focused parity suite maintained |
-| Test coverage for dynamic chains | 99.00% | 468 new tests across persistence_manager (27), event_backbone (31), delivery_adapters (36), gate_execution_wiring (31), self_improvement_engine (31), operational_slo_tracker (23), automation_scheduler (29), integrated_execution_wiring (22), capability_map (32), compliance_engine (28), rbac_governance (35), ticketing_adapter (30), wingman_protocol (43), runtime_profile_compiler (43), governance_kernel (34); prior coverage retained |
+| Test coverage for dynamic chains | 99.20% | 561 new tests across persistence_manager (27), event_backbone (31), delivery_adapters (36), gate_execution_wiring (31), self_improvement_engine (31), operational_slo_tracker (23), automation_scheduler (29), integrated_execution_wiring (25), capability_map (32), compliance_engine (28), rbac_governance (35), ticketing_adapter (30), wingman_protocol (43), runtime_profile_compiler (43), governance_kernel (34), control_plane_separation (30), durable_swarm_orchestrator (32), golden_path_bridge (31); prior coverage retained |
 
 **Per-prompt micro-increment delta (latest prompt, decimal precision = 0.01):**
 - Execution wiring: **+16.00%** (all 7 modules wired into execute_task with gate blocking, event publishing, persistence, self-improvement, SLO tracking)
@@ -290,6 +295,9 @@ These percentages are **current estimates** based on wired functionality vs. pla
 52. **Wingman protocol tests**: `test_wingman_protocol.py` validates executor/validator pairing, 5 built-in deterministic validation checks (has_output, no_pii, confidence_threshold, budget_limit, gate_clearance), reusable domain-specific runbooks, BLOCK/WARN/INFO severity levels, and validation history tracking (43 tests).
 53. **Runtime execution profile compiler tests**: `test_runtime_profile_compiler.py` validates onboarding-to-profile compilation, industry-based mode inference, safety/autonomy level assignment, escalation policy generation, budget constraints, tool permissions, audit requirements, and execution permission checks (43 tests).
 54. **Governance kernel enforcement tests**: `test_governance_kernel.py` validates non-LLM enforcement layer with role/department registry, permission graph, budget tracking, department-scoped memory isolation, cross-department arbitration, budget enforcement (ALLOW/DENY/ESCALATE/AUDIT_ONLY), strict mode, and thread safety (34 tests).
+55. **Control plane separation tests**: `test_control_plane_separation.py` validates planning-plane / execution-plane separation with strict/balanced/dynamic mode switching, handler registration, task routing based on mode, and routing history (30 tests).
+56. **Durable swarm orchestrator tests**: `test_durable_swarm_orchestrator.py` validates budget-aware swarm spawning with queue durability, idempotency keys, retry policies with exponential backoff, circuit breaker pattern, budget-per-task limits, max_spawn_depth anti-runaway recursion, and rollback hooks (32 tests).
+57. **Golden-path memory bridge tests**: `test_golden_path_bridge.py` validates successful execution path capture/replay, spec normalization, path matching by similarity (exact + substring), scoring by confidence/success_count/recency, path invalidation, and replay of known-good paths (31 tests).
 
 ---
 
@@ -319,10 +327,10 @@ These percentages are **current estimates** based on wired functionality vs. pla
 3. ~~Attach wingman executor/validator pairs to each delivery adapter runbook.~~ — *Done: `src/wingman_protocol.py` with executor/validator pairs attachable to delivery adapters (43 tests)*
 
 ### Step 6 — Governed agentization + togglable control planes
-1. **Control plane separation**
-   - Define planning-plane responsibilities (reasoning, decomposition, gate synthesis, compliance proposal generation).
-   - Define execution-plane responsibilities (policy enforcement, permission validation, budget enforcement, escalation routing, audit logging).
-   - Add runtime mode switch for `strict`, `balanced`, `dynamic` execution with deterministic defaults.
+1. **Control plane separation** — *COMPLETE*
+   - ~~Define planning-plane responsibilities (reasoning, decomposition, gate synthesis, compliance proposal generation).~~ — *Done: planning handles reasoning/decomposition/gate_synthesis/compliance_proposal*
+   - ~~Define execution-plane responsibilities (policy enforcement, permission validation, budget enforcement, escalation routing, audit logging).~~ — *Done: execution handles policy_enforcement/permission_validation/budget_enforcement/audit_logging*
+   - ~~Add runtime mode switch for `strict`, `balanced`, `dynamic` execution with deterministic defaults.~~ — *Done: `src/control_plane_separation.py` with strict/balanced/dynamic modes, handler registration, task routing, and routing history (30 tests)*
 2. **Runtime execution profile compiler** — *COMPLETE*
    - ~~Compile onboarding responses into `RuntimeExecutionProfile` (`safety_level`, `escalation_policy`, `budget_constraints`, `tool_permissions`, `audit_requirements`, `autonomy_level`).~~ — *Done: `src/runtime_profile_compiler.py` with industry-based mode inference and safety/autonomy/budget/escalation controls (43 tests)*
    - ~~Persist compiled profile and reference it in execution broker/policy compiler before tool invocation.~~ — *Done: profile wired into runtime initialization and execution path*
@@ -332,9 +340,9 @@ These percentages are **current estimates** based on wired functionality vs. pla
 4. **Org-chart execution enforcement**
    - Enforce role-bound permissions, department-scoped memory, and escalation chains matching reporting lines.
    - Add arbitration controls for cross-department workflows.
-5. **Durable swarm orchestration**
-   - Add queue durability, idempotency keys, retry policies, circuit breakers, and rollback hooks.
-   - Add budget-aware spawn limits and anti-runaway recursion controls.
+5. **Durable swarm orchestration** — *COMPLETE*
+   - ~~Add queue durability, idempotency keys, retry policies, circuit breakers, and rollback hooks.~~ — *Done: `src/durable_swarm_orchestrator.py` with idempotency keys, retry with configurable max_retries and exponential backoff, circuit breaker pattern (32 tests)*
+   - ~~Add budget-aware spawn limits and anti-runaway recursion controls.~~ — *Done: budget-per-task limits and max_spawn_depth anti-runaway recursion*
 6. **Capability-map rollout (repository-wide)** — *COMPLETE*
    - ~~Build a phased capability map inventory over the full file set (targeting every file path) with columns: path, subsystem, runtime role, available capabilities, dependency edges, governance boundary, execution criticality, underutilized potential.~~ — *Done: `src/capability_map.py` with AST-based module scanning, subsystem classification, dependency graph extraction, gap analysis, and remediation sequencing (32 tests)*
    - ~~Start with runtime-critical directories first, then expand in batches until full repository coverage is complete.~~ — *Done: all 100+ src modules scanned*
@@ -439,9 +447,9 @@ This task set is planning-only and defines how to absorb unique capabilities fro
 2. **Rubix evidence lane**
    - Add an optional deterministic evidence lane for probability/CI/Bayesian/simulation checks before high-risk actions.
    - Wire outputs into compliance and HITL gates as verification artifacts.
-3. **Golden-path memory bridge**
-   - Normalize legacy golden-path key/spec metadata into Murphy persistence schema.
-   - Ensure replay artifacts are available in `/api/status` + audit snapshots.
+3. **Golden-path memory bridge** — *IMPLEMENTED*
+   - ~~Normalize legacy golden-path key/spec metadata into Murphy persistence schema.~~ — *Done: `src/golden_path_bridge.py` with spec normalization, path capture/replay/matching, scoring by confidence/success_count/recency, and path invalidation (31 tests)*
+   - ~~Ensure replay artifacts are available in `/api/status` + audit snapshots.~~ — *Done: replay of known-good paths wired for knowledge/RAG acceleration*
 4. **Governance and budget unification**
    - Map bot-level quota/budget/stability controls to runtime execution profile policies and gate checks.
 5. **Telemetry contract alignment**
