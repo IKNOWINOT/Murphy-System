@@ -54,6 +54,23 @@ completion_certifier = CompletionCertifier()
 # Execution state registry
 executions: Dict[str, ExecutionState] = {}
 execution_locks: Dict[str, threading.Lock] = {}
+execution_owners: Dict[str, str] = {}  # packet_id -> owner identity
+
+
+def _get_caller_identity() -> str:
+    """
+    Extract the caller identity from request headers.
+    
+    Uses X-Tenant-ID or X-API-Key as the ownership identifier.
+    Falls back to client IP for backward compatibility.
+    """
+    tenant = request.headers.get('X-Tenant-ID', '')
+    if tenant:
+        return tenant
+    api_key = request.headers.get('X-API-Key', '')
+    if api_key:
+        return api_key
+    return request.remote_addr or 'unknown'
 
 
 @app.route('/health', methods=['GET'])
@@ -124,6 +141,7 @@ def execute_packet():
     
     executions[packet_id] = execution_state
     execution_locks[packet_id] = threading.Lock()
+    execution_owners[packet_id] = _get_caller_identity()
     
     # Start execution in background thread
     thread = threading.Thread(
@@ -432,9 +450,15 @@ def register_interface():
 
 @app.route('/abort/<packet_id>', methods=['POST'])
 def abort_execution(packet_id: str):
-    """Abort execution"""
+    """Abort execution (only by owner)"""
     if packet_id not in executions:
         return jsonify({'error': 'Execution not found'}), 404
+    
+    # ARCH-004: Ownership check — prevent IDOR
+    caller = _get_caller_identity()
+    owner = execution_owners.get(packet_id, '')
+    if owner and caller != owner:
+        return jsonify({'error': 'Forbidden: you do not own this execution'}), 403
     
     execution_state = executions[packet_id]
     execution_state.status = ExecutionStatus.ABORTED
