@@ -95,9 +95,10 @@ class IntegratedHITLMonitor:
                 logger.error(f"Error checking supervisor: {e}")
         
         # Check with HITL monitor
-        hitl_needs_intervention = self.hitl_monitor.check_checkpoint(
-            task, phase, context
+        hitl_result = self.hitl_monitor.check_intervention_needed(
+            context=task, checkpoint_config=['on_high_risk', 'on_low_confidence']
         )
+        hitl_needs_intervention = hitl_result is not None
         
         # Intervention needed if either system requests it
         needs_intervention = supervisor_needs_intervention or hitl_needs_intervention
@@ -129,11 +130,19 @@ class IntegratedHITLMonitor:
             Intervention request
         """
         
-        request = self.hitl_monitor.request_intervention(
-            task=task,
-            intervention_type=intervention_type,
-            reason=reason
+        import uuid as _uuid
+        
+        intervention_type_map = {t.value: t for t in InterventionType}
+        itype = intervention_type_map.get(intervention_type, InterventionType.REVIEW)
+        
+        request = InterventionRequest(
+            request_id=f"req_{_uuid.uuid4().hex[:8]}",
+            intervention_type=itype,
+            task_id=task.get('id', 'unknown'),
+            reason=reason,
+            context=task
         )
+        self.hitl_monitor.pending_interventions[request.request_id] = request
         
         logger.info(
             f"Intervention requested for task {task.get('id')}: {reason}"
@@ -167,9 +176,12 @@ class IntegratedHITLMonitor:
             Intervention response
         """
         
-        response = self.hitl_monitor.submit_response(
+        response = self.hitl_monitor.respond_to_intervention(
             request_id=request_id,
-            response_data=response_data
+            approved=response_data.get('approved', True),
+            decision=response_data.get('decision', 'approve'),
+            responded_by=response_data.get('responded_by', 'system'),
+            feedback=response_data.get('feedback')
         )
         
         logger.info(
@@ -197,7 +209,7 @@ class IntegratedHITLMonitor:
             List of pending requests
         """
         
-        return self.hitl_monitor.get_pending_requests()
+        return self.hitl_monitor.get_pending_interventions()
     
     def get_checkpoint_statistics(self) -> Dict[str, Any]:
         """
@@ -207,7 +219,14 @@ class IntegratedHITLMonitor:
             Statistics dictionary
         """
         
-        stats = self.hitl_monitor.get_statistics()
+        stats = {
+            'total_pending': len(self.hitl_monitor.pending_interventions),
+            'total_completed': len(self.hitl_monitor.completed_interventions),
+            'total_interventions': (
+                len(self.hitl_monitor.pending_interventions) +
+                len(self.hitl_monitor.completed_interventions)
+            )
+        }
         
         # Add supervisor statistics if available
         if self.supervisor:

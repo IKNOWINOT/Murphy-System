@@ -86,22 +86,37 @@ class IntegratedCorrectionSystem:
         """
         
         # Record correction using new system
-        correction = self.correction_capture.capture_correction(
+        from .correction_models import create_simple_correction, CorrectionType, CorrectionSeverity
+        
+        correction_type_str = correction_data.get('correction_type', 'output_modification')
+        correction_type_map = {ct.value: ct for ct in CorrectionType}
+        correction_type = correction_type_map.get(correction_type_str, CorrectionType.OUTPUT_MODIFICATION)
+        
+        severity_str = correction_data.get('severity', 'medium')
+        severity_map = {s.value: s for s in CorrectionSeverity}
+        severity = severity_map.get(severity_str, CorrectionSeverity.MEDIUM)
+        
+        correction = create_simple_correction(
             task_id=task_id,
-            correction_data=correction_data,
-            method=method
+            field_name='output',
+            original_value=correction_data.get('original_output', ''),
+            corrected_value=correction_data.get('corrected_output', ''),
+            reasoning=correction_data.get('explanation', ''),
+            correction_type=correction_type,
+            severity=severity
         )
+        self.correction_capture.all_corrections.append(correction)
         
         logger.info(f"Captured correction for task {task_id} via {method}")
         
         # Validate correction
-        validation_result = self.correction_verifier.verify(correction)
+        validation_result = self.correction_verifier.verify_correction(correction)
         
-        if not validation_result.is_valid:
-            logger.warning(f"Correction validation issues: {validation_result.issues}")
+        if not validation_result.is_verified:
+            logger.warning(f"Correction validation issues: {validation_result.issues_found}")
         
         # Extract patterns
-        patterns = self.pattern_extractor.extract_from_correction(correction)
+        patterns = self.pattern_extractor.extract_patterns([correction])
         
         if patterns:
             logger.info(f"Extracted {len(patterns)} patterns from correction")
@@ -131,15 +146,24 @@ class IntegratedCorrectionSystem:
             Recorded feedback
         """
         
+        from .feedback_system import FeedbackType
+        
+        feedback_type_str = feedback_data.get('feedback_type', 'suggestion')
+        feedback_type_map = {ft.value: ft for ft in FeedbackType}
+        feedback_type = feedback_type_map.get(feedback_type_str, FeedbackType.SUGGESTION)
+        
         feedback = self.feedback_system.collect_feedback(
-            task_id=task_id,
-            feedback_data=feedback_data
+            feedback_type=feedback_type,
+            title=feedback_data.get('title', feedback_type_str),
+            description=feedback_data.get('comments', feedback_data.get('description', '')),
+            user_id=feedback_data.get('user_id', 'system'),
+            task_id=task_id
         )
         
         logger.info(f"Captured feedback for task {task_id}")
         
-        # Analyze feedback
-        analysis = self.feedback_system.analyze_feedback(feedback)
+        # Validate feedback
+        analysis = self.feedback_system.validate_feedback(feedback.id)
         
         logger.debug(f"Feedback analysis: {analysis}")
         
@@ -161,10 +185,11 @@ class IntegratedCorrectionSystem:
             List of patterns
         """
         
-        patterns = self.pattern_extractor.get_patterns(
-            task_type=task_type,
-            min_frequency=min_frequency
-        )
+        patterns = self.pattern_extractor.extracted_patterns
+        if task_type:
+            patterns = [p for p in patterns if task_type in p.applicable_contexts]
+        if min_frequency:
+            patterns = [p for p in patterns if p.frequency >= min_frequency]
         
         logger.info(f"Retrieved {len(patterns)} patterns")
         
@@ -251,7 +276,7 @@ class IntegratedCorrectionSystem:
         """
         
         corrections = self.correction_capture.get_all_corrections()
-        patterns = self.pattern_extractor.get_all_patterns()
+        patterns = self.pattern_extractor.extracted_patterns
         
         stats = {
             'total_corrections': len(corrections),
