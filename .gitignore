@@ -62,10 +62,13 @@ murphy_v3/__pycache__/
 *.pyc
 _workspace_*.zip
 murphy_persistence/
+**/murphy_persistence/
 .murphy_persistence/
+**/.murphy_persistence/
 persistence_snapshots/
 handoff_queue_snapshots/
 handoff_queue_snapshot_*.json
+**/.pytest_cache/
 
 # Release/build archives (zip packages should be built from source, not tracked)
 *.zip
