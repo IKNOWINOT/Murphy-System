@@ -175,6 +175,10 @@ class TestIntegratedModuleInitialization:
         system = MurphySystem()
         assert hasattr(system, "webhook_event_processor")
 
+    def test_self_automation_orchestrator_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "self_automation_orchestrator")
+
 
 class TestExecuteTaskIntegration:
     """Verify execute_task wires through integrated modules."""
@@ -263,6 +267,7 @@ class TestSystemStatusIntegration:
         assert "automation_type_registry" in components
         assert "api_gateway_adapter" in components
         assert "webhook_event_processor" in components
+        assert "self_automation_orchestrator" in components
 
     def test_integrated_summary_has_all_keys(self):
         system = MurphySystem()
@@ -303,5 +308,6 @@ class TestSystemStatusIntegration:
             "automation_type_registry",
             "api_gateway_adapter",
             "webhook_event_processor",
+            "self_automation_orchestrator",
         }
         assert expected_keys.issubset(set(modules.keys()))

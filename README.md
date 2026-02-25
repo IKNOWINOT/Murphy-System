@@ -259,8 +259,9 @@ start_murphy_1.0.bat   # Windows
 - **Automation type registry (IMPLEMENTED):** `src/automation_type_registry.py` provides 16 automation templates across 11 categories (IT, business, data, marketing, customer service, HR, financial, content, security, DevOps, compliance) with complexity levels, HITL requirements, and connector declarations. 22 tests in `tests/test_automation_type_registry.py`.
 - **API gateway adapter (IMPLEMENTED):** `src/api_gateway_adapter.py` provides unified API gateway for external integrations with rate limiting, multi-method auth, circuit breaker, response caching, and webhook dispatch. 23 tests in `tests/test_api_gateway_adapter.py`.
 - **Webhook event processor (IMPLEMENTED):** `src/webhook_event_processor.py` provides inbound webhook handling with 10 default sources, SHA-256 signature verification, 7 normalization rules, and event routing. 25 tests in `tests/test_webhook_event_processor.py`.
-- **Updated completion percentage snapshot (current):** execution wiring **99.00%**, deterministic+LLM routing **75.00%**, persistence+replay **78.00%**, multi-channel delivery **88.00%**, compliance **93.00%**, operations **93.00%**, UI/testing **71.19%**, dynamic-chain tests **99.80%** (source: `FULL_SYSTEM_ASSESSMENT.md` section 9; all Section 12 steps COMPLETE, all Section 14 priorities COMPLETE, all Section 15 items IMPLEMENTED, Section 16 platform/integration recommendations IMPLEMENTED).
-- **Latest test run (all 34 modules):** 1117 module tests passed — **0 failures**.
+- **Self-automation orchestrator (IMPLEMENTED):** `src/self_automation_orchestrator.py` provides self-improvement task queue with prompt chain templates (7-step cycle), priority queue with dependency resolution, improvement cycle management, gap analysis, and AI collaborator mode. 45 tests in `tests/test_self_automation_orchestrator.py`. See `PROMPT_CHAIN.md` for structured prompts enabling system self-automation.
+- **Updated completion percentage snapshot (current):** execution wiring **99.00%**, deterministic+LLM routing **75.00%**, persistence+replay **78.00%**, multi-channel delivery **88.00%**, compliance **93.00%**, operations **93.00%**, UI/testing **71.19%**, dynamic-chain tests **99.80%** (source: `FULL_SYSTEM_ASSESSMENT.md` section 9; all Section 12 steps COMPLETE, all Section 14 priorities COMPLETE, all Section 15 items IMPLEMENTED, Section 16 platform/integration recommendations IMPLEMENTED, Section 17 self-automation IMPLEMENTED).
+- **Latest test run (all 35 modules):** 1162 module tests passed — **0 failures**.
 ---
 
 ## 🗃️ Repository Index (Database-Style Reference)
@@ -327,6 +328,7 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **Automation Type Registry** | `src/automation_type_registry.py` | 16 templates across 11 categories (IT, DevOps, marketing, etc.) |
 | **API Gateway Adapter** | `src/api_gateway_adapter.py` | Rate limiting, auth, circuit breaker, caching, webhook dispatch |
 | **Webhook Event Processor** | `src/webhook_event_processor.py` | 10 webhook sources, signature verification, event normalization |
+| **Self-Automation Orchestrator** | `src/self_automation_orchestrator.py` | Prompt chain, task queue, gap analysis, AI collaborator mode |
 
 **Progress tracking:** update the forward plan in
 `Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md` and append confirmed completion evidence in

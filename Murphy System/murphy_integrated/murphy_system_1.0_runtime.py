@@ -355,6 +355,12 @@ except ImportError as e:
     print(f"Warning: Webhook event processor not available: {e}")
     WebhookEventProcessor = None
 
+try:
+    from src.self_automation_orchestrator import SelfAutomationOrchestrator
+except ImportError as e:
+    print(f"Warning: Self-automation orchestrator not available: {e}")
+    SelfAutomationOrchestrator = None
+
 # FastAPI for REST API
 try:
     from fastapi import FastAPI, HTTPException, Request
@@ -888,6 +894,12 @@ class MurphySystem:
             "path": "src.webhook_event_processor",
             "description": "Inbound webhook handling for event-driven integrations with signature verification, payload normalization, and event routing",
             "capabilities": ["webhook_processing", "signature_verification", "event_normalization", "event_routing", "platform_webhooks"]
+        },
+        {
+            "name": "self_automation_orchestrator",
+            "path": "src.self_automation_orchestrator",
+            "description": "Self-automation task queue with prompt chain templates for continuous self-improvement cycles",
+            "capabilities": ["self_automation", "task_queue", "prompt_chain", "gap_analysis", "improvement_cycles"]
         }
     ]
     MODULE_SCAN_EXCLUDED_DIRS = {"__pycache__", "tests", "test", "docs", "documentation", "examples"}
@@ -2155,6 +2167,17 @@ class MurphySystem:
                 self.webhook_event_processor = None
         else:
             self.webhook_event_processor = None
+
+        # Self-Automation Orchestrator
+        if SelfAutomationOrchestrator:
+            try:
+                self.self_automation_orchestrator = SelfAutomationOrchestrator()
+                logger.info("Self-automation orchestrator initialized")
+            except Exception as exc:
+                logger.warning("Self-automation orchestrator initialization failed: %s", exc)
+                self.self_automation_orchestrator = None
+        else:
+            self.self_automation_orchestrator = None
 
     # ==================== CORE EXECUTION ====================
 
@@ -10341,6 +10364,14 @@ class MurphySystem:
             except Exception:
                 wep_status = {"error": "status unavailable"}
 
+        sao_status = {}
+        sao = getattr(self, "self_automation_orchestrator", None)
+        if sao is not None:
+            try:
+                sao_status = sao.get_status()
+            except Exception:
+                sao_status = {"error": "status unavailable"}
+
         return {
             "gate_execution_wiring": gate_status,
             "event_backbone": event_status,
@@ -10376,6 +10407,7 @@ class MurphySystem:
             "automation_type_registry": atr_status,
             "api_gateway_adapter": aga_status,
             "webhook_event_processor": wep_status,
+            "self_automation_orchestrator": sao_status,
         }
 
     def _build_confidence_report(self, task_description: str) -> Dict[str, Any]:
@@ -10871,7 +10903,8 @@ class MurphySystem:
                 'workflow_dag_engine': self._component_status(getattr(self, 'workflow_dag_engine', None)),
                 'automation_type_registry': self._component_status(getattr(self, 'automation_type_registry', None)),
                 'api_gateway_adapter': self._component_status(getattr(self, 'api_gateway_adapter', None)),
-                'webhook_event_processor': self._component_status(getattr(self, 'webhook_event_processor', None))
+                'webhook_event_processor': self._component_status(getattr(self, 'webhook_event_processor', None)),
+                'self_automation_orchestrator': self._component_status(getattr(self, 'self_automation_orchestrator', None))
             },
             'statistics': {
                 'sessions': len(self.sessions),
