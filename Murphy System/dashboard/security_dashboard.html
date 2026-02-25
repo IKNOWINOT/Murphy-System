@@ -12,11 +12,11 @@
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
             padding: 20px;
             min-height: 100vh;
-            color: #fff;
+            color: #00ff41;
         }
         
         .container {
@@ -33,13 +33,13 @@
         .header h1 {
             font-size: 2.5em;
             margin-bottom: 10px;
-            background: linear-gradient(90deg, #667eea, #764ba2);
+            background: linear-gradient(90deg, #00ff41, #00e5ff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
         
         .header p {
-            color: #a0a0a0;
+            color: #00e5ff;
             font-size: 1.1em;
         }
         
@@ -51,11 +51,12 @@
         }
         
         .stat-card {
-            background: rgba(255, 255, 255, 0.05);
+            background: #111;
             border-radius: 12px;
             padding: 25px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid #00ff41;
             transition: transform 0.3s ease;
+            box-shadow: 0 0 10px rgba(0,255,65,0.3);
         }
         
         .stat-card:hover {
@@ -74,27 +75,28 @@
         }
         
         .stat-card .label {
-            color: #a0a0a0;
+            color: #00e5ff;
             font-size: 0.9em;
         }
         
         .stat-card.secure .value { color: #00d4aa; }
         .stat-card.warning .value { color: #ffa500; }
         .stat-card.critical .value { color: #ff4757; }
-        .stat-card.info .value { color: #667eea; }
+        .stat-card.info .value { color: #00e5ff; }
         
         .section {
-            background: rgba(255, 255, 255, 0.05);
+            background: #111;
             border-radius: 12px;
             padding: 30px;
             margin-bottom: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid #00ff41;
+            box-shadow: 0 0 10px rgba(0,255,65,0.3);
         }
         
         .section h2 {
             font-size: 1.8em;
             margin-bottom: 20px;
-            color: #667eea;
+            color: #00e5ff;
         }
         
         .event-table {
@@ -103,21 +105,22 @@
         }
         
         .event-table th {
-            background: rgba(255, 255, 255, 0.1);
+            background: #1a1a1a;
             padding: 15px;
             text-align: left;
             font-weight: 600;
-            color: #a0a0a0;
-            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            color: #00e5ff;
+            border-bottom: 2px solid #333;
         }
         
         .event-table td {
             padding: 15px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid #222;
+            color: #00ff41;
         }
         
         .event-table tr:hover {
-            background: rgba(255, 255, 255, 0.02);
+            background: #1a1a1a;
         }
         
         .severity-badge {
@@ -128,7 +131,7 @@
             text-transform: uppercase;
         }
         
-        .severity-info { background: rgba(102, 126, 234, 0.2); color: #667eea; }
+        .severity-info { background: rgba(0, 229, 255, 0.15); color: #00e5ff; }
         .severity-warning { background: rgba(255, 165, 0, 0.2); color: #ffa500; }
         .severity-critical { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
         
@@ -145,9 +148,9 @@
         
         .refresh-btn {
             padding: 10px 20px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border: none;
+            background: #1a1a1a;
+            color: #00ff41;
+            border: 1px solid #00ff41;
             border-radius: 5px;
             cursor: pointer;
             font-size: 14px;
@@ -162,13 +165,13 @@
         .loading {
             text-align: center;
             padding: 40px;
-            color: #a0a0a0;
+            color: #00e5ff;
         }
         
         .no-data {
             text-align: center;
             padding: 40px;
-            color: #a0a0a0;
+            color: #00e5ff;
         }
         
         .credential-list {
@@ -178,14 +181,14 @@
         }
         
         .credential-card {
-            background: rgba(255, 255, 255, 0.05);
+            background: #111;
             border-radius: 8px;
             padding: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid #00ff41;
         }
         
         .credential-card h4 {
-            color: #667eea;
+            color: #00e5ff;
             margin-bottom: 10px;
         }
         
@@ -193,7 +196,7 @@
             display: flex;
             justify-content: space-between;
             padding: 5px 0;
-            color: #a0a0a0;
+            color: #00e5ff;
         }
         
         .credential-card .encrypted {
