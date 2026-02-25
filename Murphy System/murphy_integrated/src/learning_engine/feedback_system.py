@@ -665,6 +665,10 @@ class FeedbackStorage:
     def get_recent_entries(self, count: int = 10) -> List[FeedbackEntry]:
         return self._entries[-count:]
 
+    def get_all_entries(self) -> List[FeedbackEntry]:
+        """Return a copy of all stored entries."""
+        return self._entries[:]
+
 
 class FeedbackAnalysis:
     """Result of operational feedback analysis."""
@@ -806,7 +810,7 @@ class OperationalFeedbackSystem:
         return self.analyzer.analyze_feedback(entries)
 
     def get_feedback_summary(self):
-        entries = self.storage._entries
+        entries = self.storage.get_all_entries()
         if not entries:
             return {'total_entries': 0, 'success_rate': 0.0, 'by_type': {}, 'by_source': {}}
 
@@ -837,7 +841,7 @@ class OperationalFeedbackSystem:
         return {
             'summary': self.get_feedback_summary(),
             'issues': self.get_tracked_issues(),
-            'recent_entries': self.storage._entries[:]
+            'recent_entries': self.storage.get_all_entries()
         }
 
     def reset_feedback(self):
