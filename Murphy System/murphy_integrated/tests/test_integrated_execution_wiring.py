@@ -123,6 +123,18 @@ class TestIntegratedModuleInitialization:
         system = MurphySystem()
         assert hasattr(system, "rubix_evidence_adapter")
 
+    def test_semantics_boundary_controller_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "semantics_boundary_controller")
+
+    def test_bot_governance_policy_mapper_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "bot_governance_policy_mapper")
+
+    def test_bot_telemetry_normalizer_initialized(self):
+        system = MurphySystem()
+        assert hasattr(system, "bot_telemetry_normalizer")
+
 
 class TestExecuteTaskIntegration:
     """Verify execute_task wires through integrated modules."""
@@ -198,6 +210,9 @@ class TestSystemStatusIntegration:
         assert "shadow_agent_integration" in components
         assert "triage_rollcall_adapter" in components
         assert "rubix_evidence_adapter" in components
+        assert "semantics_boundary_controller" in components
+        assert "bot_governance_policy_mapper" in components
+        assert "bot_telemetry_normalizer" in components
 
     def test_integrated_summary_has_all_keys(self):
         system = MurphySystem()
@@ -225,5 +240,8 @@ class TestSystemStatusIntegration:
             "shadow_agent_integration",
             "triage_rollcall_adapter",
             "rubix_evidence_adapter",
+            "semantics_boundary_controller",
+            "bot_governance_policy_mapper",
+            "bot_telemetry_normalizer",
         }
         assert expected_keys.issubset(set(modules.keys()))
