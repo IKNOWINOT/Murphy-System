@@ -143,6 +143,248 @@ except ImportError as e:
     print(f"Warning: Organization chart system not available: {e}")
     OrganizationChart = None
 
+# New integrated modules
+try:
+    from src.persistence_manager import PersistenceManager
+except ImportError as e:
+    print(f"Warning: Persistence manager not available: {e}")
+    PersistenceManager = None
+
+try:
+    from src.event_backbone import EventBackbone, EventType as BackboneEventType
+except ImportError as e:
+    print(f"Warning: Event backbone not available: {e}")
+    EventBackbone = None
+    BackboneEventType = None
+
+try:
+    from src.delivery_adapters import (
+        DeliveryOrchestrator, DeliveryChannel, DeliveryRequest, DeliveryStatus,
+        DocumentDeliveryAdapter, EmailDeliveryAdapter, ChatDeliveryAdapter,
+        VoiceDeliveryAdapter, TranslationDeliveryAdapter
+    )
+except ImportError as e:
+    print(f"Warning: Delivery adapters not available: {e}")
+    DeliveryOrchestrator = DeliveryChannel = DeliveryRequest = DeliveryStatus = None
+    DocumentDeliveryAdapter = EmailDeliveryAdapter = ChatDeliveryAdapter = None
+    VoiceDeliveryAdapter = TranslationDeliveryAdapter = None
+
+try:
+    from src.gate_execution_wiring import GateExecutionWiring, GateType, GatePolicy
+except ImportError as e:
+    print(f"Warning: Gate execution wiring not available: {e}")
+    GateExecutionWiring = GateType = GatePolicy = None
+
+try:
+    from src.self_improvement_engine import SelfImprovementEngine, ExecutionOutcome, OutcomeType
+except ImportError as e:
+    print(f"Warning: Self-improvement engine not available: {e}")
+    SelfImprovementEngine = ExecutionOutcome = OutcomeType = None
+
+try:
+    from src.operational_slo_tracker import OperationalSLOTracker, SLOTarget, ExecutionRecord as SLOExecutionRecord
+except ImportError as e:
+    print(f"Warning: Operational SLO tracker not available: {e}")
+    OperationalSLOTracker = SLOTarget = SLOExecutionRecord = None
+
+try:
+    from src.automation_scheduler import AutomationScheduler, ProjectSchedule, SchedulePriority
+except ImportError as e:
+    print(f"Warning: Automation scheduler not available: {e}")
+    AutomationScheduler = ProjectSchedule = SchedulePriority = None
+
+try:
+    from src.capability_map import CapabilityMap
+except ImportError as e:
+    print(f"Warning: Capability map not available: {e}")
+    CapabilityMap = None
+
+try:
+    from src.compliance_engine import ComplianceEngine, ComplianceFramework
+except ImportError as e:
+    print(f"Warning: Compliance engine not available: {e}")
+    ComplianceEngine = ComplianceFramework = None
+
+try:
+    from src.rbac_governance import RBACGovernance, TenantPolicy, UserIdentity, Role as RBACRole, Permission as RBACPermission
+except ImportError as e:
+    print(f"Warning: RBAC governance not available: {e}")
+    RBACGovernance = TenantPolicy = UserIdentity = RBACRole = RBACPermission = None
+
+try:
+    from src.ticketing_adapter import TicketingAdapter
+except ImportError as e:
+    print(f"Warning: Ticketing adapter not available: {e}")
+    TicketingAdapter = None
+
+try:
+    from src.wingman_protocol import WingmanProtocol
+except ImportError as e:
+    print(f"Warning: Wingman protocol not available: {e}")
+    WingmanProtocol = None
+
+try:
+    from src.runtime_profile_compiler import RuntimeProfileCompiler
+except ImportError as e:
+    print(f"Warning: Runtime profile compiler not available: {e}")
+    RuntimeProfileCompiler = None
+
+try:
+    from src.governance_kernel import GovernanceKernel
+except ImportError as e:
+    print(f"Warning: Governance kernel not available: {e}")
+    GovernanceKernel = None
+
+try:
+    from src.control_plane_separation import ControlPlaneSeparation
+except ImportError as e:
+    print(f"Warning: Control plane separation not available: {e}")
+    ControlPlaneSeparation = None
+
+try:
+    from src.durable_swarm_orchestrator import DurableSwarmOrchestrator
+except ImportError as e:
+    print(f"Warning: Durable swarm orchestrator not available: {e}")
+    DurableSwarmOrchestrator = None
+
+try:
+    from src.golden_path_bridge import GoldenPathBridge
+except ImportError as e:
+    print(f"Warning: Golden path bridge not available: {e}")
+    GoldenPathBridge = None
+
+try:
+    from src.org_chart_enforcement import OrgChartEnforcement
+except ImportError as e:
+    print(f"Warning: Org chart enforcement not available: {e}")
+    OrgChartEnforcement = None
+
+try:
+    from src.shadow_agent_integration import ShadowAgentIntegration
+except ImportError as e:
+    print(f"Warning: Shadow agent integration not available: {e}")
+    ShadowAgentIntegration = None
+
+try:
+    from src.triage_rollcall_adapter import TriageRollcallAdapter
+except ImportError as e:
+    print(f"Warning: Triage rollcall adapter not available: {e}")
+    TriageRollcallAdapter = None
+
+try:
+    from src.rubix_evidence_adapter import RubixEvidenceAdapter
+except ImportError as e:
+    print(f"Warning: Rubix evidence adapter not available: {e}")
+    RubixEvidenceAdapter = None
+
+try:
+    from src.semantics_boundary_controller import SemanticsBoundaryController
+except ImportError as e:
+    print(f"Warning: Semantics boundary controller not available: {e}")
+    SemanticsBoundaryController = None
+
+try:
+    from src.bot_governance_policy_mapper import BotGovernancePolicyMapper
+except ImportError as e:
+    print(f"Warning: Bot governance policy mapper not available: {e}")
+    BotGovernancePolicyMapper = None
+
+try:
+    from src.bot_telemetry_normalizer import BotTelemetryNormalizer
+except ImportError as e:
+    print(f"Warning: Bot telemetry normalizer not available: {e}")
+    BotTelemetryNormalizer = None
+
+try:
+    from src.legacy_compatibility_matrix import LegacyCompatibilityMatrixAdapter
+except ImportError as e:
+    print(f"Warning: Legacy compatibility matrix not available: {e}")
+    LegacyCompatibilityMatrixAdapter = None
+
+try:
+    from src.hitl_autonomy_controller import HITLAutonomyController
+except ImportError as e:
+    print(f"Warning: HITL autonomy controller not available: {e}")
+    HITLAutonomyController = None
+
+try:
+    from src.compliance_region_validator import ComplianceRegionValidator
+except ImportError as e:
+    print(f"Warning: Compliance region validator not available: {e}")
+    ComplianceRegionValidator = None
+
+try:
+    from src.observability_counters import ObservabilitySummaryCounters
+except ImportError as e:
+    print(f"Warning: Observability summary counters not available: {e}")
+    ObservabilitySummaryCounters = None
+
+try:
+    from src.deterministic_routing_engine import DeterministicRoutingEngine
+except ImportError as e:
+    print(f"Warning: Deterministic routing engine not available: {e}")
+    DeterministicRoutingEngine = None
+
+try:
+    from src.platform_connector_framework import PlatformConnectorFramework
+except ImportError as e:
+    print(f"Warning: Platform connector framework not available: {e}")
+    PlatformConnectorFramework = None
+
+try:
+    from src.workflow_dag_engine import WorkflowDAGEngine
+except ImportError as e:
+    print(f"Warning: Workflow DAG engine not available: {e}")
+    WorkflowDAGEngine = None
+
+try:
+    from src.automation_type_registry import AutomationTypeRegistry
+except ImportError as e:
+    print(f"Warning: Automation type registry not available: {e}")
+    AutomationTypeRegistry = None
+
+try:
+    from src.api_gateway_adapter import APIGatewayAdapter
+except ImportError as e:
+    print(f"Warning: API gateway adapter not available: {e}")
+    APIGatewayAdapter = None
+
+try:
+    from src.webhook_event_processor import WebhookEventProcessor
+except ImportError as e:
+    print(f"Warning: Webhook event processor not available: {e}")
+    WebhookEventProcessor = None
+
+try:
+    from src.self_automation_orchestrator import SelfAutomationOrchestrator
+except ImportError as e:
+    print(f"Warning: Self-automation orchestrator not available: {e}")
+    SelfAutomationOrchestrator = None
+
+try:
+    from src.plugin_extension_sdk import PluginExtensionSDK
+except ImportError as e:
+    print(f"Warning: Plugin extension SDK not available: {e}")
+    PluginExtensionSDK = None
+
+try:
+    from src.ai_workflow_generator import AIWorkflowGenerator
+except ImportError as e:
+    print(f"Warning: AI workflow generator not available: {e}")
+    AIWorkflowGenerator = None
+
+try:
+    from src.workflow_template_marketplace import WorkflowTemplateMarketplace
+except ImportError as e:
+    print(f"Warning: Workflow template marketplace not available: {e}")
+    WorkflowTemplateMarketplace = None
+
+try:
+    from src.cross_platform_data_sync import CrossPlatformDataSync
+except ImportError as e:
+    print(f"Warning: Cross-platform data sync not available: {e}")
+    CrossPlatformDataSync = None
+
 # FastAPI for REST API
 try:
     from fastapi import FastAPI, HTTPException, Request
@@ -472,6 +714,240 @@ class MurphySystem:
             "path": "src.security_plane_adapter",
             "description": "Security plane adapter",
             "capabilities": ["security"]
+        },
+        {
+            "name": "persistence_manager",
+            "path": "src.persistence_manager",
+            "description": "Durable persistence layer for documents, gates, audit trails, and replay",
+            "capabilities": ["persistence", "audit", "replay"]
+        },
+        {
+            "name": "event_backbone",
+            "path": "src.event_backbone",
+            "description": "Event-driven backbone with durable queues, retry, and circuit breakers",
+            "capabilities": ["events", "queues", "retry"]
+        },
+        {
+            "name": "delivery_adapters",
+            "path": "src.delivery_adapters",
+            "description": "Production delivery adapters for document, email, chat, voice, translation",
+            "capabilities": ["delivery", "multi_channel"]
+        },
+        {
+            "name": "gate_execution_wiring",
+            "path": "src.gate_execution_wiring",
+            "description": "Gate synthesis wired into runtime execution with policy enforcement",
+            "capabilities": ["gate_execution", "policy_enforcement"]
+        },
+        {
+            "name": "self_improvement_engine",
+            "path": "src.self_improvement_engine",
+            "description": "Self-improvement engine with feedback loops and confidence calibration",
+            "capabilities": ["self_improvement", "learning_feedback", "confidence_calibration"]
+        },
+        {
+            "name": "operational_slo_tracker",
+            "path": "src.operational_slo_tracker",
+            "description": "Operational SLO tracker with success rate, latency percentiles, and compliance checks",
+            "capabilities": ["slo_tracking", "operational_telemetry", "compliance_monitoring"]
+        },
+        {
+            "name": "automation_scheduler",
+            "path": "src.automation_scheduler",
+            "description": "Multi-project automation scheduler with priority-based load balancing",
+            "capabilities": ["scheduling", "multi_project", "load_balancing"]
+        },
+        {
+            "name": "capability_map",
+            "path": "src.capability_map",
+            "description": "Repository-wide capability map with gap analysis and remediation sequencing",
+            "capabilities": ["capability_inventory", "gap_analysis", "remediation_planning"]
+        },
+        {
+            "name": "compliance_engine",
+            "path": "src.compliance_engine",
+            "description": "Compliance validation engine with GDPR/SOC2/HIPAA/PCI-DSS sensors and HITL approvals",
+            "capabilities": ["compliance_validation", "regulatory_sensors", "release_readiness"]
+        },
+        {
+            "name": "rbac_governance",
+            "path": "src.rbac_governance",
+            "description": "Role-based access control with multi-tenant isolation and shadow agent governance",
+            "capabilities": ["rbac", "tenant_isolation", "shadow_agent_governance"]
+        },
+        {
+            "name": "ticketing_adapter",
+            "path": "src.ticketing_adapter",
+            "description": "ITSM ticketing adapter with remote access and patch/rollback automation",
+            "capabilities": ["ticketing", "remote_access", "patch_rollback"]
+        },
+        {
+            "name": "wingman_protocol",
+            "path": "src.wingman_protocol",
+            "description": "Executor/validator pairing with deterministic runbook-based validation",
+            "capabilities": ["wingman_pairing", "deterministic_validation", "runbooks"]
+        },
+        {
+            "name": "runtime_profile_compiler",
+            "path": "src.runtime_profile_compiler",
+            "description": "Compile onboarding data into runtime execution profiles with safety/budget/autonomy controls",
+            "capabilities": ["profile_compilation", "execution_governance", "autonomy_control"]
+        },
+        {
+            "name": "governance_kernel",
+            "path": "src.governance_kernel",
+            "description": "Non-LLM governance enforcement layer with budget tracking and audit emission",
+            "capabilities": ["governance_enforcement", "budget_control", "audit_emission"]
+        },
+        {
+            "name": "control_plane_separation",
+            "path": "src.control_plane_separation",
+            "description": "Planning-plane / execution-plane separation with strict/balanced/dynamic mode switching",
+            "capabilities": ["plane_routing", "mode_switching", "planning_execution_separation"]
+        },
+        {
+            "name": "durable_swarm_orchestrator",
+            "path": "src.durable_swarm_orchestrator",
+            "description": "Budget-aware durable swarm orchestration with idempotency, retry, circuit breaker, and anti-recursion",
+            "capabilities": ["swarm_spawning", "budget_control", "circuit_breaker", "idempotency"]
+        },
+        {
+            "name": "golden_path_bridge",
+            "path": "src.golden_path_bridge",
+            "description": "Golden-path capture and replay for execution acceleration and knowledge/RAG",
+            "capabilities": ["golden_path_capture", "path_matching", "replay_acceleration"]
+        },
+        {
+            "name": "org_chart_enforcement",
+            "path": "src.org_chart_enforcement",
+            "description": "Role-bound permissions, escalation chains, and cross-department workflow arbitration",
+            "capabilities": ["permission_enforcement", "escalation_chains", "cross_dept_arbitration"]
+        },
+        {
+            "name": "shadow_agent_integration",
+            "path": "src.shadow_agent_integration",
+            "description": "Shadow-agent org-chart parity with account/user-base controls and governance boundaries",
+            "capabilities": ["shadow_agent_lifecycle", "org_chart_parity", "account_management"]
+        },
+        {
+            "name": "triage_rollcall_adapter",
+            "path": "src.triage_rollcall_adapter",
+            "description": "Capability-rollcall stage before swarm expansion with ranked candidate selection",
+            "capabilities": ["candidate_registry", "rollcall_ranking", "confidence_probing"]
+        },
+        {
+            "name": "rubix_evidence_adapter",
+            "path": "src.rubix_evidence_adapter",
+            "description": "Deterministic evidence lane for CI/hypothesis/Bayesian/Monte Carlo/forecast checks",
+            "capabilities": ["evidence_checks", "compliance_artifacts", "deterministic_verification"]
+        },
+        {
+            "name": "semantics_boundary_controller",
+            "path": "src.semantics_boundary_controller",
+            "description": "Runtime semantics boundary control-loop with belief-state, risk/CVaR, RVoI, invariance, verification-feedback",
+            "capabilities": ["belief_state", "risk_assessment", "rvoi_questions", "invariance_checks", "verification_feedback"]
+        },
+        {
+            "name": "bot_governance_policy_mapper",
+            "path": "src.bot_governance_policy_mapper",
+            "description": "Maps legacy bot quota/budget/stability controls to Murphy runtime execution profiles",
+            "capabilities": ["policy_mapping", "gate_checks", "budget_tracking", "quota_management"]
+        },
+        {
+            "name": "bot_telemetry_normalizer",
+            "path": "src.bot_telemetry_normalizer",
+            "description": "Standardizes triage/rubix bot event payloads into Murphy observability schema",
+            "capabilities": ["event_normalization", "triage_rules", "rubix_rules", "telemetry_alignment"]
+        },
+        {
+            "name": "legacy_compatibility_matrix",
+            "path": "src.legacy_compatibility_matrix",
+            "description": "Legacy orchestration bridge hooks and compatibility-matrix decisions as profile-governed runtime controls",
+            "capabilities": ["compatibility_matrix", "bridge_hooks", "migration_paths", "governance_validation"]
+        },
+        {
+            "name": "hitl_autonomy_controller",
+            "path": "src.hitl_autonomy_controller",
+            "description": "Runtime policy toggles for HITL arming/disarming and high-confidence autonomy enablement",
+            "capabilities": ["hitl_toggle", "autonomy_policy", "confidence_threshold", "cooldown_management"]
+        },
+        {
+            "name": "compliance_region_validator",
+            "path": "src.compliance_region_validator",
+            "description": "Region-specific compliance sensor validation before delivery with cross-border checks",
+            "capabilities": ["region_compliance", "cross_border_validation", "data_residency", "retention_checks"]
+        },
+        {
+            "name": "observability_counters",
+            "path": "src.observability_counters",
+            "description": "Summary counters distinguishing behavior fixes from permutation-only coverage for closed-loop improvement",
+            "capabilities": ["behavior_tracking", "coverage_tracking", "improvement_velocity", "fix_ratio_analysis"]
+        },
+        {
+            "name": "deterministic_routing_engine",
+            "path": "src.deterministic_routing_engine",
+            "description": "Policy-driven deterministic vs LLM routing with guardrails, fallback promotion, and parity validation",
+            "capabilities": ["deterministic_routing", "llm_routing", "hybrid_routing", "route_parity", "fallback_promotion"]
+        },
+        {
+            "name": "platform_connector_framework",
+            "path": "src.platform_connector_framework",
+            "description": "Unified connector SDK for popular platforms (Slack, Jira, Salesforce, GitHub, AWS, Azure, GCP, Stripe, etc.) with auth, rate limiting, retry, health checks",
+            "capabilities": ["platform_connectors", "crm_integration", "communication_integration", "cloud_integration", "devops_integration", "payment_integration"]
+        },
+        {
+            "name": "workflow_dag_engine",
+            "path": "src.workflow_dag_engine",
+            "description": "DAG-based workflow definition and execution with topological sort, parallel groups, conditional branching, checkpoint/resume",
+            "capabilities": ["workflow_dag", "topological_execution", "parallel_steps", "conditional_branching", "checkpoint_resume"]
+        },
+        {
+            "name": "automation_type_registry",
+            "path": "src.automation_type_registry",
+            "description": "Registry of all automation types (IT, business process, data pipeline, marketing, customer service, HR, financial, content, security, DevOps, compliance) with templates",
+            "capabilities": ["automation_templates", "it_automation", "business_process_automation", "data_pipeline", "marketing_automation", "security_automation"]
+        },
+        {
+            "name": "api_gateway_adapter",
+            "path": "src.api_gateway_adapter",
+            "description": "Unified API gateway for external integrations with rate limiting, auth management, webhook dispatch, circuit breaker, and response caching",
+            "capabilities": ["api_gateway", "rate_limiting", "auth_management", "webhook_dispatch", "circuit_breaker", "response_caching"]
+        },
+        {
+            "name": "webhook_event_processor",
+            "path": "src.webhook_event_processor",
+            "description": "Inbound webhook handling for event-driven integrations with signature verification, payload normalization, and event routing",
+            "capabilities": ["webhook_processing", "signature_verification", "event_normalization", "event_routing", "platform_webhooks"]
+        },
+        {
+            "name": "self_automation_orchestrator",
+            "path": "src.self_automation_orchestrator",
+            "description": "Self-automation task queue with prompt chain templates for continuous self-improvement cycles",
+            "capabilities": ["self_automation", "task_queue", "prompt_chain", "gap_analysis", "improvement_cycles"]
+        },
+        {
+            "name": "plugin_extension_sdk",
+            "path": "src.plugin_extension_sdk",
+            "description": "Third-party plugin lifecycle management with manifest validation, sandboxed execution, and capability gating",
+            "capabilities": ["plugin_management", "manifest_validation", "sandboxed_execution", "capability_gating", "lifecycle_management"]
+        },
+        {
+            "name": "ai_workflow_generator",
+            "path": "src.ai_workflow_generator",
+            "description": "Natural language to DAG workflow translation using template matching, keyword inference, and dependency resolution",
+            "capabilities": ["workflow_generation", "template_matching", "keyword_inference", "dependency_resolution", "natural_language"]
+        },
+        {
+            "name": "workflow_template_marketplace",
+            "path": "src.workflow_template_marketplace",
+            "description": "Marketplace for publishing, searching, installing, rating, and versioning community workflow templates",
+            "capabilities": ["template_marketplace", "publishing", "search", "rating", "versioning"]
+        },
+        {
+            "name": "cross_platform_data_sync",
+            "path": "src.cross_platform_data_sync",
+            "description": "Real-time bidirectional data synchronization between platforms with field mapping and conflict resolution",
+            "capabilities": ["data_sync", "field_mapping", "conflict_resolution", "change_tracking", "bidirectional_sync"]
         }
     ]
     MODULE_SCAN_EXCLUDED_DIRS = {"__pycache__", "tests", "test", "docs", "documentation", "examples"}
@@ -1313,10 +1789,488 @@ class MurphySystem:
         self.execution_metrics = {"total": 0, "success": 0, "total_time": 0.0}
         self.chat_sessions: Dict[str, Dict] = {}
 
+        # Initialize new integrated modules
+        self._initialize_integrated_modules()
+
         logger.info("="*80)
         logger.info(f"MURPHY SYSTEM {self.version} - READY")
         logger.info("="*80)
+
+    def _initialize_integrated_modules(self) -> None:
+        """Initialize new integrated modules (persistence, events, delivery, gates, self-improvement)."""
+        # Persistence Manager
+        if PersistenceManager:
+            try:
+                persistence_dir = os.environ.get(self.PERSISTENCE_DIR_ENV)
+                self.persistence_manager = PersistenceManager(persistence_dir=persistence_dir)
+                logger.info("Persistence manager initialized")
+            except Exception as exc:
+                logger.warning("Persistence manager initialization failed: %s", exc)
+                self.persistence_manager = None
+        else:
+            self.persistence_manager = None
+
+        # Event Backbone
+        if EventBackbone:
+            try:
+                self.event_backbone = EventBackbone()
+                logger.info("Event backbone initialized")
+            except Exception as exc:
+                logger.warning("Event backbone initialization failed: %s", exc)
+                self.event_backbone = None
+        else:
+            self.event_backbone = None
+
+        # Delivery Orchestrator
+        if DeliveryOrchestrator:
+            try:
+                self.delivery_orchestrator = DeliveryOrchestrator()
+                # Register all available adapters
+                if DocumentDeliveryAdapter:
+                    self.delivery_orchestrator.register_adapter(
+                        DeliveryChannel.DOCUMENT, DocumentDeliveryAdapter()
+                    )
+                if EmailDeliveryAdapter:
+                    self.delivery_orchestrator.register_adapter(
+                        DeliveryChannel.EMAIL, EmailDeliveryAdapter()
+                    )
+                if ChatDeliveryAdapter:
+                    self.delivery_orchestrator.register_adapter(
+                        DeliveryChannel.CHAT, ChatDeliveryAdapter()
+                    )
+                if VoiceDeliveryAdapter:
+                    self.delivery_orchestrator.register_adapter(
+                        DeliveryChannel.VOICE, VoiceDeliveryAdapter()
+                    )
+                if TranslationDeliveryAdapter:
+                    self.delivery_orchestrator.register_adapter(
+                        DeliveryChannel.TRANSLATION, TranslationDeliveryAdapter()
+                    )
+                logger.info("Delivery orchestrator initialized with %d adapters",
+                            len(self.delivery_orchestrator.adapters))
+            except Exception as exc:
+                logger.warning("Delivery orchestrator initialization failed: %s", exc)
+                self.delivery_orchestrator = None
+        else:
+            self.delivery_orchestrator = None
+
+        # Gate Execution Wiring
+        if GateExecutionWiring:
+            try:
+                self.gate_wiring = GateExecutionWiring(default_policy=GatePolicy.WARN)
+                logger.info("Gate execution wiring initialized")
+            except Exception as exc:
+                logger.warning("Gate execution wiring initialization failed: %s", exc)
+                self.gate_wiring = None
+        else:
+            self.gate_wiring = None
+
+        # Self-Improvement Engine
+        if SelfImprovementEngine:
+            try:
+                self.self_improvement = SelfImprovementEngine()
+                logger.info("Self-improvement engine initialized")
+            except Exception as exc:
+                logger.warning("Self-improvement engine initialization failed: %s", exc)
+                self.self_improvement = None
+        else:
+            self.self_improvement = None
+
+        # Operational SLO Tracker
+        if OperationalSLOTracker:
+            try:
+                self.slo_tracker = OperationalSLOTracker()
+                # Register default SLO targets
+                if SLOTarget:
+                    self.slo_tracker.add_slo_target(SLOTarget(
+                        target_name="execution_success_rate",
+                        metric="success_rate",
+                        threshold=0.95,
+                        window_seconds=3600,
+                    ))
+                    self.slo_tracker.add_slo_target(SLOTarget(
+                        target_name="execution_latency_p95",
+                        metric="latency_p95",
+                        threshold=30.0,
+                        window_seconds=3600,
+                    ))
+                logger.info("Operational SLO tracker initialized")
+            except Exception as exc:
+                logger.warning("SLO tracker initialization failed: %s", exc)
+                self.slo_tracker = None
+        else:
+            self.slo_tracker = None
+
+        # Automation Scheduler
+        if AutomationScheduler:
+            try:
+                self.automation_scheduler = AutomationScheduler()
+                logger.info("Automation scheduler initialized")
+            except Exception as exc:
+                logger.warning("Automation scheduler initialization failed: %s", exc)
+                self.automation_scheduler = None
+        else:
+            self.automation_scheduler = None
+
+        # Capability Map
+        if CapabilityMap:
+            try:
+                self.capability_map = CapabilityMap()
+                # scan() expects base_path that contains both src/ and the runtime file
+                scan_base = str(Path(__file__).parent)
+                self.capability_map.scan(scan_base)
+                logger.info("Capability map initialized with %d modules",
+                            self.capability_map.get_status().get("total_modules", 0))
+            except Exception as exc:
+                logger.warning("Capability map initialization failed: %s", exc)
+                self.capability_map = None
+        else:
+            self.capability_map = None
+
+        # Compliance Engine
+        if ComplianceEngine:
+            try:
+                self.compliance_engine = ComplianceEngine()
+                logger.info("Compliance engine initialized with %d requirements",
+                            len(self.compliance_engine._requirements))
+            except Exception as exc:
+                logger.warning("Compliance engine initialization failed: %s", exc)
+                self.compliance_engine = None
+        else:
+            self.compliance_engine = None
+
+        # RBAC Governance
+        if RBACGovernance:
+            try:
+                self.rbac_governance = RBACGovernance()
+                logger.info("RBAC governance initialized")
+            except Exception as exc:
+                logger.warning("RBAC governance initialization failed: %s", exc)
+                self.rbac_governance = None
+        else:
+            self.rbac_governance = None
+
+        # Ticketing Adapter
+        if TicketingAdapter:
+            try:
+                self.ticketing_adapter = TicketingAdapter()
+                logger.info("Ticketing adapter initialized")
+            except Exception as exc:
+                logger.warning("Ticketing adapter initialization failed: %s", exc)
+                self.ticketing_adapter = None
+        else:
+            self.ticketing_adapter = None
+
+        # Wingman Protocol
+        if WingmanProtocol:
+            try:
+                self.wingman_protocol = WingmanProtocol()
+                logger.info("Wingman protocol initialized")
+            except Exception as exc:
+                logger.warning("Wingman protocol initialization failed: %s", exc)
+                self.wingman_protocol = None
+        else:
+            self.wingman_protocol = None
+
+        # Runtime Profile Compiler
+        if RuntimeProfileCompiler:
+            try:
+                self.runtime_profile_compiler = RuntimeProfileCompiler()
+                logger.info("Runtime profile compiler initialized")
+            except Exception as exc:
+                logger.warning("Runtime profile compiler initialization failed: %s", exc)
+                self.runtime_profile_compiler = None
+        else:
+            self.runtime_profile_compiler = None
+
+        # Governance Kernel
+        if GovernanceKernel:
+            try:
+                self.governance_kernel = GovernanceKernel()
+                logger.info("Governance kernel initialized")
+            except Exception as exc:
+                logger.warning("Governance kernel initialization failed: %s", exc)
+                self.governance_kernel = None
+        else:
+            self.governance_kernel = None
+
+        # Control Plane Separation
+        if ControlPlaneSeparation:
+            try:
+                self.control_plane_separation = ControlPlaneSeparation()
+                logger.info("Control plane separation initialized")
+            except Exception as exc:
+                logger.warning("Control plane separation initialization failed: %s", exc)
+                self.control_plane_separation = None
+        else:
+            self.control_plane_separation = None
+
+        # Durable Swarm Orchestrator
+        if DurableSwarmOrchestrator:
+            try:
+                self.durable_swarm_orchestrator = DurableSwarmOrchestrator()
+                logger.info("Durable swarm orchestrator initialized")
+            except Exception as exc:
+                logger.warning("Durable swarm orchestrator initialization failed: %s", exc)
+                self.durable_swarm_orchestrator = None
+        else:
+            self.durable_swarm_orchestrator = None
+
+        # Golden Path Bridge
+        if GoldenPathBridge:
+            try:
+                self.golden_path_bridge = GoldenPathBridge()
+                logger.info("Golden path bridge initialized")
+            except Exception as exc:
+                logger.warning("Golden path bridge initialization failed: %s", exc)
+                self.golden_path_bridge = None
+        else:
+            self.golden_path_bridge = None
+
+        # Org Chart Enforcement
+        if OrgChartEnforcement:
+            try:
+                self.org_chart_enforcement = OrgChartEnforcement()
+                logger.info("Org chart enforcement initialized")
+            except Exception as exc:
+                logger.warning("Org chart enforcement initialization failed: %s", exc)
+                self.org_chart_enforcement = None
+        else:
+            self.org_chart_enforcement = None
+
+        # Shadow Agent Integration
+        if ShadowAgentIntegration:
+            try:
+                self.shadow_agent_integration = ShadowAgentIntegration()
+                logger.info("Shadow agent integration initialized")
+            except Exception as exc:
+                logger.warning("Shadow agent integration initialization failed: %s", exc)
+                self.shadow_agent_integration = None
+        else:
+            self.shadow_agent_integration = None
+
+        # Triage Rollcall Adapter
+        if TriageRollcallAdapter:
+            try:
+                self.triage_rollcall_adapter = TriageRollcallAdapter()
+                logger.info("Triage rollcall adapter initialized")
+            except Exception as exc:
+                logger.warning("Triage rollcall adapter initialization failed: %s", exc)
+                self.triage_rollcall_adapter = None
+        else:
+            self.triage_rollcall_adapter = None
+
+        # Rubix Evidence Adapter
+        if RubixEvidenceAdapter:
+            try:
+                self.rubix_evidence_adapter = RubixEvidenceAdapter()
+                logger.info("Rubix evidence adapter initialized")
+            except Exception as exc:
+                logger.warning("Rubix evidence adapter initialization failed: %s", exc)
+                self.rubix_evidence_adapter = None
+        else:
+            self.rubix_evidence_adapter = None
+
+        # Semantics Boundary Controller
+        if SemanticsBoundaryController:
+            try:
+                self.semantics_boundary_controller = SemanticsBoundaryController()
+                logger.info("Semantics boundary controller initialized")
+            except Exception as exc:
+                logger.warning("Semantics boundary controller initialization failed: %s", exc)
+                self.semantics_boundary_controller = None
+        else:
+            self.semantics_boundary_controller = None
+
+        # Bot Governance Policy Mapper
+        if BotGovernancePolicyMapper:
+            try:
+                self.bot_governance_policy_mapper = BotGovernancePolicyMapper()
+                logger.info("Bot governance policy mapper initialized")
+            except Exception as exc:
+                logger.warning("Bot governance policy mapper initialization failed: %s", exc)
+                self.bot_governance_policy_mapper = None
+        else:
+            self.bot_governance_policy_mapper = None
+
+        # Bot Telemetry Normalizer
+        if BotTelemetryNormalizer:
+            try:
+                self.bot_telemetry_normalizer = BotTelemetryNormalizer()
+                self.bot_telemetry_normalizer.register_default_triage_rules()
+                self.bot_telemetry_normalizer.register_default_rubix_rules()
+                logger.info("Bot telemetry normalizer initialized with default rules")
+            except Exception as exc:
+                logger.warning("Bot telemetry normalizer initialization failed: %s", exc)
+                self.bot_telemetry_normalizer = None
+        else:
+            self.bot_telemetry_normalizer = None
     
+        # Legacy Compatibility Matrix
+        if LegacyCompatibilityMatrixAdapter:
+            try:
+                self.legacy_compatibility_matrix = LegacyCompatibilityMatrixAdapter()
+                logger.info("Legacy compatibility matrix adapter initialized")
+            except Exception as exc:
+                logger.warning("Legacy compatibility matrix initialization failed: %s", exc)
+                self.legacy_compatibility_matrix = None
+        else:
+            self.legacy_compatibility_matrix = None
+
+        # HITL Autonomy Controller
+        if HITLAutonomyController:
+            try:
+                self.hitl_autonomy_controller = HITLAutonomyController()
+                logger.info("HITL autonomy controller initialized")
+            except Exception as exc:
+                logger.warning("HITL autonomy controller initialization failed: %s", exc)
+                self.hitl_autonomy_controller = None
+        else:
+            self.hitl_autonomy_controller = None
+
+        # Compliance Region Validator
+        if ComplianceRegionValidator:
+            try:
+                self.compliance_region_validator = ComplianceRegionValidator()
+                logger.info("Compliance region validator initialized with default regions")
+            except Exception as exc:
+                logger.warning("Compliance region validator initialization failed: %s", exc)
+                self.compliance_region_validator = None
+        else:
+            self.compliance_region_validator = None
+
+        # Observability Summary Counters
+        if ObservabilitySummaryCounters:
+            try:
+                self.observability_counters = ObservabilitySummaryCounters()
+                logger.info("Observability summary counters initialized")
+            except Exception as exc:
+                logger.warning("Observability summary counters initialization failed: %s", exc)
+                self.observability_counters = None
+        else:
+            self.observability_counters = None
+
+        # Deterministic Routing Engine
+        if DeterministicRoutingEngine:
+            try:
+                self.deterministic_routing_engine = DeterministicRoutingEngine()
+                logger.info("Deterministic routing engine initialized with default policies")
+            except Exception as exc:
+                logger.warning("Deterministic routing engine initialization failed: %s", exc)
+                self.deterministic_routing_engine = None
+        else:
+            self.deterministic_routing_engine = None
+
+        # Platform Connector Framework
+        if PlatformConnectorFramework:
+            try:
+                self.platform_connector_framework = PlatformConnectorFramework()
+                logger.info("Platform connector framework initialized with %d default connectors", len(self.platform_connector_framework.list_available_connectors()))
+            except Exception as exc:
+                logger.warning("Platform connector framework initialization failed: %s", exc)
+                self.platform_connector_framework = None
+        else:
+            self.platform_connector_framework = None
+
+        # Workflow DAG Engine
+        if WorkflowDAGEngine:
+            try:
+                self.workflow_dag_engine = WorkflowDAGEngine()
+                logger.info("Workflow DAG engine initialized")
+            except Exception as exc:
+                logger.warning("Workflow DAG engine initialization failed: %s", exc)
+                self.workflow_dag_engine = None
+        else:
+            self.workflow_dag_engine = None
+
+        # Automation Type Registry
+        if AutomationTypeRegistry:
+            try:
+                self.automation_type_registry = AutomationTypeRegistry()
+                logger.info("Automation type registry initialized with %d templates", len(self.automation_type_registry.list_templates()))
+            except Exception as exc:
+                logger.warning("Automation type registry initialization failed: %s", exc)
+                self.automation_type_registry = None
+        else:
+            self.automation_type_registry = None
+
+        # API Gateway Adapter
+        if APIGatewayAdapter:
+            try:
+                self.api_gateway_adapter = APIGatewayAdapter()
+                logger.info("API gateway adapter initialized")
+            except Exception as exc:
+                logger.warning("API gateway adapter initialization failed: %s", exc)
+                self.api_gateway_adapter = None
+        else:
+            self.api_gateway_adapter = None
+
+        # Webhook Event Processor
+        if WebhookEventProcessor:
+            try:
+                self.webhook_event_processor = WebhookEventProcessor()
+                logger.info("Webhook event processor initialized with %d default sources", len(self.webhook_event_processor.list_sources()))
+            except Exception as exc:
+                logger.warning("Webhook event processor initialization failed: %s", exc)
+                self.webhook_event_processor = None
+        else:
+            self.webhook_event_processor = None
+
+        # Self-Automation Orchestrator
+        if SelfAutomationOrchestrator:
+            try:
+                self.self_automation_orchestrator = SelfAutomationOrchestrator()
+                logger.info("Self-automation orchestrator initialized")
+            except Exception as exc:
+                logger.warning("Self-automation orchestrator initialization failed: %s", exc)
+                self.self_automation_orchestrator = None
+        else:
+            self.self_automation_orchestrator = None
+
+        # Plugin Extension SDK
+        if PluginExtensionSDK:
+            try:
+                self.plugin_extension_sdk = PluginExtensionSDK(murphy_version="1.0.0")
+                logger.info("Plugin extension SDK initialized")
+            except Exception as exc:
+                logger.warning("Plugin extension SDK initialization failed: %s", exc)
+                self.plugin_extension_sdk = None
+        else:
+            self.plugin_extension_sdk = None
+
+        # AI Workflow Generator
+        if AIWorkflowGenerator:
+            try:
+                self.ai_workflow_generator = AIWorkflowGenerator()
+                logger.info("AI workflow generator initialized")
+            except Exception as exc:
+                logger.warning("AI workflow generator initialization failed: %s", exc)
+                self.ai_workflow_generator = None
+        else:
+            self.ai_workflow_generator = None
+
+        # Workflow Template Marketplace
+        if WorkflowTemplateMarketplace:
+            try:
+                self.workflow_template_marketplace = WorkflowTemplateMarketplace()
+                logger.info("Workflow template marketplace initialized")
+            except Exception as exc:
+                logger.warning("Workflow template marketplace initialization failed: %s", exc)
+                self.workflow_template_marketplace = None
+        else:
+            self.workflow_template_marketplace = None
+
+        # Cross-Platform Data Sync
+        if CrossPlatformDataSync:
+            try:
+                self.cross_platform_data_sync = CrossPlatformDataSync()
+                logger.info("Cross-platform data sync initialized")
+            except Exception as exc:
+                logger.warning("Cross-platform data sync initialization failed: %s", exc)
+                self.cross_platform_data_sync = None
+        else:
+            self.cross_platform_data_sync = None
+
     # ==================== CORE EXECUTION ====================
 
     def _prepare_activation_preview(
@@ -2309,6 +3263,14 @@ class MurphySystem:
 
         session_id = self._normalize_session_id(session_id)
 
+        # Publish task-submitted event through event backbone
+        self._publish_execution_event(
+            "TASK_SUBMITTED",
+            {"task_description": task_description, "task_type": task_type},
+            session_id=session_id,
+        )
+        execution_start = time.perf_counter()
+
         # Activation preview is returned for both orchestrator and fallback responses.
         doc, activation_preview = self._prepare_activation_preview(
             task_description,
@@ -2327,6 +3289,42 @@ class MurphySystem:
         )
         if isinstance(activation_preview.get("persistence"), dict):
             activation_preview["persistence"]["snapshot"] = persistence_snapshot
+
+        # Evaluate execution gates before proceeding
+        gate_result = self._evaluate_execution_gates(
+            task_description, task_type, session_id, parameters
+        )
+        if not gate_result["allowed"]:
+            self._publish_execution_event(
+                "GATE_BLOCKED",
+                {"task_description": task_description, "blocked_reasons": gate_result["blocked_reasons"]},
+                session_id=session_id,
+            )
+            duration = time.perf_counter() - execution_start
+            self._record_execution(success=False, duration=duration, task_type=task_type, failure_reason="gate_blocked")
+            self._record_self_improvement_outcome(
+                task_description, task_type, session_id,
+                success=False, duration=duration, gate_evaluations=gate_result,
+            )
+            return {
+                "success": False,
+                "status": "gate_blocked",
+                "session_id": session_id,
+                "doc_id": doc.doc_id,
+                "activation_preview": activation_preview,
+                "gate_evaluations": gate_result,
+                "persistence_snapshot": persistence_snapshot,
+                "error": "; ".join(gate_result["blocked_reasons"]),
+                "metadata": {
+                    "task_description": task_description,
+                    "task_type": task_type,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "mode": "gate_blocked",
+                    "orchestration_mode": "gate_blocked",
+                    "duration": duration,
+                },
+            }
+
         execution_wiring = activation_preview.get("execution_wiring")
         execution_policy = self._build_execution_policy(
             activation_preview.get("dynamic_implementation"),
@@ -2540,10 +3538,26 @@ class MurphySystem:
             fallback["execution_policy"] = execution_policy
             fallback["persistence_snapshot"] = persistence_snapshot
             fallback["swarm_execution"] = swarm_execution
+            fallback["gate_evaluations"] = gate_result
+            # Wire integrated modules into fallback path
+            fallback_success = fallback.get("success", False)
+            fallback_duration = time.perf_counter() - execution_start
+            self._publish_execution_event(
+                "TASK_COMPLETED" if fallback_success else "TASK_FAILED",
+                {"task_description": task_description, "success": fallback_success, "mode": "fallback"},
+                session_id=session_id,
+            )
+            self._persist_execution_result(session_id, task_description, task_type, fallback)
+            self._record_self_improvement_outcome(
+                task_description, task_type, session_id,
+                success=fallback_success, duration=fallback_duration,
+                gate_evaluations=gate_result,
+            )
+            fallback["integrated_modules"] = self._build_integrated_execution_summary()
             return fallback
 
         if not self._supports_async_orchestrator():
-            return self._execute_two_phase_orchestrator(
+            two_phase_result = self._execute_two_phase_orchestrator(
                 task_description,
                 task_type,
                 parameters,
@@ -2555,6 +3569,23 @@ class MurphySystem:
                 persistence_snapshot,
                 swarm_execution
             )
+            two_phase_result["gate_evaluations"] = gate_result
+            two_phase_success = two_phase_result.get("success", False)
+            two_phase_duration = time.perf_counter() - execution_start
+            self._publish_execution_event(
+                "TASK_COMPLETED" if two_phase_success else "TASK_FAILED",
+                {"task_description": task_description, "success": two_phase_success, "mode": "two_phase"},
+                session_id=session_id,
+            )
+            self._record_execution(success=two_phase_success, duration=two_phase_duration, task_type=task_type)
+            self._persist_execution_result(session_id, task_description, task_type, two_phase_result)
+            self._record_self_improvement_outcome(
+                task_description, task_type, session_id,
+                success=two_phase_success, duration=two_phase_duration,
+                gate_evaluations=gate_result,
+            )
+            two_phase_result["integrated_modules"] = self._build_integrated_execution_summary()
+            return two_phase_result
 
         try:
             # Phase 1: Generative Setup
@@ -2650,7 +3681,18 @@ class MurphySystem:
                 parameters
             )
             # Return complete result
-            return {
+            orchestrator_duration = time.perf_counter() - execution_start
+            self._record_self_improvement_outcome(
+                task_description, task_type, session_id,
+                success=True, duration=orchestrator_duration,
+                gate_evaluations=gate_result,
+            )
+            self._publish_execution_event(
+                "TASK_COMPLETED",
+                {"task_description": task_description, "success": True, "mode": "orchestrator"},
+                session_id=session_id,
+            )
+            orchestrator_result = {
                 'success': True,
                 'session_id': session_id,
                 'execution_packet': execution_packet,
@@ -2662,18 +3704,33 @@ class MurphySystem:
                 'execution_policy': execution_policy,
                 'persistence_snapshot': persistence_snapshot,
                 'swarm_execution': swarm_execution,
+                'gate_evaluations': gate_result,
+                'integrated_modules': self._build_integrated_execution_summary(),
                 'metadata': {
                     'task_description': task_description,
                     'task_type': task_type,
-                    'timestamp': datetime.now(timezone.utc).isoformat()
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'duration': orchestrator_duration,
                 }
             }
+            self._persist_execution_result(session_id, task_description, task_type, orchestrator_result)
+            return orchestrator_result
         
         except Exception as e:
             logger.error(f"Task execution failed: {e}")
             import traceback
             traceback.print_exc()
-            
+            exception_duration = time.perf_counter() - execution_start
+            self._publish_execution_event(
+                "TASK_FAILED",
+                {"task_description": task_description, "error": str(e), "mode": "exception"},
+                session_id=session_id,
+            )
+            self._record_self_improvement_outcome(
+                task_description, task_type, session_id,
+                success=False, duration=exception_duration,
+                gate_evaluations=gate_result,
+            )
             return {
                 'success': False,
                 'error': str(e),
@@ -8959,7 +10016,7 @@ class MurphySystem:
             )
         return preview
 
-    def _record_execution(self, success: bool, duration: float) -> None:
+    def _record_execution(self, success: bool, duration: float, task_type: str = "general", failure_reason: Optional[str] = None) -> None:
         self.execution_metrics["total"] += 1
         if success:
             self.execution_metrics["success"] += 1
@@ -8970,6 +10027,516 @@ class MurphySystem:
         self.mfgc_statistics["total_executions"] = total
         self.mfgc_statistics["success_rate"] = f"{success_rate:.1f}%"
         self.mfgc_statistics["average_execution_time"] = f"{avg_time:.3f}s"
+        # Feed SLO tracker
+        slo = getattr(self, "slo_tracker", None)
+        if slo is not None and SLOExecutionRecord is not None:
+            try:
+                slo.record_execution(SLOExecutionRecord(
+                    task_type=task_type,
+                    success=success,
+                    duration=duration,
+                    failure_reason=failure_reason,
+                ))
+            except Exception as exc:
+                logger.debug("SLO tracker record failed: %s", exc)
+
+    # ==================== INTEGRATED MODULE EXECUTION WIRING ====================
+
+    def _evaluate_execution_gates(
+        self,
+        task_description: str,
+        task_type: str,
+        session_id: Optional[str],
+        parameters: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Evaluate gate policies before task execution.
+
+        Returns a dict with ``allowed`` (bool), the list of ``evaluations``,
+        and a ``blocked_reasons`` list (empty when allowed).
+        """
+        gate_wiring = getattr(self, "gate_wiring", None)
+        if gate_wiring is None:
+            return {"allowed": True, "evaluations": [], "blocked_reasons": []}
+
+        task_payload = {
+            "task_description": task_description,
+            "task_type": task_type,
+            "session_id": session_id,
+            "parameters": parameters or {},
+        }
+        try:
+            allowed, evaluations = gate_wiring.can_execute(task_payload, session_id or "default")
+        except Exception as exc:
+            logger.warning("Gate evaluation failed (%s); allowing execution.", exc)
+            return {"allowed": True, "evaluations": [], "blocked_reasons": [], "error": str(exc)}
+
+        blocked_reasons = []
+        for ev in evaluations:
+            decision = getattr(ev, "decision", None)
+            if decision is not None and hasattr(decision, "value"):
+                decision = decision.value
+            if decision == "blocked":
+                reason = getattr(ev, "reason", "Gate blocked")
+                blocked_reasons.append(reason)
+
+        return {
+            "allowed": allowed,
+            "evaluations": [
+                {
+                    "gate_id": getattr(ev, "gate_id", "unknown"),
+                    "gate_type": getattr(getattr(ev, "gate_type", None), "value", str(getattr(ev, "gate_type", "unknown"))),
+                    "decision": getattr(getattr(ev, "decision", None), "value", str(getattr(ev, "decision", "unknown"))),
+                    "reason": getattr(ev, "reason", ""),
+                    "policy": getattr(getattr(ev, "policy", None), "value", str(getattr(ev, "policy", "unknown"))),
+                }
+                for ev in evaluations
+            ],
+            "blocked_reasons": blocked_reasons,
+        }
+
+    def _publish_execution_event(
+        self,
+        event_type_name: str,
+        payload: Dict[str, Any],
+        session_id: Optional[str] = None,
+    ) -> Optional[str]:
+        """Publish an event through the event backbone if available.
+
+        *event_type_name* should match an ``EventType`` member name (e.g.
+        ``"TASK_SUBMITTED"``).  Returns the event id or ``None``.
+        """
+        backbone = getattr(self, "event_backbone", None)
+        if backbone is None or BackboneEventType is None:
+            return None
+        try:
+            event_type = BackboneEventType[event_type_name]
+        except (KeyError, TypeError):
+            logger.debug("Unknown event type %s; skipping publish.", event_type_name)
+            return None
+        try:
+            return backbone.publish(
+                event_type=event_type,
+                payload=payload,
+                session_id=session_id,
+                source="murphy_runtime",
+            )
+        except Exception as exc:
+            logger.warning("Event publish failed for %s: %s", event_type_name, exc)
+            return None
+
+    def _persist_execution_result(
+        self,
+        session_id: Optional[str],
+        task_description: str,
+        task_type: str,
+        result: Dict[str, Any],
+    ) -> Optional[str]:
+        """Persist an execution result via the persistence manager."""
+        pm = getattr(self, "persistence_manager", None)
+        if pm is None:
+            return None
+        doc_data = {
+            "session_id": session_id,
+            "task_description": task_description,
+            "task_type": task_type,
+            "success": result.get("success"),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "metadata": result.get("metadata"),
+        }
+        try:
+            return pm.save_document(
+                doc_id=f"exec_{session_id or 'no_session'}_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+                document=doc_data,
+            )
+        except Exception as exc:
+            logger.warning("Persist execution result failed: %s", exc)
+            return None
+
+    def _record_self_improvement_outcome(
+        self,
+        task_description: str,
+        task_type: str,
+        session_id: Optional[str],
+        success: bool,
+        duration: float,
+        gate_evaluations: Optional[Dict[str, Any]] = None,
+    ) -> Optional[str]:
+        """Feed execution outcome into the self-improvement engine."""
+        engine = getattr(self, "self_improvement", None)
+        if engine is None or ExecutionOutcome is None or OutcomeType is None:
+            return None
+        try:
+            outcome_type = OutcomeType.SUCCESS if success else OutcomeType.FAILURE
+            outcome = ExecutionOutcome(
+                task_id=f"{task_type}_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+                session_id=session_id or "unknown",
+                outcome=outcome_type,
+                metrics={
+                    "duration": duration,
+                    "task_type": task_type,
+                    "gate_evaluations": gate_evaluations,
+                },
+            )
+            return engine.record_outcome(outcome)
+        except Exception as exc:
+            logger.warning("Self-improvement outcome recording failed: %s", exc)
+            return None
+
+    def _build_integrated_execution_summary(self) -> Dict[str, Any]:
+        """Build a summary of all integrated module statuses for API responses."""
+        gate_status = {}
+        gate_wiring = getattr(self, "gate_wiring", None)
+        if gate_wiring is not None:
+            try:
+                gate_status = gate_wiring.get_status()
+            except Exception:
+                gate_status = {"error": "status unavailable"}
+
+        event_status = {}
+        backbone = getattr(self, "event_backbone", None)
+        if backbone is not None:
+            try:
+                event_status = backbone.get_status()
+            except Exception:
+                event_status = {"error": "status unavailable"}
+
+        delivery_status = {}
+        delivery_orch = getattr(self, "delivery_orchestrator", None)
+        if delivery_orch is not None:
+            try:
+                delivery_status = delivery_orch.get_channel_status()
+            except Exception:
+                delivery_status = {"error": "status unavailable"}
+
+        improvement_status = {}
+        engine = getattr(self, "self_improvement", None)
+        if engine is not None:
+            try:
+                improvement_status = engine.get_status()
+            except Exception:
+                improvement_status = {"error": "status unavailable"}
+
+        persistence_status = {}
+        pm = getattr(self, "persistence_manager", None)
+        if pm is not None:
+            try:
+                persistence_status = pm.get_status()
+            except Exception:
+                persistence_status = {"error": "status unavailable"}
+
+        slo_status = {}
+        slo = getattr(self, "slo_tracker", None)
+        if slo is not None:
+            try:
+                slo_status = slo.get_status()
+            except Exception:
+                slo_status = {"error": "status unavailable"}
+
+        scheduler_status = {}
+        sched = getattr(self, "automation_scheduler", None)
+        if sched is not None:
+            try:
+                scheduler_status = sched.get_status()
+            except Exception:
+                scheduler_status = {"error": "status unavailable"}
+
+        cap_map_status = {}
+        cap_map = getattr(self, "capability_map", None)
+        if cap_map is not None:
+            try:
+                cap_map_status = cap_map.get_status()
+            except Exception:
+                cap_map_status = {"error": "status unavailable"}
+
+        compliance_status = {}
+        compliance = getattr(self, "compliance_engine", None)
+        if compliance is not None:
+            try:
+                compliance_status = compliance.get_status()
+            except Exception:
+                compliance_status = {"error": "status unavailable"}
+
+        rbac_status = {}
+        rbac = getattr(self, "rbac_governance", None)
+        if rbac is not None:
+            try:
+                rbac_status = rbac.get_status()
+            except Exception:
+                rbac_status = {"error": "status unavailable"}
+
+        ticketing_status = {}
+        ticketing = getattr(self, "ticketing_adapter", None)
+        if ticketing is not None:
+            try:
+                ticketing_status = ticketing.get_status()
+            except Exception:
+                ticketing_status = {"error": "status unavailable"}
+
+        wingman_status = {}
+        wingman = getattr(self, "wingman_protocol", None)
+        if wingman is not None:
+            try:
+                wingman_status = wingman.get_status()
+            except Exception:
+                wingman_status = {"error": "status unavailable"}
+
+        profile_status = {}
+        profile_compiler = getattr(self, "runtime_profile_compiler", None)
+        if profile_compiler is not None:
+            try:
+                profile_status = profile_compiler.get_status()
+            except Exception:
+                profile_status = {"error": "status unavailable"}
+
+        kernel_status = {}
+        kernel = getattr(self, "governance_kernel", None)
+        if kernel is not None:
+            try:
+                kernel_status = kernel.get_status()
+            except Exception:
+                kernel_status = {"error": "status unavailable"}
+
+        cps_status = {}
+        cps = getattr(self, "control_plane_separation", None)
+        if cps is not None:
+            try:
+                cps_status = cps.get_status()
+            except Exception:
+                cps_status = {"error": "status unavailable"}
+
+        dso_status = {}
+        dso = getattr(self, "durable_swarm_orchestrator", None)
+        if dso is not None:
+            try:
+                dso_status = dso.get_status()
+            except Exception:
+                dso_status = {"error": "status unavailable"}
+
+        gpb_status = {}
+        gpb = getattr(self, "golden_path_bridge", None)
+        if gpb is not None:
+            try:
+                gpb_status = gpb.get_status()
+            except Exception:
+                gpb_status = {"error": "status unavailable"}
+
+        oce_status = {}
+        oce = getattr(self, "org_chart_enforcement", None)
+        if oce is not None:
+            try:
+                oce_status = oce.get_status()
+            except Exception:
+                oce_status = {"error": "status unavailable"}
+
+        sai_status = {}
+        sai = getattr(self, "shadow_agent_integration", None)
+        if sai is not None:
+            try:
+                sai_status = sai.get_status()
+            except Exception:
+                sai_status = {"error": "status unavailable"}
+
+        tra_status = {}
+        tra = getattr(self, "triage_rollcall_adapter", None)
+        if tra is not None:
+            try:
+                tra_status = tra.get_status()
+            except Exception:
+                tra_status = {"error": "status unavailable"}
+
+        rea_status = {}
+        rea = getattr(self, "rubix_evidence_adapter", None)
+        if rea is not None:
+            try:
+                rea_status = rea.get_status()
+            except Exception:
+                rea_status = {"error": "status unavailable"}
+
+        sbc_status = {}
+        sbc = getattr(self, "semantics_boundary_controller", None)
+        if sbc is not None:
+            try:
+                sbc_status = sbc.get_status()
+            except Exception:
+                sbc_status = {"error": "status unavailable"}
+
+        bgpm_status = {}
+        bgpm = getattr(self, "bot_governance_policy_mapper", None)
+        if bgpm is not None:
+            try:
+                bgpm_status = bgpm.get_status()
+            except Exception:
+                bgpm_status = {"error": "status unavailable"}
+
+        btn_status = {}
+        btn = getattr(self, "bot_telemetry_normalizer", None)
+        if btn is not None:
+            try:
+                btn_status = btn.get_status()
+            except Exception:
+                btn_status = {"error": "status unavailable"}
+
+        lcm_status = {}
+        lcm = getattr(self, "legacy_compatibility_matrix", None)
+        if lcm is not None:
+            try:
+                lcm_status = lcm.get_matrix_report()
+            except Exception:
+                lcm_status = {"error": "status unavailable"}
+
+        hac_status = {}
+        hac = getattr(self, "hitl_autonomy_controller", None)
+        if hac is not None:
+            try:
+                hac_status = hac.get_autonomy_stats()
+            except Exception:
+                hac_status = {"error": "status unavailable"}
+
+        crv_status = {}
+        crv = getattr(self, "compliance_region_validator", None)
+        if crv is not None:
+            try:
+                crv_status = crv.get_compliance_report()
+            except Exception:
+                crv_status = {"error": "status unavailable"}
+
+        oc_status = {}
+        oc = getattr(self, "observability_counters", None)
+        if oc is not None:
+            try:
+                oc_status = oc.get_status()
+            except Exception:
+                oc_status = {"error": "status unavailable"}
+
+        dre_status = {}
+        dre = getattr(self, "deterministic_routing_engine", None)
+        if dre is not None:
+            try:
+                dre_status = dre.get_status()
+            except Exception:
+                dre_status = {"error": "status unavailable"}
+
+        pcf_status = {}
+        pcf = getattr(self, "platform_connector_framework", None)
+        if pcf is not None:
+            try:
+                pcf_status = pcf.status()
+            except Exception:
+                pcf_status = {"error": "status unavailable"}
+
+        wde_status = {}
+        wde = getattr(self, "workflow_dag_engine", None)
+        if wde is not None:
+            try:
+                wde_status = wde.status()
+            except Exception:
+                wde_status = {"error": "status unavailable"}
+
+        atr_status = {}
+        atr = getattr(self, "automation_type_registry", None)
+        if atr is not None:
+            try:
+                atr_status = atr.status()
+            except Exception:
+                atr_status = {"error": "status unavailable"}
+
+        aga_status = {}
+        aga = getattr(self, "api_gateway_adapter", None)
+        if aga is not None:
+            try:
+                aga_status = aga.status()
+            except Exception:
+                aga_status = {"error": "status unavailable"}
+
+        wep_status = {}
+        wep = getattr(self, "webhook_event_processor", None)
+        if wep is not None:
+            try:
+                wep_status = wep.status()
+            except Exception:
+                wep_status = {"error": "status unavailable"}
+
+        sao_status = {}
+        sao = getattr(self, "self_automation_orchestrator", None)
+        if sao is not None:
+            try:
+                sao_status = sao.get_status()
+            except Exception:
+                sao_status = {"error": "status unavailable"}
+
+        pes_status = {}
+        pes = getattr(self, "plugin_extension_sdk", None)
+        if pes is not None:
+            try:
+                pes_status = pes.get_status()
+            except Exception:
+                pes_status = {"error": "status unavailable"}
+
+        awg_status = {}
+        awg = getattr(self, "ai_workflow_generator", None)
+        if awg is not None:
+            try:
+                awg_status = awg.get_status()
+            except Exception:
+                awg_status = {"error": "status unavailable"}
+
+        wtm_status = {}
+        wtm = getattr(self, "workflow_template_marketplace", None)
+        if wtm is not None:
+            try:
+                wtm_status = wtm.get_status()
+            except Exception:
+                wtm_status = {"error": "status unavailable"}
+
+        cpds_status = {}
+        cpds = getattr(self, "cross_platform_data_sync", None)
+        if cpds is not None:
+            try:
+                cpds_status = cpds.get_status()
+            except Exception:
+                cpds_status = {"error": "status unavailable"}
+
+        return {
+            "gate_execution_wiring": gate_status,
+            "event_backbone": event_status,
+            "delivery_orchestrator": delivery_status,
+            "self_improvement_engine": improvement_status,
+            "persistence_manager": persistence_status,
+            "slo_tracker": slo_status,
+            "automation_scheduler": scheduler_status,
+            "capability_map": cap_map_status,
+            "compliance_engine": compliance_status,
+            "rbac_governance": rbac_status,
+            "ticketing_adapter": ticketing_status,
+            "wingman_protocol": wingman_status,
+            "runtime_profile_compiler": profile_status,
+            "governance_kernel": kernel_status,
+            "control_plane_separation": cps_status,
+            "durable_swarm_orchestrator": dso_status,
+            "golden_path_bridge": gpb_status,
+            "org_chart_enforcement": oce_status,
+            "shadow_agent_integration": sai_status,
+            "triage_rollcall_adapter": tra_status,
+            "rubix_evidence_adapter": rea_status,
+            "semantics_boundary_controller": sbc_status,
+            "bot_governance_policy_mapper": bgpm_status,
+            "bot_telemetry_normalizer": btn_status,
+            "legacy_compatibility_matrix": lcm_status,
+            "hitl_autonomy_controller": hac_status,
+            "compliance_region_validator": crv_status,
+            "observability_counters": oc_status,
+            "deterministic_routing_engine": dre_status,
+            "platform_connector_framework": pcf_status,
+            "workflow_dag_engine": wde_status,
+            "automation_type_registry": atr_status,
+            "api_gateway_adapter": aga_status,
+            "webhook_event_processor": wep_status,
+            "self_automation_orchestrator": sao_status,
+            "plugin_extension_sdk": pes_status,
+            "ai_workflow_generator": awg_status,
+            "workflow_template_marketplace": wtm_status,
+            "cross_platform_data_sync": cpds_status,
+        }
 
     def _build_confidence_report(self, task_description: str) -> Dict[str, Any]:
         base = min(0.92, 0.45 + (len(task_description) / 200))
@@ -9430,7 +10997,46 @@ class MurphySystem:
                 'form_handler': self._component_status(self.form_handler),
                 'confidence_engine': self._component_status(self.confidence_engine),
                 'correction_system': self._component_status(self.correction_system),
-                'hitl_monitor': self._component_status(self.hitl_monitor)
+                'hitl_monitor': self._component_status(self.hitl_monitor),
+                'persistence_manager': self._component_status(getattr(self, 'persistence_manager', None)),
+                'event_backbone': self._component_status(getattr(self, 'event_backbone', None)),
+                'delivery_orchestrator': self._component_status(getattr(self, 'delivery_orchestrator', None)),
+                'gate_execution_wiring': self._component_status(getattr(self, 'gate_wiring', None)),
+                'self_improvement_engine': self._component_status(getattr(self, 'self_improvement', None)),
+                'slo_tracker': self._component_status(getattr(self, 'slo_tracker', None)),
+                'automation_scheduler': self._component_status(getattr(self, 'automation_scheduler', None)),
+                'capability_map': self._component_status(getattr(self, 'capability_map', None)),
+                'compliance_engine': self._component_status(getattr(self, 'compliance_engine', None)),
+                'rbac_governance': self._component_status(getattr(self, 'rbac_governance', None)),
+                'ticketing_adapter': self._component_status(getattr(self, 'ticketing_adapter', None)),
+                'wingman_protocol': self._component_status(getattr(self, 'wingman_protocol', None)),
+                'runtime_profile_compiler': self._component_status(getattr(self, 'runtime_profile_compiler', None)),
+                'governance_kernel': self._component_status(getattr(self, 'governance_kernel', None)),
+                'control_plane_separation': self._component_status(getattr(self, 'control_plane_separation', None)),
+                'durable_swarm_orchestrator': self._component_status(getattr(self, 'durable_swarm_orchestrator', None)),
+                'golden_path_bridge': self._component_status(getattr(self, 'golden_path_bridge', None)),
+                'org_chart_enforcement': self._component_status(getattr(self, 'org_chart_enforcement', None)),
+                'shadow_agent_integration': self._component_status(getattr(self, 'shadow_agent_integration', None)),
+                'triage_rollcall_adapter': self._component_status(getattr(self, 'triage_rollcall_adapter', None)),
+                'rubix_evidence_adapter': self._component_status(getattr(self, 'rubix_evidence_adapter', None)),
+                'semantics_boundary_controller': self._component_status(getattr(self, 'semantics_boundary_controller', None)),
+                'bot_governance_policy_mapper': self._component_status(getattr(self, 'bot_governance_policy_mapper', None)),
+                'bot_telemetry_normalizer': self._component_status(getattr(self, 'bot_telemetry_normalizer', None)),
+                'legacy_compatibility_matrix': self._component_status(getattr(self, 'legacy_compatibility_matrix', None)),
+                'hitl_autonomy_controller': self._component_status(getattr(self, 'hitl_autonomy_controller', None)),
+                'compliance_region_validator': self._component_status(getattr(self, 'compliance_region_validator', None)),
+                'observability_counters': self._component_status(getattr(self, 'observability_counters', None)),
+                'deterministic_routing_engine': self._component_status(getattr(self, 'deterministic_routing_engine', None)),
+                'platform_connector_framework': self._component_status(getattr(self, 'platform_connector_framework', None)),
+                'workflow_dag_engine': self._component_status(getattr(self, 'workflow_dag_engine', None)),
+                'automation_type_registry': self._component_status(getattr(self, 'automation_type_registry', None)),
+                'api_gateway_adapter': self._component_status(getattr(self, 'api_gateway_adapter', None)),
+                'webhook_event_processor': self._component_status(getattr(self, 'webhook_event_processor', None)),
+                'self_automation_orchestrator': self._component_status(getattr(self, 'self_automation_orchestrator', None)),
+                'plugin_extension_sdk': self._component_status(getattr(self, 'plugin_extension_sdk', None)),
+                'ai_workflow_generator': self._component_status(getattr(self, 'ai_workflow_generator', None)),
+                'workflow_template_marketplace': self._component_status(getattr(self, 'workflow_template_marketplace', None)),
+                'cross_platform_data_sync': self._component_status(getattr(self, 'cross_platform_data_sync', None))
             },
             'statistics': {
                 'sessions': len(self.sessions),
@@ -9465,6 +11071,7 @@ class MurphySystem:
             'governance_dashboard': governance_dashboard,
             'learning_backlog': learning_backlog,
             'self_improvement': self_improvement_snapshot,
+            'integrated_modules': self._build_integrated_execution_summary(),
             'self_operation': {
                 'enabled': self_operation_enabled,
                 'can_work_on_self': self_operation_enabled and correction_system_available,

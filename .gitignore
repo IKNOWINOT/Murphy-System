@@ -61,13 +61,20 @@ murphy_integrated/__pycache__/
 murphy_v3/__pycache__/
 *.pyc
 _workspace_*.zip
-Murphy System/*.zip
-Murphy System/archive/packages/*.zip
 murphy_persistence/
 .murphy_persistence/
 persistence_snapshots/
 handoff_queue_snapshots/
 handoff_queue_snapshot_*.json
 
+# Release/build archives (zip packages should be built from source, not tracked)
+*.zip
+
 # Bytecode caches (repo has nested folders)
 **/__pycache__/
+
+# Node modules (if any frontend tooling)
+node_modules/
+
+# OS files
+Thumbs.db
