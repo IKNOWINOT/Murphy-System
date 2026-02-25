@@ -483,7 +483,7 @@ class TestPhase3SimplifiedWorkflows:
         print("\n=== Testing Confidence Computation Integration ===")
         
         # Step 1: Create artifact graph for employee onboarding
-        graph = ArtifactGraph(id="onboarding-graph")
+        graph = ArtifactGraph()
         
         # Add nodes
         registration_node = ArtifactNode(
@@ -654,7 +654,7 @@ class TestPhase3SimplifiedWorkflows:
         start_time = time.time()
         
         for i in range(5):
-            graph = ArtifactGraph(id=f"test-graph-{i}")
+            graph = ArtifactGraph()
             node = ArtifactNode(
                 id=f"node-{i}",
                 type="test",

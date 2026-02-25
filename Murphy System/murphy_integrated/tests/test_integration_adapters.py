@@ -36,9 +36,9 @@ class TestAdapterIntegration(unittest.TestCase):
         """Test that all 5 adapters are initialized"""
         adapters = {
             'security_adapter': SecurityPlaneAdapter,
-            'module_compiler_adapter': ModuleCompilerAdapter,
-            'neuro_symbolic_adapter': NeuroSymbolicAdapter,
-            'telemetry_adapter': TelemetryAdapter,
+            'module_compiler': ModuleCompilerAdapter,
+            'neuro_symbolic': NeuroSymbolicAdapter,
+            'telemetry': TelemetryAdapter,
             'librarian_adapter': LibrarianAdapter
         }
         
