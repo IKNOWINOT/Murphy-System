@@ -28,6 +28,8 @@ class IntegrationCategory(Enum):
     DEVOPS_INFRASTRUCTURE = "devops_infrastructure"
     DATA_ANALYTICS = "data_analytics"
     ERP_BUSINESS = "erp_business"
+    BUILDING_AUTOMATION = "building_automation"
+    ENERGY_MANAGEMENT = "energy_management"
 
 
 class AuthMethod(Enum):
@@ -467,6 +469,94 @@ def _build_defaults() -> List[EnterpriseConnector]:
             "rate_limit": {"requests_per_minute": 150, "burst_limit": 25},
             "capabilities": ["sales", "marketing", "service", "finance",
                              "manage_sales", "run_campaign", "manage_service", "manage_finance"],
+        },
+        # ---- Building Automation ----
+        {
+            "name": "Johnson Controls Metasys",
+            "category": IntegrationCategory.BUILDING_AUTOMATION,
+            "platform_type": "johnson_controls_metasys",
+            "auth_config": {"method": AuthMethod.CERTIFICATE.value},
+            "rate_limit": {"requests_per_minute": 120, "burst_limit": 20},
+            "capabilities": ["hvac_control", "space_temperature", "air_handler_management",
+                             "chiller_plant_optimization", "vav_box_control", "energy_dashboard",
+                             "fault_detection_diagnostics", "setpoint_scheduling"],
+        },
+        {
+            "name": "Honeywell Niagara",
+            "category": IntegrationCategory.BUILDING_AUTOMATION,
+            "platform_type": "honeywell_niagara",
+            "auth_config": {"method": AuthMethod.CERTIFICATE.value},
+            "rate_limit": {"requests_per_minute": 100, "burst_limit": 15},
+            "capabilities": ["niagara_station_management", "webs_n4_integration",
+                             "ebi_alarm_management", "comfort_control", "energy_optimization",
+                             "predictive_maintenance", "occupancy_analytics", "equipment_scheduling"],
+        },
+        {
+            "name": "Siemens Desigo CC",
+            "category": IntegrationCategory.BUILDING_AUTOMATION,
+            "platform_type": "siemens_desigo_cc",
+            "auth_config": {"method": AuthMethod.CERTIFICATE.value},
+            "rate_limit": {"requests_per_minute": 100, "burst_limit": 15},
+            "capabilities": ["desigo_room_automation", "building_performance_monitoring",
+                             "fire_safety_integration", "access_control_integration",
+                             "energy_management", "comfort_optimization",
+                             "fault_rule_engine", "sustainability_reporting"],
+        },
+        {
+            "name": "Alerton Ascent",
+            "category": IntegrationCategory.BUILDING_AUTOMATION,
+            "platform_type": "alerton_ascent",
+            "auth_config": {"method": AuthMethod.API_KEY.value},
+            "rate_limit": {"requests_per_minute": 80, "burst_limit": 12},
+            "capabilities": ["bac_talk_integration", "ascent_control_engine",
+                             "microset_controller_management", "vlc_controller_programming",
+                             "energy_analytics", "trend_analysis",
+                             "alarm_management", "remote_monitoring"],
+        },
+        # ---- Energy Management ----
+        {
+            "name": "Johnson Controls OpenBlue",
+            "category": IntegrationCategory.ENERGY_MANAGEMENT,
+            "platform_type": "johnson_controls_openblue",
+            "auth_config": {"method": AuthMethod.OAUTH.value},
+            "rate_limit": {"requests_per_minute": 120, "burst_limit": 20},
+            "capabilities": ["energy_performance_monitoring", "fault_detection_diagnostics",
+                             "predictive_energy_analytics", "sustainability_tracking",
+                             "carbon_footprint_reporting", "smart_building_optimization",
+                             "demand_response_management", "occupancy_based_control"],
+        },
+        {
+            "name": "Honeywell Forge Energy",
+            "category": IntegrationCategory.ENERGY_MANAGEMENT,
+            "platform_type": "honeywell_forge",
+            "auth_config": {"method": AuthMethod.OAUTH.value},
+            "rate_limit": {"requests_per_minute": 100, "burst_limit": 15},
+            "capabilities": ["energy_optimization", "portfolio_analytics",
+                             "utility_rate_analysis", "predictive_maintenance",
+                             "carbon_management", "energy_benchmarking",
+                             "demand_forecasting", "renewable_integration_tracking"],
+        },
+        {
+            "name": "Schneider Electric EcoStruxure",
+            "category": IntegrationCategory.ENERGY_MANAGEMENT,
+            "platform_type": "schneider_ecostruxure",
+            "auth_config": {"method": AuthMethod.OAUTH.value},
+            "rate_limit": {"requests_per_minute": 100, "burst_limit": 15},
+            "capabilities": ["power_monitoring", "energy_analytics",
+                             "microgrid_management", "power_quality_analysis",
+                             "electrical_distribution", "building_analytics",
+                             "demand_side_management", "sustainability_dashboard"],
+        },
+        {
+            "name": "EnergyCAP",
+            "category": IntegrationCategory.ENERGY_MANAGEMENT,
+            "platform_type": "energycap",
+            "auth_config": {"method": AuthMethod.API_KEY.value},
+            "rate_limit": {"requests_per_minute": 60, "burst_limit": 10},
+            "capabilities": ["utility_bill_tracking", "energy_accounting",
+                             "cost_allocation", "budget_forecasting",
+                             "rate_analysis", "weather_normalization",
+                             "savings_verification", "sustainability_reporting"],
         },
     ]
     return [EnterpriseConnector(**s) for s in specs]

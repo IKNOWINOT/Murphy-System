@@ -264,6 +264,14 @@ start_murphy_1.0.bat   # Windows
 - **AI workflow generator (IMPLEMENTED):** `src/ai_workflow_generator.py` translates natural language descriptions into DAG workflows using template matching (6 built-in templates), keyword inference (60+ keywords, 14 step types), and implicit dependency resolution. 22 tests in `tests/test_ai_workflow_generator.py`.
 - **Workflow template marketplace (IMPLEMENTED):** `src/workflow_template_marketplace.py` provides community template marketplace with publish, search, install, rate (1-5 stars), and version management across 11 categories. 28 tests in `tests/test_workflow_template_marketplace.py`.
 - **Cross-platform data sync (IMPLEMENTED):** `src/cross_platform_data_sync.py` provides real-time bidirectional data sync with field mapping, 5 conflict resolution strategies, incremental change tracking, and custom transforms. 26 tests in `tests/test_cross_platform_data_sync.py`.
+- **Building automation connectors (IMPLEMENTED):** `src/building_automation_connectors.py` provides building automation protocol connectors for BACnet, Modbus, KNX, LonWorks, DALI, and OPC UA with vendor integrations for Johnson Controls Metasys, Honeywell Niagara/EBI, Siemens Desigo CC, and Alerton Ascent. Includes `BuildingAutomationRegistry` and `BuildingAutomationOrchestrator` for multi-protocol workflow orchestration. 10 default connectors.
+- **Manufacturing automation standards (IMPLEMENTED):** `src/manufacturing_automation_standards.py` provides manufacturing automation protocol connectors for ISA-95, OPC UA, MTConnect, PackML, MQTT/Sparkplug B, and IEC 61131 with ISA-95 layer-aware workflow orchestration (L0 field device through L4 enterprise). Includes `ManufacturingAutomationRegistry` and `ManufacturingWorkflowBinder`. 6 default connectors.
+- **Energy management connectors (IMPLEMENTED):** `src/energy_management_connectors.py` provides energy management system connectors for Johnson Controls OpenBlue, Honeywell Forge Energy, Schneider Electric EcoStruxure, Siemens Navigator, EnergyCAP, Lucid BuildingOS, ENERGY STAR Portfolio Manager, Enel X Demand Response, Alerton EMS, and SolarEdge Monitoring. Includes `EnergyManagementRegistry` and `EnergyWorkflowOrchestrator`. 10 default connectors.
+- **Enterprise integrations extended (UPDATED):** `src/enterprise_integrations.py` now includes `BUILDING_AUTOMATION` and `ENERGY_MANAGEMENT` categories in `IntegrationCategory` enum with Johnson Controls Metasys, Honeywell Niagara, Siemens Desigo CC, Alerton Ascent (building automation) and Johnson Controls OpenBlue, Honeywell Forge, Schneider EcoStruxure, EnergyCAP (energy management) default connectors. 36 total enterprise connectors across 10 categories.
+- **Analytics dashboard wired (WIRED):** `src/analytics_dashboard.py` now registered in MODULE_CATALOG and initialized in runtime with execution analytics, compliance tracking, performance metrics, business intelligence, and alert rules engine.
+- **Executive planning engine wired (WIRED):** `src/executive_planning_engine.py` now registered in MODULE_CATALOG and initialized in runtime with strategy planning, business gate generation, integration automation binding, and executive dashboard generation.
+- **Runtime MODULE_CATALOG expanded:** 73 total module entries (up from 66). All 7 new modules have import try/except blocks, MODULE_CATALOG entries, and `_initialize_integrated_modules()` calls.
+- **Integration test suite (NEW):** `tests/test_building_manufacturing_energy_integration.py` — **69 passed, 0 failed**. Validates all new modules including protocol/standard coverage, vendor connectors (Johnson Controls, Honeywell, Siemens, Alerton), action execution, MODULE_CATALOG registration, and runtime initialization.
 - **Updated completion percentage snapshot (current):** execution wiring **99.00%**, deterministic+LLM routing **77.00%**, persistence+replay **80.00%**, multi-channel delivery **89.00%**, compliance **93.00%**, operations **94.00%**, UI/testing **71.19%**, dynamic-chain tests **99.85%** (source: `FULL_SYSTEM_ASSESSMENT.md` section 9; all Section 12 steps COMPLETE, all Section 14 priorities COMPLETE, all Section 15 items IMPLEMENTED, Section 16 platform/integration/marketplace/SDK IMPLEMENTED, Section 17 self-automation IMPLEMENTED).
 - **Latest test run (all 39 modules):** 1259 module tests passed — **0 failures**.
 ---
@@ -354,7 +362,10 @@ Murphy can automate **any business type** once the relevant integrations/adapter
 
 | Type | Examples | Use Cases |
 | --- | --- | --- |
-| **Factory/IoT** | Sensors, actuators, HVAC | Temperature control, production lines |
+| **Factory/IoT** | Sensors, actuators, HVAC, BACnet, Modbus, OPC UA | Temperature control, production lines, building automation |
+| **Building Automation** | Johnson Controls, Honeywell, Siemens, Alerton, KNX, DALI | HVAC optimization, lighting, energy management |
+| **Manufacturing** | ISA-95, MTConnect, PackML, MQTT/Sparkplug B, IEC 61131 | Production scheduling, PLC integration, quality management |
+| **Energy Management** | OpenBlue, EcoStruxure, EnergyCAP, ENERGY STAR | Energy analytics, demand response, sustainability reporting |
 | **Content** | Blog posts, social media | Publishing, marketing automation |
 | **Data** | Databases, analytics | ETL, reporting, insights |
 | **System** | Commands, DevOps | Infrastructure, deployments |

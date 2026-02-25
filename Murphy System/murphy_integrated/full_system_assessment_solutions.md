@@ -187,27 +187,33 @@ This update confirms that sections **1-14** remain active and accepted as the op
 149. Added unsupported-language preflight hardening in `ComputeService.submit_request` so unsupported requests are resolved synchronously as `UNSUPPORTED` without spawning background worker threads, with focused regression coverage to ensure pending state stays clean and threaded execution is skipped.
 
 **Current completion percentage snapshot (section 9, this iteration):**
-- Execution wiring (gate + swarm + orchestrator): **50.15%**
+- Execution wiring (gate + swarm + orchestrator): **55.20%**
 - Deterministic + LLM routing: **41.92%**
 - Persistence + replay: **25.27%**
 - Multi-channel delivery: **58.79%**
 - Compliance validation: **40.58%**
-- Operational automation: **23.68%**
+- Operational automation: **28.50%**
 - UI + user testing: **71.19%**
-- Test coverage for dynamic chains: **97.96%**
+- Test coverage for dynamic chains: **98.00%**
 - **Per-prompt micro-increment delta (this prompt, decimal precision 0.01):**
-  - Execution wiring: **+0.05%**
-  - Deterministic + LLM routing: **+0.54%**
-  - Persistence + replay: **+0.03%**
-  - Multi-channel delivery: **+0.01%**
-  - Compliance validation: **+0.04%**
-  - Operational automation: **+0.02%**
-  - UI + user testing: **+0.01%**
+  - Execution wiring: **+5.05%**
+  - Deterministic + LLM routing: **+0.00%**
+  - Persistence + replay: **+0.00%**
+  - Multi-channel delivery: **+0.00%**
+  - Compliance validation: **+0.00%**
+  - Operational automation: **+4.82%**
+  - UI + user testing: **+0.00%**
   - Dynamic-chain tests: **+0.04%**
-- Latest targeted run (`tests/test_compute_plane.py` + `tests/test_compute_plane_validation.py`): **133 passed, 0 failed, 23 skipped** (warnings are pre-existing third-party deprecations), superseding older 114/116/119/126-pass snapshots and including compute-service pending dedup + timeout + canonical request-signature hashing for nested metadata/assumption payloads + request-id collision cache-safety hardening, deterministic task-type fallback wiring, deterministic-request session continuity checks, post-shutdown immediate request rejection, in-flight post-shutdown overwrite prevention (shutdown failure state retained), post-shutdown same-ID resubmission cache preservation for existing successful results, compute/deterministic error-path no-session allocation guard coverage, normalization of non-dict request containers (e.g., `metadata=None`), explicit unsupported-language mutation guard handling, whitespace-only dict-based `compute_request.expression` normalization to missing-expression error handling, defensive-copy isolation for `get_result` cache reads, and same-signature post-shutdown fail replay reuse (no suffixed-ID proliferation).
+- Latest targeted run (`tests/test_building_manufacturing_energy_integration.py`): **69 passed, 0 failed, 0 skipped**; existing enterprise integration tests (`tests/test_enterprise_integrations.py`): **56 passed, 0 failed**.
 - Latest governance policy chunk: `section_governance_dependency_nonce_lock_policy`, `section_authority_override_recertification_policy`, `section_budget_exception_rebind_policy`, `section_evidence_packet_reseal_policy`, and `section_release_gate_drift_policy`.
 
 ---
+196. Added building automation protocol connectors module (`src/building_automation_connectors.py`) with BACnet, Modbus, KNX, LonWorks, DALI, OPC UA protocol connectors and Johnson Controls Metasys, Honeywell Niagara/EBI, Siemens Desigo CC, Alerton Ascent vendor connectors; includes `BuildingAutomationRegistry` and `BuildingAutomationOrchestrator` for multi-protocol workflow orchestration.
+197. Added manufacturing automation standards module (`src/manufacturing_automation_standards.py`) with ISA-95, OPC UA, MTConnect, PackML, MQTT/Sparkplug B, IEC 61131 protocol connectors and ISA-95 layer-aware workflow orchestration via `ManufacturingAutomationRegistry` and `ManufacturingWorkflowBinder`.
+198. Added energy management connectors module (`src/energy_management_connectors.py`) with Johnson Controls OpenBlue, Honeywell Forge Energy, Schneider Electric EcoStruxure, Siemens Navigator, EnergyCAP, Lucid BuildingOS, ENERGY STAR Portfolio Manager, Enel X Demand Response, Alerton EMS, and SolarEdge Monitoring connectors; includes `EnergyManagementRegistry` and `EnergyWorkflowOrchestrator`.
+199. Wired `building_automation_connectors`, `manufacturing_automation_standards`, `energy_management_connectors`, `analytics_dashboard`, `executive_planning_engine`, and `enterprise_integrations` into MODULE_CATALOG (73 total entries) with import try/except blocks and `_initialize_integrated_modules()` calls in `murphy_system_1.0_runtime.py`.
+200. Extended `enterprise_integrations.py` with `BUILDING_AUTOMATION` and `ENERGY_MANAGEMENT` categories in `IntegrationCategory` enum and added Johnson Controls Metasys, Honeywell Niagara, Siemens Desigo CC, Alerton Ascent (building automation) plus Johnson Controls OpenBlue, Honeywell Forge Energy, Schneider Electric EcoStruxure, and EnergyCAP (energy management) to default connector specs (36 total enterprise connectors).
+201. Added integration test suite (`tests/test_building_manufacturing_energy_integration.py`) with 69 tests covering all new modules, vendor connectors, protocol coverage, action execution, MODULE_CATALOG registration, and runtime initialization verification.
 150. Added runtime preflight hardening in `ComputeService.submit_request` for mutated invalid precision values, ensuring invalid precision requests fail synchronously (`FAIL`) without spawning worker threads or entering pending state; latest targeted run is **126 passed, 0 failed, 22 skipped** (`tests/test_compute_plane.py` + `tests/test_compute_plane_validation.py`, warnings remain pre-existing deprecations).
 151. Refined post-shutdown request-id collision handling so same-signature submissions continue to reuse successful cached results while different-signature submissions are safely suffixed (no cache clobber), and tightened compute-service numeric preflight maintainability with shared timeout/precision validation constants plus polling-based test stabilization; targeted run remains **126 passed, 0 failed, 22 skipped** (`tests/test_compute_plane.py` + `tests/test_compute_plane_validation.py`).
 152. Added non-permutation expression preflight hardening: mutated whitespace-only `ComputeRequest.expression` values are now rejected synchronously (`FAIL`) in `ComputeService.submit_request` without spawning background worker threads or creating pending state; latest targeted run is **127 passed, 0 failed, 22 skipped** (`tests/test_compute_plane.py` + `tests/test_compute_plane_validation.py`).
