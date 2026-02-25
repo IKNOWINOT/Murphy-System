@@ -242,8 +242,12 @@ start_murphy_1.0.bat   # Windows
 - **Control plane separation (IMPLEMENTED):** `src/control_plane_separation.py` separates planning-plane (reasoning, decomposition, gate synthesis, compliance proposals) from execution-plane (policy enforcement, permission validation, budget enforcement, audit logging) with strict/balanced/dynamic mode switching and handler registration. 30 tests in `tests/test_control_plane_separation.py`.
 - **Durable swarm orchestration (IMPLEMENTED):** `src/durable_swarm_orchestrator.py` provides budget-aware swarm spawning with idempotency keys, retry policies with exponential backoff, circuit breaker pattern, budget-per-task limits, max_spawn_depth anti-runaway recursion, and rollback hooks. 32 tests in `tests/test_durable_swarm_orchestrator.py`.
 - **Golden-path memory bridge (IMPLEMENTED):** `src/golden_path_bridge.py` captures successful execution paths for replay acceleration, provides similarity-based path matching with confidence scoring, path invalidation, and replay for knowledge/RAG usage. 31 tests in `tests/test_golden_path_bridge.py`.
-- **Updated completion percentage snapshot (current):** execution wiring **92.00%**, deterministic+LLM routing **52.00%**, persistence+replay **72.00%**, multi-channel delivery **82.00%**, compliance **80.00%**, operations **82.00%**, UI/testing **71.19%**, dynamic-chain tests **99.20%** (source: `FULL_SYSTEM_ASSESSMENT.md` section 9; recalibrated after control plane separation, durable swarm orchestration, and golden-path bridge with 93 new tests).
-- **Latest test run (all 17 modules):** 571 module tests passed + 149 core tests passed (30 skipped) — **0 failures**.
+- **Org-chart execution enforcement (IMPLEMENTED):** `src/org_chart_enforcement.py` implements role-bound permissions with escalation chain inheritance, escalation request creation/resolution, cross-department workflow arbitration with DEPARTMENT_HEAD approval requirements, and department-scoped memory isolation. 35 tests in `tests/test_org_chart_enforcement.py`.
+- **Shadow-agent integration (IMPLEMENTED):** `src/shadow_agent_integration.py` treats shadow agents as org-chart peers with identical governance boundary checks. Supports USER/ORGANIZATION account types, shadow lifecycle management (create/suspend/revoke/reactivate), and org/account filtering per RFI-012. 38 tests in `tests/test_shadow_agent_integration.py`.
+- **Triage rollcall adapter (IMPLEMENTED):** `src/triage_rollcall_adapter.py` provides capability-rollcall before swarm expansion with ranked bot/archetype candidate selection, confidence probing, domain boosting, and DEGRADED/BUSY/OFFLINE status handling. 22 tests in `tests/test_triage_rollcall_adapter.py`.
+- **Rubix evidence adapter (IMPLEMENTED):** `src/rubix_evidence_adapter.py` provides a deterministic evidence lane with 5 checks (confidence interval, hypothesis test, Bayesian update, Monte Carlo simulation, OLS forecast), evidence battery composition, and compliance-ready artifacts. 29 tests in `tests/test_rubix_evidence_adapter.py`.
+- **Updated completion percentage snapshot (current):** execution wiring **95.00%**, deterministic+LLM routing **52.00%**, persistence+replay **72.00%**, multi-channel delivery **82.00%**, compliance **85.00%**, operations **86.00%**, UI/testing **71.19%**, dynamic-chain tests **99.40%** (source: `FULL_SYSTEM_ASSESSMENT.md` section 9; recalibrated after org-chart enforcement, shadow-agent integration, triage rollcall, and rubix evidence with 124 new tests).
+- **Latest test run (all 21 modules):** 699 module tests passed + 149 core tests passed (30 skipped) — **0 failures**.
 ---
 
 ## 🗃️ Repository Index (Database-Style Reference)
@@ -293,6 +297,10 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **Control Plane Separation** | `src/control_plane_separation.py` | Planning/execution plane split, mode switching |
 | **Durable Swarm Orchestrator** | `src/durable_swarm_orchestrator.py` | Budget-aware swarms, idempotency, circuit breaker |
 | **Golden Path Bridge** | `src/golden_path_bridge.py` | Execution path capture, replay, similarity matching |
+| **Org Chart Enforcement** | `src/org_chart_enforcement.py` | Role-bound permissions, escalation chains, cross-dept arbitration |
+| **Shadow Agent Integration** | `src/shadow_agent_integration.py` | Shadow-agent org-chart parity, account/user controls |
+| **Triage Rollcall Adapter** | `src/triage_rollcall_adapter.py` | Capability rollcall before swarm expansion, candidate ranking |
+| **Rubix Evidence Adapter** | `src/rubix_evidence_adapter.py` | Deterministic evidence lane: CI, Bayesian, Monte Carlo, forecast |
 
 **Progress tracking:** update the forward plan in
 `Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md` and append confirmed completion evidence in
