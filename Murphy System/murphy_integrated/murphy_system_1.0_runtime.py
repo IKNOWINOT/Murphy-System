@@ -994,7 +994,7 @@ class MurphySystem:
         {
             "name": "building_automation_connectors",
             "path": "src.building_automation_connectors",
-            "description": "Building automation protocol connectors (BACnet, Modbus, KNX, LonWorks, DALI, OPC UA) with Johnson Controls, Honeywell, Siemens, Alerton vendor integrations",
+            "description": "Building automation protocol connectors (BACnet, Modbus, KNX, LonWorks, DALI, OPC UA) with Johnson Controls, Honeywell, Siemens, Alerton, Trane, Carrier/Automated Logic, Schneider Electric, ABB, Delta Controls, Distech vendor integrations",
             "capabilities": ["bacnet", "modbus", "knx", "lonworks", "dali", "opc_ua", "hvac_control", "lighting_control", "vendor_integration"]
         },
         {
@@ -1006,7 +1006,7 @@ class MurphySystem:
         {
             "name": "energy_management_connectors",
             "path": "src.energy_management_connectors",
-            "description": "Energy management system connectors (Johnson Controls OpenBlue, Honeywell Forge, Schneider EcoStruxure, Siemens Navigator, EnergyCAP, ENERGY STAR) with demand response and renewables",
+            "description": "Energy management system connectors (Johnson Controls OpenBlue, Honeywell Forge, Schneider EcoStruxure, Siemens Navigator, EnergyCAP, ENERGY STAR, Enel X, Alerton EMS, SolarEdge, GridPoint, Tridium Niagara, ABB Ability, Emerson Ovation, Enverus, Brainbox AI) with demand response and renewables",
             "capabilities": ["energy_monitoring", "utility_analytics", "demand_response", "sustainability_reporting", "renewable_integration", "carbon_tracking"]
         },
         {
