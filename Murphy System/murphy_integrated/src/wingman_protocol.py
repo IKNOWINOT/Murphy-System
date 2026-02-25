@@ -356,7 +356,7 @@ class WingmanProtocol:
                 ))
                 continue
             result = check_fn(output)
-            # Honour the severity declared in the runbook rule, not the check default
+            # Honor the severity declared in the runbook rule, not the check default
             result.severity = rule.severity
             result.rule_id = rule.rule_id
             results.append(result)
