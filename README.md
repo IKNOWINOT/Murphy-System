@@ -236,6 +236,11 @@ start_murphy_1.0.bat   # Windows
 - **Ticketing/ITSM adapter (IMPLEMENTED):** `src/ticketing_adapter.py` provides full ticket lifecycle management (create/update/escalate/close) for INCIDENT/SERVICE_REQUEST/CHANGE_REQUEST/PROBLEM/REMOTE_ACCESS/PATCH_ROLLBACK types, with remote access provisioning and patch/rollback automation requests. 30 tests in `tests/test_ticketing_adapter.py`.
 - **Updated completion percentage snapshot (current):** execution wiring **82.00%**, deterministic+LLM routing **45.00%**, persistence+replay **72.00%**, multi-channel delivery **82.00%**, compliance **75.00%**, operations **78.00%**, UI/testing **71.19%**, dynamic-chain tests **98.80%** (source: `FULL_SYSTEM_ASSESSMENT.md` section 9; recalibrated after capability map, compliance engine, RBAC governance, and ticketing adapter with 125 new tests).
 - **Latest test run (all 11 modules):** `tests/test_persistence_manager.py` + `tests/test_event_backbone.py` + `tests/test_delivery_adapters.py` + `tests/test_gate_execution_wiring.py` + `tests/test_self_improvement_engine.py` + `tests/test_operational_slo_tracker.py` + `tests/test_automation_scheduler.py` + `tests/test_capability_map.py` + `tests/test_compliance_engine.py` + `tests/test_rbac_governance.py` + `tests/test_ticketing_adapter.py` + `tests/test_integrated_execution_wiring.py` — **348 passed, 0 failed**. Core tests — **149 passed, 30 skipped** (no regressions).
+- **Wingman protocol (IMPLEMENTED):** `src/wingman_protocol.py` provides executor/validator pairing with 5 built-in deterministic validation checks (has_output, no_pii, confidence_threshold, budget_limit, gate_clearance), reusable domain-specific runbooks with BLOCK/WARN/INFO severity, and validation history tracking. 43 tests in `tests/test_wingman_protocol.py`.
+- **Runtime execution profile compiler (IMPLEMENTED):** `src/runtime_profile_compiler.py` compiles onboarding data into RuntimeExecutionProfile with STRICT/BALANCED/DYNAMIC modes, safety_level, escalation_policy, budget_constraints, tool_permissions, audit_requirements, and autonomy_level (FULL_HUMAN/HUMAN_SUPERVISED/CONFIDENCE_GATED/AUTONOMOUS). Industry-based mode inference and execution permission gating. 43 tests in `tests/test_runtime_profile_compiler.py`.
+- **Governance kernel enforcement (IMPLEMENTED):** `src/governance_kernel.py` implements a non-LLM deterministic enforcement layer routing tool calls through department registries, budget tracking, cross-department arbitration, and audit emission with ALLOW/DENY/ESCALATE/AUDIT_ONLY actions. 34 tests in `tests/test_governance_kernel.py`.
+- **Updated completion percentage snapshot (current):** execution wiring **87.00%**, deterministic+LLM routing **45.00%**, persistence+replay **72.00%**, multi-channel delivery **82.00%**, compliance **80.00%**, operations **82.00%**, UI/testing **71.19%**, dynamic-chain tests **99.00%** (source: `FULL_SYSTEM_ASSESSMENT.md` section 9; recalibrated after wingman protocol, runtime profile compiler, and governance kernel with 120 new tests).
+- **Latest test run (all 14 modules):** 475 module tests passed + 149 core tests passed (30 skipped) — **0 failures**.
 ---
 
 ## 🗃️ Repository Index (Database-Style Reference)
@@ -279,6 +284,9 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **Compliance Engine** | `src/compliance_engine.py` | GDPR/SOC2/HIPAA/PCI-DSS sensors, HITL approvals |
 | **RBAC Governance** | `src/rbac_governance.py` | Multi-tenant RBAC, shadow agent governance |
 | **Ticketing Adapter** | `src/ticketing_adapter.py` | ITSM lifecycle, remote access, patch/rollback |
+| **Wingman Protocol** | `src/wingman_protocol.py` | Executor/validator pairing, deterministic validation |
+| **Runtime Profile Compiler** | `src/runtime_profile_compiler.py` | Onboarding-to-profile, safety/autonomy controls |
+| **Governance Kernel** | `src/governance_kernel.py` | Non-LLM enforcement, budget tracking, audit emission |
 
 **Progress tracking:** update the forward plan in
 `Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md` and append confirmed completion evidence in
