@@ -6,6 +6,8 @@ Implements confidence, risk, and authority computation layer
 from .models import (
     ArtifactNode,
     ArtifactGraph,
+    ArtifactType,
+    ArtifactSource,
     VerificationEvidence,
     VerificationResult,
     SourceTrust,
