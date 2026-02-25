@@ -722,9 +722,7 @@ class UISecurityTester:
             sanitized = sanitize_fn(payload)
             is_safe = (
                 "<script" not in sanitized.lower() and
-                "onerror" not in sanitized.lower() and
-                "onload" not in sanitized.lower() and
-                "onmouseover" not in sanitized.lower() and
+                not re.search(r'<[a-z]+[^>]*\bon\w+=', sanitized, re.I) and
                 "javascript:" not in sanitized.lower()
             )
             results.append({
@@ -801,8 +799,13 @@ class UISecurityTester:
 
     @staticmethod
     def default_sanitizer(input_str: str) -> str:
-        """Default HTML entity sanitizer."""
-        return html.escape(input_str)
+        """Default HTML entity sanitizer with protocol stripping."""
+        sanitized = html.escape(input_str)
+        # Strip dangerous URI schemes
+        sanitized = re.sub(r'javascript\s*:', '', sanitized, flags=re.I)
+        sanitized = re.sub(r'vbscript\s*:', '', sanitized, flags=re.I)
+        sanitized = re.sub(r'data\s*:', '', sanitized, flags=re.I)
+        return sanitized
 
 
 # ═══════════════════════════════════════════════════════════════════════════

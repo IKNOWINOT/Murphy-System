@@ -455,6 +455,34 @@ except ImportError as e:
     print(f"Warning: ML strategy engine not available: {e}")
     MLStrategyEngine = None
 
+# Agentic API Provisioner
+try:
+    from src.agentic_api_provisioner import AgenticAPIProvisioner
+except ImportError as e:
+    print(f"Warning: Agentic API provisioner not available: {e}")
+    AgenticAPIProvisioner = None
+
+# Video Streaming Connector
+try:
+    from src.video_streaming_connector import VideoStreamingRegistry
+except ImportError as e:
+    print(f"Warning: Video streaming connector not available: {e}")
+    VideoStreamingRegistry = None
+
+# Remote Access Connector
+try:
+    from src.remote_access_connector import RemoteAccessRegistry
+except ImportError as e:
+    print(f"Warning: Remote access connector not available: {e}")
+    RemoteAccessRegistry = None
+
+# UI Testing Framework
+try:
+    from src.ui_testing_framework import UITestingFramework
+except ImportError as e:
+    print(f"Warning: UI testing framework not available: {e}")
+    UITestingFramework = None
+
 # FastAPI for REST API
 try:
     from fastapi import FastAPI, HTTPException, Request
@@ -1078,6 +1106,30 @@ class MurphySystem:
             "path": "src.ml_strategy_engine",
             "description": "Pure-Python ML strategy engine providing anomaly detection (z-score/IQR), time-series forecasting (exponential smoothing/moving average), Naive Bayes classification, content-based and collaborative recommendation, K-means clustering, Q-learning reinforcement learning, feature importance analysis, A/B testing framework, ensemble methods, and online incremental learning",
             "capabilities": ["anomaly_detection", "time_series_forecasting", "naive_bayes_classification", "recommendation_engine", "kmeans_clustering", "q_learning", "feature_importance", "ab_testing", "ensemble_methods", "online_learning", "reinforcement_learning"]
+        },
+        {
+            "name": "agentic_api_provisioner",
+            "path": "src.agentic_api_provisioner",
+            "description": "Self-provisioning API infrastructure that autonomously discovers modules, generates REST/GraphQL/WebSocket endpoints, auto-configures auth and rate limits, generates OpenAPI specs, registers webhooks, and performs self-healing health monitoring",
+            "capabilities": ["auto_provision", "endpoint_registration", "openapi_generation", "webhook_management", "health_monitoring", "self_healing", "module_introspection", "rate_limiting", "auth_policy", "api_versioning"]
+        },
+        {
+            "name": "video_streaming_connector",
+            "path": "src.video_streaming_connector",
+            "description": "Unified live video streaming connectors for Twitch, YouTube Live, OBS Studio, vMix, Restream, StreamYard, Streamlabs, Kick Live, and Facebook Live with simulcast orchestration, stream health monitoring, recording management, and chat integration",
+            "capabilities": ["live_streaming", "simulcasting", "recording", "chat_integration", "stream_health", "twitch", "youtube_live", "obs_studio", "vmix", "restream", "streamyard"]
+        },
+        {
+            "name": "remote_access_connector",
+            "path": "src.remote_access_connector",
+            "description": "Remote desktop and administration connectors for TeamViewer, AnyDesk, RDP, VNC, SSH Tunneling, Parsec, Chrome Remote Desktop, Apache Guacamole, and Splashtop with session management, file transfer, unattended access, session recording, and Wake-on-LAN",
+            "capabilities": ["remote_desktop", "file_transfer", "unattended_access", "session_recording", "teamviewer", "anydesk", "rdp", "vnc", "ssh_tunnel", "parsec", "wake_on_lan"]
+        },
+        {
+            "name": "ui_testing_framework",
+            "path": "src.ui_testing_framework",
+            "description": "Comprehensive UI testing infrastructure covering all 12 testing gaps: visual regression, interactive components, E2E browser harness, performance/Core Web Vitals, cross-browser compatibility, mobile gestures, animation/transition validation, error state handling, dark mode, API integration, security (XSS/injection), and i18n/RTL",
+            "capabilities": ["visual_regression", "interactive_testing", "e2e_browser", "performance_testing", "cross_browser", "mobile_gesture", "animation_testing", "error_state", "dark_mode", "security_testing", "i18n_testing", "accessibility"]
         }
     ]
     MODULE_SCAN_EXCLUDED_DIRS = {"__pycache__", "tests", "test", "docs", "documentation", "examples"}
@@ -2519,6 +2571,53 @@ class MurphySystem:
         else:
             self.ml_strategy_engine = None
 
+        # Agentic API Provisioner
+        if AgenticAPIProvisioner:
+            try:
+                self.agentic_api_provisioner = AgenticAPIProvisioner()
+                logger.info("Agentic API provisioner initialized")
+            except Exception as exc:
+                logger.warning("Agentic API provisioner initialization failed: %s", exc)
+                self.agentic_api_provisioner = None
+        else:
+            self.agentic_api_provisioner = None
+
+        # Video Streaming Connector
+        if VideoStreamingRegistry:
+            try:
+                self.video_streaming_connector = VideoStreamingRegistry()
+                logger.info("Video streaming connector initialized with %d platforms",
+                            len(self.video_streaming_connector.list_platforms()))
+            except Exception as exc:
+                logger.warning("Video streaming connector initialization failed: %s", exc)
+                self.video_streaming_connector = None
+        else:
+            self.video_streaming_connector = None
+
+        # Remote Access Connector
+        if RemoteAccessRegistry:
+            try:
+                self.remote_access_connector = RemoteAccessRegistry()
+                logger.info("Remote access connector initialized with %d platforms",
+                            len(self.remote_access_connector.list_platforms()))
+            except Exception as exc:
+                logger.warning("Remote access connector initialization failed: %s", exc)
+                self.remote_access_connector = None
+        else:
+            self.remote_access_connector = None
+
+        # UI Testing Framework
+        if UITestingFramework:
+            try:
+                self.ui_testing_framework = UITestingFramework()
+                logger.info("UI testing framework initialized with %d capabilities",
+                            self.ui_testing_framework.status().get("capabilities_available", 0))
+            except Exception as exc:
+                logger.warning("UI testing framework initialization failed: %s", exc)
+                self.ui_testing_framework = None
+        else:
+            self.ui_testing_framework = None
+
         # ---- Wire all integration modules into executive planning binder ----
         self._wire_integrations_to_planning_engine()
 
@@ -2633,6 +2732,32 @@ class MurphySystem:
                     "category": "content_creator",
                     "capability": ",".join(p.get("capabilities", [])[:3]),
                     "source": "content_creator_platform_modulator",
+                })
+                wired += 1
+
+        # Video Streaming Connector
+        vsc = getattr(self, 'video_streaming_connector', None)
+        if vsc is not None:
+            for p in vsc.list_platforms():
+                binder.register_integration({
+                    "integration_id": f"vsc_{p.get('platform', 'unknown')}",
+                    "name": f"Video Streaming – {p.get('platform', 'unknown')}",
+                    "category": "video_streaming",
+                    "capability": "live_streaming",
+                    "source": "video_streaming_connector",
+                })
+                wired += 1
+
+        # Remote Access Connector
+        rac = getattr(self, 'remote_access_connector', None)
+        if rac is not None:
+            for p in rac.list_platforms():
+                binder.register_integration({
+                    "integration_id": f"rac_{p.get('platform', 'unknown')}",
+                    "name": f"Remote Access – {p.get('platform', 'unknown')}",
+                    "category": "remote_access",
+                    "capability": "remote_desktop",
+                    "source": "remote_access_connector",
                 })
                 wired += 1
 
@@ -11407,7 +11532,11 @@ class MurphySystem:
                 'digital_asset_generator': self._component_status(getattr(self, 'digital_asset_generator', None)),
                 'rosetta_stone_heartbeat': self._component_status(getattr(self, 'rosetta_stone_heartbeat', None)),
                 'content_creator_platform_modulator': self._component_status(getattr(self, 'content_creator_platform_modulator', None)),
-                'ml_strategy_engine': self._component_status(getattr(self, 'ml_strategy_engine', None))
+                'ml_strategy_engine': self._component_status(getattr(self, 'ml_strategy_engine', None)),
+                'agentic_api_provisioner': self._component_status(getattr(self, 'agentic_api_provisioner', None)),
+                'video_streaming_connector': self._component_status(getattr(self, 'video_streaming_connector', None)),
+                'remote_access_connector': self._component_status(getattr(self, 'remote_access_connector', None)),
+                'ui_testing_framework': self._component_status(getattr(self, 'ui_testing_framework', None))
             },
             'statistics': {
                 'sessions': len(self.sessions),
