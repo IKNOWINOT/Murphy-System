@@ -239,8 +239,11 @@ start_murphy_1.0.bat   # Windows
 - **Wingman protocol (IMPLEMENTED):** `src/wingman_protocol.py` provides executor/validator pairing with 5 built-in deterministic validation checks (has_output, no_pii, confidence_threshold, budget_limit, gate_clearance), reusable domain-specific runbooks with BLOCK/WARN/INFO severity, and validation history tracking. 43 tests in `tests/test_wingman_protocol.py`.
 - **Runtime execution profile compiler (IMPLEMENTED):** `src/runtime_profile_compiler.py` compiles onboarding data into RuntimeExecutionProfile with STRICT/BALANCED/DYNAMIC modes, safety_level, escalation_policy, budget_constraints, tool_permissions, audit_requirements, and autonomy_level (FULL_HUMAN/HUMAN_SUPERVISED/CONFIDENCE_GATED/AUTONOMOUS). Industry-based mode inference and execution permission gating. 43 tests in `tests/test_runtime_profile_compiler.py`.
 - **Governance kernel enforcement (IMPLEMENTED):** `src/governance_kernel.py` implements a non-LLM deterministic enforcement layer routing tool calls through department registries, budget tracking, cross-department arbitration, and audit emission with ALLOW/DENY/ESCALATE/AUDIT_ONLY actions. 34 tests in `tests/test_governance_kernel.py`.
-- **Updated completion percentage snapshot (current):** execution wiring **87.00%**, deterministic+LLM routing **45.00%**, persistence+replay **72.00%**, multi-channel delivery **82.00%**, compliance **80.00%**, operations **82.00%**, UI/testing **71.19%**, dynamic-chain tests **99.00%** (source: `FULL_SYSTEM_ASSESSMENT.md` section 9; recalibrated after wingman protocol, runtime profile compiler, and governance kernel with 120 new tests).
-- **Latest test run (all 14 modules):** 475 module tests passed + 149 core tests passed (30 skipped) — **0 failures**.
+- **Control plane separation (IMPLEMENTED):** `src/control_plane_separation.py` separates planning-plane (reasoning, decomposition, gate synthesis, compliance proposals) from execution-plane (policy enforcement, permission validation, budget enforcement, audit logging) with strict/balanced/dynamic mode switching and handler registration. 30 tests in `tests/test_control_plane_separation.py`.
+- **Durable swarm orchestration (IMPLEMENTED):** `src/durable_swarm_orchestrator.py` provides budget-aware swarm spawning with idempotency keys, retry policies with exponential backoff, circuit breaker pattern, budget-per-task limits, max_spawn_depth anti-runaway recursion, and rollback hooks. 32 tests in `tests/test_durable_swarm_orchestrator.py`.
+- **Golden-path memory bridge (IMPLEMENTED):** `src/golden_path_bridge.py` captures successful execution paths for replay acceleration, provides similarity-based path matching with confidence scoring, path invalidation, and replay for knowledge/RAG usage. 31 tests in `tests/test_golden_path_bridge.py`.
+- **Updated completion percentage snapshot (current):** execution wiring **92.00%**, deterministic+LLM routing **52.00%**, persistence+replay **72.00%**, multi-channel delivery **82.00%**, compliance **80.00%**, operations **82.00%**, UI/testing **71.19%**, dynamic-chain tests **99.20%** (source: `FULL_SYSTEM_ASSESSMENT.md` section 9; recalibrated after control plane separation, durable swarm orchestration, and golden-path bridge with 93 new tests).
+- **Latest test run (all 17 modules):** 571 module tests passed + 149 core tests passed (30 skipped) — **0 failures**.
 ---
 
 ## 🗃️ Repository Index (Database-Style Reference)
@@ -287,6 +290,9 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **Wingman Protocol** | `src/wingman_protocol.py` | Executor/validator pairing, deterministic validation |
 | **Runtime Profile Compiler** | `src/runtime_profile_compiler.py` | Onboarding-to-profile, safety/autonomy controls |
 | **Governance Kernel** | `src/governance_kernel.py` | Non-LLM enforcement, budget tracking, audit emission |
+| **Control Plane Separation** | `src/control_plane_separation.py` | Planning/execution plane split, mode switching |
+| **Durable Swarm Orchestrator** | `src/durable_swarm_orchestrator.py` | Budget-aware swarms, idempotency, circuit breaker |
+| **Golden Path Bridge** | `src/golden_path_bridge.py` | Execution path capture, replay, similarity matching |
 
 **Progress tracking:** update the forward plan in
 `Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md` and append confirmed completion evidence in
