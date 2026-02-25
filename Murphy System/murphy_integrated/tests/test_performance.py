@@ -135,18 +135,15 @@ class TestPerformance(unittest.TestCase):
         # Add some test data first
         if self.integrator.librarian_adapter_enabled:
             for i in range(20):
-                self.integrator.librarian_adapter.add_knowledge(
-                    entry_id=f"test_entry_{i}",
-                    content={"text": f"Test content for entry {i} with various keywords"},
-                    metadata={"category": "test", "index": i}
+                self.integrator.librarian_adapter.search_knowledge_base(
+                    query=f"Test content for entry {i} with various keywords"
                 )
             
             for i in range(num_searches):
                 start_time = time.time()
                 
-                results = self.integrator.librarian_adapter.search_knowledge(
-                    query=f"test query {i % 10}",
-                    limit=10
+                results = self.integrator.librarian_adapter.search_knowledge_base(
+                    query=f"test query {i % 10}"
                 )
                 
                 end_time = time.time()
