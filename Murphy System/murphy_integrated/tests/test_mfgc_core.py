@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 import unittest
 from mfgc_core import (
-    Phase, SystemState, ConfidenceEngine, AuthorityController,
+    Phase, MFGCSystemState as SystemState, ConfidenceEngine, AuthorityController,
     MurphyIndexMonitor, GateCompiler, SwarmGenerator, MFGCController
 )
 

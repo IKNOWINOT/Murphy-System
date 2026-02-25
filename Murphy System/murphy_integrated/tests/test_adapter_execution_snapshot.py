@@ -1,4 +1,6 @@
-from murphy_system_1.0_runtime import MurphySystem
+import importlib
+_runtime = importlib.import_module("murphy_system_1.0_runtime")
+MurphySystem = _runtime.MurphySystem
 
 
 def test_adapter_execution_snapshot_reports_available_adapters():
