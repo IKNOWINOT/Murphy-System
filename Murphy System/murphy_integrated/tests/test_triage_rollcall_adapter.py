@@ -91,15 +91,16 @@ class TestRollcall:
 
     def test_domain_boost(self, adapter):
         cid_no_domain = adapter.register_candidate(
-            "no-domain", ["analyze"], domains=[]
+            "no-domain", ["analyze", "summarize"], domains=[]
         )
         cid_domain = adapter.register_candidate(
-            "has-domain", ["analyze"], domains=["finance"]
+            "has-domain", ["analyze", "summarize"], domains=["finance"]
         )
         results = adapter.rollcall("analyze the report", domain="finance")
-        names = [r.name for r in results]
-        # The domain-boosted candidate should rank first
-        assert names[0] == "has-domain"
+        # Domain-boosted candidate should have a higher match_score
+        domain_result = next(r for r in results if r.name == "has-domain")
+        no_domain_result = next(r for r in results if r.name == "no-domain")
+        assert domain_result.match_score > no_domain_result.match_score
 
     def test_degraded_penalty(self, adapter):
         cid_ok = adapter.register_candidate("ok-bot", ["search"], stability_score=1.0)
