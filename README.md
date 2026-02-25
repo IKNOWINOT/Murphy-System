@@ -246,8 +246,11 @@ start_murphy_1.0.bat   # Windows
 - **Shadow-agent integration (IMPLEMENTED):** `src/shadow_agent_integration.py` treats shadow agents as org-chart peers with identical governance boundary checks. Supports USER/ORGANIZATION account types, shadow lifecycle management (create/suspend/revoke/reactivate), and org/account filtering per RFI-012. 38 tests in `tests/test_shadow_agent_integration.py`.
 - **Triage rollcall adapter (IMPLEMENTED):** `src/triage_rollcall_adapter.py` provides capability-rollcall before swarm expansion with ranked bot/archetype candidate selection, confidence probing, domain boosting, and DEGRADED/BUSY/OFFLINE status handling. 22 tests in `tests/test_triage_rollcall_adapter.py`.
 - **Rubix evidence adapter (IMPLEMENTED):** `src/rubix_evidence_adapter.py` provides a deterministic evidence lane with 5 checks (confidence interval, hypothesis test, Bayesian update, Monte Carlo simulation, OLS forecast), evidence battery composition, and compliance-ready artifacts. 29 tests in `tests/test_rubix_evidence_adapter.py`.
-- **Updated completion percentage snapshot (current):** execution wiring **95.00%**, deterministic+LLM routing **52.00%**, persistence+replay **72.00%**, multi-channel delivery **82.00%**, compliance **85.00%**, operations **86.00%**, UI/testing **71.19%**, dynamic-chain tests **99.40%** (source: `FULL_SYSTEM_ASSESSMENT.md` section 9; recalibrated after org-chart enforcement, shadow-agent integration, triage rollcall, and rubix evidence with 124 new tests).
-- **Latest test run (all 21 modules):** 699 module tests passed + 149 core tests passed (30 skipped) — **0 failures**.
+- **Semantics boundary controller (IMPLEMENTED):** `src/semantics_boundary_controller.py` provides runtime orchestration wrappers for belief-state hypothesis management (Bayesian updates), expected loss + CVaR risk assessment, RVoI-driven clarifying question generation, invariance commutation checks, and verification-feedback loops with failure routing. 31 tests in `tests/test_semantics_boundary_controller.py`.
+- **Bot governance policy mapper (IMPLEMENTED):** `src/bot_governance_policy_mapper.py` maps legacy bot quota/budget/stability controls to Murphy runtime execution profiles and gate checks. Supports policy registration, Murphy profile conversion, gate checks, usage tracking, and stability reporting. 26 tests in `tests/test_bot_governance_policy_mapper.py`.
+- **Bot telemetry normalizer (IMPLEMENTED):** `src/bot_telemetry_normalizer.py` standardizes triage/rubix bot event payloads into Murphy observability schema with 9 default rules. Single/batch normalization, unmapped event tracking, and reporting. 25 tests in `tests/test_bot_telemetry_normalizer.py`.
+- **Updated completion percentage snapshot (current):** execution wiring **97.00%**, deterministic+LLM routing **52.00%**, persistence+replay **72.00%**, multi-channel delivery **82.00%**, compliance **87.00%**, operations **88.00%**, UI/testing **71.19%**, dynamic-chain tests **99.50%** (source: `FULL_SYSTEM_ASSESSMENT.md` section 9; recalibrated after semantics boundary controller, bot governance mapper, and bot telemetry normalizer with 82 new tests).
+- **Latest test run (all 24 modules):** 784 module tests passed + 149 core tests passed (30 skipped) — **0 failures**.
 ---
 
 ## 🗃️ Repository Index (Database-Style Reference)
@@ -301,6 +304,9 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **Shadow Agent Integration** | `src/shadow_agent_integration.py` | Shadow-agent org-chart parity, account/user controls |
 | **Triage Rollcall Adapter** | `src/triage_rollcall_adapter.py` | Capability rollcall before swarm expansion, candidate ranking |
 | **Rubix Evidence Adapter** | `src/rubix_evidence_adapter.py` | Deterministic evidence lane: CI, Bayesian, Monte Carlo, forecast |
+| **Semantics Boundary Controller** | `src/semantics_boundary_controller.py` | Belief-state, risk/CVaR, RVoI questions, invariance, verification-feedback |
+| **Bot Governance Policy Mapper** | `src/bot_governance_policy_mapper.py` | Legacy bot quota/budget/stability → Murphy runtime profiles |
+| **Bot Telemetry Normalizer** | `src/bot_telemetry_normalizer.py` | Triage/rubix bot events → Murphy observability schema |
 
 **Progress tracking:** update the forward plan in
 `Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md` and append confirmed completion evidence in
