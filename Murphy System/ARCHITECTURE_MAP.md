@@ -922,19 +922,76 @@ with a design ticket and team owner.
 | DEV-002      | SLORemediationBridge         | OperationalSLOTracker| check_slo_compliance |
 | DEV-002      | SLORemediationBridge         | SelfImprovementEngine| inject ImprovementProposal |
 | DEV-002      | SLORemediationBridge         | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| SUP-001      | TicketTriageEngine           | TicketingAdapter     | create_ticket (enriched)   |
+| SUP-001      | TicketTriageEngine           | RAGVectorIntegration | search (semantic classify) |
+| SUP-001      | TicketTriageEngine           | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| SUP-002      | KnowledgeBaseManager         | RAGVectorIntegration | ingest_document / search   |
+| SUP-002      | KnowledgeBaseManager         | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| CMP-001      | ComplianceAutomationBridge   | ComplianceEngine     | check_deliverable / is_release_ready |
+| CMP-001      | ComplianceAutomationBridge   | SelfImprovementEngine| inject ImprovementProposal |
+| CMP-001      | ComplianceAutomationBridge   | EventBackbone        | subscribe(DELIVERY_COMPLETED) |
+| CMP-001      | ComplianceAutomationBridge   | EventBackbone        | publish(LEARNING_FEEDBACK) |
+
+### Phase 3–4 Automation Wiring
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│     CUSTOMER SUPPORT & COMPLIANCE AUTOMATION LAYER                  │
+└─────────────────────────────────────────────────────────────────────┘
+
+ [SUP-001] TicketTriageEngine
+   Owner: Support Team
+   File:  src/ticket_triage_engine.py
+   Purpose: Analyses incoming tickets using keyword heuristics and
+            optional RAG semantic classification. Auto-assigns
+            severity (critical/high/medium/low), category
+            (incident/service_request/change_request/problem),
+            and suggested team routing.
+   Wiring: Creates enriched tickets in TicketingAdapter.
+           Optionally uses RAGVectorIntegration for context.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: Conservative defaults (MEDIUM priority for unknowns).
+           P1/P2 tickets flagged for human review.
+
+ [SUP-002] KnowledgeBaseManager
+   Owner: Support Team
+   File:  src/knowledge_base_manager.py
+   Purpose: RAG-powered knowledge base for customer support.
+            - Article CRUD with versioning and view tracking
+            - Keyword + RAG semantic search
+            - Knowledge gap detection from search log analysis
+            - Automatic knowledge extraction from resolved tickets
+   Wiring: Ingests articles into RAGVectorIntegration.
+           Publishes knowledge gap events to EventBackbone.
+   Safety: Bounded article store with eviction policy.
+           Non-destructive: articles are versioned, never deleted.
+
+ [CMP-001] ComplianceAutomationBridge
+   Owner: Compliance Team
+   File:  src/compliance_automation_bridge.py
+   Purpose: Continuous compliance monitoring wired into the
+            automation pipeline. Validates deliverables against
+            applicable compliance frameworks (GDPR, SOC2, HIPAA,
+            PCI-DSS, ISO27001). Non-compliant findings auto-generate
+            ImprovementProposals in SelfImprovementEngine.
+   Wiring: Subscribes to DELIVERY_COMPLETED events.
+           Reads from ComplianceEngine.
+           Writes proposals to SelfImprovementEngine.
+           Publishes LEARNING_FEEDBACK events.
+   Safety: Deduplication for tracked violations.
+           CRITICAL findings require manual approval.
+```
 
 ---
 
 ## Next Steps
 
-This architecture map documents Phases 0–2 of the self-automation plan:
+This architecture map documents Phases 0–4 of the self-automation plan:
 
-1. **Phase 3:** Customer Support Automation — Ticket triage, knowledge base, FAQ generation
-2. **Phase 4:** Marketing & Content Automation — Content generation, SEO, social media
-3. **Phase 5:** Business Operations — Financial reporting, invoice processing, compliance
-4. **Phase 6:** Advanced Self-Automation — Code generation, autonomous deployment, self-optimisation
-5. **Security Review:** Map attack surfaces and vulnerabilities
-6. **Performance Analysis:** Identify bottlenecks via SLO tracking
-7. **Test Strategy:** Map testing boundaries across all modules
+1. **Phase 5:** Business Operations — Financial reporting, invoice processing, HR onboarding
+2. **Phase 6:** Advanced Self-Automation — Code generation, autonomous deployment, self-optimisation
+3. **Security Review:** Map attack surfaces and vulnerabilities
+4. **Performance Analysis:** Identify bottlenecks via SLO tracking
+5. **Test Strategy:** Map testing boundaries across all modules
 
 See `FILE_CLASSIFICATION.md` for complete file inventory and `SYSTEM_OVERVIEW.md` for system statistics.
