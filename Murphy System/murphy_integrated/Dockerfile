@@ -43,7 +43,6 @@ RUN apt-get update \
 
 # Copy application source
 COPY src/ ./src/
-COPY tests/ ./tests/
 COPY setup.py requirements.txt ./
 COPY murphy_system_1.0_runtime.py ./
 
