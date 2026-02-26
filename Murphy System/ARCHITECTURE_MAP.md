@@ -1439,29 +1439,100 @@ with a design ticket and team owner.
    │              │ BIZ-004, BIZ-005                 │              │
    │ Advanced     │ ADV-001, ADV-002, ADV-003, ADV-004│ 4           │
    │ Integration  │ INT-001                          │ 1            │
+   │ Operations   │ OPS-001, OPS-002, OPS-003, OPS-004│ 4           │
    ├──────────────┼──────────────────────────────────┼──────────────┤
-   │ TOTAL        │                                  │ 33           │
+   │ TOTAL        │                                  │ 37           │
    └──────────────┴──────────────────────────────────┴──────────────┘
+```
+
+### Phase 8 — Operational Readiness & Autonomy Governance Wiring
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│     OPERATIONAL READINESS & AUTONOMY GOVERNANCE                     │
+└─────────────────────────────────────────────────────────────────────┘
+
+ [OPS-001] AutomationReadinessEvaluator
+   Owner: Platform Engineering / Architecture Team
+   File:  src/automation_readiness_evaluator.py
+   Purpose: Cross-phase readiness assessment and wiring validation.
+            - Registers expected modules per phase (all 33 design labels)
+            - Checks each module's status via health callable
+            - Scores each phase (healthy / expected)
+            - Computes overall readiness with go/no-go verdict
+            - Produces ReadinessReport with per-phase PhaseScore breakdown
+   Wiring: Writes ReadinessReport to PersistenceManager.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: Read-only: never modifies module state.
+           Conservative: READY requires ≥80% healthy, PARTIAL ≥50%.
+           Bounded report store with eviction policy.
+
+ [OPS-002] KPITracker
+   Owner: Platform Engineering / Strategy Team
+   File:  src/kpi_tracker.py
+   Purpose: Automation KPI tracking and target monitoring (Part 7 of Plan).
+            - Defines 8 default KPIs: automation rate, success rate, uptime,
+              error rate, response time, time savings, cost savings, test coverage
+            - Records observed values with EMA-based current calculation
+            - Compares current values against targets (higher/lower is better)
+            - Generates KPISnapshot with met/not_met/no_data classification
+   Wiring: Writes KPISnapshot to PersistenceManager.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: Read-only analysis: never modifies source data.
+           Bounded observation and snapshot stores with eviction.
+
+ [OPS-003] AutomationModeController
+   Owner: AI Team / Governance Team
+   File:  src/automation_mode_controller.py
+   Purpose: Risk-based automation mode progression (Part 6 of Plan).
+            - 5 automation levels: MANUAL → SUPERVISED → AUTO_LOW → AUTO_HIGH → FULL
+            - Records task outcomes and computes EMA success rate
+            - Upgrades mode when EMA exceeds threshold with minimum observations
+            - Downgrades mode automatically when EMA falls below hold threshold
+            - Supports manual override with audit trail
+   Wiring: Writes ModeTransition to PersistenceManager.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: Conservative: upgrades require sustained success, not single spikes.
+           Automatic downgrade on failure as safety degradation.
+           Bounded outcome and transition stores with eviction.
+
+ [OPS-004] EmergencyStopController
+   Owner: DevOps Team / Security Team
+   File:  src/emergency_stop_controller.py
+   Purpose: Global and per-tenant emergency stop (Part 6 of Plan).
+            - Manual activation/resumption (global or per-tenant scope)
+            - Automatic triggers: consecutive failure threshold, error rate threshold
+            - Blocks all autonomous operations while stopped
+            - Controlled resume with reason logging and counter reset
+   Wiring: Writes StopEvent to PersistenceManager.
+           Publishes SYSTEM_HEALTH events to EventBackbone.
+   Safety: Fail-safe: defaults to stopped on ambiguity.
+           Non-destructive: stop blocks operations, does not destroy state.
+           Bounded event history with eviction policy.
 ```
 
 ---
 
 ## Next Steps
 
-This architecture map documents Phases 0–7 of the self-automation plan (33 design labels):
+This architecture map documents Phases 0–8 of the self-automation plan (37 design labels):
 
-1. **End-to-End Integration Testing:** Exercise INT-001 with all 33 registered modules
-2. **Security Baseline:** Run SEC-001 across entire src/ directory for initial audit
-3. **Dependency Audit:** Run DEV-005 against requirements.txt to flag vulnerable packages
-4. **Documentation Generation:** Run DEV-003 across src/ to build label inventory
-5. **Bug Pattern Analysis:** Feed DEV-004 with historical error data from OBS-003
-6. **FAQ Bootstrap:** Seed SUP-003 with common questions from SUP-001 ticket history
-7. **Customer Communication Templates:** Bootstrap SUP-004 with standard response templates
-8. **Social Media Calendar:** Configure MKT-004 with initial platform-specific post schedules
-9. **Marketing Analytics Pipeline:** Wire MKT-005 to ingest metrics from MKT-001/002/003/004
-10. **Compliance Baseline:** Run BIZ-004 against GDPR/SOC2/HIPAA controls
-11. **Strategic Plan Generation:** Seed BIZ-005 with market signals for Q2 planning
-12. **Performance Analysis:** Run ADV-003 SelfOptimisationEngine against live telemetry
-13. **Capacity Planning:** Run ADV-004 ResourceScalingController against production metrics
+1. **Readiness Assessment:** Run OPS-001 to validate wiring across all 37 modules
+2. **KPI Baseline:** Seed OPS-002 with initial metric observations for all 8 default KPIs
+3. **Mode Configuration:** Configure OPS-003 thresholds per environment (dev/staging/prod)
+4. **Emergency Stop Integration:** Wire OPS-004 into API gateway for global stop capability
+5. **End-to-End Integration Testing:** Exercise INT-001 with all 37 registered modules
+6. **Security Baseline:** Run SEC-001 across entire src/ directory for initial audit
+7. **Dependency Audit:** Run DEV-005 against requirements.txt to flag vulnerable packages
+8. **Documentation Generation:** Run DEV-003 across src/ to build label inventory
+9. **Bug Pattern Analysis:** Feed DEV-004 with historical error data from OBS-003
+10. **FAQ Bootstrap:** Seed SUP-003 with common questions from SUP-001 ticket history
+11. **Customer Communication Templates:** Bootstrap SUP-004 with standard response templates
+12. **Social Media Calendar:** Configure MKT-004 with initial platform-specific post schedules
+13. **Marketing Analytics Pipeline:** Wire MKT-005 to ingest metrics from MKT-001/002/003/004
+14. **Compliance Baseline:** Run BIZ-004 against GDPR/SOC2/HIPAA controls
+15. **Strategic Plan Generation:** Seed BIZ-005 with market signals for Q2 planning
+16. **Performance Analysis:** Run ADV-003 SelfOptimisationEngine against live telemetry
+17. **Capacity Planning:** Run ADV-004 ResourceScalingController against production metrics
 
 See `FILE_CLASSIFICATION.md` for complete file inventory and `SYSTEM_OVERVIEW.md` for system statistics.
