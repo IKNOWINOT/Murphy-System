@@ -46,6 +46,17 @@ from typing import Any, Dict, List, Optional, Tuple
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
+# SEO scoring constants
+# ---------------------------------------------------------------------------
+
+_MIN_TITLE_LENGTH = 30
+_MAX_TITLE_LENGTH = 60
+_MIN_BODY_LENGTH = 300
+_LONG_BODY_LENGTH = 1000
+_MIN_KEYWORDS = 3
+_SCORE_POINTS = 20.0
+
+# ---------------------------------------------------------------------------
 # Stopwords
 # ---------------------------------------------------------------------------
 
@@ -158,31 +169,31 @@ class SEOOptimisationEngine:
         score: float = 0.0
         issues: List[str] = []
 
-        if 30 <= len(title) <= 60:
-            score += 20.0
+        if _MIN_TITLE_LENGTH <= len(title) <= _MAX_TITLE_LENGTH:
+            score += _SCORE_POINTS
         else:
-            if len(title) < 30:
+            if len(title) < _MIN_TITLE_LENGTH:
                 issues.append("Title too short")
 
-        if len(body) > 300:
-            score += 20.0
+        if len(body) > _MIN_BODY_LENGTH:
+            score += _SCORE_POINTS
         else:
             issues.append("Body too short for SEO")
 
-        if keyword_count >= 3:
-            score += 20.0
+        if keyword_count >= _MIN_KEYWORDS:
+            score += _SCORE_POINTS
         else:
             if keyword_count == 0:
                 issues.append("No keywords detected")
 
         title_lower = title.lower()
         if top_keyword_words and any(kw in title_lower for kw in top_keyword_words):
-            score += 20.0
+            score += _SCORE_POINTS
         else:
             issues.append("Title missing top keywords")
 
-        if len(body) > 1000:
-            score += 20.0
+        if len(body) > _LONG_BODY_LENGTH:
+            score += _SCORE_POINTS
 
         analysis = SEOAnalysis(
             analysis_id=f"seo-{uuid.uuid4().hex[:8]}",
