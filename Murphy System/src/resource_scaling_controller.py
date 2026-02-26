@@ -47,6 +47,13 @@ from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# Scaling tuning constants
+# ---------------------------------------------------------------------------
+
+_PREDICTION_STEPS = 10       # Steps ahead to project utilisation trend
+_SCALE_DOWN_RATIO = 0.5      # Mean must be below threshold × this ratio to scale down
+_MIN_SAMPLES_FOR_SCALE_DOWN = 5  # Minimum samples required to recommend scale-down
 
 # ---------------------------------------------------------------------------
 # Enumerations
@@ -281,7 +288,7 @@ class ResourceScalingController:
             threshold = effective_thresholds.get(resource_type, 0.80)
             mean = stats["mean"]
             trend = stats["trend"]
-            predicted = mean + trend * 10  # project 10 steps ahead
+            predicted = mean + trend * _PREDICTION_STEPS
             samples = stats["samples"]
 
             if predicted > threshold:
@@ -291,7 +298,7 @@ class ResourceScalingController:
                     f"Predicted utilisation {predicted:.2%} exceeds "
                     f"threshold {threshold:.0%} for {resource_type}"
                 )
-            elif mean < threshold * 0.5 and samples > 5:
+            elif mean < threshold * _SCALE_DOWN_RATIO and samples > _MIN_SAMPLES_FOR_SCALE_DOWN:
                 action = ScalingAction.SCALE_DOWN
                 estimated_cost = 0.0
                 reason = (

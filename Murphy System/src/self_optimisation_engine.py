@@ -47,6 +47,13 @@ from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# Severity ratio thresholds for bottleneck classification
+# ---------------------------------------------------------------------------
+
+_CRITICAL_RATIO = 2.0
+_HIGH_RATIO = 1.5
+_MEDIUM_RATIO = 1.2
 
 # ---------------------------------------------------------------------------
 # Data models
@@ -245,11 +252,11 @@ class SelfOptimisationEngine:
 
             # Determine severity
             ratio = p95_value / threshold
-            if ratio > 2.0:
+            if ratio > _CRITICAL_RATIO:
                 severity = "critical"
-            elif ratio > 1.5:
+            elif ratio > _HIGH_RATIO:
                 severity = "high"
-            elif ratio > 1.2:
+            elif ratio > _MEDIUM_RATIO:
                 severity = "medium"
             else:
                 severity = "low"
