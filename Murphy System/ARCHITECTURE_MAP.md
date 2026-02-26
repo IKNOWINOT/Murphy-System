@@ -964,6 +964,18 @@ with a design ticket and team owner.
 | INT-001      | AutomationIntegrationHub     | All registered modules| route_event via handlers   |
 | INT-001      | AutomationIntegrationHub     | PersistenceManager   | save_document (reports)    |
 | INT-001      | AutomationIntegrationHub     | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| DEV-005      | DependencyAuditEngine        | PersistenceManager   | save_document (reports)    |
+| DEV-005      | DependencyAuditEngine        | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| SUP-004      | CustomerCommunicationManager | PersistenceManager   | save_document (templates)  |
+| SUP-004      | CustomerCommunicationManager | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| MKT-004      | SocialMediaScheduler         | PersistenceManager   | save_document (posts)      |
+| MKT-004      | SocialMediaScheduler         | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| MKT-005      | MarketingAnalyticsAggregator | PersistenceManager   | save_document (reports)    |
+| MKT-005      | MarketingAnalyticsAggregator | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| BIZ-004      | ComplianceReportAggregator   | PersistenceManager   | save_document (reports)    |
+| BIZ-004      | ComplianceReportAggregator   | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| BIZ-005      | StrategicPlanningEngine      | PersistenceManager   | save_document (plans)      |
+| BIZ-005      | StrategicPlanningEngine      | EventBackbone        | publish(LEARNING_FEEDBACK) |
 
 ### Phase 3–4 Automation Wiring
 
@@ -1241,6 +1253,126 @@ with a design ticket and team owner.
            Bounded FAQ and question stores with eviction policy.
 ```
 
+### Phase 2 Continued — Dependency Management Wiring
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│     DEVELOPMENT AUTOMATION — DEPENDENCY SECURITY AUDITING           │
+└─────────────────────────────────────────────────────────────────────┘
+
+ [DEV-005] DependencyAuditEngine
+   Owner: QA Team
+   File:  src/dependency_audit_engine.py
+   Purpose: Automated dependency security auditing and update tracking.
+            - Register project dependencies (name, version, ecosystem)
+            - Ingest vulnerability advisories (CVE/advisory data)
+            - Run audit cycle: match advisories against dependencies
+            - Classify findings by severity (critical/high/medium/low)
+            - Lightweight semver range matching (stdlib only)
+   Wiring: Writes to PersistenceManager.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: Read-only analysis: never modifies actual dependency files.
+           Conservative: flags any version overlap as potentially affected.
+           Bounded dependency, advisory, and report stores with eviction.
+```
+
+### Phase 3 Continued — Customer Communication Wiring
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│     CUSTOMER SUPPORT — PERSONALISED COMMUNICATION                   │
+└─────────────────────────────────────────────────────────────────────┘
+
+ [SUP-004] CustomerCommunicationManager
+   Owner: Support Team
+   File:  src/customer_communication_manager.py
+   Purpose: Personalised response templates and satisfaction tracking.
+            - Create and version response templates with {{variable}} placeholders
+            - Render personalised responses via variable substitution
+            - Record customer interactions (inbound, outbound, channel)
+            - Collect and aggregate satisfaction ratings (1-5)
+            - Compute per-customer and aggregate satisfaction metrics
+   Wiring: Writes to PersistenceManager.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: Non-destructive: templates are versioned, never deleted.
+           Bounded template and interaction stores with eviction.
+```
+
+### Phase 4 Continued — Social Media & Analytics Wiring
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│     MARKETING — SOCIAL MEDIA SCHEDULING & ANALYTICS                 │
+└─────────────────────────────────────────────────────────────────────┘
+
+ [MKT-004] SocialMediaScheduler
+   Owner: Marketing Team
+   File:  src/social_media_scheduler.py
+   Purpose: Multi-platform post scheduling and engagement monitoring.
+            - Create posts with platform, content, campaign linkage
+            - Schedule posts for future publishing
+            - Record publish events and engagement metrics
+            - Track per-platform engagement (likes, shares, comments, reach)
+            - Generate platform summary analytics
+   Wiring: Writes to PersistenceManager.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: Non-destructive: posts are immutable once published.
+           Bounded post and metric stores with eviction.
+
+ [MKT-005] MarketingAnalyticsAggregator
+   Owner: Marketing Team
+   File:  src/marketing_analytics_aggregator.py
+   Purpose: Cross-channel metric collection, trend detection, and attribution.
+            - Ingest channel metrics (source, metric_name, value, tags)
+            - Aggregate metrics by channel and time window
+            - Detect trends (growth, decline, stable) via linear slope analysis
+            - Generate summary reports with trend annotations
+            - Minimum-sample-size guard for trend confidence
+   Wiring: Writes to PersistenceManager.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: Read-only analysis: never modifies source channel data.
+           Conservative: trend detection requires minimum sample size.
+           Bounded data point and report stores with eviction.
+```
+
+### Phase 5 Continued — Compliance & Strategic Planning Wiring
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│     BUSINESS OPS — COMPLIANCE AGGREGATION & STRATEGIC PLANNING      │
+└─────────────────────────────────────────────────────────────────────┘
+
+ [BIZ-004] ComplianceReportAggregator
+   Owner: Compliance Team
+   File:  src/compliance_report_aggregator.py
+   Purpose: Multi-framework compliance collection and violation detection.
+            - Ingest compliance check results (framework, control, pass/fail)
+            - Support GDPR, SOC2, HIPAA, PCI-DSS, ISO27001 frameworks
+            - Detect violations (failed checks)
+            - Compute posture score per framework (passed / total)
+            - Generate compliance summary reports
+   Wiring: Writes to PersistenceManager.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: Read-only analysis: never modifies compliance sources.
+           Conservative: any failed check is flagged as a violation.
+           Bounded check and report stores with eviction.
+
+ [BIZ-005] StrategicPlanningEngine
+   Owner: Strategy Team
+   File:  src/strategic_planning_engine.py
+   Purpose: Market analysis, opportunity scoring, and strategic plan generation.
+            - Ingest market signals (category, description, impact score)
+            - Score opportunities via weighted criteria (impact + volume)
+            - Rank opportunities by composite score
+            - Generate strategic plan documents with top opportunities
+            - Minimum-signal threshold for opportunity qualification
+   Wiring: Writes to PersistenceManager.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: Read-only analysis: never modifies external data sources.
+           Conservative: opportunities require minimum supporting signals.
+           Bounded signal, opportunity, and plan stores with eviction.
+```
+
 ### Phase 0 Foundation — Security Wiring
 
 ```
@@ -1296,15 +1428,19 @@ with a design ticket and team owner.
    │ Foundation   │ ARCH-001, ARCH-002, GATE-001,    │ 4            │
    │              │ SEC-001                          │              │
    │ Observability│ OBS-001, OBS-002, OBS-003, OBS-004│ 4           │
-   │ Development  │ DEV-001, DEV-002, DEV-003, DEV-004│ 4           │
-   │ Support      │ SUP-001, SUP-002, SUP-003        │ 3            │
+   │ Development  │ DEV-001, DEV-002, DEV-003,       │ 5            │
+   │              │ DEV-004, DEV-005                 │              │
+   │ Support      │ SUP-001, SUP-002, SUP-003,       │ 4            │
+   │              │ SUP-004                          │              │
    │ Compliance   │ CMP-001                          │ 1            │
-   │ Marketing    │ MKT-001, MKT-002, MKT-003        │ 3            │
-   │ Business     │ BIZ-001, BIZ-002, BIZ-003        │ 3            │
+   │ Marketing    │ MKT-001, MKT-002, MKT-003,       │ 5            │
+   │              │ MKT-004, MKT-005                 │              │
+   │ Business     │ BIZ-001, BIZ-002, BIZ-003,       │ 5            │
+   │              │ BIZ-004, BIZ-005                 │              │
    │ Advanced     │ ADV-001, ADV-002, ADV-003, ADV-004│ 4           │
    │ Integration  │ INT-001                          │ 1            │
    ├──────────────┼──────────────────────────────────┼──────────────┤
-   │ TOTAL        │                                  │ 27           │
+   │ TOTAL        │                                  │ 33           │
    └──────────────┴──────────────────────────────────┴──────────────┘
 ```
 
@@ -1312,14 +1448,20 @@ with a design ticket and team owner.
 
 ## Next Steps
 
-This architecture map documents Phases 0–7 of the self-automation plan:
+This architecture map documents Phases 0–7 of the self-automation plan (33 design labels):
 
-1. **End-to-End Integration Testing:** Exercise INT-001 with all 27 registered modules
+1. **End-to-End Integration Testing:** Exercise INT-001 with all 33 registered modules
 2. **Security Baseline:** Run SEC-001 across entire src/ directory for initial audit
-3. **Documentation Generation:** Run DEV-003 across src/ to build label inventory
-4. **Bug Pattern Analysis:** Feed DEV-004 with historical error data from OBS-003
-5. **FAQ Bootstrap:** Seed SUP-003 with common questions from SUP-001 ticket history
-6. **Performance Analysis:** Run ADV-003 SelfOptimisationEngine against live telemetry
-7. **Capacity Planning:** Run ADV-004 ResourceScalingController against production metrics
+3. **Dependency Audit:** Run DEV-005 against requirements.txt to flag vulnerable packages
+4. **Documentation Generation:** Run DEV-003 across src/ to build label inventory
+5. **Bug Pattern Analysis:** Feed DEV-004 with historical error data from OBS-003
+6. **FAQ Bootstrap:** Seed SUP-003 with common questions from SUP-001 ticket history
+7. **Customer Communication Templates:** Bootstrap SUP-004 with standard response templates
+8. **Social Media Calendar:** Configure MKT-004 with initial platform-specific post schedules
+9. **Marketing Analytics Pipeline:** Wire MKT-005 to ingest metrics from MKT-001/002/003/004
+10. **Compliance Baseline:** Run BIZ-004 against GDPR/SOC2/HIPAA controls
+11. **Strategic Plan Generation:** Seed BIZ-005 with market signals for Q2 planning
+12. **Performance Analysis:** Run ADV-003 SelfOptimisationEngine against live telemetry
+13. **Capacity Planning:** Run ADV-004 ResourceScalingController against production metrics
 
 See `FILE_CLASSIFICATION.md` for complete file inventory and `SYSTEM_OVERVIEW.md` for system statistics.
