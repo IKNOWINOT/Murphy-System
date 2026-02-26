@@ -39,7 +39,7 @@ class ConfidenceEngine:
         # Handle single dict input (e2e test style)
         if isinstance(artifacts, dict):
             conf = artifacts.get("detection_confidence", artifacts.get("confidence", 0.85))
-            authority = "high" if artifacts.get("severity") == "high" else "medium"
+            authority = "high" if artifacts.get("severity") == "high" or artifacts.get("business_impact") == "critical" else "medium"
             return _AwaitableDict({
                 "confidence": round(conf, 4),
                 "authority": authority,
