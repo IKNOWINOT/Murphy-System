@@ -502,3 +502,15 @@ class EnterpriseSystemMockFactory:
     def create_it_infrastructure() -> ITInfrastructureMock:
         """Create IT infrastructure mock"""
         return ITInfrastructureMock()
+# Aliases for tests that use shorter names
+HRSystem = HRSystemMock
+BuildingManagementSystem = BMSSystemMock
+SCADARoboticsSystem = SCADASystemMock
+ITInfrastructureSystem = ITInfrastructureMock
+SecuritySystem = type('SecuritySystem', (), {
+    '__init__': lambda self, **kw: None,
+    'authenticate': lambda self, **kw: {'authenticated': True, 'token': 'mock-token'},
+    'authorize': lambda self, **kw: {'authorized': True},
+    'get_security_events': lambda self, **kw: [],
+})
+CRMSystem = CRMSystemMock

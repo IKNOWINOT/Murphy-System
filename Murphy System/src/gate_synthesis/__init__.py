@@ -35,5 +35,8 @@ __all__ = [
     'FailureModeEnumerator',
     'MurphyProbabilityEstimator',
     'GateGenerator',
-    'GateLifecycleManager'
+    'GateLifecycleManager',
+    'GateSynthesisEngine'
 ]
+# Alias: tests import GateSynthesisEngine as the public API
+GateSynthesisEngine = GateGenerator

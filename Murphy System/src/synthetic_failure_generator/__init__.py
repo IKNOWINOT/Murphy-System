@@ -64,3 +64,8 @@ __all__ = [
     'TestModeExecutor',
     'SafetyEnforcer'
 ]
+# Re-export the MFGC learning system's SyntheticFailureGenerator
+try:
+    from src.learning_system import SyntheticFailureGenerator
+except ImportError:
+    SyntheticFailureGenerator = None
