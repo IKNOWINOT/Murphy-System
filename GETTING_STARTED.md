@@ -306,7 +306,7 @@ For **production deployment**, you need:
 - ✅ Firewall rules
 - ✅ Monitoring setup
 
-See [DEPLOYMENT_GUIDE.md](Murphy%20System/Murphy System/DEPLOYMENT_GUIDE.md) for production setup.
+See [DEPLOYMENT_GUIDE.md](Murphy%20System/DEPLOYMENT_GUIDE.md) for production setup.
 
 ---
 
@@ -392,7 +392,7 @@ Once Murphy is running:
 
 1. **Explore API Docs:** http://localhost:6666/docs
 2. **Try Examples:** Run `python3 demo_murphy.py`
-3. **Read Specification:** [MURPHY_SYSTEM_1.0_SPECIFICATION.md](MURPHY_SYSTEM_1.0_SPECIFICATION.md)
+3. **Read Specification:** [MURPHY_SYSTEM_1.0_SPECIFICATION.md](Murphy%20System/MURPHY_SYSTEM_1.0_SPECIFICATION.md)
 4. **Add Integrations:** Try adding a GitHub repo
 5. **Run Automation:** Test business automation engines
 
