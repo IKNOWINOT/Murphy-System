@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from threading import Lock
 from typing import Any, Dict, List, Optional
@@ -54,7 +54,7 @@ class RosettaManager:
     def save_state(self, state: RosettaAgentState) -> str:
         """Save agent state to disk and in-memory cache. Returns agent_id."""
         agent_id = state.identity.agent_id
-        state.metadata.updated_at = datetime.utcnow()
+        state.metadata.updated_at = datetime.now(timezone.utc)
         with self._lock:
             self._states[agent_id] = state
             self._write_json(self._filepath(agent_id), state.model_dump(mode="json"))
@@ -97,7 +97,7 @@ class RosettaManager:
             current = state.model_dump(mode="json")
             self._deep_merge(current, updates)
             state = RosettaAgentState.model_validate(current)
-            state.metadata.updated_at = datetime.utcnow()
+            state.metadata.updated_at = datetime.now(timezone.utc)
             self._states[agent_id] = state
             self._write_json(self._filepath(agent_id), state.model_dump(mode="json"))
         return state

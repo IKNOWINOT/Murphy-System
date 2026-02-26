@@ -8,7 +8,7 @@ a RosettaAgentState document.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
 
 from .rosetta_models import ArchiveEntry, RosettaAgentState
@@ -47,7 +47,7 @@ class ArchiveClassifier:
         category = self.classify(item)
         entry = ArchiveEntry(
             entry_id=str(uuid.uuid4()),
-            archived_at=datetime.utcnow(),
+            archived_at=datetime.now(timezone.utc),
             reason=reason,
             category=category,
             data=item,
@@ -69,6 +69,6 @@ class ArchiveClassifier:
                 ts = raw
             else:
                 ts = datetime.fromisoformat(str(raw))
-            return datetime.utcnow() - ts > timedelta(days=max_age_days)
+            return datetime.now(timezone.utc) - ts > timedelta(days=max_age_days)
         except (ValueError, TypeError):
             return False
