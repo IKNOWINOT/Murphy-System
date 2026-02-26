@@ -1,0 +1,608 @@
+"""
+Setup Wizard — Agentic configuration wizard for Murphy System.
+
+Enables Murphy System to configure itself by walking users through
+a series of questions that determine which modules, bots, and
+capabilities to activate.
+
+Can be imported as a library or run from the command line:
+    python -m src.setup_wizard
+"""
+
+import json
+import copy
+from dataclasses import dataclass, field, asdict
+from typing import Any, Dict, List, Optional
+
+
+# ---------------------------------------------------------------------------
+# Profile dataclass
+# ---------------------------------------------------------------------------
+
+VALID_COMPANY_SIZES = ["small", "medium", "enterprise"]
+VALID_AUTOMATION_TYPES = [
+    "factory_iot", "content", "data", "system", "agent", "business",
+]
+VALID_SECURITY_LEVELS = ["basic", "standard", "hardened"]
+VALID_ROBOTICS_PROTOCOLS = [
+    "spot", "universal_robot", "ros2", "modbus", "bacnet",
+    "opcua", "fanuc", "kuka", "abb", "dji", "clearpath", "mqtt",
+]
+VALID_LLM_PROVIDERS = ["local", "groq", "openai", "anthropic", "azure"]
+VALID_COMPLIANCE_FRAMEWORKS = [
+    "SOC2", "HIPAA", "GDPR", "PCI_DSS", "ISO27001", "none",
+]
+VALID_DEPLOYMENT_MODES = ["local", "docker", "kubernetes"]
+VALID_INDUSTRIES = [
+    "manufacturing", "technology", "finance", "healthcare",
+    "retail", "energy", "media", "other",
+]
+
+
+@dataclass
+class SetupProfile:
+    """Stores all user configuration choices."""
+
+    organization_name: str = ""
+    industry: str = "other"
+    company_size: str = "small"
+    automation_types: List[str] = field(default_factory=list)
+    security_level: str = "standard"
+    robotics_enabled: bool = False
+    robotics_protocols: List[str] = field(default_factory=list)
+    avatar_enabled: bool = False
+    avatar_connectors: List[str] = field(default_factory=list)
+    llm_provider: str = "local"
+    monitoring_enabled: bool = True
+    compliance_frameworks: List[str] = field(default_factory=list)
+    deployment_mode: str = "local"
+    sales_automation_enabled: bool = False
+
+
+# ---------------------------------------------------------------------------
+# Module / bot mapping tables
+# ---------------------------------------------------------------------------
+
+AUTOMATION_MODULE_MAP: Dict[str, List[str]] = {
+    "factory_iot": [
+        "building_automation_connectors",
+        "manufacturing_automation_standards",
+        "energy_management_connectors",
+        "additive_manufacturing_connectors",
+        "robotics",
+    ],
+    "content": [
+        "content_creator_platform_modulator",
+        "social_media_moderation",
+        "digital_asset_generator",
+    ],
+    "data": [
+        "cross_platform_data_sync",
+        "analytics_dashboard",
+        "ui_data_service",
+    ],
+    "system": [
+        "full_automation_controller",
+        "self_automation_orchestrator",
+        "automation_scheduler",
+    ],
+    "agent": [
+        "agentic_api_provisioner",
+        "shadow_agent_integration",
+        "advanced_swarm_system",
+        "true_swarm_system",
+        "domain_swarms",
+    ],
+    "business": [
+        "trading_bot_engine",
+        "executive_planning_engine",
+        "workflow_template_marketplace",
+    ],
+}
+
+INDUSTRY_BOT_MAP: Dict[str, List[str]] = {
+    "manufacturing": [
+        "factory_floor_bot", "quality_assurance_bot", "supply_chain_bot",
+    ],
+    "technology": [
+        "devops_bot", "code_review_bot", "incident_response_bot",
+    ],
+    "finance": [
+        "trading_bot", "compliance_bot", "risk_analysis_bot",
+    ],
+    "healthcare": [
+        "patient_data_bot", "compliance_bot", "scheduling_bot",
+    ],
+    "retail": [
+        "inventory_bot", "customer_service_bot", "pricing_bot",
+    ],
+    "energy": [
+        "grid_monitor_bot", "energy_optimization_bot", "safety_bot",
+    ],
+    "media": [
+        "content_generation_bot", "moderation_bot", "analytics_bot",
+    ],
+    "other": [
+        "general_assistant_bot",
+    ],
+}
+
+AUTOMATION_BOT_MAP: Dict[str, List[str]] = {
+    "factory_iot": ["sensor_monitor_bot", "actuator_control_bot"],
+    "content": ["content_creation_bot", "social_media_bot"],
+    "data": ["data_pipeline_bot", "analytics_bot"],
+    "system": ["system_admin_bot", "automation_bot"],
+    "agent": ["swarm_coordinator_bot", "agent_manager_bot"],
+    "business": ["trading_bot", "executive_assistant_bot"],
+}
+
+SALES_MODULES = [
+    "workflow_template_marketplace",
+    "executive_planning_engine",
+]
+
+SALES_BOTS = [
+    "sales_outreach_bot", "lead_scoring_bot", "marketing_automation_bot",
+]
+
+MONITORING_MODULES = [
+    "compliance_monitoring_completeness",
+    "bot_telemetry_normalizer",
+]
+
+CORE_MODULES = [
+    "config",
+    "module_manager",
+    "automation_type_registry",
+    "command_parser",
+    "command_system",
+    "conversation_handler",
+    "compliance_engine",
+    "authority_gate",
+    "capability_map",
+]
+
+
+# ---------------------------------------------------------------------------
+# Questions
+# ---------------------------------------------------------------------------
+
+def _build_questions() -> List[Dict[str, Any]]:
+    """Return the ordered list of setup questions."""
+    return [
+        {
+            "id": "q1",
+            "text": "What is your organization's name?",
+            "field": "organization_name",
+            "question_type": "text",
+            "options": None,
+            "default": "",
+        },
+        {
+            "id": "q2",
+            "text": "What industry does your organization operate in?",
+            "field": "industry",
+            "question_type": "choice",
+            "options": VALID_INDUSTRIES,
+            "default": "other",
+        },
+        {
+            "id": "q3",
+            "text": "What is the size of your company?",
+            "field": "company_size",
+            "question_type": "choice",
+            "options": VALID_COMPANY_SIZES,
+            "default": "small",
+        },
+        {
+            "id": "q4",
+            "text": "Which automation types would you like to enable?",
+            "field": "automation_types",
+            "question_type": "multi_choice",
+            "options": VALID_AUTOMATION_TYPES,
+            "default": [],
+        },
+        {
+            "id": "q5",
+            "text": "What security level do you require?",
+            "field": "security_level",
+            "question_type": "choice",
+            "options": VALID_SECURITY_LEVELS,
+            "default": "standard",
+        },
+        {
+            "id": "q6",
+            "text": "Do you want to enable robotics integration?",
+            "field": "robotics_enabled",
+            "question_type": "boolean",
+            "options": None,
+            "default": False,
+        },
+        {
+            "id": "q7",
+            "text": "Which robotics protocols should be enabled?",
+            "field": "robotics_protocols",
+            "question_type": "multi_choice",
+            "options": VALID_ROBOTICS_PROTOCOLS,
+            "default": [],
+        },
+        {
+            "id": "q8",
+            "text": "Do you want to enable avatar identity?",
+            "field": "avatar_enabled",
+            "question_type": "boolean",
+            "options": None,
+            "default": False,
+        },
+        {
+            "id": "q9",
+            "text": "Which LLM provider would you like to use?",
+            "field": "llm_provider",
+            "question_type": "choice",
+            "options": VALID_LLM_PROVIDERS,
+            "default": "local",
+        },
+        {
+            "id": "q10",
+            "text": "Which compliance frameworks apply to your organization?",
+            "field": "compliance_frameworks",
+            "question_type": "multi_choice",
+            "options": VALID_COMPLIANCE_FRAMEWORKS,
+            "default": [],
+        },
+        {
+            "id": "q11",
+            "text": "What is your preferred deployment mode?",
+            "field": "deployment_mode",
+            "question_type": "choice",
+            "options": VALID_DEPLOYMENT_MODES,
+            "default": "local",
+        },
+        {
+            "id": "q12",
+            "text": "Do you want to enable sales automation?",
+            "field": "sales_automation_enabled",
+            "question_type": "boolean",
+            "options": None,
+            "default": False,
+        },
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Wizard class
+# ---------------------------------------------------------------------------
+
+class SetupWizard:
+    """
+    Agentic setup wizard that walks users through Murphy System configuration.
+
+    Can be driven programmatically (call apply_answer for each question) or
+    interactively via the CLI entry-point.
+    """
+
+    def __init__(self) -> None:
+        self._profile = SetupProfile()
+        self._questions = _build_questions()
+        self._question_index = {q["id"]: q for q in self._questions}
+
+    # -- public API ---------------------------------------------------------
+
+    def get_questions(self) -> List[Dict[str, Any]]:
+        """Return the ordered list of setup questions."""
+        return copy.deepcopy(self._questions)
+
+    def apply_answer(self, question_id: str, answer: Any) -> Dict[str, Any]:
+        """
+        Validate and apply an answer for the given question.
+
+        Returns a status dict: {"ok": bool, "error": str | None}
+        """
+        if question_id not in self._question_index:
+            return {"ok": False, "error": f"Unknown question id: {question_id}"}
+
+        question = self._question_index[question_id]
+        qtype = question["question_type"]
+        field_name = question["field"]
+        options = question.get("options")
+
+        # -- validation -----------------------------------------------------
+        if qtype == "text":
+            if not isinstance(answer, str):
+                return {"ok": False, "error": "Expected a text string"}
+        elif qtype == "choice":
+            if answer not in (options or []):
+                return {
+                    "ok": False,
+                    "error": f"Invalid choice '{answer}'. Options: {options}",
+                }
+        elif qtype == "multi_choice":
+            if not isinstance(answer, list):
+                return {"ok": False, "error": "Expected a list of choices"}
+            invalid = [a for a in answer if a not in (options or [])]
+            if invalid:
+                return {
+                    "ok": False,
+                    "error": f"Invalid choices: {invalid}. Options: {options}",
+                }
+        elif qtype == "boolean":
+            if not isinstance(answer, bool):
+                return {"ok": False, "error": "Expected a boolean value"}
+        else:
+            return {"ok": False, "error": f"Unknown question type: {qtype}"}
+
+        setattr(self._profile, field_name, answer)
+        return {"ok": True, "error": None}
+
+    def get_profile(self) -> SetupProfile:
+        """Return the current profile."""
+        return self._profile
+
+    def generate_config(self, profile: SetupProfile) -> Dict[str, Any]:
+        """Generate a complete Murphy System configuration dict."""
+        modules = self.get_enabled_modules(profile)
+        bots = self.get_recommended_bots(profile)
+
+        config: Dict[str, Any] = {
+            "organization": {
+                "name": profile.organization_name,
+                "industry": profile.industry,
+                "company_size": profile.company_size,
+            },
+            "automation": {
+                "enabled_types": profile.automation_types,
+            },
+            "security": {
+                "level": profile.security_level,
+                "compliance_frameworks": profile.compliance_frameworks,
+            },
+            "robotics": {
+                "enabled": profile.robotics_enabled,
+                "protocols": profile.robotics_protocols,
+            },
+            "avatar": {
+                "enabled": profile.avatar_enabled,
+                "connectors": profile.avatar_connectors,
+            },
+            "llm": {
+                "provider": profile.llm_provider,
+            },
+            "monitoring": {
+                "enabled": profile.monitoring_enabled,
+            },
+            "deployment": {
+                "mode": profile.deployment_mode,
+            },
+            "sales_automation": {
+                "enabled": profile.sales_automation_enabled,
+            },
+            "modules": modules,
+            "bots": bots,
+        }
+        return config
+
+    def get_enabled_modules(self, profile: SetupProfile) -> List[str]:
+        """Return the list of modules that should be enabled."""
+        modules = list(CORE_MODULES)
+
+        for atype in profile.automation_types:
+            for mod in AUTOMATION_MODULE_MAP.get(atype, []):
+                if mod not in modules:
+                    modules.append(mod)
+
+        if profile.robotics_enabled:
+            if "robotics" not in modules:
+                modules.append("robotics")
+
+        if profile.avatar_enabled:
+            if "avatar" not in modules:
+                modules.append("avatar")
+
+        if profile.monitoring_enabled:
+            for mod in MONITORING_MODULES:
+                if mod not in modules:
+                    modules.append(mod)
+
+        if profile.sales_automation_enabled:
+            for mod in SALES_MODULES:
+                if mod not in modules:
+                    modules.append(mod)
+
+        if profile.compliance_frameworks:
+            effective = [f for f in profile.compliance_frameworks if f != "none"]
+            if effective:
+                for mod in ["compliance_engine", "compliance_region_validator",
+                            "contractual_audit"]:
+                    if mod not in modules:
+                        modules.append(mod)
+
+        return modules
+
+    def get_recommended_bots(self, profile: SetupProfile) -> List[str]:
+        """Return recommended bots based on profile."""
+        bots: List[str] = []
+
+        for bot in INDUSTRY_BOT_MAP.get(profile.industry, []):
+            if bot not in bots:
+                bots.append(bot)
+
+        for atype in profile.automation_types:
+            for bot in AUTOMATION_BOT_MAP.get(atype, []):
+                if bot not in bots:
+                    bots.append(bot)
+
+        if profile.sales_automation_enabled:
+            for bot in SALES_BOTS:
+                if bot not in bots:
+                    bots.append(bot)
+
+        return bots
+
+    def validate_profile(self, profile: SetupProfile) -> Dict[str, Any]:
+        """
+        Validate profile completeness.
+
+        Returns {"valid": bool, "issues": List[str]}
+        """
+        issues: List[str] = []
+
+        if not profile.organization_name:
+            issues.append("Organization name is required")
+
+        if profile.industry not in VALID_INDUSTRIES:
+            issues.append(f"Invalid industry: {profile.industry}")
+
+        if profile.company_size not in VALID_COMPANY_SIZES:
+            issues.append(f"Invalid company size: {profile.company_size}")
+
+        if profile.security_level not in VALID_SECURITY_LEVELS:
+            issues.append(f"Invalid security level: {profile.security_level}")
+
+        if profile.llm_provider not in VALID_LLM_PROVIDERS:
+            issues.append(f"Invalid LLM provider: {profile.llm_provider}")
+
+        if profile.deployment_mode not in VALID_DEPLOYMENT_MODES:
+            issues.append(f"Invalid deployment mode: {profile.deployment_mode}")
+
+        if profile.robotics_enabled and not profile.robotics_protocols:
+            issues.append(
+                "Robotics is enabled but no protocols are selected"
+            )
+
+        for atype in profile.automation_types:
+            if atype not in VALID_AUTOMATION_TYPES:
+                issues.append(f"Invalid automation type: {atype}")
+
+        return {"valid": len(issues) == 0, "issues": issues}
+
+    def export_config(self, config: Dict[str, Any], path: str) -> None:
+        """Export configuration to a JSON file."""
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump(config, fh, indent=2)
+
+    def summarize(self, profile: SetupProfile) -> str:
+        """Return a human-readable summary of the configuration."""
+        lines = [
+            "Murphy System Configuration Summary",
+            "=" * 40,
+            f"Organization : {profile.organization_name or '(not set)'}",
+            f"Industry     : {profile.industry}",
+            f"Company Size : {profile.company_size}",
+            f"Automation   : {', '.join(profile.automation_types) or 'none'}",
+            f"Security     : {profile.security_level}",
+            f"Robotics     : {'enabled' if profile.robotics_enabled else 'disabled'}",
+        ]
+        if profile.robotics_enabled and profile.robotics_protocols:
+            lines.append(
+                f"  Protocols  : {', '.join(profile.robotics_protocols)}"
+            )
+        lines.extend([
+            f"Avatar       : {'enabled' if profile.avatar_enabled else 'disabled'}",
+            f"LLM Provider : {profile.llm_provider}",
+            f"Monitoring   : {'enabled' if profile.monitoring_enabled else 'disabled'}",
+            f"Compliance   : {', '.join(profile.compliance_frameworks) or 'none'}",
+            f"Deployment   : {profile.deployment_mode}",
+            f"Sales Auto   : {'enabled' if profile.sales_automation_enabled else 'disabled'}",
+        ])
+
+        modules = self.get_enabled_modules(profile)
+        bots = self.get_recommended_bots(profile)
+        lines.append(f"Modules ({len(modules)}) : {', '.join(modules[:5])}{'...' if len(modules) > 5 else ''}")
+        lines.append(f"Bots    ({len(bots)})    : {', '.join(bots[:5])}{'...' if len(bots) > 5 else ''}")
+
+        return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# CLI entry-point
+# ---------------------------------------------------------------------------
+
+def _parse_bool(raw: str) -> Optional[bool]:
+    """Parse a yes/no string into a boolean."""
+    lower = raw.strip().lower()
+    if lower in ("y", "yes", "true", "1"):
+        return True
+    if lower in ("n", "no", "false", "0"):
+        return False
+    return None
+
+
+def run_cli() -> None:
+    """Interactive CLI session that walks through all setup questions."""
+    wizard = SetupWizard()
+    questions = wizard.get_questions()
+
+    print("\n🔧  Murphy System Setup Wizard")
+    print("=" * 40)
+    print("Answer the following questions to configure your system.\n")
+
+    for q in questions:
+        qid = q["id"]
+        qtype = q["question_type"]
+        field_name = q["field"]
+
+        # Skip robotics protocols if robotics is disabled
+        if qid == "q7" and not wizard.get_profile().robotics_enabled:
+            wizard.apply_answer(qid, [])
+            continue
+
+        print(f"\n[{qid}] {q['text']}")
+
+        if qtype == "choice":
+            print(f"  Options: {', '.join(q['options'])}")
+            print(f"  Default: {q['default']}")
+            raw = input("  > ").strip()
+            answer = raw if raw else q["default"]
+
+        elif qtype == "multi_choice":
+            print(f"  Options: {', '.join(q['options'])}")
+            print("  Enter comma-separated values (or press Enter for none):")
+            raw = input("  > ").strip()
+            if raw:
+                answer = [v.strip() for v in raw.split(",") if v.strip()]
+            else:
+                answer = q["default"] if q["default"] else []
+
+        elif qtype == "boolean":
+            print("  (yes/no)")
+            raw = input("  > ").strip()
+            parsed = _parse_bool(raw)
+            answer = parsed if parsed is not None else q["default"]
+
+        else:  # text
+            if q["default"]:
+                print(f"  Default: {q['default']}")
+            raw = input("  > ").strip()
+            answer = raw if raw else q["default"]
+
+        result = wizard.apply_answer(qid, answer)
+        if not result["ok"]:
+            print(f"  ⚠ {result['error']} — using default")
+            wizard.apply_answer(qid, q["default"])
+
+    profile = wizard.get_profile()
+    validation = wizard.validate_profile(profile)
+
+    print("\n" + wizard.summarize(profile))
+
+    if not validation["valid"]:
+        print("\n⚠ Validation issues:")
+        for issue in validation["issues"]:
+            print(f"  - {issue}")
+
+    config = wizard.generate_config(profile)
+    print(f"\nConfiguration ready with {len(config['modules'])} modules "
+          f"and {len(config['bots'])} bots.")
+
+    save = input("\nExport configuration to file? (y/n) > ").strip().lower()
+    if save in ("y", "yes"):
+        path = input("File path [murphy_config.json] > ").strip()
+        path = path or "murphy_config.json"
+        wizard.export_config(config, path)
+        print(f"Configuration saved to {path}")
+
+    print("\n✅  Setup complete.\n")
+
+
+if __name__ == "__main__":
+    run_cli()

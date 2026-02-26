@@ -1,0 +1,330 @@
+"""Tests for the Murphy System Setup Wizard."""
+
+import json
+import os
+import pytest
+
+from setup_wizard import (
+    SetupProfile,
+    SetupWizard,
+    CORE_MODULES,
+    VALID_AUTOMATION_TYPES,
+    VALID_INDUSTRIES,
+    VALID_SECURITY_LEVELS,
+    VALID_LLM_PROVIDERS,
+    VALID_DEPLOYMENT_MODES,
+    VALID_ROBOTICS_PROTOCOLS,
+    VALID_COMPLIANCE_FRAMEWORKS,
+)
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _make_full_profile(**overrides) -> SetupProfile:
+    """Return a fully-populated profile with sensible defaults."""
+    defaults = dict(
+        organization_name="Acme Corp",
+        industry="manufacturing",
+        company_size="medium",
+        automation_types=["factory_iot", "data"],
+        security_level="standard",
+        robotics_enabled=True,
+        robotics_protocols=["ros2", "modbus"],
+        avatar_enabled=False,
+        avatar_connectors=[],
+        llm_provider="groq",
+        monitoring_enabled=True,
+        compliance_frameworks=["SOC2"],
+        deployment_mode="docker",
+        sales_automation_enabled=False,
+    )
+    defaults.update(overrides)
+    return SetupProfile(**defaults)
+
+
+# ---------------------------------------------------------------------------
+# Tests — Profile
+# ---------------------------------------------------------------------------
+
+class TestSetupProfile:
+    def test_default_profile(self):
+        """Default profile has expected empty/default values."""
+        p = SetupProfile()
+        assert p.organization_name == ""
+        assert p.industry == "other"
+        assert p.company_size == "small"
+        assert p.automation_types == []
+        assert p.security_level == "standard"
+        assert p.robotics_enabled is False
+        assert p.robotics_protocols == []
+        assert p.avatar_enabled is False
+        assert p.llm_provider == "local"
+        assert p.monitoring_enabled is True
+        assert p.compliance_frameworks == []
+        assert p.deployment_mode == "local"
+        assert p.sales_automation_enabled is False
+
+    def test_full_profile_creation(self):
+        """Profile can be created with all fields set."""
+        p = _make_full_profile()
+        assert p.organization_name == "Acme Corp"
+        assert p.industry == "manufacturing"
+        assert p.robotics_enabled is True
+        assert "ros2" in p.robotics_protocols
+
+
+# ---------------------------------------------------------------------------
+# Tests — Questions
+# ---------------------------------------------------------------------------
+
+class TestQuestions:
+    def test_question_count(self):
+        """Wizard provides at least 10 questions."""
+        wiz = SetupWizard()
+        qs = wiz.get_questions()
+        assert len(qs) >= 10
+
+    def test_question_has_required_keys(self):
+        """Every question dict has the expected keys."""
+        wiz = SetupWizard()
+        required_keys = {"id", "text", "field", "question_type", "options", "default"}
+        for q in wiz.get_questions():
+            assert required_keys.issubset(q.keys()), f"Missing keys in {q['id']}"
+
+    def test_question_ids_unique(self):
+        """All question ids are unique."""
+        wiz = SetupWizard()
+        ids = [q["id"] for q in wiz.get_questions()]
+        assert len(ids) == len(set(ids))
+
+    def test_questions_immutable(self):
+        """get_questions returns a deep copy."""
+        wiz = SetupWizard()
+        qs = wiz.get_questions()
+        qs[0]["text"] = "MODIFIED"
+        assert wiz.get_questions()[0]["text"] != "MODIFIED"
+
+
+# ---------------------------------------------------------------------------
+# Tests — Answer application
+# ---------------------------------------------------------------------------
+
+class TestApplyAnswer:
+    def test_apply_text_answer(self):
+        wiz = SetupWizard()
+        result = wiz.apply_answer("q1", "My Company")
+        assert result["ok"] is True
+        assert wiz.get_profile().organization_name == "My Company"
+
+    def test_apply_choice_answer(self):
+        wiz = SetupWizard()
+        result = wiz.apply_answer("q2", "finance")
+        assert result["ok"] is True
+        assert wiz.get_profile().industry == "finance"
+
+    def test_apply_multi_choice_answer(self):
+        wiz = SetupWizard()
+        result = wiz.apply_answer("q4", ["data", "content"])
+        assert result["ok"] is True
+        assert wiz.get_profile().automation_types == ["data", "content"]
+
+    def test_apply_boolean_answer(self):
+        wiz = SetupWizard()
+        result = wiz.apply_answer("q6", True)
+        assert result["ok"] is True
+        assert wiz.get_profile().robotics_enabled is True
+
+    def test_invalid_choice_rejected(self):
+        wiz = SetupWizard()
+        result = wiz.apply_answer("q2", "not_an_industry")
+        assert result["ok"] is False
+        assert "Invalid choice" in result["error"]
+
+    def test_invalid_multi_choice_rejected(self):
+        wiz = SetupWizard()
+        result = wiz.apply_answer("q4", ["data", "invalid_type"])
+        assert result["ok"] is False
+        assert "invalid_type" in result["error"]
+
+    def test_wrong_type_text_rejected(self):
+        wiz = SetupWizard()
+        result = wiz.apply_answer("q1", 12345)
+        assert result["ok"] is False
+
+    def test_wrong_type_boolean_rejected(self):
+        wiz = SetupWizard()
+        result = wiz.apply_answer("q6", "yes")
+        assert result["ok"] is False
+
+    def test_unknown_question_rejected(self):
+        wiz = SetupWizard()
+        result = wiz.apply_answer("q999", "anything")
+        assert result["ok"] is False
+        assert "Unknown" in result["error"]
+
+
+# ---------------------------------------------------------------------------
+# Tests — Config generation
+# ---------------------------------------------------------------------------
+
+class TestGenerateConfig:
+    def test_config_structure(self):
+        wiz = SetupWizard()
+        profile = _make_full_profile()
+        config = wiz.generate_config(profile)
+        assert "organization" in config
+        assert "modules" in config
+        assert "bots" in config
+        assert config["organization"]["name"] == "Acme Corp"
+
+    def test_config_modules_include_core(self):
+        wiz = SetupWizard()
+        profile = _make_full_profile()
+        config = wiz.generate_config(profile)
+        for core_mod in CORE_MODULES:
+            assert core_mod in config["modules"]
+
+
+# ---------------------------------------------------------------------------
+# Tests — Module recommendation
+# ---------------------------------------------------------------------------
+
+class TestModules:
+    def test_factory_iot_modules(self):
+        wiz = SetupWizard()
+        profile = _make_full_profile(automation_types=["factory_iot"])
+        modules = wiz.get_enabled_modules(profile)
+        assert "building_automation_connectors" in modules
+        assert "manufacturing_automation_standards" in modules
+
+    def test_content_modules(self):
+        wiz = SetupWizard()
+        profile = _make_full_profile(automation_types=["content"])
+        modules = wiz.get_enabled_modules(profile)
+        assert "content_creator_platform_modulator" in modules
+        assert "social_media_moderation" in modules
+
+    def test_robotics_module_added(self):
+        wiz = SetupWizard()
+        profile = _make_full_profile(robotics_enabled=True)
+        modules = wiz.get_enabled_modules(profile)
+        assert "robotics" in modules
+
+    def test_avatar_module_added(self):
+        wiz = SetupWizard()
+        profile = _make_full_profile(avatar_enabled=True)
+        modules = wiz.get_enabled_modules(profile)
+        assert "avatar" in modules
+
+    def test_sales_modules_added(self):
+        wiz = SetupWizard()
+        profile = _make_full_profile(sales_automation_enabled=True)
+        modules = wiz.get_enabled_modules(profile)
+        assert "workflow_template_marketplace" in modules
+
+    def test_monitoring_modules_added(self):
+        wiz = SetupWizard()
+        profile = _make_full_profile(monitoring_enabled=True)
+        modules = wiz.get_enabled_modules(profile)
+        assert "compliance_monitoring_completeness" in modules
+
+    def test_compliance_modules_added(self):
+        wiz = SetupWizard()
+        profile = _make_full_profile(compliance_frameworks=["HIPAA", "GDPR"])
+        modules = wiz.get_enabled_modules(profile)
+        assert "compliance_region_validator" in modules
+        assert "contractual_audit" in modules
+
+    def test_compliance_none_no_extra_modules(self):
+        wiz = SetupWizard()
+        profile = _make_full_profile(compliance_frameworks=["none"])
+        modules = wiz.get_enabled_modules(profile)
+        assert "compliance_region_validator" not in modules
+
+
+# ---------------------------------------------------------------------------
+# Tests — Bot recommendation
+# ---------------------------------------------------------------------------
+
+class TestBots:
+    def test_industry_bots(self):
+        wiz = SetupWizard()
+        profile = _make_full_profile(industry="finance")
+        bots = wiz.get_recommended_bots(profile)
+        assert "trading_bot" in bots
+
+    def test_sales_bots(self):
+        wiz = SetupWizard()
+        profile = _make_full_profile(sales_automation_enabled=True)
+        bots = wiz.get_recommended_bots(profile)
+        assert "sales_outreach_bot" in bots
+
+    def test_automation_bots(self):
+        wiz = SetupWizard()
+        profile = _make_full_profile(automation_types=["agent"])
+        bots = wiz.get_recommended_bots(profile)
+        assert "swarm_coordinator_bot" in bots
+
+
+# ---------------------------------------------------------------------------
+# Tests — Validation
+# ---------------------------------------------------------------------------
+
+class TestValidation:
+    def test_valid_profile(self):
+        wiz = SetupWizard()
+        result = wiz.validate_profile(_make_full_profile())
+        assert result["valid"] is True
+        assert result["issues"] == []
+
+    def test_missing_org_name(self):
+        wiz = SetupWizard()
+        result = wiz.validate_profile(_make_full_profile(organization_name=""))
+        assert result["valid"] is False
+        assert any("Organization" in i for i in result["issues"])
+
+    def test_robotics_without_protocols(self):
+        wiz = SetupWizard()
+        profile = _make_full_profile(robotics_enabled=True, robotics_protocols=[])
+        result = wiz.validate_profile(profile)
+        assert result["valid"] is False
+        assert any("protocol" in i.lower() for i in result["issues"])
+
+
+# ---------------------------------------------------------------------------
+# Tests — Export
+# ---------------------------------------------------------------------------
+
+class TestExport:
+    def test_export_creates_file(self, tmp_path):
+        wiz = SetupWizard()
+        config = wiz.generate_config(_make_full_profile())
+        out = tmp_path / "config.json"
+        wiz.export_config(config, str(out))
+        assert out.exists()
+        loaded = json.loads(out.read_text())
+        assert loaded["organization"]["name"] == "Acme Corp"
+
+
+# ---------------------------------------------------------------------------
+# Tests — Summary
+# ---------------------------------------------------------------------------
+
+class TestSummary:
+    def test_summary_contains_key_info(self):
+        wiz = SetupWizard()
+        profile = _make_full_profile()
+        summary = wiz.summarize(profile)
+        assert "Acme Corp" in summary
+        assert "manufacturing" in summary
+        assert "medium" in summary
+        assert "groq" in summary
+
+    def test_summary_shows_protocols_when_robotics_enabled(self):
+        wiz = SetupWizard()
+        profile = _make_full_profile(robotics_enabled=True,
+                                     robotics_protocols=["ros2"])
+        summary = wiz.summarize(profile)
+        assert "ros2" in summary
