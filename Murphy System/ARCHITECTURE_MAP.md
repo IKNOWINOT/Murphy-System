@@ -952,6 +952,18 @@ with a design ticket and team owner.
 | ADV-003      | SelfOptimisationEngine       | EventBackbone        | publish(LEARNING_FEEDBACK) |
 | ADV-004      | ResourceScalingController    | PersistenceManager   | save_document (decisions)  |
 | ADV-004      | ResourceScalingController    | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| DEV-003      | AutoDocumentationEngine      | PersistenceManager   | save_document (docs)       |
+| DEV-003      | AutoDocumentationEngine      | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| DEV-004      | BugPatternDetector           | SelfImprovementEngine| inject ImprovementProposal |
+| DEV-004      | BugPatternDetector           | PersistenceManager   | save_document (reports)    |
+| DEV-004      | BugPatternDetector           | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| SUP-003      | FAQGenerationEngine          | PersistenceManager   | save_document (FAQs)       |
+| SUP-003      | FAQGenerationEngine          | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| SEC-001      | SecurityAuditScanner         | PersistenceManager   | save_document (reports)    |
+| SEC-001      | SecurityAuditScanner         | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| INT-001      | AutomationIntegrationHub     | All registered modules| route_event via handlers   |
+| INT-001      | AutomationIntegrationHub     | PersistenceManager   | save_document (reports)    |
+| INT-001      | AutomationIntegrationHub     | EventBackbone        | publish(LEARNING_FEEDBACK) |
 
 ### Phase 3–4 Automation Wiring
 
@@ -1167,15 +1179,147 @@ with a design ticket and team owner.
 
 ---
 
+### Phase 2 Continued — Development Automation Wiring
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│     DEVELOPMENT AUTOMATION — DOCUMENTATION & BUG DETECTION          │
+└─────────────────────────────────────────────────────────────────────┘
+
+ [DEV-003] AutoDocumentationEngine
+   Owner: Documentation Team
+   File:  src/auto_documentation_engine.py
+   Purpose: Automated documentation generation from Python source analysis.
+            - Scan Python files via ast module for classes, functions, docstrings
+            - Extract design labels and owner annotations
+            - Generate structured ModuleDoc artifacts
+            - Build design-label inventory across the codebase
+            - Persist documentation artifacts for downstream consumption
+   Wiring: Writes to PersistenceManager.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: Read-only analysis: never modifies source files.
+           Pure stdlib: uses ast module, no external dependencies.
+           Bounded artifact store with eviction policy.
+
+ [DEV-004] BugPatternDetector
+   Owner: Backend Team / QA Team
+   File:  src/bug_pattern_detector.py
+   Purpose: Automated bug pattern detection from error data analysis.
+            - Ingest error records (message, stack trace, component)
+            - Fingerprint errors for deduplication and pattern matching
+            - Detect recurring patterns via frequency analysis
+            - Classify severity: critical/high/medium/low by occurrence count
+            - Generate fix suggestions from error characteristics
+            - Inject improvement proposals into SelfImprovementEngine
+   Wiring: Writes to PersistenceManager.
+           Injects proposals into SelfImprovementEngine.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: Read-only: never modifies source code.
+           Conservative: only flags patterns above frequency threshold.
+           Bounded error and pattern stores with eviction policy.
+```
+
+### Phase 3 Continued — Customer Support Wiring
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│     CUSTOMER SUPPORT — FAQ GENERATION                               │
+└─────────────────────────────────────────────────────────────────────┘
+
+ [SUP-003] FAQGenerationEngine
+   Owner: Support Team
+   File:  src/faq_generation_engine.py
+   Purpose: Automated FAQ generation from ticket patterns and knowledge base.
+            - Record customer questions for frequency analysis
+            - Manage FAQ entries with versioning and view tracking
+            - Detect knowledge gaps (frequent questions with no FAQ)
+            - Search FAQs by keyword matching
+            - Track FAQ effectiveness (views, helpfulness votes)
+   Wiring: Writes to PersistenceManager.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: Non-destructive: FAQs are versioned, never deleted.
+           Bounded FAQ and question stores with eviction policy.
+```
+
+### Phase 0 Foundation — Security Wiring
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│     FOUNDATION SECURITY — AUTOMATED AUDIT SCANNING                  │
+└─────────────────────────────────────────────────────────────────────┘
+
+ [SEC-001] SecurityAuditScanner
+   Owner: Security Team
+   File:  src/security_audit_scanner.py
+   Purpose: Automated security vulnerability scanning and hardening validation.
+            - Scan Python files for security anti-patterns (eval, exec, etc.)
+            - Detect hardcoded secrets, wildcard CORS, debug mode
+            - Validate against pickle, SQL injection, and shell injection patterns
+            - Classify findings by severity: critical/high/medium/low
+            - Generate structured SecurityAuditReport
+   Wiring: Writes to PersistenceManager.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: Read-only: never modifies scanned files.
+           Conservative: flags potential issues for human review.
+           Bounded finding and report stores with eviction policy.
+```
+
+### Phase 7 — Integration Orchestration Wiring
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│     INTEGRATION ORCHESTRATION LAYER                                 │
+└─────────────────────────────────────────────────────────────────────┘
+
+ [INT-001] AutomationIntegrationHub
+   Owner: Platform Engineering / Architecture Team
+   File:  src/automation_integration_hub.py
+   Purpose: Master orchestration layer connecting all Phase 0–6 modules.
+            - Register modules by design label with phase classification
+            - Subscribe to EventBackbone events for cross-module routing
+            - Route events to registered module handlers
+            - Track integration health and event flow metrics
+            - Detect broken integration links (modules not responding)
+            - Generate IntegrationHealthReport
+   Wiring: Subscribes to EventBackbone for all event types.
+           Routes events to registered module handlers.
+           Writes IntegrationHealthReport to PersistenceManager.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: Non-destructive: routes events, does not modify them.
+           Graceful degradation: missing modules logged but not fatal.
+           Bounded route history with eviction policy.
+
+ Phase 7 Module Registry:
+   ┌──────────────┬──────────────────────────────────┬──────────────┐
+   │ Phase        │ Design Labels                    │ Count        │
+   ├──────────────┼──────────────────────────────────┼──────────────┤
+   │ Foundation   │ ARCH-001, ARCH-002, GATE-001,    │ 4            │
+   │              │ SEC-001                          │              │
+   │ Observability│ OBS-001, OBS-002, OBS-003, OBS-004│ 4           │
+   │ Development  │ DEV-001, DEV-002, DEV-003, DEV-004│ 4           │
+   │ Support      │ SUP-001, SUP-002, SUP-003        │ 3            │
+   │ Compliance   │ CMP-001                          │ 1            │
+   │ Marketing    │ MKT-001, MKT-002, MKT-003        │ 3            │
+   │ Business     │ BIZ-001, BIZ-002, BIZ-003        │ 3            │
+   │ Advanced     │ ADV-001, ADV-002, ADV-003, ADV-004│ 4           │
+   │ Integration  │ INT-001                          │ 1            │
+   ├──────────────┼──────────────────────────────────┼──────────────┤
+   │ TOTAL        │                                  │ 27           │
+   └──────────────┴──────────────────────────────────┴──────────────┘
+```
+
+---
+
 ## Next Steps
 
-This architecture map documents Phases 0–6 of the self-automation plan:
+This architecture map documents Phases 0–7 of the self-automation plan:
 
-1. **Integration Testing:** End-to-end flows across all Phase 1–6 modules
-2. **Security Review:** Map attack surfaces and vulnerabilities across all modules
-3. **Performance Analysis:** Run ADV-003 SelfOptimisationEngine against live telemetry
-4. **Capacity Planning:** Run ADV-004 ResourceScalingController against production metrics
-5. **Marketing Activation:** Wire MKT-001/002/003 to external publish channels
-6. **Self-Healing Validation:** End-to-end failure recovery testing with OBS-004
+1. **End-to-End Integration Testing:** Exercise INT-001 with all 27 registered modules
+2. **Security Baseline:** Run SEC-001 across entire src/ directory for initial audit
+3. **Documentation Generation:** Run DEV-003 across src/ to build label inventory
+4. **Bug Pattern Analysis:** Feed DEV-004 with historical error data from OBS-003
+5. **FAQ Bootstrap:** Seed SUP-003 with common questions from SUP-001 ticket history
+6. **Performance Analysis:** Run ADV-003 SelfOptimisationEngine against live telemetry
+7. **Capacity Planning:** Run ADV-004 ResourceScalingController against production metrics
 
 See `FILE_CLASSIFICATION.md` for complete file inventory and `SYSTEM_OVERVIEW.md` for system statistics.
