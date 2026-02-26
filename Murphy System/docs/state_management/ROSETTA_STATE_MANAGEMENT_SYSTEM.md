@@ -5,7 +5,7 @@
 **Branch:** `feature/rosetta-state-management`  
 **Owner:** Inoni LLC / Corey Post  
 **Repository:** https://github.com/IKNOWINOT/Murphy-System  
-**Runtime Scope:** `Murphy System/murphy_integrated/` only  
+**Runtime Scope:** `Murphy System/Murphy System/` only  
 
 ---
 
@@ -34,7 +34,7 @@ You asked: *"Is my current agent persistence system aligned with my original arc
 
 ### The Verdict: **Hybrid — Extend the Existing System, Do Not Replace It**
 
-After reading every relevant file in `murphy_integrated/`, the conclusion is clear:
+After reading every relevant file in `Murphy System/`, the conclusion is clear:
 
 **Your existing infrastructure is architecturally sound and more capable than you may realize.** The `PersistenceManager`, `StateManager`, `SelfImprovementEngine`, `SelfAutomationOrchestrator`, `RAGVectorIntegration`, `WorkflowDAGEngine`, `EventBackbone`, and `GovernanceScheduler` collectively form a strong foundation. The problem is not that the wrong system was built — it is that **these components are not wired together into a unified, agent-readable state surface**.
 
@@ -48,7 +48,7 @@ What is missing is a **Rosetta Layer**: a standardized, structured document form
 
 ### 2.1 What Exists and How It Works
 
-The `murphy_integrated` runtime contains six distinct state-related subsystems that currently operate in isolation from one another:
+The `Murphy System` runtime contains six distinct state-related subsystems that currently operate in isolation from one another:
 
 #### Layer 1 — Raw Persistence (`src/persistence_manager.py`)
 The `PersistenceManager` provides file-based JSON storage with four namespaces: `documents/`, `gate_history/`, `librarian_context/`, and `audit/`. It is thread-safe via per-directory locks and supports atomic writes via `.tmp` rename. It has full replay support via `get_replay_events()` which merges gate history and audit trail chronologically. This is the **durable storage backbone** — it works correctly and should be kept as-is.
@@ -160,7 +160,7 @@ The existing system already has: durable storage, event replay, in-memory state 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                    ROSETTA STATE LAYER                              │
-│              murphy_integrated/src/rosetta/                         │
+│              Murphy System/src/rosetta/                         │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
 │  ┌─────────────────────┐    ┌──────────────────────────────────┐   │
@@ -563,8 +563,8 @@ WORKFLOW_PHASE_CHANGED = "workflow_phase_changed"
 
 ### Priority 5 — Documentation & README (Week 4)
 
-- [ ] **P5-001** Update `murphy_integrated/ARCHITECTURE_MAP.md` to include Rosetta layer
-- [ ] **P5-002** Update `murphy_integrated/API_DOCUMENTATION.md` with Rosetta endpoints
+- [ ] **P5-001** Update `Murphy System/ARCHITECTURE_MAP.md` to include Rosetta layer
+- [ ] **P5-002** Update `Murphy System/API_DOCUMENTATION.md` with Rosetta endpoints
 - [ ] **P5-003** Add Rosetta state management section to main `README.md`
 
 ---
@@ -574,7 +574,7 @@ WORKFLOW_PHASE_CHANGED = "workflow_phase_changed"
 ### New Files to Create
 
 ```
-murphy_integrated/
+Murphy System/
 └── src/
     └── rosetta/
         ├── __init__.py
@@ -584,7 +584,7 @@ murphy_integrated/
         ├── recalibration_scheduler.py # RecalibrationScheduler — weekly cycle orchestrator
         └── global_aggregator.py       # GlobalStateAggregator — system-wide view builder
 
-murphy_integrated/
+Murphy System/
 └── tests/
     ├── test_rosetta_manager.py
     ├── test_recalibration_scheduler.py
@@ -592,7 +592,7 @@ murphy_integrated/
     ├── test_rosetta_subsystem_wiring.py
     └── test_self_improvement_persistence.py
 
-murphy_integrated/
+Murphy System/
 └── docs/
     └── state_management/
         ├── ROSETTA_STATE_MANAGEMENT_SYSTEM.md   # This document

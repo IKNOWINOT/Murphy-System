@@ -4,22 +4,22 @@ on:
   push:
     branches: [main]
     paths:
-      - "Murphy System/murphy_integrated/**"
+      - "Murphy System/**"
   pull_request:
     branches: [main]
     paths:
-      - "Murphy System/murphy_integrated/**"
+      - "Murphy System/**"
 
 env:
   MURPHY_ENV: test
-  PYTHONPATH: ${{ github.workspace }}/Murphy System/murphy_integrated
+  PYTHONPATH: ${{ github.workspace }}/Murphy System
 
 jobs:
   lint:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: "Murphy System/murphy_integrated"
+        working-directory: "Murphy System"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -52,7 +52,7 @@ jobs:
     needs: lint
     defaults:
       run:
-        working-directory: "Murphy System/murphy_integrated"
+        working-directory: "Murphy System"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -83,7 +83,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-results
-          path: Murphy System/murphy_integrated/tests/
+          path: Murphy System/tests/
           retention-days: 14
 
   build:
@@ -92,7 +92,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     defaults:
       run:
-        working-directory: "Murphy System/murphy_integrated"
+        working-directory: "Murphy System"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

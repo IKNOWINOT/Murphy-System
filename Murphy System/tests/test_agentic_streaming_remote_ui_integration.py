@@ -6,7 +6,7 @@ import os
 import sys
 import unittest
 
-# Ensure the murphy_integrated directory is on the path
+# Ensure the Murphy System directory is on the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.agentic_api_provisioner import (

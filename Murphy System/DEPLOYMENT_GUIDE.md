@@ -33,12 +33,12 @@
 ### 1. Clone/Extract the Repository
 ```bash
 # If from zip
-unzip murphy_integrated.zip
-cd murphy_integrated
+unzip murphy_system.zip
+cd murphy_system
 
 # If from git
 git clone <repository-url>
-cd murphy_integrated
+cd murphy_system
 ```
 
 ### 2. Create Virtual Environment
@@ -180,7 +180,7 @@ server {
 
     # Static files
     location /static {
-        alias /path/to/murphy_integrated/static;
+        alias /path/to/murphy_system/static;
         expires 30d;
     }
 }
@@ -217,9 +217,9 @@ After=network.target
 Type=notify
 User=murphy
 Group=murphy
-WorkingDirectory=/opt/murphy_integrated
-Environment="PATH=/opt/murphy_integrated/venv/bin"
-ExecStart=/opt/murphy_integrated/venv/bin/gunicorn \
+WorkingDirectory=/opt/murphy_system
+Environment="PATH=/opt/murphy_system/venv/bin"
+ExecStart=/opt/murphy_system/venv/bin/gunicorn \
     -w 4 \
     -b 127.0.0.1:6666 \
     --timeout 120 \
@@ -581,7 +581,7 @@ python tests/test_basic_imports.py
 ### Import Errors
 ```bash
 # Verify all imports work
-cd murphy_integrated
+cd murphy_system
 python tests/test_basic_imports.py
 
 # Check Python path

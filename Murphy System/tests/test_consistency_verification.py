@@ -173,10 +173,8 @@ class TestDocumentationConsistency(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.readme_path = os.path.join(
-            os.path.dirname(ROOT), os.pardir, "README.md"
-        )
-        cls.assessment_path = os.path.join(ROOT, "FULL_SYSTEM_ASSESSMENT.md")
+        cls.readme_path = os.path.join(ROOT, "README.md")
+        cls.assessment_path = os.path.join(ROOT, "archive", "murphy_integrated_archive", "FULL_SYSTEM_ASSESSMENT.md")
         cls.source = _load_runtime_source()
         cls.catalog = _extract_catalog_entries(cls.source)
 
