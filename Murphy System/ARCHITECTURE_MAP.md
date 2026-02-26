@@ -1440,8 +1440,10 @@ with a design ticket and team owner.
    │ Advanced     │ ADV-001, ADV-002, ADV-003, ADV-004│ 4           │
    │ Integration  │ INT-001                          │ 1            │
    │ Operations   │ OPS-001, OPS-002, OPS-003, OPS-004│ 4           │
+   │ Safety       │ SAF-001, SAF-002, SAF-003,       │ 5            │
+   │              │ SAF-004, SAF-005                 │              │
    ├──────────────┼──────────────────────────────────┼──────────────┤
-   │ TOTAL        │                                  │ 37           │
+   │ TOTAL        │                                  │ 42           │
    └──────────────┴──────────────────────────────────┴──────────────┘
 ```
 
@@ -1511,28 +1513,115 @@ with a design ticket and team owner.
            Bounded event history with eviction policy.
 ```
 
+### Phase 9 — Safety Governance & Risk Controls Wiring
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│     SAFETY GOVERNANCE & RISK CONTROLS                               │
+└─────────────────────────────────────────────────────────────────────┘
+
+ [SAF-001] SafetyValidationPipeline
+   Owner: Security Team / AI Safety Team
+   File:  src/safety_validation_pipeline.py
+   Purpose: Three-stage safety validation for autonomous actions (Plan §6.1).
+            - PRE_EXECUTION: authorization, input validation, risk assessment,
+              rate-limit check, budget verification
+            - EXECUTION: progress monitoring, anomaly detection, resource usage
+            - POST_EXECUTION: output correctness, side-effect detection,
+              metrics update, audit trail
+            - Produces ValidationResult (PASSED / FAILED / WARNING) per action
+            - Fail-closed: any check failure → overall FAILED
+   Wiring: Writes ValidationResult to PersistenceManager.
+           Publishes SYSTEM_HEALTH events to EventBackbone.
+   Safety: Fail-closed: errors in checks default to FAILED.
+           Pluggable: checks registered per stage as callables.
+           Bounded result history with eviction policy.
+
+ [SAF-002] AutomationRBACController
+   Owner: Security Team / Governance Team
+   File:  src/automation_rbac_controller.py
+   Purpose: Role-based access control for automation operations (Plan §6.2).
+            - 4 roles: ADMIN, OWNER, OPERATOR, VIEWER
+            - 4 permissions: TOGGLE_FULL_AUTOMATION, VIEW_AUTOMATION_METRICS,
+              APPROVE_AUTONOMOUS_ACTION, OVERRIDE_AUTOMATION
+            - Only ADMIN/OWNER may toggle full automation
+            - Default-deny: unknown users are always denied
+            - Immutable audit trail for every authorization decision
+   Wiring: Writes AuditEntry to PersistenceManager.
+           Publishes AUDIT_LOGGED events to EventBackbone.
+   Safety: Default-deny: any unknown user/permission is denied.
+           Fail-closed: errors in permission checks → denied.
+           Per-tenant isolation: roles scoped to (user, tenant) pairs.
+
+ [SAF-003] TenantResourceGovernor
+   Owner: Platform Engineering / Security Team
+   File:  src/tenant_resource_governor.py
+   Purpose: Per-tenant resource limits and enforcement (Plan §6.2).
+            - 4 resource dimensions: API calls, CPU seconds, memory MB, budget USD
+            - Real-time usage tracking with cumulative and peak modes
+            - Pre-execution limit check (allowed / denied_over_limit / denied_unknown)
+            - Usage snapshot generation for monitoring dashboards
+            - Billing-cycle reset capability
+   Wiring: Writes UsageSnapshot to PersistenceManager.
+           Publishes SYSTEM_HEALTH events to EventBackbone on breaches.
+   Safety: Fail-closed: unknown tenant → request denied.
+           Per-tenant isolation: no cross-tenant data access.
+           Bounded snapshot store with eviction policy.
+
+ [SAF-004] AlertRulesEngine
+   Owner: DevOps Team / Platform Engineering
+   File:  src/alert_rules_engine.py
+   Purpose: Configurable alert rules with severity and cooldown (Plan §6.3).
+            - 3 severity levels: CRITICAL, WARNING, INFO
+            - 5 comparators: GT, LT, GTE, LTE, EQ
+            - 5 default rules: system down, high error rate, slow response,
+              low success rate, automation mode change
+            - Per-rule cooldown to prevent alert storms
+            - Enable/disable rules at runtime
+   Wiring: Writes FiredAlert to PersistenceManager.
+           Publishes SYSTEM_HEALTH events to EventBackbone.
+   Safety: Cooldown-based deduplication prevents alert fatigue.
+           Bounded alert history with eviction policy.
+           All comparisons are purely numeric (no code eval).
+
+ [SAF-005] RiskMitigationTracker
+   Owner: Strategy Team / Security Team
+   File:  src/risk_mitigation_tracker.py
+   Purpose: Technical, operational, and business risk tracking (Plan §8).
+            - 9 default risks from Part 8 of the Self-Automation Plan
+            - Risk scoring: Likelihood × Impact (1–9 scale)
+            - 5 status levels: OPEN → MITIGATING → MITIGATED → ACCEPTED → CLOSED
+            - Status change history with audit trail
+            - RiskSummary with counts by category, status, likelihood, impact
+   Wiring: Writes StatusChange and RiskSummary to PersistenceManager.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: Non-destructive: risks are never deleted, only status-changed.
+           Bounded status history with eviction policy.
+```
+
 ---
 
 ## Next Steps
 
-This architecture map documents Phases 0–8 of the self-automation plan (37 design labels):
+This architecture map documents Phases 0–9 of the self-automation plan (42 design labels):
 
-1. **Readiness Assessment:** Run OPS-001 to validate wiring across all 37 modules
-2. **KPI Baseline:** Seed OPS-002 with initial metric observations for all 8 default KPIs
-3. **Mode Configuration:** Configure OPS-003 thresholds per environment (dev/staging/prod)
-4. **Emergency Stop Integration:** Wire OPS-004 into API gateway for global stop capability
-5. **End-to-End Integration Testing:** Exercise INT-001 with all 37 registered modules
-6. **Security Baseline:** Run SEC-001 across entire src/ directory for initial audit
-7. **Dependency Audit:** Run DEV-005 against requirements.txt to flag vulnerable packages
-8. **Documentation Generation:** Run DEV-003 across src/ to build label inventory
-9. **Bug Pattern Analysis:** Feed DEV-004 with historical error data from OBS-003
-10. **FAQ Bootstrap:** Seed SUP-003 with common questions from SUP-001 ticket history
-11. **Customer Communication Templates:** Bootstrap SUP-004 with standard response templates
-12. **Social Media Calendar:** Configure MKT-004 with initial platform-specific post schedules
-13. **Marketing Analytics Pipeline:** Wire MKT-005 to ingest metrics from MKT-001/002/003/004
-14. **Compliance Baseline:** Run BIZ-004 against GDPR/SOC2/HIPAA controls
-15. **Strategic Plan Generation:** Seed BIZ-005 with market signals for Q2 planning
-16. **Performance Analysis:** Run ADV-003 SelfOptimisationEngine against live telemetry
-17. **Capacity Planning:** Run ADV-004 ResourceScalingController against production metrics
+1. **Readiness Assessment:** Run OPS-001 to validate wiring across all 42 modules
+2. **Safety Pipeline Integration:** Wire SAF-001 into API gateway for pre/post validation
+3. **RBAC Bootstrap:** Configure SAF-002 roles/users for initial deployment team
+4. **Tenant Onboarding:** Configure SAF-003 limits for first production tenants
+5. **Alert Baseline:** Tune SAF-004 thresholds per environment (dev/staging/prod)
+6. **Risk Review Cycle:** Schedule quarterly SAF-005 risk register reviews
+7. **KPI Baseline:** Seed OPS-002 with initial metric observations for all 8 default KPIs
+8. **Mode Configuration:** Configure OPS-003 thresholds per environment
+9. **Emergency Stop Integration:** Wire OPS-004 into API gateway for global stop capability
+10. **End-to-End Integration Testing:** Exercise INT-001 with all 42 registered modules
+11. **Security Baseline:** Run SEC-001 across entire src/ directory for initial audit
+12. **Dependency Audit:** Run DEV-005 against requirements.txt to flag vulnerable packages
+13. **Documentation Generation:** Run DEV-003 across src/ to build label inventory
+14. **Bug Pattern Analysis:** Feed DEV-004 with historical error data from OBS-003
+15. **Compliance Baseline:** Run BIZ-004 against GDPR/SOC2/HIPAA controls
+16. **Strategic Plan Generation:** Seed BIZ-005 with market signals for Q2 planning
+17. **Performance Analysis:** Run ADV-003 SelfOptimisationEngine against live telemetry
+18. **Capacity Planning:** Run ADV-004 ResourceScalingController against production metrics
 
 See `FILE_CLASSIFICATION.md` for complete file inventory and `SYSTEM_OVERVIEW.md` for system statistics.
