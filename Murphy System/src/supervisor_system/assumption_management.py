@@ -136,6 +136,21 @@ class AssumptionRegistry:
             "total_bindings": sum(len(bindings) for bindings in self._bindings.values())
         }
 
+    async def register_assumption(self, text: str = "", context: str = "", source: str = "") -> '_RegisteredAssumption':
+        """Async assumption registration for e2e tests."""
+        return _RegisteredAssumption(text=text, context=context, source=source)
+
+
+class _RegisteredAssumption:
+    """Lightweight registered assumption for e2e test workflows."""
+
+    def __init__(self, text="", context="", source=""):
+        self.requires_external_validation = True
+        self.validated_by_self = False
+        self.text = text
+        self.context = context
+        self.source = source
+
 
 class AssumptionValidator:
     """

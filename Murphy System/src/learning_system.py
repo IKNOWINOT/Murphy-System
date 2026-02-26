@@ -324,6 +324,10 @@ class SyntheticFailureGenerator:
         
         return results
 
+    async def shutdown(self):
+        """Graceful shutdown (no-op in test mode)."""
+        pass
+
 
 class LearningPipeline:
     """
