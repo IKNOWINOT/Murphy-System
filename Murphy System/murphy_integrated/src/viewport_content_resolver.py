@@ -40,6 +40,15 @@ class ViewportContentResolver:
         self._persistence = persistence_manager
         self._librarian = system_librarian
 
+    @staticmethod
+    def _extract_content(obj) -> Any:
+        """Extract viewable content from an artifact or document object."""
+        if hasattr(obj, 'content'):
+            return obj.content
+        if hasattr(obj, 'to_dict'):
+            return obj.to_dict()
+        return obj
+
     def resolve(
         self,
         artifact_id: str,
@@ -97,7 +106,7 @@ class ViewportContentResolver:
             if plane and hasattr(plane, 'read'):
                 artifact = plane.read(artifact_id)
                 if artifact:
-                    return artifact.content if hasattr(artifact, 'content') else artifact.to_dict()
+                    return self._extract_content(artifact)
         except Exception as e:
             logger.debug(f"MAS lookup failed for {artifact_id} in {plane_name}: {e}")
 
@@ -126,7 +135,7 @@ class ViewportContentResolver:
             if hasattr(self._librarian, 'get_document'):
                 doc = self._librarian.get_document(artifact_id)
                 if doc:
-                    return doc.content if hasattr(doc, 'content') else doc
+                    return self._extract_content(doc)
             if hasattr(self._librarian, 'get_transcript'):
                 transcript = self._librarian.get_transcript(artifact_id)
                 if transcript:
