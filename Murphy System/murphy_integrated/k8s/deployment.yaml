@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: murphy-api
+  namespace: murphy-system
+  labels:
+    app: murphy-system
+    component: api
+    environment: production
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: murphy-system
+      component: api
+  template:
+    metadata:
+      labels:
+        app: murphy-system
+        component: api
+        environment: production
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: murphy-api
+          image: murphy-system:latest
+          ports:
+            - containerPort: 6666
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: murphy-config
+            - secretRef:
+                name: murphy-secrets
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 6666
+            periodSeconds: 30
+            initialDelaySeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 6666
+            periodSeconds: 10
+            initialDelaySeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          securityContext:
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: murphy-data
+              mountPath: /app/data
+            - name: tmp
+              mountPath: /tmp
+            - name: logs
+              mountPath: /app/logs
+      volumes:
+        - name: murphy-data
+          persistentVolumeClaim:
+            claimName: murphy-data
+        - name: tmp
+          emptyDir: {}
+        - name: logs
+          emptyDir: {}

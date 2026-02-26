@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: murphy-config
+  namespace: murphy-system
+  labels:
+    app: murphy-system
+    component: config
+    environment: production
+data:
+  MURPHY_ENV: "production"
+  MURPHY_DATA_DIR: "/app/data"
+  MURPHY_LOG_DIR: "/app/logs"
+  MURPHY_CORS_ORIGINS: "https://murphy.example.com"
+  LOG_LEVEL: "INFO"
