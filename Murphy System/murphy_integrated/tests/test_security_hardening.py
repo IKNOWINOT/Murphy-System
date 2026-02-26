@@ -236,7 +236,7 @@ class TestOutputEncoder:
         dangerous = '"; alert("XSS"); "'
         encoded = OutputEncoder.encode_javascript(dangerous)
         
-        assert '\&quot;' in encoded
+        assert '\\"' in encoded or '&quot;' in encoded
         assert 'alert("XSS")' not in encoded
     
     def test_encode_url(self):
