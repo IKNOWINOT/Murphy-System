@@ -485,4 +485,4 @@ def reset_state():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8057, debug=True)
+    app.run(host='0.0.0.0', port=8057, debug=os.environ.get('MURPHY_ENV', 'development') == 'development')
