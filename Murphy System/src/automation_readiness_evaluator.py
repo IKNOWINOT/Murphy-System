@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 _MAX_REPORTS = 500
 
 # ---------------------------------------------------------------------------
-# Default module registry — all 33 design labels from Phases 0–7
+# Default module registry — all 37 design labels from Phases 0–8
 # ---------------------------------------------------------------------------
 
 DEFAULT_PHASE_MODULES: Dict[str, List[str]] = {
