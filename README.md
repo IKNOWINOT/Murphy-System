@@ -612,6 +612,30 @@ POST /api/integrations/add
 
 ## 🛡️ Safety & Governance
 
+### Security Hardening (Active)
+
+-   ✅ Centralized auth on all API servers (`flask_security.py`, `fastapi_security.py`)
+-   ✅ API key authentication on all routes (health endpoints exempt)
+-   ✅ CORS origin allowlist (no wildcards) — `MURPHY_CORS_ORIGINS` env var
+-   ✅ Rate limiting per client IP (token-bucket, 60 req/min default)
+-   ✅ Security response headers (HSTS, CSP, X-Frame-Options, etc.)
+-   ✅ Input sanitization (XSS, SQL injection, path traversal detection)
+-   ✅ Tenant isolation in confidence engine (thread-safe per-tenant graphs)
+-   ✅ IDOR protection on execution orchestrator (ownership checks on pause/resume/abort)
+-   ✅ Input validation on execution orchestrator (authority level allowlist, safe ID patterns)
+-   ✅ Environment-based debug mode (`MURPHY_ENV`, no hardcoded `debug=True`)
+
+### Artifact Viewport (Content Inspection)
+
+-   ✅ Range-based content inspection for artifacts, intake files, and deliverables
+-   ✅ Content manifest with section index, line count, byte size, SHA-256 checksum
+-   ✅ Head/tail/range/section projection modes (analogous to `view_range`)
+-   ✅ Structured content key-path navigation with depth truncation
+-   ✅ Content search with configurable context lines
+-   ✅ Tenant-isolated access logging and audit trail
+-   ✅ REST API: `/viewport/manifest`, `/viewport/project`, `/viewport/search`
+-   ✅ Content resolver bridging MAS planes, Persistence Manager, and System Librarian
+
 ### Human-in-the-Loop (HITL)
 
 -   ✅ Every integration requires approval
@@ -733,6 +757,9 @@ See [LICENSE](LICENSE) for details.
 
 ## 🗺️ Roadmap (TBD)
 
+-   ✅ Security hardening — centralized auth, CORS, rate limiting, input validation
+-   ✅ Artifact Viewport — range-based content inspection system
+-   ✅ Tenant isolation — per-tenant memory planes, thread-safe graph managers
 -   Multi-language support (JavaScript, Java, Go)
 -   Enhanced shadow agent improvements
 -   Integration marketplace
