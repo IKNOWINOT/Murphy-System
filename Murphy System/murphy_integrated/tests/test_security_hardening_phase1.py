@@ -201,6 +201,9 @@ class TestFastAPISecurity:
 
         assert _is_health_endpoint("/health") is True
         assert _is_health_endpoint("/api/health") is True
+        assert _is_health_endpoint("/healthz") is True
+        assert _is_health_endpoint("/ready") is True
+        assert _is_health_endpoint("/metrics") is True
         assert _is_health_endpoint("/api/data") is False
 
     def test_fastapi_cors_no_wildcard(self):
