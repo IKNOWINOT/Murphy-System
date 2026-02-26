@@ -79,7 +79,9 @@ def _get_tenant_id() -> str:
 def _resolve_content(artifact_id: str, tenant_id: str, origin: ViewportOrigin):
     """Resolve artifact content using the registered resolver or request body."""
     if _content_resolver:
-        return _content_resolver(artifact_id, tenant_id, origin)
+        result = _content_resolver(artifact_id, tenant_id, origin)
+        if result is not None:
+            return result
     # Fallback: expect content in query or POST body
     if request.is_json and request.json:
         return request.json.get('content')

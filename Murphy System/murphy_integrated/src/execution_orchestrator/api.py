@@ -74,6 +74,15 @@ risk_monitor = RuntimeRiskMonitor()
 rollback_enforcer = RollbackEnforcer()
 completion_certifier = CompletionCertifier()
 
+# Mount Artifact Viewport API for content inspection
+from artifact_viewport import ArtifactViewport
+from artifact_viewport_api import mount_viewport_api
+from viewport_content_resolver import ViewportContentResolver
+
+_viewport = ArtifactViewport()
+_viewport_resolver = ViewportContentResolver()
+mount_viewport_api(app, _viewport, _viewport_resolver.resolve)
+
 # Execution state registry
 executions: Dict[str, ExecutionState] = {}
 execution_locks: Dict[str, threading.Lock] = {}
