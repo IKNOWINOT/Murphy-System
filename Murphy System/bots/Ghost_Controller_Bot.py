@@ -8,7 +8,7 @@ from typing import Any, Dict
 from threading import Thread
 from pynput import keyboard, mouse
 import pygetwindow as gw
-from modern_arcana.gpt_oss_runner import GPTOSSRunner
+from .gpt_oss_runner import GPTOSSRunner
 
 
 class GhostControllerBot:
