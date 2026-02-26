@@ -51,6 +51,7 @@ class PromptStep(str, Enum):
     REVIEW = "review"
     DOCUMENTATION = "documentation"
     ITERATION = "iteration"
+    TRANSITION = "transition"
 
 
 @dataclass
@@ -134,6 +135,10 @@ class SelfAutomationOrchestrator:
         PromptStep.ITERATION: (
             "Check if more improvement tasks remain. "
             "Re-run gap analysis and update the task queue."
+        ),
+        PromptStep.TRANSITION: (
+            "Transition module {module_name} to the next operational phase. "
+            "Validate prerequisites, update state, and notify dependent systems."
         ),
     }
 

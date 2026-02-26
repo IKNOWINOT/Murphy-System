@@ -35,6 +35,8 @@ class EventType(Enum):
     HITL_RESOLVED = "hitl_resolved"
     PERSISTENCE_SNAPSHOT = "persistence_snapshot"
     SYSTEM_HEALTH = "system_health"
+    RECALIBRATION_START = "recalibration_start"
+    ROSETTA_UPDATED = "rosetta_updated"
 
 
 @dataclass
