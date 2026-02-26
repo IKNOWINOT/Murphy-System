@@ -31,11 +31,11 @@ This document defines the strategy to use **Murphy System to automate its own la
 
 | File / Path | Purpose |
 |-------------|---------|
-| `Murphy System/murphy_system_runtime.py` | Core runtime — agent orchestration engine |
-| `Murphy System/start_murphy.py` | Startup script — bootstraps all subsystems |
-| `requirements.txt` | Python dependency manifest (100+ packages) |
+| `Murphy System/murphy_system_1.0_runtime.py` | Core runtime (~17,000 lines) — agent orchestration engine |
+| `Murphy System/start_murphy_1.0.sh` | Startup script — bootstraps all subsystems |
+| `Murphy System/requirements_murphy_1.0.txt` | Python dependency manifest (100+ packages) |
 | `Murphy System/.env.example` | Configuration template — API keys, secrets |
-| `Murphy System/landing_page/` | Public-facing landing page assets |
+| `Murphy System/murphy_landing_page.html` | Public-facing landing page (32KB) |
 | `Murphy System/documentation/` | Comprehensive system documentation tree |
 
 ### 1.2 System Requirements

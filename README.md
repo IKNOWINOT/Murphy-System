@@ -694,6 +694,8 @@ Deployment manifests live under `Murphy System/archive/legacy_versions/.../deplo
 | [Quick Start](Murphy%20System/MURPHY_1.0_QUICK_START.md) | Get started in 5 minutes |
 | [Specification](<Murphy System/MURPHY_SYSTEM_1.0_SPECIFICATION.md>) | Complete system spec |
 | [Integration Engine](<Murphy%20System/archive/murphy_integrated_archive/legacy_docs/INTEGRATION_ENGINE_COMPLETE.md>) | Integration docs |
+| [Launch Automation Plan](<Murphy System/docs/LAUNCH_AUTOMATION_PLAN.md>) | Self-automating launch strategy |
+| [Operations & Testing Plan](<Murphy System/docs/OPERATIONS_TESTING_PLAN.md>) | Iterative test-fix-document cycle |
 | [API Docs](http://localhost:6666/docs) | Interactive API docs |
 
 ---
