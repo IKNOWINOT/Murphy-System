@@ -703,3 +703,45 @@ class SecuritySystem:
         return {"access_granted": True, "access_points_unlocked": 5, "updated": True}
 
 CRMSystem = CRMSystemMock
+
+
+class QualityControlSystem:
+    """Mock quality control system for manufacturing tests."""
+
+    def __init__(self):
+        self._inspections = []
+
+    async def inspect_unit(self, unit_id: str = "", checks: list = None, **kw):
+        result = {
+            "unit_id": unit_id,
+            "quality_pass": True,
+            "checks": {c: {"pass": True, "value": 0.99} for c in (checks or [])},
+            "inspected": True,
+        }
+        self._inspections.append(result)
+        return result
+
+    async def get_quality_report(self, **kw):
+        total = len(self._inspections)
+        passed = sum(1 for i in self._inspections if i.get("quality_pass"))
+        return {
+            "total_inspections": total,
+            "passed": passed,
+            "failed": total - passed,
+            "quality_rate": passed / total if total else 1.0,
+        }
+
+
+class ManufacturingExecutionSystem:
+    """Mock MES for manufacturing workflow tests."""
+
+    def __init__(self):
+        self._operations = []
+
+    async def execute_operation(self, station: str = "", unit_id: str = "", **kw):
+        result = {"station": station, "unit_id": unit_id, "status": "completed", "success": True}
+        self._operations.append(result)
+        return result
+
+    async def get_production_status(self, **kw):
+        return {"total_operations": len(self._operations), "status": "running"}

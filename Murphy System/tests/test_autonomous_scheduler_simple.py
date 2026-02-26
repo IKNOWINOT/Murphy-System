@@ -207,7 +207,6 @@ class TestDependencyGraph(unittest.TestCase):
         # Dependencies satisfied
         self.assertTrue(self.graph.can_execute("task_1", {"dep_1", "dep_2"}))
     
-    @unittest.skip("DependencyGraph does not have a remove_task method")
     def test_remove_task(self):
         """Test removing task from graph"""
         self.graph.add_task("task_1", ["dep_1", "dep_2"])

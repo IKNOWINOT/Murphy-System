@@ -71,11 +71,14 @@ class TelemetryAdapter:
     
     def collect_metric(
         self,
-        metric_type: str,
-        metric_name: str,
-        value: float,
+        metric_type: str = None,
+        metric_name: str = None,
+        value: float = None,
         labels: Optional[Dict] = None,
-        timestamp: Optional[str] = None
+        timestamp: Optional[str] = None,
+        *,
+        name: str = None,
+        category: str = None,
     ) -> Dict:
         """
         Collect a telemetry metric.
@@ -86,10 +89,24 @@ class TelemetryAdapter:
             value: Metric value
             labels: Optional labels/dimensions for the metric
             timestamp: Optional timestamp (ISO format)
+            name: Alias for metric_name (convenience)
+            category: Alias for metric_type (convenience)
             
         Returns:
             Dict with collection status
         """
+        # Handle convenience parameter aliases
+        if metric_name is None and name is not None:
+            metric_name = name
+        if metric_type is None and category is not None:
+            metric_type = category
+        # Defaults
+        if metric_type is None:
+            metric_type = "performance"
+        if metric_name is None:
+            metric_name = "unnamed_metric"
+        if value is None:
+            value = 0.0
         if timestamp is None:
             timestamp = datetime.utcnow().isoformat()
         
