@@ -649,6 +649,9 @@ New event types for automation:
 
 - [Launch Automation Plan](LAUNCH_AUTOMATION_PLAN.md) — Strategy for using Murphy to automate its own launch
 - [Operations, Testing & Iteration Plan](OPERATIONS_TESTING_PLAN.md) — Iterative test-fix-document cycle
+- [Execution Log — Cycle 1](EXECUTION_LOG.md) — Real test results from operating Murphy
+- [Gap Analysis — Cycle 1](GAP_ANALYSIS.md) — Actual vs expected comparison
+- [Remediation Plan — Cycle 1](REMEDIATION_PLAN.md) — Concrete fixes for all identified gaps
 - [QA Audit Report](QA_AUDIT_REPORT.md) — Pre-launch security audit findings
 
 ---

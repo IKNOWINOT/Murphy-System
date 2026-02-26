@@ -397,6 +397,8 @@ Once Murphy is running:
 5. **Run Automation:** Test business automation engines
 6. **Launch Automation:** Follow the [Launch Automation Plan](<Murphy System/docs/LAUNCH_AUTOMATION_PLAN.md>) to automate Murphy's own launch
 7. **Operations & Testing:** Use the [Operations, Testing & Iteration Plan](<Murphy System/docs/OPERATIONS_TESTING_PLAN.md>) for systematic verification
+8. **Review Gap Analysis:** See [Gap Analysis](<Murphy System/docs/GAP_ANALYSIS.md>) for what works vs what needs fixing
+9. **Follow Remediation Plan:** See [Remediation Plan](<Murphy System/docs/REMEDIATION_PLAN.md>) for concrete next steps
 
 ---
 

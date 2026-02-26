@@ -55,17 +55,17 @@ bash start_murphy_1.0.sh
 
 | Endpoint | Method | Expected Response | Status |
 |----------|--------|-------------------|--------|
-| `http://localhost:6666/docs` | GET | Swagger UI / API documentation page loads | ⏳ Pending |
-| `http://localhost:6666/api/health` | GET | `{"status": "healthy"}` or equivalent 200 OK | ⏳ Pending |
-| `http://localhost:6666/api/status` | GET | System status JSON with component states | ⏳ Pending |
+| `http://localhost:6666/docs` | GET | Swagger UI / API documentation page loads | ✅ Pass (Cycle 1) |
+| `http://localhost:6666/api/health` | GET | `{"status": "healthy"}` or equivalent 200 OK | ✅ Pass (Cycle 1) |
+| `http://localhost:6666/api/status` | GET | System status JSON with component states | ✅ Pass (Cycle 1) |
 
 ### 1.5 Acceptance Criteria
 
-- [ ] All dependencies installed without errors
-- [ ] `.env` configured with valid API keys
-- [ ] Murphy System starts without crashes
-- [ ] All three health endpoints respond with expected data
-- [ ] No critical errors in startup logs
+- [x] All dependencies installed without errors
+- [ ] `.env` configured with valid API keys *(Cycle 1: placeholder key only)*
+- [x] Murphy System starts without crashes
+- [x] All three health endpoints respond with expected data
+- [ ] No critical errors in startup logs *(Cycle 1: 4 subsystems failed to init — see [Gap Analysis](GAP_ANALYSIS.md))*
 
 ---
 
@@ -115,7 +115,7 @@ Record results:
 | Integration | — | — | — | — | ⏳ Pending |
 | API | — | — | — | — | ⏳ Pending |
 | Safety | — | — | — | — | ⏳ Pending |
-| **Overall** | — | — | — | — | ⏳ Pending |
+| **Overall** | **4,364** | **4,298** | **2** | **64** | **✅ 98.5% pass (Cycle 1)** |
 
 ---
 
@@ -373,23 +373,27 @@ The Murphy System Operations, Testing & Iteration Plan is **complete** when:
 
 | Component | Tests Run | Tests Passed | Docs Updated | Bugs Found | Bugs Fixed | Status |
 |-----------|-----------|-------------|--------------|------------|------------|--------|
-| API Endpoints | — | — | — | — | — | ⏳ Pending |
-| Task Execution | — | — | — | — | — | ⏳ Pending |
-| Text Generation | — | — | — | — | — | ⏳ Pending |
-| Workflow Engine | — | — | — | — | — | ⏳ Pending |
-| Integration Engine | — | — | — | — | — | ⏳ Pending |
-| Safety Gates | — | — | — | — | — | ⏳ Pending |
-| Confidence Engine | — | — | — | — | — | ⏳ Pending |
-| Data Persistence | — | — | — | — | — | ⏳ Pending |
+| API Endpoints | 18 | 14 | ✅ | 2 | 0 | ⚠️ 2 automation endpoints fail (engine inactive) |
+| Task Execution | 3 | 1 | ✅ | 1 | 0 | ⚠️ Blocked by confidence gate without LLM key |
+| Text Generation | 1 | 0 | ✅ | 1 | 0 | ❌ Blocked — no real LLM key |
+| Workflow Engine | — | — | — | — | — | ⏳ Pending (DAG engine active) |
+| Integration Engine | 1 | 0 | ✅ | 1 | 0 | ❌ Engine not initialised |
+| Safety Gates | — | — | — | — | — | ✅ Active (confidence gates working) |
+| Confidence Engine | 2 | 2 | ✅ | 0 | 0 | ✅ Operational (scores without LLM key = 0.45) |
+| Data Persistence | — | — | — | — | — | ✅ Active |
 | Performance | — | — | — | — | — | ⏳ Pending |
-| Documentation | — | — | — | — | — | ⏳ Pending |
-| **Overall** | **—** | **—** | **—** | **—** | **—** | **⏳ Pending** |
+| Documentation | 8 docs | — | ✅ | 0 | 0 | ✅ Updated |
+| Test Suite | 4,364 | 4,298 | ✅ | 2 | 0 | ✅ 98.5% pass |
+| **Overall** | **4,364+** | **4,298+** | **✅** | **7** | **0** | **⚠️ Cycle 1 complete — gaps documented** |
 
 ---
 
 ## Related Documents
 
 - [Launch Automation Plan](LAUNCH_AUTOMATION_PLAN.md)
+- [Execution Log — Cycle 1](EXECUTION_LOG.md)
+- [Gap Analysis — Cycle 1](GAP_ANALYSIS.md)
+- [Remediation Plan — Cycle 1](REMEDIATION_PLAN.md)
 - [QA Audit Report](QA_AUDIT_REPORT.md)
 - [Self-Running Analysis](self_running_analysis.md)
 - [Test Coverage](../documentation/testing/TEST_COVERAGE.md)
