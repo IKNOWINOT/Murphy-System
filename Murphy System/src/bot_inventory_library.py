@@ -544,6 +544,38 @@ class BotInventoryLibrary:
             "all_bots": [bot.to_dict() for bot in self.bots.values()],
             "available_capabilities": self.get_all_capabilities()
         }
+
+    def get_available_bots(self) -> list:
+        """Convenience method: get list of available/active bots"""
+        return [bot.to_dict() for bot in self.bots.values()]
+
+    def get_bot_capabilities(self, bot_id: str = None) -> list:
+        """Convenience method: get capabilities for a bot or all capabilities"""
+        if bot_id and bot_id in self.bots:
+            return list(self.bots[bot_id].capabilities)
+        return self.get_all_capabilities()
+
+    def register_bot(self, bot_name: str, capabilities: list = None, role: str = "assistant") -> Dict[str, Any]:
+        """Convenience method: register (spawn) a bot with given capabilities"""
+        # Map common role names to valid BotRole values
+        role_map = {"worker": "assistant", "helper": "assistant", "agent": "specialist"}
+        mapped_role = role_map.get(role.lower(), role.lower())
+        try:
+            bot = self.spawn_bot(name=bot_name, role=mapped_role, capabilities=capabilities or [])
+            return {"success": True, "bot": bot.to_dict() if hasattr(bot, 'to_dict') else {"agent_id": str(bot)}}
+        except ValueError:
+            # If role is still invalid, use default
+            bot = self.spawn_bot(name=bot_name, role="assistant", capabilities=capabilities or [])
+            return {"success": True, "bot": bot.to_dict() if hasattr(bot, 'to_dict') else {"agent_id": str(bot)}}
+
+    def search_bots(self, capability: str = None, role: str = None) -> list:
+        """Convenience method: search bots by capability or role"""
+        results = list(self.bots.values())
+        if role:
+            results = [b for b in results if b.role.value == role or b.role.name == role]
+        if capability:
+            results = [b for b in results if capability in b.capabilities]
+        return [b.to_dict() for b in results]
     
     def generate_runtime_spreadsheet(self) -> Dict[str, Any]:
         """

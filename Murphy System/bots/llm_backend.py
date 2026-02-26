@@ -1,7 +1,7 @@
 """LLM backend utilities using GPT-OSS transformers."""
 from __future__ import annotations
 
-from modern_arcana.gpt_oss_runner import GPTOSSRunner
+from .gpt_oss_runner import GPTOSSRunner
 
 class LLMBackend:
     """Wrapper around GPT-OSS model execution using GPTOSSRunner."""

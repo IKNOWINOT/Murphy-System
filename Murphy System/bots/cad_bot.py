@@ -7,12 +7,12 @@ import re
 from typing import Any, Dict
 from datetime import datetime
 from pathlib import Path
-from modern_arcana.gpt_oss_runner import GPTOSSRunner
+from .gpt_oss_runner import GPTOSSRunner
 
-from modern_arcana.analysis_bot import AnalysisBot
-from modern_arcana.engineering_bot import EngineeringBot
-from modern_arcana.simulation_bot import SimulationBot
-from modern_arcana.ghost_controller_bot import GhostControllerBot
+from .analysis_bot import AnalysisBot
+from .engineering_bot import EngineeringBot
+from .simulation_bot import SimulationBot
+from .ghost_controller_bot import GhostControllerBot
 
 OUTPUT_DIR = Path("generated_cad")
 PRINT_LOG = OUTPUT_DIR / "print_log.json"

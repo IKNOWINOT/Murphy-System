@@ -103,8 +103,13 @@ class GeneratedExpert:
             "system_logic_effects": self.system_logic_effects,
             "confidence_threshold": self.confidence_threshold,
             "cost_per_hour": self.cost_per_hour,
-            "availability": self.availability
+            "availability": self.availability,
+            "expert": self.name,
         }
+
+    def __contains__(self, item):
+        """Support 'in' operator for dict-like field access"""
+        return hasattr(self, item) or item in self.to_dict()
 
 
 class DynamicExpertGenerator:
@@ -170,13 +175,15 @@ class DynamicExpertGenerator:
     
     def generate_expert(
         self,
-        title: str,
-        domain: str,
+        title: str = None,
+        domain: str = None,
         level: str = "mid",
         specializations: List[str] = None,
         budget_constraint: Optional[float] = None,
         regulatory_requirements: List[str] = None,
-        architectural_requirements: List[str] = None
+        architectural_requirements: List[str] = None,
+        *,
+        specialization: str = None,
     ) -> GeneratedExpert:
         """
         Generate a dynamic expert based on requirements
@@ -186,13 +193,21 @@ class DynamicExpertGenerator:
             domain: Domain (e.g., "software", "infrastructure", "data")
             level: Expert level (junior, mid, senior, principal, expert)
             specializations: List of specialization areas
+            specialization: Single specialization (convenience alias)
             budget_constraint: Maximum hourly rate
             regulatory_requirements: Required regulatory knowledge
             architectural_requirements: Required architectural knowledge
             
         Returns:
-            GeneratedExpert object
+            GeneratedExpert object or dict with expert key
         """
+        # Handle convenience aliases
+        if specialization and not specializations:
+            specializations = [specialization]
+        if title is None:
+            title = f"{domain or 'General'} {specialization or 'Expert'}"
+        if domain is None:
+            domain = "software"
         self.expert_count += 1
         expert_id = f"expert_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{self.expert_count}"
         
@@ -490,7 +505,11 @@ class DynamicExpertGenerator:
             ExpertLevel.EXPERT: 0.95
         }
         return thresholds[level]
-    
+
+    def get_available_domains(self) -> list:
+        """Get list of available domain names"""
+        return list(self.domain_knowledge.keys())
+
     def generate_expert_team(
         self,
         requirements: Dict[str, Any],

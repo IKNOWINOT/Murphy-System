@@ -68,7 +68,9 @@ class NeuroSymbolicAdapter:
         query: str,
         context: Optional[Dict] = None,
         reasoning_mode: str = "hybrid",
-        constraints: Optional[List[Dict]] = None
+        constraints: Optional[List[Dict]] = None,
+        *,
+        mode: str = None,
     ) -> Dict:
         """
         Perform neuro-symbolic inference on a query.
@@ -78,6 +80,7 @@ class NeuroSymbolicAdapter:
             context: Optional context information
             reasoning_mode: The reasoning mode to use (neural_only, symbolic_only, hybrid, sequential, parallel)
             constraints: Optional list of constraints to apply
+            mode: Alias for reasoning_mode (convenience)
             
         Returns:
             Dict containing inference results with structure:
@@ -93,6 +96,10 @@ class NeuroSymbolicAdapter:
         """
         timestamp = datetime.utcnow().isoformat()
         
+        # Handle mode alias
+        if mode is not None:
+            reasoning_mode = mode
+
         # Validate reasoning mode
         if reasoning_mode not in self.reasoning_modes:
             logger.warning(f"Invalid reasoning mode '{reasoning_mode}', using 'hybrid'")
@@ -144,15 +151,15 @@ class NeuroSymbolicAdapter:
     
     def validate_constraints(
         self,
-        statement: str,
-        constraints: List[Dict],
+        statement: str = None,
+        constraints: List[Dict] = None,
         context: Optional[Dict] = None
     ) -> Dict:
         """
         Validate logical constraints against a statement.
         
         Args:
-            statement: The statement to validate
+            statement: The statement to validate (or constraints list if called with single arg)
             constraints: List of constraints to validate
             context: Optional context information
             
@@ -166,6 +173,18 @@ class NeuroSymbolicAdapter:
                     'overall_confidence': float
                 }
         """
+        # Handle single-arg calling: validate_constraints(constraints=[...])
+        if statement is None and constraints is None:
+            constraints = []
+            statement = ""
+        elif isinstance(statement, list) and constraints is None:
+            constraints = statement
+            statement = ""
+        if constraints is None:
+            constraints = []
+        if statement is None:
+            statement = ""
+
         try:
             if not self.enabled:
                 # Fallback: Simulate constraint validation

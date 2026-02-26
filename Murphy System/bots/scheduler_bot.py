@@ -5,7 +5,7 @@ import json
 import os
 from typing import Callable, Any, Dict
 from datetime import datetime
-from modern_arcana.gpt_oss_runner import GPTOSSRunner  # Injected
+from .gpt_oss_runner import GPTOSSRunner  # Injected
 
 from .container_runner import ContainerTask, run_container
 from .rcm_stability_core import RecursiveStabilityEngine

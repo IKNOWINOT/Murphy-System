@@ -179,6 +179,20 @@ class DependencyGraph:
         with self.lock:
             return self.reverse_graph.get(task_id, []).copy()
 
+    def remove_task(self, task_id: str) -> None:
+        """Remove a task and clean up its dependency references"""
+        with self.lock:
+            # Remove from forward graph and clean up reverse references
+            if task_id in self.graph:
+                for dep in self.graph[task_id]:
+                    if dep in self.reverse_graph and task_id in self.reverse_graph[dep]:
+                        self.reverse_graph[dep].remove(task_id)
+                del self.graph[task_id]
+
+            # Remove from reverse graph (dependents of this task)
+            if task_id in self.reverse_graph:
+                del self.reverse_graph[task_id]
+
 
 class AutonomousScheduler:
     """

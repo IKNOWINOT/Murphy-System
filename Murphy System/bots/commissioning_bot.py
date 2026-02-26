@@ -6,7 +6,7 @@ from typing import Dict
 import json
 from pathlib import Path
 from .feedback_bot import FeedbackBot, log_feedback
-from modern_arcana.gpt_oss_runner import GPTOSSRunner  # ✅ Injected
+from .gpt_oss_runner import GPTOSSRunner  # ✅ Injected
 import requests
 
 LOG_DIR = Path("logs")

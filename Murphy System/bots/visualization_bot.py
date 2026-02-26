@@ -9,9 +9,9 @@ import matplotlib.pyplot as plt
 
 # Optional imports - use if available
 try:
-    from modern_arcana.gpt_oss_runner import GPTOSSRunner
-    from modern_arcana.simulation_bot import SimulationBot
-    from modern_arcana.cad_bot import CADBot
+    from .gpt_oss_runner import GPTOSSRunner
+    from .simulation_bot import SimulationBot
+    from .cad_bot import CADBot
     HAS_MODERN_ARCANA = True
 except ImportError:
     # Provide stub classes if module not available
