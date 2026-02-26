@@ -16,7 +16,7 @@ Author: Murphy System (MFGC-AI)
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Any, Callable
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import re
 import html
@@ -376,7 +376,7 @@ class InputValidator:
         
         # Log validation attempt
         self.validation_log.append({
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "success": len(errors) == 0,
             "errors": errors,
             "field_count": len(data)
@@ -469,7 +469,7 @@ class OutputEncoder:
         # Escape special characters
         replacements = {
             '\\': '\\\\',
-            '"': '\&quot;',
+            '"': '\\"',
             "'": "\\'",
             '\n': '\\n',
             '\r': '\\r',
