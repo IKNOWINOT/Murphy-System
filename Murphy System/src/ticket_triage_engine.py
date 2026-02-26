@@ -333,6 +333,6 @@ class TicketTriageEngine:
             1 for kw in _CATEGORY_KEYWORDS.get(category, []) if kw in text
         )
         total_hits = sev_hits + cat_hits
-        # Normalise to 0.3–0.95 range
+        # Normalize to 0.3–0.95 range
         raw = min(total_hits / max(len(words) * 0.1, 1), 1.0)
         return round(0.3 + raw * 0.65, 3)
