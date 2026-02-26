@@ -75,8 +75,10 @@ def _extract_api_key(request: Request) -> Optional[str]:
 
 
 def _is_health_endpoint(path: str) -> bool:
-    """Check if the request path is a health check endpoint."""
-    return path.rstrip("/").endswith("/health") or path.rstrip("/") == "/health"
+    """Check if the request path is a health/readiness/metrics endpoint."""
+    normalized = path.rstrip("/")
+    exempt_suffixes = ("/health", "/healthz", "/ready", "/metrics")
+    return any(normalized.endswith(s) or normalized == s[1:] for s in exempt_suffixes)
 
 
 # ── Rate Limiting ────────────────────────────────────────────────────
@@ -241,7 +243,7 @@ def configure_secure_fastapi(app: FastAPI, service_name: str = "murphy-api") -> 
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
-        allow_credentials=False,
+        allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
         allow_headers=["Content-Type", "Authorization", "X-Tenant-ID", "X-API-Key"],
     )
