@@ -172,7 +172,7 @@ class SalesAutomationEngine:
         ])
 
     def generate_demo_script(self, lead: LeadProfile) -> Dict:
-        """Generate a personalised demo script for the lead."""
+        """Generate a personalized demo script for the lead."""
         highlights = self.get_feature_highlights(lead.industry)
         edition = self.recommend_edition(lead)
         return {
@@ -214,7 +214,7 @@ class SalesAutomationEngine:
             "implementation_plan": [
                 "Discovery & requirements gathering",
                 "Environment setup and integration",
-                "Configuration and customisation",
+                "Configuration and customization",
                 "Training and go-live support",
             ],
             "timeline": "4-8 weeks",
