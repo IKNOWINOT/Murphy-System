@@ -56,11 +56,11 @@ Runtime 1.0 combines:
 
 ---
 
-For a concise status summary, see [RUNTIME_1.0_STATUS.md](RUNTIME_1.0_STATUS.md).
-For inactive subsystem inventory and verification steps, see [ACTIVATION_AUDIT.md](ACTIVATION_AUDIT.md).
-For a full flow analysis and UI attempt script, see [SYSTEM_FLOW_ANALYSIS.md](SYSTEM_FLOW_ANALYSIS.md).
-For gap closure recommendations, see [CAPABILITY_GAP_SOLUTIONS.md](CAPABILITY_GAP_SOLUTIONS.md).
-For a full system assessment and finishing plan, see [FULL_SYSTEM_ASSESSMENT.md](FULL_SYSTEM_ASSESSMENT.md).
+For a concise status summary, see [RUNTIME_1.0_STATUS.md](archive/murphy_integrated_archive/legacy_docs/RUNTIME_1.0_STATUS.md).
+For inactive subsystem inventory and verification steps, see [ACTIVATION_AUDIT.md](archive/murphy_integrated_archive/legacy_docs/ACTIVATION_AUDIT.md).
+For a full flow analysis and UI attempt script, see [SYSTEM_FLOW_ANALYSIS.md](archive/murphy_integrated_archive/legacy_docs/SYSTEM_FLOW_ANALYSIS.md).
+For gap closure recommendations, see [CAPABILITY_GAP_SOLUTIONS.md](archive/murphy_integrated_archive/legacy_docs/CAPABILITY_GAP_SOLUTIONS.md).
+For a full system assessment and finishing plan, see [FULL_SYSTEM_ASSESSMENT.md](archive/murphy_integrated_archive/FULL_SYSTEM_ASSESSMENT.md).
 
 ## ✨ Features
 
@@ -288,10 +288,10 @@ License: Apache License 2.0
 ## 📞 Support
 
 ### Documentation
-- [START_INTEGRATED_SYSTEM.md](START_INTEGRATED_SYSTEM.md) - Quick start guide
+- [START_INTEGRATED_SYSTEM.md](archive/murphy_integrated_archive/legacy_docs/START_INTEGRATED_SYSTEM.md) - Quick start guide
 - [API_DOCUMENTATION.md](API_DOCUMENTATION.md) - Complete API reference
 - [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) - Deployment instructions
-- [INTEGRATION_COMPLETE_SUMMARY.md](INTEGRATION_COMPLETE_SUMMARY.md) - Integration details
+- [INTEGRATION_COMPLETE_SUMMARY.md](archive/murphy_integrated_archive/legacy_docs/INTEGRATION_COMPLETE_SUMMARY.md) - Integration details
 
 ---
 

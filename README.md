@@ -50,9 +50,9 @@ start_murphy_1.0.bat   # Windows
 
 **📚 Setup Documentation:**
 - **Complete Guide:** [GETTING_STARTED.md](GETTING_STARTED.md) - Comprehensive instructions
-- **Quick Start:** [Murphy System/MURPHY_1.0_QUICK_START.md](Murphy%20System/Murphy System/MURPHY_1.0_QUICK_START.md)
-- **API Reference:** [Murphy System/API_DOCUMENTATION.md](Murphy%20System/Murphy System/API_DOCUMENTATION.md)
-- **Deployment Guide:** [Murphy System/DEPLOYMENT_GUIDE.md](Murphy%20System/Murphy System/DEPLOYMENT_GUIDE.md)
+- **Quick Start:** [Murphy System/MURPHY_1.0_QUICK_START.md](Murphy%20System/MURPHY_1.0_QUICK_START.md)
+- **API Reference:** [Murphy System/API_DOCUMENTATION.md](Murphy%20System/API_DOCUMENTATION.md)
+- **Deployment Guide:** [Murphy System/DEPLOYMENT_GUIDE.md](Murphy%20System/DEPLOYMENT_GUIDE.md)
 
 ---
 
@@ -166,7 +166,7 @@ Murphy-System/
 - **Adapter execution snapshot tests:** `tests/test_adapter_execution_snapshot.py` validates adapter readiness and configuration status.
 - **Two-phase session handling:** uses a dedicated session ID separate from the automation ID; `session_id_source` indicates when the automation_id fallback is used if session creation fails.
 - **Architect UI:** serve `Murphy System/terminal_architect.html` (or `murphy_production_ui.html`, which redirects unless `?legacy=true`) with `python -m http.server 8090` and open `http://localhost:8090/Murphy System/terminal_architect.html?apiPort=6666`
-- **Details:** see [Runtime 1.0 Status](<Murphy System/RUNTIME_1.0_STATUS.md>)
+- **Details:** see [Runtime 1.0 Status](<Murphy%20System/archive/murphy_integrated_archive/legacy_docs/RUNTIME_1.0_STATUS.md>)
 - **Competitive alignment:** activation previews and `/api/status` now include `competitive_feature_alignment`, `competitive_feature_alignment_summary`, `integration_capabilities_summary`, and `module_registry_summary`; `/api/info` includes alignment, integration, and module registry summaries for lightweight capability reporting.
 - **Alignment diagnostics:** competitive feature alignment reports connector readiness and flags configuration errors with guidance for missing capability lists, now covering adaptive routing, multi-channel delivery, RBAC/tenant governance, persistent memory (currently missing), policy-as-code, observability/AIOps, AI model lifecycle orchestration, low-code/no-code intake governance, self-healing, knowledge/RAG, and connector marketplace readiness (see the updated competitive baseline in `FULL_SYSTEM_ASSESSMENT.md`).
 - **Competitive alignment preview test:** `tests/test_competitive_alignment_preview.py` validates activation preview parity for competitive, integration, and module registry summaries (including registry availability/completeness and total count consistency checks).
@@ -691,9 +691,9 @@ Deployment manifests live under `Murphy System/archive/legacy_versions/.../deplo
 
 | Document | Description |
 | --- | --- |
-| [Quick Start](MURPHY_1.0_QUICK_START.md) | Get started in 5 minutes |
+| [Quick Start](Murphy%20System/MURPHY_1.0_QUICK_START.md) | Get started in 5 minutes |
 | [Specification](<Murphy System/MURPHY_SYSTEM_1.0_SPECIFICATION.md>) | Complete system spec |
-| [Integration Engine](<Murphy System/INTEGRATION_ENGINE_COMPLETE.md>) | Integration docs |
+| [Integration Engine](<Murphy%20System/archive/murphy_integrated_archive/legacy_docs/INTEGRATION_ENGINE_COMPLETE.md>) | Integration docs |
 | [API Docs](http://localhost:6666/docs) | Interactive API docs |
 
 ---
