@@ -318,7 +318,7 @@ class TestRecalibrationScheduler:
         mgr.save_state(state)
         sched = RecalibrationScheduler(mgr)
         result = sched.run_recalibration("a1")
-        assert len(result["findings"]) >= 4  # low progress, pending, blocked, failed, low coverage
+        assert len(result["findings"]) >= 5  # low progress, pending, blocked, failed, low coverage
 
     def test_run_all(self, tmp_path):
         mgr = RosettaManager(persistence_dir=str(tmp_path / "rosetta"))

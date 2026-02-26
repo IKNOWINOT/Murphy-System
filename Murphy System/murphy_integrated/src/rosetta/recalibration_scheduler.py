@@ -1,7 +1,7 @@
 """
 Recalibration Scheduler for Rosetta State Management.
 
-Runs periodic recalibration cycles that analyse goals, tasks,
+Runs periodic recalibration cycles that analyze goals, tasks,
 and automation progress for every known agent.
 """
 
