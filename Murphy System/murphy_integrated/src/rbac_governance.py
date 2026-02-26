@@ -43,6 +43,8 @@ class Permission(str, Enum):
     APPROVE_DELIVERY = "approve_delivery"
     MANAGE_COMPLIANCE = "manage_compliance"
     ESCALATE = "escalate"
+    TOGGLE_FULL_AUTOMATION = "toggle_full_automation"
+    VIEW_AUTOMATION_METRICS = "view_automation_metrics"
 
 
 # ------------------------------------------------------------------
@@ -58,14 +60,17 @@ DEFAULT_ROLE_PERMISSIONS: Dict[Role, Set[Permission]] = {
         Permission.APPROVE_DELIVERY,
         Permission.VIEW_STATUS,
         Permission.MANAGE_BUDGET,
+        Permission.VIEW_AUTOMATION_METRICS,
     },
     Role.OPERATOR: {
         Permission.EXECUTE_TASK,
         Permission.VIEW_STATUS,
         Permission.APPROVE_GATE,
+        Permission.VIEW_AUTOMATION_METRICS,
     },
     Role.VIEWER: {
         Permission.VIEW_STATUS,
+        Permission.VIEW_AUTOMATION_METRICS,
     },
     Role.SHADOW_AGENT: {
         Permission.EXECUTE_TASK,
@@ -197,6 +202,47 @@ class RBACGovernance:
                     return True, f"granted_by_role:{role.value}"
 
         return False, "no_role_grants_permission"
+
+    def can_toggle_full_automation(
+        self,
+        user_id: str,
+        tenant_id: str,
+        is_organization: bool = True,
+    ) -> Tuple[bool, str]:
+        """
+        Check if a user can toggle full automation mode.
+        
+        For organizations: Only admin or owner roles can toggle full automation.
+        For non-organizations: Only account owners can toggle full automation.
+        
+        Args:
+            user_id: User identifier
+            tenant_id: Tenant identifier
+            is_organization: Whether this is an organization context
+            
+        Returns:
+            (allowed, reason) tuple
+        """
+        with self._lock:
+            user = self._users.get(user_id)
+            if user is None:
+                return False, "unknown_user"
+            
+            if user.tenant_id != tenant_id:
+                return False, "user_not_in_tenant"
+            
+            if is_organization:
+                # Only admin or owner can toggle in organizations
+                if Role.ADMIN in user.roles or Role.OWNER in user.roles:
+                    return True, f"granted_by_role:{user.roles[0].value}"
+                else:
+                    return False, "only_admin_or_owner_can_toggle_in_organization"
+            else:
+                # Only owner can toggle for their own agents
+                if Role.OWNER in user.roles:
+                    return True, "granted_by_role:owner"
+                else:
+                    return False, "only_owner_can_toggle_for_own_agents"
 
     # ------------------------------------------------------------------
     # Tenant isolation
