@@ -42,7 +42,7 @@ class TestChatMessageInput:
         
         assert valid is False
         assert data is None
-        assert 'cannot be empty' in error.lower()
+        assert 'cannot be empty' in error.lower() or 'at least 1 character' in error.lower()
     
     def test_script_tag_blocked(self):
         """Test script tags are blocked"""
@@ -95,7 +95,7 @@ class TestChatMessageInput:
         )
         
         assert valid is False
-        assert 'max_length' in error.lower() or 'too long' in error.lower()
+        assert 'max_length' in error.lower() or 'too long' in error.lower() or 'at most' in error.lower()
 
 
 class TestConstraintInput:

@@ -112,24 +112,22 @@ class IntegratedFormExecutor:
         # Create execution context
         exec_context = ExecutionContext(
             task_id=task.get('id'),
-            task_data=task,
-            metadata=context or {}
+            task=task
         )
         
         # Validate with unified confidence engine
         confidence_report = self.confidence_engine.calculate_confidence(task, context)
         
-        if not confidence_report.gate_result.approved:
+        if not confidence_report.gate_result.allowed:
             logger.warning(
                 f"Task {task.get('id')} rejected by Murphy Gate: "
-                f"{confidence_report.gate_result.reason}"
+                f"{confidence_report.gate_result.rationale}"
             )
             return ExecutionResult(
                 task_id=task.get('id'),
-                status=ExecutionStatus.REJECTED,
-                message=confidence_report.gate_result.reason,
-                confidence_report=confidence_report,
-                timestamp=datetime.now()
+                execution_id=f"rejected_{task.get('id', 'unknown')}",
+                status=ExecutionStatus.CANCELLED,
+                error_message=confidence_report.gate_result.rationale,
             )
         
         # Execute using original orchestrator if available
@@ -142,9 +140,6 @@ class IntegratedFormExecutor:
         else:
             # Fallback to form executor
             result = await self._execute_with_form_executor(task, exec_context)
-        
-        # Add confidence report to result
-        result.confidence_report = confidence_report
         
         logger.info(
             f"Task {task.get('id')} completed with status: {result.status}"
@@ -210,7 +205,7 @@ class IntegratedFormExecutor:
         logger.debug(f"Executing task {task.get('id')} with form executor")
         
         try:
-            result = await self.form_executor.execute(task, context)
+            result = self.form_executor.execute_task(task)
             return result
         
         except Exception as e:
@@ -266,4 +261,4 @@ class IntegratedFormExecutor:
                 logger.error(f"Error getting status from orchestrator: {e}")
         
         # Fallback to form executor
-        return self.form_executor.get_status(task_id)
+        return None

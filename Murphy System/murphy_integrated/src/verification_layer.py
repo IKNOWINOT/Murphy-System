@@ -4,11 +4,21 @@ External truth sources - NO generation, only lookup
 """
 
 import re
-import requests
-import wikipedia
+try:
+    import requests
+except ImportError:
+    requests = None
+try:
+    import wikipedia
+except ImportError:
+    wikipedia = None
 from datetime import datetime
 from typing import Optional, Dict, Any
-from SPARQLWrapper import SPARQLWrapper, JSON
+try:
+    from SPARQLWrapper import SPARQLWrapper, JSON
+except ImportError:
+    SPARQLWrapper = None
+    JSON = None
 try:
     from state_machine import VerifiedFacts
 except ImportError:

@@ -1,7 +1,7 @@
 # Murphy System — Avatar & Multi-Agent Architecture Analysis
 ## Persistent Agent Avatars + Video/Voice Integration Roadmap
 
-**Prepared by:** SuperNinja AI Architect  
+**Prepared by:** Murphy System Architecture Team  
 **Repository:** IKNOWINOT/Murphy-System  
 **Primary Runtime:** `murphy_integrated/`  
 **Analysis Date:** 2025  

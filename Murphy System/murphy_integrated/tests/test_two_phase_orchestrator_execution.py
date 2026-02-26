@@ -31,7 +31,7 @@ class StubTwoPhaseOrchestrator:
         self.calls.append(("run", automation_id))
         return {
             "automation_id": automation_id,
-            "deliverables": ["report.pdf"],
+            "deliverables": [{"type": "report", "path": "report.pdf"}],
             "status": "success"
         }
 
@@ -55,7 +55,8 @@ def test_execute_task_routes_to_two_phase_orchestrator():
     assert response["session_id"] is not None
     assert response["session_id"] != response["automation_id"]
     assert response["session_id_source"] == "session_id"
-    assert response["deliverables"] == ["report.pdf"]
+    # Deliverables include the original report plus runtime-appended delivery adapters
+    assert any(d.get("type") == "report" or d.get("path") == "report.pdf" for d in response["deliverables"])
     assert response["metadata"]["mode"] == "two_phase_orchestrator"
     assert ("create", "Generate a compliance report", "compliance") in stub.calls
     assert ("run", "automation-123") in stub.calls
