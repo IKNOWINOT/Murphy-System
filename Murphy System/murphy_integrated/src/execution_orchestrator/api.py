@@ -18,40 +18,91 @@ Endpoints:
 - GET /health - Health check
 """
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, g
 from flask_cors import CORS
+from typing import Dict, Any
+import logging
 from datetime import datetime
-import threading
-from typing import Dict, Optional
 
-from .models import (
-    ExecutionState,
-    ExecutionStatus,
-    StepResult,
-    InterfaceHealth,
-    TelemetryEventType
-)
-from .validator import PreExecutionValidator
-from .executor import StepwiseExecutor
-from .telemetry import TelemetryStreamer
-from .risk_monitor import RuntimeRiskMonitor
-from .rollback import RollbackEnforcer
-from .completion import CompletionCertifier
+from src.security_plane.middleware import AuthenticationMiddleware, SecurityMiddlewareConfig, SecurityContext
+from src.config import settings
 
 
+# Initialize Flask app
 app = Flask(__name__)
-CORS(app)
 
-# Initialize components
-validator = PreExecutionValidator()
-executor = StepwiseExecutor()
-telemetry = TelemetryStreamer()
-risk_monitor = RuntimeRiskMonitor()
-rollback_enforcer = RollbackEnforcer()
-completion_certifier = CompletionCertifier()
+# Configure CORS with specific origins from config
+cors_origins = settings.cors_origins.split(",") if settings.cors_origins != "*" else "*"
+CORS(app, origins=cors_origins)
 
-# Execution state registry
-executions: Dict[str, ExecutionState] = {}
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Initialize security middleware
+security_config = SecurityMiddlewareConfig(
+    require_authentication=True,
+    allow_human_auth=True,
+    allow_machine_auth=True,
+    enable_audit_logging=True
+)
+auth_middleware = AuthenticationMiddleware(security_config)
+
+# Per-tenant execution state management (fixes ARCH-004 - IDOR vulnerability)
+tenant_executions: Dict[str, Dict[str, Any]] = {}
+tenant_execution_locks: Dict[str, Any] = {}
+
+# Helper function to get tenant-specific execution state
+def get_tenant_executions(tenant_id: str) -> Dict[str, Any]:
+    &quot;&quot;&quot;Get or create tenant-specific execution state&quot;&quot;&quot;
+    if tenant_id not in tenant_executions:
+        tenant_executions[tenant_id] = {}
+        tenant_execution_locks[tenant_id] = {}
+    return tenant_executions[tenant_id]
+
+# Helper function to extract tenant_id from request
+def get_tenant_id_from_request() -> str:
+    &quot;&quot;&quot;Extract tenant_id from authenticated request context&quot;&quot;&quot;
+    return request.headers.get('X-Tenant-ID', 'default')
+
+# Authentication before_request hook
+@app.before_request
+def authenticate_request():
+    &quot;&quot;&quot;Authenticate all incoming requests&quot;&quot;&quot;
+    # Skip authentication for health checks
+    if request.path == '/health':
+        return None
+    
+    # Create security context
+    context = SecurityContext()
+    
+    # Prepare request data for authentication
+    request_data = {
+        'auth_type': request.headers.get('X-Auth-Type'),
+        'credentials': {
+            'user_id': request.headers.get('X-User-ID'),
+            'machine_id': request.headers.get('X-Machine-ID'),
+            'token': request.headers.get('Authorization', '').replace('Bearer ', '')
+        }
+    }
+    
+    # Authenticate request
+    if not auth_middleware.authenticate_request(request_data, context):
+        logger.warning(f'Authentication failed for {request.path}')
+        return jsonify({
+            'error': 'Authentication required',
+            'message': 'Please provide valid authentication credentials'
+        }), 401
+    
+    # Store authenticated context in Flask g object
+    g.authenticated = context.authenticated
+    g.identity = context.identity
+    g.tenant_id = get_tenant_id_from_request()
+    
+    return None
 execution_locks: Dict[str, threading.Lock] = {}
 
 

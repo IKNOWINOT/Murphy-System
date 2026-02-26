@@ -3,7 +3,7 @@ Confidence Engine API Server
 REST API for confidence, risk, and authority computation
 """
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, g
 from flask_cors import CORS
 from typing import Dict, Any, List
 import logging
@@ -25,11 +25,16 @@ from confidence_engine.confidence_calculator import ConfidenceCalculator
 from confidence_engine.murphy_calculator import MurphyCalculator
 from confidence_engine.authority_mapper import AuthorityMapper
 from confidence_engine.phase_controller import PhaseController
+from src.security_plane.middleware import AuthenticationMiddleware, SecurityMiddlewareConfig, SecurityContext
+from src.config import settings
 
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)
+
+# Configure CORS with specific origins from config
+cors_origins = settings.cors_origins.split(",") if settings.cors_origins != "*" else "*"
+CORS(app, origins=cors_origins)
 
 # Configure logging
 logging.basicConfig(
@@ -38,6 +43,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Initialize security middleware
+security_config = SecurityMiddlewareConfig(
+    require_authentication=True,
+    allow_human_auth=True,
+    allow_machine_auth=True,
+    enable_audit_logging=True
+)
+auth_middleware = AuthenticationMiddleware(security_config)
+
 # Initialize components
 graph_analyzer = GraphAnalyzer()
 confidence_calculator = ConfidenceCalculator()
@@ -45,10 +59,66 @@ murphy_calculator = MurphyCalculator()
 authority_mapper = AuthorityMapper()
 phase_controller = PhaseController()
 
-# Global state (in production, use proper state management)
-current_graph = ArtifactGraph()
-current_trust_model = TrustModel()
-verification_evidence_store: List[VerificationEvidence] = []
+# Per-tenant state management (fixes ARCH-003 - tenant isolation)
+tenant_graphs: Dict[str, ArtifactGraph] = {}
+tenant_trust_models: Dict[str, TrustModel] = {}
+tenant_verification_evidence: Dict[str, List[VerificationEvidence]] = {}
+
+# Helper function to get tenant-specific state
+def get_tenant_state(tenant_id: str) -> tuple:
+    &quot;&quot;&quot;Get or create tenant-specific state&quot;&quot;&quot;
+    if tenant_id not in tenant_graphs:
+        tenant_graphs[tenant_id] = ArtifactGraph()
+        tenant_trust_models[tenant_id] = TrustModel()
+        tenant_verification_evidence[tenant_id] = []
+    return (
+        tenant_graphs[tenant_id],
+        tenant_trust_models[tenant_id],
+        tenant_verification_evidence[tenant_id]
+    )
+
+# Helper function to extract tenant_id from request
+def get_tenant_id_from_request() -> str:
+    &quot;&quot;&quot;Extract tenant_id from authenticated request context&quot;&quot;&quot;
+    # In production, this would extract from JWT token or session
+    # For now, use a default or extract from request headers
+    return request.headers.get('X-Tenant-ID', 'default')
+
+# Authentication before_request hook
+@app.before_request
+def authenticate_request():
+    &quot;&quot;&quot;Authenticate all incoming requests&quot;&quot;&quot;
+    # Skip authentication for health checks
+    if request.path == '/health':
+        return None
+    
+    # Create security context
+    context = SecurityContext()
+    
+    # Prepare request data for authentication
+    request_data = {
+        'auth_type': request.headers.get('X-Auth-Type'),
+        'credentials': {
+            'user_id': request.headers.get('X-User-ID'),
+            'machine_id': request.headers.get('X-Machine-ID'),
+            'token': request.headers.get('Authorization', '').replace('Bearer ', '')
+        }
+    }
+    
+    # Authenticate request
+    if not auth_middleware.authenticate_request(request_data, context):
+        logger.warning(f'Authentication failed for {request.path}')
+        return jsonify({
+            'error': 'Authentication required',
+            'message': 'Please provide valid authentication credentials'
+        }), 401
+    
+    # Store authenticated context in Flask g object
+    g.authenticated = context.authenticated
+    g.identity = context.identity
+    g.tenant_id = get_tenant_id_from_request()
+    
+    return None
 
 
 # ============================================================================
@@ -73,14 +143,14 @@ def add_artifact():
         )
         
         # Add to graph
-        current_graph.add_node(node)
+        tenant_graphs[g.tenant_id].add_node(node)
         
         # Validate DAG
-        is_valid, errors = graph_analyzer.validate_dag(current_graph)
+        is_valid, errors = graph_analyzer.validate_dag(tenant_graphs[g.tenant_id])
         
         if not is_valid:
             # Remove node if it breaks DAG
-            del current_graph.nodes[node.id]
+            del tenant_graphs[g.tenant_id].nodes[node.id]
             return jsonify({
                 'success': False,
                 'error': 'Adding this artifact would break DAG structure',
@@ -93,7 +163,7 @@ def add_artifact():
             'success': True,
             'artifact_id': node.id,
             'graph_stats': {
-                'total_nodes': len(current_graph.nodes),
+                'total_nodes': len(tenant_graphs[g.tenant_id].nodes),
                 'is_dag': is_valid
             }
         })
@@ -109,7 +179,7 @@ def get_graph():
     try:
         return jsonify({
             'success': True,
-            'graph': current_graph.to_dict()
+            'graph': tenant_graphs[g.tenant_id].to_dict()
         })
     except Exception as e:
         logger.error(f"Error getting graph: {e}")
@@ -121,16 +191,16 @@ def analyze_graph():
     """Analyze graph structure"""
     try:
         # Validate DAG
-        is_valid, errors = graph_analyzer.validate_dag(current_graph)
+        is_valid, errors = graph_analyzer.validate_dag(tenant_graphs[g.tenant_id])
         
         # Detect contradictions
-        contradictions = graph_analyzer.detect_contradictions(current_graph)
+        contradictions = graph_analyzer.detect_contradictions(tenant_graphs[g.tenant_id])
         
         # Calculate entropy
-        entropy = graph_analyzer.calculate_entropy(current_graph)
+        entropy = graph_analyzer.calculate_entropy(tenant_graphs[g.tenant_id])
         
         # Analyze dependencies
-        dep_analysis = graph_analyzer.analyze_dependencies(current_graph)
+        dep_analysis = graph_analyzer.analyze_dependencies(tenant_graphs[g.tenant_id])
         
         return jsonify({
             'success': True,
@@ -165,13 +235,13 @@ def add_verification():
             details=data.get('details', {})
         )
         
-        verification_evidence_store.append(evidence)
+        tenant_verification_evidence[g.tenant_id].append(evidence)
         
         logger.info(f"Added verification evidence for artifact {evidence.artifact_id}")
         
         return jsonify({
             'success': True,
-            'evidence_count': len(verification_evidence_store)
+            'evidence_count': len(tenant_verification_evidence[g.tenant_id])
         })
     
     except Exception as e:
@@ -185,8 +255,8 @@ def list_verification():
     try:
         return jsonify({
             'success': True,
-            'evidence': [e.to_dict() for e in verification_evidence_store],
-            'count': len(verification_evidence_store)
+            'evidence': [e.to_dict() for e in tenant_verification_evidence[g.tenant_id]],
+            'count': len(tenant_verification_evidence[g.tenant_id])
         })
     except Exception as e:
         logger.error(f"Error listing verification: {e}")
@@ -210,7 +280,7 @@ def add_trust_source():
             volatility=data.get('volatility', 0.1)
         )
         
-        current_trust_model.add_source(source)
+        tenant_trust_models[g.tenant_id].add_source(source)
         
         logger.info(f"Added trust source {source.source_id}")
         
@@ -233,14 +303,14 @@ def update_trust():
         source_id = data['source_id']
         success = data['success']
         
-        current_trust_model.update_source(source_id, success)
+        tenant_trust_models[g.tenant_id].update_source(source_id, success)
         
         logger.info(f"Updated trust for {source_id}: success={success}")
         
         return jsonify({
             'success': True,
             'source_id': source_id,
-            'new_trust': current_trust_model.get_trust(source_id)
+            'new_trust': tenant_trust_models[g.tenant_id].get_trust(source_id)
         })
     
     except Exception as e:
@@ -254,7 +324,7 @@ def get_trust_model():
     try:
         return jsonify({
             'success': True,
-            'trust_model': current_trust_model.to_dict()
+            'trust_model': tenant_trust_models[g.tenant_id].to_dict()
         })
     except Exception as e:
         logger.error(f"Error getting trust model: {e}")
@@ -274,10 +344,10 @@ def compute_confidence():
         
         # Compute confidence
         confidence_state = confidence_calculator.compute_confidence(
-            current_graph,
+            tenant_graphs[g.tenant_id],
             phase,
-            verification_evidence_store,
-            current_trust_model
+            tenant_verification_evidence[g.tenant_id],
+            tenant_trust_models[g.tenant_id]
         )
         
         logger.info(f"Computed confidence: {confidence_state.confidence:.3f}")
@@ -305,22 +375,22 @@ def compute_murphy():
         
         # First compute confidence
         confidence_state = confidence_calculator.compute_confidence(
-            current_graph,
+            tenant_graphs[g.tenant_id],
             phase,
-            verification_evidence_store,
-            current_trust_model
+            tenant_verification_evidence[g.tenant_id],
+            tenant_trust_models[g.tenant_id]
         )
         
         # Compute Murphy index
         murphy_index = murphy_calculator.calculate_murphy_index(
-            current_graph,
+            tenant_graphs[g.tenant_id],
             confidence_state,
             phase
         )
         
         # Get failure mode details
         failure_modes = murphy_calculator.get_failure_mode_details(
-            current_graph,
+            tenant_graphs[g.tenant_id],
             confidence_state,
             phase
         )
@@ -354,15 +424,15 @@ def compute_authority():
         
         # Compute confidence
         confidence_state = confidence_calculator.compute_confidence(
-            current_graph,
+            tenant_graphs[g.tenant_id],
             phase,
-            verification_evidence_store,
-            current_trust_model
+            tenant_verification_evidence[g.tenant_id],
+            tenant_trust_models[g.tenant_id]
         )
         
         # Compute Murphy index
         murphy_index = murphy_calculator.calculate_murphy_index(
-            current_graph,
+            tenant_graphs[g.tenant_id],
             confidence_state,
             phase
         )
@@ -410,10 +480,10 @@ def check_phase_transition():
         
         # Compute confidence
         confidence_state = confidence_calculator.compute_confidence(
-            current_graph,
+            tenant_graphs[g.tenant_id],
             current_phase,
-            verification_evidence_store,
-            current_trust_model
+            tenant_verification_evidence[g.tenant_id],
+            tenant_trust_models[g.tenant_id]
         )
         
         # Check transition
@@ -490,14 +560,14 @@ def get_complete_state():
         
         # Compute all components
         confidence_state = confidence_calculator.compute_confidence(
-            current_graph,
+            tenant_graphs[g.tenant_id],
             phase,
-            verification_evidence_store,
-            current_trust_model
+            tenant_verification_evidence[g.tenant_id],
+            tenant_trust_models[g.tenant_id]
         )
         
         murphy_index = murphy_calculator.calculate_murphy_index(
-            current_graph,
+            tenant_graphs[g.tenant_id],
             confidence_state,
             phase
         )
@@ -510,8 +580,8 @@ def get_complete_state():
         )
         
         # Graph analysis
-        is_valid, errors = graph_analyzer.validate_dag(current_graph)
-        contradictions = graph_analyzer.detect_contradictions(current_graph)
+        is_valid, errors = graph_analyzer.validate_dag(tenant_graphs[g.tenant_id])
+        contradictions = graph_analyzer.detect_contradictions(tenant_graphs[g.tenant_id])
         
         return jsonify({
             'success': True,
@@ -520,7 +590,7 @@ def get_complete_state():
             'murphy_index': murphy_index,
             'authority_state': authority_state.to_dict(),
             'graph_stats': {
-                'total_nodes': len(current_graph.nodes),
+                'total_nodes': len(tenant_graphs[g.tenant_id].nodes),
                 'is_valid_dag': is_valid,
                 'contradiction_count': len(contradictions),
                 'verified_artifacts': confidence_state.verified_artifacts
@@ -558,18 +628,19 @@ def health_check():
 # ============================================================================
 
 @app.route('/api/confidence-engine/reset', methods=['POST'])
-def reset_state():
-    """Reset all state (for testing)"""
-    global current_graph, current_trust_model, verification_evidence_store
-    
-    current_graph = ArtifactGraph()
-    current_trust_model = TrustModel()
-    verification_evidence_store = []
-    
-    logger.info("Reset confidence engine state")
-    
-    return jsonify({
-        'success': True,
+    def reset_state():
+        &quot;&quot;&quot;Reset all state (for testing)&quot;&quot;&quot;
+        tenant_id = g.tenant_id
+        tenant_graphs[tenant_id] = ArtifactGraph()
+        tenant_trust_models[tenant_id] = TrustModel()
+        tenant_verification_evidence[tenant_id] = []
+        
+        logger.info(f&quot;Reset confidence engine state for tenant {tenant_id}&quot;)
+        
+        return jsonify({
+            'success': True,
+            'message': 'State reset successfully'
+        })
         'message': 'State reset successfully'
     })
 
