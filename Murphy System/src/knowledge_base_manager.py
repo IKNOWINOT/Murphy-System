@@ -329,7 +329,7 @@ class KnowledgeBaseManager:
         with self._lock:
             log = list(self._search_log)
 
-        # Group by normalised query
+        # Group by normalized query
         query_groups: Dict[str, List[Dict]] = {}
         for entry in log:
             key = entry["query"].lower().strip()[:100]
