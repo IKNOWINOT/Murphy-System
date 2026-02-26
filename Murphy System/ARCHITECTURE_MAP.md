@@ -941,6 +941,17 @@ with a design ticket and team owner.
 | ADV-001      | CodeGenerationGateway        | EventBackbone        | publish(LEARNING_FEEDBACK) |
 | ADV-002      | DeploymentAutomationController | PersistenceManager | save_document (deployments)|
 | ADV-002      | DeploymentAutomationController | EventBackbone      | publish(LEARNING_FEEDBACK) |
+| MKT-001      | ContentPipelineEngine        | PersistenceManager   | save_document (content)    |
+| MKT-001      | ContentPipelineEngine        | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| MKT-002      | SEOOptimisationEngine        | PersistenceManager   | save_document (analyses)   |
+| MKT-002      | SEOOptimisationEngine        | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| MKT-003      | CampaignOrchestrator         | PersistenceManager   | save_document (campaigns)  |
+| MKT-003      | CampaignOrchestrator         | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| ADV-003      | SelfOptimisationEngine       | SelfImprovementEngine| inject ImprovementProposal |
+| ADV-003      | SelfOptimisationEngine       | PersistenceManager   | save_document (cycles)     |
+| ADV-003      | SelfOptimisationEngine       | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| ADV-004      | ResourceScalingController    | PersistenceManager   | save_document (decisions)  |
+| ADV-004      | ResourceScalingController    | EventBackbone        | publish(LEARNING_FEEDBACK) |
 
 ### Phase 3–4 Automation Wiring
 
@@ -990,6 +1001,55 @@ with a design ticket and team owner.
            Publishes LEARNING_FEEDBACK events.
    Safety: Deduplication for tracked violations.
            CRITICAL findings require manual approval.
+```
+
+### Phase 4 Marketing Automation Wiring
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│     MARKETING & CONTENT AUTOMATION LAYER                            │
+└─────────────────────────────────────────────────────────────────────┘
+
+ [MKT-001] ContentPipelineEngine
+   Owner: Marketing Team
+   File:  src/content_pipeline_engine.py
+   Purpose: Automated content lifecycle management.
+            - Create content briefs (topic, type, channels, keywords, tone)
+            - Draft → review → approve → schedule → publish lifecycle
+            - Multi-channel publish (blog, social, email, copy)
+            - Performance metric tracking per content piece
+   Wiring: Writes to PersistenceManager.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: All content requires review before publish.
+           Immutable: published content cannot be modified.
+           Bounded content store with eviction policy.
+
+ [MKT-002] SEOOptimisationEngine
+   Owner: Marketing Team
+   File:  src/seo_optimisation_engine.py
+   Purpose: SEO analysis and content scoring.
+            - Keyword extraction via frequency analysis
+            - Meta-tag generation (title, description, keyword tags)
+            - Content scoring (0–100) against SEO best practices
+            - Issue detection (title length, body length, keyword coverage)
+   Wiring: Writes to PersistenceManager.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: Non-destructive: analyses are append-only.
+           Bounded analysis store with eviction policy.
+
+ [MKT-003] CampaignOrchestrator
+   Owner: Marketing Team
+   File:  src/campaign_orchestrator.py
+   Purpose: End-to-end marketing campaign management.
+            - Create campaigns with budget, channels, date range
+            - Per-channel budget allocation and spend tracking
+            - Lifecycle: planned → active → paused → completed/cancelled
+            - ROI indicators (CPC, CPA) per channel
+   Wiring: Writes to PersistenceManager.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: Budget enforcement: spend cannot exceed allocation.
+           Immutable: completed campaigns cannot be modified.
+           Bounded campaign store with eviction policy.
 ```
 
 ### Phase 5–6 Automation Wiring
@@ -1065,17 +1125,57 @@ with a design ticket and team owner.
            Immutable deployment history and audit trail.
 ```
 
+### Phase 6 Continued — Self-Optimisation & Scaling Wiring
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│     ADVANCED SELF-OPTIMISATION & RESOURCE SCALING LAYER             │
+└─────────────────────────────────────────────────────────────────────┘
+
+ [ADV-003] SelfOptimisationEngine
+   Owner: AI Team
+   File:  src/self_optimisation_engine.py
+   Purpose: Performance bottleneck detection and auto-tuning proposals.
+            - Record performance samples (metric, value, component)
+            - Detect bottlenecks via p95 threshold analysis
+            - Severity classification: critical/high/medium/low
+            - Generate tuning proposals for SelfImprovementEngine
+            - Track optimisation cycle history
+   Wiring: Writes to PersistenceManager.
+           Injects ImprovementProposals into SelfImprovementEngine.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: Conservative: only flags metrics consistently above threshold.
+           Non-destructive: proposals are suggestions, require approval.
+           Bounded sample store with eviction policy.
+
+ [ADV-004] ResourceScalingController
+   Owner: DevOps Team
+   File:  src/resource_scaling_controller.py
+   Purpose: Capacity prediction, scaling decisions and cost tracking.
+            - Record resource utilisation snapshots (cpu, memory, disk)
+            - Analyse utilisation trends (moving average, growth rate)
+            - Predict future utilisation via linear projection
+            - Recommend scaling actions (scale_up, scale_down, no_action)
+            - Track scaling decisions with cost estimates
+   Wiring: Writes to PersistenceManager.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: Cost-aware: all scaling decisions include cost estimates.
+           Human-in-the-loop: scale-up above cost threshold requires approval.
+           Conservative: scale-up only when consistently above threshold.
+           Bounded snapshot and decision stores with eviction.
+```
+
 ---
 
 ## Next Steps
 
 This architecture map documents Phases 0–6 of the self-automation plan:
 
-1. **Phase 6 (continued):** Self-Optimization — Performance analysis, bottleneck detection, auto-tuning
-2. **Phase 6 (continued):** Self-Scaling — Resource monitoring, capacity prediction, cost optimization
-3. **Security Review:** Map attack surfaces and vulnerabilities across all modules
-4. **Performance Analysis:** Identify bottlenecks via SLO tracking and telemetry learning
-5. **Test Strategy:** Map testing boundaries across all modules
-6. **Integration Testing:** End-to-end flows across Phase 1-6 modules
+1. **Integration Testing:** End-to-end flows across all Phase 1–6 modules
+2. **Security Review:** Map attack surfaces and vulnerabilities across all modules
+3. **Performance Analysis:** Run ADV-003 SelfOptimisationEngine against live telemetry
+4. **Capacity Planning:** Run ADV-004 ResourceScalingController against production metrics
+5. **Marketing Activation:** Wire MKT-001/002/003 to external publish channels
+6. **Self-Healing Validation:** End-to-end failure recovery testing with OBS-004
 
 See `FILE_CLASSIFICATION.md` for complete file inventory and `SYSTEM_OVERVIEW.md` for system statistics.
