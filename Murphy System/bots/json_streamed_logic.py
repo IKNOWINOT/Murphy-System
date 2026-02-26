@@ -12,10 +12,10 @@ from pathlib import Path
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from modern_arcana.plugin_loader import load_plugin
-from modern_arcana.librarian_bot import LibrarianBot, Document
-from modern_arcana.json_bot import JSONBot
-from modern_arcana.rubixcube_bot import log_usage
+from .plugin_loader import load_plugin
+from .librarian_bot import LibrarianBot, Document
+from .json_bot import JSONBot
+from .rubixcube_bot import log_usage
 
 STREAMED_DIR = Path("plugins/streamed")
 STREAMED_DIR.mkdir(parents=True, exist_ok=True)

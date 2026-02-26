@@ -2,12 +2,19 @@ import os
 import json
 from typing import Optional
 from pathlib import Path
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
-import torch
+
+try:
+    from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+    import torch
+    _HAS_TRANSFORMERS = True
+except ImportError:
+    _HAS_TRANSFORMERS = False
 
 
 class GPTOSSRunner:
     def __init__(self, model_path: str, max_tokens: int = 1024, device: Optional[str] = None):
+        if not _HAS_TRANSFORMERS:
+            raise ImportError("GPTOSSRunner requires 'transformers' and 'torch' packages")
         self.model_path = model_path
         self.max_tokens = max_tokens
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")

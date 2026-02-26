@@ -10,7 +10,7 @@ from .jsonbot_schema import validate_json
 from .tool_dispatcher import dispatch
 from .memory_manager_bot import store_stm
 from .cache_manager import get_cache, set_cache
-from modern_arcana.gpt_oss_runner import GPTOSSRunner
+from .gpt_oss_runner import GPTOSSRunner
 
 import hashlib
 

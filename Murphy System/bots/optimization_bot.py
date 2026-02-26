@@ -6,7 +6,7 @@ from typing import Any, List, Tuple, Dict
 from datetime import datetime
 import json
 import numpy as np
-from modern_arcana.gpt_oss_runner import GPTOSSRunner  # ✅ GPT injected
+from .gpt_oss_runner import GPTOSSRunner  # ✅ GPT injected
 
 OPT_RESULTS_FILE = "logs/optimization_results.json"
 from .feedback_bot import filter_feedback, log_feedback

@@ -7,7 +7,7 @@ from uuid import uuid4
 from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional
-from modern_arcana.gpt_oss_runner import GPTOSSRunner  # ✅ Injected
+from .gpt_oss_runner import GPTOSSRunner  # ✅ Injected
 
 
 @dataclass

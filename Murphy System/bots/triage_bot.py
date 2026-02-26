@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 import json
 from typing import Callable, Any, Dict, List
-from modern_arcana.gpt_oss_runner import GPTOSSRunner
+from .gpt_oss_runner import GPTOSSRunner
 
 from .json_bot import JSONBot
 from .commissioning_bot import CommissioningBot

@@ -5,8 +5,8 @@ import json
 import requests
 import datetime
 from typing import Any, List, Dict
-from modern_arcana.gpt_oss_runner import GPTOSSRunner
-from modern_arcana.swisskiss_loader import load_github_module  # must be defined elsewhere
+from .gpt_oss_runner import GPTOSSRunner
+from .swisskiss_loader import load_github_module  # must be defined elsewhere
 
 
 class AnalysisBot:
