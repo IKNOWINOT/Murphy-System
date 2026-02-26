@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 from compute_plane.service import ComputeService
 from compute_plane.models.compute_request import ComputeRequest
 
-from flask_security import configure_secure_app
+from flask_security import configure_secure_app, is_debug_mode
 
 
 def create_app(compute_service: ComputeService = None) -> Flask:
@@ -186,4 +186,4 @@ def create_app(compute_service: ComputeService = None) -> Flask:
 if __name__ == '__main__':
     # Run standalone server
     app = create_app()
-    app.run(host='0.0.0.0', port=8054, debug=os.environ.get('MURPHY_ENV', 'development') == 'development')
+    app.run(host='0.0.0.0', port=8054, debug=is_debug_mode())

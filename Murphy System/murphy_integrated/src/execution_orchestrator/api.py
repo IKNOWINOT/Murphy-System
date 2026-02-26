@@ -47,6 +47,20 @@ _VALID_AUTHORITY_LEVELS = frozenset({
 
 # Pattern for safe identifiers (packet_id, interface_id)
 _SAFE_ID_PATTERN = re.compile(r'^[a-zA-Z0-9_\-.:]+$')
+_MAX_ID_LENGTH = 256
+
+
+def _validate_identifier(value: str, field_name: str):
+    """
+    Validate an identifier (packet_id, interface_id, etc.).
+
+    Returns None if valid, or a (response, status_code) tuple if invalid.
+    """
+    if not value or not _SAFE_ID_PATTERN.match(value):
+        return jsonify({'error': f'Invalid or missing {field_name}'}), 400
+    if len(value) > _MAX_ID_LENGTH:
+        return jsonify({'error': f'{field_name} too long'}), 400
+    return None
 
 
 app = Flask(__name__)
@@ -128,10 +142,9 @@ def execute_packet():
         }), 400
 
     packet_id = packet.get('packet_id', '')
-    if not packet_id or not _SAFE_ID_PATTERN.match(packet_id):
-        return jsonify({'error': 'Invalid or missing packet_id'}), 400
-    if len(packet_id) > 256:
-        return jsonify({'error': 'packet_id too long'}), 400
+    invalid = _validate_identifier(packet_id, 'packet_id')
+    if invalid:
+        return invalid
 
     expected_signature = packet.get('signature', '')
     
@@ -478,10 +491,9 @@ def register_interface():
         return jsonify({'error': 'Invalid request body'}), 400
 
     interface_id = data.get('interface_id', '')
-    if not interface_id or not _SAFE_ID_PATTERN.match(interface_id):
-        return jsonify({'error': 'Invalid or missing interface_id'}), 400
-    if len(interface_id) > 256:
-        return jsonify({'error': 'interface_id too long'}), 400
+    invalid = _validate_identifier(interface_id, 'interface_id')
+    if invalid:
+        return invalid
 
     health = InterfaceHealth(
         interface_id=interface_id,

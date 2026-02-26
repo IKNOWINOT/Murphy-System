@@ -27,6 +27,18 @@ from flask_cors import CORS
 logger = logging.getLogger(__name__)
 
 
+# ── Environment Utilities ────────────────────────────────────────────
+
+def is_debug_mode() -> bool:
+    """
+    Check if debug mode is enabled based on MURPHY_ENV.
+
+    Returns True only when MURPHY_ENV is 'development' (the default).
+    Production, staging, and other environments disable debug mode.
+    """
+    return os.environ.get('MURPHY_ENV', 'development') == 'development'
+
+
 # ── CORS Configuration ──────────────────────────────────────────────
 
 def get_cors_origins() -> List[str]:

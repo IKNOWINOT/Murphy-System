@@ -64,6 +64,10 @@ DEFAULT_VIEWPORT_LINES = 50
 MAX_VIEWPORT_LINES = 500
 MAX_CONTENT_RETURN_BYTES = 64 * 1024  # 64 KB per viewport response
 
+# Access log bounds: trim to TRIM size when MAX is reached
+MAX_ACCESS_LOG_ENTRIES = 10000
+TRIMMED_ACCESS_LOG_ENTRIES = 5000
+
 
 # ============================================================================
 # DATA MODELS
@@ -538,8 +542,8 @@ class ArtifactViewport:
         with self._lock:
             self._access_log.append(entry)
             # Keep bounded
-            if len(self._access_log) > 10000:
-                self._access_log = self._access_log[-5000:]
+            if len(self._access_log) > MAX_ACCESS_LOG_ENTRIES:
+                self._access_log = self._access_log[-TRIMMED_ACCESS_LOG_ENTRIES:]
 
     def get_access_log(
         self,
