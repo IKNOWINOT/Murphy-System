@@ -28,6 +28,7 @@ DOCUMENTS_DIR = "documents"
 GATE_HISTORY_DIR = "gate_history"
 LIBRARIAN_DIR = "librarian_context"
 AUDIT_DIR = "audit"
+ROSETTA_DIR = "rosetta"
 
 
 @dataclass
@@ -74,6 +75,7 @@ class PersistenceManager:
             GATE_HISTORY_DIR: threading.Lock(),
             LIBRARIAN_DIR: threading.Lock(),
             AUDIT_DIR: threading.Lock(),
+            ROSETTA_DIR: threading.Lock(),
         }
         self._init_directories()
         logger.info("PersistenceManager initialized at %s", self._base_dir)
@@ -82,7 +84,7 @@ class PersistenceManager:
 
     def _init_directories(self) -> None:
         """Create persistence subdirectories if they don't exist."""
-        for subdir in (DOCUMENTS_DIR, GATE_HISTORY_DIR, LIBRARIAN_DIR, AUDIT_DIR):
+        for subdir in (DOCUMENTS_DIR, GATE_HISTORY_DIR, LIBRARIAN_DIR, AUDIT_DIR, ROSETTA_DIR):
             path = self._base_dir / subdir
             path.mkdir(parents=True, exist_ok=True)
             logger.debug("Ensured directory: %s", path)
@@ -345,6 +347,35 @@ class PersistenceManager:
         # Sort chronologically for replay
         events.sort(key=lambda e: e.get("timestamp", 0))
         return events
+
+    # ==================== Rosetta State ====================
+
+    def save_rosetta_state(self, agent_id: str, state: Dict[str, Any]) -> str:
+        """Save rosetta agent state."""
+        filepath = self._base_dir / ROSETTA_DIR / f"{agent_id}.json"
+        with self._locks[ROSETTA_DIR]:
+            self._write_json(filepath, state)
+        logger.info("Saved rosetta state: %s", agent_id)
+        return agent_id
+
+    def load_rosetta_state(self, agent_id: str) -> Optional[Dict[str, Any]]:
+        """Load rosetta agent state."""
+        filepath = self._base_dir / ROSETTA_DIR / f"{agent_id}.json"
+        with self._locks[ROSETTA_DIR]:
+            if not filepath.exists():
+                logger.debug("Rosetta state not found: %s", agent_id)
+                return None
+            try:
+                return self._read_json(filepath)
+            except (json.JSONDecodeError, OSError) as e:
+                logger.error("Failed to load rosetta state %s: %s", agent_id, e)
+                return None
+
+    def list_rosetta_agents(self) -> List[str]:
+        """List all rosetta agent IDs."""
+        rosetta_dir = self._base_dir / ROSETTA_DIR
+        with self._locks[ROSETTA_DIR]:
+            return sorted(p.stem for p in rosetta_dir.glob("*.json"))
 
     # ==================== Status ====================
 
