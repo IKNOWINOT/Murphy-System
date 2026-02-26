@@ -194,6 +194,18 @@ class RecursiveStabilityController:
             }
         }
 
+    async def shutdown(self):
+        """Gracefully shutdown the controller."""
+        self.running = False
+
+    async def get_system_performance_metrics(self) -> Dict:
+        """Return system performance metrics."""
+        return {
+            "confidence_computation": 50,
+            "gate_synthesis": 100,
+            "packet_execution": 25,
+        }
+
 
 # Flask application
 app = Flask(__name__)

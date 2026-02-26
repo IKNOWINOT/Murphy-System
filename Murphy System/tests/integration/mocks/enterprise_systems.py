@@ -524,6 +524,95 @@ class SCADASystemMock:
             "workspace_bounds_enforced": True
         }
 
+    # --- async methods for Phase 3 e2e tests ---
+
+    async def get_safety_interlock_status(self, **kw) -> Dict[str, Any]:
+        return {
+            "emergency_stop": "ready",
+            "light_curtain": "active",
+            "pressure_mat": "active",
+            "safety_zone": "enforced",
+        }
+
+    async def execute_robot_command(self, command: Dict[str, Any] = None, **kw) -> Dict[str, Any]:
+        command = command or {}
+        target = command.get("target_position", {})
+        bounds = command.get("workspace_boundaries", self.workspace_bounds)
+        x_max = bounds.get("x_max", self.workspace_bounds["x_max"])
+        y_max = bounds.get("y_max", self.workspace_bounds["y_max"])
+        z_max = bounds.get("z_max", self.workspace_bounds["z_max"])
+        if target.get("x", 0) > x_max or target.get("y", 0) > y_max or target.get("z", 0) > z_max:
+            raise RuntimeError("Workspace boundary violation: target position outside allowed boundaries")
+        return {"status": "success", "position_reached": True, "within_boundaries": True}
+
+    async def trigger_emergency_stop(self, equipment: str = "", location: str = "", **kw) -> Dict[str, Any]:
+        self.emergency_stop_active = True
+        for robot in self.robots.values():
+            robot.status = "emergency_stopped"
+        return {"status": "stopped", "response_time_ms": 45}
+
+    async def setup_safety_zones(self, operation: Dict[str, Any] = None, **kw) -> Dict[str, Any]:
+        operation = operation or {}
+        zones = operation.get("safety_zones", [])
+        return {"status": "active", "zones_configured": len(zones)}
+
+    async def check_interlock_status(self, operation_id: str = "", **kw) -> Dict[str, Any]:
+        return {
+            "all_satisfied": True,
+            "light_curtain_active": True,
+            "pressure_mat_clear": True,
+            "emergency_stop_ready": True,
+            "access_gates_closed": True,
+        }
+
+    async def simulate_interlock_violation(self, operation_id: str = "", violation_type: str = "", violation_location: str = "", **kw) -> Dict[str, Any]:
+        return {"violation_detected": True, "violation_type": violation_type, "location": violation_location}
+
+    async def execute_safety_shutdown(self, operation_id: str = "", **kw) -> Dict[str, Any]:
+        self.emergency_stop_active = True
+        return {"status": "shutdown_complete", "operation_id": operation_id}
+
+    async def attempt_unsafe_operation(self, operation_id: str = "", **kw) -> Dict[str, Any]:
+        raise RuntimeError("Safety interlock violation: operation blocked by active safety interlocks")
+
+    async def reset_safety_interlocks(self, operation_id: str = "", **kw) -> Dict[str, Any]:
+        self.emergency_stop_active = False
+        for robot in self.robots.values():
+            robot.status = "idle"
+            robot.safety_interlocks_active = True
+        return {"status": "reset_complete", "all_interlocks_normal": True}
+
+    async def start_coordinated_operation(self, operation: Dict[str, Any] = None, **kw) -> Dict[str, Any]:
+        operation = operation or {}
+        equipment = operation.get("equipment", [])
+        return {"status": "running", "equipment_active": len(equipment), "operation_id": operation.get("operation_id", "")}
+
+    async def reset_equipment(self, equipment: str = "", **kw) -> Dict[str, Any]:
+        self.emergency_stop_active = False
+        for robot in self.robots.values():
+            robot.status = "idle"
+        return {"status": "reset", "equipment": equipment}
+
+    async def test_complete_shutdown(self, **kw) -> Dict[str, Any]:
+        return {"all_equipment_stopped": True, "shutdown_time": 0.15}
+
+    async def attempt_e_stop_override(self, **kw) -> Dict[str, Any]:
+        raise RuntimeError("E-stop override blocked: safety system prevents override of emergency stop")
+
+    async def execute_safe_restart(self, operation_id: str = "", **kw) -> Dict[str, Any]:
+        self.emergency_stop_active = False
+        return {"status": "ready_for_restart", "safety_checks_passed": True}
+
+    async def collect_equipment_health(self, equipment: list = None, **kw) -> Dict[str, Any]:
+        equipment = equipment or []
+        health = {}
+        for eq in equipment:
+            health[eq] = {"status": "healthy", "utilization": 0.82, "hours_since_maintenance": 120, "remaining_life": 0.75}
+        return {"status": "collected", "equipment_health": health}
+
+    async def analyze_maintenance_requirements(self, health_data: Dict[str, Any] = None, **kw) -> Dict[str, Any]:
+        return {"maintenance_scheduled": [], "immediate_attention": []}
+
 
 # ============================================================================
 # IT INFRASTRUCTURE MOCK
@@ -597,6 +686,142 @@ class ITInfrastructureMock:
     async def check_inventory(self, equipment_requirements: Dict[str, Any]) -> Dict[str, Any]:
         items = list(equipment_requirements.keys())
         return {"available": True, "available_items": len(items), "total_items": len(items), "items": items}
+
+    # --- async methods for Phase 3 e2e tests ---
+
+    async def simulate_cascade_failure(self, simulation: Dict[str, Any] = None, **kw) -> Dict[str, Any]:
+        return {"status": "initiated", "cascade_id": "CASCADE-" + str(uuid4())[:8]}
+
+    async def monitor_failure_detection(self, system: str = "", **kw) -> float:
+        return 2.5
+
+    async def generate_failover_plan(self, failed_systems: list = None, priority: str = "", **kw) -> Dict[str, Any]:
+        targets = [{"system": s, "target": f"{s}_backup"} for s in (failed_systems or [])]
+        return {"status": "ready", "failover_targets": targets}
+
+    async def check_critical_service_status(self, **kw) -> Dict[str, Any]:
+        return {
+            "database": {"status": "online", "response_time": 50},
+            "application_api": {"status": "online", "response_time": 100},
+            "monitoring": {"status": "online", "response_time": 30},
+            "safety_systems": {"status": "online", "response_time": 20},
+        }
+
+    async def verify_data_consistency(self, plan: Dict[str, Any] = None, **kw) -> Dict[str, Any]:
+        if plan and "databases" in plan:
+            db_results = {db: {"consistent": True, "checksum_valid": True, "transaction_integrity": True} for db in plan["databases"]}
+            fs_results = {fs: {"integrity_verified": True, "no_corruption": True, "permissions_valid": True} for fs in plan.get("file_systems", [])}
+            return {"status": "completed", "consistent": True, "missing_data": 0, "corrupted_data": 0, "databases": db_results, "file_systems": fs_results}
+        return {"consistent": True, "missing_data": 0, "corrupted_data": 0}
+
+    async def validate_data_consistency(self, plan: Dict[str, Any] = None, **kw) -> Dict[str, Any]:
+        return await self.verify_data_consistency(plan, **kw)
+
+    async def get_failover_performance_metrics(self, **kw) -> Dict[str, Any]:
+        return {"rto_actual": 30, "rto_target": 60, "data_loss": 15}
+
+    async def verify_audit_trail_completeness(self, **kw) -> Dict[str, Any]:
+        return {"no_gaps": True, "chronological_order": True, "signatures_valid": True}
+
+    async def generate_consistency_report(self, validation_result: Dict[str, Any] = None, incident_id: str = "", **kw) -> Dict[str, Any]:
+        return {
+            "report_id": "CR-" + str(uuid4())[:8],
+            "overall_status": "consistent",
+            "recommendations": ["Continue regular consistency checks"],
+        }
+
+    async def get_comprehensive_service_status(self, **kw) -> Dict[str, Any]:
+        services = [
+            "safety_systems", "emergency_communications", "core_database",
+            "production_control", "inventory_system", "quality_system",
+            "analytics", "reporting", "development_tools",
+        ]
+        return {s: {"status": "operational"} for s in services}
+
+    async def test_service_functionality(self, **kw) -> Dict[str, Any]:
+        return {"all_tests_passed": True, "critical_operations": "working"}
+
+    async def check_restoration_sla_compliance(self, **kw) -> Dict[str, Any]:
+        return {"compliant": True, "actual_time": 45.0, "target_time": 120.0}
+
+    async def run_performance_assessment(self, **kw) -> Dict[str, Any]:
+        return {
+            "status": "completed",
+            "key_performance_indicators": {
+                "response_time_avg": 200,
+                "throughput": 2000,
+                "error_rate": 0.005,
+                "cpu_utilization": 0.55,
+                "memory_utilization": 0.60,
+            },
+        }
+
+    async def run_load_test(self, concurrent_users: int = 100, duration: int = 300, **kw) -> Dict[str, Any]:
+        return {"passed": True, "avg_response_time": 350.0, "peak_throughput": 1500}
+
+    async def compare_to_baseline_performance(self, **kw) -> Dict[str, Any]:
+        return {"degradation": 0.05, "acceptable": True}
+
+    async def get_recovery_timeline(self, incident_id: str = "", **kw) -> Dict[str, Any]:
+        now = datetime.now().isoformat()
+        phases = [
+            "failure_detection", "impact_assessment", "failover_initiation",
+            "service_restoration", "performance_verification", "recovery_completion",
+        ]
+        return {phase: {"start_time": now, "end_time": now, "duration": 10.0} for phase in phases}
+
+    async def calculate_recovery_metrics(self, timeline: Dict[str, Any] = None, **kw) -> Dict[str, Any]:
+        return {"mttr": 600, "rto": 30, "rpo": 15, "time_to_detect": 120}
+
+    async def verify_sla_compliance(self, metrics: Dict[str, Any] = None, **kw) -> Dict[str, Any]:
+        return {"overall_compliant": True, "all_slas_met": True}
+
+    async def generate_recovery_performance_report(self, incident_id: str = "", metrics: Dict[str, Any] = None, timeline: Dict[str, Any] = None, **kw) -> Dict[str, Any]:
+        return {
+            "report_id": "RR-" + str(uuid4())[:8],
+            "sla_status": "compliant",
+            "performance_grade": "excellent",
+        }
+
+    async def collect_incident_data(self, incident_id: str = "", **kw) -> Dict[str, Any]:
+        return {
+            "status": "collected",
+            "data_sources": ["logs", "metrics", "alerts", "tickets", "communications"],
+            "recovery_timeline": {},
+        }
+
+    async def perform_root_cause_analysis(self, incident_data: Dict[str, Any] = None, **kw) -> Dict[str, Any]:
+        return {
+            "primary_cause": "Power grid instability",
+            "contributing_factors": ["Backup generator maintenance delay", "Network switch single point of failure"],
+            "recovery_metrics": {},
+        }
+
+    async def analyze_response_effectiveness(self, incident_data: Dict[str, Any] = None, recovery_metrics: Dict[str, Any] = None, **kw) -> Dict[str, Any]:
+        return {
+            "overall_effectiveness": 0.92,
+            "strengths": ["Fast detection", "Effective failover"],
+            "improvement_areas": ["Communication delays"],
+        }
+
+    async def generate_improvement_recommendations(self, root_cause_analysis: Dict[str, Any] = None, response_analysis: Dict[str, Any] = None, **kw) -> Dict[str, Any]:
+        return {
+            "recommendations": [
+                {"id": "REC-001", "description": "Add redundant power supply", "priority": "high"},
+            ],
+            "priority_matrix": {"high": 1, "medium": 0, "low": 0},
+        }
+
+    async def create_post_mortem_report(self, incident_id: str = "", analysis_data: Dict[str, Any] = None, **kw) -> Dict[str, Any]:
+        return {
+            "report_id": "PM-" + str(uuid4())[:8],
+            "executive_summary": "Cascading power failure with successful recovery",
+            "detailed_findings": {"root_cause": "Power grid instability"},
+            "action_items": [{"id": "AI-001", "description": "Upgrade backup power"}],
+        }
+
+    async def verify_lessons_learned_integration(self, report_id: str = "", **kw) -> Dict[str, Any]:
+        return {"integration_status": "completed", "updates_applied": 3}
 
 
 # ============================================================================
@@ -731,6 +956,25 @@ class QualityControlSystem:
             "quality_rate": passed / total if total else 1.0,
         }
 
+    async def setup_inspection(self, config: Dict[str, Any] = None, **kw) -> Dict[str, Any]:
+        inspection_id = "INSP-" + str(uuid4())[:8]
+        return {"status": "ready", "inspection_id": inspection_id}
+
+    async def process_inspection(self, inspection_id: str = "", data: list = None, **kw) -> Dict[str, Any]:
+        total = len(data) if data else 0
+        passed = total
+        return {"status": "completed", "total_inspected": total, "pass_rate": 0.95 if total else 1.0, "passed": passed}
+
+    async def analyze_quality_trends(self, inspection_id: str = "", lookback_periods: int = 5, **kw) -> Dict[str, Any]:
+        return {"trend_stable": True, "cpk": 1.67}
+
+    async def generate_quality_report(self, inspection_id: str = "", order_id: str = "", **kw) -> Dict[str, Any]:
+        return {
+            "report_id": "QR-" + str(uuid4())[:8],
+            "compliance_status": "compliant",
+            "statistical_analysis": {"cpk": 1.67, "mean": 100.001, "std_dev": 0.003},
+        }
+
 
 class ManufacturingExecutionSystem:
     """Mock MES for manufacturing workflow tests."""
@@ -745,3 +989,50 @@ class ManufacturingExecutionSystem:
 
     async def get_production_status(self, **kw):
         return {"total_operations": len(self._operations), "status": "running"}
+
+    async def submit_production_order(self, order: Dict[str, Any] = None, **kw) -> Dict[str, Any]:
+        order = order or {}
+        return {
+            "status": "validated",
+            "order_id": order.get("order_id", "PO-0001"),
+            "production_schedule": {"start": datetime.now().isoformat(), "estimated_completion": datetime.now().isoformat()},
+        }
+
+    async def check_resource_availability(self, equipment: list = None, line: str = "", **kw) -> Dict[str, Any]:
+        return {"available": True, "available_equipment": len(equipment or []), "line": line}
+
+    async def collect_production_metrics(self, order_id: str = "", time_range: str = "", **kw) -> Dict[str, Any]:
+        return {
+            "status": "collected",
+            "production_metrics": {
+                "units_produced": 850,
+                "units_target": 1000,
+                "scrap_rate": 0.02,
+                "downtime_minutes": 15,
+            },
+        }
+
+    async def calculate_oee(self, equipment: list = None, shift: str = "", **kw) -> Dict[str, Any]:
+        return {"availability": 0.92, "performance": 0.88, "quality": 0.97, "overall_oee": 0.79}
+
+    async def analyze_production_efficiency(self, order_id: str = "", **kw) -> Dict[str, Any]:
+        return {
+            "cycle_time_actual": 45,
+            "cycle_time_target": 50,
+            "utilization_rate": 0.85,
+            "bottlenecks_identified": 1,
+        }
+
+    async def generate_shift_report(self, shift_id: str = "", date: str = "", **kw) -> Dict[str, Any]:
+        return {
+            "report_id": "RPT-" + str(uuid4())[:8],
+            "shift_summary": {"total_produced": 850, "shift_id": shift_id},
+            "quality_summary": {"first_pass_yield": 0.95},
+            "safety_summary": {"incidents": 0},
+        }
+
+    async def verify_report_data_integrity(self, report_id: str = "", **kw) -> Dict[str, Any]:
+        return {"integrity_valid": True, "data_complete": True, "no_anomalies": True}
+
+    async def assess_maintenance_impact(self, maintenance_items: list = None, **kw) -> Dict[str, Any]:
+        return {"impact_acceptable": True, "production_disruption": 0.02}
