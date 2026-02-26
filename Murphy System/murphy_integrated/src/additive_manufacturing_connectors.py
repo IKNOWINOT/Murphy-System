@@ -49,7 +49,7 @@ class AMProtocol(Enum):
     GRPC = "grpc"                           # gRPC streaming APIs
     THREE_MF = "3mf"                        # 3MF build-file interchange
     AMF = "amf"                             # Additive Manufacturing File Format
-    CLI_SERIAL = "cli_serial"               # Serial / G-code CLI (Marlin, Klipper, etc.)
+    GCODE_SERIAL = "gcode_serial"              # Serial / G-code CLI (Marlin, Klipper, etc.)
 
 
 class AMSystemLayer(Enum):
