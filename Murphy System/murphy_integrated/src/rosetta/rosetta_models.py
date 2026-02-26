@@ -8,7 +8,7 @@ recalibration tracking, archival, improvement proposals, and workflow patterns.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -61,7 +61,7 @@ class SystemState(BaseModel):
     memory_usage_mb: float = 0.0
     cpu_usage_percent: float = 0.0
     active_tasks: int = 0
-    last_heartbeat: Optional[datetime] = Field(default_factory=datetime.utcnow)
+    last_heartbeat: Optional[datetime] = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class Goal(BaseModel):
@@ -74,8 +74,8 @@ class Goal(BaseModel):
     status: GoalStatus = GoalStatus.PENDING
     priority: int = Field(default=3, ge=1, le=5)
     progress_percent: float = Field(default=0.0, ge=0.0, le=100.0)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     dependencies: List[str] = Field(default_factory=list)
 
 
@@ -89,7 +89,7 @@ class Task(BaseModel):
     description: str = ""
     status: TaskStatus = TaskStatus.QUEUED
     assigned_to: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     completed_at: Optional[datetime] = None
     result: Optional[Dict[str, Any]] = None
 
@@ -107,7 +107,7 @@ class AutomationProgress(BaseModel):
     total_items: int = 0
     completed_items: int = 0
     coverage_percent: float = 0.0
-    last_updated: datetime = Field(default_factory=datetime.utcnow)
+    last_updated: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class Recalibration(BaseModel):
@@ -124,7 +124,7 @@ class Recalibration(BaseModel):
 class ArchiveEntry(BaseModel):
     """A single archived item."""
     entry_id: str
-    archived_at: datetime = Field(default_factory=datetime.utcnow)
+    archived_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     reason: str = ""
     category: str = "manual"
     data: Dict[str, Any] = Field(default_factory=dict)
@@ -144,7 +144,7 @@ class ImprovementProposal(BaseModel):
     priority: int = Field(default=3, ge=1, le=5)
     status: str = "proposed"
     estimated_effort_hours: float = 0.0
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     category: str = "general"
 
 
@@ -160,8 +160,8 @@ class WorkflowPattern(BaseModel):
 
 class Metadata(BaseModel):
     """Document metadata."""
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     version: str = "1.0.0"
     schema_version: str = "1.0"
 

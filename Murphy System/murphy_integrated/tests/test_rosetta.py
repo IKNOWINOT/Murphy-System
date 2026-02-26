@@ -7,7 +7,7 @@ global aggregator, thread safety, and integration with EventType / PromptStep.
 
 import json
 import threading
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -240,7 +240,7 @@ class TestArchiveClassifier:
 
     def test_classify_stale(self):
         ac = ArchiveClassifier()
-        old = (datetime.utcnow() - timedelta(days=60)).isoformat()
+        old = (datetime.now(timezone.utc) - timedelta(days=60)).isoformat()
         assert ac.classify({"status": "pending", "updated_at": old}) == "stale_data"
 
     def test_classify_manual_default(self):
@@ -257,12 +257,12 @@ class TestArchiveClassifier:
 
     def test_should_archive_stale(self):
         ac = ArchiveClassifier()
-        old = (datetime.utcnow() - timedelta(days=60)).isoformat()
+        old = (datetime.now(timezone.utc) - timedelta(days=60)).isoformat()
         assert ac.should_archive({"status": "pending", "updated_at": old}) is True
 
     def test_should_not_archive_recent(self):
         ac = ArchiveClassifier()
-        recent = datetime.utcnow().isoformat()
+        recent = datetime.now(timezone.utc).isoformat()
         assert ac.should_archive({"status": "pending", "updated_at": recent}) is False
 
     def test_archive_item(self):

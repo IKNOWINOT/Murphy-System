@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from threading import Lock
 from typing import Any, Dict, List, Optional
 
@@ -108,8 +108,8 @@ class RecalibrationScheduler:
 
         # Update recalibration record
         state.recalibration.status = RecalibrationStatus.COMPLETED
-        state.recalibration.last_run = datetime.utcnow()
-        state.recalibration.next_scheduled = datetime.utcnow() + timedelta(
+        state.recalibration.last_run = datetime.now(timezone.utc)
+        state.recalibration.next_scheduled = datetime.now(timezone.utc) + timedelta(
             seconds=self._interval
         )
         state.recalibration.cycle_count += 1
