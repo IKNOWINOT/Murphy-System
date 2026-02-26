@@ -63,6 +63,7 @@ DEFAULT_PHASE_MODULES: Dict[str, List[str]] = {
     "business":      ["BIZ-001", "BIZ-002", "BIZ-003", "BIZ-004", "BIZ-005"],
     "advanced":      ["ADV-001", "ADV-002", "ADV-003", "ADV-004"],
     "integration":   ["INT-001"],
+    "operations":    ["OPS-001", "OPS-002", "OPS-003", "OPS-004"],
 }
 
 
