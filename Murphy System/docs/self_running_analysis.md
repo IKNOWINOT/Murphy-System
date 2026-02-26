@@ -645,6 +645,14 @@ New event types for automation:
 
 ---
 
+## Related Documents
+
+- [Launch Automation Plan](LAUNCH_AUTOMATION_PLAN.md) — Strategy for using Murphy to automate its own launch
+- [Operations, Testing & Iteration Plan](OPERATIONS_TESTING_PLAN.md) — Iterative test-fix-document cycle
+- [QA Audit Report](QA_AUDIT_REPORT.md) — Pre-launch security audit findings
+
+---
+
 **Document Version:** 2.0 (Toggleable Automation)  
-**Last Updated:** 2025-02-26  
+**Last Updated:** 2026-02-26  
 **Author:** SuperNinja AI Agent

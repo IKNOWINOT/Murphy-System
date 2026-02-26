@@ -135,5 +135,13 @@ POST /abort/<id> → checks caller == execution_owners[packet_id]
 
 ---
 
+## Related Documents
+
+- [Launch Automation Plan](LAUNCH_AUTOMATION_PLAN.md) — Strategy for using Murphy to automate its own launch
+- [Operations, Testing & Iteration Plan](OPERATIONS_TESTING_PLAN.md) — Iterative test-fix-document cycle
+- [Self-Running Analysis](self_running_analysis.md) — Toggleable full automation feasibility study
+
+---
+
 **Copyright © 2020 Inoni Limited Liability Company**
 **Creator:** Corey Post

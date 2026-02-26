@@ -443,6 +443,12 @@ When reporting issues, please include:
 ### Testing
 - [Test Coverage](testing/TEST_COVERAGE.md)
 
+### Launch & Operations
+- [Launch Automation Plan](../docs/LAUNCH_AUTOMATION_PLAN.md)
+- [Operations, Testing & Iteration Plan](../docs/OPERATIONS_TESTING_PLAN.md)
+- [QA Audit Report](../docs/QA_AUDIT_REPORT.md)
+- [Self-Running Analysis](../docs/self_running_analysis.md)
+
 ### API
 - [API Overview](api/API_OVERVIEW.md)
 - [Endpoints](api/ENDPOINTS.md)
