@@ -27,7 +27,7 @@ Murphy is a **complete, operational AI automation system** that can automate any
 
 ```bash
 # 1. Navigate to Murphy
-cd "Murphy System/murphy_integrated"
+cd "Murphy System"
 
 # 2. Run setup script
 ./setup_murphy.sh  # Linux/Mac
@@ -50,9 +50,9 @@ start_murphy_1.0.bat   # Windows
 
 **📚 Setup Documentation:**
 - **Complete Guide:** [GETTING_STARTED.md](GETTING_STARTED.md) - Comprehensive instructions
-- **Quick Start:** [Murphy System/murphy_integrated/MURPHY_1.0_QUICK_START.md](Murphy%20System/murphy_integrated/MURPHY_1.0_QUICK_START.md)
-- **API Reference:** [Murphy System/murphy_integrated/API_DOCUMENTATION.md](Murphy%20System/murphy_integrated/API_DOCUMENTATION.md)
-- **Deployment Guide:** [Murphy System/murphy_integrated/DEPLOYMENT_GUIDE.md](Murphy%20System/murphy_integrated/DEPLOYMENT_GUIDE.md)
+- **Quick Start:** [Murphy System/MURPHY_1.0_QUICK_START.md](Murphy%20System/Murphy System/MURPHY_1.0_QUICK_START.md)
+- **API Reference:** [Murphy System/API_DOCUMENTATION.md](Murphy%20System/Murphy System/API_DOCUMENTATION.md)
+- **Deployment Guide:** [Murphy System/DEPLOYMENT_GUIDE.md](Murphy%20System/Murphy System/DEPLOYMENT_GUIDE.md)
 
 ---
 
@@ -83,20 +83,21 @@ Murphy-System/
 ├── .gitignore
 ├── requirements.txt
 ├── docs/screenshots/                   ← 41 verification screenshots
-└── Murphy System/
-    ├── LICENSE
-    ├── README.md
-    ├── archive/                        ← All legacy files preserved
-    └── murphy_integrated/              ← ACTIVE SYSTEM
-        ├── murphy_system_1.0_runtime.py   ← Single production runtime
-        ├── src/                        ← 120+ production modules
-        ├── tests/                      ← 150+ test files (270 integration tests)
-        ├── bots/                       ← Bot catalog
-        ├── documentation/              ← Structured docs
-        ├── *.html                      ← 6 neon terminal UIs
-        ├── FULL_SYSTEM_ASSESSMENT.md   ← Living assessment
-        ├── README.md, API_DOCUMENTATION.md, DEPLOYMENT_GUIDE.md
-        └── archive/                    ← Archived murphy_integrated files
+└── Murphy System/                      ← ACTIVE SYSTEM
+    ├── murphy_system_1.0_runtime.py    ← Single production runtime
+    ├── src/                            ← 420+ production modules
+    ├── tests/                          ← 210+ test files (4100+ tests)
+    ├── bots/                           ← 94 production bots
+    ├── documentation/                  ← Structured API/user docs
+    ├── docs/                           ← Technical docs
+    ├── k8s/                            ← Kubernetes manifests
+    ├── monitoring/                     ← Prometheus config
+    ├── scripts/                        ← Operational scripts
+    ├── *.html                          ← 7 neon terminal UIs
+    ├── USER_MANUAL.md                  ← Comprehensive user manual
+    ├── README.md, API_DOCUMENTATION.md, DEPLOYMENT_GUIDE.md
+    ├── Dockerfile, docker-compose.yml  ← Container deployment
+    └── archive/                        ← Archived legacy files
 ```
 
 ---
@@ -104,7 +105,7 @@ Murphy-System/
 ## ✅ Runtime 1.0 Status (Current Runnable System)
 
 - **Only runtime prepared:** `murphy_system_1.0_runtime.py` is the single runnable runtime today. References to v2/v3 are planning docs only.
-- **How to run:** `cd "Murphy System/murphy_integrated" && ./start_murphy_1.0.sh`
+- **How to run:** `cd "Murphy System" && ./start_murphy_1.0.sh`
 - **What you can test:** `/api/health`, `/api/status`, `/api/info`, `/api/execute`, and automation endpoints under `/api/automation/...`
 - **Deterministic validation:** `/api/execute` routes deterministic payloads to cached compute plane checks (thread-safe shared service instance). Supported deterministic inputs now include `compute_request`, `deterministic_request`, `deterministic_required + compute_expression`, `confidence_required + confidence_expression`, confidence-engine task types, and math task types (`math`/`calculation`/`numeric`/`symbolic`); compute-plane responses now embed `execution_wiring` + `wiring_enforced` metadata for deterministic execution visibility, and invalid session IDs trigger a new session warning before validation.
 - **Compute-validation session hardening:** `_resolve_compute_session` now accepts `create_session()` payload IDs from either `session_id` or `id`, auto-registers valid IDs before document binding, and safely degrades invalid/exceptional payloads to `session_id=None`.
@@ -128,7 +129,7 @@ Murphy-System/
 - **Observability snapshot test:** `tests/test_observability_snapshot.py` validates telemetry snapshot reporting.
 - **Registry health + schema drift snapshots:** activation previews and `/api/status` now include registry health status plus schema drift indicators for missing persistence, observability, or delivery adapter configuration.
 - **Registry health snapshot test:** `tests/test_registry_health_snapshot.py` validates registry health + drift snapshot outputs.
-- **Module registry standardization:** auto-registers `murphy_integrated/src` modules and local packages into the module catalog with health + schema drift snapshots.
+- **Module registry standardization:** auto-registers `Murphy System/src` modules and local packages into the module catalog with health + schema drift snapshots.
 - **Adapter execution snapshot:** activation previews and `/api/status` include adapter framework readiness for telemetry, module compiler, librarian, and security adapters.
 - **Delivery adapter readiness:** activation previews include document/email/chat/voice/translation adapter readiness; summary counts reflect adapter statuses (configured, available, unconfigured).
 - **Connector orchestration snapshot:** activation previews and `/api/status` include connector orchestration summaries to track multi-channel delivery readiness and configuration gaps.
@@ -164,8 +165,8 @@ Murphy-System/
 - **Swarm execution tests:** `tests/test_swarm_execution_path.py` validates swarm execution preview summaries for initialized and missing swarm systems.
 - **Adapter execution snapshot tests:** `tests/test_adapter_execution_snapshot.py` validates adapter readiness and configuration status.
 - **Two-phase session handling:** uses a dedicated session ID separate from the automation ID; `session_id_source` indicates when the automation_id fallback is used if session creation fails.
-- **Architect UI:** serve `Murphy System/murphy_integrated/terminal_architect.html` (or `murphy_production_ui.html`, which redirects unless `?legacy=true`) with `python -m http.server 8090` and open `http://localhost:8090/murphy_integrated/terminal_architect.html?apiPort=6666`
-- **Details:** see [Runtime 1.0 Status](<Murphy System/murphy_integrated/RUNTIME_1.0_STATUS.md>)
+- **Architect UI:** serve `Murphy System/terminal_architect.html` (or `murphy_production_ui.html`, which redirects unless `?legacy=true`) with `python -m http.server 8090` and open `http://localhost:8090/Murphy System/terminal_architect.html?apiPort=6666`
+- **Details:** see [Runtime 1.0 Status](<Murphy System/RUNTIME_1.0_STATUS.md>)
 - **Competitive alignment:** activation previews and `/api/status` now include `competitive_feature_alignment`, `competitive_feature_alignment_summary`, `integration_capabilities_summary`, and `module_registry_summary`; `/api/info` includes alignment, integration, and module registry summaries for lightweight capability reporting.
 - **Alignment diagnostics:** competitive feature alignment reports connector readiness and flags configuration errors with guidance for missing capability lists, now covering adaptive routing, multi-channel delivery, RBAC/tenant governance, persistent memory (currently missing), policy-as-code, observability/AIOps, AI model lifecycle orchestration, low-code/no-code intake governance, self-healing, knowledge/RAG, and connector marketplace readiness (see the updated competitive baseline in `FULL_SYSTEM_ASSESSMENT.md`).
 - **Competitive alignment preview test:** `tests/test_competitive_alignment_preview.py` validates activation preview parity for competitive, integration, and module registry summaries (including registry availability/completeness and total count consistency checks).
@@ -338,19 +339,19 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 
 | Domain | Location | Purpose | Entry Points |
 | --- | --- | --- | --- |
-| **Runtime API** | `Murphy System/murphy_integrated/murphy_system_1.0_runtime.py` | Runtime 1.0 API server | `Murphy System/murphy_integrated/start_murphy_1.0.sh`, `GET /api/status` |
-| **Role-based UIs** | `Murphy System/murphy_integrated/terminal_architect.html` | Architect planning + gate review UI | `python -m http.server 8090`, `?apiPort=6666` |
-| **Operations UI** | `Murphy System/murphy_integrated/terminal_integrated.html` | Operations execution UI | `python -m http.server 8090`, `?apiPort=6666` |
-| **Worker UI** | `Murphy System/murphy_integrated/terminal_worker.html` | Delivery worker UI | `python -m http.server 8090`, `?apiPort=6666` |
-| **Legacy UI Redirect** | `Murphy System/murphy_integrated/murphy_production_ui.html` | Redirects to architect UI; legacy toggle | `murphy_production_ui.html?legacy=true` |
-| **Legacy UI Assets** | `Murphy System/murphy_integrated/murphy_ui_integrated.html` | Legacy UI assets (scheduled for archive) | Open directly for reference |
-| **Activation Audit** | `Murphy System/murphy_integrated/ACTIVATION_AUDIT.md` | Inactive subsystem inventory + verification | Review before wiring |
-| **Flow Analysis** | `Murphy System/murphy_integrated/SYSTEM_FLOW_ANALYSIS.md` | User-scripted flow + gate checklist | Use for screenshot testing |
-| **Capability Gaps** | `Murphy System/murphy_integrated/CAPABILITY_GAP_SOLUTIONS.md` | Gaps + closure recommendations | Track upgrades |
-| **Full Assessment Plan** | `Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md` | Recalibrated forward execution plan | Update active plan checkpoints here |
-| **Assessment Solutions Log** | `Murphy System/murphy_integrated/full_system_assessment_solutions.md` | Confirmed completion evidence + iteration history | Append confirmed outcomes here |
+| **Runtime API** | `Murphy System/murphy_system_1.0_runtime.py` | Runtime 1.0 API server | `Murphy System/start_murphy_1.0.sh`, `GET /api/status` |
+| **Role-based UIs** | `Murphy System/terminal_architect.html` | Architect planning + gate review UI | `python -m http.server 8090`, `?apiPort=6666` |
+| **Operations UI** | `Murphy System/terminal_integrated.html` | Operations execution UI | `python -m http.server 8090`, `?apiPort=6666` |
+| **Worker UI** | `Murphy System/terminal_worker.html` | Delivery worker UI | `python -m http.server 8090`, `?apiPort=6666` |
+| **Legacy UI Redirect** | `Murphy System/murphy_production_ui.html` | Redirects to architect UI; legacy toggle | `murphy_production_ui.html?legacy=true` |
+| **Legacy UI Assets** | `Murphy System/murphy_ui_integrated.html` | Legacy UI assets (scheduled for archive) | Open directly for reference |
+| **Activation Audit** | `Murphy System/ACTIVATION_AUDIT.md` | Inactive subsystem inventory + verification | Review before wiring |
+| **Flow Analysis** | `Murphy System/SYSTEM_FLOW_ANALYSIS.md` | User-scripted flow + gate checklist | Use for screenshot testing |
+| **Capability Gaps** | `Murphy System/CAPABILITY_GAP_SOLUTIONS.md` | Gaps + closure recommendations | Track upgrades |
+| **Full Assessment Plan** | `Murphy System/FULL_SYSTEM_ASSESSMENT.md` | Recalibrated forward execution plan | Update active plan checkpoints here |
+| **Assessment Solutions Log** | `Murphy System/full_system_assessment_solutions.md` | Confirmed completion evidence + iteration history | Append confirmed outcomes here |
 | **Screenshot Assets** | `docs/screenshots/` | UI verification images for capability grading | Referenced in `VISUAL_SETUP_GUIDE_WITH_SCREENSHOTS.md` |
-| **Tests** | `Murphy System/murphy_integrated/tests/` | Dynamic chain, gate, and capability tests | `python -m pytest` |
+| **Tests** | `Murphy System/tests/` | Dynamic chain, gate, and capability tests | `python -m pytest` |
 | **Legacy Archives** | `Murphy System/archive/legacy_versions/` | Historical runtimes + deployments | Read-only reference |
 
 ### Subsystem Lookup
@@ -412,9 +413,9 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **Security Hardening Config** | `src/security_hardening_config.py` | Input sanitization (XSS/SQLi/path traversal), CORS lockdown, token-bucket rate limiting, CSP headers, API key rotation, audit logging, session security (MFA, concurrent limits) |
 
 **Progress tracking:** update the forward plan in
-`Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md` and append confirmed completion evidence in
-`Murphy System/murphy_integrated/full_system_assessment_solutions.md`.
-Track unresolved architecture/governance decisions in `Murphy System/murphy_integrated/RFI.MD` (decision ledger: OPEN/ANSWERED/IMPLEMENTED).  
+`Murphy System/FULL_SYSTEM_ASSESSMENT.md` and append confirmed completion evidence in
+`Murphy System/full_system_assessment_solutions.md`.
+Track unresolved architecture/governance decisions in `Murphy System/RFI.MD` (decision ledger: OPEN/ANSWERED/IMPLEMENTED).  
 Current state: `RFI-001`..`RFI-015` all resolved. No open RFI items remain.
 
 ---
@@ -540,7 +541,7 @@ Murphy **runs Inoni LLC autonomously** via configurable automation templates:
 
 ## 📦 What's Included
 
-### Complete System (~1,500 files in murphy_integrated)
+### Complete System (~1,500 files in Murphy System)
 
 | Component | Description | Files |
 | --- | --- | --- |
@@ -612,6 +613,30 @@ POST /api/integrations/add
 
 ## 🛡️ Safety & Governance
 
+### Security Hardening (Active)
+
+-   ✅ Centralized auth on all API servers (`flask_security.py`, `fastapi_security.py`)
+-   ✅ API key authentication on all routes (health endpoints exempt)
+-   ✅ CORS origin allowlist (no wildcards) — `MURPHY_CORS_ORIGINS` env var
+-   ✅ Rate limiting per client IP (token-bucket, 60 req/min default)
+-   ✅ Security response headers (HSTS, CSP, X-Frame-Options, etc.)
+-   ✅ Input sanitization (XSS, SQL injection, path traversal detection)
+-   ✅ Tenant isolation in confidence engine (thread-safe per-tenant graphs)
+-   ✅ IDOR protection on execution orchestrator (ownership checks on pause/resume/abort)
+-   ✅ Input validation on execution orchestrator (authority level allowlist, safe ID patterns)
+-   ✅ Environment-based debug mode (`MURPHY_ENV`, no hardcoded `debug=True`)
+
+### Artifact Viewport (Content Inspection)
+
+-   ✅ Range-based content inspection for artifacts, intake files, and deliverables
+-   ✅ Content manifest with section index, line count, byte size, SHA-256 checksum
+-   ✅ Head/tail/range/section projection modes (analogous to `view_range`)
+-   ✅ Structured content key-path navigation with depth truncation
+-   ✅ Content search with configurable context lines
+-   ✅ Tenant-isolated access logging and audit trail
+-   ✅ REST API: `/viewport/manifest`, `/viewport/project`, `/viewport/search`
+-   ✅ Content resolver bridging MAS planes, Persistence Manager, and System Librarian
+
 ### Human-in-the-Loop (HITL)
 
 -   ✅ Every integration requires approval
@@ -667,8 +692,8 @@ Deployment manifests live under `Murphy System/archive/legacy_versions/.../deplo
 | Document | Description |
 | --- | --- |
 | [Quick Start](MURPHY_1.0_QUICK_START.md) | Get started in 5 minutes |
-| [Specification](<Murphy System/murphy_integrated/MURPHY_SYSTEM_1.0_SPECIFICATION.md>) | Complete system spec |
-| [Integration Engine](<Murphy System/murphy_integrated/INTEGRATION_ENGINE_COMPLETE.md>) | Integration docs |
+| [Specification](<Murphy System/MURPHY_SYSTEM_1.0_SPECIFICATION.md>) | Complete system spec |
+| [Integration Engine](<Murphy System/INTEGRATION_ENGINE_COMPLETE.md>) | Integration docs |
 | [API Docs](http://localhost:6666/docs) | Interactive API docs |
 
 ---
@@ -690,7 +715,7 @@ k6 run tests/performance/load-test.js
 
 ## 🤝 Contributing
 
-We welcome contributions! See the [documentation index](<Murphy System/murphy_integrated/documentation/README.md>) for guidelines.
+We welcome contributions! See the [documentation index](<Murphy System/documentation/README.md>) for guidelines.
 
 ---
 
@@ -733,6 +758,9 @@ See [LICENSE](LICENSE) for details.
 
 ## 🗺️ Roadmap (TBD)
 
+-   ✅ Security hardening — centralized auth, CORS, rate limiting, input validation
+-   ✅ Artifact Viewport — range-based content inspection system
+-   ✅ Tenant isolation — per-tenant memory planes, thread-safe graph managers
 -   Multi-language support (JavaScript, Java, Go)
 -   Enhanced shadow agent improvements
 -   Integration marketplace
@@ -768,7 +796,7 @@ See [LICENSE](LICENSE) for details.
 
 ---
 
-## 📊 Stats (murphy_integrated, as of 2026-02-09)
+## 📊 Stats (Murphy System, as of 2026-02-09)
 
 -   **Total Files:** ~1,500 files
 -   **Python Files:** 554 files
@@ -785,7 +813,7 @@ See [LICENSE](LICENSE) for details.
 git clone https://github.com/inoni-llc/murphy.git
 
 # 2. Start
-cd murphy/murphy_integrated
+cd murphy/Murphy System
 ./start_murphy_1.0.sh
 
 # 3. Use
