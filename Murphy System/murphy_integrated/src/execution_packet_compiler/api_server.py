@@ -3,50 +3,22 @@ Execution Packet Compiler API Server
 REST API for compiling sealed execution packets
 """
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, g
 from flask_cors import CORS
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 import logging
 from datetime import datetime
 
-from .models import (
-    ExecutionPacket,
-    ExecutionScope,
-    ExecutionGraph,
-    ExecutionStep,
-    StepType,
-    InterfaceMap,
-    InterfaceBinding,
-    InterfaceType,
-    RollbackPlan,
-    RollbackStep,
-    TelemetryPlan,
-    TelemetryConfig,
-    PacketState
-)
+from src.security_plane.middleware import AuthenticationMiddleware, SecurityMiddlewareConfig, SecurityContext
+from src.config import settings
 
-from .scope_freezer import ScopeFreezer
-from .dependency_resolver import DependencyResolver
-from .determinism_enforcer import DeterminismEnforcer
-from .risk_bounder import RiskBounder
-from .packet_sealer import PacketSealer
-from .post_compilation_enforcer import PostCompilationEnforcer
-
-# Import from confidence engine
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-
-from confidence_engine.models import (
-    ArtifactGraph,
-    ArtifactNode,
-    ArtifactType,
-    ArtifactSource
-)
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)
+
+# Configure CORS with specific origins from config
+cors_origins = settings.cors_origins.split(",") if settings.cors_origins != "*" else "*"
+CORS(app, origins=cors_origins)
 
 # Configure logging
 logging.basicConfig(
@@ -54,6 +26,56 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Initialize security middleware
+security_config = SecurityMiddlewareConfig(
+    require_authentication=True,
+    allow_human_auth=True,
+    allow_machine_auth=True,
+    enable_audit_logging=True
+)
+auth_middleware = AuthenticationMiddleware(security_config)
+
+# Helper function to extract tenant_id from request
+def get_tenant_id_from_request() -> str:
+    &quot;&quot;&quot;Extract tenant_id from authenticated request context&quot;&quot;&quot;
+    return request.headers.get('X-Tenant-ID', 'default')
+
+# Authentication before_request hook
+@app.before_request
+def authenticate_request():
+    &quot;&quot;&quot;Authenticate all incoming requests&quot;&quot;&quot;
+    # Skip authentication for health checks
+    if request.path == '/health':
+        return None
+    
+    # Create security context
+    context = SecurityContext()
+    
+    # Prepare request data for authentication
+    request_data = {
+        'auth_type': request.headers.get('X-Auth-Type'),
+        'credentials': {
+            'user_id': request.headers.get('X-User-ID'),
+            'machine_id': request.headers.get('X-Machine-ID'),
+            'token': request.headers.get('Authorization', '').replace('Bearer ', '')
+        }
+    }
+    
+    # Authenticate request
+    if not auth_middleware.authenticate_request(request_data, context):
+        logger.warning(f'Authentication failed for {request.path}')
+        return jsonify({
+            'error': 'Authentication required',
+            'message': 'Please provide valid authentication credentials'
+        }), 401
+    
+    # Store authenticated context in Flask g object
+    g.authenticated = context.authenticated
+    g.identity = context.identity
+    g.tenant_id = get_tenant_id_from_request()
+    
+    return None
 
 # Initialize components
 scope_freezer = ScopeFreezer()

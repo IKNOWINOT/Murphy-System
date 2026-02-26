@@ -6,19 +6,67 @@ REST API service for model inference.
 Provides auxiliary confidence signals to existing Confidence Engine.
 """
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, g
 from flask_cors import CORS
-import torch
-import numpy as np
-from typing import Dict, Any, Optional
-from datetime import datetime
-import logging
-
-from .models import NeuroSymbolicConfidenceModel, load_model, ModelConfig
+from src.security_plane.middleware import AuthenticationMiddleware, SecurityMiddlewareConfig, SecurityContext
+from src.config import settings
 
 
+# Initialize Flask app
 app = Flask(__name__)
-CORS(app)
+
+# Configure CORS with specific origins from config
+cors_origins = settings.cors_origins.split(",") if settings.cors_origins != "*" else "*"
+CORS(app, origins=cors_origins)
+
+# Initialize security middleware
+security_config = SecurityMiddlewareConfig(
+    require_authentication=True,
+    allow_human_auth=True,
+    allow_machine_auth=True,
+    enable_audit_logging=True
+)
+auth_middleware = AuthenticationMiddleware(security_config)
+
+# Helper function to extract tenant_id from request
+def get_tenant_id_from_request() -> str:
+    &quot;&quot;&quot;Extract tenant_id from authenticated request context&quot;&quot;&quot;
+    return request.headers.get('X-Tenant-ID', 'default')
+
+# Authentication before_request hook
+@app.before_request
+def authenticate_request():
+    &quot;&quot;&quot;Authenticate all incoming requests&quot;&quot;&quot;
+    # Skip authentication for health checks
+    if request.path == '/health':
+        return None
+    
+    # Create security context
+    context = SecurityContext()
+    
+    # Prepare request data for authentication
+    request_data = {
+        'auth_type': request.headers.get('X-Auth-Type'),
+        'credentials': {
+            'user_id': request.headers.get('X-User-ID'),
+            'machine_id': request.headers.get('X-Machine-ID'),
+            'token': request.headers.get('Authorization', '').replace('Bearer ', '')
+        }
+    }
+    
+    # Authenticate request
+    if not auth_middleware.authenticate_request(request_data, context):
+        return jsonify({
+            'error': 'Authentication required',
+            'message': 'Please provide valid authentication credentials'
+        }), 401
+    
+    # Store authenticated context in Flask g object
+    g.authenticated = context.authenticated
+    g.identity = context.identity
+    g.tenant_id = get_tenant_id_from_request()
+    
+    return None
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
