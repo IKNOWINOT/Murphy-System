@@ -931,6 +931,16 @@ with a design ticket and team owner.
 | CMP-001      | ComplianceAutomationBridge   | SelfImprovementEngine| inject ImprovementProposal |
 | CMP-001      | ComplianceAutomationBridge   | EventBackbone        | subscribe(DELIVERY_COMPLETED) |
 | CMP-001      | ComplianceAutomationBridge   | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| BIZ-001      | FinancialReportingEngine     | PersistenceManager   | save_document (reports)    |
+| BIZ-001      | FinancialReportingEngine     | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| BIZ-002      | InvoiceProcessingPipeline    | PersistenceManager   | save_document (invoices)   |
+| BIZ-002      | InvoiceProcessingPipeline    | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| BIZ-003      | OnboardingAutomationEngine   | PersistenceManager   | save_document (profiles)   |
+| BIZ-003      | OnboardingAutomationEngine   | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| ADV-001      | CodeGenerationGateway        | PersistenceManager   | save_document (artifacts)  |
+| ADV-001      | CodeGenerationGateway        | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| ADV-002      | DeploymentAutomationController | PersistenceManager | save_document (deployments)|
+| ADV-002      | DeploymentAutomationController | EventBackbone      | publish(LEARNING_FEEDBACK) |
 
 ### Phase 3–4 Automation Wiring
 
@@ -982,16 +992,90 @@ with a design ticket and team owner.
            CRITICAL findings require manual approval.
 ```
 
+### Phase 5–6 Automation Wiring
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│     BUSINESS OPERATIONS & ADVANCED SELF-AUTOMATION LAYER            │
+└─────────────────────────────────────────────────────────────────────┘
+
+ [BIZ-001] FinancialReportingEngine
+   Owner: Finance Team
+   File:  src/financial_reporting_engine.py
+   Purpose: Automated financial data collection and report generation.
+            - Record financial entries (revenue, expense, refund, investment)
+            - Generate summary reports with period labels
+            - Compute trend indicators (profit margin, revenue/expense ratio)
+            - Persist reports via PersistenceManager
+   Wiring: Writes to PersistenceManager.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: Immutable entries (append-only). Bounded history with eviction.
+
+ [BIZ-002] InvoiceProcessingPipeline
+   Owner: Finance Team
+   File:  src/invoice_processing_pipeline.py
+   Purpose: Automated invoice extraction, validation, and approval routing.
+            - Submit invoices with vendor, amount, line items
+            - Validate: required fields, amount consistency, line item match
+            - Auto-approve below configurable threshold; escalate above
+            - Full lifecycle: submitted → validated → approved → paid
+   Wiring: Writes to PersistenceManager.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: Amount threshold for auto-approval. Immutable audit trail.
+           Human-in-the-loop for high-value invoices.
+
+ [BIZ-003] OnboardingAutomationEngine
+   Owner: HR Team
+   File:  src/onboarding_automation_engine.py
+   Purpose: Automated HR onboarding workflow management.
+            - Create onboarding profiles with role-based task checklists
+            - Track task completion with timestamps and progress percentage
+            - Support for engineering, support, and default templates
+            - Publish milestone events for downstream automation
+   Wiring: Writes to PersistenceManager.
+           Publishes LEARNING_FEEDBACK events on task completion.
+   Safety: Immutable history (completed tasks cannot be uncompleted).
+           Bounded profiles with eviction.
+
+ [ADV-001] CodeGenerationGateway
+   Owner: AI Team
+   File:  src/code_generation_gateway.py
+   Purpose: Safe, template-based code generation with validation.
+            - Built-in templates: python_module, python_function, python_test
+            - Custom template registration
+            - Safety validation: forbidden pattern scan (eval, exec, subprocess)
+            - Python syntax verification via ast.parse
+   Wiring: Writes to PersistenceManager.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: No arbitrary code execution. Forbidden patterns blocked.
+           Template-only generation with safe string interpolation.
+
+ [ADV-002] DeploymentAutomationController
+   Owner: DevOps Team
+   File:  src/deployment_automation_controller.py
+   Purpose: CI/CD pipeline integration with safety gates and rollback.
+            - Configurable pre-deployment gates (callable checkers)
+            - Environment-aware: production always requires approval
+            - Automatic rollback on health check failure
+            - Full lifecycle: requested → gates → deploy → health → healthy/rolled_back
+   Wiring: Writes to PersistenceManager.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: Production deployments require human approval.
+           Automatic rollback on unhealthy deployment.
+           Immutable deployment history and audit trail.
+```
+
 ---
 
 ## Next Steps
 
-This architecture map documents Phases 0–4 of the self-automation plan:
+This architecture map documents Phases 0–6 of the self-automation plan:
 
-1. **Phase 5:** Business Operations — Financial reporting, invoice processing, HR onboarding
-2. **Phase 6:** Advanced Self-Automation — Code generation, autonomous deployment, self-optimisation
-3. **Security Review:** Map attack surfaces and vulnerabilities
-4. **Performance Analysis:** Identify bottlenecks via SLO tracking
+1. **Phase 6 (continued):** Self-Optimization — Performance analysis, bottleneck detection, auto-tuning
+2. **Phase 6 (continued):** Self-Scaling — Resource monitoring, capacity prediction, cost optimization
+3. **Security Review:** Map attack surfaces and vulnerabilities across all modules
+4. **Performance Analysis:** Identify bottlenecks via SLO tracking and telemetry learning
 5. **Test Strategy:** Map testing boundaries across all modules
+6. **Integration Testing:** End-to-end flows across Phase 1-6 modules
 
 See `FILE_CLASSIFICATION.md` for complete file inventory and `SYSTEM_OVERVIEW.md` for system statistics.
