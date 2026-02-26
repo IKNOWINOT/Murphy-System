@@ -696,6 +696,9 @@ Deployment manifests live under `Murphy System/archive/legacy_versions/.../deplo
 | [Integration Engine](<Murphy%20System/archive/murphy_integrated_archive/legacy_docs/INTEGRATION_ENGINE_COMPLETE.md>) | Integration docs |
 | [Launch Automation Plan](<Murphy System/docs/LAUNCH_AUTOMATION_PLAN.md>) | Self-automating launch strategy |
 | [Operations & Testing Plan](<Murphy System/docs/OPERATIONS_TESTING_PLAN.md>) | Iterative test-fix-document cycle |
+| [Execution Log](<Murphy System/docs/EXECUTION_LOG.md>) | Cycle 1 real test results |
+| [Gap Analysis](<Murphy System/docs/GAP_ANALYSIS.md>) | Actual vs expected — Cycle 1 |
+| [Remediation Plan](<Murphy System/docs/REMEDIATION_PLAN.md>) | Fixes for all identified gaps |
 | [API Docs](http://localhost:6666/docs) | Interactive API docs |
 
 ---

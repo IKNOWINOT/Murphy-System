@@ -262,26 +262,28 @@ Track every task that hits a wall so the team can pivot quickly.
 
 | # | Task | Issue | Alternative | Status |
 |---|------|-------|-------------|--------|
-| 1 | Logo generation | — | — | ⏳ |
-| 2 | Landing page copy | — | — | ⏳ |
-| 3 | Twitter threads | — | — | ⏳ |
-| 4 | Press releases | — | — | ⏳ |
-| 5 | Email sequences | — | — | ⏳ |
-| 6 | Workflow: standup summary | — | — | ⏳ |
-| 7 | Workflow: code review | — | — | ⏳ |
-| 8 | Workflow: dep update | — | — | ⏳ |
-| 9 | Workflow: social scheduler | — | — | ⏳ |
-| 10 | Workflow: feedback triage | — | — | ⏳ |
-| 11 | Demo video script | — | — | ⏳ |
-| 12 | Demo GIFs | — | — | ⏳ |
-| 13 | Live demo script | — | — | ⏳ |
-| 14 | Before/after comparisons | — | — | ⏳ |
-| 15 | Discord setup | — | — | ⏳ |
-| 16 | Beta recruitment | — | — | ⏳ |
-| 17 | Beta onboarding | — | — | ⏳ |
-| 18 | Feedback collection | — | — | ⏳ |
-| 19 | Testimonials | — | — | ⏳ |
-| 20 | Product Hunt launch | — | — | ⏳ |
+| 1 | Logo generation | No image generation capability (GAP-004) | Use external tools (DALL-E, Midjourney, Canva) | ❌ Dead end |
+| 2 | Landing page copy | Inoni engine inactive + no LLM key (GAP-001a, GAP-002) | Fix engine init + add API key | ⏳ Blocked |
+| 3 | Twitter threads | Inoni engine inactive + no LLM key (GAP-001a, GAP-002) | Fix engine init + add API key | ⏳ Blocked |
+| 4 | Press releases | Inoni engine inactive + no LLM key (GAP-001a, GAP-002) | Fix engine init + add API key | ⏳ Blocked |
+| 5 | Email sequences | Inoni engine inactive + no LLM key (GAP-001a, GAP-002) | Fix engine init + add API key | ⏳ Blocked |
+| 6 | Workflow: standup summary | DAG engine active; LLM gen blocked (GAP-002) | Add API key | ⏳ Blocked |
+| 7 | Workflow: code review | DAG engine active; LLM gen blocked (GAP-002) | Add API key | ⏳ Blocked |
+| 8 | Workflow: dep update | DAG engine active; LLM gen blocked (GAP-002) | Add API key | ⏳ Blocked |
+| 9 | Workflow: social scheduler | Inoni engine inactive (GAP-001a) | Fix engine init | ⏳ Blocked |
+| 10 | Workflow: feedback triage | DAG engine active; LLM gen blocked (GAP-002) | Add API key | ⏳ Blocked |
+| 11 | Demo video script | LLM gen blocked (GAP-002) | Add API key | ⏳ Blocked |
+| 12 | Demo GIFs | No screen recording integration | Manual recording with scripted commands | ⏳ Pending |
+| 13 | Live demo script | LLM gen blocked (GAP-002) | Add API key | ⏳ Blocked |
+| 14 | Before/after comparisons | LLM gen blocked (GAP-002) | Add API key | ⏳ Blocked |
+| 15 | Discord setup | Integration engine inactive (GAP-001b) | Fix engine init | ⏳ Blocked |
+| 16 | Beta recruitment | Inoni engine inactive (GAP-001a) | Fix engine init | ⏳ Blocked |
+| 17 | Beta onboarding | Delivery adapters active; content gen blocked | Partial — fix LLM | ⏳ Blocked |
+| 18 | Feedback collection | Form handler works; analysis blocked | Partial | ⏳ Partial |
+| 19 | Testimonials | LLM gen blocked (GAP-002) | Add API key | ⏳ Blocked |
+| 20 | Product Hunt launch | Integration engine inactive (GAP-001b) | Fix engine init | ⏳ Blocked |
+
+> **Cycle 1 Update (2026-02-26):** Dead-end tracking populated from [Gap Analysis](GAP_ANALYSIS.md) findings. See [Remediation Plan](REMEDIATION_PLAN.md) for resolution steps.
 
 ---
 
@@ -344,8 +346,18 @@ python "Murphy System/murphy_system_runtime.py" --workflow content-generation --
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** 2025-02-26
+## Related Documents
+
+- [Execution Log — Cycle 1](EXECUTION_LOG.md) — Real test results from operating Murphy
+- [Gap Analysis — Cycle 1](GAP_ANALYSIS.md) — Actual vs expected comparison
+- [Remediation Plan — Cycle 1](REMEDIATION_PLAN.md) — Concrete fixes for all identified gaps
+- [Operations Testing Plan](OPERATIONS_TESTING_PLAN.md) — Iterative test-fix-document cycle
+- [QA Audit Report](QA_AUDIT_REPORT.md) — Pre-launch security audit findings
+
+---
+
+**Document Version:** 1.1 — Updated with Cycle 1 dead-end tracking results
+**Last Updated:** 2026-02-26
 **Author:** Murphy System Launch Automation Agent
 
 ---
