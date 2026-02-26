@@ -19,7 +19,13 @@ class EmailConnector:
     def __init__(self, config=None):
         self._config = config
 
-    def send(self, to, subject, body):
+    def send(self, to=None, subject=None, body=None, **kwargs):
+        # Support being called with a single dict argument (notification packet)
+        if isinstance(to, dict) and subject is None:
+            packet = to
+            to = packet.get("recipients", [])
+            subject = packet.get("message", "Notification")
+            body = packet.get("message", "")
         return {"status": "sent", "to": to, "subject": subject}
 
 
@@ -29,7 +35,12 @@ class SlackConnector:
     def __init__(self, config=None):
         self._config = config
 
-    def send(self, channel, message):
+    def send(self, channel=None, message=None, **kwargs):
+        # Support being called with a single dict argument (notification packet)
+        if isinstance(channel, dict) and message is None:
+            packet = channel
+            channel = packet.get("channels", ["general"])[0] if isinstance(packet.get("channels"), list) else "general"
+            message = packet.get("message", "")
         return {"status": "sent", "channel": channel}
 
 

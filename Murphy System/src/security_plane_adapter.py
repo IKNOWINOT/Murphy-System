@@ -102,17 +102,21 @@ class SecurityPlaneAdapter:
             max_length=50000
         ))
     
-    def validate_input(self, field_name: str, value: Any) -> Tuple[bool, Optional[str]]:
+    def validate_input(self, field_name: str = None, value: Any = None) -> Tuple[bool, Optional[str]]:
         """
         Validate input against security rules.
         
         Args:
-            field_name: Name of the field being validated
+            field_name: Name of the field being validated (or value if called with single arg)
             value: Value to validate
             
         Returns:
             Tuple of (is_valid, error_message)
         """
+        # Support single-arg calling: validate_input("some_value")
+        if value is None and field_name is not None:
+            value = field_name
+            field_name = "input"
         if not self.enabled:
             return True, None
         

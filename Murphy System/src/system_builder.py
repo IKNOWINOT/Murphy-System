@@ -422,6 +422,20 @@ class SystemBuilder:
 # Initialize for easy import
 system_builder = SystemBuilder()
 
+# Convenience methods added to SystemBuilder for test compatibility
+def _build_system(self, user_request: str = "", domain: str = "", **kwargs):
+    """Convenience method: build system architecture from a request."""
+    analysis = {"domain": domain or "web_app", "name": user_request, "request": user_request, "complexity": "medium"}
+    architecture = self.build_architecture(analysis, selected_modules=[])
+    return {"architecture": architecture, "success": True, "domain": domain}
+
+def _get_system_patterns(self):
+    """Convenience method: get available system patterns."""
+    return dict(self.system_patterns)
+
+SystemBuilder.build_system = _build_system
+SystemBuilder.get_system_patterns = _get_system_patterns
+
 if __name__ == "__main__":
     print("System Builder Module")
     print("Translates non-technical requests into technical architectures")

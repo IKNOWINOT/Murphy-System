@@ -472,3 +472,68 @@ class HypothesisIntakeService:
             log = [r for r in log if r.hypothesis_id == hypothesis_id]
         
         return log[-limit:]
+
+    def process_hypothesis(self, hypothesis: Dict[str, Any]) -> Dict[str, Any]:
+        """Convenience method: process a hypothesis from a plain dict.
+
+        Extracts assumptions from the ``plan_summary`` text and generates
+        verification requests, returning a simple dict compatible with
+        integration and e2e tests.
+        """
+        import re
+
+        status = hypothesis.get("status", "sandbox")
+        confidence = hypothesis.get("confidence")
+
+        # Sandbox constraint: confidence must be None while in sandbox
+        if status == "sandbox" and confidence is not None:
+            return {
+                "valid": False,
+                "sandbox_constraints_enforced": True,
+                "error": "Sandbox hypothesis cannot have pre-set confidence",
+                "assumptions": [],
+                "verification_requests": [],
+            }
+
+        # Extract assumptions from plan_summary
+        plan = hypothesis.get("plan_summary", "")
+
+        # Look for an explicit "Assumptions:" section first
+        assumptions_section = ""
+        if "assumptions:" in plan.lower():
+            after = plan.lower().split("assumptions:")[-1]
+            # Also grab the original-case version
+            idx = plan.lower().index("assumptions:")
+            assumptions_section = plan[idx + len("assumptions:"):]
+
+        if assumptions_section.strip():
+            # Extract numbered items from the assumptions section
+            numbered = re.findall(r'\d+[\.\)]\s*(.+)', assumptions_section)
+            assumptions = [n.strip().rstrip(",").strip() for n in numbered if n.strip()]
+        else:
+            # Fallback: split on numbered-parenthesis pattern
+            parts = re.split(r'\d+\)', plan)
+            assumptions = [p.strip().rstrip(",").strip() for p in parts[1:] if p.strip()]
+
+        if not assumptions:
+            if "assumes:" in plan.lower():
+                after = plan.lower().split("assumes:")[-1]
+                assumptions = [a.strip().rstrip(",").strip() for a in after.split(",") if a.strip()]
+        if not assumptions:
+            assumptions = ["(implicit assumption)"]
+
+        verification_requests = [
+            {
+                "request_id": f"vr_{i:03d}",
+                "assumption": a,
+                "status": "pending",
+            }
+            for i, a in enumerate(assumptions, 1)
+        ]
+
+        return {
+            "valid": True,
+            "sandbox_constraints_enforced": True,
+            "assumptions": assumptions,
+            "verification_requests": verification_requests,
+        }

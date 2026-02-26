@@ -654,6 +654,29 @@ class SystemLibrarian:
             }
         }
 
+    def get_documentation(self, topic: str = "capabilities") -> Dict[str, Any]:
+        """Convenience method: get documentation by topic"""
+        results = self.search_knowledge(topic)
+        if results:
+            return {"topic": topic, "entries": [r.__dict__ if hasattr(r, '__dict__') else str(r) for r in results]}
+        return self.get_system_overview()
+
+    def get_help(self) -> Dict[str, Any]:
+        """Convenience method: get help overview"""
+        return self.get_system_overview()
+
+    def answer_question(self, question: str) -> Dict[str, Any]:
+        """Convenience method: answer a question using the knowledge base"""
+        results = self.search_knowledge(question)
+        entries = [r.__dict__ if hasattr(r, '__dict__') else str(r) for r in results]
+        return {"question": question, "answer": entries if entries else ["No specific answer found."], "results": entries}
+
+    def troubleshoot(self, issue: str) -> Dict[str, Any]:
+        """Convenience method: troubleshoot an issue"""
+        results = self.search_knowledge(issue)
+        entries = [r.__dict__ if hasattr(r, '__dict__') else str(r) for r in results]
+        return {"issue": issue, "suggestions": entries if entries else ["Check system logs for more details."]}
+
 
 if __name__ == "__main__":
     # Test system librarian

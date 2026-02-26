@@ -663,6 +663,22 @@ class DocumentProcessor:
     
     def generate_requirements_report(self) -> Dict[str, Any]:
         """Generate comprehensive requirements report"""
+
+    def process_document(self, content: str, name: str = "unnamed", file_type: str = "text") -> Dict[str, Any]:
+        """Convenience method: process a document from raw content string"""
+        metadata = self.upload_document(name=name, file_type=file_type, content=content)
+        return self.get_document_summary(metadata.document_id) or {"document_id": metadata.document_id}
+
+    def analyze_document(self, content: str, name: str = "analysis", file_type: str = "text") -> Dict[str, Any]:
+        """Convenience method: analyze a document and return summary"""
+        return self.process_document(content, name=name, file_type=file_type)
+
+    def extract_requirements(self, content: str) -> list:
+        """Convenience method: extract requirements from raw content"""
+        metadata = self.upload_document(name="requirements_extraction", file_type="text", content=content)
+        reqs = [r.to_dict() for r in self.requirements.values()
+                if metadata.document_id in r.source]
+        return reqs
         # Count by category
         by_category = {}
         for req in self.requirements.values():
