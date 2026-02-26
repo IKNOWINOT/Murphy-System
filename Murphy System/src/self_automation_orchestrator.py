@@ -94,12 +94,17 @@ class SelfAutomationOrchestrator:
     """
     Orchestrates self-improvement cycles for the Murphy System.
 
+    Design Label: ARCH-002 — Persistence-Aware Self-Automation Orchestrator
+    Owner: Backend Team
+    Dependency: PersistenceManager (optional, graceful degradation)
+
     Provides:
     - Task discovery from module/test analysis
     - Priority-based task queue with dependency resolution
     - Prompt chain step tracking per task
     - Cycle management with history
     - Gap analysis and remediation tracking
+    - Durable state via PersistenceManager  [ARCH-002]
     """
 
     # Default prompt chain templates
@@ -142,7 +147,10 @@ class SelfAutomationOrchestrator:
         ),
     }
 
-    def __init__(self) -> None:
+    # Persistence document ID  [ARCH-002]
+    _PERSIST_DOC_ID = "self_automation_orchestrator_state"
+
+    def __init__(self, persistence_manager=None) -> None:
         from threading import RLock
         self._lock = RLock()
         self._tasks: Dict[str, ImprovementTask] = {}
@@ -151,6 +159,99 @@ class SelfAutomationOrchestrator:
         self._current_cycle: Optional[CycleRecord] = None
         self._completed_tasks: List[str] = []
         self._gap_registry: Dict[str, Dict[str, Any]] = {}
+        self._persistence = persistence_manager
+
+    # ---- Persistence Integration  [ARCH-002] ----
+
+    def save_state(self) -> bool:
+        """Persist orchestrator state via PersistenceManager.
+
+        Returns True on success, False if persistence is unavailable.
+        """
+        if self._persistence is None:
+            return False
+        with self._lock:
+            state = {
+                "tasks": {
+                    tid: asdict(t) for tid, t in self._tasks.items()
+                },
+                "queue_order": list(self._queue_order),
+                "cycles": [asdict(c) for c in self._cycles],
+                "current_cycle": asdict(self._current_cycle) if self._current_cycle else None,
+                "completed_tasks": list(self._completed_tasks),
+                "gap_registry": dict(self._gap_registry),
+            }
+        try:
+            self._persistence.save_document(self._PERSIST_DOC_ID, state)
+            return True
+        except Exception:
+            return False
+
+    def load_state(self) -> bool:
+        """Restore orchestrator state from PersistenceManager.
+
+        Returns True on success, False if persistence is unavailable or
+        no prior state exists.
+        """
+        if self._persistence is None:
+            return False
+        try:
+            state = self._persistence.load_document(self._PERSIST_DOC_ID)
+        except Exception:
+            return False
+        if state is None:
+            return False
+        with self._lock:
+            self._tasks = {}
+            for tid, td in state.get("tasks", {}).items():
+                self._tasks[tid] = ImprovementTask(
+                    task_id=td["task_id"],
+                    title=td["title"],
+                    category=TaskCategory(td["category"]),
+                    priority=td["priority"],
+                    description=td.get("description", ""),
+                    prompt_template=td.get("prompt_template", ""),
+                    estimated_tests=td.get("estimated_tests", 0),
+                    dependencies=td.get("dependencies", []),
+                    status=TaskStatus(td["status"]),
+                    created_at=td.get("created_at", ""),
+                    started_at=td.get("started_at"),
+                    completed_at=td.get("completed_at"),
+                    result=td.get("result"),
+                    retry_count=td.get("retry_count", 0),
+                    max_retries=td.get("max_retries", 3),
+                    current_step=PromptStep(td.get("current_step", "analysis")),
+                    module_name=td.get("module_name"),
+                    test_file=td.get("test_file"),
+                )
+            self._queue_order = state.get("queue_order", [])
+            self._cycles = [
+                CycleRecord(
+                    cycle_id=cd["cycle_id"],
+                    started_at=cd["started_at"],
+                    completed_at=cd.get("completed_at"),
+                    tasks_completed=cd.get("tasks_completed", 0),
+                    tasks_failed=cd.get("tasks_failed", 0),
+                    tests_added=cd.get("tests_added", 0),
+                    modules_added=cd.get("modules_added", []),
+                    gap_analysis=cd.get("gap_analysis"),
+                )
+                for cd in state.get("cycles", [])
+            ]
+            cc = state.get("current_cycle")
+            self._current_cycle = CycleRecord(
+                cycle_id=cc["cycle_id"],
+                started_at=cc["started_at"],
+                completed_at=cc.get("completed_at"),
+                tasks_completed=cc.get("tasks_completed", 0),
+                tasks_failed=cc.get("tasks_failed", 0),
+                tests_added=cc.get("tests_added", 0),
+                modules_added=cc.get("modules_added", []),
+                gap_analysis=cc.get("gap_analysis"),
+            ) if cc else None
+            self._completed_tasks = state.get("completed_tasks", [])
+            self._gap_registry = state.get("gap_registry", {})
+        return True
 
     # ---- Task Management ----
 
