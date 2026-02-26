@@ -62,3 +62,6 @@ __all__ = [
     'RollbackEnforcer',
     'CompletionCertifier'
 ]
+# Public API alias
+from .orchestrator import ExecutionOrchestrator
+
