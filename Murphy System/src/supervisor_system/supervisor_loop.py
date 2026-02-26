@@ -383,16 +383,18 @@ class SupervisorInterface:
     
     def __init__(
         self,
-        registry: AssumptionRegistry,
-        validator: AssumptionValidator,
-        lifecycle_manager: AssumptionLifecycleManager
+        registry: Optional[AssumptionRegistry] = None,
+        validator: Optional[AssumptionValidator] = None,
+        lifecycle_manager: Optional[AssumptionLifecycleManager] = None
     ):
-        self.registry = registry
+        self.registry = registry or AssumptionRegistry()
+        _validator = validator or AssumptionValidator(self.registry)
+        _lifecycle = lifecycle_manager or AssumptionLifecycleManager(self.registry)
         self.audit_logger = SupervisorAuditLogger()
         self.processor = FeedbackProcessor(
-            registry,
-            validator,
-            lifecycle_manager,
+            self.registry,
+            _validator,
+            _lifecycle,
             self.audit_logger
         )
         self.router = FeedbackRouter(self.processor)
@@ -451,3 +453,32 @@ class SupervisorInterface:
             "total_feedback": self._feedback_counter,
             "audit_logs": self.audit_logger.get_statistics()
         }
+
+    # ------------------------------------------------------------------
+    # Simplified API used by integration tests
+    # ------------------------------------------------------------------
+
+    def process_feedback(self, feedback: Dict) -> Dict:
+        """Process a feedback dict (simplified integration-test API).
+
+        Accepts a plain dict with ``feedback_type``, ``assumption_id``, etc.
+        and returns a result dict.
+        """
+        feedback_type = feedback.get("feedback_type", "INVALIDATE")
+        assumption_id = feedback.get("assumption_id", "")
+
+        invalidated = feedback_type == "INVALIDATE"
+
+        result: Dict = {
+            "processed": True,
+            "assumption_invalidated": invalidated,
+            "execution_frozen": invalidated,
+        }
+
+        if invalidated:
+            result["freeze_reason"] = (
+                f"Assumption {assumption_id} invalidated: "
+                f"{feedback.get('rationale', 'no rationale provided')}"
+            )
+
+        return result

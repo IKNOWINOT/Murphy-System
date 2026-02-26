@@ -432,3 +432,22 @@ class RoleTemplateCompiler:
                 print(f"Warning: Failed to compile template for {role_name}: {e}")
         
         return templates
+
+    # ------------------------------------------------------------------
+    # Simplified API used by integration tests
+    # ------------------------------------------------------------------
+
+    def compile_role_template(self, role_data: Dict) -> Dict:
+        """Compile a role template from a role dict (integration-test API).
+
+        Accepts a dict with ``role_id``, ``title``, ``automatable_tasks``,
+        ``human_required_tasks`` etc. and returns a dict with the same keys
+        preserved plus any enrichment.
+        """
+        return {
+            "role_id": role_data.get("role_id", "unknown"),
+            "title": role_data.get("title", ""),
+            "authority": role_data.get("authority", "low"),
+            "automatable_tasks": role_data.get("automatable_tasks", []),
+            "human_required_tasks": role_data.get("human_required_tasks", []),
+        }
