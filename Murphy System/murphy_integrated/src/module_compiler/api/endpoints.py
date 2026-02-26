@@ -452,7 +452,7 @@ def create_standalone_app():
         Flask application
     """
     from flask import Flask
-    from flask_security import configure_secure_app
+    from flask_security import configure_secure_app, is_debug_mode
     
     app = Flask(__name__)
     configure_secure_app(app, service_name="module-compiler")
@@ -486,4 +486,4 @@ def create_standalone_app():
 
 if __name__ == '__main__':
     app = create_standalone_app()
-    app.run(host='0.0.0.0', port=8053, debug=os.environ.get('MURPHY_ENV', 'development') == 'development')
+    app.run(host='0.0.0.0', port=8053, debug=is_debug_mode())

@@ -44,6 +44,14 @@ _content_resolver = None
 
 # Safe ID pattern
 _SAFE_ID = re.compile(r'^[a-zA-Z0-9_\-.:]+$')
+_MAX_ID_LEN = 256
+
+
+def _validate_artifact_id(artifact_id: str):
+    """Validate artifact_id format. Returns error response or None."""
+    if not _SAFE_ID.match(artifact_id) or len(artifact_id) > _MAX_ID_LEN:
+        return jsonify({'error': 'Invalid artifact_id'}), 400
+    return None
 
 
 def mount_viewport_api(app, viewport: ArtifactViewport, content_resolver=None):
@@ -108,8 +116,9 @@ def get_manifest(artifact_id: str):
     """
     if not _viewport:
         return jsonify({'error': 'Viewport service not initialized'}), 503
-    if not _SAFE_ID.match(artifact_id) or len(artifact_id) > 256:
-        return jsonify({'error': 'Invalid artifact_id'}), 400
+    invalid = _validate_artifact_id(artifact_id)
+    if invalid:
+        return invalid
 
     tenant_id = _get_tenant_id()
     origin = _parse_origin(request.args.get('origin', 'working'))
@@ -138,8 +147,9 @@ def project_viewport(artifact_id: str):
     """
     if not _viewport:
         return jsonify({'error': 'Viewport service not initialized'}), 503
-    if not _SAFE_ID.match(artifact_id) or len(artifact_id) > 256:
-        return jsonify({'error': 'Invalid artifact_id'}), 400
+    invalid = _validate_artifact_id(artifact_id)
+    if invalid:
+        return invalid
 
     tenant_id = _get_tenant_id()
     origin = _parse_origin(request.args.get('origin', 'working'))
@@ -200,8 +210,9 @@ def search_artifact(artifact_id: str):
     """
     if not _viewport:
         return jsonify({'error': 'Viewport service not initialized'}), 503
-    if not _SAFE_ID.match(artifact_id) or len(artifact_id) > 256:
-        return jsonify({'error': 'Invalid artifact_id'}), 400
+    invalid = _validate_artifact_id(artifact_id)
+    if invalid:
+        return invalid
 
     query = request.args.get('q', '').strip()
     if not query:

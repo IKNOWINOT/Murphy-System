@@ -40,7 +40,7 @@ from confidence_engine.models import (
     AuthorityBand
 )
 
-from flask_security import configure_secure_app
+from flask_security import configure_secure_app, is_debug_mode
 
 
 # Initialize Flask app
@@ -573,4 +573,4 @@ def reset_state():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8056, debug=os.environ.get('MURPHY_ENV', 'development') == 'development')
+    app.run(host='0.0.0.0', port=8056, debug=is_debug_mode())

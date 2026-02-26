@@ -43,7 +43,7 @@ from confidence_engine.models import (
     ArtifactSource
 )
 
-from flask_security import configure_secure_app
+from flask_security import configure_secure_app, is_debug_mode
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -485,4 +485,4 @@ def reset_state():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8057, debug=os.environ.get('MURPHY_ENV', 'development') == 'development')
+    app.run(host='0.0.0.0', port=8057, debug=is_debug_mode())

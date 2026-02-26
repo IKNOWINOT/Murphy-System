@@ -27,7 +27,7 @@ from confidence_engine.murphy_calculator import MurphyCalculator
 from confidence_engine.authority_mapper import AuthorityMapper
 from confidence_engine.phase_controller import PhaseController
 
-from flask_security import configure_secure_app
+from flask_security import configure_secure_app, is_debug_mode
 
 
 # Initialize Flask app
@@ -651,4 +651,4 @@ def reset_state():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8055, debug=os.environ.get('MURPHY_ENV', 'development') == 'development')
+    app.run(host='0.0.0.0', port=8055, debug=is_debug_mode())
