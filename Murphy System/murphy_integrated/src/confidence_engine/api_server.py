@@ -6,6 +6,7 @@ REST API for confidence, risk, and authority computation
 from flask import Flask, request, jsonify
 from typing import Dict, Any, List
 import logging
+import threading
 from datetime import datetime
 
 from confidence_engine.models import (
@@ -48,6 +49,8 @@ phase_controller = PhaseController()
 
 # Per-tenant state stores (ARCH-003: tenant isolation)
 # Each tenant gets its own ArtifactGraph, TrustModel, and evidence store
+# Thread lock protects concurrent creation of tenant entries
+_tenant_lock = threading.Lock()
 _tenant_graphs: Dict[str, ArtifactGraph] = {}
 _tenant_trust_models: Dict[str, TrustModel] = {}
 _tenant_evidence: Dict[str, List[VerificationEvidence]] = {}
@@ -65,23 +68,26 @@ def _get_tenant_id() -> str:
 
 def _get_tenant_graph(tenant_id: str) -> ArtifactGraph:
     """Get or create the ArtifactGraph for a tenant."""
-    if tenant_id not in _tenant_graphs:
-        _tenant_graphs[tenant_id] = ArtifactGraph()
-    return _tenant_graphs[tenant_id]
+    with _tenant_lock:
+        if tenant_id not in _tenant_graphs:
+            _tenant_graphs[tenant_id] = ArtifactGraph()
+        return _tenant_graphs[tenant_id]
 
 
 def _get_tenant_trust_model(tenant_id: str) -> TrustModel:
     """Get or create the TrustModel for a tenant."""
-    if tenant_id not in _tenant_trust_models:
-        _tenant_trust_models[tenant_id] = TrustModel()
-    return _tenant_trust_models[tenant_id]
+    with _tenant_lock:
+        if tenant_id not in _tenant_trust_models:
+            _tenant_trust_models[tenant_id] = TrustModel()
+        return _tenant_trust_models[tenant_id]
 
 
 def _get_tenant_evidence(tenant_id: str) -> List[VerificationEvidence]:
     """Get or create the evidence store for a tenant."""
-    if tenant_id not in _tenant_evidence:
-        _tenant_evidence[tenant_id] = []
-    return _tenant_evidence[tenant_id]
+    with _tenant_lock:
+        if tenant_id not in _tenant_evidence:
+            _tenant_evidence[tenant_id] = []
+        return _tenant_evidence[tenant_id]
 
 
 # ============================================================================
@@ -630,9 +636,10 @@ def health_check():
 def reset_state():
     """Reset all state (for testing)"""
     tenant_id = _get_tenant_id()
-    _tenant_graphs[tenant_id] = ArtifactGraph()
-    _tenant_trust_models[tenant_id] = TrustModel()
-    _tenant_evidence[tenant_id] = []
+    with _tenant_lock:
+        _tenant_graphs[tenant_id] = ArtifactGraph()
+        _tenant_trust_models[tenant_id] = TrustModel()
+        _tenant_evidence[tenant_id] = []
     
     logger.info(f"Reset confidence engine state (tenant={tenant_id})")
     

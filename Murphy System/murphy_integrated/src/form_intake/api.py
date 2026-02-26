@@ -3,6 +3,11 @@ Form API Endpoints for Murphy System
 
 This module provides REST API endpoints for form submission.
 All user interactions with Murphy start through these endpoints.
+
+Security Note:
+    This module uses APIRouter. The parent FastAPI application that mounts
+    this router MUST apply security hardening via configure_secure_fastapi()
+    from fastapi_security.py to enforce authentication, CORS, and rate limiting.
 """
 
 from typing import Dict, Any

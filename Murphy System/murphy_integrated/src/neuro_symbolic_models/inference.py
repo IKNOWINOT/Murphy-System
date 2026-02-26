@@ -17,12 +17,8 @@ from .models import NeuroSymbolicConfidenceModel, load_model, ModelConfig
 
 
 app = Flask(__name__)
-try:
-    from flask_security import configure_secure_app
-    configure_secure_app(app, service_name="neuro-symbolic-inference")
-except ImportError:
-    from flask_cors import CORS
-    CORS(app)
+from flask_security import configure_secure_app
+configure_secure_app(app, service_name="neuro-symbolic-inference")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

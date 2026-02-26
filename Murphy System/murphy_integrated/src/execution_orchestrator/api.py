@@ -333,12 +333,30 @@ def _execute_rollback(packet: Dict, execution_state: ExecutionState):
         execution_state.error = f"Rollback failed: {', '.join(errors)}"
 
 
+def _check_ownership(packet_id: str):
+    """
+    Check if the caller owns the execution.
+
+    Returns None if authorized, or a (response, status_code) tuple if denied.
+    """
+    caller = _get_caller_identity()
+    owner = execution_owners.get(packet_id, '')
+    if owner and caller != owner:
+        return jsonify({'error': 'Forbidden: you do not own this execution'}), 403
+    return None
+
+
 @app.route('/execution/<packet_id>', methods=['GET'])
 def get_execution_status(packet_id: str):
-    """Get execution status"""
+    """Get execution status (only by owner)"""
     if packet_id not in executions:
         return jsonify({'error': 'Execution not found'}), 404
-    
+
+    # ARCH-004: Ownership check — prevent IDOR
+    denied = _check_ownership(packet_id)
+    if denied:
+        return denied
+
     execution_state = executions[packet_id]
     
     return jsonify({
@@ -448,6 +466,52 @@ def register_interface():
     })
 
 
+@app.route('/pause/<packet_id>', methods=['POST'])
+def pause_execution(packet_id: str):
+    """Pause execution (only by owner)"""
+    if packet_id not in executions:
+        return jsonify({'error': 'Execution not found'}), 404
+
+    # ARCH-004: Ownership check — prevent IDOR
+    denied = _check_ownership(packet_id)
+    if denied:
+        return denied
+
+    execution_state = executions[packet_id]
+    if execution_state.status != ExecutionStatus.RUNNING:
+        return jsonify({'error': 'Execution is not running'}), 400
+
+    execution_state.status = ExecutionStatus.PAUSED
+
+    return jsonify({
+        'status': 'paused',
+        'execution_state': execution_state.to_dict()
+    })
+
+
+@app.route('/resume/<packet_id>', methods=['POST'])
+def resume_execution(packet_id: str):
+    """Resume execution (only by owner)"""
+    if packet_id not in executions:
+        return jsonify({'error': 'Execution not found'}), 404
+
+    # ARCH-004: Ownership check — prevent IDOR
+    denied = _check_ownership(packet_id)
+    if denied:
+        return denied
+
+    execution_state = executions[packet_id]
+    if execution_state.status != ExecutionStatus.PAUSED:
+        return jsonify({'error': 'Execution is not paused'}), 400
+
+    execution_state.status = ExecutionStatus.RUNNING
+
+    return jsonify({
+        'status': 'resumed',
+        'execution_state': execution_state.to_dict()
+    })
+
+
 @app.route('/abort/<packet_id>', methods=['POST'])
 def abort_execution(packet_id: str):
     """Abort execution (only by owner)"""
@@ -455,10 +519,9 @@ def abort_execution(packet_id: str):
         return jsonify({'error': 'Execution not found'}), 404
     
     # ARCH-004: Ownership check — prevent IDOR
-    caller = _get_caller_identity()
-    owner = execution_owners.get(packet_id, '')
-    if owner and caller != owner:
-        return jsonify({'error': 'Forbidden: you do not own this execution'}), 403
+    denied = _check_ownership(packet_id)
+    if denied:
+        return denied
     
     execution_state = executions[packet_id]
     execution_state.status = ExecutionStatus.ABORTED

@@ -88,6 +88,10 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# Apply security hardening (SEC-001, SEC-002, SEC-004)
+from fastapi_security import configure_secure_fastapi
+configure_secure_fastapi(app, service_name="telemetry-learning")
+
 
 # Health endpoint
 @app.get("/health")

@@ -197,12 +197,8 @@ class RecursiveStabilityController:
 
 # Flask application
 app = Flask(__name__)
-try:
-    from flask_security import configure_secure_app
-    configure_secure_app(app, service_name="recursive-stability-controller")
-except ImportError:
-    from flask_cors import CORS
-    CORS(app)
+from flask_security import configure_secure_app
+configure_secure_app(app, service_name="recursive-stability-controller")
 
 # Global controller instance
 controller: Optional[RecursiveStabilityController] = None

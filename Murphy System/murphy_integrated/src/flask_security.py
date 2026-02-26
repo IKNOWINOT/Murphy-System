@@ -96,8 +96,10 @@ def _extract_api_key() -> Optional[str]:
 
 
 def _is_health_endpoint(path: str) -> bool:
-    """Check if the request path is a health check endpoint."""
-    return path.rstrip("/").endswith("/health") or path.rstrip("/") == "/health"
+    """Check if the request path is a health/readiness/metrics endpoint."""
+    normalized = path.rstrip("/")
+    exempt_suffixes = ("/health", "/healthz", "/ready", "/metrics")
+    return any(normalized.endswith(s) or normalized == s[1:] for s in exempt_suffixes)
 
 
 # ── Rate Limiting ────────────────────────────────────────────────────
@@ -210,7 +212,13 @@ def configure_secure_app(app: Flask, service_name: str = "murphy-api") -> Flask:
     """
     # 1. Replace wildcard CORS with origin allowlist
     origins = get_cors_origins()
-    CORS(app, origins=origins, supports_credentials=False)
+    CORS(
+        app,
+        origins=origins,
+        supports_credentials=True,
+        allow_headers=["Content-Type", "Authorization", "X-Tenant-ID", "X-API-Key"],
+        methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+    )
     logger.info(f"[{service_name}] CORS configured with allowed origins: {origins}")
     
     # 2. Before-request hook: authentication + rate limiting + input sanitization
