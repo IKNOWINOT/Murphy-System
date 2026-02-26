@@ -91,6 +91,14 @@ For a full system assessment and finishing plan, see [FULL_SYSTEM_ASSESSMENT.md]
 - **Approval Workflows** - Structured decision-making
 - **Statistics** - Track intervention patterns
 
+#### 6. Toggleable Full Automation ⭐ NEW
+- **Three-Tier Modes** - MANUAL, SEMI_AUTONOMOUS, FULL_AUTONOMOUS
+- **Admin/Owner-Only Controls** - Only authorized users can toggle automation
+- **HITL Gap Detection** - Automatic detection of human-in-the-loop transition issues
+- **Risk-Based Activation** - Auto-approval based on action risk level
+- **Success Rate Monitoring** - Adaptive mode transitions based on performance
+- **Comprehensive Audit Logging** - Complete audit trail for compliance
+
 These modules are included but require configuration and wiring to specific workflows in runtime 1.0.
 
 ---
@@ -203,6 +211,31 @@ curl -X POST http://localhost:6666/api/automation/sales/generate_leads \
   -H "Content-Type: application/json" \
   -d '{"parameters": {"target_industry": "SaaS"}}'
 ```
+
+#### Toggle Full Automation Mode ⭐ NEW
+```bash
+# Enable full automation (requires admin/owner role)
+curl -X POST http://localhost:6666/api/automation/mode \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "tenant_id": "your-tenant-id",
+    "mode": "full_autonomous",
+    "reason": "admin_override"
+  }'
+
+# Check current automation mode
+curl http://localhost:6666/api/automation/mode?tenant_id=your-tenant-id
+
+# Get automation metrics
+curl http://localhost:6666/api/automation/metrics?tenant_id=your-tenant-id
+```
+
+**Note:** Full automation can only be enabled by:
+- **Organizations:** Users with `admin` or `owner` roles
+- **Individual Accounts:** Account owners only
+
+See [docs/self_running_analysis.md](docs/self_running_analysis.md) for complete documentation on toggleable automation.
 
 ---
 
