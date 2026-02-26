@@ -720,7 +720,7 @@ class TestSalesReadinessScore:
             if os.path.isfile(os.path.join(_BASE_DIR, df)):
                 passed_checks += 1
 
-        # 3. Deployment artefacts
+        # 3. Deployment artifacts
         deploy_items = ["Dockerfile", "docker-compose.yml", "k8s"]
         for item in deploy_items:
             total_checks += 1
