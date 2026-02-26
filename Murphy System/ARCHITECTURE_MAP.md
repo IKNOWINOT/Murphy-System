@@ -816,6 +816,59 @@ Schedule → Engine Select → Execute → External API → Result → Next Sche
 
 ---
 
+## Foundation-Layer Automation Wiring
+
+The following components implement the self-automation foundation described in
+`MURPHY_SELF_AUTOMATION_PLAN.md` (Phase 0 + Phase 1). Each item is labelled
+with a design ticket and team owner.
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                  SELF-AUTOMATION FOUNDATION LAYER                    │
+└─────────────────────────────────────────────────────────────────────┘
+
+ [ARCH-001] SelfImprovementEngine ──save/load──▶ PersistenceManager
+   Owner: Backend Team
+   File:  src/self_improvement_engine.py
+   Purpose: Outcomes, proposals, patterns now persist across restarts.
+
+ [ARCH-002] SelfAutomationOrchestrator ──save/load──▶ PersistenceManager
+   Owner: Backend Team
+   File:  src/self_automation_orchestrator.py
+   Purpose: Tasks, cycles, gaps, queue order now persist across restarts.
+
+ [OBS-001] HealthMonitor
+   Owner: DevOps Team
+   File:  src/health_monitor.py
+   Purpose: Registers subsystem health checks, produces aggregate
+            HealthReports (HEALTHY / DEGRADED / UNHEALTHY).
+
+ [OBS-002] HealthMonitor ──SYSTEM_HEALTH──▶ EventBackbone
+   Owner: DevOps Team
+   Wiring: HealthMonitor publishes to EventType.SYSTEM_HEALTH on
+           every check_all() cycle for reactive automation.
+
+ [GATE-001] GateBypassController
+   Owner: AI Team
+   File:  src/gate_bypass_controller.py
+   Purpose: Risk-based confidence-gate bypass.
+            CRITICAL/HIGH → never bypassed.
+            LOW → bypass after 3 consecutive successes.
+            MINIMAL → bypass immediately.
+```
+
+### Component Interaction Summary
+
+| Design Label | Source                       | Target               | Mechanism           |
+|--------------|------------------------------|----------------------|---------------------|
+| ARCH-001     | SelfImprovementEngine        | PersistenceManager   | save/load_document  |
+| ARCH-002     | SelfAutomationOrchestrator   | PersistenceManager   | save/load_document  |
+| OBS-001      | HealthMonitor                | Any subsystem        | Callable check fn   |
+| OBS-002      | HealthMonitor                | EventBackbone        | publish(SYSTEM_HEALTH) |
+| GATE-001     | GateBypassController         | Confidence gates     | evaluate() → BypassDecision |
+
+---
+
 ## Next Steps
 
 This architecture map provides the foundation for:
