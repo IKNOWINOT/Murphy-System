@@ -857,6 +857,52 @@ with a design ticket and team owner.
             MINIMAL → bypass immediately.
 ```
 
+### Phase 1–2 Automation Wiring
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│         OBSERVABILITY & DEVELOPMENT AUTOMATION LAYER                │
+└─────────────────────────────────────────────────────────────────────┘
+
+ [OBS-003] LogAnalysisEngine
+   Owner: Backend Team
+   File:  src/log_analysis_engine.py
+   Purpose: Ingests structured log entries, detects recurring error
+            patterns via frequency analysis, generates error reports.
+   Wiring: Publishes LEARNING_FEEDBACK events to EventBackbone
+           when patterns are detected.
+   Optional: RAGVectorIntegration for semantic log search.
+
+ [OBS-004] SelfHealingCoordinator
+   Owner: DevOps Team
+   File:  src/self_healing_coordinator.py
+   Purpose: Registers recovery procedures per failure category,
+            auto-executes on TASK_FAILED / SYSTEM_HEALTH events.
+   Safety: Cooldown periods, max-attempt limits, exponential back-off.
+   Wiring: Subscribes to EventBackbone (TASK_FAILED, SYSTEM_HEALTH),
+           publishes LEARNING_FEEDBACK on recovery outcomes.
+
+ [DEV-001] AutomationLoopConnector
+   Owner: Platform Engineering
+   File:  src/automation_loop_connector.py
+   Purpose: Closed-loop feedback wiring:
+            1. EventBackbone → record outcomes → SelfImprovementEngine
+            2. Extract patterns → generate proposals
+            3. Convert high-priority proposals → orchestrator tasks
+            4. Persist state automatically.
+   Wiring: Subscribes to TASK_COMPLETED / TASK_FAILED.
+           Writes to SelfImprovementEngine + SelfAutomationOrchestrator.
+
+ [DEV-002] SLORemediationBridge
+   Owner: QA Team
+   File:  src/slo_remediation_bridge.py
+   Purpose: Checks SLO compliance via OperationalSLOTracker,
+            creates ImprovementProposals in SelfImprovementEngine
+            for each violated SLO target.
+   Wiring: Reads from OperationalSLOTracker, writes to
+           SelfImprovementEngine, publishes LEARNING_FEEDBACK.
+```
+
 ### Component Interaction Summary
 
 | Design Label | Source                       | Target               | Mechanism           |
@@ -866,17 +912,29 @@ with a design ticket and team owner.
 | OBS-001      | HealthMonitor                | Any subsystem        | Callable check fn   |
 | OBS-002      | HealthMonitor                | EventBackbone        | publish(SYSTEM_HEALTH) |
 | GATE-001     | GateBypassController         | Confidence gates     | evaluate() → BypassDecision |
+| OBS-003      | LogAnalysisEngine            | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| OBS-003      | LogAnalysisEngine            | RAGVectorIntegration | ingest_document / search |
+| OBS-004      | SelfHealingCoordinator       | EventBackbone        | subscribe(TASK_FAILED, SYSTEM_HEALTH) |
+| OBS-004      | SelfHealingCoordinator       | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| DEV-001      | AutomationLoopConnector      | SelfImprovementEngine| record_outcome / extract / generate |
+| DEV-001      | AutomationLoopConnector      | SelfAutomationOrchestrator | create_task |
+| DEV-001      | AutomationLoopConnector      | EventBackbone        | subscribe(TASK_COMPLETED, TASK_FAILED) |
+| DEV-002      | SLORemediationBridge         | OperationalSLOTracker| check_slo_compliance |
+| DEV-002      | SLORemediationBridge         | SelfImprovementEngine| inject ImprovementProposal |
+| DEV-002      | SLORemediationBridge         | EventBackbone        | publish(LEARNING_FEEDBACK) |
 
 ---
 
 ## Next Steps
 
-This architecture map provides the foundation for:
+This architecture map documents Phases 0–2 of the self-automation plan:
 
-1. **Phase 2:** Detailed intent analysis of each component
-2. **Dependency Analysis:** Identify circular dependencies and tight coupling
-3. **Security Review:** Map attack surfaces and vulnerabilities
-4. **Performance Analysis:** Identify bottlenecks
-5. **Test Strategy:** Map testing boundaries
+1. **Phase 3:** Customer Support Automation — Ticket triage, knowledge base, FAQ generation
+2. **Phase 4:** Marketing & Content Automation — Content generation, SEO, social media
+3. **Phase 5:** Business Operations — Financial reporting, invoice processing, compliance
+4. **Phase 6:** Advanced Self-Automation — Code generation, autonomous deployment, self-optimisation
+5. **Security Review:** Map attack surfaces and vulnerabilities
+6. **Performance Analysis:** Identify bottlenecks via SLO tracking
+7. **Test Strategy:** Map testing boundaries across all modules
 
 See `FILE_CLASSIFICATION.md` for complete file inventory and `SYSTEM_OVERVIEW.md` for system statistics.
