@@ -285,7 +285,7 @@ class TestPromptGeneration(unittest.TestCase):
     def test_generate_full_chain(self):
         task = self.orch.create_task("Fix X", TaskCategory.BUG_FIX, module_name="my_mod")
         chain = self.orch.generate_full_chain(task)
-        self.assertEqual(len(chain), 7)
+        self.assertEqual(len(chain), 8)
         for step in PromptStep:
             self.assertIn(step.value, chain)
 
@@ -311,7 +311,7 @@ class TestStatus(unittest.TestCase):
         self.assertEqual(status["open_gaps"], 0)
         self.assertIsNone(status["current_cycle"])
         self.assertEqual(status["completed_cycles"], 0)
-        self.assertEqual(len(status["prompt_steps"]), 7)
+        self.assertEqual(len(status["prompt_steps"]), 8)
         self.assertEqual(len(status["available_categories"]), 8)
 
     def test_status_with_tasks(self):

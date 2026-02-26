@@ -44,7 +44,7 @@ The Murphy System **documentation** shows all capabilities at 10/10 (production-
 ### Step 1: Navigate to Murphy Integrated
 
 ```bash
-cd "Murphy System/murphy_integrated"
+cd "Murphy System"
 ```
 
 ### Step 2: Install Dependencies
@@ -65,7 +65,7 @@ pip install -r requirements_murphy_1.0.txt
 
 ### Step 3: Create Configuration File
 
-Create a `.env` file in the `murphy_integrated` directory:
+Create a `.env` file in the `Murphy System` directory:
 
 ```bash
 # Copy this template and save as .env
@@ -248,7 +248,7 @@ brew install python@3.11
 ### Issue: "API key not working"
 
 **Check:**
-1. Is the `.env` file in the `murphy_integrated` directory?
+1. Is the `.env` file in the `Murphy System` directory?
 2. Is the key in the correct format? (starts with `gsk_` for Groq)
 3. Did you restart Murphy after adding the key?
 
@@ -306,7 +306,7 @@ For **production deployment**, you need:
 - ✅ Firewall rules
 - ✅ Monitoring setup
 
-See [DEPLOYMENT_GUIDE.md](Murphy%20System/murphy_integrated/DEPLOYMENT_GUIDE.md) for production setup.
+See [DEPLOYMENT_GUIDE.md](Murphy%20System/Murphy System/DEPLOYMENT_GUIDE.md) for production setup.
 
 ---
 
@@ -334,7 +334,7 @@ See [DEPLOYMENT_GUIDE.md](Murphy%20System/murphy_integrated/DEPLOYMENT_GUIDE.md)
 Run this to check your setup:
 
 ```bash
-cd "Murphy System/murphy_integrated"
+cd "Murphy System"
 python3 -c "
 import sys
 print(f'Python: {sys.version}')

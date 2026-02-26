@@ -57,7 +57,7 @@ logs/
 .ruff_cache/
 
 # Murphy specific
-murphy_integrated/__pycache__/
+# Murphy specific caches
 murphy_v3/__pycache__/
 *.pyc
 _workspace_*.zip

@@ -12,7 +12,7 @@ Copy everything between the `=== BEGIN PROMPT ===` and `=== END PROMPT ===` mark
 
 # Murphy System — Persistent Agent Avatar Identity Layer
 
-You are working inside the **Murphy System** repository. The primary runtime folder is `Murphy System/murphy_integrated/`. Read and understand the existing architecture before writing any code. Do not invent new patterns — extend the ones already present.
+You are working inside the **Murphy System** repository. The primary runtime folder is `Murphy System/Murphy System/`. Read and understand the existing architecture before writing any code. Do not invent new patterns — extend the ones already present.
 
 ---
 
@@ -21,29 +21,29 @@ You are working inside the **Murphy System** repository. The primary runtime fol
 Before writing anything, internalize these existing files:
 
 ```
-Murphy System/murphy_integrated/src/governance_framework/agent_descriptor.py
-Murphy System/murphy_integrated/src/shadow_agent_integration.py
-Murphy System/murphy_integrated/src/event_backbone.py
-Murphy System/murphy_integrated/src/delivery_adapters.py
-Murphy System/murphy_integrated/src/rag_vector_integration.py
-Murphy System/murphy_integrated/src/platform_connector_framework.py
-Murphy System/murphy_integrated/src/comms/pipeline.py
-Murphy System/murphy_integrated/src/comms/schemas.py
-Murphy System/murphy_integrated/src/comms/connectors.py
-Murphy System/murphy_integrated/src/groq_key_rotator.py
-Murphy System/murphy_integrated/src/secure_key_manager.py
-Murphy System/murphy_integrated/src/rbac_governance.py
-Murphy System/murphy_integrated/src/social_media_moderation.py
-Murphy System/murphy_integrated/src/compliance_engine.py
-Murphy System/murphy_integrated/universal_control_plane.py
-Murphy System/murphy_integrated/inoni_business_automation.py
-Murphy System/murphy_integrated/murphy_complete_backend_extended.py
-Murphy System/murphy_integrated/bots/kaia/internal/aionmind_core/core.ts
-Murphy System/murphy_integrated/bots/CRMLeadGenerator_bot/crm.ts
-Murphy System/murphy_integrated/bots/CRMLeadGenerator_bot/scoring.ts
-Murphy System/murphy_integrated/bots/memory_manager_bot/
-Murphy System/murphy_integrated/.env.example
-Murphy System/murphy_integrated/requirements_murphy_1.0.txt
+Murphy System/Murphy System/src/governance_framework/agent_descriptor.py
+Murphy System/Murphy System/src/shadow_agent_integration.py
+Murphy System/Murphy System/src/event_backbone.py
+Murphy System/Murphy System/src/delivery_adapters.py
+Murphy System/Murphy System/src/rag_vector_integration.py
+Murphy System/Murphy System/src/platform_connector_framework.py
+Murphy System/Murphy System/src/comms/pipeline.py
+Murphy System/Murphy System/src/comms/schemas.py
+Murphy System/Murphy System/src/comms/connectors.py
+Murphy System/Murphy System/src/groq_key_rotator.py
+Murphy System/Murphy System/src/secure_key_manager.py
+Murphy System/Murphy System/src/rbac_governance.py
+Murphy System/Murphy System/src/social_media_moderation.py
+Murphy System/Murphy System/src/compliance_engine.py
+Murphy System/Murphy System/universal_control_plane.py
+Murphy System/Murphy System/inoni_business_automation.py
+Murphy System/Murphy System/murphy_complete_backend_extended.py
+Murphy System/Murphy System/bots/kaia/internal/aionmind_core/core.ts
+Murphy System/Murphy System/bots/CRMLeadGenerator_bot/crm.ts
+Murphy System/Murphy System/bots/CRMLeadGenerator_bot/scoring.ts
+Murphy System/Murphy System/bots/memory_manager_bot/
+Murphy System/Murphy System/.env.example
+Murphy System/Murphy System/requirements_murphy_1.0.txt
 ```
 
 ---
@@ -86,7 +86,7 @@ All API keys go in `.env.example` as commented-out entries following the existin
 
 Build the **Avatar Identity Layer** as a new module at:
 ```
-Murphy System/murphy_integrated/src/avatar/
+Murphy System/Murphy System/src/avatar/
 ```
 
 This module gives every Murphy agent a **persistent visual and voice identity** that automatically adapts its personality presentation based on what it knows about each specific user.
@@ -831,7 +831,7 @@ class AvatarComplianceGuard:
 ## DIRECTORY STRUCTURE TO CREATE
 
 ```
-Murphy System/murphy_integrated/src/avatar/
+Murphy System/Murphy System/src/avatar/
 ├── __init__.py
 ├── avatar_models.py              # All dataclasses (AvatarProfile, PersonaProfile, etc.)
 ├── avatar_registry.py            # Persistent storage and lookup

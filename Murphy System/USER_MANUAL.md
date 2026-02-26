@@ -47,7 +47,7 @@
 ```bash
 # Clone the repository
 git clone https://github.com/your-org/Murphy-System.git
-cd "Murphy System/murphy_integrated"
+cd "Murphy System"
 
 # Install dependencies
 pip install -r requirements_murphy_1.0.txt
@@ -60,7 +60,7 @@ chmod +x setup_murphy.sh
 **Windows:**
 
 ```bat
-cd "Murphy System\murphy_integrated"
+cd "Murphy System"
 setup_murphy.bat
 ```
 
@@ -938,7 +938,7 @@ Terminal interfaces provide browser-based command-line access for direct API int
 ### 16.1 Docker Deployment
 
 ```bash
-cd "Murphy System/murphy_integrated"
+cd "Murphy System"
 
 # Build the image (multi-stage build)
 docker build -t murphy-system:1.0 .

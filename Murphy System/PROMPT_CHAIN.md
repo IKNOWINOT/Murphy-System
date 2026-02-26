@@ -32,13 +32,13 @@ continuous improvement loop that enables the system to work on itself indefinite
 You are analyzing the Murphy System, a universal generative automation control plane.
 
 1. Read and summarize the current state from these files:
-   - Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md (all sections 1-17)
-   - Murphy System/murphy_integrated/RECOMMENDATIONS.md
-   - Murphy System/murphy_integrated/RFI.MD
+   - Murphy System/Murphy System/FULL_SYSTEM_ASSESSMENT.md (all sections 1-17)
+   - Murphy System/Murphy System/RECOMMENDATIONS.md
+   - Murphy System/Murphy System/RFI.MD
    - README.md
 
-2. Inventory all modules in Murphy System/murphy_integrated/src/ and count their tests
-   in Murphy System/murphy_integrated/tests/.
+2. Inventory all modules in Murphy System/Murphy System/src/ and count their tests
+   in Murphy System/Murphy System/tests/.
 
 3. Run the full test suite:
    cd "Murphy System/murphy_integrated" && python -m pytest tests/ -x -q
@@ -322,18 +322,18 @@ specialized prompts to establish collaboration context:
 You are collaborating with the Murphy System, a universal generative automation
 control plane. Before making any changes:
 
-1. Read Murphy System/murphy_integrated/FULL_SYSTEM_ASSESSMENT.md to understand
+1. Read Murphy System/Murphy System/FULL_SYSTEM_ASSESSMENT.md to understand
    the current system state (all sections 1-17).
 
-2. Read Murphy System/murphy_integrated/RECOMMENDATIONS.md for planned integrations.
+2. Read Murphy System/Murphy System/RECOMMENDATIONS.md for planned integrations.
 
-3. Read Murphy System/murphy_integrated/PROMPT_CHAIN.md (this file) to understand
+3. Read Murphy System/Murphy System/PROMPT_CHAIN.md (this file) to understand
    the development workflow.
 
 4. Key conventions:
-   - All new modules go in: Murphy System/murphy_integrated/src/
-   - All tests go in: Murphy System/murphy_integrated/tests/
-   - Runtime wiring in: Murphy System/murphy_integrated/murphy_system_1.0_runtime.py
+   - All new modules go in: Murphy System/Murphy System/src/
+   - All tests go in: Murphy System/Murphy System/tests/
+   - Runtime wiring in: Murphy System/Murphy System/murphy_system_1.0_runtime.py
    - Python stdlib only (no external dependencies in modules)
    - Follow unittest.TestCase patterns for tests
    - Update docs after every task (README.md, FULL_SYSTEM_ASSESSMENT.md)

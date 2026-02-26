@@ -20,7 +20,7 @@ echo "✅ Python $PYTHON_VERSION detected"
 # Check if in correct directory
 if [ ! -f "murphy_system_1.0_runtime.py" ]; then
     echo "❌ Error: murphy_system_1.0_runtime.py not found"
-    echo "   Please run this script from the murphy_integrated directory"
+    echo "   Please run this script from the Murphy System directory"
     exit 1
 fi
 

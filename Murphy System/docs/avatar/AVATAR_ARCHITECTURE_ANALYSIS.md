@@ -3,7 +3,7 @@
 
 **Prepared by:** Murphy System Architecture Team  
 **Repository:** IKNOWINOT/Murphy-System  
-**Primary Runtime:** `murphy_integrated/`  
+**Primary Runtime:** `Murphy System/`  
 **Analysis Date:** 2025  
 
 ---
@@ -551,4 +551,4 @@ Week 12: Analytics + A/B testing + optimization loop
 
 ---
 
-*This analysis is based on direct inspection of 13,610 files across the Murphy System repository, with deep reading of all primary runtime components in `murphy_integrated/`.*
+*This analysis is based on direct inspection of 13,610 files across the Murphy System repository, with deep reading of all primary runtime components in `Murphy System/`.*
