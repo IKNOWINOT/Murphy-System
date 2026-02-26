@@ -648,3 +648,7 @@ class MFGCController:
             'gates': state.G_t,
             'events': state.events
         }
+
+
+# Backward-compatible alias used by mfgc_metrics and other modules
+SystemState = MFGCSystemState
