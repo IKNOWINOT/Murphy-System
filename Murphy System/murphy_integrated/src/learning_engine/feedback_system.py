@@ -5,7 +5,7 @@ Covers Tasks 2.1, 2.2, 2.3, and 2.4.
 """
 
 from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 from pydantic import BaseModel, Field
 import uuid
@@ -611,3 +611,240 @@ class HumanFeedbackSystem:
             f for f in self.all_feedback.values()
             if f.status == FeedbackStatus.SUBMITTED
         ]
+
+
+# ============================================================================
+# OPERATIONAL FEEDBACK COMPONENTS
+# ============================================================================
+
+class FeedbackEntry:
+    """A single feedback entry for operational feedback tracking."""
+
+    def __init__(self, feedback_id, feedback_type, operation_id, source,
+                 success, confidence, rating=None, timestamp=None,
+                 feedback_data=None, comments=None):
+        self.feedback_id = feedback_id
+        self.feedback_type = feedback_type
+        self.operation_id = operation_id
+        self.source = source
+        self.success = success
+        self.confidence = confidence
+        self.rating = rating
+        self.timestamp = timestamp or datetime.now()
+        self.feedback_data = feedback_data or {}
+        self.comments = comments
+
+
+class FeedbackStorage:
+    """Storage for operational feedback entries."""
+
+    def __init__(self, max_entries=1000):
+        self.max_entries = max_entries
+        self._entries: List[FeedbackEntry] = []
+        self._index: Dict[str, FeedbackEntry] = {}
+
+    def add_entry(self, entry: FeedbackEntry):
+        self._entries.append(entry)
+        self._index[entry.feedback_id] = entry
+        while len(self._entries) > self.max_entries:
+            removed = self._entries.pop(0)
+            self._index.pop(removed.feedback_id, None)
+
+    def get_entry(self, feedback_id: str) -> Optional[FeedbackEntry]:
+        return self._index.get(feedback_id)
+
+    def get_entries_by_type(self, feedback_type: str) -> List[FeedbackEntry]:
+        return [e for e in self._entries if e.feedback_type == feedback_type]
+
+    def get_entries_by_operation(self, operation_id: str) -> List[FeedbackEntry]:
+        return [e for e in self._entries if e.operation_id == operation_id]
+
+    def get_entries_in_range(self, start_time: datetime, end_time: datetime) -> List[FeedbackEntry]:
+        return [e for e in self._entries if start_time <= e.timestamp <= end_time]
+
+    def get_recent_entries(self, count: int = 10) -> List[FeedbackEntry]:
+        return self._entries[-count:]
+
+    def get_all_entries(self) -> List[FeedbackEntry]:
+        """Return a copy of all stored entries."""
+        return self._entries[:]
+
+
+class FeedbackAnalysis:
+    """Result of operational feedback analysis."""
+
+    def __init__(self, success_rate=0.0, average_confidence=0.0, issues=None,
+                 feedback_type="", recommendations=None):
+        self.success_rate = success_rate
+        self.average_confidence = average_confidence
+        self.issues = issues if issues is not None else []
+        self.feedback_type = feedback_type
+        self.recommendations = recommendations if recommendations is not None else []
+
+
+class _TrackedIssue:
+    """A tracked operational issue."""
+
+    def __init__(self, issue_id, operation_id, issue_type, description, severity):
+        self.issue_id = issue_id
+        self.operation_id = operation_id
+        self.issue_type = issue_type
+        self.description = description
+        self.severity = severity
+        self.frequency = 1
+
+
+class FeedbackAnalyzer:
+    """Analyzer for operational feedback entries."""
+
+    def __init__(self):
+        self._tracked_issues: Dict[str, _TrackedIssue] = {}
+
+    def analyze_feedback(self, entries: List[FeedbackEntry]) -> FeedbackAnalysis:
+        if not entries:
+            return FeedbackAnalysis()
+
+        success_count = sum(1 for e in entries if e.success)
+        success_rate = success_count / len(entries)
+        average_confidence = sum(e.confidence for e in entries) / len(entries)
+
+        ops: Dict[str, Dict[str, int]] = defaultdict(lambda: {'success': 0, 'total': 0})
+        type_counts: Dict[str, int] = defaultdict(int)
+        for e in entries:
+            ops[e.operation_id]['total'] += 1
+            if e.success:
+                ops[e.operation_id]['success'] += 1
+            type_counts[e.feedback_type] += 1
+
+        issues = []
+        for op_id, counts in ops.items():
+            rate = counts['success'] / counts['total'] if counts['total'] > 0 else 0
+            if rate < 0.5:
+                issues.append({'operation_id': op_id, 'success_rate': rate, 'total': counts['total']})
+
+        feedback_type = max(type_counts, key=type_counts.get) if type_counts else ""
+
+        recommendations = []
+        if success_rate < 0.9:
+            recommendations.append("Review operations with low success rates")
+        for issue in issues:
+            recommendations.append(f"Investigate operation {issue['operation_id']}")
+
+        return FeedbackAnalysis(
+            success_rate=success_rate,
+            average_confidence=average_confidence,
+            issues=issues,
+            feedback_type=feedback_type,
+            recommendations=recommendations
+        )
+
+    def track_issue(self, operation_id, issue_type, description, severity):
+        issue_id = f"{operation_id}_{issue_type}"
+        if issue_id in self._tracked_issues:
+            self._tracked_issues[issue_id].frequency += 1
+            return self._tracked_issues[issue_id]
+        issue = _TrackedIssue(issue_id, operation_id, issue_type, description, severity)
+        self._tracked_issues[issue_id] = issue
+        return issue
+
+    def get_tracked_issues(self):
+        return list(self._tracked_issues.values())
+
+
+class OperationalFeedbackSystem:
+    """
+    Operational feedback system providing operation-oriented feedback
+    collection, analysis, and issue tracking.
+    """
+
+    def __init__(self, enable_feedback=True):
+        self.enable_feedback = enable_feedback
+        self.storage = FeedbackStorage()
+        self.analyzer = FeedbackAnalyzer()
+        self._counter = 0
+
+    def collect_feedback(self, feedback_type, operation_id, source, success,
+                         confidence, rating=None, comments=None,
+                         feedback_data=None):
+        if not self.enable_feedback:
+            return ""
+
+        self._counter += 1
+        feedback_id = f"feedback_{self._counter}"
+
+        entry = FeedbackEntry(
+            feedback_id=feedback_id,
+            feedback_type=feedback_type,
+            operation_id=operation_id,
+            source=source,
+            success=success,
+            confidence=confidence,
+            rating=rating,
+            timestamp=datetime.now(),
+            feedback_data=feedback_data or {},
+            comments=comments
+        )
+
+        self.storage.add_entry(entry)
+
+        # Auto-detect issues for operations with enough data
+        op_entries = self.storage.get_entries_by_operation(operation_id)
+        if len(op_entries) >= 3:
+            success_count = sum(1 for e in op_entries if e.success)
+            rate = success_count / len(op_entries)
+            if rate < 0.5:
+                self.analyzer.track_issue(
+                    operation_id=operation_id,
+                    issue_type="low_success_rate",
+                    description=f"Operation {operation_id} has {rate:.0%} success rate",
+                    severity="high" if rate < 0.3 else "medium"
+                )
+
+        return feedback_id
+
+    def analyze_recent_feedback(self, time_period="hour"):
+        delta_map = {"hour": timedelta(hours=1), "day": timedelta(days=1), "week": timedelta(weeks=1)}
+        delta = delta_map.get(time_period, timedelta(hours=1))
+        now = datetime.now()
+        entries = self.storage.get_entries_in_range(now - delta, now)
+        return self.analyzer.analyze_feedback(entries)
+
+    def get_feedback_summary(self):
+        entries = self.storage.get_all_entries()
+        if not entries:
+            return {'total_entries': 0, 'success_rate': 0.0, 'by_type': {}, 'by_source': {}}
+
+        total = len(entries)
+        success_count = sum(1 for e in entries if e.success)
+        success_rate = success_count / total
+
+        by_type: Dict[str, int] = defaultdict(int)
+        by_source: Dict[str, int] = defaultdict(int)
+        for e in entries:
+            by_type[e.feedback_type] += 1
+            by_source[e.source] += 1
+
+        return {
+            'total_entries': total,
+            'success_rate': success_rate,
+            'by_type': dict(by_type),
+            'by_source': dict(by_source)
+        }
+
+    def get_tracked_issues(self):
+        return self.analyzer.get_tracked_issues()
+
+    def get_feedback_for_operation(self, operation_id):
+        return self.storage.get_entries_by_operation(operation_id)
+
+    def export_feedback_data(self):
+        return {
+            'summary': self.get_feedback_summary(),
+            'issues': self.get_tracked_issues(),
+            'recent_entries': self.storage.get_all_entries()
+        }
+
+    def reset_feedback(self):
+        self.storage = FeedbackStorage()
+        self.analyzer = FeedbackAnalyzer()
+        self._counter = 0

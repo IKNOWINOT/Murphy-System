@@ -108,36 +108,41 @@ class UnifiedConfidenceEngine:
                 logger.error(f"Error calculating G/D/H confidence: {e}")
         
         # Calculate new uncertainty scores
-        uncertainty_scores = self.uncertainty_calculator.calculate(task, context)
+        uncertainty_scores = self.uncertainty_calculator.compute_all_uncertainties(task, context or {})
         logger.debug(f"Uncertainty scores: {uncertainty_scores}")
+        
+        # Compute total uncertainty as weighted sum
+        total_uncertainty = (
+            self.weights.get('uncertainty', 0.5) * (
+                uncertainty_scores.UD + uncertainty_scores.UA +
+                uncertainty_scores.UI + uncertainty_scores.UR +
+                uncertainty_scores.UG
+            ) / 5.0
+        )
         
         # Combine scores
         if gdh_confidence is not None:
             # Use weighted average of both approaches
             combined_confidence = (
                 self.weights['gdh'] * gdh_confidence +
-                self.weights['uncertainty'] * (1.0 - uncertainty_scores.total)
+                self.weights['uncertainty'] * (1.0 - total_uncertainty)
             )
         else:
             # Use only uncertainty-based confidence
-            combined_confidence = 1.0 - uncertainty_scores.total
+            combined_confidence = 1.0 - total_uncertainty
         
         # Apply Murphy Gate
         gate_result = self.murphy_gate.evaluate(
-            confidence=combined_confidence,
-            uncertainty_scores=uncertainty_scores,
-            task=task
+            confidence=combined_confidence
         )
         
         # Create comprehensive report
         report = ConfidenceReport(
-            timestamp=datetime.now(),
-            task_id=task.get('id', 'unknown'),
-            gdh_confidence=gdh_confidence,
             uncertainty_scores=uncertainty_scores,
-            combined_confidence=combined_confidence,
+            confidence=combined_confidence,
+            confidence_v1=gdh_confidence,
             gate_result=gate_result,
-            metadata={
+            factors={
                 'has_original_calculator': HAS_ORIGINAL_CALCULATOR,
                 'has_phase_controller': HAS_PHASE_CONTROLLER,
                 'weights': self.weights
@@ -146,7 +151,7 @@ class UnifiedConfidenceEngine:
         
         logger.info(
             f"Unified confidence for task {task.get('id')}: "
-            f"{combined_confidence:.3f} (approved: {gate_result.approved})"
+            f"{combined_confidence:.3f} (allowed: {gate_result.allowed})"
         )
         
         return report
@@ -167,7 +172,7 @@ class UnifiedConfidenceEngine:
             True if task should proceed, False otherwise
         """
         report = self.calculate_confidence(task, context)
-        return report.gate_result.approved
+        return report.gate_result.allowed
     
     def get_phase_recommendation(
         self,

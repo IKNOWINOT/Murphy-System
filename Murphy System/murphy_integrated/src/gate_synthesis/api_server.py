@@ -4,7 +4,6 @@ REST API for dynamic gate generation and lifecycle management
 """
 
 from flask import Flask, request, jsonify
-from flask_cors import CORS
 from typing import Dict, Any, List, Optional
 import logging
 from datetime import datetime
@@ -41,10 +40,12 @@ from confidence_engine.models import (
     AuthorityBand
 )
 
+from flask_security import configure_secure_app
+
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)
+configure_secure_app(app, service_name="gate-synthesis")
 
 # Configure logging
 logging.basicConfig(

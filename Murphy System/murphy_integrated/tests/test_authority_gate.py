@@ -84,7 +84,7 @@ def test_authority_gate_proceed():
     )
     
     state, reasoning = gate.evaluate(hypothesis, facts)
-    assert state == State.PROCEED
+    assert state.value == State.PROCEED.value
 
 
 def test_authority_gate_clarify():
@@ -110,7 +110,7 @@ def test_authority_gate_clarify():
     )
     
     state, reasoning = gate.evaluate(hypothesis, facts)
-    assert state == State.CLARIFY
+    assert state.value == State.CLARIFY.value
 
 
 def test_murphy_defense_bound_uncertainty():

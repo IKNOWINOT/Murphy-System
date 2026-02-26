@@ -2751,13 +2751,22 @@ class MurphySystem:
         ccp = getattr(self, 'content_creator_platform_modulator', None)
         if ccp is not None:
             for p in ccp.list_platforms():
-                binder.register_integration({
-                    "integration_id": f"ccp_{p.get('platform_type', 'unknown')}",
-                    "name": p.get("name", "creator_platform"),
-                    "category": "content_creator",
-                    "capability": ",".join(p.get("capabilities", [])[:3]),
-                    "source": "content_creator_platform_modulator",
-                })
+                if isinstance(p, str):
+                    binder.register_integration({
+                        "integration_id": f"ccp_{p}",
+                        "name": p,
+                        "category": "content_creator",
+                        "capability": "creator_platform",
+                        "source": "content_creator_platform_modulator",
+                    })
+                else:
+                    binder.register_integration({
+                        "integration_id": f"ccp_{p.get('platform_type', 'unknown')}",
+                        "name": p.get("name", "creator_platform"),
+                        "category": "content_creator",
+                        "capability": ",".join(p.get("capabilities", [])[:3]),
+                        "source": "content_creator_platform_modulator",
+                    })
                 wired += 1
 
         # Video Streaming Connector

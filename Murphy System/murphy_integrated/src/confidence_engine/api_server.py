@@ -4,7 +4,6 @@ REST API for confidence, risk, and authority computation
 """
 
 from flask import Flask, request, jsonify
-from flask_cors import CORS
 from typing import Dict, Any, List
 import logging
 from datetime import datetime
@@ -26,10 +25,12 @@ from confidence_engine.murphy_calculator import MurphyCalculator
 from confidence_engine.authority_mapper import AuthorityMapper
 from confidence_engine.phase_controller import PhaseController
 
+from flask_security import configure_secure_app
+
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)
+configure_secure_app(app, service_name="confidence-engine")
 
 # Configure logging
 logging.basicConfig(
@@ -38,17 +39,49 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Initialize components
+# Initialize components (stateless — safe to share across tenants)
 graph_analyzer = GraphAnalyzer()
 confidence_calculator = ConfidenceCalculator()
 murphy_calculator = MurphyCalculator()
 authority_mapper = AuthorityMapper()
 phase_controller = PhaseController()
 
-# Global state (in production, use proper state management)
-current_graph = ArtifactGraph()
-current_trust_model = TrustModel()
-verification_evidence_store: List[VerificationEvidence] = []
+# Per-tenant state stores (ARCH-003: tenant isolation)
+# Each tenant gets its own ArtifactGraph, TrustModel, and evidence store
+_tenant_graphs: Dict[str, ArtifactGraph] = {}
+_tenant_trust_models: Dict[str, TrustModel] = {}
+_tenant_evidence: Dict[str, List[VerificationEvidence]] = {}
+
+
+def _get_tenant_id() -> str:
+    """
+    Extract tenant ID from the request.
+    
+    Uses X-Tenant-ID header, falling back to 'default' for
+    backward compatibility during migration.
+    """
+    return request.headers.get('X-Tenant-ID', 'default')
+
+
+def _get_tenant_graph(tenant_id: str) -> ArtifactGraph:
+    """Get or create the ArtifactGraph for a tenant."""
+    if tenant_id not in _tenant_graphs:
+        _tenant_graphs[tenant_id] = ArtifactGraph()
+    return _tenant_graphs[tenant_id]
+
+
+def _get_tenant_trust_model(tenant_id: str) -> TrustModel:
+    """Get or create the TrustModel for a tenant."""
+    if tenant_id not in _tenant_trust_models:
+        _tenant_trust_models[tenant_id] = TrustModel()
+    return _tenant_trust_models[tenant_id]
+
+
+def _get_tenant_evidence(tenant_id: str) -> List[VerificationEvidence]:
+    """Get or create the evidence store for a tenant."""
+    if tenant_id not in _tenant_evidence:
+        _tenant_evidence[tenant_id] = []
+    return _tenant_evidence[tenant_id]
 
 
 # ============================================================================
@@ -60,6 +93,8 @@ def add_artifact():
     """Add artifact to graph"""
     try:
         data = request.json
+        tenant_id = _get_tenant_id()
+        current_graph = _get_tenant_graph(tenant_id)
         
         # Create artifact node
         node = ArtifactNode(
@@ -87,7 +122,7 @@ def add_artifact():
                 'details': errors
             }), 400
         
-        logger.info(f"Added artifact {node.id} to graph")
+        logger.info(f"Added artifact {node.id} to graph (tenant={tenant_id})")
         
         return jsonify({
             'success': True,
@@ -107,6 +142,8 @@ def add_artifact():
 def get_graph():
     """Get complete artifact graph"""
     try:
+        tenant_id = _get_tenant_id()
+        current_graph = _get_tenant_graph(tenant_id)
         return jsonify({
             'success': True,
             'graph': current_graph.to_dict()
@@ -120,6 +157,8 @@ def get_graph():
 def analyze_graph():
     """Analyze graph structure"""
     try:
+        tenant_id = _get_tenant_id()
+        current_graph = _get_tenant_graph(tenant_id)
         # Validate DAG
         is_valid, errors = graph_analyzer.validate_dag(current_graph)
         
@@ -156,6 +195,8 @@ def add_verification():
     """Add verification evidence"""
     try:
         data = request.json
+        tenant_id = _get_tenant_id()
+        verification_evidence_store = _get_tenant_evidence(tenant_id)
         
         evidence = VerificationEvidence(
             artifact_id=data['artifact_id'],
@@ -183,6 +224,8 @@ def add_verification():
 def list_verification():
     """List all verification evidence"""
     try:
+        tenant_id = _get_tenant_id()
+        verification_evidence_store = _get_tenant_evidence(tenant_id)
         return jsonify({
             'success': True,
             'evidence': [e.to_dict() for e in verification_evidence_store],
@@ -202,6 +245,8 @@ def add_trust_source():
     """Add or update trust source"""
     try:
         data = request.json
+        tenant_id = _get_tenant_id()
+        current_trust_model = _get_tenant_trust_model(tenant_id)
         
         source = SourceTrust(
             source_id=data['source_id'],
@@ -230,6 +275,8 @@ def update_trust():
     """Update trust based on outcome"""
     try:
         data = request.json
+        tenant_id = _get_tenant_id()
+        current_trust_model = _get_tenant_trust_model(tenant_id)
         source_id = data['source_id']
         success = data['success']
         
@@ -252,6 +299,8 @@ def update_trust():
 def get_trust_model():
     """Get complete trust model"""
     try:
+        tenant_id = _get_tenant_id()
+        current_trust_model = _get_tenant_trust_model(tenant_id)
         return jsonify({
             'success': True,
             'trust_model': current_trust_model.to_dict()
@@ -270,6 +319,10 @@ def compute_confidence():
     """Compute confidence state"""
     try:
         data = request.json
+        tenant_id = _get_tenant_id()
+        current_graph = _get_tenant_graph(tenant_id)
+        current_trust_model = _get_tenant_trust_model(tenant_id)
+        verification_evidence_store = _get_tenant_evidence(tenant_id)
         phase = Phase(data.get('phase', 'expand'))
         
         # Compute confidence
@@ -301,6 +354,10 @@ def compute_murphy():
     """Compute Murphy index"""
     try:
         data = request.json
+        tenant_id = _get_tenant_id()
+        current_graph = _get_tenant_graph(tenant_id)
+        current_trust_model = _get_tenant_trust_model(tenant_id)
+        verification_evidence_store = _get_tenant_evidence(tenant_id)
         phase = Phase(data.get('phase', 'expand'))
         
         # First compute confidence
@@ -348,6 +405,10 @@ def compute_authority():
     """Compute authority state"""
     try:
         data = request.json
+        tenant_id = _get_tenant_id()
+        current_graph = _get_tenant_graph(tenant_id)
+        current_trust_model = _get_tenant_trust_model(tenant_id)
+        verification_evidence_store = _get_tenant_evidence(tenant_id)
         phase = Phase(data.get('phase', 'expand'))
         gate_satisfaction = data.get('gate_satisfaction', 0.0)
         unknowns = data.get('unknowns', 0)
@@ -406,6 +467,10 @@ def check_phase_transition():
     """Check if phase transition should occur"""
     try:
         data = request.json
+        tenant_id = _get_tenant_id()
+        current_graph = _get_tenant_graph(tenant_id)
+        current_trust_model = _get_tenant_trust_model(tenant_id)
+        verification_evidence_store = _get_tenant_evidence(tenant_id)
         current_phase = Phase(data['current_phase'])
         
         # Compute confidence
@@ -484,6 +549,10 @@ def get_complete_state():
     """Get complete confidence engine state"""
     try:
         data = request.json
+        tenant_id = _get_tenant_id()
+        current_graph = _get_tenant_graph(tenant_id)
+        current_trust_model = _get_tenant_trust_model(tenant_id)
+        verification_evidence_store = _get_tenant_evidence(tenant_id)
         phase = Phase(data.get('phase', 'expand'))
         gate_satisfaction = data.get('gate_satisfaction', 0.0)
         unknowns = data.get('unknowns', 0)
@@ -560,13 +629,12 @@ def health_check():
 @app.route('/api/confidence-engine/reset', methods=['POST'])
 def reset_state():
     """Reset all state (for testing)"""
-    global current_graph, current_trust_model, verification_evidence_store
+    tenant_id = _get_tenant_id()
+    _tenant_graphs[tenant_id] = ArtifactGraph()
+    _tenant_trust_models[tenant_id] = TrustModel()
+    _tenant_evidence[tenant_id] = []
     
-    current_graph = ArtifactGraph()
-    current_trust_model = TrustModel()
-    verification_evidence_store = []
-    
-    logger.info("Reset confidence engine state")
+    logger.info(f"Reset confidence engine state (tenant={tenant_id})")
     
     return jsonify({
         'success': True,

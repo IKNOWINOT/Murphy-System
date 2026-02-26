@@ -210,7 +210,11 @@ class Settings(BaseSettings):
     
     murphy_master_key: Optional[str] = Field(
         default=None,
-        description="Master encryption key for API keys"
+        description=(
+            "Master encryption key for API keys. "
+            "WARNING: Never commit this value to source control or store in plaintext .env files in production. "
+            "Use a secrets manager (AWS Secrets Manager, HashiCorp Vault, etc.) for production deployments."
+        )
     )
     
     encrypted_keys_path: str = Field(
@@ -219,8 +223,8 @@ class Settings(BaseSettings):
     )
     
     cors_origins: str = Field(
-        default="*",
-        description="CORS allowed origins (comma-separated)"
+        default="http://localhost:3000,http://localhost:8080,http://localhost:6666",
+        description="CORS allowed origins (comma-separated). Do NOT use '*' in production."
     )
     
     # ============================================================================

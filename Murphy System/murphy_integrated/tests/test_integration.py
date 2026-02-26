@@ -12,6 +12,7 @@ License: Apache License 2.0
 import sys
 import os
 import pytest
+import asyncio
 from datetime import datetime
 
 # Add src to path
@@ -49,10 +50,10 @@ class TestUnifiedConfidenceEngine:
         report = self.engine.calculate_confidence(task)
         
         assert report is not None
-        assert hasattr(report, 'combined_confidence')
+        assert hasattr(report, 'confidence')
         assert hasattr(report, 'uncertainty_scores')
         assert hasattr(report, 'gate_result')
-        assert 0.0 <= report.combined_confidence <= 1.0
+        assert 0.0 <= report.confidence <= 1.0
     
     def test_should_proceed(self):
         """Test should_proceed decision"""
@@ -90,7 +91,7 @@ class TestUnifiedConfidenceEngine:
         report = self.engine.calculate_confidence(task, context)
         
         assert report is not None
-        assert report.combined_confidence >= 0.0
+        assert report.confidence >= 0.0
 
 
 class TestIntegratedCorrectionSystem:
@@ -103,16 +104,16 @@ class TestIntegratedCorrectionSystem:
     def test_initialization(self):
         """Test system initializes correctly"""
         assert self.system is not None
-        assert self.system.correction_recorder is not None
+        assert self.system.correction_verifier is not None
         assert self.system.pattern_extractor is not None
     
     def test_capture_correction(self):
         """Test correction capture"""
         correction_data = {
-            'correction_type': 'output_error',
+            'correction_type': 'output_modification',
             'original_output': 'Wrong answer',
             'corrected_output': 'Correct answer',
-            'explanation': 'Fixed the error',
+            'explanation': 'Fixed the error in the output',
             'severity': 'medium'
         }
         
@@ -123,13 +124,13 @@ class TestIntegratedCorrectionSystem:
         )
         
         assert correction is not None
-        assert correction.task_id == 'test_task_1'
-        assert correction.correction_type == 'output_error'
+        assert correction.context.task_id == 'test_task_1'
+        assert correction.correction_type.value == 'output_modification'
     
     def test_capture_feedback(self):
         """Test feedback capture"""
         feedback_data = {
-            'feedback_type': 'quality',
+            'feedback_type': 'suggestion',
             'rating': 4,
             'comments': 'Good but could be better'
         }
@@ -165,8 +166,7 @@ class TestIntegratedFormExecutor:
         assert self.executor.form_executor is not None
         assert self.executor.confidence_engine is not None
     
-    @pytest.mark.asyncio
-    async def test_execute_form_task_basic(self):
+    def test_execute_form_task_basic(self):
         """Test basic form task execution"""
         form_data = {
             'task_id': 'test_task_1',
@@ -175,14 +175,13 @@ class TestIntegratedFormExecutor:
             'parameters': {}
         }
         
-        result = await self.executor.execute_form_task(form_data)
+        result = asyncio.run(self.executor.execute_form_task(form_data))
         
         assert result is not None
         assert hasattr(result, 'task_id')
         assert hasattr(result, 'status')
     
-    @pytest.mark.asyncio
-    async def test_execute_with_low_confidence(self):
+    def test_execute_with_low_confidence(self):
         """Test execution rejection with low confidence"""
         form_data = {
             'task_id': 'test_task_2',
@@ -191,7 +190,7 @@ class TestIntegratedFormExecutor:
             'parameters': {'risk_level': 'high'}
         }
         
-        result = await self.executor.execute_form_task(form_data)
+        result = asyncio.run(self.executor.execute_form_task(form_data))
         
         # Should be rejected or executed based on confidence
         assert result is not None
@@ -256,8 +255,7 @@ class TestEndToEndIntegration:
         self.form_executor = IntegratedFormExecutor()
         self.hitl_monitor = IntegratedHITLMonitor()
     
-    @pytest.mark.asyncio
-    async def test_full_task_lifecycle(self):
+    def test_full_task_lifecycle(self):
         """Test complete task lifecycle"""
         # 1. Submit task via form
         form_data = {
@@ -272,17 +270,17 @@ class TestEndToEndIntegration:
         assert confidence_report is not None
         
         # 3. Execute if approved
-        if confidence_report.gate_result.approved:
-            result = await self.form_executor.execute_form_task(form_data)
+        if confidence_report.gate_result.allowed:
+            result = asyncio.run(self.form_executor.execute_form_task(form_data))
             assert result is not None
             
             # 4. Capture correction if needed
-            if result.status.value == 'COMPLETED':
+            if result.status.value == 'completed':
                 correction_data = {
-                    'correction_type': 'improvement',
-                    'original_output': result.output,
+                    'correction_type': 'output_modification',
+                    'original_output': str(result.final_output),
                     'corrected_output': 'Improved output',
-                    'explanation': 'Made it better'
+                    'explanation': 'Made it better for testing purposes'
                 }
                 
                 correction = self.correction_system.capture_correction(

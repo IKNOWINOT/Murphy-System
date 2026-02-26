@@ -11,6 +11,7 @@ from typing import Dict, List, Optional, Set, Union
 from uuid import UUID, uuid4
 import json
 import os
+import tempfile
 
 from dataclasses import dataclass, field
 
@@ -78,7 +79,9 @@ class GovernancePreset:
 class PresetManager:
     """Manages governance presets and configuration"""
     
-    def __init__(self, preset_storage_path: str = "/workspace/governance_presets"):
+    def __init__(self, preset_storage_path: Optional[str] = None):
+        if preset_storage_path is None:
+            preset_storage_path = os.path.join(tempfile.gettempdir(), "governance_presets")
         self.preset_storage_path = preset_storage_path
         self.presets: Dict[str, GovernancePreset] = {}
         self.enabled_presets: Set[str] = set()

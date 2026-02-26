@@ -7,7 +7,6 @@ Provides auxiliary confidence signals to existing Confidence Engine.
 """
 
 from flask import Flask, request, jsonify
-from flask_cors import CORS
 import torch
 import numpy as np
 from typing import Dict, Any, Optional
@@ -18,7 +17,12 @@ from .models import NeuroSymbolicConfidenceModel, load_model, ModelConfig
 
 
 app = Flask(__name__)
-CORS(app)
+try:
+    from flask_security import configure_secure_app
+    configure_secure_app(app, service_name="neuro-symbolic-inference")
+except ImportError:
+    from flask_cors import CORS
+    CORS(app)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
