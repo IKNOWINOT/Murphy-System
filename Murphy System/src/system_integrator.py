@@ -48,6 +48,22 @@ class SystemState:
             "metrics": self.metrics
         }
 
+    def __contains__(self, item):
+        """Support 'in' operator for dict-like field access"""
+        return hasattr(self, item) or item in self.to_dict()
+
+    def get(self, key, default=None):
+        """Dict-like get for compatibility"""
+        if hasattr(self, key):
+            return getattr(self, key)
+        return self.to_dict().get(key, default)
+
+    def __getitem__(self, key):
+        """Dict-like index access"""
+        if hasattr(self, key):
+            return getattr(self, key)
+        return self.to_dict()[key]
+
 
 @dataclass
 class UserRequest:
@@ -79,6 +95,11 @@ class SystemResponse:
     triggers: List[Dict[str, Any]]
     timestamp: str
     
+    @property
+    def response(self) -> str:
+        """Alias for message, for test compatibility"""
+        return self.message
+    
     def to_dict(self) -> Dict:
         return {
             "request_id": self.request_id,
@@ -87,8 +108,13 @@ class SystemResponse:
             "message": self.message,
             "warnings": self.warnings,
             "triggers": self.triggers,
-            "timestamp": self.timestamp
+            "timestamp": self.timestamp,
+            "response": self.message,
         }
+
+    def __contains__(self, item):
+        """Support 'in' operator for dict-like field access"""
+        return hasattr(self, item) or item in self.to_dict()
 
 
 class SystemIntegrator:
@@ -691,6 +717,10 @@ class SystemIntegrator:
             }
         )
     
+    def get_system_state_dict(self) -> Dict[str, Any]:
+        """Get current system state as a dictionary"""
+        return self.get_system_state().to_dict()
+
     def generate_system_report(self) -> Dict[str, Any]:
         """Generate comprehensive system report"""
         report = {

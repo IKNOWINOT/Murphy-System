@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List
 from .utils import fuzzy_prompt
-from modern_arcana.gpt_oss_runner import GPTOSSRunner  # Injected
+from .gpt_oss_runner import GPTOSSRunner  # Injected
 
 class ClarifierBot:
     """Detect vague prompts and ask for clarification."""

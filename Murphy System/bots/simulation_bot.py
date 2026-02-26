@@ -8,7 +8,7 @@ from pathlib import Path
 import json as _json
 
 from .cache_manager import get_cache, set_cache
-from modern_arcana.gpt_oss_runner import GPTOSSRunner
+from .gpt_oss_runner import GPTOSSRunner
 
 LOG_DIR = Path("logs")
 LOG_DIR.mkdir(exist_ok=True)

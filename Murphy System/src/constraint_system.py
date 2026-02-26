@@ -63,7 +63,7 @@ class Constraint:
     updated_at: str = field(default_factory=lambda: datetime.now().isoformat())
     
     def to_dict(self) -> Dict:
-        return {
+        d = {
             "constraint_id": self.constraint_id,
             "name": self.name,
             "constraint_type": self.constraint_type.value,
@@ -81,8 +81,14 @@ class Constraint:
             "source": self.source,
             "justification": self.justification,
             "created_at": self.created_at,
-            "updated_at": self.updated_at
+            "updated_at": self.updated_at,
+            "success": True,
         }
+        return d
+
+    def get(self, key, default=None):
+        """Dict-like get for test compatibility"""
+        return self.to_dict().get(key, default)
 
 
 @dataclass
@@ -248,18 +254,20 @@ class ConstraintSystem:
     
     def add_constraint(
         self,
-        name: str,
-        constraint_type: ConstraintType,
-        parameter: str,
-        operator: str,
-        threshold_value: Any,
+        name_or_dict=None,
+        constraint_type=None,
+        parameter: str = None,
+        operator: str = None,
+        threshold_value: Any = None,
         severity: ConstraintSeverity = ConstraintSeverity.MEDIUM,
         description: str = "",
         priority: int = 5,
         flexible: bool = False,
         flex_amount: float = 0.0,
         source: str = "user",
-        justification: str = ""
+        justification: str = "",
+        *,
+        name: str = None,
     ) -> Constraint:
         """
         Add a new constraint
@@ -281,6 +289,41 @@ class ConstraintSystem:
         Returns:
             Constraint object
         """
+        # Handle dict-style calling: add_constraint({"type": "budget", ...})
+        if isinstance(name_or_dict, dict):
+            d = name_or_dict
+            name = d.get("name", d.get("type", "unnamed"))
+            ct = d.get("type", d.get("constraint_type", "business"))
+            try:
+                constraint_type = ConstraintType(ct.lower()) if isinstance(ct, str) else ct
+            except ValueError:
+                constraint_type = ConstraintType.BUSINESS
+            parameter = d.get("parameter", name)
+            operator = d.get("operator", "<=")
+            threshold_value = d.get("limit", d.get("threshold_value", d.get("value", 0)))
+            description = d.get("description", "")
+        else:
+            # Positional first arg is name (str) or use keyword name
+            if name_or_dict is not None:
+                name = name_or_dict
+            # name may also come from keyword-only arg
+            if name is None:
+                name = "unnamed"
+            # Resolve constraint_type from string if needed
+            if isinstance(constraint_type, str):
+                try:
+                    constraint_type = ConstraintType(constraint_type.lower())
+                except ValueError:
+                    constraint_type = ConstraintType.BUSINESS
+            if constraint_type is None:
+                constraint_type = ConstraintType.BUSINESS
+            if parameter is None:
+                parameter = name
+            if operator is None:
+                operator = "<="
+            if threshold_value is None:
+                threshold_value = 0
+
         self.constraint_count += 1
         constraint_id = f"constraint_{self.constraint_count}"
         

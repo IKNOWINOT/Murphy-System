@@ -720,3 +720,5 @@ if __name__ == "__main__":
     print(f"Total agreements: {report['total_agreements']}")
     print(f"Total drifts: {report['total_drifts']}")
     print(f"Gaps by status: {report['gaps_by_status']}")
+# Alias for backward compatibility
+ContractualAudit = ContractualAuditSystem

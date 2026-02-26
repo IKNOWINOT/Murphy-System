@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List
-from modern_arcana.gpt_oss_runner import call_gpt_oss_instance  # Injected
+from .gpt_oss_runner import call_gpt_oss_instance  # Injected
 
 @dataclass
 class Subtask:

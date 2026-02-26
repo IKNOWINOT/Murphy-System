@@ -71,7 +71,17 @@ try:
         # Shadow Mode
         "ShadowModeController",
         "AuthorizationInterface",
+
+        # Simple wrapper (always available)
+        "TelemetryLearningEngine",
+        "SimpleTelemetryLearningEngine",
     ]
+
+    # Also make the simple wrapper available when full imports succeed
+    from .simple_wrapper import (
+        SimpleTelemetryLearningEngine,
+        TelemetryLearningEngine,
+    )
 except ImportError as e:
     # Fall back to simple wrapper without external dependencies
     import logging

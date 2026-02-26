@@ -6,7 +6,7 @@ import os
 import psutil
 from typing import Dict
 from datetime import datetime
-from modern_arcana.gpt_oss_runner import GPTOSSRunner  # Injected
+from .gpt_oss_runner import GPTOSSRunner  # Injected
 
 from .key_manager_bot import KeyManagerBot
 

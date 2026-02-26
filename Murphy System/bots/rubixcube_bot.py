@@ -8,7 +8,7 @@ from typing import Dict, Any, List
 from collections import Counter
 
 from .rcm_stability_core import RecursiveStabilityEngine
-from modern_arcana.gpt_oss_runner import GPTOSSRunner  # ✅ Injected
+from .gpt_oss_runner import GPTOSSRunner  # ✅ Injected
 
 engine = RecursiveStabilityEngine()
 USAGE_LOG: List[Dict[str, Any]] = []

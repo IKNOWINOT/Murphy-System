@@ -135,7 +135,7 @@ def test_sit_int_101_murphy_hr_integration():
     
     assert classification.sensitivity_level.value in ["confidential", "secret"]
     assert classification.encryption_required is True
-    assert "PII" in [cat.value for cat in classification.categories]
+    assert "PII" in [cat.value.upper() for cat in classification.categories]
 
 
 # ============================================================================

@@ -5,7 +5,7 @@ import json
 import numpy as np
 from typing import Any, Callable, Dict, List
 from statistics import mean
-from modern_arcana.gpt_oss_runner import GPTOSSRunner
+from .gpt_oss_runner import GPTOSSRunner
 
 
 class EngineeringBot:

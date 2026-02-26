@@ -23,8 +23,10 @@ from .confidence_calculator import ConfidenceCalculator
 from .murphy_calculator import MurphyCalculator
 from .authority_mapper import AuthorityMapper
 from .phase_controller import PhaseController
+from .confidence_engine import ConfidenceEngine
 
 __all__ = [
+    'ConfidenceEngine',
     'ArtifactNode',
     'ArtifactGraph',
     'VerificationEvidence',

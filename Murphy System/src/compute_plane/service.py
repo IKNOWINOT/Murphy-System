@@ -92,6 +92,12 @@ class ComputeService:
             normalized_language = request.language.strip().lower()
             if normalized_language != request.language:
                 request = replace(request, language=normalized_language)
+        # Normalize None container fields to empty dicts so downstream code
+        # (validation, metadata.get(), deepcopy) never encounters None.
+        if request.assumptions is None:
+            request = replace(request, assumptions={})
+        if request.metadata is None:
+            request = replace(request, metadata={})
         request_signature = self._request_signature(request)
 
         with self._lock:
@@ -316,12 +322,32 @@ class ComputeService:
             try:
                 result = future.result(timeout=request.timeout)
             except FuturesTimeoutError:
-                future.cancel()
-                result = ComputeResult(
-                    request_id=request.request_id,
-                    status=ComputeStatus.TIMEOUT,
-                    error_message=f"Computation timed out after {request.timeout} seconds"
-                )
+                cancelled = future.cancel()
+                # If the future was successfully cancelled it means the
+                # executor never dispatched it (e.g. threads unavailable).
+                # Fall back to direct, synchronous execution.
+                if cancelled:
+                    try:
+                        fallback_start = time.time()
+                        result = run_computation()
+                        if time.time() - fallback_start > request.timeout:
+                            result = ComputeResult(
+                                request_id=request.request_id,
+                                status=ComputeStatus.TIMEOUT,
+                                error_message=f"Computation timed out after {request.timeout} seconds"
+                            )
+                    except Exception as exc:
+                        result = ComputeResult(
+                            request_id=request.request_id,
+                            status=ComputeStatus.FAIL,
+                            error_message=str(exc),
+                        )
+                else:
+                    result = ComputeResult(
+                        request_id=request.request_id,
+                        status=ComputeStatus.TIMEOUT,
+                        error_message=f"Computation timed out after {request.timeout} seconds"
+                    )
 
             result.execution_time = time.time() - start_time
             

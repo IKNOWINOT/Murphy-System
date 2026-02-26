@@ -395,6 +395,10 @@ Once Murphy is running:
 3. **Read Specification:** [MURPHY_SYSTEM_1.0_SPECIFICATION.md](Murphy%20System/MURPHY_SYSTEM_1.0_SPECIFICATION.md)
 4. **Add Integrations:** Try adding a GitHub repo
 5. **Run Automation:** Test business automation engines
+6. **Launch Automation:** Follow the [Launch Automation Plan](<Murphy System/docs/LAUNCH_AUTOMATION_PLAN.md>) to automate Murphy's own launch
+7. **Operations & Testing:** Use the [Operations, Testing & Iteration Plan](<Murphy System/docs/OPERATIONS_TESTING_PLAN.md>) for systematic verification
+8. **Review Gap Analysis:** See [Gap Analysis](<Murphy System/docs/GAP_ANALYSIS.md>) for what works vs what needs fixing
+9. **Follow Remediation Plan:** See [Remediation Plan](<Murphy System/docs/REMEDIATION_PLAN.md>) for concrete next steps
 
 ---
 
@@ -425,5 +429,5 @@ Everything else (database, Redis, additional integrations) is optional for getti
 ---
 
 **Created:** February 9, 2026  
-**Last Updated:** February 9, 2026  
+**Last Updated:** February 26, 2026  
 **Status:** Ready to use with setup steps above

@@ -24,6 +24,7 @@ class GateType(Enum):
     MONITORING = "monitoring"
     ARCHITECTURAL = "architectural"
     BUSINESS = "business"
+    SAFETY = "safety"
 
 
 class GateSeverity(Enum):
@@ -108,8 +109,13 @@ class DomainGate:
             "risk_reduction": self.risk_reduction,
             "confidence_threshold": self.confidence_threshold,
             "knowledge_references": self.knowledge_references,
-            "metrics": self.metrics
+            "metrics": self.metrics,
+            "gate": self.name,
         }
+
+    def __contains__(self, item):
+        """Support 'in' operator for dict-like field access"""
+        return hasattr(self, item) or item in self.to_dict()
 
 
 class LibrarianKnowledgeBase:
@@ -286,7 +292,7 @@ class DomainGateGenerator:
         self,
         name: str,
         description: str,
-        gate_type: GateType,
+        gate_type: GateType = None,
         severity: GateSeverity = GateSeverity.MEDIUM,
         conditions: List[GateCondition] = None,
         wired_function: Optional[str] = None,
@@ -299,7 +305,7 @@ class DomainGateGenerator:
         Args:
             name: Gate name
             description: Gate description
-            gate_type: Type of gate
+            gate_type: Type of gate (defaults to SAFETY)
             severity: Severity level
             conditions: List of conditions (auto-generated if None)
             wired_function: Name of wired function
@@ -309,6 +315,8 @@ class DomainGateGenerator:
         Returns:
             DomainGate object
         """
+        if gate_type is None:
+            gate_type = GateType.SAFETY
         self.gate_count += 1
         gate_id = f"gate_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{self.gate_count}"
         
@@ -486,6 +494,18 @@ class DomainGateGenerator:
         }
         return signatures.get(function_name, f"{function_name}(data: Any) -> Dict[str, Any]")
     
+    def generate_gates_for_domain(
+        self,
+        domain: str = "software",
+        system_requirements: Dict[str, Any] = None,
+    ) -> List[DomainGate]:
+        """Convenience method: generate gates for a domain."""
+        reqs = system_requirements or {}
+        reqs.setdefault("domain", domain)
+        reqs.setdefault("complexity", "medium")
+        gates, _ = self.generate_gates_for_system(reqs)
+        return gates
+
     def generate_gates_for_system(
         self,
         system_requirements: Dict[str, Any]
@@ -543,7 +563,7 @@ class DomainGateGenerator:
             "total_gates": len(gates),
             "by_type": self._count_gates_by_type(gates),
             "by_severity": self._count_gates_by_severity(gates),
-            "average_risk_reduction": sum(g.risk_reduction for g in gates) / len(gates),
+            "average_risk_reduction": sum(g.risk_reduction for g in gates) / len(gates) if gates else 0.0,
             "gates_with_wired_functions": sum(1 for g in gates if g.wired_function),
             "knowledge_coverage": self._calculate_knowledge_coverage(gates, system_requirements)
         }
