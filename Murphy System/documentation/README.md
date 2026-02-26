@@ -108,9 +108,6 @@ Learn how to perform common operations:
 Understanding the system architecture is essential for effective deployment and customization.
 
 - [Architecture Overview](architecture/ARCHITECTURE_OVERVIEW.md) - High-level system design
-- [System Components](architecture/SYSTEM_COMPONENTS.md) - Detailed component descriptions
-- [Data Flows](architecture/DATA_FLOWS.md) - How data moves through the system
-- [Interfaces](architecture/INTERFACES.md) - System interfaces and protocols
 
 ### Key Architectural Concepts
 
@@ -156,9 +153,6 @@ Where:
 Complete deployment instructions for various environments:
 
 - [Deployment Guide](deployment/DEPLOYMENT_GUIDE.md) - Comprehensive deployment instructions
-- [Configuration](deployment/CONFIGURATION.md) - System configuration options
-- [Scaling](deployment/SCALING.md) - Horizontal and vertical scaling strategies
-- [Maintenance](deployment/MAINTENANCE.md) - Ongoing maintenance procedures
 
 ### Deployment Modes
 
@@ -187,9 +181,6 @@ The system supports multiple deployment modes:
 The Murphy System Runtime is designed to support enterprise-scale organizations with 12-30+ roles and 1000+ employees.
 
 - [Enterprise Overview](enterprise/ENTERPRISE_OVERVIEW.md) - Enterprise capabilities
-- [Scaling Guide](enterprise/SCALING_GUIDE.md) - How to scale the system
-- [Performance](enterprise/PERFORMANCE.md) - Performance characteristics
-- [Enterprise Features](enterprise/ENTERPRISE_FEATURES.md) - Enterprise-specific features
 
 ### Enterprise Capabilities
 
@@ -225,10 +216,6 @@ Detailed documentation for each system component:
 - [Confidence Engine](components/CONFIDENCE_ENGINE.md) - Confidence computation
 - [Telemetry](components/TELEMETRY.md) - System monitoring and metrics
 - [Librarian](components/LIBRARIAN.md) - Knowledge management
-- [Governance](components/GOVERNANCE.md) - Governance framework
-- [Security](components/SECURITY.md) - Security plane integration
-- [Execution Orchestrator](components/EXECUTION_ORCHESTRATOR.md) - Execution management
-- [Module Compiler](components/MODULE_COMPILER.md) - Module compilation
 
 ### Component Integration
 
@@ -249,7 +236,7 @@ Complete API documentation:
 
 - [API Overview](api/API_OVERVIEW.md) - API architecture and design
 - [Endpoints](api/ENDPOINTS.md) - Complete endpoint reference
-- [Examples](api/EXAMPLES.md) - Usage examples
+- [Examples](api/API_EXAMPLES.md) - Usage examples
 - [Authentication](api/AUTHENTICATION.md) - Authentication and authorization
 
 ### Main Endpoints
@@ -297,9 +284,6 @@ curl -X POST http://localhost:8052/api/system/build \
 Comprehensive testing documentation:
 
 - [Test Coverage](testing/TEST_COVERAGE.md) - Complete test coverage analysis
-- [Testing Guide](testing/TESTING_GUIDE.md) - How to run tests
-- [Performance Tests](testing/PERFORMANCE_TESTS.md) - Performance benchmarks
-- [Enterprise Tests](testing/ENTERPRISE_TESTS.md) - Enterprise-scale test results
 
 ### Test Results
 
@@ -339,9 +323,6 @@ Comprehensive testing documentation:
 Common issues and solutions:
 
 - [Troubleshooting Guide](user_guides/TROUBLESHOOTING.md) - Comprehensive troubleshooting
-- [FAQ](reference/FAQ.md) - Frequently asked questions
-- [Terminology](reference/TERMINOLOGY.md) - System terminology
-- [Acronyms](reference/ACRONYMS.md) - Common acronyms
 
 ### Common Issues
 
@@ -370,8 +351,6 @@ Common issues and solutions:
 This project is licensed under the Apache License 2.0.
 
 - [License](legal/LICENSE.md) - Full Apache License 2.0 text
-- [Attribution](legal/ATTRIBUTION.md) - Attribution requirements
-- [Compliance](legal/COMPLIANCE.md) - Compliance information
 
 ### Copyright
 
@@ -387,14 +366,6 @@ For questions about licensing or commercial use:
 ---
 
 ## Reference
-
-### Reference Materials
-
-Additional reference documentation:
-
-- [Terminology](reference/TERMINOLOGY.md) - System terminology
-- [Acronyms](reference/ACRONYMS.md) - Common acronyms
-- [FAQ](reference/FAQ.md) - Frequently asked questions
 
 ### System Status
 
@@ -452,63 +423,34 @@ When reporting issues, please include:
 
 ### User Guides
 - [User Guide](user_guides/USER_GUIDE.md)
-- [API Reference](user_guides/API_REFERENCE.md)
-- [Command Reference](user_guides/COMMAND_REFERENCE.md)
 - [Troubleshooting](user_guides/TROUBLESHOOTING.md)
 - [Contributing](user_guides/CONTRIBUTING.md)
 
 ### Architecture
 - [Architecture Overview](architecture/ARCHITECTURE_OVERVIEW.md)
-- [System Components](architecture/SYSTEM_COMPONENTS.md)
-- [Data Flows](architecture/DATA_FLOWS.md)
-- [Interfaces](architecture/INTERFACES.md)
 
 ### Deployment
 - [Deployment Guide](deployment/DEPLOYMENT_GUIDE.md)
-- [Configuration](deployment/CONFIGURATION.md)
-- [Scaling](deployment/SCALING.md)
-- [Maintenance](deployment/MAINTENANCE.md)
 
 ### Enterprise
 - [Enterprise Overview](enterprise/ENTERPRISE_OVERVIEW.md)
-- [Scaling Guide](enterprise/SCALING_GUIDE.md)
-- [Performance](enterprise/PERFORMANCE.md)
-- [Enterprise Features](enterprise/ENTERPRISE_FEATURES.md)
 
 ### Components
 - [Confidence Engine](components/CONFIDENCE_ENGINE.md)
 - [Telemetry](components/TELEMETRY.md)
 - [Librarian](components/LIBRARIAN.md)
-- [Governance](components/GOVERNANCE.md)
-- [Security](components/SECURITY.md)
-- [Execution Orchestrator](components/EXECUTION_ORCHESTRATOR.md)
-- [Module Compiler](components/MODULE_COMPILER.md)
 
 ### Testing
 - [Test Coverage](testing/TEST_COVERAGE.md)
-- [Testing Guide](testing/TESTING_GUIDE.md)
-- [Performance Tests](testing/PERFORMANCE_TESTS.md)
-- [Enterprise Tests](testing/ENTERPRISE_TESTS.md)
 
 ### API
 - [API Overview](api/API_OVERVIEW.md)
 - [Endpoints](api/ENDPOINTS.md)
-- [Examples](api/EXAMPLES.md)
+- [Examples](api/API_EXAMPLES.md)
 - [Authentication](api/AUTHENTICATION.md)
-
-### Bots
-- [Bot Overview](bots/BOT_OVERVIEW.md)
-- [Bot Directory](bots/BOT_DIRECTORY.md)
 
 ### Legal
 - [License](legal/LICENSE.md)
-- [Attribution](legal/ATTRIBUTION.md)
-- [Compliance](legal/COMPLIANCE.md)
-
-### Reference
-- [Terminology](reference/TERMINOLOGY.md)
-- [Acronyms](reference/ACRONYMS.md)
-- [FAQ](reference/FAQ.md)
 
 ---
 
