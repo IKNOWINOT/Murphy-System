@@ -186,4 +186,4 @@ def create_app(compute_service: ComputeService = None) -> Flask:
 if __name__ == '__main__':
     # Run standalone server
     app = create_app()
-    app.run(host='0.0.0.0', port=8054, debug=True)
+    app.run(host='0.0.0.0', port=8054, debug=os.environ.get('MURPHY_ENV', 'development') == 'development')

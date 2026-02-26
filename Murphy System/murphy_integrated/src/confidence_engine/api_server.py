@@ -6,6 +6,7 @@ REST API for confidence, risk, and authority computation
 from flask import Flask, request, jsonify
 from typing import Dict, Any, List
 import logging
+import os
 import threading
 from datetime import datetime
 
@@ -650,4 +651,4 @@ def reset_state():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8055, debug=True)
+    app.run(host='0.0.0.0', port=8055, debug=os.environ.get('MURPHY_ENV', 'development') == 'development')
