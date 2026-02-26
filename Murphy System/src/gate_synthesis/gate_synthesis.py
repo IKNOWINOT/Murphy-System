@@ -40,4 +40,21 @@ class GateSynthesisEngine:
         return gates
 
 
+    async def generate_gates(self, params: Dict[str, Any] = None) -> List[Dict[str, Any]]:
+        """Async convenience method for generating gates from a params dict."""
+        params = params or {}
+        confidence = params.get("confidence", 0.8)
+        murphy_index = params.get("risk_level_value", 0.2)
+        gates = self.synthesize_gates(confidence=confidence, murphy_index=murphy_index)
+        # Add safety-specific gate if safety_critical
+        if params.get("safety_critical"):
+            gates.append({
+                "gate_id": f"gate_{uuid.uuid4().hex[:8]}",
+                "gate_type": "safety",
+                "blocking": True,
+                "threshold": 0.9,
+            })
+        return gates
+
+
 __all__ = ['GateSynthesisEngine']
