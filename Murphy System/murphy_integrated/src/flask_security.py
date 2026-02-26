@@ -230,15 +230,16 @@ def configure_secure_app(app: Flask, service_name: str = "murphy-api") -> Flask:
         if _is_health_endpoint(request.path):
             return None
         
-        # Rate limiting by client IP
-        client_ip = request.remote_addr or "unknown"
-        rate_result = _rate_limiter.check(client_ip)
-        if not rate_result["allowed"]:
-            logger.warning(f"[{service_name}] Rate limit exceeded for {client_ip}")
-            return jsonify({
-                "error": "Rate limit exceeded",
-                "retry_after_seconds": rate_result.get("retry_after_seconds", 60)
-            }), 429
+        # Rate limiting by client IP (skip in testing mode)
+        if not app.config.get('TESTING'):
+            client_ip = request.remote_addr or "unknown"
+            rate_result = _rate_limiter.check(client_ip)
+            if not rate_result["allowed"]:
+                logger.warning(f"[{service_name}] Rate limit exceeded for {client_ip}")
+                return jsonify({
+                    "error": "Rate limit exceeded",
+                    "retry_after_seconds": rate_result.get("retry_after_seconds", 60)
+                }), 429
         
         # API key authentication
         api_key = _extract_api_key()

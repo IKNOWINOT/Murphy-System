@@ -40,6 +40,14 @@ from .completion import CompletionCertifier
 
 from flask_security import configure_secure_app
 
+# Allowed authority levels for execution packets
+_VALID_AUTHORITY_LEVELS = frozenset({
+    'none', 'low', 'medium', 'standard', 'high', 'full'
+})
+
+# Pattern for safe identifiers (packet_id, interface_id)
+_SAFE_ID_PATTERN = re.compile(r'^[a-zA-Z0-9_\-.:]+$')
+
 
 app = Flask(__name__)
 configure_secure_app(app, service_name="execution-orchestrator")
@@ -105,10 +113,26 @@ def execute_packet():
     }
     """
     data = request.json
+    if not data or not isinstance(data, dict):
+        return jsonify({'error': 'Invalid request body'}), 400
+
     packet = data.get('packet', {})
+    if not isinstance(packet, dict):
+        return jsonify({'error': 'Invalid packet format'}), 400
+
     authority_level = data.get('authority_level', 'standard')
-    
+    if authority_level not in _VALID_AUTHORITY_LEVELS:
+        return jsonify({
+            'error': 'Invalid authority_level',
+            'valid_values': sorted(_VALID_AUTHORITY_LEVELS)
+        }), 400
+
     packet_id = packet.get('packet_id', '')
+    if not packet_id or not _SAFE_ID_PATTERN.match(packet_id):
+        return jsonify({'error': 'Invalid or missing packet_id'}), 400
+    if len(packet_id) > 256:
+        return jsonify({'error': 'packet_id too long'}), 400
+
     expected_signature = packet.get('signature', '')
     
     # Check if already executing
@@ -450,12 +474,20 @@ def get_interfaces():
 def register_interface():
     """Register interface"""
     data = request.json
-    
+    if not data or not isinstance(data, dict):
+        return jsonify({'error': 'Invalid request body'}), 400
+
+    interface_id = data.get('interface_id', '')
+    if not interface_id or not _SAFE_ID_PATTERN.match(interface_id):
+        return jsonify({'error': 'Invalid or missing interface_id'}), 400
+    if len(interface_id) > 256:
+        return jsonify({'error': 'interface_id too long'}), 400
+
     health = InterfaceHealth(
-        interface_id=data.get('interface_id', ''),
-        is_available=data.get('is_available', True),
-        response_time_ms=data.get('response_time_ms', 0.0),
-        error_rate=data.get('error_rate', 0.0),
+        interface_id=interface_id,
+        is_available=bool(data.get('is_available', True)),
+        response_time_ms=float(data.get('response_time_ms', 0.0)),
+        error_rate=float(data.get('error_rate', 0.0)),
         last_check=datetime.now()
     )
     
