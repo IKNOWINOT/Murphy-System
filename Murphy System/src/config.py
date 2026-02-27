@@ -223,7 +223,7 @@ class Settings(BaseSettings):
     )
     
     cors_origins: str = Field(
-        default="http://localhost:3000,http://localhost:8080,http://localhost:6666",
+        default="http://localhost:3000,http://localhost:8080,http://localhost:8000",
         description="CORS allowed origins (comma-separated). Do NOT use '*' in production."
     )
     

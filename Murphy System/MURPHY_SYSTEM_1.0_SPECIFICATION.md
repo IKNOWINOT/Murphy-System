@@ -295,7 +295,7 @@ GET    /api/system/agents              # List agents
 # Core Configuration
 MURPHY_VERSION=1.0.0
 MURPHY_ENV=production
-MURPHY_PORT=6666
+MURPHY_PORT=8000
 
 # Database
 DATABASE_URL=postgresql://user:pass@localhost:5432/murphy
@@ -343,7 +343,7 @@ pip install -r requirements.txt
 # Start Murphy
 python murphy_final_runtime.py
 
-# Access at http://localhost:6666
+# Access at http://localhost:8000
 ```
 
 ### Option 2: Docker
@@ -352,7 +352,7 @@ python murphy_final_runtime.py
 docker build -t murphy:1.0.0 .
 
 # Run container
-docker run -p 6666:6666 murphy:1.0.0
+docker run -p 8000:8000 murphy:1.0.0
 ```
 
 ### Option 3: Docker Compose

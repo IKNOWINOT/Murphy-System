@@ -104,7 +104,7 @@ The Murphy System is **architecturally complete**, **deployment-ready**, and **f
 
 | Layer | Components | Verified By | Status |
 |-------|-----------|-------------|--------|
-| **L1: API Gateway** | FastAPI (port 6666), CORS, rate limiting | Deployment tests | ✅ Complete |
+| **L1: API Gateway** | FastAPI (port 8000), CORS, rate limiting | Deployment tests | ✅ Complete |
 | **L2: Control Planes** | Universal Control Plane (7 engines), Execution Plane | Architecture validation | ✅ Complete |
 | **L3: Core Systems** | Confidence Engine (G/D/H), Form Intake, Execution Engine, Learning Engine, Supervisor | Module inspection | ✅ Complete |
 | **L4: Business Automation** | Sales, Marketing, R&D, Business Mgmt, Production | Commissioning tests | ✅ Complete |
