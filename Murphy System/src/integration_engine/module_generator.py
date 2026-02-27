@@ -149,16 +149,39 @@ class ModuleGenerator:
         
         # Add command methods
         for command in module['commands']:
+            params_str = ", ".join(
+                f'{p["name"]}: {p.get("type", "Any")} = {repr(p.get("default"))}'
+                if "default" in p else f'{p["name"]}: {p.get("type", "Any")}'
+                for p in command.get("parameters", [])
+            )
+            if params_str:
+                params_str = ", " + params_str
             code_lines.extend([
-                f'    def {command["name"]}(self, **kwargs) -> Any:',
+                f'    def {command["name"]}(self{params_str}, **kwargs) -> Any:',
                 f'        """',
                 f'        {command["description"]}',
                 f'        ',
                 f'        Returns:',
                 f'            {command["returns"]}',
                 f'        """',
-                f'        # TODO: Implement {command["name"]}',
-                f'        raise NotImplementedError("Command not yet implemented")',
+                f'        import subprocess, json, logging',
+                f'        logger = logging.getLogger(__name__)',
+                f'        payload = {{"command": "{command["name"]}", "args": kwargs}}',
+                f'        logger.info("Executing %s with %s", "{command["name"]}", payload)',
+                f'        # Delegate to the module entry script when available',
+                f'        entry = getattr(self, "_entry_script", None)',
+                f'        if entry:',
+                f'            try:',
+                f'                result = subprocess.run(',
+                f'                    ["python", str(entry), json.dumps(payload)],',
+                f'                    capture_output=True, text=True, timeout=60,',
+                f'                )',
+                f'                if result.returncode == 0:',
+                f'                    return json.loads(result.stdout) if result.stdout.strip() else {{"status": "ok"}}',
+                f'                logger.warning("{command["name"]} exited %d: %s", result.returncode, result.stderr)',
+                f'            except Exception as exc:',
+                f'                logger.error("{command["name"]} failed: %s", exc)',
+                f'        return {{"status": "not_implemented", "command": "{command["name"]}", "args": kwargs}}',
                 '',
             ])
         
