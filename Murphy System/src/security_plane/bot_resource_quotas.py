@@ -11,7 +11,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 
@@ -142,7 +142,7 @@ class QuotaViolation:
 # Manager
 # ---------------------------------------------------------------------------
 
-_WARNING_THRESHOLD = 0.8  # 80 % of limit triggers a warning
+WARNING_THRESHOLD = 0.8  # 80 % of limit triggers a warning
 
 
 class BotResourceQuotaManager:
@@ -154,7 +154,7 @@ class BotResourceQuotaManager:
         self._bot_usage: Dict[str, BotUsage] = {}
         self._swarm_quotas: Dict[str, SwarmQuota] = {}
         # swarm_id -> set of bot_ids
-        self._swarm_bots: Dict[str, set[str]] = {}
+        self._swarm_bots: Dict[str, Set[str]] = {}
         # bot_id -> swarm_id
         self._bot_swarm: Dict[str, str] = {}
         self._violations: List[QuotaViolation] = []
@@ -243,7 +243,7 @@ class BotResourceQuotaManager:
                     v = self._add_violation(bot_id, swarm_id, vtype, current, limit, "suspended")
                     quota.status = QuotaStatus.SUSPENDED
                     violations.append(v)
-                elif current > limit * _WARNING_THRESHOLD and quota.status == QuotaStatus.ACTIVE:
+                elif current > limit * WARNING_THRESHOLD and quota.status == QuotaStatus.ACTIVE:
                     v = self._add_violation(bot_id, swarm_id, vtype, current, limit, "warned")
                     quota.status = QuotaStatus.WARNING
                     violations.append(v)
