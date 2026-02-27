@@ -18,7 +18,7 @@ import sys
 import threading
 import tracemalloc
 from typing import List
-from datetime import datetime
+from datetime import datetime, timezone
 
 sys.path.insert(0, '/workspace')
 
@@ -110,10 +110,10 @@ def create_test_handoffs(roles: List[OrgChartNode], count: int = 10) -> List[Han
                 consumer_roles=[to_role.role_name],
                 content_hash=f"hash_{i}",
                 metadata={"description": f"Test artifact {i}"},
-                created_at=datetime.utcnow()
+                created_at=datetime.now(timezone.utc)
             ),
             approval_required=i % 2 == 0,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
         handoffs.append(handoff)
     

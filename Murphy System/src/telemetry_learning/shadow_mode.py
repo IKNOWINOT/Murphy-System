@@ -9,7 +9,7 @@ Provides:
 """
 
 from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 import logging
 import json
@@ -122,7 +122,7 @@ class ShadowModeController:
         self.stats["proposals_generated"] += 1
         
         log_entry = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "evolution_id": proposal.evolution_id,
             "gate_id": proposal.gate_id,
             "reason_codes": [rc.value for rc in proposal.reason_codes],
@@ -148,7 +148,7 @@ class ShadowModeController:
     ) -> None:
         """Log an insight/recommendation"""
         log_entry = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "insight_id": insight.insight_id,
             "insight_type": insight.insight_type.value,
             "severity": insight.severity,
@@ -255,7 +255,7 @@ class AuthorizationInterface:
         
         # Log authorization
         log_entry = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "evolution_id": evolution_id,
             "gate_id": proposal.gate_id,
             "status": AuthorizationStatus.APPROVED.value,
@@ -294,7 +294,7 @@ class AuthorizationInterface:
         
         # Log rejection
         log_entry = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "evolution_id": evolution_id,
             "gate_id": proposal.gate_id,
             "status": AuthorizationStatus.REJECTED.value,
@@ -339,7 +339,7 @@ class AuthorizationInterface:
         rollback_state = {
             "evolution_id": evolution_id,
             "gate_id": log_entry["gate_id"],
-            "rollback_timestamp": datetime.utcnow().isoformat(),
+            "rollback_timestamp": datetime.now(timezone.utc).isoformat(),
             "rolled_back_by": rolled_back_by,
             "reason": reason,
         }
@@ -477,7 +477,7 @@ class SafetyEnforcer:
     ) -> None:
         """Block an execution action (telemetry must not execute)"""
         blocked = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "action_type": action_type,
             "reason": reason,
         }
@@ -494,7 +494,7 @@ class SafetyEnforcer:
     ) -> None:
         """Record a safety violation"""
         violation = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "violation_type": violation_type,
             "details": details,
         }

@@ -6,7 +6,7 @@ provenance tracking and integrity verification.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Dict, List, Optional, Any, Literal
 import hashlib
@@ -183,7 +183,7 @@ class TelemetryArtifact:
         provenance: Optional[Dict[str, Any]] = None,
     ) -> "TelemetryArtifact":
         """Create a new telemetry artifact with integrity hash"""
-        timestamp = datetime.utcnow()
+        timestamp = datetime.now(timezone.utc)
         artifact_id = f"telemetry_{domain.value}_{timestamp.timestamp()}_{source_id}"
         
         if provenance is None:
@@ -267,7 +267,7 @@ class GateEvolutionArtifact:
         rollback_state: Dict[str, Any],
     ) -> "GateEvolutionArtifact":
         """Create a new gate evolution record (unauthorized by default)"""
-        timestamp = datetime.utcnow()
+        timestamp = datetime.now(timezone.utc)
         evolution_id = f"gate_evolution_{gate_id}_{timestamp.timestamp()}"
         
         return GateEvolutionArtifact(
@@ -330,7 +330,7 @@ class InsightArtifact:
         confidence: float,
     ) -> "InsightArtifact":
         """Create a new insight artifact"""
-        timestamp = datetime.utcnow()
+        timestamp = datetime.now(timezone.utc)
         insight_id = f"insight_{insight_type.value}_{timestamp.timestamp()}"
         
         return InsightArtifact(
