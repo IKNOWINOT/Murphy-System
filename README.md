@@ -88,7 +88,7 @@ start_murphy_1.0.bat   # Windows
 | Test coverage (dynamic chains) | **100%** |
 | UI + user testing | **85%** |
 | Security hardening ([plan](SECURITY_IMPLEMENTATION_PLAN.md)) | **47%** |
-| **Overall weighted average** | **~93%** |
+| **Overall average** | **~93%** |
 
 ---
 
@@ -171,11 +171,6 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **Worker UI** | `Murphy System/terminal_worker.html` | Delivery worker UI | `python -m http.server 8090`, `?apiPort=6666` |
 | **Legacy UI Redirect** | `Murphy System/murphy_production_ui.html` | Redirects to architect UI; legacy toggle | `murphy_production_ui.html?legacy=true` |
 | **Legacy UI Assets** | `Murphy System/murphy_ui_integrated.html` | Legacy UI assets (scheduled for archive) | Open directly for reference |
-| **Activation Audit** | `Murphy System/ACTIVATION_AUDIT.md` | Inactive subsystem inventory + verification | Review before wiring |
-| **Flow Analysis** | `Murphy System/SYSTEM_FLOW_ANALYSIS.md` | User-scripted flow + gate checklist | Use for screenshot testing |
-| **Capability Gaps** | `Murphy System/CAPABILITY_GAP_SOLUTIONS.md` | Gaps + closure recommendations | Track upgrades |
-| **Full Assessment Plan** | `Murphy System/FULL_SYSTEM_ASSESSMENT.md` | Recalibrated forward execution plan | Update active plan checkpoints here |
-| **Assessment Solutions Log** | `Murphy System/full_system_assessment_solutions.md` | Confirmed completion evidence + iteration history | Append confirmed outcomes here |
 | **Screenshot Assets** | `docs/screenshots/` | UI verification images for capability grading | Referenced in `VISUAL_SETUP_GUIDE_WITH_SCREENSHOTS.md` |
 | **Tests** | `Murphy System/tests/` | Dynamic chain, gate, and capability tests | `python -m pytest` |
 
@@ -238,11 +233,7 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **UI Testing Framework** | `src/ui_testing_framework.py` | 12 testing capabilities: visual regression, interactive components, E2E, performance, cross-browser, mobile gestures, dark mode, security, i18n |
 | **Security Hardening Config** | `src/security_hardening_config.py` | Input sanitization (XSS/SQLi/path traversal), CORS lockdown, token-bucket rate limiting, CSP headers, API key rotation, audit logging, session security (MFA, concurrent limits) |
 
-**Progress tracking:** update the forward plan in
-`Murphy System/FULL_SYSTEM_ASSESSMENT.md` and append confirmed completion evidence in
-`Murphy System/full_system_assessment_solutions.md`.
-Track unresolved architecture/governance decisions in `Murphy System/RFI.MD` (decision ledger: OPEN/ANSWERED/IMPLEMENTED).  
-Current state: `RFI-001`..`RFI-015` all resolved. No open RFI items remain.
+**Progress tracking:** Security enhancements are tracked in [SECURITY_IMPLEMENTATION_PLAN.md](SECURITY_IMPLEMENTATION_PLAN.md). All RFI items (`RFI-001`..`RFI-015`) have been resolved.
 
 ---
 
