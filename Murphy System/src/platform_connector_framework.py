@@ -791,6 +791,36 @@ DEFAULT_PLATFORMS = [
         base_url="https://api.cloudflare.com/client/v4",
         capabilities=["list_zones", "purge_cache", "create_worker", "manage_dns", "webhook"],
     ),
+    # ---- Calendar ----
+    ConnectorDefinition(
+        connector_id="google_calendar",
+        name="Google Calendar",
+        category=ConnectorCategory.CUSTOM,
+        platform="google_calendar",
+        auth_type=AuthType.OAUTH2,
+        base_url="https://www.googleapis.com/calendar/v3",
+        capabilities=["list_events", "create_event", "update_event", "delete_event", "webhook"],
+    ),
+    # ---- Storage ----
+    ConnectorDefinition(
+        connector_id="google_drive",
+        name="Google Drive",
+        category=ConnectorCategory.CUSTOM,
+        platform="google_drive",
+        auth_type=AuthType.OAUTH2,
+        base_url="https://www.googleapis.com/drive/v3",
+        capabilities=["list_files", "upload_file", "create_folder", "share_file", "webhook"],
+    ),
+    # ---- Social ----
+    ConnectorDefinition(
+        connector_id="product_hunt",
+        name="Product Hunt",
+        category=ConnectorCategory.CUSTOM,
+        platform="product_hunt",
+        auth_type=AuthType.TOKEN,
+        base_url="https://api.producthunt.com/v2/api/graphql",
+        capabilities=["get_posts", "create_post", "search"],
+    ),
 ]
 
 
