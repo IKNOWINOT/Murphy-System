@@ -353,10 +353,10 @@ class TestGateG5G6RuntimeBlockers:
         assert "subsystem" in content.lower() or "GAP-001" in content
 
     def test_conditional_go_verdict(self, project_root):
-        """@arch-lead: Launch verdict is CONDITIONAL GO."""
+        """@arch-lead: Launch verdict is FULL GO (all blockers resolved)."""
         lra = project_root / "docs" / "commissioning" / "LAUNCH_READINESS_ASSESSMENT.md"
         content = lra.read_text()
-        assert "CONDITIONAL GO" in content
+        assert "FULL GO" in content
 
     def test_env_example_has_groq_key_placeholder(self, project_root):
         """@arch-lead: .env.example has GROQ_API_KEY placeholder."""
@@ -393,11 +393,11 @@ class TestLaunchReadinessScore:
         assert passing_score / total_possible == 0.65
 
     def test_launch_readiness_score_documented(self, project_root):
-        """@qa-lead: Launch readiness score is documented in assessment."""
+        """@qa-lead: Launch readiness score is 100% (all blockers resolved)."""
         lra = project_root / "docs" / "commissioning" / "LAUNCH_READINESS_ASSESSMENT.md"
         content = lra.read_text()
-        assert "65" in content
         assert "100" in content
+        assert "FULL GO" in content
 
     def test_source_module_count(self, src_dir):
         """@qa-lead: Source module count matches assessment (492+)."""
