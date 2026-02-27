@@ -251,6 +251,7 @@ class TestPhase3NormalizationRules(unittest.TestCase):
                 "data": {"id": "abc-123", "properties": {"title": "Test Page"}},
             },
         )
+        self.assertEqual(event.status, WebhookStatus.PROCESSED)
         self.assertEqual(event.normalized_event_type, "page_updated")
         self.assertEqual(event.normalized_payload.get("page_id"), "abc-123")
 
@@ -349,6 +350,7 @@ class TestPhase3NormalizationRules(unittest.TestCase):
                 "channelId": "general",
             },
         )
+        self.assertEqual(event.status, WebhookStatus.PROCESSED)
         self.assertEqual(event.normalized_event_type, "chat_message")
         self.assertEqual(event.normalized_payload.get("content"), "Hello from Teams")
 
