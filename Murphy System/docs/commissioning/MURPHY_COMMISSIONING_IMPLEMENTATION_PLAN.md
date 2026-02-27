@@ -11,7 +11,7 @@
 
 ## Executive Summary
 
-This document is the **actionable implementation plan** derived from the recommendations in `MURPHY_COMMISSIONING_TEST_PLAN.md`. It scopes each phase to the current Murphy System 1.0 architecture, assigns ownership labels from a team of software designers, and provides a completion percentage for every deliverable.
+This document is the **actionable implementation plan** derived from the commissioning test recommendations. It scopes each phase to the current Murphy System 1.0 architecture, assigns ownership labels from a team of software designers, and provides a completion percentage for every deliverable.
 
 The plan follows a phased approach aligned with the commissioning test plan's five phases, prioritized by impact and feasibility against the existing codebase (297 test files, 150+ source modules, dual-plane architecture).
 

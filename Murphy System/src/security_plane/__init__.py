@@ -85,6 +85,49 @@ from .authentication import (
     IntentConfirmation
 )
 
+# Import security enhancements
+from .authorization_enhancer import (
+    AuthorizationEnhancer,
+    AuthorizationRequest,
+    AuthorizationDecision,
+    SessionContext,
+    OwnershipVerificationResult,
+)
+from .log_sanitizer import LogSanitizer, PIIType, PIIPattern, SanitizationResult
+from .bot_resource_quotas import (
+    BotResourceQuotaManager,
+    BotQuota,
+    BotUsage,
+    SwarmQuota,
+    QuotaViolation,
+    QuotaStatus,
+    ViolationType,
+)
+from .swarm_communication_monitor import (
+    SwarmCommunicationMonitor,
+    SwarmMessage,
+    CommunicationIncident,
+    CommunicationAlert,
+)
+from .bot_identity_verifier import (
+    BotIdentityVerifier,
+    BotIdentity,
+    SignedMessage,
+    IdentityStatus,
+)
+from .bot_anomaly_detector import (
+    BotAnomalyDetector,
+    AnomalyAlert,
+)
+from .security_dashboard import (
+    SecurityDashboard,
+    SecurityEvent,
+    SecurityEventType,
+    EscalationLevel,
+    CorrelatedEventGroup,
+    SecurityReport,
+)
+
 __all__ = [
     # Schemas
     "TrustScore",
@@ -129,4 +172,38 @@ __all__ = [
     "AuthenticationSession",
     "ContextualVerification",
     "IntentConfirmation",
+
+    # Security Enhancements
+    "AuthorizationEnhancer",
+    "AuthorizationRequest",
+    "AuthorizationDecision",
+    "SessionContext",
+    "OwnershipVerificationResult",
+    "LogSanitizer",
+    "PIIType",
+    "PIIPattern",
+    "SanitizationResult",
+    "BotResourceQuotaManager",
+    "BotQuota",
+    "BotUsage",
+    "SwarmQuota",
+    "QuotaViolation",
+    "QuotaStatus",
+    "ViolationType",
+    "SwarmCommunicationMonitor",
+    "SwarmMessage",
+    "CommunicationIncident",
+    "CommunicationAlert",
+    "BotIdentityVerifier",
+    "BotIdentity",
+    "SignedMessage",
+    "IdentityStatus",
+    "BotAnomalyDetector",
+    "AnomalyAlert",
+    "SecurityDashboard",
+    "SecurityEvent",
+    "SecurityEventType",
+    "EscalationLevel",
+    "CorrelatedEventGroup",
+    "SecurityReport",
 ]
