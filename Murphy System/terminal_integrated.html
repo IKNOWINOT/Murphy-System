@@ -198,16 +198,20 @@
         </div>
         
         <div class="terminal-output" id="output">
-            <div class="output-line output-info">
-╔════════════════════════════════════════════════════════════╗
-║  Murphy System Runtime - Integrated Terminal v2.0          ║
-║  Form-Driven Execution | Murphy Validation | Learning      ║
-╚════════════════════════════════════════════════════════════╝
+            <div class="output-line output-info" style="white-space:pre; line-height:1.2;">
+    ☠  ╔══════════════════════════════════════════════════════════╗  ☠
+   ╱╲  ║                                                          ║  ╱╲
+  ╱  ╲ ║    💀  M U R P H Y   S Y S T E M   v 2 . 0  💀         ║ ╱  ╲
+ ╱ ◉◉ ╲║    ──────────────────────────────────────────            ║╱ ◉◉ ╲
+ ╲ ╰╯ ╱║    No-Code Automation · Natural Language Control         ║╲ ╰╯ ╱
+  ╲▓▓╱ ║    Form-Driven Execution · Murphy Validation · Learning  ║ ╲▓▓╱
+   ╲╱  ║                                                          ║  ╲╱
+    ☠  ╚══════════════════════════════════════════════════════════╝  ☠
             </div>
             <div class="output-line output-success">
 System initializing...
-Type 'help' for available commands
-Type 'api' to see new integrated endpoints
+Type anything in plain English — Murphy interprets your intent.
+Type 'help' for all commands · Type 'api' for endpoint reference
             </div>
         </div>
         
@@ -413,146 +417,146 @@ Type 'api' to see new integrated endpoints
                     document.getElementById('output').innerHTML = '';
                     break;
                 default:
-                    addOutput('Unknown command: ' + cmd + '. Type "help" for available commands.', 'error');
+                    // ── No-Code Natural Language Routing ──
+                    // Anything that isn't a recognized keyword command is treated
+                    // as a plain-English request.  Murphy interprets the intent,
+                    // checks confidence, and asks follow-up questions if needed.
+                    await handleNaturalLanguage(command);
             }
         }
         
         function showHelp() {
-            addOutput('=== Murphy System Integrated Commands ===', 'info');
             addOutput('');
-            addOutput('SYSTEM COMMANDS:', 'info');
-            addOutput('  help              - Show this help message');
-            addOutput('  api               - Show available API endpoints');
-            addOutput('  status            - Show system status and components');
-            addOutput('  health            - Show system health check');
-            addOutput('  modules           - List all loaded modules');
-            addOutput('  diagnostics       - Show activation diagnostics');
-            addOutput('  clear             - Clear terminal output');
+            addOutput('☠ ═══════════════════════════════════════════════════════ ☠', 'info');
+            addOutput('💀  M U R P H Y   S Y S T E M — Command Reference  💀', 'info');
+            addOutput('☠ ═══════════════════════════════════════════════════════ ☠', 'info');
             addOutput('');
-            addOutput('TASK EXECUTION:', 'info');
-            addOutput('  execute           - Execute a task directly');
-            addOutput('                      Example: execute {"task_description":"Analyze data","task_type":"analysis"}');
-            addOutput('  submit            - Submit a task via form validation');
-            addOutput('                      Example: submit {"task_type":"analysis","description":"Analyze data"}');
-            addOutput('  validate          - Validate a task without executing');
-            addOutput('                      Example: validate {"task_type":"general","description":"Test"}');
+            addOutput('┌─── NO-CODE INPUT ──────────────────────────────────────┐', 'info');
+            addOutput('│  Just type plain English. Murphy interprets your       │', 'info');
+            addOutput('│  intent, checks confidence, and asks follow-up         │', 'info');
+            addOutput('│  questions when it needs more information.             │', 'info');
+            addOutput('│  Example: "Generate a sales report for Q4"            │', 'info');
+            addOutput('└────────────────────────────────────────────────────────┘', 'info');
             addOutput('');
-            addOutput('BLOCK COMMANDS:', 'info');
-            addOutput('  magnify           - Magnify current block command tree');
-            addOutput('                      Example: magnify automation');
-            addOutput('  simplify          - Simplify current block command tree');
-            addOutput('  solidify          - Solidify current block command tree');
-            addOutput('  blocks            - Show current block command tree');
+            addOutput('💀 SYSTEM', 'info');
+            addOutput('  help              Show this reference');
+            addOutput('  api               List API endpoints');
+            addOutput('  status            System status & components');
+            addOutput('  health            Health check');
+            addOutput('  modules           Loaded modules');
+            addOutput('  diagnostics       Activation diagnostics');
+            addOutput('  clear             Clear output');
             addOutput('');
-            addOutput('PLAN MANAGEMENT:', 'info');
-            addOutput('  plan upload       - Upload a pre-existing plan');
-            addOutput('                      Example: plan upload {"plan_name":"Q4","steps":["step1","step2"]}');
-            addOutput('  plan generate     - Generate a plan from description');
-            addOutput('                      Example: plan generate {"description":"Launch marketing campaign"}');
+            addOutput('💀 TASK EXECUTION', 'info');
+            addOutput('  execute <JSON>    Execute task  (e.g. execute {"task_description":"…"})');
+            addOutput('  submit  <JSON>    Submit via form validation');
+            addOutput('  validate <JSON>   Validate without executing');
             addOutput('');
-            addOutput('LEARNING & CORRECTIONS:', 'info');
-            addOutput('  correct           - Submit a correction');
-            addOutput('                      Example: correct {"task_id":"123","correction_type":"output_error"}');
-            addOutput('  patterns          - Show extracted correction patterns');
-            addOutput('  stats             - Show correction statistics');
-            addOutput('  training          - Show shadow agent training data');
+            addOutput('💀 PLAN MANAGEMENT', 'info');
+            addOutput('  plan upload <JSON>    Upload a plan');
+            addOutput('  plan generate <JSON>  Generate plan from description');
             addOutput('');
-            addOutput('HUMAN-IN-THE-LOOP:', 'info');
-            addOutput('  interventions     - Show pending intervention requests');
-            addOutput('  respond           - Respond to an intervention');
-            addOutput('                      Example: respond {"id":"abc-123","status":"resolved","response":"Approved"}');
-            addOutput('  hitlstats         - Show HITL statistics');
+            addOutput('💀 BLOCK COMMANDS', 'info');
+            addOutput('  magnify <focus>   Magnify block tree');
+            addOutput('  simplify          Simplify block tree');
+            addOutput('  solidify          Solidify block tree');
+            addOutput('  blocks            Show block tree');
             addOutput('');
-            addOutput('INTEGRATIONS:', 'info');
-            addOutput('  integrations      - List integrations (optionally by status)');
-            addOutput('                      Example: integrations pending');
-            addOutput('  integrate         - Add a new integration');
-            addOutput('                      Example: integrate {"source":"github.com/repo","integration_type":"repository"}');
-            addOutput('  approve           - Approve a pending integration');
-            addOutput('                      Example: approve <request_id>');
-            addOutput('  reject            - Reject a pending integration');
-            addOutput('                      Example: reject <request_id> <reason>');
-            addOutput('  services          - List universal integration services');
+            addOutput('💀 LEARNING & CORRECTIONS', 'info');
+            addOutput('  correct <JSON>    Submit correction');
+            addOutput('  patterns          Show correction patterns');
+            addOutput('  stats             Correction statistics');
+            addOutput('  training          Shadow agent training data');
             addOutput('');
-            addOutput('AUTOMATION:', 'info');
-            addOutput('  automate          - Run a business automation engine');
-            addOutput('                      Example: automate {"engine":"content","action":"generate","parameters":{}}');
+            addOutput('💀 HUMAN-IN-THE-LOOP (HITL)', 'info');
+            addOutput('  interventions     Pending interventions');
+            addOutput('  respond <JSON>    Respond to intervention');
+            addOutput('  hitlstats         HITL statistics');
             addOutput('');
-            addOutput('NO-CODE ONBOARDING:', 'info');
-            addOutput('  onboarding status    - Show onboarding engine status');
-            addOutput('  onboarding wizard    - Show setup wizard questions');
-            addOutput('  onboarding list      - List employee onboarding profiles');
-            addOutput('  onboarding create    - Create a new employee onboarding');
-            addOutput('                         Example: onboarding create {"employee_name":"Alice","role":"dev","department":"engineering"}');
+            addOutput('💀 INTEGRATIONS', 'info');
+            addOutput('  integrations [status]  List integrations');
+            addOutput('  integrate <JSON>       Add integration');
+            addOutput('  approve <id>           Approve integration');
+            addOutput('  reject <id> [reason]   Reject integration');
+            addOutput('  services               Universal integration services');
             addOutput('');
-            addOutput('For detailed API documentation, see API_DOCUMENTATION.md', 'info');
+            addOutput('💀 AUTOMATION', 'info');
+            addOutput('  automate <JSON>   Run business automation engine');
+            addOutput('');
+            addOutput('💀 NO-CODE ONBOARDING', 'info');
+            addOutput('  onboarding status    Engine status');
+            addOutput('  onboarding wizard    Setup wizard questions');
+            addOutput('  onboarding list      Employee profiles');
+            addOutput('  onboarding create    New employee onboarding');
+            addOutput('');
+            addOutput('☠ ═══════════════════════════════════════════════════════ ☠', 'info');
         }
         
         function showAPIEndpoints() {
-            addOutput('=== Integrated API Endpoints ===', 'info');
             addOutput('');
-            addOutput('SYSTEM ENDPOINTS:', 'info');
-            addOutput('  GET  /api/health                     - Health check');
-            addOutput('  GET  /api/status                     - System status');
-            addOutput('  GET  /api/system/info                - System information');
-            addOutput('  GET  /api/modules                    - List loaded modules');
-            addOutput('  GET  /api/diagnostics/activation     - Activation diagnostics');
+            addOutput('☠ ═══════════════════════════════════════════════════════ ☠', 'info');
+            addOutput('💀  M U R P H Y   A P I   E N D P O I N T S  💀', 'info');
+            addOutput('☠ ═══════════════════════════════════════════════════════ ☠', 'info');
             addOutput('');
-            addOutput('TASK EXECUTION:', 'info');
-            addOutput('  POST /api/execute                    - Execute a task directly');
-            addOutput('  POST /api/forms/task-execution       - Execute task with Murphy validation');
-            addOutput('  POST /api/forms/validation           - Validate task without executing');
+            addOutput('💀 SYSTEM', 'info');
+            addOutput('  GET  /api/health                     Health check');
+            addOutput('  GET  /api/status                     System status');
+            addOutput('  GET  /api/system/info                System information');
+            addOutput('  GET  /api/modules                    Loaded modules');
+            addOutput('  GET  /api/diagnostics/activation     Activation diagnostics');
             addOutput('');
-            addOutput('PLAN MANAGEMENT:', 'info');
-            addOutput('  POST /api/forms/plan-upload          - Upload pre-existing plan');
-            addOutput('  POST /api/forms/plan-generation      - Generate plan from description');
-            addOutput('  GET  /api/forms/submission/<id>      - Get submission status');
+            addOutput('💀 TASK EXECUTION', 'info');
+            addOutput('  POST /api/execute                    Execute task (accepts natural language)');
+            addOutput('  POST /api/forms/task-execution       Execute via Murphy validation');
+            addOutput('  POST /api/forms/validation           Validate without executing');
             addOutput('');
-            addOutput('DOCUMENT ENDPOINTS:', 'info');
-            addOutput('  POST /api/documents/<id>/magnify     - Magnify block command tree');
-            addOutput('  POST /api/documents/<id>/simplify    - Simplify block command tree');
-            addOutput('  POST /api/documents/<id>/solidify    - Solidify block command tree');
-            addOutput('  GET  /api/documents/<id>/blocks      - Fetch block command tree');
+            addOutput('💀 PLAN MANAGEMENT', 'info');
+            addOutput('  POST /api/forms/plan-upload          Upload plan');
+            addOutput('  POST /api/forms/plan-generation      Generate plan from description');
+            addOutput('  GET  /api/forms/submission/<id>      Submission status');
             addOutput('');
-            addOutput('CORRECTION ENDPOINTS:', 'info');
-            addOutput('  POST /api/forms/correction           - Submit correction');
-            addOutput('  GET  /api/corrections/patterns       - Get extracted patterns');
-            addOutput('  GET  /api/corrections/statistics     - Get correction statistics');
-            addOutput('  GET  /api/corrections/training-data  - Get shadow agent training data');
+            addOutput('💀 DOCUMENTS', 'info');
+            addOutput('  POST /api/documents/<id>/magnify     Magnify block tree');
+            addOutput('  POST /api/documents/<id>/simplify    Simplify block tree');
+            addOutput('  POST /api/documents/<id>/solidify    Solidify block tree');
+            addOutput('  GET  /api/documents/<id>/blocks      Fetch block tree');
             addOutput('');
-            addOutput('HITL ENDPOINTS:', 'info');
-            addOutput('  GET  /api/hitl/interventions/pending       - Get pending interventions');
-            addOutput('  POST /api/hitl/interventions/<id>/respond  - Respond to intervention');
-            addOutput('  GET  /api/hitl/statistics                  - Get HITL statistics');
+            addOutput('💀 CORRECTIONS', 'info');
+            addOutput('  POST /api/forms/correction           Submit correction');
+            addOutput('  GET  /api/corrections/patterns       Extracted patterns');
+            addOutput('  GET  /api/corrections/statistics     Correction stats');
+            addOutput('  GET  /api/corrections/training-data  Shadow agent training');
             addOutput('');
-            addOutput('INTEGRATION ENDPOINTS:', 'info');
-            addOutput('  GET  /api/integrations/<status>            - List integrations by status');
-            addOutput('  POST /api/integrations/add                 - Add a new integration');
-            addOutput('  POST /api/integrations/<id>/approve        - Approve integration');
-            addOutput('  POST /api/integrations/<id>/reject         - Reject integration');
+            addOutput('💀 HITL', 'info');
+            addOutput('  GET  /api/hitl/interventions/pending       Pending interventions');
+            addOutput('  POST /api/hitl/interventions/<id>/respond  Respond');
+            addOutput('  GET  /api/hitl/statistics                  HITL stats');
             addOutput('');
-            addOutput('UNIVERSAL INTEGRATION ENDPOINTS:', 'info');
-            addOutput('  GET  /api/universal-integrations/services  - List available services');
+            addOutput('💀 INTEGRATIONS', 'info');
+            addOutput('  GET  /api/integrations/<status>            List by status');
+            addOutput('  POST /api/integrations/add                 Add integration');
+            addOutput('  POST /api/integrations/<id>/approve        Approve');
+            addOutput('  POST /api/integrations/<id>/reject         Reject');
+            addOutput('  GET  /api/universal-integrations/services  Available services');
             addOutput('');
-            addOutput('AUTOMATION ENDPOINTS:', 'info');
-            addOutput('  POST /api/automation/<engine>/<action>     - Run automation engine');
+            addOutput('💀 AUTOMATION', 'info');
+            addOutput('  POST /api/automation/<engine>/<action>     Run engine');
             addOutput('');
-            addOutput('NO-CODE ONBOARDING ENDPOINTS:', 'info');
-            addOutput('  GET  /api/onboarding/wizard/questions      - Get setup wizard questions');
-            addOutput('  POST /api/onboarding/wizard/answer         - Submit a wizard answer');
-            addOutput('  GET  /api/onboarding/wizard/profile        - Get current wizard profile');
-            addOutput('  POST /api/onboarding/wizard/validate       - Validate wizard profile');
-            addOutput('  POST /api/onboarding/wizard/generate-config - Generate final config');
-            addOutput('  GET  /api/onboarding/wizard/summary        - Get config summary');
-            addOutput('  POST /api/onboarding/wizard/reset          - Reset wizard');
-            addOutput('  POST /api/onboarding/employees             - Create employee onboarding');
-            addOutput('  GET  /api/onboarding/employees             - List employee profiles');
-            addOutput('  GET  /api/onboarding/employees/<id>        - Get profile details');
-            addOutput('  POST /api/onboarding/employees/<id>/tasks/<tid>/complete - Complete task');
-            addOutput('  POST /api/onboarding/employees/<id>/tasks/<tid>/skip    - Skip task');
-            addOutput('  GET  /api/onboarding/status                - Get engine status');
+            addOutput('💀 NO-CODE ONBOARDING', 'info');
+            addOutput('  GET  /api/onboarding/wizard/questions      Wizard questions');
+            addOutput('  POST /api/onboarding/wizard/answer         Submit answer');
+            addOutput('  GET  /api/onboarding/wizard/profile        Current profile');
+            addOutput('  POST /api/onboarding/wizard/validate       Validate profile');
+            addOutput('  POST /api/onboarding/wizard/generate-config Generate config');
+            addOutput('  GET  /api/onboarding/wizard/summary        Summary');
+            addOutput('  POST /api/onboarding/wizard/reset          Reset wizard');
+            addOutput('  POST /api/onboarding/employees             Create onboarding');
+            addOutput('  GET  /api/onboarding/employees             List profiles');
+            addOutput('  GET  /api/onboarding/employees/<id>        Profile details');
+            addOutput('  GET  /api/onboarding/status                Engine status');
             addOutput('');
-            addOutput('Base URL: ' + API_BASE, 'success');
+            addOutput('☠ Base URL: ' + API_BASE, 'success');
+            addOutput('');
         }
         
         async function showSystemStatus() {
@@ -1410,6 +1414,85 @@ Type 'api' to see new integrated endpoints
             
             barContainer.appendChild(bar);
             output.appendChild(barContainer);
+        }
+
+        // ── No-Code Natural Language Handler ──
+        // Sends plain-English input to /api/execute as a task description.
+        // Displays confidence, follow-up questions, and results.
+        async function handleNaturalLanguage(userInput) {
+            addOutput('💀 Interpreting: "' + userInput + '"', 'info');
+            addOutput('   Routing through Murphy Confidence Engine...', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE}/execute`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        task_description: userInput,
+                        task_type: 'natural_language',
+                        parameters: { source: 'terminal_nocode', raw_input: userInput }
+                    })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    // Show confidence score
+                    if (result.confidence_report) {
+                        const conf = result.confidence_report.combined_confidence;
+                        if (typeof conf === 'number' && !isNaN(conf)) {
+                            addOutput('☠ Confidence: ' + (conf * 100).toFixed(1) + '%', 'success');
+                            showConfidenceBar(conf);
+
+                            if (conf < 0.6) {
+                                addOutput('', '');
+                                addOutput('⚠ Low confidence — Murphy needs more information.', 'warning');
+                                addOutput('   Please provide additional details to raise confidence:', 'warning');
+                                showFollowUpQuestions(result, userInput);
+                                return;
+                            }
+                        }
+                    }
+                    // Display result
+                    addOutput('✓ Task processed successfully', 'success');
+                    if (result.task_id) addOutput('  Task ID: ' + result.task_id, 'success');
+                    if (result.result) {
+                        addOutput('  Result:', 'info');
+                        addOutput(JSON.stringify(result.result, null, 2), 'json');
+                    }
+                    if (result.output) {
+                        addOutput('  Output:', 'info');
+                        addOutput(JSON.stringify(result.output, null, 2), 'json');
+                    }
+                } else {
+                    addOutput('☠ Murphy could not process: ' + (result.error || result.reason || 'Unknown error'), 'error');
+                    addOutput('   Try rephrasing or type "help" for command reference.', 'info');
+                }
+            } catch (error) {
+                addOutput('☠ Connection error: ' + error.message, 'error');
+                addOutput('   Ensure the Murphy runtime is running (start_murphy_1.0.sh)', 'info');
+            }
+        }
+
+        function showFollowUpQuestions(result, originalInput) {
+            const questions = [];
+            // Derive follow-up questions from the result context
+            if (result.activation_preview) {
+                const preview = result.activation_preview;
+                if (preview.gaps && preview.gaps.length > 0) {
+                    preview.gaps.forEach(function(gap) {
+                        questions.push('  → ' + (gap.description || gap));
+                    });
+                }
+            }
+            if (questions.length === 0) {
+                // Generic confidence-raising questions
+                questions.push('  → What specific outcome do you expect?');
+                questions.push('  → Which department or domain does this apply to?');
+                questions.push('  → Are there constraints (budget, timeline, tools)?');
+            }
+            questions.forEach(function(q) { addOutput(q, 'warning'); });
+            addOutput('', '');
+            addOutput('Refine your request with more detail, then press Enter.', 'info');
         }
         
         function addOutput(text, type = '') {
