@@ -318,7 +318,7 @@ Type 'api' to see new integrated endpoints
             const cmd = parts[0].toLowerCase();
             const args = parts.slice(1).join(' ');
             
-            if (!systemOnline && cmd !== 'help' && cmd !== 'api' && cmd !== 'clear') {
+            if (!systemOnline && !['help', 'api', 'clear'].includes(cmd)) {
                 addOutput('✗ Backend offline. Start murphy_system_1.0_runtime.py first.', 'error');
                 return;
             }
@@ -583,8 +583,10 @@ Type 'api' to see new integrated endpoints
                     
                     if (result.confidence_report) {
                         const conf = result.confidence_report.combined_confidence;
-                        addOutput('Confidence: ' + (conf * 100).toFixed(1) + '%', 'success');
-                        showConfidenceBar(conf);
+                        if (typeof conf === 'number' && !isNaN(conf)) {
+                            addOutput('Confidence: ' + (conf * 100).toFixed(1) + '%', 'success');
+                            showConfidenceBar(conf);
+                        }
                     }
                     
                     if (result.output) {
@@ -602,7 +604,9 @@ Type 'api' to see new integrated endpoints
                     addOutput('✗ Task rejected: ' + (result.reason || result.error), 'error');
                     if (result.confidence_report) {
                         const conf = result.confidence_report.combined_confidence;
-                        addOutput('Confidence: ' + (conf * 100).toFixed(1) + '% (too low)', 'warning');
+                        if (typeof conf === 'number' && !isNaN(conf)) {
+                            addOutput('Confidence: ' + (conf * 100).toFixed(1) + '% (too low)', 'warning');
+                        }
                     }
                 }
             } catch (error) {
@@ -1007,8 +1011,10 @@ Type 'api' to see new integrated endpoints
                     }
                     if (result.confidence_report) {
                         const conf = result.confidence_report.combined_confidence;
-                        addOutput('Confidence: ' + (conf * 100).toFixed(1) + '%', 'success');
-                        showConfidenceBar(conf);
+                        if (typeof conf === 'number' && !isNaN(conf)) {
+                            addOutput('Confidence: ' + (conf * 100).toFixed(1) + '%', 'success');
+                            showConfidenceBar(conf);
+                        }
                     }
                 } else {
                     addOutput('✗ Execution failed: ' + (result.error || result.reason || 'Unknown error'), 'error');
@@ -1197,7 +1203,7 @@ Type 'api' to see new integrated endpoints
                 addOutput('  plan generate {"description":"Launch marketing campaign"}', 'info');
                 return;
             }
-            const parts = argsStr.match(/^(\S+)\s+(.*)/s);
+            const parts = argsStr.match(/^(\S+)\s*(.*)/s);
             if (!parts) {
                 addOutput('Usage: plan <upload|generate> <JSON>', 'info');
                 return;
