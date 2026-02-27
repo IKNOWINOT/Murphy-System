@@ -68,14 +68,117 @@ class SelfImprovementEngine:
 
     Tracks outcomes, extracts patterns, generates improvement proposals,
     calibrates confidence, and optimises task routing decisions.
+
+    Design Label: ARCH-001 — Persistence-Aware Self-Improvement Engine
+    Owner: Backend Team
+    Dependency: PersistenceManager (optional, graceful degradation)
     """
 
-    def __init__(self) -> None:
+    # Persistence document IDs
+    _PERSIST_DOC_ID = "self_improvement_engine_state"
+
+    def __init__(self, persistence_manager=None) -> None:
         self._lock = threading.Lock()
         self._outcomes: List[ExecutionOutcome] = []
         self._proposals: Dict[str, ImprovementProposal] = {}
         self._patterns: List[Dict[str, Any]] = []
         self._corrections_applied: List[Dict[str, Any]] = []
+        self._persistence = persistence_manager
+
+    # ------------------------------------------------------------------
+    # Persistence integration  [ARCH-001]
+    # ------------------------------------------------------------------
+
+    def save_state(self) -> bool:
+        """Persist current engine state via PersistenceManager.
+
+        Returns True on success, False if persistence is unavailable.
+        """
+        if self._persistence is None:
+            logger.debug("No PersistenceManager attached; skipping save_state")
+            return False
+        with self._lock:
+            state = {
+                "outcomes": [
+                    {
+                        "task_id": o.task_id,
+                        "session_id": o.session_id,
+                        "outcome": o.outcome.value,
+                        "metrics": o.metrics,
+                        "corrections": o.corrections,
+                        "timestamp": o.timestamp,
+                    }
+                    for o in self._outcomes
+                ],
+                "proposals": {
+                    pid: {
+                        "proposal_id": p.proposal_id,
+                        "category": p.category,
+                        "description": p.description,
+                        "priority": p.priority,
+                        "source_pattern": p.source_pattern,
+                        "suggested_action": p.suggested_action,
+                        "status": p.status,
+                    }
+                    for pid, p in self._proposals.items()
+                },
+                "patterns": list(self._patterns),
+                "corrections_applied": list(self._corrections_applied),
+            }
+        try:
+            self._persistence.save_document(self._PERSIST_DOC_ID, state)
+            logger.info("SelfImprovementEngine state persisted")
+            return True
+        except Exception as exc:
+            logger.error("Failed to persist SelfImprovementEngine state: %s", exc)
+            return False
+
+    def load_state(self) -> bool:
+        """Restore engine state from PersistenceManager.
+
+        Returns True on success, False if persistence is unavailable or
+        no prior state exists.
+        """
+        if self._persistence is None:
+            logger.debug("No PersistenceManager attached; skipping load_state")
+            return False
+        try:
+            state = self._persistence.load_document(self._PERSIST_DOC_ID)
+        except Exception as exc:
+            logger.error("Failed to load SelfImprovementEngine state: %s", exc)
+            return False
+        if state is None:
+            logger.debug("No prior SelfImprovementEngine state found")
+            return False
+        with self._lock:
+            self._outcomes = [
+                ExecutionOutcome(
+                    task_id=o["task_id"],
+                    session_id=o["session_id"],
+                    outcome=OutcomeType(o["outcome"]),
+                    metrics=o.get("metrics", {}),
+                    corrections=o.get("corrections"),
+                    timestamp=o.get("timestamp"),
+                )
+                for o in state.get("outcomes", [])
+            ]
+            self._proposals = {
+                pid: ImprovementProposal(
+                    proposal_id=p["proposal_id"],
+                    category=p["category"],
+                    description=p["description"],
+                    priority=p["priority"],
+                    source_pattern=p["source_pattern"],
+                    suggested_action=p["suggested_action"],
+                    status=p.get("status", "pending"),
+                )
+                for pid, p in state.get("proposals", {}).items()
+            }
+            self._patterns = state.get("patterns", [])
+            self._corrections_applied = state.get("corrections_applied", [])
+        logger.info("SelfImprovementEngine state restored (%d outcomes, %d proposals)",
+                     len(self._outcomes), len(self._proposals))
+        return True
 
     # ------------------------------------------------------------------
     # Outcome recording
