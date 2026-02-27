@@ -15,9 +15,10 @@ available actions) and the adapter handles:
   - Event-driven webhook ingestion
   - Thread-safe registry
 
-Pre-loaded with 32+ common integration templates (Slack, Discord, Notion,
+Pre-loaded with 55+ common integration templates (Slack, Discord, Notion,
 Airtable, Zapier, IFTTT, n8n, Make, Vercel, Netlify, Supabase, Firebase,
-Cloudflare, Twitch, YouTube, Spotify, etc.).
+Cloudflare, Twitch, YouTube, Spotify, Salesforce, HubSpot, Stripe, PayPal,
+Shopify, Zendesk, Datadog, PagerDuty, Sentry, Twilio, SendGrid, etc.).
 
 Design Label: INT-002
 Thread-safe: Yes
@@ -341,7 +342,7 @@ class _IntegrationInstance:
 # ---------------------------------------------------------------------------
 
 def _default_integration_templates() -> List[IntegrationSpec]:
-    """Pre-loaded templates for 32+ common services."""
+    """Pre-loaded templates for 55+ common services."""
     return [
         # --- Communication ---
         IntegrationSpec(
@@ -680,6 +681,280 @@ def _default_integration_templates() -> List[IntegrationSpec]:
                 IntegrationAction("list_events", "List events", "GET", "/api/event"),
             ],
         ),
+        # --- CRM ---
+        IntegrationSpec(
+            name="Salesforce", category=IntegrationCategory.CRM,
+            description="Enterprise CRM for sales, service, and marketing automation",
+            base_url="https://login.salesforce.com/services/data/v59.0",
+            auth_method=IntegrationAuthMethod.OAUTH2,
+            actions=[
+                IntegrationAction("query", "Execute a SOQL query", "GET", "/query"),
+                IntegrationAction("create_record", "Create a record", "POST", "/sobjects/{object_type}"),
+                IntegrationAction("update_record", "Update a record", "PATCH", "/sobjects/{object_type}/{record_id}"),
+                IntegrationAction("delete_record", "Delete a record", "DELETE", "/sobjects/{object_type}/{record_id}"),
+            ],
+        ),
+        IntegrationSpec(
+            name="HubSpot", category=IntegrationCategory.CRM,
+            description="Inbound marketing, sales, and CRM platform",
+            base_url="https://api.hubapi.com",
+            auth_method=IntegrationAuthMethod.BEARER_TOKEN,
+            actions=[
+                IntegrationAction("create_contact", "Create a contact", "POST", "/crm/v3/objects/contacts"),
+                IntegrationAction("update_deal", "Update a deal", "PATCH", "/crm/v3/objects/deals/{deal_id}"),
+                IntegrationAction("list_pipelines", "List sales pipelines", "GET", "/crm/v3/pipelines/deals"),
+                IntegrationAction("create_ticket", "Create a support ticket", "POST", "/crm/v3/objects/tickets"),
+            ],
+        ),
+        # --- Payment ---
+        IntegrationSpec(
+            name="Stripe", category=IntegrationCategory.PAYMENT,
+            description="Payment processing platform for internet businesses",
+            base_url="https://api.stripe.com/v1",
+            auth_method=IntegrationAuthMethod.BEARER_TOKEN,
+            actions=[
+                IntegrationAction("create_charge", "Create a payment charge", "POST", "/charges"),
+                IntegrationAction("create_customer", "Create a customer", "POST", "/customers"),
+                IntegrationAction("list_invoices", "List invoices", "GET", "/invoices"),
+                IntegrationAction("create_subscription", "Create a subscription", "POST", "/subscriptions"),
+            ],
+        ),
+        IntegrationSpec(
+            name="PayPal", category=IntegrationCategory.PAYMENT,
+            description="Online payment system for businesses and consumers",
+            base_url="https://api-m.paypal.com/v2",
+            auth_method=IntegrationAuthMethod.OAUTH2,
+            actions=[
+                IntegrationAction("create_order", "Create a payment order", "POST", "/checkout/orders"),
+                IntegrationAction("capture_payment", "Capture an authorized payment", "POST", "/checkout/orders/{order_id}/capture"),
+                IntegrationAction("create_payout", "Create a payout", "POST", "/payments/payouts"),
+            ],
+        ),
+        # --- E-commerce ---
+        IntegrationSpec(
+            name="Shopify", category=IntegrationCategory.CUSTOM,
+            description="E-commerce platform for online stores",
+            base_url="https://{store}.myshopify.com/admin/api/2024-01",
+            auth_method=IntegrationAuthMethod.BEARER_TOKEN,
+            actions=[
+                IntegrationAction("list_products", "List products", "GET", "/products.json"),
+                IntegrationAction("create_product", "Create a product", "POST", "/products.json"),
+                IntegrationAction("list_orders", "List orders", "GET", "/orders.json"),
+                IntegrationAction("create_order", "Create an order", "POST", "/orders.json"),
+                IntegrationAction("update_inventory", "Update inventory level", "POST", "/inventory_levels/set.json"),
+            ],
+        ),
+        IntegrationSpec(
+            name="WooCommerce", category=IntegrationCategory.CUSTOM,
+            description="Open-source e-commerce plugin for WordPress",
+            base_url="https://{site}/wp-json/wc/v3",
+            auth_method=IntegrationAuthMethod.BASIC_AUTH,
+            actions=[
+                IntegrationAction("list_products", "List products", "GET", "/products"),
+                IntegrationAction("create_product", "Create a product", "POST", "/products"),
+                IntegrationAction("list_orders", "List orders", "GET", "/orders"),
+                IntegrationAction("update_order", "Update an order", "PUT", "/orders/{order_id}"),
+            ],
+        ),
+        # --- Customer Support ---
+        IntegrationSpec(
+            name="Zendesk", category=IntegrationCategory.CUSTOM,
+            description="Customer service and support ticketing platform",
+            base_url="https://{subdomain}.zendesk.com/api/v2",
+            auth_method=IntegrationAuthMethod.BEARER_TOKEN,
+            actions=[
+                IntegrationAction("create_ticket", "Create a support ticket", "POST", "/tickets.json"),
+                IntegrationAction("update_ticket", "Update a ticket", "PUT", "/tickets/{ticket_id}.json"),
+                IntegrationAction("list_tickets", "List tickets", "GET", "/tickets.json"),
+                IntegrationAction("add_comment", "Add a comment to a ticket", "PUT", "/tickets/{ticket_id}.json"),
+            ],
+        ),
+        IntegrationSpec(
+            name="Intercom", category=IntegrationCategory.CUSTOM,
+            description="Conversational relationship platform for customer engagement",
+            base_url="https://api.intercom.io",
+            auth_method=IntegrationAuthMethod.BEARER_TOKEN,
+            actions=[
+                IntegrationAction("create_contact", "Create or update a contact", "POST", "/contacts"),
+                IntegrationAction("send_message", "Send a message", "POST", "/messages"),
+                IntegrationAction("list_conversations", "List conversations", "GET", "/conversations"),
+                IntegrationAction("create_ticket", "Create a ticket", "POST", "/tickets"),
+            ],
+        ),
+        IntegrationSpec(
+            name="Freshdesk", category=IntegrationCategory.CUSTOM,
+            description="Cloud-based customer support software",
+            base_url="https://{domain}.freshdesk.com/api/v2",
+            auth_method=IntegrationAuthMethod.API_KEY,
+            actions=[
+                IntegrationAction("create_ticket", "Create a ticket", "POST", "/tickets"),
+                IntegrationAction("list_tickets", "List tickets", "GET", "/tickets"),
+                IntegrationAction("update_ticket", "Update a ticket", "PUT", "/tickets/{ticket_id}"),
+            ],
+        ),
+        # --- Observability & Monitoring ---
+        IntegrationSpec(
+            name="Datadog", category=IntegrationCategory.MONITORING,
+            description="Cloud-scale monitoring and analytics platform",
+            base_url="https://api.datadoghq.com/api/v1",
+            auth_method=IntegrationAuthMethod.API_KEY,
+            actions=[
+                IntegrationAction("send_metrics", "Submit time-series metrics", "POST", "/series"),
+                IntegrationAction("create_event", "Post an event", "POST", "/events"),
+                IntegrationAction("query_metrics", "Query time-series data", "GET", "/query"),
+                IntegrationAction("create_monitor", "Create a monitor", "POST", "/monitor"),
+            ],
+        ),
+        IntegrationSpec(
+            name="PagerDuty", category=IntegrationCategory.MONITORING,
+            description="Incident management and on-call scheduling platform",
+            base_url="https://api.pagerduty.com",
+            auth_method=IntegrationAuthMethod.BEARER_TOKEN,
+            actions=[
+                IntegrationAction("create_incident", "Create an incident", "POST", "/incidents"),
+                IntegrationAction("list_incidents", "List incidents", "GET", "/incidents"),
+                IntegrationAction("resolve_incident", "Resolve an incident", "PUT", "/incidents/{incident_id}"),
+                IntegrationAction("list_oncalls", "List on-call schedules", "GET", "/oncalls"),
+            ],
+        ),
+        IntegrationSpec(
+            name="Sentry", category=IntegrationCategory.MONITORING,
+            description="Application performance monitoring and error tracking",
+            base_url="https://sentry.io/api/0",
+            auth_method=IntegrationAuthMethod.BEARER_TOKEN,
+            actions=[
+                IntegrationAction("list_issues", "List project issues", "GET", "/projects/{org}/{project}/issues/"),
+                IntegrationAction("resolve_issue", "Resolve an issue", "PUT", "/issues/{issue_id}/"),
+                IntegrationAction("list_events", "List error events", "GET", "/projects/{org}/{project}/events/"),
+            ],
+        ),
+        IntegrationSpec(
+            name="New Relic", category=IntegrationCategory.MONITORING,
+            description="Full-stack observability platform",
+            base_url="https://api.newrelic.com/v2",
+            auth_method=IntegrationAuthMethod.API_KEY,
+            actions=[
+                IntegrationAction("list_applications", "List applications", "GET", "/applications.json"),
+                IntegrationAction("get_metrics", "Get application metrics", "GET", "/applications/{app_id}/metrics/data.json"),
+                IntegrationAction("create_deployment", "Record a deployment", "POST", "/applications/{app_id}/deployments.json"),
+            ],
+        ),
+        # --- CI/CD ---
+        IntegrationSpec(
+            name="CircleCI", category=IntegrationCategory.DEVELOPER_TOOLS,
+            description="Continuous integration and delivery platform",
+            base_url="https://circleci.com/api/v2",
+            auth_method=IntegrationAuthMethod.BEARER_TOKEN,
+            actions=[
+                IntegrationAction("trigger_pipeline", "Trigger a pipeline", "POST", "/project/{project_slug}/pipeline"),
+                IntegrationAction("list_pipelines", "List pipelines", "GET", "/project/{project_slug}/pipeline"),
+                IntegrationAction("get_workflow", "Get workflow details", "GET", "/workflow/{workflow_id}"),
+            ],
+        ),
+        IntegrationSpec(
+            name="Jenkins", category=IntegrationCategory.DEVELOPER_TOOLS,
+            description="Open-source automation server for CI/CD",
+            base_url="https://{host}/api",
+            auth_method=IntegrationAuthMethod.BASIC_AUTH,
+            actions=[
+                IntegrationAction("trigger_build", "Trigger a job build", "POST", "/job/{job_name}/build"),
+                IntegrationAction("get_build_status", "Get build status", "GET", "/job/{job_name}/lastBuild/api/json"),
+                IntegrationAction("list_jobs", "List all jobs", "GET", "/json"),
+            ],
+        ),
+        # --- Communication (SMS/Voice) ---
+        IntegrationSpec(
+            name="Twilio", category=IntegrationCategory.COMMUNICATION,
+            description="Cloud communications platform for SMS, voice, and messaging",
+            base_url="https://api.twilio.com/2010-04-01",
+            auth_method=IntegrationAuthMethod.BASIC_AUTH,
+            actions=[
+                IntegrationAction("send_sms", "Send an SMS message", "POST", "/Accounts/{account_sid}/Messages.json"),
+                IntegrationAction("make_call", "Initiate a phone call", "POST", "/Accounts/{account_sid}/Calls.json"),
+                IntegrationAction("list_messages", "List SMS messages", "GET", "/Accounts/{account_sid}/Messages.json"),
+            ],
+        ),
+        IntegrationSpec(
+            name="SendGrid", category=IntegrationCategory.EMAIL,
+            description="Cloud-based email delivery platform",
+            base_url="https://api.sendgrid.com/v3",
+            auth_method=IntegrationAuthMethod.BEARER_TOKEN,
+            actions=[
+                IntegrationAction("send_email", "Send an email", "POST", "/mail/send"),
+                IntegrationAction("list_contacts", "List marketing contacts", "GET", "/marketing/contacts"),
+                IntegrationAction("create_campaign", "Create an email campaign", "POST", "/marketing/singlesends"),
+            ],
+        ),
+        # --- Document & Signature ---
+        IntegrationSpec(
+            name="DocuSign", category=IntegrationCategory.CUSTOM,
+            description="Electronic signature and agreement cloud platform",
+            base_url="https://demo.docusign.net/restapi/v2.1",
+            auth_method=IntegrationAuthMethod.OAUTH2,
+            actions=[
+                IntegrationAction("create_envelope", "Create and send an envelope for signing", "POST", "/accounts/{account_id}/envelopes"),
+                IntegrationAction("get_envelope", "Get envelope status", "GET", "/accounts/{account_id}/envelopes/{envelope_id}"),
+                IntegrationAction("list_envelopes", "List envelopes", "GET", "/accounts/{account_id}/envelopes"),
+            ],
+        ),
+        IntegrationSpec(
+            name="Dropbox", category=IntegrationCategory.STORAGE,
+            description="Cloud file storage and collaboration platform",
+            base_url="https://api.dropboxapi.com/2",
+            auth_method=IntegrationAuthMethod.BEARER_TOKEN,
+            actions=[
+                IntegrationAction("upload_file", "Upload a file", "POST", "/files/upload"),
+                IntegrationAction("list_folder", "List folder contents", "POST", "/files/list_folder"),
+                IntegrationAction("create_shared_link", "Create a shared link", "POST", "/sharing/create_shared_link_with_settings"),
+            ],
+        ),
+        IntegrationSpec(
+            name="Google Drive", category=IntegrationCategory.STORAGE,
+            description="Cloud storage and file synchronization service",
+            base_url="https://www.googleapis.com/drive/v3",
+            auth_method=IntegrationAuthMethod.OAUTH2,
+            actions=[
+                IntegrationAction("list_files", "List files", "GET", "/files"),
+                IntegrationAction("upload_file", "Upload a file", "POST", "/files"),
+                IntegrationAction("create_folder", "Create a folder", "POST", "/files"),
+                IntegrationAction("share_file", "Share a file", "POST", "/files/{file_id}/permissions"),
+            ],
+        ),
+        # --- Calendar & Scheduling ---
+        IntegrationSpec(
+            name="Calendly", category=IntegrationCategory.CUSTOM,
+            description="Scheduling and appointment platform",
+            base_url="https://api.calendly.com",
+            auth_method=IntegrationAuthMethod.BEARER_TOKEN,
+            actions=[
+                IntegrationAction("list_events", "List scheduled events", "GET", "/scheduled_events"),
+                IntegrationAction("get_event_types", "Get event types", "GET", "/event_types"),
+                IntegrationAction("cancel_event", "Cancel an event", "POST", "/scheduled_events/{event_uuid}/cancellation"),
+            ],
+        ),
+        IntegrationSpec(
+            name="Google Calendar", category=IntegrationCategory.CUSTOM,
+            description="Online calendar and scheduling service",
+            base_url="https://www.googleapis.com/calendar/v3",
+            auth_method=IntegrationAuthMethod.OAUTH2,
+            actions=[
+                IntegrationAction("list_events", "List calendar events", "GET", "/calendars/{calendar_id}/events"),
+                IntegrationAction("create_event", "Create a calendar event", "POST", "/calendars/{calendar_id}/events"),
+                IntegrationAction("update_event", "Update a calendar event", "PUT", "/calendars/{calendar_id}/events/{event_id}"),
+            ],
+        ),
+        # --- Accounting ---
+        IntegrationSpec(
+            name="QuickBooks Online", category=IntegrationCategory.CUSTOM,
+            description="Cloud accounting software for small businesses",
+            base_url="https://quickbooks.api.intuit.com/v3",
+            auth_method=IntegrationAuthMethod.OAUTH2,
+            actions=[
+                IntegrationAction("create_invoice", "Create an invoice", "POST", "/company/{realm_id}/invoice"),
+                IntegrationAction("list_customers", "List customers", "GET", "/company/{realm_id}/query"),
+                IntegrationAction("create_payment", "Record a payment", "POST", "/company/{realm_id}/payment"),
+            ],
+        ),
     ]
 
 
@@ -691,7 +966,7 @@ class UniversalIntegrationAdapter:
     """
     Plug-and-play registry for connecting any external service to Murphy System.
 
-    Comes pre-loaded with 32+ integration templates. Users can:
+    Comes pre-loaded with 55+ integration templates. Users can:
 
     1. **Use a template** — ``adapter.configure("slack", {"token": "xoxb-..."})``
     2. **Add a custom service** — ``adapter.register(IntegrationSpec(...))``
