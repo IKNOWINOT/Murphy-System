@@ -219,10 +219,16 @@ Type 'api' to see new integrated endpoints
             <button class="command-btn" onclick="executeQuickCommand('help')">Help</button>
             <button class="command-btn" onclick="executeQuickCommand('api')">API Endpoints</button>
             <button class="command-btn" onclick="executeQuickCommand('status')">System Status</button>
+            <button class="command-btn" onclick="executeQuickCommand('health')">Health</button>
+            <button class="command-btn" onclick="executeQuickCommand('modules')">Modules</button>
             <button class="command-btn" onclick="executeQuickCommand('submit')">Submit Task</button>
             <button class="command-btn" onclick="executeQuickCommand('validate')">Validate Task</button>
             <button class="command-btn" onclick="executeQuickCommand('correct')">Submit Correction</button>
             <button class="command-btn" onclick="executeQuickCommand('stats')">Statistics</button>
+            <button class="command-btn" onclick="executeQuickCommand('interventions')">HITL</button>
+            <button class="command-btn" onclick="executeQuickCommand('integrations all')">Integrations</button>
+            <button class="command-btn" onclick="executeQuickCommand('services')">Services</button>
+            <button class="command-btn" onclick="executeQuickCommand('diagnostics')">Diagnostics</button>
             <button class="command-btn" onclick="executeQuickCommand('clear')">Clear</button>
         </div>
     </div>
@@ -356,6 +362,48 @@ Type 'api' to see new integrated endpoints
                     break;
                 case 'interventions':
                     await showInterventions();
+                    break;
+                case 'respond':
+                    await respondToIntervention(args);
+                    break;
+                case 'hitlstats':
+                    await showHITLStatistics();
+                    break;
+                case 'health':
+                    await showHealth();
+                    break;
+                case 'modules':
+                    await showModules();
+                    break;
+                case 'diagnostics':
+                    await showDiagnostics();
+                    break;
+                case 'training':
+                    await showTrainingData();
+                    break;
+                case 'execute':
+                    await executeTask(args);
+                    break;
+                case 'integrate':
+                    await addIntegration(args);
+                    break;
+                case 'integrations':
+                    await listIntegrations(args);
+                    break;
+                case 'approve':
+                    await approveIntegration(args);
+                    break;
+                case 'reject':
+                    await rejectIntegration(args);
+                    break;
+                case 'automate':
+                    await runAutomation(args);
+                    break;
+                case 'services':
+                    await showServices();
+                    break;
+                case 'plan':
+                    await handlePlan(args);
                     break;
                 case 'clear':
                     document.getElementById('output').innerHTML = '';
