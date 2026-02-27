@@ -2835,6 +2835,240 @@ class MurphySystem:
                 })
                 wired += 1
 
+        # Universal Integration Adapter
+        uia = getattr(self, 'universal_integration_adapter', None)
+        if uia is not None:
+            for svc in uia.list_services():
+                sid = svc.get("service_id", "unknown")
+                binder.register_integration({
+                    "integration_id": f"uia_{sid}",
+                    "name": svc.get("name", sid),
+                    "category": svc.get("category", "general"),
+                    "capability": ",".join(svc.get("actions", [])[:3]) if svc.get("actions") else "api",
+                    "source": "universal_integration_adapter",
+                })
+                wired += 1
+
+        # Webhook Event Processor
+        wep = getattr(self, 'webhook_event_processor', None)
+        if wep is not None:
+            for src in wep.list_sources():
+                src_id = src.get("source_id", "unknown") if isinstance(src, dict) else str(src)
+                binder.register_integration({
+                    "integration_id": f"wep_{src_id}",
+                    "name": f"Webhook – {src.get('name', src_id) if isinstance(src, dict) else src_id}",
+                    "category": "webhook",
+                    "capability": "inbound_webhook",
+                    "source": "webhook_event_processor",
+                })
+                wired += 1
+
+        # API Gateway Adapter
+        aga = getattr(self, 'api_gateway_adapter', None)
+        if aga is not None:
+            stats = aga.get_statistics()
+            binder.register_integration({
+                "integration_id": "api_gateway_adapter",
+                "name": "API Gateway Adapter",
+                "category": "api_management",
+                "capability": "routing,rate_limiting,auth",
+                "source": "api_gateway_adapter",
+            })
+            wired += 1
+
+        # Automation Type Registry
+        atr = getattr(self, 'automation_type_registry', None)
+        if atr is not None:
+            for tmpl in atr.list_templates():
+                tid = tmpl.get("template_id", "unknown") if isinstance(tmpl, dict) else str(tmpl)
+                binder.register_integration({
+                    "integration_id": f"atr_{tid}",
+                    "name": f"Automation Template – {tmpl.get('name', tid) if isinstance(tmpl, dict) else tid}",
+                    "category": "automation",
+                    "capability": "workflow_template",
+                    "source": "automation_type_registry",
+                })
+                wired += 1
+
+        # Workflow DAG Engine
+        wde = getattr(self, 'workflow_dag_engine', None)
+        if wde is not None:
+            binder.register_integration({
+                "integration_id": "workflow_dag_engine",
+                "name": "Workflow DAG Engine",
+                "category": "workflow_orchestration",
+                "capability": "dag_execution,checkpointing,parallel",
+                "source": "workflow_dag_engine",
+            })
+            wired += 1
+
+        # Self-Automation Orchestrator
+        sao = getattr(self, 'self_automation_orchestrator', None)
+        if sao is not None:
+            binder.register_integration({
+                "integration_id": "self_automation_orchestrator",
+                "name": "Self-Automation Orchestrator",
+                "category": "self_automation",
+                "capability": "task_management,gap_analysis,prompt_generation",
+                "source": "self_automation_orchestrator",
+            })
+            wired += 1
+
+        # Plugin Extension SDK
+        pex = getattr(self, 'plugin_extension_sdk', None)
+        if pex is not None:
+            binder.register_integration({
+                "integration_id": "plugin_extension_sdk",
+                "name": "Plugin Extension SDK",
+                "category": "extensibility",
+                "capability": "plugin_install,plugin_execute,hooks",
+                "source": "plugin_extension_sdk",
+            })
+            wired += 1
+
+        # AI Workflow Generator
+        awg = getattr(self, 'ai_workflow_generator', None)
+        if awg is not None:
+            binder.register_integration({
+                "integration_id": "ai_workflow_generator",
+                "name": "AI Workflow Generator",
+                "category": "ai_automation",
+                "capability": "workflow_generation,step_types",
+                "source": "ai_workflow_generator",
+            })
+            wired += 1
+
+        # Workflow Template Marketplace
+        wtm = getattr(self, 'workflow_template_marketplace', None)
+        if wtm is not None:
+            binder.register_integration({
+                "integration_id": "workflow_template_marketplace",
+                "name": "Workflow Template Marketplace",
+                "category": "marketplace",
+                "capability": "template_publish,template_install,rating",
+                "source": "workflow_template_marketplace",
+            })
+            wired += 1
+
+        # Cross-Platform Data Sync
+        cpds = getattr(self, 'cross_platform_data_sync', None)
+        if cpds is not None:
+            binder.register_integration({
+                "integration_id": "cross_platform_data_sync",
+                "name": "Cross-Platform Data Sync",
+                "category": "data_sync",
+                "capability": "sync,conflict_resolution,mapping",
+                "source": "cross_platform_data_sync",
+            })
+            wired += 1
+
+        # Deterministic Routing Engine
+        dre = getattr(self, 'deterministic_routing_engine', None)
+        if dre is not None:
+            for pol in dre.list_policies():
+                pid = pol.get("policy_id", "unknown") if isinstance(pol, dict) else str(pol)
+                binder.register_integration({
+                    "integration_id": f"dre_{pid}",
+                    "name": f"Routing Policy – {pol.get('name', pid) if isinstance(pol, dict) else pid}",
+                    "category": "routing",
+                    "capability": "deterministic_routing,guardrails",
+                    "source": "deterministic_routing_engine",
+                })
+                wired += 1
+            if not dre.list_policies():
+                binder.register_integration({
+                    "integration_id": "deterministic_routing_engine",
+                    "name": "Deterministic Routing Engine",
+                    "category": "routing",
+                    "capability": "deterministic_routing,guardrails",
+                    "source": "deterministic_routing_engine",
+                })
+                wired += 1
+
+        # Observability Summary Counters
+        osc = getattr(self, 'observability_counters', None)
+        if osc is not None:
+            binder.register_integration({
+                "integration_id": "observability_counters",
+                "name": "Observability Summary Counters",
+                "category": "observability",
+                "capability": "metrics,counters,telemetry",
+                "source": "observability_counters",
+            })
+            wired += 1
+
+        # ML Strategy Engine
+        mse = getattr(self, 'ml_strategy_engine', None)
+        if mse is not None:
+            binder.register_integration({
+                "integration_id": "ml_strategy_engine",
+                "name": "ML Strategy Engine",
+                "category": "machine_learning",
+                "capability": "anomaly_detection,forecasting,classification",
+                "source": "ml_strategy_engine",
+            })
+            wired += 1
+
+        # Agentic API Provisioner
+        aap = getattr(self, 'agentic_api_provisioner', None)
+        if aap is not None:
+            binder.register_integration({
+                "integration_id": "agentic_api_provisioner",
+                "name": "Agentic API Provisioner",
+                "category": "api_provisioning",
+                "capability": "auto_provision,health_checks,openapi_spec",
+                "source": "agentic_api_provisioner",
+            })
+            wired += 1
+
+        # Analytics Dashboard
+        adb = getattr(self, 'analytics_dashboard', None)
+        if adb is not None:
+            binder.register_integration({
+                "integration_id": "analytics_dashboard",
+                "name": "Analytics Dashboard",
+                "category": "analytics",
+                "capability": "metrics,alerts,dashboards",
+                "source": "analytics_dashboard",
+            })
+            wired += 1
+
+        # Image Generation Engine
+        ige = getattr(self, 'image_generation_engine', None)
+        if ige is not None:
+            binder.register_integration({
+                "integration_id": "image_generation_engine",
+                "name": "Image Generation Engine",
+                "category": "content_generation",
+                "capability": "image_generation,style_transfer",
+                "source": "image_generation_engine",
+            })
+            wired += 1
+
+        # Security Hardening Config
+        shc = getattr(self, 'security_hardening_config', None)
+        if shc is not None:
+            binder.register_integration({
+                "integration_id": "security_hardening_config",
+                "name": "Security Hardening Config",
+                "category": "security",
+                "capability": "request_security,response_headers",
+                "source": "security_hardening_config",
+            })
+            wired += 1
+
+        # UI Testing Framework
+        utf = getattr(self, 'ui_testing_framework', None)
+        if utf is not None:
+            binder.register_integration({
+                "integration_id": "ui_testing_framework",
+                "name": "UI Testing Framework",
+                "category": "testing",
+                "capability": "ui_testing,accessibility,visual_regression",
+                "source": "ui_testing_framework",
+            })
+            wired += 1
+
         logger.info("Wired %d integration modules into executive planning engine binder", wired)
 
     # ==================== CORE EXECUTION ====================
@@ -5314,7 +5548,10 @@ class MurphySystem:
         workload_status = "ready" if operations_plan else "pending"
         integration_status = (
             "ready"
-            if self.system_integrator or self.integration_engine
+            if (self.system_integrator
+                or self.integration_engine
+                or getattr(self, 'universal_integration_adapter', None)
+                or getattr(self, 'platform_connector_framework', None))
             else "needs_wiring"
         )
         automation_loop_status = self._determine_automation_loop_status(
