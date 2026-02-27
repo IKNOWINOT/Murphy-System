@@ -182,6 +182,11 @@ class FreelancerTask(BaseModel):
     )
     deadline_hours: int = Field(default=24, ge=1, description="Hours to complete")
 
+    required_credentials: List["CredentialRequirement"] = Field(
+        default_factory=list,
+        description="Credentials the assigned validator must hold",
+    )
+
     status: TaskStatus = Field(default=TaskStatus.DRAFT)
     platform_task_id: Optional[str] = Field(
         None, description="ID assigned by the external platform",
@@ -246,3 +251,105 @@ class FreelancerResponse(BaseModel):
 
     submitted_at: datetime = Field(default_factory=_utcnow)
     metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+# ── Credentials & Certification ──────────────────────────────────────────
+
+
+class CertificationType(str, Enum):
+    """Categories of professional credentials."""
+    PROFESSIONAL_LICENSE = "professional_license"
+    INDUSTRY_CERTIFICATION = "industry_certification"
+    ACADEMIC_DEGREE = "academic_degree"
+    GOVERNMENT_CLEARANCE = "government_clearance"
+    TRADE_CERTIFICATION = "trade_certification"
+    LANGUAGE_PROFICIENCY = "language_proficiency"
+    PLATFORM_VERIFIED = "platform_verified"
+
+
+class CredentialStatus(str, Enum):
+    """Outcome of a credential verification check."""
+    VERIFIED = "verified"
+    UNVERIFIED = "unverified"
+    EXPIRED = "expired"
+    REVOKED = "revoked"
+    COMPLAINTS_FOUND = "complaints_found"
+    NOT_FOUND = "not_found"
+    CHECK_FAILED = "check_failed"
+
+
+class Credential(BaseModel):
+    """A credential presented by a freelancer."""
+    credential_id: str = Field(
+        default_factory=lambda: f"cred_{uuid4().hex[:8]}",
+    )
+    credential_type: CertificationType
+    name: str = Field(..., description="Credential name (e.g. 'CPA', 'AWS Solutions Architect')")
+    issuing_authority: str = Field(..., description="Body that issued the credential")
+    license_number: Optional[str] = Field(None, description="License/certificate number")
+    country: str = Field(default="US", description="ISO-3166 country code")
+    region: Optional[str] = Field(None, description="State/province if applicable")
+    issued_date: Optional[datetime] = None
+    expiry_date: Optional[datetime] = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class CredentialRequirement(BaseModel):
+    """Credentials required for a specific task type."""
+    requirement_id: str = Field(
+        default_factory=lambda: f"creq_{uuid4().hex[:8]}",
+    )
+    credential_type: CertificationType
+    name: str = Field(..., description="Required credential name")
+    description: str = Field(default="", description="Why this credential is needed")
+    issuing_authorities: List[str] = Field(
+        default_factory=list,
+        description="Acceptable issuing bodies (empty = any)",
+    )
+    accepted_countries: List[str] = Field(
+        default_factory=list,
+        description="ISO-3166 codes where credential is accepted (empty = worldwide)",
+    )
+    must_be_current: bool = Field(default=True, description="Credential must not be expired")
+    verify_complaints: bool = Field(
+        default=True,
+        description="Check public complaint databases (BBB, license boards, etc.)",
+    )
+    min_experience_years: Optional[int] = Field(
+        None, description="Minimum years of experience in the credential domain",
+    )
+
+
+class ComplaintRecord(BaseModel):
+    """A complaint found during public-record verification."""
+    source: str = Field(..., description="Database where complaint was found")
+    source_url: Optional[str] = None
+    summary: str = Field(default="")
+    severity: str = Field(default="unknown", description="low | medium | high | critical")
+    date_filed: Optional[str] = None
+    status: str = Field(default="open", description="open | resolved | dismissed")
+
+
+class CredentialVerificationResult(BaseModel):
+    """Result of verifying a single credential."""
+    credential_id: str
+    credential_name: str
+    status: CredentialStatus
+    sources_checked: List[str] = Field(
+        default_factory=list,
+        description="Public databases queried",
+    )
+    complaints: List[ComplaintRecord] = Field(default_factory=list)
+    verification_notes: str = Field(default="")
+    verified_at: datetime = Field(default_factory=_utcnow)
+
+
+class ValidatorCredentialProfile(BaseModel):
+    """Full credential profile for a freelancer/validator."""
+    validator_id: str
+    credentials: List[Credential] = Field(default_factory=list)
+    verification_results: List[CredentialVerificationResult] = Field(
+        default_factory=list,
+    )
+    overall_status: CredentialStatus = Field(default=CredentialStatus.UNVERIFIED)
+    last_verified: Optional[datetime] = None

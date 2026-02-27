@@ -16,9 +16,12 @@ from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from .budget_manager import BudgetManager
+from .credential_verifier import CredentialVerifier
 from .criteria_engine import CriteriaEngine
 from .models import (
     BudgetConfig,
+    Credential,
+    CredentialRequirement,
     FreelancerResponse,
     FreelancerTask,
     PlatformType,
@@ -58,6 +61,7 @@ class FreelancerHITLBridge:
         self.hitl_monitor = hitl_monitor
         self.budget_manager = BudgetManager()
         self.criteria_engine = CriteriaEngine()
+        self.credential_verifier = CredentialVerifier()
 
         # Platform clients keyed by PlatformType
         self._clients: Dict[PlatformType, FreelancerPlatformClient] = {
@@ -95,6 +99,7 @@ class FreelancerHITLBridge:
         budget_cents: int = 1000,
         platform: Optional[PlatformType] = None,
         deadline_hours: int = 24,
+        required_credentials: Optional[List[CredentialRequirement]] = None,
     ) -> FreelancerTask:
         """
         Create and post a validation task to a freelance platform.
@@ -119,6 +124,7 @@ class FreelancerHITLBridge:
             criteria=criteria,
             budget_cents=budget_cents,
             deadline_hours=deadline_hours,
+            required_credentials=required_credentials or [],
         )
 
         client = self._clients.get(platform)
@@ -143,17 +149,48 @@ class FreelancerHITLBridge:
     # ── Response ingestion ───────────────────────────────────────────
 
     async def ingest_response(
-        self, response: FreelancerResponse
+        self,
+        response: FreelancerResponse,
+        validator_credentials: Optional[List[Credential]] = None,
     ) -> Dict[str, Any]:
         """
         Receive a freelancer response, score it, and wire the result
         back into the HITL monitor as an ``InterventionResponse``.
+
+        If the originating task has ``required_credentials``, the
+        validator's credentials are checked before acceptance.
 
         Returns a summary dict with verdict, score, and HITL response ID.
         """
         task = self._tasks.get(response.task_id)
         if task is None:
             raise ValueError(f"Unknown task_id: {response.task_id}")
+
+        # Credential gate
+        credential_check: Optional[Dict[str, Any]] = None
+        if task.required_credentials:
+            creds = validator_credentials or []
+            credential_check = await self.credential_verifier.verify_for_task(
+                validator_id=response.validator_id,
+                credentials=creds,
+                requirements=task.required_credentials,
+            )
+            if not credential_check["eligible"]:
+                logger.warning(
+                    "Validator %s failed credential check for task %s: %s",
+                    response.validator_id,
+                    task.task_id,
+                    credential_check["unmet"],
+                )
+                return {
+                    "task_id": response.task_id,
+                    "response_id": response.response_id,
+                    "verdict": "credential_rejected",
+                    "overall_score": 0.0,
+                    "hitl_response_id": None,
+                    "format_errors": [],
+                    "credential_check": credential_check,
+                }
 
         # Validate and score
         errors = CriteriaEngine.validate_response_format(
@@ -202,6 +239,7 @@ class FreelancerHITLBridge:
             "overall_score": scored.overall_score,
             "hitl_response_id": hitl_response_id,
             "format_errors": errors,
+            "credential_check": credential_check,
         }
 
     # ── Query ────────────────────────────────────────────────────────

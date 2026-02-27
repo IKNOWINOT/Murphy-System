@@ -14,6 +14,7 @@ Validates the freelancer-based HITL validation system:
 
 import sys
 from pathlib import Path
+from typing import Optional
 
 import pytest
 
@@ -25,6 +26,10 @@ if str(SRC_DIR) not in sys.path:
 from freelancer_validator.models import (
     BudgetConfig,
     BudgetLedger,
+    CertificationType,
+    Credential,
+    CredentialRequirement,
+    CredentialStatus,
     CriterionItem,
     CriterionScore,
     FreelancerResponse,
@@ -33,9 +38,16 @@ from freelancer_validator.models import (
     ResponseVerdict,
     TaskStatus,
     ValidationCriteria,
+    ValidatorCredentialProfile,
 )
 from freelancer_validator.budget_manager import BudgetManager
 from freelancer_validator.criteria_engine import CriteriaEngine
+from freelancer_validator.credential_verifier import (
+    CredentialVerifier,
+    BBBSource,
+    StateLicenseBoardSource,
+    GenericPublicRecordSource,
+)
 from freelancer_validator.platform_client import (
     FiverrClient,
     GenericFreelancerClient,
@@ -507,3 +519,273 @@ class TestFreelancerHITLBridge:
         assert bridge.get_task(task.task_id) is not None
         tasks = bridge.list_tasks(org_id="org_1")
         assert len(tasks) >= 1
+
+
+# ── Credential helpers ───────────────────────────────────────────────────
+
+def _make_credential(
+    ctype: CertificationType = CertificationType.PROFESSIONAL_LICENSE,
+    name: str = "CPA",
+    authority: str = "AICPA",
+    country: str = "US",
+) -> Credential:
+    return Credential(
+        credential_type=ctype,
+        name=name,
+        issuing_authority=authority,
+        country=country,
+        license_number="LIC-12345",
+    )
+
+
+def _make_requirement(
+    ctype: CertificationType = CertificationType.PROFESSIONAL_LICENSE,
+    name: str = "CPA",
+    authorities: Optional[list] = None,
+    countries: Optional[list] = None,
+) -> CredentialRequirement:
+    return CredentialRequirement(
+        credential_type=ctype,
+        name=name,
+        description=f"Requires {name}",
+        issuing_authorities=authorities or [],
+        accepted_countries=countries or [],
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Credential Model Tests
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestCredentialModels:
+    """Validates credential/certification data models."""
+
+    def test_credential_defaults(self):
+        """@test-lead: Credential has correct defaults."""
+        c = _make_credential()
+        assert c.credential_id.startswith("cred_")
+        assert c.credential_type == CertificationType.PROFESSIONAL_LICENSE
+        assert c.country == "US"
+
+    def test_credential_requirement_defaults(self):
+        """@test-lead: CredentialRequirement has correct defaults."""
+        r = _make_requirement()
+        assert r.requirement_id.startswith("creq_")
+        assert r.must_be_current is True
+        assert r.verify_complaints is True
+
+    def test_certification_type_enum(self):
+        """@test-lead: CertificationType covers expected categories."""
+        assert len(CertificationType) == 7
+        assert CertificationType.PROFESSIONAL_LICENSE.value == "professional_license"
+        assert CertificationType.INDUSTRY_CERTIFICATION.value == "industry_certification"
+
+    def test_task_with_credentials(self):
+        """@test-lead: FreelancerTask accepts required_credentials."""
+        criteria = _make_criteria()
+        req = _make_requirement()
+        task = FreelancerTask(
+            hitl_request_id="req_abc",
+            org_id="org_test",
+            title="Validate with creds",
+            instructions="Needs CPA.",
+            criteria=criteria,
+            required_credentials=[req],
+        )
+        assert len(task.required_credentials) == 1
+        assert task.required_credentials[0].name == "CPA"
+
+    def test_task_without_credentials(self):
+        """@test-lead: FreelancerTask works without credentials (backward compat)."""
+        criteria = _make_criteria()
+        task = _make_task(criteria)
+        assert task.required_credentials == []
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Credential Verifier Tests
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestCredentialVerifier:
+    """Validates the credential verification engine."""
+
+    def test_check_requirements_met(self):
+        """@test-lead: Matching credentials satisfy requirements."""
+        verifier = CredentialVerifier()
+        cred = _make_credential()
+        req = _make_requirement()
+        unmet = verifier.check_requirements([cred], [req])
+        assert unmet == []
+
+    def test_check_requirements_unmet(self):
+        """@test-lead: Missing credentials are reported."""
+        verifier = CredentialVerifier()
+        req = _make_requirement(name="AWS Solutions Architect",
+                                ctype=CertificationType.INDUSTRY_CERTIFICATION)
+        unmet = verifier.check_requirements([], [req])
+        assert len(unmet) == 1
+        assert "Missing required credential" in unmet[0]
+
+    def test_check_requirements_wrong_type(self):
+        """@test-lead: Credential of wrong type does not match."""
+        verifier = CredentialVerifier()
+        cred = _make_credential(ctype=CertificationType.ACADEMIC_DEGREE, name="MBA")
+        req = _make_requirement(ctype=CertificationType.PROFESSIONAL_LICENSE, name="CPA")
+        unmet = verifier.check_requirements([cred], [req])
+        assert len(unmet) == 1
+
+    def test_check_requirements_country_filter(self):
+        """@test-lead: Country filter rejects wrong region."""
+        verifier = CredentialVerifier()
+        cred = _make_credential(country="GB")
+        req = _make_requirement(countries=["US", "CA"])
+        unmet = verifier.check_requirements([cred], [req])
+        assert len(unmet) == 1
+
+    def test_check_requirements_authority_filter(self):
+        """@test-lead: Authority filter rejects wrong issuer."""
+        verifier = CredentialVerifier()
+        cred = _make_credential(authority="Some Other Board")
+        req = _make_requirement(authorities=["AICPA"])
+        unmet = verifier.check_requirements([cred], [req])
+        assert len(unmet) == 1
+
+    @pytest.mark.asyncio
+    async def test_verify_credentials(self):
+        """@test-lead: verify_credentials returns a full profile."""
+        verifier = CredentialVerifier()
+        cred = _make_credential()
+        profile = await verifier.verify_credentials([cred])
+        assert profile.overall_status == CredentialStatus.VERIFIED
+        assert len(profile.verification_results) == 1
+        assert profile.verification_results[0].status == CredentialStatus.VERIFIED
+
+    @pytest.mark.asyncio
+    async def test_verify_empty_credentials(self):
+        """@test-lead: Empty credential list yields UNVERIFIED."""
+        verifier = CredentialVerifier()
+        profile = await verifier.verify_credentials([])
+        assert profile.overall_status == CredentialStatus.UNVERIFIED
+
+    @pytest.mark.asyncio
+    async def test_verify_for_task_eligible(self):
+        """@test-lead: Validator with matching creds is eligible."""
+        verifier = CredentialVerifier()
+        cred = _make_credential()
+        req = _make_requirement()
+        result = await verifier.verify_for_task("val_1", [cred], [req])
+        assert result["eligible"] is True
+        assert result["unmet"] == []
+        assert result["profile"] is not None
+        assert result["profile"].validator_id == "val_1"
+
+    @pytest.mark.asyncio
+    async def test_verify_for_task_ineligible(self):
+        """@test-lead: Validator without required creds is ineligible."""
+        verifier = CredentialVerifier()
+        req = _make_requirement()
+        result = await verifier.verify_for_task("val_2", [], [req])
+        assert result["eligible"] is False
+        assert len(result["unmet"]) == 1
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Credential Integration with HITL Bridge Tests
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestCredentialHITLBridge:
+    """Validates credential checks integrated with the HITL bridge."""
+
+    @pytest.mark.asyncio
+    async def test_dispatch_with_credentials(self):
+        """@test-lead: dispatch_validation accepts credential requirements."""
+        bridge = FreelancerHITLBridge()
+        bridge.register_org_budget(BudgetConfig(org_id="org_1", monthly_limit_cents=50_000))
+        criteria = _make_criteria()
+        req = _make_requirement()
+        task = await bridge.dispatch_validation(
+            hitl_request_id="req_cred",
+            org_id="org_1",
+            title="Validate with creds",
+            instructions="Check.",
+            payload={},
+            criteria=criteria,
+            budget_cents=1000,
+            required_credentials=[req],
+        )
+        assert task.status == TaskStatus.POSTED
+        assert len(task.required_credentials) == 1
+
+    @pytest.mark.asyncio
+    async def test_ingest_with_valid_credentials(self):
+        """@test-lead: ingest_response accepts when credentials valid."""
+        monitor = _MockHITLMonitor()
+        monitor.add_pending("req_cred_ok")
+        bridge = FreelancerHITLBridge(hitl_monitor=monitor)
+        bridge.register_org_budget(BudgetConfig(org_id="org_1", monthly_limit_cents=50_000))
+        criteria = _make_criteria()
+        req = _make_requirement()
+        task = await bridge.dispatch_validation(
+            hitl_request_id="req_cred_ok",
+            org_id="org_1",
+            title="Validate",
+            instructions="Check.",
+            payload={},
+            criteria=criteria,
+            budget_cents=1000,
+            required_credentials=[req],
+        )
+        resp = _make_response(task, criteria)
+        cred = _make_credential()
+        result = await bridge.ingest_response(resp, validator_credentials=[cred])
+        assert result["verdict"] == "pass"
+        assert result["credential_check"] is not None
+        assert result["credential_check"]["eligible"] is True
+
+    @pytest.mark.asyncio
+    async def test_ingest_rejects_missing_credentials(self):
+        """@test-lead: ingest_response rejects when credentials missing."""
+        bridge = FreelancerHITLBridge()
+        bridge.register_org_budget(BudgetConfig(org_id="org_1", monthly_limit_cents=50_000))
+        criteria = _make_criteria()
+        req = _make_requirement()
+        task = await bridge.dispatch_validation(
+            hitl_request_id="req_cred_fail",
+            org_id="org_1",
+            title="Validate",
+            instructions="Check.",
+            payload={},
+            criteria=criteria,
+            budget_cents=1000,
+            required_credentials=[req],
+        )
+        resp = _make_response(task, criteria)
+        result = await bridge.ingest_response(resp, validator_credentials=[])
+        assert result["verdict"] == "credential_rejected"
+        assert result["hitl_response_id"] is None
+        assert result["credential_check"]["eligible"] is False
+
+    @pytest.mark.asyncio
+    async def test_ingest_no_credentials_required(self):
+        """@test-lead: Tasks without credential reqs skip verification."""
+        monitor = _MockHITLMonitor()
+        monitor.add_pending("req_no_cred")
+        bridge = FreelancerHITLBridge(hitl_monitor=monitor)
+        bridge.register_org_budget(BudgetConfig(org_id="org_1", monthly_limit_cents=50_000))
+        criteria = _make_criteria()
+        task = await bridge.dispatch_validation(
+            hitl_request_id="req_no_cred",
+            org_id="org_1",
+            title="Validate",
+            instructions="Check.",
+            payload={},
+            criteria=criteria,
+            budget_cents=1000,
+        )
+        resp = _make_response(task, criteria)
+        result = await bridge.ingest_response(resp)
+        assert result["verdict"] == "pass"
+        assert result["credential_check"] is None
