@@ -2866,7 +2866,6 @@ class MurphySystem:
         # API Gateway Adapter
         aga = getattr(self, 'api_gateway_adapter', None)
         if aga is not None:
-            stats = aga.get_statistics()
             binder.register_integration({
                 "integration_id": "api_gateway_adapter",
                 "name": "API Gateway Adapter",
