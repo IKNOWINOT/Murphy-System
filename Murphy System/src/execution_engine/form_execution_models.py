@@ -7,7 +7,7 @@ Defines execution results, status, and phase results.
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 from enum import Enum
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ExecutionStatus(str, Enum):
@@ -31,17 +31,16 @@ class PhaseResult(BaseModel):
     duration_seconds: float = Field(..., description="Phase execution duration")
     timestamp: datetime = Field(default_factory=datetime.now, description="Phase completion time")
     
-    class Config:
-        schema_extra = {
-            "example": {
-                "phase": "expand",
-                "status": "completed",
-                "confidence": 0.85,
-                "gate_allowed": True,
-                "output": {"possibilities": ["option1", "option2", "option3"]},
-                "duration_seconds": 2.5
-            }
-        }
+    model_config = ConfigDict(json_schema_extra={
+        "examples": [{
+            "phase": "expand",
+            "status": "completed",
+            "confidence": 0.85,
+            "gate_allowed": True,
+            "output": {"possibilities": ["option1", "option2", "option3"]},
+            "duration_seconds": 2.5
+        }]
+    })
 
 
 class ExecutionResult(BaseModel):
@@ -95,27 +94,26 @@ class ExecutionResult(BaseModel):
         description="Total execution duration"
     )
     
-    class Config:
-        schema_extra = {
-            "example": {
-                "task_id": "task_001",
-                "execution_id": "exec_20250202_120000",
-                "status": "completed",
-                "phase_results": [
-                    {
-                        "phase": "expand",
-                        "status": "completed",
-                        "confidence": 0.85,
-                        "gate_allowed": True,
-                        "output": {},
-                        "duration_seconds": 2.5
-                    }
-                ],
-                "final_output": {"result": "success"},
-                "final_confidence": 0.85,
-                "human_interventions": [],
-                "assumptions_tracked": ["assumption1", "assumption2"],
-                "assumptions_invalidated": [],
-                "audit_trail": []
-            }
-        }
+    model_config = ConfigDict(json_schema_extra={
+        "examples": [{
+            "task_id": "task_001",
+            "execution_id": "exec_20250202_120000",
+            "status": "completed",
+            "phase_results": [
+                {
+                    "phase": "expand",
+                    "status": "completed",
+                    "confidence": 0.85,
+                    "gate_allowed": True,
+                    "output": {},
+                    "duration_seconds": 2.5
+                }
+            ],
+            "final_output": {"result": "success"},
+            "final_confidence": 0.85,
+            "human_interventions": [],
+            "assumptions_tracked": ["assumption1", "assumption2"],
+            "assumptions_invalidated": [],
+            "audit_trail": []
+        }]
+    })

@@ -7,7 +7,7 @@ Defines intervention requests, responses, and types.
 from typing import Dict, Any, Optional
 from datetime import datetime
 from enum import Enum
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class InterventionType(str, Enum):
@@ -61,24 +61,23 @@ class InterventionRequest(BaseModel):
     
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
     
-    class Config:
-        schema_extra = {
-            "example": {
-                "request_id": "req_001",
-                "intervention_type": "approval",
-                "urgency": "high",
-                "task_id": "task_001",
-                "phase": "execute",
-                "reason": "Confidence below threshold, requires human approval",
-                "context": {
-                    "confidence": 0.65,
-                    "threshold": 0.7,
-                    "risk_level": "medium"
-                },
-                "blocking": True,
-                "required_role": "manager"
-            }
-        }
+    model_config = ConfigDict(json_schema_extra={
+        "examples": [{
+            "request_id": "req_001",
+            "intervention_type": "approval",
+            "urgency": "high",
+            "task_id": "task_001",
+            "phase": "execute",
+            "reason": "Confidence below threshold, requires human approval",
+            "context": {
+                "confidence": 0.65,
+                "threshold": 0.7,
+                "risk_level": "medium"
+            },
+            "blocking": True,
+            "required_role": "manager"
+        }]
+    })
 
 
 class InterventionResponse(BaseModel):
@@ -99,14 +98,13 @@ class InterventionResponse(BaseModel):
     
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
     
-    class Config:
-        schema_extra = {
-            "example": {
-                "response_id": "resp_001",
-                "request_id": "req_001",
-                "approved": True,
-                "decision": "approve",
-                "feedback": "Approved with recommendation to add monitoring",
-                "responded_by": "user_123"
-            }
-        }
+    model_config = ConfigDict(json_schema_extra={
+        "examples": [{
+            "response_id": "resp_001",
+            "request_id": "req_001",
+            "approved": True,
+            "decision": "approve",
+            "feedback": "Approved with recommendation to add monitoring",
+            "responded_by": "user_123"
+        }]
+    })

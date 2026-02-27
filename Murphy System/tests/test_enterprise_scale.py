@@ -163,7 +163,7 @@ def measure_execution_time(func, *args, **kwargs):
 class TestEnterpriseScale:
     """Enterprise-scale test suite"""
     
-    def __init__(self):
+    def setup_method(self):
         self.test_results = []
         self.passed = 0
         self.failed = 0
@@ -423,7 +423,7 @@ class TestLargeOrganization(TestEnterpriseScale):
               f"{graph.number_of_edges()} edges")
 
 
-class TestEnterpriseScale(TestEnterpriseScale):
+class TestEnterpriseScaleOrganization(TestEnterpriseScale):
     """Test enterprise-scale organization (1000+ roles)"""
     
     def test_1000_roles_compilation(self):

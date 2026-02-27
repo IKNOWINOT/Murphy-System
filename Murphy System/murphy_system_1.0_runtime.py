@@ -556,7 +556,7 @@ class LivingDocument:
         self.history: List[Dict[str, Any]] = []
         self.children: List[Dict[str, Any]] = []
         self.parent_id: Optional[str] = None
-        self.created_at = datetime.utcnow().isoformat()
+        self.created_at = datetime.now(timezone.utc).isoformat()
         self.block_tree: Dict[str, Any] = {}
         self.gates: List[Dict[str, Any]] = []
         self.constraints: List[str] = []
@@ -574,7 +574,7 @@ class LivingDocument:
         self.history.append({
             "action": "magnify",
             "domain": domain,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         })
         return self.to_dict()
 
@@ -583,7 +583,7 @@ class LivingDocument:
         self.confidence = min(1.0, self.confidence + 0.05)
         self.history.append({
             "action": "simplify",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         })
         return self.to_dict()
 
@@ -592,7 +592,7 @@ class LivingDocument:
         self.confidence = min(1.0, self.confidence + 0.2)
         self.history.append({
             "action": "solidify",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         })
         return self.to_dict()
 
@@ -1785,7 +1785,7 @@ class MurphySystem:
         """
         instance = cls.__new__(cls)
         instance.version = "1.0.0"
-        instance.start_time = datetime.utcnow()
+        instance.start_time = datetime.now(timezone.utc)
         instance._initialize_configuration_defaults()
         instance.execution_metrics = {"total": 0, "success": 0, "total_time": 0.0}
         instance.module_manager = module_manager
@@ -1896,7 +1896,7 @@ class MurphySystem:
 
     def __init__(self):
         self.version = "1.0.0"
-        self.start_time = datetime.utcnow()
+        self.start_time = datetime.now(timezone.utc)
         self._initialize_configuration_defaults()
         
         logger.info("="*80)
@@ -3841,12 +3841,12 @@ class MurphySystem:
                 "status": "disabled",
                 "reason": f"Set {self.PERSISTENCE_DIR_ENV} to enable persistence snapshots."
             }
-        timestamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         snapshot_id = f"{self.PERSISTENCE_SNAPSHOT_PREFIX}_{doc.doc_id}_{timestamp}.json"
         snapshot_path = persistence_dir / snapshot_id
         snapshot = {
             "snapshot_id": snapshot_id,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "document": doc.to_dict(),
             "activation_preview": activation_preview,
             "metadata": metadata
@@ -5035,7 +5035,7 @@ class MurphySystem:
                 "metadata": {
                     "task_description": task_description,
                     "task_type": task_type,
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     "mode": "two_phase_orchestrator"
                 }
             }
@@ -6412,7 +6412,7 @@ class MurphySystem:
         if not GOVERNANCE_AVAILABLE:
             return {"status": "unavailable"}
         scheduler = GovernanceScheduler()
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         triggers = [
             {"id": "marketing_cycle", "label": "Marketing cadence", "offset_min": 30},
             {"id": "executive_review", "label": "Executive review", "offset_min": 60, "dependencies": ["marketing_cycle"]},
@@ -6726,7 +6726,7 @@ class MurphySystem:
                 "signal": profile["signal"],
                 "value": sensor_value,
                 "source": sensor_source,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             },
             "external_api_sensors": sensor_plan,
             "control_effect": "If control_value < setpoint, magnify/simplify gates remain blocked."
@@ -11609,7 +11609,7 @@ class MurphySystem:
             "type": submission_type,
             "payload": payload,
             "status": "submitted",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         self.form_submissions[submission_id] = record
         return record
@@ -11629,7 +11629,7 @@ class MurphySystem:
         session = {
             "session_id": session_id,
             "name": name or "session",
-            "created_at": datetime.utcnow().isoformat()
+            "created_at": datetime.now(timezone.utc).isoformat()
         }
         self.sessions[session_id] = session
         return {"success": True, **session}
@@ -11645,7 +11645,7 @@ class MurphySystem:
         session.setdefault("history", []).append({
             "stage": current_stage["stage"],
             "message": message,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         })
         answers[current_stage["stage"]] = message
         next_index = min(stage_index + 1, len(self.flow_steps) - 1)
@@ -11789,7 +11789,7 @@ class MurphySystem:
                 "urgency": "high" if confidence_report["combined_confidence"] < 0.5 else "medium",
                 "reason": confidence_report["gate_result"]["reason"],
                 "status": "pending",
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
         return {
             "success": True,
@@ -11810,7 +11810,7 @@ class MurphySystem:
             "original_output": data.get("original_output"),
             "corrected_output": data.get("corrected_output"),
             "explanation": data.get("explanation"),
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         self.corrections.append(correction)
         patterns_extracted = 1 if correction.get("explanation") else 0
@@ -11976,7 +11976,7 @@ class MurphySystem:
     def get_system_status(self) -> Dict:
         """Get complete system status"""
         
-        uptime = (datetime.utcnow() - self.start_time).total_seconds()
+        uptime = (datetime.now(timezone.utc) - self.start_time).total_seconds()
         self_operation_enabled = self.inoni_automation is not None
         correction_system_available = self.correction_system is not None
         pending_integrations = 0
