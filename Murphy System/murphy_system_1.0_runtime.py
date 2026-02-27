@@ -12558,10 +12558,14 @@ def create_app() -> FastAPI:
 def main():
     """Main entry point"""
     
-    print("\n" + "="*80)
-    print("MURPHY SYSTEM 1.0")
-    print("Universal AI Automation System")
-    print("="*80 + "\n")
+    print("\n")
+    print("  ☠  ════════════════════════════════════════════════════  ☠")
+    print(" ╱╲                                                       ╱╲")
+    print("╱◉◉╲   💀  M U R P H Y   S Y S T E M   v 1 . 0  💀    ╱◉◉╲")
+    print("╲╰╯╱   ─────────────────────────────────────────────     ╲╰╯╱")
+    print(" ╲╱    Universal AI Automation · No-Code Control          ╲╱")
+    print("  ☠  ════════════════════════════════════════════════════  ☠")
+    print("")
     
     # Create FastAPI app
     app = create_app()
@@ -12569,11 +12573,12 @@ def main():
     # Run server
     port = int(os.getenv('MURPHY_PORT', 6666))
     
-    print(f"\n🚀 Starting Murphy System 1.0 on port {port}...")
-    print(f"📊 API Documentation: http://localhost:{port}/docs")
-    print(f"🔍 Health Check: http://localhost:{port}/api/health")
-    print(f"📈 System Status: http://localhost:{port}/api/status")
-    print(f"ℹ️  System Info: http://localhost:{port}/api/info\n")
+    print(f"\n☠ Starting Murphy System v1.0 on port {port}...")
+    print(f"  💀 API Docs:     http://localhost:{port}/docs")
+    print(f"  💀 Health:       http://localhost:{port}/api/health")
+    print(f"  💀 Status:       http://localhost:{port}/api/status")
+    print(f"  💀 Onboarding:   http://localhost:{port}/api/onboarding/wizard/questions")
+    print(f"  💀 Info:         http://localhost:{port}/api/info\n")
     
     uvicorn.run(app, host="0.0.0.0", port=port)
 
