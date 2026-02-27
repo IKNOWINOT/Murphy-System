@@ -5,7 +5,7 @@ Removes external dependencies while maintaining interface compatibility
 
 import logging
 from typing import Dict, List, Optional, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import statistics
 
 logging.basicConfig(level=logging.INFO)
@@ -74,7 +74,7 @@ class SimpleTelemetryLearningEngine:
             for metric in metrics:
                 metric_name = metric.get('metric_name', 'unknown')
                 value = metric.get('value', 0)
-                timestamp = metric.get('timestamp', datetime.utcnow().isoformat())
+                timestamp = metric.get('timestamp', datetime.now(timezone.utc).isoformat())
                 
                 # Store metric history
                 if metric_name not in self.metrics_history:
@@ -176,7 +176,7 @@ class SimpleTelemetryLearningEngine:
                 'z_score': round(z_score, 4),
                 'threshold': threshold,
                 'severity': 'high' if z_score > threshold * 1.5 else 'medium',
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
         
         return None
@@ -264,7 +264,7 @@ class SimpleTelemetryLearningEngine:
                 'confidence_interval': round(confidence_interval, 4),
                 'method': 'moving_average',
                 'horizon': self.config['prediction_horizon'],
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
             
             predictions.append(prediction)
@@ -308,7 +308,7 @@ class SimpleTelemetryLearningEngine:
         
         # Check for frequent anomalies
         recent_anomalies = [a for a in self.anomalies 
-                          if datetime.fromisoformat(a['timestamp']) > datetime.utcnow() - timedelta(hours=1)]
+                          if datetime.fromisoformat(a['timestamp']) > datetime.now(timezone.utc) - timedelta(hours=1)]
         
         if len(recent_anomalies) > 5:
             recommendations.append({

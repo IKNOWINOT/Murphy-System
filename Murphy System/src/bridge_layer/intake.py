@@ -8,7 +8,7 @@ CRITICAL: This is the ONLY entry point from System A to System B.
 """
 
 from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 import jsonschema
 import re
@@ -142,7 +142,7 @@ class VerificationRequestGenerator:
         priority = self._determine_priority(claim, context)
         
         # Generate request ID
-        timestamp = datetime.utcnow().timestamp()
+        timestamp = datetime.now(timezone.utc).timestamp()
         request_id = f"verification_request_{hypothesis_id}_{timestamp}_{context.get('index', 0)}"
         
         return VerificationRequest(

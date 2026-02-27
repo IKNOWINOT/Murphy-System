@@ -4,7 +4,7 @@ Stores and manages risk patterns, historical incidents, and mitigation strategie
 """
 
 from typing import Dict, List, Optional, Any, Set
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pydantic import BaseModel, Field
 import json
@@ -105,8 +105,8 @@ class RiskPattern(BaseModel):
     last_occurred: Optional[datetime] = None
     
     # Metadata
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     tags: List[str] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
     
@@ -147,7 +147,7 @@ class RiskAssessment(BaseModel):
     """Assessment of risk for a specific context."""
     id: str
     context: str
-    assessed_at: datetime = Field(default_factory=datetime.utcnow)
+    assessed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
     # Identified risks
     identified_risks: List[str] = Field(default_factory=list)  # Risk pattern IDs
@@ -538,10 +538,10 @@ class RiskDatabase:
     def export_to_json(self, filepath: str):
         """Export database to JSON file."""
         data = {
-            "risk_patterns": [p.dict() for p in self.risk_patterns.values()],
-            "risk_incidents": [i.dict() for i in self.risk_incidents.values()],
-            "mitigation_strategies": [s.dict() for s in self.mitigation_strategies.values()],
-            "risk_assessments": [a.dict() for a in self.risk_assessments.values()]
+            "risk_patterns": [p.model_dump() for p in self.risk_patterns.values()],
+            "risk_incidents": [i.model_dump() for i in self.risk_incidents.values()],
+            "mitigation_strategies": [s.model_dump() for s in self.mitigation_strategies.values()],
+            "risk_assessments": [a.model_dump() for a in self.risk_assessments.values()]
         }
         
         with open(filepath, 'w') as f:

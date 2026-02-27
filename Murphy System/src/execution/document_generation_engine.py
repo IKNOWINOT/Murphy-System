@@ -4,7 +4,7 @@ Document Generation Engine - Generate working documents (PDF, Word, HTML)
 
 import uuid
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import logging
 import json
@@ -65,7 +65,7 @@ class Document:
         self.document_type = document_type
         self.content = content
         self.metadata = metadata or {}
-        self.created_at = datetime.utcnow()
+        self.created_at = datetime.now(timezone.utc)
     
     def to_dict(self) -> Dict:
         """Convert document to dictionary"""
@@ -212,12 +212,72 @@ class DocumentGenerationEngine:
         return template.render(data)
     
     def _convert_to_pdf(self, content: str, styling: Dict) -> str:
-        """Convert content to PDF format"""
-        return f"[PDF FORMAT]\n{content}\n[END PDF]"
+        """Convert content to PDF format.
+
+        Uses reportlab when available; otherwise returns a structured
+        text representation that downstream consumers can process.
+        Returns base64-encoded PDF data when reportlab is available.
+        """
+        try:
+            import base64
+            from io import BytesIO
+            from reportlab.lib.pagesizes import letter  # type: ignore[import-untyped]
+            from reportlab.pdfgen import canvas as rl_canvas  # type: ignore[import-untyped]
+
+            buf = BytesIO()
+            c = rl_canvas.Canvas(buf, pagesize=letter)
+            font_name = styling.get("font", "Helvetica")
+            font_size = int(styling.get("size", 12))
+            c.setFont(font_name, font_size)
+
+            # Simple text flow
+            y = 750
+            for line in content.split("\n"):
+                if y < 50:
+                    c.showPage()
+                    c.setFont(font_name, font_size)
+                    y = 750
+                c.drawString(72, y, line)
+                y -= font_size + 2
+            c.save()
+            return base64.b64encode(buf.getvalue()).decode("ascii")
+        except ImportError:
+            # Graceful fallback — return structured text
+            return f"%PDF-1.4-TEXT-FALLBACK\n{content}\n%%EOF"
     
     def _convert_to_word(self, content: str, styling: Dict) -> str:
-        """Convert content to Word format"""
-        return f"[WORD FORMAT]\n{content}\n[END WORD]"
+        """Convert content to Word (OOXML) format.
+
+        Uses python-docx when available; otherwise returns a minimal
+        Office Open XML document string.
+        Returns base64-encoded DOCX data when python-docx is available.
+        """
+        try:
+            import base64
+            from io import BytesIO
+            from docx import Document as DocxDocument  # type: ignore[import-untyped]
+            from docx.shared import Pt  # type: ignore[import-untyped]
+
+            doc = DocxDocument()
+            font_name = styling.get("font", "Calibri")
+            font_size = int(styling.get("size", 12))
+            for para_text in content.split("\n"):
+                p = doc.add_paragraph(para_text)
+                for run in p.runs:
+                    run.font.name = font_name
+                    run.font.size = Pt(font_size)
+            buf = BytesIO()
+            doc.save(buf)
+            return base64.b64encode(buf.getvalue()).decode("ascii")
+        except ImportError:
+            # Graceful fallback — minimal XML payload
+            escaped = content.replace("&", "&amp;").replace("<", "&lt;")
+            return (
+                '<?xml version="1.0" encoding="UTF-8"?>\n'
+                "<document>\n"
+                f"  <body>{escaped}</body>\n"
+                "</document>"
+            )
     
     def _wrap_in_html(self, content: str, styling: Dict) -> str:
         """Wrap content in HTML structure"""

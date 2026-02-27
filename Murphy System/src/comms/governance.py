@@ -12,7 +12,7 @@ CRITICAL: This layer is the enforcement boundary between messages and execution.
 """
 
 from typing import List, Dict, Optional, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 import re
 
 from .schemas import (
@@ -64,7 +64,7 @@ class CommunicationAuthorizer:
             Authorized CommunicationPacket
         """
         # Generate packet ID
-        packet_id = f"comm_packet_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{self.authorization_count}"
+        packet_id = f"comm_packet_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{self.authorization_count}"
         self.authorization_count += 1
         
         # Create packet
@@ -298,7 +298,7 @@ class HumanSignoffEnforcer:
             self.signoffs[packet.packet_id].update({
                 'granted': True,
                 'granted_by': granted_by,
-                'granted_at': datetime.utcnow()
+                'granted_at': datetime.now(timezone.utc)
             })
         
         return True
@@ -330,7 +330,7 @@ class AuditLogger:
         log = AuditLogEntry(
             log_id=f"log_{self.log_count}",
             event_type="message_received",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             message_id=message.message_id,
             channel=message.channel,
             actor=actor,
@@ -350,7 +350,7 @@ class AuditLogger:
         log = AuditLogEntry(
             log_id=f"log_{self.log_count}",
             event_type="message_sent",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             packet_id=packet.packet_id,
             channel=packet.channel,
             actor=actor,
@@ -370,7 +370,7 @@ class AuditLogger:
         log = AuditLogEntry(
             log_id=f"log_{self.log_count}",
             event_type="authorization_granted",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             packet_id=packet.packet_id,
             channel=packet.channel,
             actor=actor,
@@ -388,7 +388,7 @@ class AuditLogger:
         log = AuditLogEntry(
             log_id=f"log_{self.log_count}",
             event_type="authorization_denied",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             channel=channel,
             actor=actor,
             details={'reason': reason}
@@ -402,7 +402,7 @@ class AuditLogger:
         log = AuditLogEntry(
             log_id=f"log_{self.log_count}",
             event_type="human_signoff_granted",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             packet_id=packet.packet_id,
             channel=packet.channel,
             actor=actor,
@@ -420,7 +420,7 @@ class AuditLogger:
         log = AuditLogEntry(
             log_id=f"log_{self.log_count}",
             event_type="redaction_applied",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             message_id=message.message_id,
             channel=message.channel,
             actor=actor,

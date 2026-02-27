@@ -256,7 +256,7 @@ class IntegratedCorrectionSystem:
             'error_type': correction.correction_type,
             'original': correction.original_output,
             'corrected': correction.corrected_output,
-            'patterns': [p.dict() for p in patterns],
+            'patterns': [p.model_dump() for p in patterns],
             'timestamp': correction.timestamp
         }
         

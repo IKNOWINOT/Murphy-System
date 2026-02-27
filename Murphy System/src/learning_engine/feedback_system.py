@@ -5,7 +5,7 @@ Covers Tasks 2.1, 2.2, 2.3, and 2.4.
 """
 
 from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pydantic import BaseModel, Field
 import uuid
@@ -67,7 +67,7 @@ class Feedback(BaseModel):
     correction_id: Optional[str] = None
     
     # Timestamps
-    submitted_at: datetime = Field(default_factory=datetime.utcnow)
+    submitted_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     reviewed_at: Optional[datetime] = None
     resolved_at: Optional[datetime] = None
     
@@ -417,7 +417,7 @@ class FeedbackAnalytics:
     
     def get_trends(self, days: int = 30) -> Dict[str, Any]:
         """Get feedback trends."""
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         recent = [f for f in self.feedback_store if f.submitted_at >= cutoff]
         
         if not recent:
@@ -521,7 +521,7 @@ class HumanFeedbackSystem:
         
         # Validate
         validation = self.validator.validate(feedback)
-        feedback.metadata["validation"] = validation.dict()
+        feedback.metadata["validation"] = validation.model_dump()
         
         # Store
         self.all_feedback[feedback.id] = feedback
@@ -599,9 +599,9 @@ class HumanFeedbackSystem:
         feedback.status = status
         
         if status == FeedbackStatus.UNDER_REVIEW:
-            feedback.reviewed_at = datetime.utcnow()
+            feedback.reviewed_at = datetime.now(timezone.utc)
         elif status in [FeedbackStatus.IMPLEMENTED, FeedbackStatus.REJECTED]:
-            feedback.resolved_at = datetime.utcnow()
+            feedback.resolved_at = datetime.now(timezone.utc)
         
         return True
     

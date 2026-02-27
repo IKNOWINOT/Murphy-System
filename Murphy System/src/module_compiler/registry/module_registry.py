@@ -10,7 +10,7 @@ import json
 import os
 import tempfile
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from ..models.module_spec import ModuleSpec, Capability
 
 
@@ -302,7 +302,7 @@ class ModuleRegistry:
         # Return empty index
         return {
             "version": "1.0.0",
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
             "modules": {},
             "capabilities": {},
         }

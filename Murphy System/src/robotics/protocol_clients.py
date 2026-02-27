@@ -69,6 +69,22 @@ class ProtocolClient(ABC):
 
     def _stub_sensor(self, sensor_id: str, sensor_type: str,
                      value: Any = 0.0, unit: str = "") -> SensorReading:
+        """Return a simulated sensor reading or delegate to backend."""
+        if self._backend and hasattr(self._backend, "read_sensor"):
+            try:
+                raw = self._backend.read_sensor(sensor_id, sensor_type)
+                if isinstance(raw, SensorReading):
+                    return raw
+                return SensorReading(
+                    robot_id=self.config.robot_id,
+                    sensor_id=sensor_id,
+                    sensor_type=sensor_type,
+                    value=raw if raw is not None else value,
+                    unit=unit,
+                    timestamp=datetime.now(timezone.utc),
+                )
+            except Exception as exc:
+                logger.warning("Backend read_sensor failed, using simulated: %s", exc)
         return SensorReading(
             robot_id=self.config.robot_id,
             sensor_id=sensor_id,
@@ -80,6 +96,25 @@ class ProtocolClient(ABC):
 
     def _stub_result(self, command: ActuatorCommand, success: bool = True,
                      message: str = "") -> ActuatorResult:
+        """Return a simulated actuator result or delegate to backend."""
+        start = time.monotonic()
+        if self._backend and hasattr(self._backend, "execute_command"):
+            try:
+                raw = self._backend.execute_command(command)
+                if isinstance(raw, ActuatorResult):
+                    return raw
+                elapsed = time.monotonic() - start
+                return ActuatorResult(
+                    robot_id=self.config.robot_id,
+                    actuator_id=command.actuator_id,
+                    command_type=command.command_type,
+                    success=bool(raw),
+                    message=str(raw) if raw else message,
+                    execution_time_seconds=elapsed,
+                    timestamp=datetime.now(timezone.utc),
+                )
+            except Exception as exc:
+                logger.warning("Backend execute_command failed, using simulated: %s", exc)
         return ActuatorResult(
             robot_id=self.config.robot_id,
             actuator_id=command.actuator_id,

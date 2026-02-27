@@ -5,7 +5,7 @@ Removes external dependencies while maintaining interface compatibility
 
 import logging
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ class SimpleNeuroSymbolicModel:
             
             knowledge_item = {
                 'attributes': attributes,
-                'added_at': datetime.utcnow().isoformat(),
+                'added_at': datetime.now(timezone.utc).isoformat(),
                 'confidence': 1.0
             }
             
@@ -125,7 +125,7 @@ class SimpleNeuroSymbolicModel:
                 'inferred_attributes': {},
                 'confidence': 0.0,
                 'method': 'rule_based',
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
             
             # Direct knowledge lookup

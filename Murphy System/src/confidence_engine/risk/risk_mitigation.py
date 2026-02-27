@@ -4,7 +4,7 @@ Provides intelligent mitigation strategies and recommendations.
 """
 
 from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pydantic import BaseModel, Field
 
@@ -55,7 +55,7 @@ class MitigationPlan(BaseModel):
     total_estimated_time_hours: float
     expected_risk_reduction: float = Field(ge=0.0, le=1.0)
     priority_order: List[str]  # Recommendation IDs in priority order
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class MitigationStrategySelector:
@@ -557,7 +557,7 @@ class MitigationPlanGenerator:
         priority_order = [r.id for r in all_recommendations]
         
         plan = MitigationPlan(
-            plan_id=f"plan_{datetime.utcnow().timestamp()}",
+            plan_id=f"plan_{datetime.now(timezone.utc).timestamp()}",
             risk_patterns=[p.id for p in patterns],
             recommendations=all_recommendations,
             total_estimated_cost=total_cost,

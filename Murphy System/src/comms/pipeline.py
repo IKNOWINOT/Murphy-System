@@ -12,7 +12,7 @@ CRITICAL: Pipeline NEVER triggers execution. Only creates artifacts.
 """
 
 from typing import List, Dict, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import re
 from collections import defaultdict
 
@@ -283,7 +283,7 @@ class MessageStorage:
     
     def apply_retention_policies(self):
         """Apply retention policies to stored messages"""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         
         for message_id, message in list(self.hot_storage.items()):
             policy = self.retention_policies.get(message.channel)

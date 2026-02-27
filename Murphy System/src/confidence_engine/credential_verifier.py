@@ -4,7 +4,7 @@ Manages credential validation, expiry tracking, and refresh mechanisms.
 """
 
 from typing import Dict, List, Optional, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pydantic import BaseModel, Field
 import hashlib
@@ -38,7 +38,7 @@ class Credential(BaseModel):
     service_name: str
     credential_value: str  # Encrypted/hashed in production
     status: CredentialStatus = CredentialStatus.ACTIVE
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     expires_at: Optional[datetime] = None
     last_verified: Optional[datetime] = None
     verification_count: int = 0
@@ -48,13 +48,13 @@ class Credential(BaseModel):
         """Check if credential is expired."""
         if not self.expires_at:
             return False
-        return datetime.utcnow() > self.expires_at
+        return datetime.now(timezone.utc) > self.expires_at
     
     def needs_refresh(self, threshold_hours: int = 24) -> bool:
         """Check if credential needs refresh."""
         if not self.expires_at:
             return False
-        threshold = datetime.utcnow() + timedelta(hours=threshold_hours)
+        threshold = datetime.now(timezone.utc) + timedelta(hours=threshold_hours)
         return threshold > self.expires_at
     
     def get_hash(self) -> str:
@@ -69,7 +69,7 @@ class CredentialVerificationResult(BaseModel):
     is_valid: bool
     status: CredentialStatus
     confidence: float = Field(ge=0.0, le=1.0)
-    verified_at: datetime = Field(default_factory=datetime.utcnow)
+    verified_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     error_message: Optional[str] = None
     details: Dict[str, Any] = Field(default_factory=dict)
 
@@ -133,7 +133,7 @@ class CredentialStore:
     
     def get_expiring_credentials(self, hours: int = 24) -> List[Credential]:
         """Get credentials expiring within specified hours."""
-        threshold = datetime.utcnow() + timedelta(hours=hours)
+        threshold = datetime.now(timezone.utc) + timedelta(hours=hours)
         return [
             c for c in self.credentials.values()
             if c.expires_at and c.expires_at < threshold
@@ -189,7 +189,7 @@ class CredentialVerifier:
         
         # Check if recently verified (unless force_refresh)
         if not force_refresh and credential.last_verified:
-            time_since_verification = datetime.utcnow() - credential.last_verified
+            time_since_verification = datetime.now(timezone.utc) - credential.last_verified
             if time_since_verification < timedelta(minutes=5):
                 return CredentialVerificationResult(
                     credential_id=credential_id,
@@ -216,7 +216,7 @@ class CredentialVerifier:
             
             # Update credential
             self.credential_store.update_credential(credential_id, {
-                "last_verified": datetime.utcnow(),
+                "last_verified": datetime.now(timezone.utc),
                 "verification_count": credential.verification_count + 1,
                 "status": result.status
             })
@@ -339,7 +339,7 @@ class CredentialRefreshManager:
             updates = {
                 "credential_value": new_credential_value,
                 "status": CredentialStatus.ACTIVE,
-                "expires_at": datetime.utcnow() + timedelta(days=30)  # Default 30 days
+                "expires_at": datetime.now(timezone.utc) + timedelta(days=30)  # Default 30 days
             }
             
             self.credential_store.update_credential(credential_id, updates)
@@ -387,7 +387,7 @@ class CredentialVerificationSystem:
     ) -> str:
         """Add a new credential."""
         credential = Credential(
-            id=f"{service_name}_{credential_type}_{datetime.utcnow().timestamp()}",
+            id=f"{service_name}_{credential_type}_{datetime.now(timezone.utc).timestamp()}",
             credential_type=credential_type,
             service_name=service_name,
             credential_value=credential_value,

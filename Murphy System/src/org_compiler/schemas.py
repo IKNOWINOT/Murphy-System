@@ -10,7 +10,7 @@ All schemas enforce strict safety constraints:
 
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Literal
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import hashlib
 import json
@@ -128,7 +128,7 @@ class RoleTemplate:
     metrics: RoleMetrics
     
     # Metadata
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     version: str = "1.0"
     source_documents: List[str] = field(default_factory=list)
     
@@ -187,7 +187,7 @@ class WorkArtifact:
     consumer_roles: List[str]
     content_hash: str
     metadata: Dict[str, any] = field(default_factory=dict)
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 @dataclass
@@ -242,7 +242,7 @@ class TemplateProposalArtifact:
     can_bypass_compliance: bool = False
     
     # Metadata
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     created_by: str = "shadow_learning_agent"
     integrity_hash: Optional[str] = None
     
@@ -351,7 +351,7 @@ class SubstitutionGate:
             else:
                 self.status = GateStatus.PENDING
         
-        self.evaluated_at = datetime.utcnow()
+        self.evaluated_at = datetime.now(timezone.utc)
         return self.status
 
 

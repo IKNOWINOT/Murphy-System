@@ -5,7 +5,7 @@ Provides storage, retrieval, and management of knowledge artifacts
 
 import logging
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 
 logging.basicConfig(level=logging.INFO)
@@ -40,7 +40,7 @@ class KnowledgeBase:
             'total_entries': 0,
             'total_size_bytes': 0,
             'queries_processed': 0,
-            'last_updated': datetime.utcnow().isoformat()
+            'last_updated': datetime.now(timezone.utc).isoformat()
         }
         
         # Load existing data if path provided
@@ -72,15 +72,15 @@ class KnowledgeBase:
                 'id': entry_id,
                 'content': content,
                 'metadata': metadata or {},
-                'created_at': datetime.utcnow().isoformat(),
-                'updated_at': datetime.utcnow().isoformat(),
+                'created_at': datetime.now(timezone.utc).isoformat(),
+                'updated_at': datetime.now(timezone.utc).isoformat(),
                 'access_count': 0
             }
             
             self.knowledge_store[entry_id] = entry
             self.stats['total_entries'] = len(self.knowledge_store)
             self.stats['total_size_bytes'] += len(json.dumps(entry))
-            self.stats['last_updated'] = datetime.utcnow().isoformat()
+            self.stats['last_updated'] = datetime.now(timezone.utc).isoformat()
             
             # Update metadata index
             if metadata:
@@ -110,7 +110,7 @@ class KnowledgeBase:
             if entry_id in self.knowledge_store:
                 entry = self.knowledge_store[entry_id]
                 entry['access_count'] += 1
-                entry['last_accessed'] = datetime.utcnow().isoformat()
+                entry['last_accessed'] = datetime.now(timezone.utc).isoformat()
                 self.stats['queries_processed'] += 1
                 return entry.copy()
             return None
@@ -256,8 +256,8 @@ class KnowledgeBase:
             if metadata:
                 entry['metadata'] = metadata
             
-            entry['updated_at'] = datetime.utcnow().isoformat()
-            self.stats['last_updated'] = datetime.utcnow().isoformat()
+            entry['updated_at'] = datetime.now(timezone.utc).isoformat()
+            self.stats['last_updated'] = datetime.now(timezone.utc).isoformat()
             
             logger.info(f"Updated entry {entry_id}")
             return True
@@ -290,7 +290,7 @@ class KnowledgeBase:
                     del self.cross_references[from_id]
                 
                 self.stats['total_entries'] = len(self.knowledge_store)
-                self.stats['last_updated'] = datetime.utcnow().isoformat()
+                self.stats['last_updated'] = datetime.now(timezone.utc).isoformat()
                 
                 logger.info(f"Deleted entry {entry_id}")
                 return True

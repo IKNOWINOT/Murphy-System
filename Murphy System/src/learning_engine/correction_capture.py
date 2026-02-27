@@ -4,7 +4,7 @@ Provides interfaces for capturing human corrections in various formats.
 """
 
 from typing import Dict, List, Optional, Any, Callable
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pydantic import BaseModel, Field
 
@@ -52,7 +52,7 @@ class CorrectionCaptureResponse(BaseModel):
     success: bool
     message: str
     validation_errors: List[str] = Field(default_factory=list)
-    captured_at: datetime = Field(default_factory=datetime.utcnow)
+    captured_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class InteractiveCorrectionCapture:
@@ -88,11 +88,11 @@ class InteractiveCorrectionCapture:
         )
         
         return {
-            "session_id": f"capture_{datetime.utcnow().timestamp()}",
+            "session_id": f"capture_{datetime.now(timezone.utc).timestamp()}",
             "task_id": task_id,
             "original_output": original_output,
             "prompts": self._generate_prompts(),
-            "context": context.dict()
+            "context": context.model_dump()
         }
     
     def _generate_prompts(self) -> List[Dict[str, Any]]:
@@ -568,7 +568,7 @@ class InlineCorrectionCapture:
         if not correction:
             raise ValueError(f"Correction {correction_id} not found")
         
-        correction.updated_at = datetime.utcnow()
+        correction.updated_at = datetime.now(timezone.utc)
         return correction
 
 

@@ -4,7 +4,7 @@ Tracks detailed metadata about corrections for analysis and learning.
 """
 
 from typing import Dict, List, Optional, Any, Set
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pydantic import BaseModel, Field
 from collections import defaultdict
@@ -29,7 +29,7 @@ class MetadataEntry(BaseModel):
     key: str
     value: Any
     category: MetadataCategory
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     source: str = "system"
     confidence: float = Field(ge=0.0, le=1.0, default=1.0)
 
@@ -128,7 +128,7 @@ class CorrectionMetadataTracker:
         self._add_metadata_entry(
             correction_id,
             "system_metadata",
-            metadata.dict(),
+            metadata.model_dump(),
             MetadataCategory.SYSTEM
         )
     
@@ -143,7 +143,7 @@ class CorrectionMetadataTracker:
         self._add_metadata_entry(
             correction_id,
             "user_metadata",
-            metadata.dict(),
+            metadata.model_dump(),
             MetadataCategory.USER
         )
     
@@ -158,7 +158,7 @@ class CorrectionMetadataTracker:
         self._add_metadata_entry(
             correction_id,
             "context_metadata",
-            metadata.dict(),
+            metadata.model_dump(),
             MetadataCategory.CONTEXT
         )
     
@@ -173,7 +173,7 @@ class CorrectionMetadataTracker:
         self._add_metadata_entry(
             correction_id,
             "performance_metadata",
-            metadata.dict(),
+            metadata.model_dump(),
             MetadataCategory.PERFORMANCE
         )
     
@@ -188,7 +188,7 @@ class CorrectionMetadataTracker:
         self._add_metadata_entry(
             correction_id,
             "quality_metadata",
-            metadata.dict(),
+            metadata.model_dump(),
             MetadataCategory.QUALITY
         )
     
@@ -203,7 +203,7 @@ class CorrectionMetadataTracker:
         self._add_metadata_entry(
             correction_id,
             "learning_metadata",
-            metadata.dict(),
+            metadata.model_dump(),
             MetadataCategory.LEARNING
         )
     
@@ -233,7 +233,7 @@ class CorrectionMetadataTracker:
             "performance": self.performance_metadata.get(correction_id),
             "quality": self.quality_metadata.get(correction_id),
             "learning": self.learning_metadata.get(correction_id),
-            "entries": [e.dict() for e in self.metadata_store.get(correction_id, [])]
+            "entries": [e.model_dump() for e in self.metadata_store.get(correction_id, [])]
         }
     
     def get_metadata_by_category(
@@ -419,7 +419,7 @@ class MetadataEnricher:
             self.tracker.track_user_metadata(correction.id, user_meta)
         
         # Context metadata
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         hour = now.hour
         
         if 6 <= hour < 12:

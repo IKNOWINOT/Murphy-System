@@ -4,7 +4,7 @@ Defines the structure for capturing and storing human corrections.
 """
 
 from typing import Dict, List, Optional, Any, Union, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pydantic import BaseModel, Field
 import uuid
@@ -56,7 +56,7 @@ class CorrectionContext(BaseModel):
     operation: str
     domain: Optional[str] = None
     environment: str = "production"
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     user_id: Optional[str] = None
     session_id: Optional[str] = None
     metadata: Dict[str, Any] = Field(default_factory=dict)
@@ -145,8 +145,8 @@ class Correction(BaseModel):
     validation_notes: Optional[str] = None
     
     # Timestamps
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     applied_at: Optional[datetime] = None
     
     # Metadata
@@ -197,7 +197,7 @@ class CorrectionBatch(BaseModel):
     name: str
     description: str
     corrections: List[str]  # Correction IDs
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     created_by: str
     tags: List[str] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
@@ -264,7 +264,7 @@ class CorrectionTemplate(BaseModel):
         
         # Update usage stats
         self.usage_count += 1
-        self.last_used = datetime.utcnow()
+        self.last_used = datetime.now(timezone.utc)
         
         return correction
 
@@ -322,7 +322,7 @@ class CorrectionRelationship(BaseModel):
     relationship_type: str  # "duplicate", "related", "supersedes", "conflicts"
     confidence: float = Field(ge=0.0, le=1.0)
     description: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class CorrectionCluster(BaseModel):
@@ -334,7 +334,7 @@ class CorrectionCluster(BaseModel):
     common_pattern: str
     frequency: int
     average_impact: float
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     tags: List[str] = Field(default_factory=list)
 
 
@@ -348,7 +348,7 @@ class CorrectionEvent(BaseModel):
     correction_id: str
     event_type: str  # "created", "validated", "applied", "rejected", "modified"
     actor_id: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     details: Dict[str, Any] = Field(default_factory=dict)
     notes: Optional[str] = None
 

@@ -5,7 +5,7 @@ Workflow Orchestrator - Define and execute complex workflows
 import threading
 import uuid
 from typing import Dict, List, Optional, Any, Callable
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 import logging
 
@@ -106,7 +106,7 @@ class Workflow:
         self.current_step_index = 0
         self.results: Dict[str, Any] = {}
         self.errors: List[Dict] = []
-        self.created_at = datetime.utcnow()
+        self.created_at = datetime.now(timezone.utc)
         self.started_at: Optional[datetime] = None
         self.completed_at: Optional[datetime] = None
         self.execution_time: Optional[float] = None
@@ -189,7 +189,7 @@ class WorkflowOrchestrator:
         
         # Update workflow state
         workflow.state = WorkflowState.RUNNING
-        workflow.started_at = datetime.utcnow()
+        workflow.started_at = datetime.now(timezone.utc)
         
         logger.info(f"Workflow started: {workflow.workflow_id}")
         
@@ -197,18 +197,18 @@ class WorkflowOrchestrator:
         try:
             self._execute_workflow_steps(workflow)
             workflow.state = WorkflowState.COMPLETED
-            workflow.completed_at = datetime.utcnow()
+            workflow.completed_at = datetime.now(timezone.utc)
             workflow.execution_time = (workflow.completed_at - workflow.started_at).total_seconds()
             
             logger.info(f"Workflow completed: {workflow.workflow_id} in {workflow.execution_time:.2f}s")
             
         except Exception as e:
             workflow.state = WorkflowState.FAILED
-            workflow.completed_at = datetime.utcnow()
+            workflow.completed_at = datetime.now(timezone.utc)
             workflow.execution_time = (workflow.completed_at - workflow.started_at).total_seconds()
             workflow.errors.append({
                 'error': str(e),
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             })
             
             logger.error(f"Workflow failed: {workflow.workflow_id} - {e}")
@@ -227,13 +227,13 @@ class WorkflowOrchestrator:
             
             # Execute the step
             step.state = WorkflowState.RUNNING
-            step.started_at = datetime.utcnow()
+            step.started_at = datetime.now(timezone.utc)
             
             try:
                 result = self._execute_step(workflow, step)
                 step.result = result
                 step.state = WorkflowState.COMPLETED
-                step.completed_at = datetime.utcnow()
+                step.completed_at = datetime.now(timezone.utc)
                 step.execution_time = (step.completed_at - step.started_at).total_seconds()
                 
                 # Store result in workflow variables
@@ -242,13 +242,13 @@ class WorkflowOrchestrator:
             except Exception as e:
                 step.error = e
                 step.state = WorkflowState.FAILED
-                step.completed_at = datetime.utcnow()
+                step.completed_at = datetime.now(timezone.utc)
                 step.execution_time = (step.completed_at - step.started_at).total_seconds()
                 
                 workflow.errors.append({
                     'step_id': step.step_id,
                     'error': str(e),
-                    'timestamp': datetime.utcnow().isoformat()
+                    'timestamp': datetime.now(timezone.utc).isoformat()
                 })
                 
                 logger.error(f"Step failed: {step.step_id} - {e}")
@@ -404,7 +404,7 @@ class WorkflowOrchestrator:
         workflow = self.workflows.get(workflow_id)
         if workflow and workflow.state in [WorkflowState.RUNNING, WorkflowState.PAUSED]:
             workflow.state = WorkflowState.CANCELLED
-            workflow.completed_at = datetime.utcnow()
+            workflow.completed_at = datetime.now(timezone.utc)
             if workflow.started_at:
                 workflow.execution_time = (workflow.completed_at - workflow.started_at).total_seconds()
             logger.info(f"Workflow cancelled: {workflow_id}")

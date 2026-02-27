@@ -5,7 +5,7 @@ This module implements real-time monitoring and alerting for the shadow agent.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Any, Optional
 from uuid import UUID, uuid4
 import logging
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PerformanceMetrics:
     """Real-time performance metrics"""
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     
     # Prediction metrics
     total_predictions: int = 0
@@ -61,7 +61,7 @@ class Alert:
     metric_value: float = 0.0
     threshold: float = 0.0
     
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     resolved_at: Optional[datetime] = None
     is_resolved: bool = False
     
@@ -108,7 +108,7 @@ class MonitoringDashboard:
         self.metrics_history.append(metrics)
         
         # Trim old metrics
-        cutoff_date = datetime.utcnow() - timedelta(days=self.config.retention_days)
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=self.config.retention_days)
         self.metrics_history = [
             m for m in self.metrics_history
             if m.timestamp > cutoff_date
@@ -128,7 +128,7 @@ class MonitoringDashboard:
     def get_metrics_summary(self, hours: int = 24) -> Dict[str, Any]:
         """Get summary of metrics over time period"""
         
-        cutoff = datetime.utcnow() - timedelta(hours=hours)
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
         recent_metrics = [
             m for m in self.metrics_history
             if m.timestamp > cutoff
@@ -149,7 +149,7 @@ class MonitoringDashboard:
     def get_trend_analysis(self, metric_name: str, hours: int = 24) -> Dict[str, Any]:
         """Analyze trend for a specific metric"""
         
-        cutoff = datetime.utcnow() - timedelta(hours=hours)
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
         recent_metrics = [
             m for m in self.metrics_history
             if m.timestamp > cutoff
@@ -236,7 +236,7 @@ class MonitoringDashboard:
         
         # Check cooldown
         if metric_name in self.last_alert_time:
-            time_since_last = datetime.utcnow() - self.last_alert_time[metric_name]
+            time_since_last = datetime.now(timezone.utc) - self.last_alert_time[metric_name]
             if time_since_last < timedelta(minutes=self.config.alert_cooldown_minutes):
                 return
         
@@ -252,7 +252,7 @@ class MonitoringDashboard:
         
         self.active_alerts.append(alert)
         self.alert_history.append(alert)
-        self.last_alert_time[metric_name] = datetime.utcnow()
+        self.last_alert_time[metric_name] = datetime.now(timezone.utc)
         
         logger.warning(f"Alert created: {title} - {message}")
         
@@ -265,7 +265,7 @@ class MonitoringDashboard:
         for alert in self.active_alerts:
             if alert.id == alert_id:
                 alert.is_resolved = True
-                alert.resolved_at = datetime.utcnow()
+                alert.resolved_at = datetime.now(timezone.utc)
                 self.active_alerts.remove(alert)
                 logger.info(f"Alert resolved: {alert.title}")
                 break
@@ -325,7 +325,7 @@ class FeedbackLoop:
             "actual_outcome": actual_outcome,
             "was_correct": was_correct,
             "user_feedback": user_feedback,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         
         self.feedback_queue.append(feedback)
@@ -349,7 +349,7 @@ class FeedbackLoop:
         ]
         
         improvement_summary = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "total_feedback": total,
             "accuracy": accuracy,
             "incorrect_predictions": len(incorrect_predictions),

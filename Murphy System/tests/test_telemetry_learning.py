@@ -11,7 +11,7 @@ Tests all components:
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any
 
 from src.telemetry_learning.models import (
@@ -225,7 +225,7 @@ def test_gate_strengthening_contradictions():
                 "murphy_index": 0.1,
             },
         )
-        artifact.timestamp = datetime.utcnow() - timedelta(hours=12)
+        artifact.timestamp = datetime.now(timezone.utc) - timedelta(hours=12)
         telemetry.append(artifact)
     
     # Recent (high)

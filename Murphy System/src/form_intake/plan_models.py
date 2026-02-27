@@ -7,7 +7,7 @@ Defines the structure of plans, tasks, dependencies, and validation criteria.
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from enum import Enum
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class TaskStatus(str, Enum):
@@ -51,16 +51,15 @@ class Dependency(BaseModel):
         description="Number of days to wait after dependency is satisfied"
     )
     
-    class Config:
-        schema_extra = {
-            "example": {
-                "dependency_id": "dep_001",
-                "from_task_id": "task_design_ui",
-                "to_task_id": "task_implement_ui",
-                "dependency_type": "finish_to_start",
-                "lag_days": 0
-            }
-        }
+    model_config = ConfigDict(json_schema_extra={
+        "examples": [{
+            "dependency_id": "dep_001",
+            "from_task_id": "task_design_ui",
+            "to_task_id": "task_implement_ui",
+            "dependency_type": "finish_to_start",
+            "lag_days": 0
+        }]
+    })
 
 
 class ValidationCriterion(BaseModel):
@@ -81,16 +80,15 @@ class ValidationCriterion(BaseModel):
         description="Whether this criterion must be met"
     )
     
-    class Config:
-        schema_extra = {
-            "example": {
-                "criterion_id": "crit_001",
-                "description": "All unit tests pass",
-                "validation_method": "automated_test",
-                "acceptance_threshold": 1.0,
-                "is_mandatory": True
-            }
-        }
+    model_config = ConfigDict(json_schema_extra={
+        "examples": [{
+            "criterion_id": "crit_001",
+            "description": "All unit tests pass",
+            "validation_method": "automated_test",
+            "acceptance_threshold": 1.0,
+            "is_mandatory": True
+        }]
+    })
 
 
 class HumanCheckpoint(BaseModel):
@@ -111,16 +109,15 @@ class HumanCheckpoint(BaseModel):
         description="Whether execution blocks until checkpoint is cleared"
     )
     
-    class Config:
-        schema_extra = {
-            "example": {
-                "checkpoint_id": "chk_001",
-                "checkpoint_type": "approval",
-                "description": "Review and approve UI design mockups",
-                "required_role": "product_manager",
-                "blocking": True
-            }
-        }
+    model_config = ConfigDict(json_schema_extra={
+        "examples": [{
+            "checkpoint_id": "chk_001",
+            "checkpoint_type": "approval",
+            "description": "Review and approve UI design mockups",
+            "required_role": "product_manager",
+            "blocking": True
+        }]
+    })
 
 
 class Task(BaseModel):
@@ -186,49 +183,48 @@ class Task(BaseModel):
         description="Task last update timestamp"
     )
     
-    class Config:
-        schema_extra = {
-            "example": {
-                "task_id": "task_001",
-                "title": "Design user interface mockups",
-                "description": "Create high-fidelity mockups for the main application screens including dashboard, settings, and user profile pages.",
-                "priority": "high",
-                "status": "pending",
-                "estimated_hours": 16.0,
-                "estimated_cost": 2400.0,
-                "assigned_to": "ui_designer",
-                "dependencies": [],
-                "validation_criteria": [
-                    {
-                        "criterion_id": "crit_001",
-                        "description": "All screens designed",
-                        "validation_method": "human_review",
-                        "is_mandatory": True
-                    }
-                ],
-                "human_checkpoints": [
-                    {
-                        "checkpoint_id": "chk_001",
-                        "checkpoint_type": "approval",
-                        "description": "Product manager approval",
-                        "required_role": "product_manager",
-                        "blocking": True
-                    }
-                ],
-                "assumptions": [
-                    "Design system already exists",
-                    "Brand guidelines are available"
-                ],
-                "risks": [
-                    "Design revisions may extend timeline",
-                    "Stakeholder feedback may require major changes"
-                ],
-                "deliverables": [
-                    "Figma mockups for all screens",
-                    "Design specifications document"
-                ]
-            }
-        }
+    model_config = ConfigDict(json_schema_extra={
+        "examples": [{
+            "task_id": "task_001",
+            "title": "Design user interface mockups",
+            "description": "Create high-fidelity mockups for the main application screens including dashboard, settings, and user profile pages.",
+            "priority": "high",
+            "status": "pending",
+            "estimated_hours": 16.0,
+            "estimated_cost": 2400.0,
+            "assigned_to": "ui_designer",
+            "dependencies": [],
+            "validation_criteria": [
+                {
+                    "criterion_id": "crit_001",
+                    "description": "All screens designed",
+                    "validation_method": "human_review",
+                    "is_mandatory": True
+                }
+            ],
+            "human_checkpoints": [
+                {
+                    "checkpoint_id": "chk_001",
+                    "checkpoint_type": "approval",
+                    "description": "Product manager approval",
+                    "required_role": "product_manager",
+                    "blocking": True
+                }
+            ],
+            "assumptions": [
+                "Design system already exists",
+                "Brand guidelines are available"
+            ],
+            "risks": [
+                "Design revisions may extend timeline",
+                "Stakeholder feedback may require major changes"
+            ],
+            "deliverables": [
+                "Figma mockups for all screens",
+                "Design specifications document"
+            ]
+        }]
+    })
 
 
 class Plan(BaseModel):
@@ -332,37 +328,36 @@ class Plan(BaseModel):
         completed = sum(1 for task in self.tasks if task.status == TaskStatus.COMPLETED)
         return (completed / len(self.tasks)) * 100.0
     
-    class Config:
-        schema_extra = {
-            "example": {
-                "plan_id": "plan_001",
-                "title": "Q1 2025 Product Launch",
-                "description": "Complete plan for launching new SaaS product in Q1 2025",
-                "goal": "Launch beta product with 100 users",
-                "domain": "software_development",
-                "timeline": "6 months",
-                "budget": 150000.0,
-                "tasks": [],
-                "dependencies": [],
-                "success_criteria": [
-                    "Beta product launched",
-                    "100 active users acquired",
-                    "User satisfaction > 4.0/5.0"
-                ],
-                "constraints": [
-                    "Budget: $150,000",
-                    "Timeline: 6 months",
-                    "Team size: 8 people"
-                ],
-                "assumptions": [
-                    "Market demand exists",
-                    "Team has necessary skills",
-                    "Infrastructure is available"
-                ],
-                "risks": [
-                    "Market competition may increase",
-                    "Technical challenges may delay launch",
-                    "User acquisition may be slower than expected"
-                ]
-            }
-        }
+    model_config = ConfigDict(json_schema_extra={
+        "examples": [{
+            "plan_id": "plan_001",
+            "title": "Q1 2025 Product Launch",
+            "description": "Complete plan for launching new SaaS product in Q1 2025",
+            "goal": "Launch beta product with 100 users",
+            "domain": "software_development",
+            "timeline": "6 months",
+            "budget": 150000.0,
+            "tasks": [],
+            "dependencies": [],
+            "success_criteria": [
+                "Beta product launched",
+                "100 active users acquired",
+                "User satisfaction > 4.0/5.0"
+            ],
+            "constraints": [
+                "Budget: $150,000",
+                "Timeline: 6 months",
+                "Team size: 8 people"
+            ],
+            "assumptions": [
+                "Market demand exists",
+                "Team has necessary skills",
+                "Infrastructure is available"
+            ],
+            "risks": [
+                "Market competition may increase",
+                "Technical challenges may delay launch",
+                "User acquisition may be slower than expected"
+            ]
+        }]
+    })

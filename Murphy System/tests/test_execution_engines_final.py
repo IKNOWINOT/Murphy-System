@@ -63,7 +63,6 @@ class TestExecutionEngines:
         assert len(role_template.responsibilities) == 3
         
         print("✓ Organization chart system test PASSED")
-        return True
     
     def test_task_executor(self):
         """Test task executor"""
@@ -106,7 +105,6 @@ class TestExecutionEngines:
         assert scheduled_task.task_id == "task_001"
         
         print("✓ Task executor test PASSED")
-        return True
     
     def test_workflow_orchestrator(self):
         """Test workflow orchestrator"""
@@ -151,7 +149,6 @@ class TestExecutionEngines:
         assert result == workflow.workflow_id
         
         print("✓ Workflow orchestrator test PASSED")
-        return True
     
     def test_decision_engine(self):
         """Test decision engine"""
@@ -188,7 +185,6 @@ class TestExecutionEngines:
         assert decision.confidence > 0.5
         
         print("✓ Decision engine test PASSED")
-        return True
     
     def test_state_manager(self):
         """Test state manager"""
@@ -218,7 +214,6 @@ class TestExecutionEngines:
         assert updated_state.variables['count'] == 5
         
         print("✓ State manager test PASSED")
-        return True
     
     def test_integrations_framework(self):
         """Test integrations framework"""
@@ -250,7 +245,6 @@ class TestExecutionEngines:
         assert framework.get_integration("test_integration") is not None
         
         print("✓ Integrations framework test PASSED")
-        return True
     
     def test_document_generation_engine(self):
         """Test document generation engine"""
@@ -289,7 +283,6 @@ class TestExecutionEngines:
         assert document.document_id in engine.documents, f"Document {document.document_id} not found in engine.documents"
         
         print("✓ Document generation engine test PASSED")
-        return True
     
     def test_complete_system_integration(self):
         """Test complete system integration"""
@@ -356,7 +349,6 @@ class TestExecutionEngines:
         assert decision.rule_applied.name == "Integration Rule"
         
         print("✓ Complete system integration test PASSED")
-        return True
 
 def run_all_tests():
     """Run all tests"""

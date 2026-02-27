@@ -11,7 +11,7 @@ from typing import Dict, List, Any, Optional
 from enum import Enum
 import hashlib
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class DeterminismLevel(Enum):
@@ -198,7 +198,7 @@ class ModuleSpec:
     sandbox_profile: SandboxProfile
     
     # Metadata
-    compiled_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    compiled_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     compiler_version: str = "1.0.0"
     
     # Build information
@@ -275,7 +275,7 @@ class ModuleSpec:
             version_hash=data["version_hash"],
             capabilities=capabilities,
             sandbox_profile=sandbox_profile,
-            compiled_at=data.get("compiled_at", datetime.utcnow().isoformat()),
+            compiled_at=data.get("compiled_at", datetime.now(timezone.utc).isoformat()),
             compiler_version=data.get("compiler_version", "1.0.0"),
             build_steps=data.get("build_steps", []),
             dependencies=data.get("dependencies", []),

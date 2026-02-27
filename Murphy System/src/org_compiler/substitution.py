@@ -12,7 +12,7 @@ CRITICAL SAFETY RULES:
 """
 
 from typing import List, Dict, Optional, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from .schemas import (
     SubstitutionGate,
@@ -81,7 +81,7 @@ class PerformanceEvidenceValidator:
         
         # All checks passed
         gate.status = GateStatus.SATISFIED
-        gate.evaluated_at = datetime.utcnow()
+        gate.evaluated_at = datetime.now(timezone.utc)
         return gate
 
 
@@ -139,7 +139,7 @@ class DeterministicVerificationChecker:
         gate.status = GateStatus.SATISFIED
         gate.verification_method = "All output types have registered verifications"
         gate.verification_passed = True
-        gate.evaluated_at = datetime.utcnow()
+        gate.evaluated_at = datetime.now(timezone.utc)
         return gate
 
 
@@ -189,7 +189,7 @@ class ComplianceGateValidator:
                 # Compliance retained by human - PASS
                 gate.status = GateStatus.SATISFIED
                 gate.compliance_verified = True
-                gate.evaluated_at = datetime.utcnow()
+                gate.evaluated_at = datetime.now(timezone.utc)
             
             gates.append(gate)
         
@@ -249,9 +249,9 @@ class HumanSignoffEnforcer:
             raise ValueError(f"Signoff must be from {gate.signoff_required_from}, not {granted_by}")
         
         gate.signoff_granted = True
-        gate.signoff_timestamp = datetime.utcnow()
+        gate.signoff_timestamp = datetime.now(timezone.utc)
         gate.status = GateStatus.SATISFIED
-        gate.evaluated_at = datetime.utcnow()
+        gate.evaluated_at = datetime.now(timezone.utc)
         
         # Store signoff
         self.signoffs[gate.gate_id] = {
@@ -267,7 +267,7 @@ class HumanSignoffEnforcer:
             return False
         
         # Check if signoff is still within validity period
-        age = datetime.utcnow() - gate.signoff_timestamp
+        age = datetime.now(timezone.utc) - gate.signoff_timestamp
         if age.days > self.signoff_validity_days:
             return False
         

@@ -8,7 +8,7 @@ Implements refusal semantics as valid execution state:
 - Integration with scheduler and stability controller
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Dict, List, Optional, Set, Union
 from uuid import UUID, uuid4
@@ -75,7 +75,7 @@ class RefusalHandler:
             agent_id=agent_id,
             refusal_code=refusal_code,
             refusal_reason=refusal_reason,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             refusing_authority=authority_level,
             blocked_dependencies=dependencies,
             audit_signature=self._generate_audit_signature(agent_id, refusal_code, refusal_reason)
@@ -97,7 +97,7 @@ class RefusalHandler:
             self.blocked_agents[dependent_id] = {
                 "blocked_by": refusing_agent,
                 "refusal_code": refusal_code,
-                "blocked_time": datetime.utcnow()
+                "blocked_time": datetime.now(timezone.utc)
             }
     
     def _generate_audit_signature(self, agent_id: str, refusal_code: str, refusal_reason: str) -> str:
@@ -106,7 +106,7 @@ class RefusalHandler:
             "agent_id": agent_id,
             "refusal_code": refusal_code,
             "refusal_reason": refusal_reason,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         json_str = json.dumps(audit_data, sort_keys=True)
         return hashlib.sha256(json_str.encode()).hexdigest()

@@ -5,7 +5,7 @@ Continuous compliance monitoring and reporting for the Murphy System.
 Tracks ongoing compliance status and generates compliance reports.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Dict, List, Optional, Set, Union, Any
 from uuid import UUID, uuid4
@@ -26,7 +26,7 @@ class ComplianceEvent:
         self.event_type = event_type
         self.severity = severity
         self.description = description
-        self.timestamp = timestamp or datetime.utcnow()
+        self.timestamp = timestamp or datetime.now(timezone.utc)
         self.resolved = False
 
 
@@ -119,7 +119,7 @@ class ComplianceMonitor:
     
     def get_compliance_trend(self, days: int = 30) -> List[ComplianceMetrics]:
         """Get compliance trend over specified days"""
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         
         metrics = []
         for result in self.compliance_history:
@@ -146,7 +146,7 @@ class ComplianceMonitor:
         """Generate comprehensive compliance report"""
         
         if period_end is None:
-            period_end = datetime.utcnow()
+            period_end = datetime.now(timezone.utc)
         if period_start is None:
             period_start = period_end - timedelta(days=30)
         
@@ -173,7 +173,7 @@ class ComplianceMonitor:
         
         return ComplianceReport(
             report_id=report_id,
-            generated_at=datetime.utcnow(),
+            generated_at=datetime.now(timezone.utc),
             period_start=period_start,
             period_end=period_end,
             overall_status=current.overall_status,

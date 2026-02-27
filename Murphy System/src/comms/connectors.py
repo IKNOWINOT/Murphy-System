@@ -10,7 +10,15 @@ CRITICAL: Connectors NEVER trigger execution. They only create artifacts.
 
 from abc import ABC, abstractmethod
 from typing import List, Dict, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
+import logging
+
+try:
+    import requests as _requests
+except ImportError:
+    _requests = None  # type: ignore[assignment]
+
+logger = logging.getLogger(__name__)
 import smtplib
 import imaplib
 import email
@@ -155,7 +163,7 @@ class EmailConnector(BaseConnector):
                     content_redacted=content,  # Will be redacted by pipeline
                     content_original=content,
                     intent=IntentClassification.UNKNOWN,  # Will be classified by pipeline
-                    timestamp=datetime.utcnow(),
+                    timestamp=datetime.now(timezone.utc),
                     direction='inbound',
                     external_party=True,  # Assume external by default
                     source_system='email_imap',
@@ -168,7 +176,7 @@ class EmailConnector(BaseConnector):
             imap.logout()
         
         except Exception as e:
-            print(f"Error receiving emails via IMAP: {e}")
+            logger.exception("Error receiving emails via IMAP: %s", e)
         
         return messages
     
@@ -200,7 +208,7 @@ class EmailConnector(BaseConnector):
                         content_redacted=msg.get('bodyPreview', ''),
                         content_original=msg.get('body', {}).get('content', ''),
                         intent=IntentClassification.UNKNOWN,
-                        timestamp=datetime.fromisoformat(msg.get('receivedDateTime', datetime.utcnow().isoformat())),
+                        timestamp=datetime.fromisoformat(msg.get('receivedDateTime', datetime.now(timezone.utc).isoformat())),
                         direction='inbound',
                         external_party=True,
                         source_system='email_graph',
@@ -210,7 +218,7 @@ class EmailConnector(BaseConnector):
                     messages.append(artifact)
         
         except Exception as e:
-            print(f"Error receiving emails via Graph: {e}")
+            logger.exception("Error receiving emails via Graph: %s", e)
         
         return messages
     
@@ -231,7 +239,7 @@ class EmailConnector(BaseConnector):
         
         if success:
             self._increment_message_count()
-            packet.sent_at = datetime.utcnow()
+            packet.sent_at = datetime.now(timezone.utc)
         
         return success
     
@@ -261,7 +269,7 @@ class EmailConnector(BaseConnector):
             return True
         
         except Exception as e:
-            print(f"Error sending email via SMTP: {e}")
+            logger.exception("Error sending email via SMTP: %s", e)
             return False
     
     def _send_via_graph(self, packet: CommunicationPacket) -> bool:
@@ -293,7 +301,7 @@ class EmailConnector(BaseConnector):
             return response.status_code == 202
         
         except Exception as e:
-            print(f"Error sending email via Graph: {e}")
+            logger.exception("Error sending email via Graph: %s", e)
             return False
     
     def _extract_email_content(self, email_message) -> str:
@@ -359,7 +367,7 @@ class SlackConnector(BaseConnector):
                     messages.append(artifact)
         
         except Exception as e:
-            print(f"Error receiving Slack messages: {e}")
+            logger.exception("Error receiving Slack messages: %s", e)
         
         return messages
     
@@ -395,12 +403,12 @@ class SlackConnector(BaseConnector):
             
             if success:
                 self._increment_message_count()
-                packet.sent_at = datetime.utcnow()
+                packet.sent_at = datetime.now(timezone.utc)
             
             return success
         
         except Exception as e:
-            print(f"Error sending Slack message: {e}")
+            logger.exception("Error sending Slack message: %s", e)
             return False
 
 
@@ -443,7 +451,7 @@ class TeamsConnector(BaseConnector):
                         content_redacted=msg.get('body', {}).get('content', ''),
                         content_original=msg.get('body', {}).get('content', ''),
                         intent=IntentClassification.UNKNOWN,
-                        timestamp=datetime.fromisoformat(msg.get('createdDateTime', datetime.utcnow().isoformat())),
+                        timestamp=datetime.fromisoformat(msg.get('createdDateTime', datetime.now(timezone.utc).isoformat())),
                         direction='inbound',
                         external_party=False,
                         source_system='teams',
@@ -453,7 +461,7 @@ class TeamsConnector(BaseConnector):
                     messages.append(artifact)
         
         except Exception as e:
-            print(f"Error receiving Teams messages: {e}")
+            logger.exception("Error receiving Teams messages: %s", e)
         
         return messages
     
@@ -492,12 +500,12 @@ class TeamsConnector(BaseConnector):
             
             if success:
                 self._increment_message_count()
-                packet.sent_at = datetime.utcnow()
+                packet.sent_at = datetime.now(timezone.utc)
             
             return success
         
         except Exception as e:
-            print(f"Error sending Teams message: {e}")
+            logger.exception("Error sending Teams message: %s", e)
             return False
 
 
@@ -542,24 +550,59 @@ class SMSConnector(BaseConnector):
         elif self.provider == 'aws_sns':
             return self._send_via_sns(packet)
         else:
-            print(f"Unknown SMS provider: {self.provider}")
+            logger.error("Unknown SMS provider: %s", self.provider)
             return False
     
     def _send_via_twilio(self, packet: CommunicationPacket) -> bool:
-        """Send SMS via Twilio (stub)"""
-        # In production, would use Twilio SDK
-        print(f"[STUB] Sending SMS via Twilio: {packet.content[:50]}...")
-        self._increment_message_count()
-        packet.sent_at = datetime.utcnow()
-        return True
+        """Send SMS via Twilio REST API."""
+        if _requests is None:
+            logger.error("requests library required for Twilio integration")
+            return False
+        account_sid = self.config.connection_params.get("twilio_account_sid", "")
+        auth_token = self.config.connection_params.get("twilio_auth_token", "")
+        from_number = self.config.connection_params.get("twilio_from_number", "")
+        if not all([account_sid, auth_token, from_number]):
+            logger.warning("Twilio credentials not configured; SMS not sent")
+            return False
+        to_number = packet.metadata.get("to_number", packet.recipient)
+        url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json"
+        try:
+            resp = _requests.post(
+                url,
+                data={"From": from_number, "To": to_number, "Body": packet.content},
+                auth=(account_sid, auth_token),
+                timeout=15,
+            )
+            if resp.status_code in (200, 201):
+                self._increment_message_count()
+                packet.sent_at = datetime.now(timezone.utc)
+                logger.info("Twilio SMS sent to %s (sid=%s)", to_number, resp.json().get("sid"))
+                return True
+            logger.error("Twilio error %s: %s", resp.status_code, resp.text[:200])
+            return False
+        except Exception as exc:
+            logger.exception("Twilio send failed: %s", exc)
+            return False
     
     def _send_via_sns(self, packet: CommunicationPacket) -> bool:
-        """Send SMS via AWS SNS (stub)"""
-        # In production, would use boto3
-        print(f"[STUB] Sending SMS via AWS SNS: {packet.content[:50]}...")
-        self._increment_message_count()
-        packet.sent_at = datetime.utcnow()
-        return True
+        """Send SMS via AWS SNS using HTTP signing."""
+        try:
+            import boto3
+        except ImportError:
+            logger.error("boto3 required for AWS SNS integration")
+            return False
+        region = self.config.connection_params.get("aws_region", "us-east-1")
+        try:
+            client = boto3.client("sns", region_name=region)
+            to_number = packet.metadata.get("to_number", packet.recipient)
+            response = client.publish(PhoneNumber=to_number, Message=packet.content)
+            self._increment_message_count()
+            packet.sent_at = datetime.now(timezone.utc)
+            logger.info("AWS SNS SMS sent (MessageId=%s)", response.get("MessageId"))
+            return True
+        except Exception as exc:
+            logger.exception("AWS SNS send failed: %s", exc)
+            return False
 
 
 class TicketConnector(BaseConnector):
@@ -594,24 +637,99 @@ class TicketConnector(BaseConnector):
                 messages = self._receive_zendesk_comments()
         
         except Exception as e:
-            print(f"Error receiving ticket messages: {e}")
+            logger.exception("Error receiving ticket messages: %s", e)
         
         return messages
     
     def _receive_jira_comments(self) -> List[MessageArtifact]:
-        """Receive Jira comments (stub)"""
-        # In production, would use Jira API
-        return []
+        """Receive recent Jira issue comments via REST API."""
+        if _requests is None or not self.api_base or not self.api_token:
+            return []
+        project_key = self.config.connection_params.get("project_key", "")
+        url = f"{self.api_base}/rest/api/3/search"
+        params = {"jql": f"project={project_key} AND updated >= -1h", "maxResults": 20}
+        try:
+            resp = _requests.get(url, params=params, auth=(self.username or "", self.api_token), timeout=15)
+            if resp.status_code != 200:
+                logger.error("Jira search failed: %s", resp.status_code)
+                return []
+            messages: List[MessageArtifact] = []
+            for issue in resp.json().get("issues", []):
+                key = issue.get("key", "")
+                fields = issue.get("fields", {})
+                summary = fields.get("summary", "")
+                messages.append(MessageArtifact(
+                    message_id=key,
+                    channel="jira",
+                    content=summary,
+                    sender=fields.get("reporter", {}).get("displayName", "unknown"),
+                    timestamp=datetime.now(timezone.utc),
+                    metadata={"issue_key": key},
+                ))
+            return messages
+        except Exception as exc:
+            logger.exception("Jira receive failed: %s", exc)
+            return []
     
     def _receive_servicenow_comments(self) -> List[MessageArtifact]:
-        """Receive ServiceNow comments (stub)"""
-        # In production, would use ServiceNow API
-        return []
+        """Receive recent ServiceNow incident comments via REST API."""
+        if _requests is None or not self.api_base or not self.api_token:
+            return []
+        url = f"{self.api_base}/api/now/table/incident"
+        params = {"sysparm_limit": 20, "sysparm_query": "sys_updated_onONLast hour@javascript:gs.beginningOfLastHour()@javascript:gs.endOfLastHour()"}
+        try:
+            resp = _requests.get(
+                url, params=params,
+                auth=(self.username or "", self.api_token),
+                headers={"Accept": "application/json"},
+                timeout=15,
+            )
+            if resp.status_code != 200:
+                logger.error("ServiceNow query failed: %s", resp.status_code)
+                return []
+            messages: List[MessageArtifact] = []
+            for record in resp.json().get("result", []):
+                messages.append(MessageArtifact(
+                    message_id=record.get("sys_id", ""),
+                    channel="servicenow",
+                    content=record.get("short_description", ""),
+                    sender=record.get("opened_by", {}).get("display_value", "unknown"),
+                    timestamp=datetime.now(timezone.utc),
+                    metadata={"number": record.get("number", "")},
+                ))
+            return messages
+        except Exception as exc:
+            logger.exception("ServiceNow receive failed: %s", exc)
+            return []
     
     def _receive_zendesk_comments(self) -> List[MessageArtifact]:
-        """Receive Zendesk comments (stub)"""
-        # In production, would use Zendesk API
-        return []
+        """Receive recent Zendesk ticket comments via REST API."""
+        if _requests is None or not self.api_base or not self.api_token:
+            return []
+        url = f"{self.api_base}/api/v2/tickets/recent.json"
+        try:
+            resp = _requests.get(
+                url,
+                auth=(f"{self.username}/token", self.api_token),
+                timeout=15,
+            )
+            if resp.status_code != 200:
+                logger.error("Zendesk query failed: %s", resp.status_code)
+                return []
+            messages: List[MessageArtifact] = []
+            for ticket in resp.json().get("tickets", []):
+                messages.append(MessageArtifact(
+                    message_id=str(ticket.get("id", "")),
+                    channel="zendesk",
+                    content=ticket.get("subject", ""),
+                    sender=str(ticket.get("requester_id", "unknown")),
+                    timestamp=datetime.now(timezone.utc),
+                    metadata={"ticket_id": ticket.get("id")},
+                ))
+            return messages
+        except Exception as exc:
+            logger.exception("Zendesk receive failed: %s", exc)
+            return []
     
     def send_message(self, packet: CommunicationPacket) -> bool:
         """Send ticket comment/update"""
@@ -633,7 +751,7 @@ class TicketConnector(BaseConnector):
             
             if success:
                 self._increment_message_count()
-                packet.sent_at = datetime.utcnow()
+                packet.sent_at = datetime.now(timezone.utc)
             
             return success
         
@@ -642,16 +760,73 @@ class TicketConnector(BaseConnector):
             return False
     
     def _send_jira_comment(self, packet: CommunicationPacket) -> bool:
-        """Send Jira comment (stub)"""
-        print(f"[STUB] Sending Jira comment: {packet.content[:50]}...")
-        return True
+        """Send a comment to a Jira issue via REST API."""
+        if _requests is None or not self.api_base or not self.api_token:
+            logger.warning("Jira credentials not configured; comment not sent")
+            return False
+        issue_key = packet.metadata.get("issue_key", packet.recipient)
+        url = f"{self.api_base}/rest/api/3/issue/{issue_key}/comment"
+        try:
+            resp = _requests.post(
+                url,
+                json={"body": {"type": "doc", "version": 1, "content": [{"type": "paragraph", "content": [{"type": "text", "text": packet.content}]}]}},
+                auth=(self.username or "", self.api_token),
+                headers={"Content-Type": "application/json"},
+                timeout=15,
+            )
+            if resp.status_code in (200, 201):
+                logger.info("Jira comment added to %s", issue_key)
+                return True
+            logger.error("Jira comment failed: %s %s", resp.status_code, resp.text[:200])
+            return False
+        except Exception as exc:
+            logger.exception("Jira send failed: %s", exc)
+            return False
     
     def _send_servicenow_comment(self, packet: CommunicationPacket) -> bool:
-        """Send ServiceNow comment (stub)"""
-        print(f"[STUB] Sending ServiceNow comment: {packet.content[:50]}...")
-        return True
+        """Add a work note to a ServiceNow incident via REST API."""
+        if _requests is None or not self.api_base or not self.api_token:
+            logger.warning("ServiceNow credentials not configured; comment not sent")
+            return False
+        incident_id = packet.metadata.get("sys_id", packet.recipient)
+        url = f"{self.api_base}/api/now/table/incident/{incident_id}"
+        try:
+            resp = _requests.patch(
+                url,
+                json={"work_notes": packet.content},
+                auth=(self.username or "", self.api_token),
+                headers={"Content-Type": "application/json", "Accept": "application/json"},
+                timeout=15,
+            )
+            if resp.status_code == 200:
+                logger.info("ServiceNow work note added to %s", incident_id)
+                return True
+            logger.error("ServiceNow update failed: %s %s", resp.status_code, resp.text[:200])
+            return False
+        except Exception as exc:
+            logger.exception("ServiceNow send failed: %s", exc)
+            return False
     
     def _send_zendesk_comment(self, packet: CommunicationPacket) -> bool:
-        """Send Zendesk comment (stub)"""
-        print(f"[STUB] Sending Zendesk comment: {packet.content[:50]}...")
-        return True
+        """Add a comment to a Zendesk ticket via REST API."""
+        if _requests is None or not self.api_base or not self.api_token:
+            logger.warning("Zendesk credentials not configured; comment not sent")
+            return False
+        ticket_id = packet.metadata.get("ticket_id", packet.recipient)
+        url = f"{self.api_base}/api/v2/tickets/{ticket_id}.json"
+        try:
+            resp = _requests.put(
+                url,
+                json={"ticket": {"comment": {"body": packet.content, "public": True}}},
+                auth=(f"{self.username}/token", self.api_token),
+                headers={"Content-Type": "application/json"},
+                timeout=15,
+            )
+            if resp.status_code == 200:
+                logger.info("Zendesk comment added to ticket %s", ticket_id)
+                return True
+            logger.error("Zendesk update failed: %s %s", resp.status_code, resp.text[:200])
+            return False
+        except Exception as exc:
+            logger.exception("Zendesk send failed: %s", exc)
+            return False
