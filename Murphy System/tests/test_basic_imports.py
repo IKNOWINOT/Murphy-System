@@ -17,53 +17,28 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 def test_unified_confidence_engine_import():
     """Test UnifiedConfidenceEngine can be imported"""
-    try:
-        from confidence_engine.unified_confidence_engine import UnifiedConfidenceEngine
-        print("✓ UnifiedConfidenceEngine imported successfully")
-        return True
-    except Exception as e:
-        print(f"✗ UnifiedConfidenceEngine import failed: {e}")
-        return False
+    from confidence_engine.unified_confidence_engine import UnifiedConfidenceEngine
+    assert UnifiedConfidenceEngine is not None
 
 def test_integrated_correction_system_import():
     """Test IntegratedCorrectionSystem can be imported"""
-    try:
-        from learning_engine.integrated_correction_system import IntegratedCorrectionSystem
-        print("✓ IntegratedCorrectionSystem imported successfully")
-        return True
-    except Exception as e:
-        print(f"✗ IntegratedCorrectionSystem import failed: {e}")
-        return False
+    from learning_engine.integrated_correction_system import IntegratedCorrectionSystem
+    assert IntegratedCorrectionSystem is not None
 
 def test_integrated_form_executor_import():
     """Test IntegratedFormExecutor can be imported"""
-    try:
-        from execution_engine.integrated_form_executor import IntegratedFormExecutor
-        print("✓ IntegratedFormExecutor imported successfully")
-        return True
-    except Exception as e:
-        print(f"✗ IntegratedFormExecutor import failed: {e}")
-        return False
+    from execution_engine.integrated_form_executor import IntegratedFormExecutor
+    assert IntegratedFormExecutor is not None
 
 def test_integrated_hitl_monitor_import():
     """Test IntegratedHITLMonitor can be imported"""
-    try:
-        from supervisor_system.integrated_hitl_monitor import IntegratedHITLMonitor
-        print("✓ IntegratedHITLMonitor imported successfully")
-        return True
-    except Exception as e:
-        print(f"✗ IntegratedHITLMonitor import failed: {e}")
-        return False
+    from supervisor_system.integrated_hitl_monitor import IntegratedHITLMonitor
+    assert IntegratedHITLMonitor is not None
 
 def test_form_intake_import():
     """Test form intake modules can be imported"""
-    try:
-        from form_intake.schemas import PlanUploadForm
-        print("✓ Form intake modules imported successfully")
-        return True
-    except Exception as e:
-        print(f"✗ Form intake import failed: {e}")
-        return False
+    from form_intake.schemas import PlanUploadForm
+    assert PlanUploadForm is not None
 
 def main():
     """Run all import tests"""
