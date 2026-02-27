@@ -3,7 +3,8 @@ Freelancer Validator — External HITL via Freelance Platforms
 
 Hires human validators on freelance platforms (Fiverr, Upwork, Freelancer.com)
 for Human-in-the-Loop validation tasks. Enforces structured criteria, manages
-organization budgets, and wires responses back into the HITL monitor.
+organization budgets, verifies validator credentials against public records,
+and wires responses back into the HITL monitor.
 
 Copyright © 2025 Inoni Limited Liability Company
 """
@@ -18,6 +19,13 @@ from .models import (
     TaskStatus,
     PlatformType,
     ResponseVerdict,
+    CertificationType,
+    Credential,
+    CredentialRequirement,
+    CredentialStatus,
+    CredentialVerificationResult,
+    ComplaintRecord,
+    ValidatorCredentialProfile,
 )
 from .platform_client import (
     FreelancerPlatformClient,
@@ -27,6 +35,7 @@ from .platform_client import (
 )
 from .budget_manager import BudgetManager
 from .criteria_engine import CriteriaEngine
+from .credential_verifier import CredentialVerifier
 from .hitl_bridge import FreelancerHITLBridge
 
 __all__ = [
@@ -39,11 +48,19 @@ __all__ = [
     "TaskStatus",
     "PlatformType",
     "ResponseVerdict",
+    "CertificationType",
+    "Credential",
+    "CredentialRequirement",
+    "CredentialStatus",
+    "CredentialVerificationResult",
+    "ComplaintRecord",
+    "ValidatorCredentialProfile",
     "FreelancerPlatformClient",
     "FiverrClient",
     "UpworkClient",
     "GenericFreelancerClient",
     "BudgetManager",
     "CriteriaEngine",
+    "CredentialVerifier",
     "FreelancerHITLBridge",
 ]

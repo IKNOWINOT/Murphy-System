@@ -13,13 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BSL 1.1 license** — source-available with Apache 2.0 conversion after 4 years
 - **License Strategy document** — rationale for open-core licensing approach
 - **Professional repo files** — CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md, CHANGELOG.md
-- **Freelancer Validator** (`src/freelancer_validator/`) — dispatches HITL validation tasks to freelance platforms (Fiverr, Upwork, generic); org-level budget enforcement (monthly + per-task limits); structured criteria with weighted scoring; format-validated responses; automatic wiring of verdicts into HITL monitor. 29 commissioning tests.
+- **Freelancer Validator** (`src/freelancer_validator/`) — dispatches HITL validation tasks to freelance platforms (Fiverr, Upwork, generic); org-level budget enforcement (monthly + per-task limits); structured criteria with weighted scoring; format-validated responses; credential verification against public records (BBB, state license boards) with complaint/disciplinary-action lookup; automatic wiring of verdicts into HITL monitor. 47 commissioning tests.
 - Complete runtime with 32+ engines and 47+ modules
 - Universal Control Plane architecture
 - Two-Phase Orchestrator (generative setup → production execution)
 - Integration Engine with GitHub ingestion and HITL approval
 - Business automation (sales, marketing, operations, finance, customer service)
-- 204 commissioning tests passing
+- 222 commissioning tests passing
 - Docker and Kubernetes deployment references
 - Multiple terminal UI interfaces
 - 20 step-by-step setup screenshots in docs/screenshots/
