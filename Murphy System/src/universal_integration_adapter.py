@@ -15,7 +15,7 @@ available actions) and the adapter handles:
   - Event-driven webhook ingestion
   - Thread-safe registry
 
-Pre-loaded with 75+ common integration templates (Slack, Discord, Notion,
+Pre-loaded with 80+ common integration templates (Slack, Discord, Notion,
 Airtable, Zapier, IFTTT, n8n, Make, Vercel, Netlify, Supabase, Firebase,
 Cloudflare, Twitch, YouTube, Spotify, Salesforce, HubSpot, Stripe, PayPal,
 Shopify, Zendesk, Datadog, PagerDuty, Sentry, Twilio, SendGrid, etc.).
@@ -342,7 +342,7 @@ class _IntegrationInstance:
 # ---------------------------------------------------------------------------
 
 def _default_integration_templates() -> List[IntegrationSpec]:
-    """Pre-loaded templates for 75+ common services."""
+    """Pre-loaded templates for 80+ common services."""
     return [
         # --- Communication ---
         IntegrationSpec(
@@ -1114,6 +1114,81 @@ def _default_integration_templates() -> List[IntegrationSpec]:
                 IntegrationAction("list_databases", "List databases", "GET", "/api/v2/databases"),
             ],
         ),
+        # --- Messaging (Extended) ---
+        IntegrationSpec(
+            name="Signal", category=IntegrationCategory.COMMUNICATION,
+            description="Private messenger with end-to-end encryption",
+            base_url="https://signal.org/api",
+            auth_method=IntegrationAuthMethod.BEARER_TOKEN,
+            actions=[
+                IntegrationAction("send_message", "Send a message", "POST", "/messages"),
+                IntegrationAction("list_contacts", "List contacts", "GET", "/contacts"),
+            ],
+        ),
+        IntegrationSpec(
+            name="Google Business Messages", category=IntegrationCategory.COMMUNICATION,
+            description="Business messaging via Google platforms",
+            base_url="https://businessmessages.googleapis.com/v1",
+            auth_method=IntegrationAuthMethod.OAUTH2,
+            actions=[
+                IntegrationAction("send_message", "Send a message to user", "POST", "/conversations/{conversationId}/messages"),
+                IntegrationAction("list_agents", "List business agents", "GET", "/brands/{brandId}/agents"),
+            ],
+        ),
+        IntegrationSpec(
+            name="KakaoTalk", category=IntegrationCategory.COMMUNICATION,
+            description="Korean messaging platform with business APIs",
+            base_url="https://kapi.kakao.com/v2",
+            auth_method=IntegrationAuthMethod.BEARER_TOKEN,
+            actions=[
+                IntegrationAction("send_message", "Send a message", "POST", "/api/talk/memo/default/send"),
+                IntegrationAction("get_profile", "Get user profile", "GET", "/user/me"),
+            ],
+        ),
+        IntegrationSpec(
+            name="LINE", category=IntegrationCategory.COMMUNICATION,
+            description="Messaging platform popular in Japan and Southeast Asia",
+            base_url="https://api.line.me/v2",
+            auth_method=IntegrationAuthMethod.BEARER_TOKEN,
+            actions=[
+                IntegrationAction("send_push", "Send a push message", "POST", "/bot/message/push"),
+                IntegrationAction("send_reply", "Send a reply message", "POST", "/bot/message/reply"),
+                IntegrationAction("get_profile", "Get user profile", "GET", "/bot/profile/{userId}"),
+            ],
+        ),
+        IntegrationSpec(
+            name="Snapchat", category=IntegrationCategory.SOCIAL_MEDIA,
+            description="Social media platform with marketing API",
+            base_url="https://adsapi.snapchat.com/v1",
+            auth_method=IntegrationAuthMethod.OAUTH2,
+            actions=[
+                IntegrationAction("create_ad", "Create an ad", "POST", "/adaccounts/{ad_account_id}/ads"),
+                IntegrationAction("list_campaigns", "List campaigns", "GET", "/adaccounts/{ad_account_id}/campaigns"),
+            ],
+        ),
+        IntegrationSpec(
+            name="WeChat", category=IntegrationCategory.COMMUNICATION,
+            description="Chinese messaging and social media platform",
+            base_url="https://api.weixin.qq.com/cgi-bin",
+            auth_method=IntegrationAuthMethod.CUSTOM_HEADER,
+            actions=[
+                IntegrationAction("send_message", "Send a customer service message", "POST", "/message/custom/send"),
+                IntegrationAction("create_menu", "Create custom menu", "POST", "/menu/create"),
+                IntegrationAction("get_user_info", "Get user info", "GET", "/user/info"),
+            ],
+        ),
+        # --- ERP ---
+        IntegrationSpec(
+            name="ZenBusiness", category=IntegrationCategory.CUSTOM,
+            description="Business formation and compliance platform",
+            base_url="https://api.zenbusiness.com/v1",
+            auth_method=IntegrationAuthMethod.API_KEY,
+            actions=[
+                IntegrationAction("create_entity", "Create a business entity", "POST", "/entities"),
+                IntegrationAction("list_entities", "List business entities", "GET", "/entities"),
+                IntegrationAction("check_compliance", "Check compliance status", "GET", "/entities/{entity_id}/compliance"),
+            ],
+        ),
     ]
 
 
@@ -1125,7 +1200,7 @@ class UniversalIntegrationAdapter:
     """
     Plug-and-play registry for connecting any external service to Murphy System.
 
-    Comes pre-loaded with 75+ integration templates. Users can:
+    Comes pre-loaded with 80+ integration templates. Users can:
 
     1. **Use a template** — ``adapter.configure("slack", {"token": "xoxb-..."})``
     2. **Add a custom service** — ``adapter.register(IntegrationSpec(...))``
