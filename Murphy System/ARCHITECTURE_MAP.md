@@ -374,6 +374,26 @@ Safe if: murphy_index > threshold (default 0.5)
 5. **Decision** - Approve/Reject/Modify
 6. **Execution** - Continue or abort based on decision
 
+#### Freelancer Validator (`src/freelancer_validator/`)
+
+Extends the HITL system to hire external human validators on freelance
+platforms (Fiverr, Upwork, or a generic self-hosted queue).
+
+**Components:**
+- `models.py` — FreelancerTask, FreelancerResponse, ValidationCriteria, BudgetConfig
+- `platform_client.py` — Abstract client + Fiverr/Upwork/Generic adapters
+- `budget_manager.py` — Org-level monthly + per-task budget enforcement
+- `criteria_engine.py` — Build criteria, format instructions, score responses
+- `hitl_bridge.py` — Orchestrates dispatch → ingest → HITL monitor wiring
+
+**Flow:**
+1. **Dispatch** — HITL monitor flags low-confidence/high-risk task
+2. **Budget Gate** — BudgetManager verifies org can afford the task
+3. **Post** — Task + structured criteria posted to freelance platform
+4. **Validate** — Freelancer evaluates against per-criterion rubric (boolean/scale/text)
+5. **Ingest** — CriteriaEngine scores the response, derives verdict
+6. **Wire** — FreelancerHITLBridge calls `respond_to_intervention()` on HITL monitor
+
 ### 10. Security Plane
 
 **Component:** `src/security_plane/`
@@ -638,6 +658,8 @@ Result Delivery & Scheduling
 | **AWS** | boto3 SDK | Cloud storage |
 | **GCP** | google-cloud SDK | Cloud storage |
 | **Azure** | azure SDK | Cloud storage |
+| **Fiverr** | REST API (Business) | Freelancer HITL validation |
+| **Upwork** | REST API | Freelancer HITL validation |
 
 ### Internal Integrations
 
@@ -646,6 +668,8 @@ Result Delivery & Scheduling
 | REST API | All Systems | Function calls |
 | Form Intake | Confidence Engine | Validation pipeline |
 | Confidence Engine | HITL System | Approval workflow |
+| Freelancer Validator | HITL System | External human validation → InterventionResponse |
+| Freelancer Validator | Budget Manager | Org-level spend authorization |
 | Execution Engine | Universal Control Plane | Engine execution |
 | Execution Engine | Inoni Business | Business execution |
 | Learning Engine | Execution Engine | Telemetry collection |
