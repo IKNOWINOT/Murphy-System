@@ -199,8 +199,8 @@ class CalculationEngine:
             
             # Evaluate safely
             def eval_node(node):
-                if isinstance(node, ast.Num):
-                    return node.n
+                if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+                    return node.value
                 elif isinstance(node, ast.BinOp):
                     left = eval_node(node.left)
                     right = eval_node(node.right)
