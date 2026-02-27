@@ -54,8 +54,48 @@ class BlockingFeedback:
         """
         Format feedback for terminal display with neon green on black.
         
-        Uses ANSI color codes for neon aesthetic.
+        Uses the cli_art module for skull-framed panels when available,
+        falls back to inline ANSI box-drawing characters.
         """
+        # Try to use the centralised art module first
+        try:
+            from src.cli_art import render_panel
+            body = []
+            body.append(f"Status: NOT EXECUTABLE")
+            body.append(f"Hypothesis ID: {self.hypothesis_id}")
+            body.append(f"Confidence: {self.confidence:.2f}")
+            body.append(f"Authority: {self.authority_level}")
+            body.append("")
+            if self.blocking_reasons:
+                body.append("⚠ BLOCKING REASONS:")
+                for reason in self.blocking_reasons:
+                    body.append(f"  ✗ {self._format_reason(reason)}")
+                body.append("")
+            if self.gates_blocking:
+                body.append("⚠ GATES BLOCKING:")
+                for gate in self.gates_blocking:
+                    body.append(f"  ✗ {gate}")
+                body.append("")
+            if self.verifications_pending:
+                body.append("⚠ VERIFICATIONS PENDING:")
+                for v in self.verifications_pending:
+                    body.append(f"  ⧗ {v}")
+                body.append("")
+            if self.required_evidence:
+                body.append("→ REQUIRED EVIDENCE:")
+                for i, ev in enumerate(self.required_evidence, 1):
+                    body.append(f"  {i}. {ev}")
+                body.append("")
+            body.append("→ NEXT STEPS:")
+            body.append("  1. Complete pending verifications")
+            body.append("  2. Satisfy blocking gates")
+            body.append("  3. Increase confidence through validation")
+            body.append("  4. Retry compilation")
+            return render_panel("HYPOTHESIS EXECUTABILITY STATUS", body)
+        except Exception:
+            pass
+
+        # Fallback — inline ANSI rendering
         # ANSI color codes
         GREEN = "\033[92m"  # Bright green (neon)
         YELLOW = "\033[93m"  # Bright yellow

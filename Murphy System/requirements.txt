@@ -38,6 +38,7 @@ sympy>=1.12
 
 # Terminal UI
 rich>=13.0.0
+pyfiglet>=1.0.0
 prompt-toolkit>=3.0.0
 
 # Configuration
