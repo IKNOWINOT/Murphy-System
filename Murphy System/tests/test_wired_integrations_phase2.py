@@ -47,21 +47,21 @@ class TestAdapterPhase2Templates(unittest.TestCase):
     # -- Cloud Infrastructure --
 
     def test_aws_registered(self):
-        self.assertIn("amazon_web_services", self._service_ids())
-        svc = self.adapter.get_service("amazon_web_services")
+        self.assertIn("aws", self._service_ids())
+        svc = self.adapter.get_service("aws")
         self.assertEqual(svc["category"], "cloud_infrastructure")
         actions = [a["name"] for a in svc["actions"]]
         self.assertIn("manage_ec2", actions)
         self.assertIn("invoke_lambda", actions)
 
     def test_azure_registered(self):
-        self.assertIn("microsoft_azure", self._service_ids())
-        svc = self.adapter.get_service("microsoft_azure")
+        self.assertIn("azure", self._service_ids())
+        svc = self.adapter.get_service("azure")
         self.assertEqual(svc["category"], "cloud_infrastructure")
 
     def test_gcp_registered(self):
-        self.assertIn("google_cloud_platform", self._service_ids())
-        svc = self.adapter.get_service("google_cloud_platform")
+        self.assertIn("gcp", self._service_ids())
+        svc = self.adapter.get_service("gcp")
         self.assertEqual(svc["category"], "cloud_infrastructure")
 
     # -- DevOps --
@@ -99,8 +99,8 @@ class TestAdapterPhase2Templates(unittest.TestCase):
         self.assertEqual(svc["category"], "project_management")
 
     def test_monday_adapter(self):
-        self.assertIn("monday.com", self._service_ids())
-        svc = self.adapter.get_service("monday.com")
+        self.assertIn("monday", self._service_ids())
+        svc = self.adapter.get_service("monday")
         self.assertEqual(svc["category"], "project_management")
         actions = [a["name"] for a in svc["actions"]]
         self.assertIn("create_item", actions)
@@ -131,8 +131,8 @@ class TestAdapterPhase2Templates(unittest.TestCase):
     # -- Communication --
 
     def test_whatsapp_adapter(self):
-        self.assertIn("whatsapp_business", self._service_ids())
-        svc = self.adapter.get_service("whatsapp_business")
+        self.assertIn("whatsapp", self._service_ids())
+        svc = self.adapter.get_service("whatsapp")
         self.assertEqual(svc["category"], "communication")
         actions = [a["name"] for a in svc["actions"]]
         self.assertIn("send_message", actions)
@@ -615,7 +615,8 @@ class TestPhase2CrossLayerConsistency(unittest.TestCase):
         self.assertIn("telegram", self.connector_ids)
         self.assertIn("telegram_webhook", self.source_ids)
 
-    def test_whatsapp_connector_and_webhook(self):
+    def test_whatsapp_all_layers(self):
+        self.assertIn("whatsapp", self.adapter_ids)
         self.assertIn("whatsapp", self.connector_ids)
         self.assertIn("whatsapp_webhook", self.source_ids)
 
@@ -673,6 +674,57 @@ class TestPhase2CrossLayerConsistency(unittest.TestCase):
         self.assertIn("twitch", self.adapter_ids)
         self.assertIn("twitch", self.connector_ids)
         self.assertIn("twitch_webhook", self.source_ids)
+
+    # -- Cloud Infrastructure --
+
+    def test_aws_all_layers(self):
+        self.assertIn("aws", self.adapter_ids)
+        self.assertIn("aws", self.connector_ids)
+        self.assertIn("aws_webhook", self.source_ids)
+
+    def test_azure_all_layers(self):
+        self.assertIn("azure", self.adapter_ids)
+        self.assertIn("azure", self.connector_ids)
+        self.assertIn("azure_webhook", self.source_ids)
+
+    def test_gcp_adapter_and_connector(self):
+        self.assertIn("gcp", self.adapter_ids)
+        self.assertIn("gcp", self.connector_ids)
+
+    # -- Automation --
+
+    def test_make_all_layers(self):
+        self.assertIn("make", self.adapter_ids)
+        self.assertIn("make", self.connector_ids)
+        self.assertIn("make_webhook", self.source_ids)
+
+    # -- Project Management (aligned IDs) --
+
+    def test_monday_adapter_and_connector(self):
+        self.assertIn("monday", self.adapter_ids)
+        self.assertIn("monday", self.connector_ids)
+
+    # -- Monitoring --
+
+    def test_newrelic_adapter_and_connector(self):
+        self.assertIn("newrelic", self.adapter_ids)
+        self.assertIn("newrelic", self.connector_ids)
+
+    # -- Social Media --
+
+    def test_twitter_adapter_and_connector(self):
+        self.assertIn("twitter", self.adapter_ids)
+        self.assertIn("twitter", self.connector_ids)
+
+    # -- Enterprise --
+
+    def test_ms_teams_adapter_and_connector(self):
+        self.assertIn("ms_teams", self.adapter_ids)
+        self.assertIn("ms_teams", self.connector_ids)
+
+    def test_quickbooks_adapter_and_connector(self):
+        self.assertIn("quickbooks", self.adapter_ids)
+        self.assertIn("quickbooks", self.connector_ids)
 
 
 # ---------------------------------------------------------------------------
