@@ -270,11 +270,12 @@ class OperationalDashboardAggregator:
             latency = (time.monotonic() - start) * 1000
             health = ModuleHealth.HEALTHY
             error = ""
-            # Detect degraded: if module reports errors or low health
-            if isinstance(status_data, dict):
-                if status_data.get("system_status") == "unhealthy":
-                    health = ModuleHealth.DEGRADED
-                elif status_data.get("system_status") == "degraded":
+            # Detect degraded: timeout exceeded or module reports low health
+            if latency > _STATUS_TIMEOUT_MS:
+                health = ModuleHealth.DEGRADED
+                error = f"status call exceeded {_STATUS_TIMEOUT_MS}ms"
+            elif isinstance(status_data, dict):
+                if status_data.get("system_status") in ("unhealthy", "degraded"):
                     health = ModuleHealth.DEGRADED
         except Exception as exc:
             latency = (time.monotonic() - start) * 1000
