@@ -450,7 +450,10 @@
             for (const port of API_PORTS) {
                 try {
                     const url = `http://localhost:${port}`;
-                    const resp = await fetch(`${url}/api/health`, { signal: AbortSignal.timeout(2000) });
+                    const controller = new AbortController();
+                    const timer = setTimeout(() => controller.abort(), 2000);
+                    const resp = await fetch(`${url}/api/health`, { signal: controller.signal });
+                    clearTimeout(timer);
                     if (resp.ok) {
                         API_BASE = url;
                         systemOnline = true;
