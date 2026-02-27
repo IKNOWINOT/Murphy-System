@@ -91,15 +91,17 @@ echo ""
 # Start Murphy System
 echo ""
 python3 -c "
+import os
+port = os.getenv('MURPHY_PORT', '6666')
 try:
     from src.cli_art import render_panel
     print(render_panel('STARTUP', [
         'Starting Murphy System v1.0',
-        '  💀 Port:        $MURPHY_PORT',
-        '  💀 API Docs:    http://localhost:$MURPHY_PORT/docs',
-        '  💀 Health:      http://localhost:$MURPHY_PORT/api/health',
-        '  💀 Status:      http://localhost:$MURPHY_PORT/api/status',
-        '  💀 Onboarding:  http://localhost:$MURPHY_PORT/api/onboarding/wizard/questions',
+        f'  💀 Port:        {port}',
+        f'  💀 API Docs:    http://localhost:{port}/docs',
+        f'  💀 Health:      http://localhost:{port}/api/health',
+        f'  💀 Status:      http://localhost:{port}/api/status',
+        f'  💀 Onboarding:  http://localhost:{port}/api/onboarding/wizard/questions',
     ], color=False))
 except Exception:
     print('  ☠  Starting Murphy System v1.0  ☠')

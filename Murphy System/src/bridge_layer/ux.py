@@ -61,7 +61,9 @@ class BlockingFeedback:
         try:
             from src.cli_art import render_panel
             body = []
-            body.append(f"Status: NOT EXECUTABLE")
+            executable = not self.blocking_reasons and not self.gates_blocking
+            status_label = "EXECUTABLE" if executable else "NOT EXECUTABLE"
+            body.append(f"Status: {status_label}")
             body.append(f"Hypothesis ID: {self.hypothesis_id}")
             body.append(f"Confidence: {self.confidence:.2f}")
             body.append(f"Authority: {self.authority_level}")
