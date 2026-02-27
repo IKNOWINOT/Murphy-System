@@ -318,7 +318,7 @@ Type 'api' to see new integrated endpoints
             const cmd = parts[0].toLowerCase();
             const args = parts.slice(1).join(' ');
             
-            if (!systemOnline && cmd !== 'help' && cmd !== 'clear') {
+            if (!systemOnline && cmd !== 'help' && cmd !== 'api' && cmd !== 'clear') {
                 addOutput('✗ Backend offline. Start murphy_system_1.0_runtime.py first.', 'error');
                 return;
             }
