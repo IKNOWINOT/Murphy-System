@@ -5,7 +5,7 @@ Provides help, documentation, and question-answering capabilities with graceful 
 
 import logging
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -139,7 +139,7 @@ class LibrarianAdapter:
                     'timestamp': str
                 }
         """
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         
         try:
             if not self.enabled:
@@ -226,7 +226,7 @@ class LibrarianAdapter:
                 }
         """
         try:
-            timestamp = datetime.utcnow().isoformat()
+            timestamp = datetime.now(timezone.utc).isoformat()
             
             if not self.enabled:
                 # Fallback: Simulated health check

@@ -13,7 +13,7 @@ CRITICAL SAFETY CONSTRAINTS:
 
 from typing import List, Dict, Optional, Set, Tuple
 from collections import defaultdict, Counter
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import statistics
 
 from .schemas import (
@@ -78,7 +78,7 @@ class TelemetryCollector:
     
     def get_telemetry_for_role(self, role: str, days: int = 30) -> Dict:
         """Get telemetry data for a specific role"""
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         
         return {
             'task_assignments': [t for t in self.task_assignments if t['role'] == role and t['timestamp'] >= cutoff],
@@ -358,7 +358,7 @@ class ShadowLearningAgent:
         
         # Create proposal artifact
         proposal = TemplateProposalArtifact(
-            proposal_id=f"proposal_{role_template.role_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}",
+            proposal_id=f"proposal_{role_template.role_id}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}",
             shadowed_role=role_template.role_name,
             proposed_automation_steps=automation_steps,
             evidence_references=evidence,

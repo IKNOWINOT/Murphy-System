@@ -4,7 +4,7 @@ Tracks detailed metadata about corrections for analysis and learning.
 """
 
 from typing import Dict, List, Optional, Any, Set
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pydantic import BaseModel, Field
 from collections import defaultdict
@@ -29,7 +29,7 @@ class MetadataEntry(BaseModel):
     key: str
     value: Any
     category: MetadataCategory
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     source: str = "system"
     confidence: float = Field(ge=0.0, le=1.0, default=1.0)
 
@@ -419,7 +419,7 @@ class MetadataEnricher:
             self.tracker.track_user_metadata(correction.id, user_meta)
         
         # Context metadata
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         hour = now.hour
         
         if 6 <= hour < 12:

@@ -11,7 +11,7 @@ CRITICAL SAFETY CONSTRAINTS:
 
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Literal
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import hashlib
 import json
@@ -123,7 +123,7 @@ class MessageArtifact:
     requires_human_review: bool = False
     
     # Audit
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     
     def __post_init__(self):
         """Enforce safety constraints"""
@@ -195,7 +195,7 @@ class CommunicationPacket:
     contains_contract: bool = False      # MUST be False
     
     # Audit
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     sent_at: Optional[datetime] = None
     
     # Provenance
@@ -240,7 +240,7 @@ class CommunicationPacket:
         
         self.human_signoff_granted = True
         self.human_signoff_by = signoff_by
-        self.human_signoff_at = datetime.utcnow()
+        self.human_signoff_at = datetime.now(timezone.utc)
     
     def can_send(self) -> bool:
         """Check if packet can be sent"""
@@ -270,8 +270,8 @@ class ThreadContext:
     messages: List[MessageArtifact] = field(default_factory=list)
     
     # Metadata
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    last_activity: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    last_activity: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     
     # Classification
     primary_intent: Optional[IntentClassification] = None
@@ -283,7 +283,7 @@ class ThreadContext:
             raise ValueError("Message thread_id does not match thread")
         
         self.messages.append(message)
-        self.last_activity = datetime.utcnow()
+        self.last_activity = datetime.now(timezone.utc)
         
         # Update primary intent if not set
         if not self.primary_intent and message.intent != IntentClassification.UNKNOWN:

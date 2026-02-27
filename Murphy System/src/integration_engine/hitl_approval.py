@@ -9,7 +9,7 @@ This module handles the approval workflow for integrations:
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Dict, List, Optional, Any
 import json
@@ -70,7 +70,7 @@ class ApprovalRequest:
     llm_recommendation: str
     
     # Metadata
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     status: ApprovalStatus = ApprovalStatus.PENDING
     approved_by: Optional[str] = None
     approved_at: Optional[datetime] = None
@@ -457,7 +457,7 @@ class HITLApprovalSystem:
         
         request.status = ApprovalStatus.APPROVED
         request.approved_by = approved_by
-        request.approved_at = datetime.utcnow()
+        request.approved_at = datetime.now(timezone.utc)
         return True
     
     def reject_request(self, request_id: str, reason: str = "User rejected") -> bool:

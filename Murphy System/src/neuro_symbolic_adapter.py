@@ -5,7 +5,7 @@ Provides neural-symbolic reasoning capabilities with graceful fallback
 
 import logging
 from typing import Dict, List, Optional, Any, Union
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -94,7 +94,7 @@ class NeuroSymbolicAdapter:
                     'timestamp': str
                 }
         """
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         
         # Handle mode alias
         if mode is not None:

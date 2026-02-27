@@ -4,7 +4,7 @@ Stores and manages risk patterns, historical incidents, and mitigation strategie
 """
 
 from typing import Dict, List, Optional, Any, Set
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pydantic import BaseModel, Field
 import json
@@ -105,8 +105,8 @@ class RiskPattern(BaseModel):
     last_occurred: Optional[datetime] = None
     
     # Metadata
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     tags: List[str] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
     
@@ -147,7 +147,7 @@ class RiskAssessment(BaseModel):
     """Assessment of risk for a specific context."""
     id: str
     context: str
-    assessed_at: datetime = Field(default_factory=datetime.utcnow)
+    assessed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
     # Identified risks
     identified_risks: List[str] = Field(default_factory=list)  # Risk pattern IDs

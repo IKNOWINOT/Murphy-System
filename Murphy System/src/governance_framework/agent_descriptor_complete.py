@@ -8,7 +8,7 @@ Implements the formal agent descriptor specification including:
 - Termination conditions and escalation rules
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Dict, List, Optional, Set, Union
 from uuid import UUID, uuid4
@@ -249,7 +249,7 @@ class AgentDescriptor:
     agent_id: str
     version: str
     signature: Optional[str] = None
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     
     # Authority Scope
     authority_band: AuthorityBand = AuthorityBand.NONE

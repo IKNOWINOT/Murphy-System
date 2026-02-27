@@ -11,7 +11,7 @@ Designed for neon green on black terminal aesthetic.
 """
 
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .models import (
     HypothesisArtifact,
@@ -247,7 +247,7 @@ class ExecutabilityExplainer:
         # Log explanation
         self.explanation_log.append({
             "hypothesis_id": hypothesis.hypothesis_id,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "success": compilation_result.success,
             "feedback": feedback.to_dict(),
         })

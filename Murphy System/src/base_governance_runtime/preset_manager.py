@@ -5,7 +5,7 @@ Manages governance presets and configuration profiles for different regulatory
 domains and compliance requirements.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Dict, List, Optional, Set, Union
 from uuid import UUID, uuid4
@@ -62,8 +62,8 @@ class GovernancePreset:
     enabled_by_default: bool = False
     
     # Metadata
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     author: str = "Murphy System"
     
     def get_mandatory_requirements(self) -> List[GovernanceRequirement]:

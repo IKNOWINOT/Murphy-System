@@ -5,7 +5,7 @@ Tasks 3.1-3.4 and 4.1-4.4.
 """
 
 from typing import Dict, List, Optional, Any, Set, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pydantic import BaseModel, Field
 from collections import defaultdict
@@ -40,7 +40,7 @@ class VerificationResult(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
     issues_found: List[str] = Field(default_factory=list)
     verified_by: str
-    verified_at: datetime = Field(default_factory=datetime.utcnow)
+    verified_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     notes: Optional[str] = None
 
 
@@ -103,7 +103,7 @@ class CorrectionVerifier:
         # Update correction status
         if is_verified:
             correction.status = CorrectionStatus.VALIDATED
-            correction.validated_at = datetime.utcnow()
+            correction.validated_at = datetime.now(timezone.utc)
             correction.validated_by = verifier_id
         
         return result
@@ -178,7 +178,7 @@ class Conflict(BaseModel):
     severity: str  # "high", "medium", "low"
     description: str
     resolution_suggestion: Optional[str] = None
-    detected_at: datetime = Field(default_factory=datetime.utcnow)
+    detected_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class ConflictDetector:
@@ -400,7 +400,7 @@ class ApprovalWorkflow:
         
         self.approval_history[correction.id].append({
             "action": "submitted",
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.now(timezone.utc),
             "status": ApprovalStatus.PENDING_REVIEW
         })
     
@@ -417,13 +417,13 @@ class ApprovalWorkflow:
         
         correction.status = CorrectionStatus.VALIDATED
         correction.validated_by = approver_id
-        correction.validated_at = datetime.utcnow()
+        correction.validated_at = datetime.now(timezone.utc)
         correction.validation_notes = notes
         
         self.approval_history[correction_id].append({
             "action": "approved",
             "approver": approver_id,
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.now(timezone.utc),
             "notes": notes
         })
         
@@ -449,7 +449,7 @@ class ApprovalWorkflow:
         self.approval_history[correction_id].append({
             "action": "rejected",
             "approver": approver_id,
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.now(timezone.utc),
             "reason": reason
         })
         
@@ -471,7 +471,7 @@ class ApprovalWorkflow:
         self.approval_history[correction_id].append({
             "action": "revision_requested",
             "approver": approver_id,
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.now(timezone.utc),
             "feedback": feedback
         })
         
@@ -515,7 +515,7 @@ class CorrectionPattern(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
     examples: List[str] = Field(default_factory=list)
     applicable_contexts: List[str] = Field(default_factory=list)
-    extracted_at: datetime = Field(default_factory=datetime.utcnow)
+    extracted_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 

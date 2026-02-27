@@ -16,7 +16,7 @@ Author: Murphy System (MFGC-AI)
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 import hashlib
 import json
@@ -138,7 +138,7 @@ class ThreatIndicator:
         """Check if indicator has expired"""
         if self.expires_at is None:
             return False
-        return datetime.utcnow() >= self.expires_at
+        return datetime.now(timezone.utc) >= self.expires_at
     
     def to_dict(self) -> Dict:
         """Convert to dictionary"""
@@ -168,7 +168,7 @@ class DefenseResponse:
         """Check if response has expired"""
         if self.expires_at is None:
             return False
-        return datetime.utcnow() >= self.expires_at
+        return datetime.now(timezone.utc) >= self.expires_at
     
     def to_dict(self) -> Dict:
         """Convert to dictionary"""
@@ -292,7 +292,7 @@ class BehavioralAnomalyDetector:
                 threat_level=threat_level,
                 principal_id=principal_id,
                 description=f"Behavioral anomalies detected: {', '.join(anomalies)}",
-                detected_at=datetime.utcnow(),
+                detected_at=datetime.now(timezone.utc),
                 confidence=min(len(anomalies) * 0.3, 1.0),
                 evidence=[event],
                 metadata={"anomalies": anomalies}
@@ -438,7 +438,7 @@ class StatisticalAnomalyDetector:
                 threat_level=threat_level,
                 principal_id="system",
                 description=f"Statistical anomaly in {metric_name}: value={value:.2f}, mean={mean:.2f}, z-score={z_score:.2f}",
-                detected_at=datetime.utcnow(),
+                detected_at=datetime.now(timezone.utc),
                 confidence=min(z_score / 10.0, 1.0),
                 evidence=[],
                 metadata={
@@ -490,7 +490,7 @@ class RateLimiter:
         Returns:
             Tuple of (allowed, current_count)
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         cutoff = now - timedelta(seconds=self.window_seconds)
         
         # Remove old requests
@@ -525,7 +525,7 @@ class RateLimiter:
             return False
         
         # Check recent requests (last 10 seconds)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         recent_cutoff = now - timedelta(seconds=10)
         recent_count = sum(1 for ts in history if ts >= recent_cutoff)
         
@@ -681,7 +681,7 @@ class AttackPatternRecognizer:
             Tuple of (attack_type, confidence) if recognized
         """
         # Get recent events for principal
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         recent_events = [
             e for e in self.event_buffer
             if e.principal_id == principal_id
@@ -706,7 +706,7 @@ class AttackPatternRecognizer:
         pattern = self.patterns[AttackType.BRUTE_FORCE][0]
         
         # Count failures in time window
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         cutoff = now - timedelta(seconds=pattern["time_window"])
         
         failures = sum(
@@ -721,7 +721,7 @@ class AttackPatternRecognizer:
         pattern = self.patterns[AttackType.RECONNAISSANCE][0]
         
         # Count unique resources in time window
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         cutoff = now - timedelta(seconds=pattern["time_window"])
         
         resources = {
@@ -810,7 +810,7 @@ class AutomatedResponseSystem:
         Returns:
             Defense response
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         expires_at = now + duration if duration else None
         
         response = DefenseResponse(

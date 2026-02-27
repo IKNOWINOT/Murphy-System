@@ -5,7 +5,7 @@ This module implements the shadow agent that learns from corrections and makes p
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional, Tuple
 from uuid import UUID, uuid4
 import logging
@@ -42,7 +42,7 @@ class ShadowPrediction:
     
     # Timing
     prediction_time_ms: float = 0.0
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     
     # Metadata
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -112,7 +112,7 @@ class ShadowAgent:
     ) -> ShadowPrediction:
         """Make prediction using shadow agent"""
         
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         
         if not self.current_model:
             logger.warning("No model loaded, returning default prediction")
@@ -144,7 +144,7 @@ class ShadowAgent:
                 task_id=task_id,
                 input_features=input_features,
                 uncertainty_score=uncertainty_score,
-                prediction_time_ms=(datetime.utcnow() - start_time).total_seconds() * 1000,
+                prediction_time_ms=(datetime.now(timezone.utc) - start_time).total_seconds() * 1000,
             )
             
             # Track prediction

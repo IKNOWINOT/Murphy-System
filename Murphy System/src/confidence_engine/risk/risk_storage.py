@@ -4,7 +4,7 @@ Advanced storage and retrieval for risk patterns with pattern matching.
 """
 
 from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pydantic import BaseModel, Field
 import re
@@ -220,7 +220,7 @@ class RiskPatternStorage:
         probability_score = likelihood_map.get(likelihood, 0.5)
         
         pattern = RiskPattern(
-            id=f"risk_{datetime.utcnow().timestamp()}",
+            id=f"risk_{datetime.now(timezone.utc).timestamp()}",
             name=name,
             description=description,
             category=category,
@@ -270,7 +270,7 @@ class RiskPatternStorage:
         if 'impact_score' in updates or 'probability_score' in updates:
             pattern.risk_score = pattern.calculate_risk_score()
         
-        pattern.updated_at = datetime.utcnow()
+        pattern.updated_at = datetime.now(timezone.utc)
         
         # Clear cache
         self.query_cache.clear()
@@ -299,7 +299,7 @@ class RiskPatternStorage:
         cache_key = self._get_cache_key(query)
         if cache_key in self.query_cache:
             cached_time, cached_results = self.query_cache[cache_key]
-            if (datetime.utcnow() - cached_time).seconds < self.cache_ttl_seconds:
+            if (datetime.now(timezone.utc) - cached_time).seconds < self.cache_ttl_seconds:
                 # Return cached patterns
                 return [
                     self.database.get_risk_pattern(r.pattern_id)
@@ -328,7 +328,7 @@ class RiskPatternStorage:
             )
             
             # Cache results
-            self.query_cache[cache_key] = (datetime.utcnow(), match_results)
+            self.query_cache[cache_key] = (datetime.now(timezone.utc), match_results)
             
             # Filter patterns by match results
             matched_ids = {r.pattern_id for r in match_results}
@@ -464,7 +464,7 @@ class RiskPatternStorage:
         Returns:
             List of (pattern, incident_count) tuples
         """
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         
         # Count incidents per pattern
         incident_counts = defaultdict(int)

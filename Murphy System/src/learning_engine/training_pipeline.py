@@ -5,7 +5,7 @@ This module implements the training pipeline with checkpointing and monitoring.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Callable
 from uuid import UUID, uuid4
@@ -65,7 +65,7 @@ class TrainingCheckpoint:
     """Training checkpoint data"""
     id: UUID = field(default_factory=uuid4)
     epoch: int = 0
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     
     # Metrics
     train_loss: float = 0.0

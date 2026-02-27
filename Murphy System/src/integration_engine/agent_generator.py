@@ -8,7 +8,7 @@ This module creates Murphy-compatible agents from analyzed repositories:
 """
 
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 
 
@@ -63,7 +63,7 @@ class AgentGenerator:
                 'languages': audit.get('languages', {}),
                 'source': 'swisskiss_loader',
                 'version': '1.0.0',
-                'created_at': datetime.utcnow().isoformat()
+                'created_at': datetime.now(timezone.utc).isoformat()
             }
         }
         

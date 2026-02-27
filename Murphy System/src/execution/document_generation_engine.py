@@ -4,7 +4,7 @@ Document Generation Engine - Generate working documents (PDF, Word, HTML)
 
 import uuid
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import logging
 import json
@@ -65,7 +65,7 @@ class Document:
         self.document_type = document_type
         self.content = content
         self.metadata = metadata or {}
-        self.created_at = datetime.utcnow()
+        self.created_at = datetime.now(timezone.utc)
     
     def to_dict(self) -> Dict:
         """Convert document to dictionary"""
