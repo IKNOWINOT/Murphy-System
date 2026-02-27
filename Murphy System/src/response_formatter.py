@@ -241,22 +241,30 @@ class ResponseFormatter:
         
         # Main response
         output.append(formatted["response"])
-        
+
+        # Import skull-framed section renderer (degrade to simple dividers)
+        try:
+            from src.cli_art import render_section
+            _section = render_section
+        except Exception:
+            def _section(title: str, **_kw: object) -> str:
+                return f"\n\n═══ {title} ═══"
+
         # Questions section
         if formatted["questions"]:
-            output.append("\n\n═══ QUESTIONS ═══")
+            output.append("\n" + _section("QUESTIONS"))
             for q in formatted["questions"]:
                 output.append(f"• {q}")
         
         # Gates section
         if formatted["gates"]:
-            output.append("\n\n═══ GATES ACTIVE ═══")
+            output.append("\n" + _section("GATES ACTIVE"))
             for gate in formatted["gates"]:
                 output.append(f"✓ {gate}")
         
         # Commands section (only show for exploratory or on request)
         if formatted["metadata"]["band"] == "exploratory":
-            output.append("\n\n═══ AVAILABLE COMMANDS ═══")
+            output.append("\n" + _section("AVAILABLE COMMANDS"))
             for cmd in formatted["commands"]:
                 output.append(f"  {cmd}")
         

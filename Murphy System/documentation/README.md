@@ -446,9 +446,8 @@ When reporting issues, please include:
 ### Launch & Operations
 - [Launch Automation Plan](../docs/LAUNCH_AUTOMATION_PLAN.md)
 - [Operations, Testing & Iteration Plan](../docs/OPERATIONS_TESTING_PLAN.md)
-- [Execution Log — Cycle 1](../docs/EXECUTION_LOG.md)
-- [Gap Analysis — Cycle 1](../docs/GAP_ANALYSIS.md)
-- [Remediation Plan — Cycle 1](../docs/REMEDIATION_PLAN.md)
+- [Gap Analysis](../docs/GAP_ANALYSIS.md)
+- [Remediation Plan](../docs/REMEDIATION_PLAN.md)
 - [QA Audit Report](../docs/QA_AUDIT_REPORT.md)
 - [Self-Running Analysis](../docs/self_running_analysis.md)
 

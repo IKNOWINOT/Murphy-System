@@ -1,5 +1,5 @@
 # Murphy System — Robotics Integration Layer
-## GitHub Copilot Implementation Prompt (Part 3 of 3)
+## Robot Registry and Fleet Management Reference (Part 3 of 3)
 
 ---
 

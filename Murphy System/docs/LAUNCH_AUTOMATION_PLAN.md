@@ -348,9 +348,8 @@ python "Murphy System/murphy_system_runtime.py" --workflow content-generation --
 
 ## Related Documents
 
-- [Execution Log — Cycle 1](EXECUTION_LOG.md) — Real test results from operating Murphy
-- [Gap Analysis — Cycle 1](GAP_ANALYSIS.md) — Actual vs expected comparison
-- [Remediation Plan — Cycle 1](REMEDIATION_PLAN.md) — Concrete fixes for all identified gaps
+- [Gap Analysis](GAP_ANALYSIS.md) — Actual vs expected comparison
+- [Remediation Plan](REMEDIATION_PLAN.md) — Concrete fixes for all identified gaps
 - [Operations Testing Plan](OPERATIONS_TESTING_PLAN.md) — Iterative test-fix-document cycle
 - [QA Audit Report](QA_AUDIT_REPORT.md) — Pre-launch security audit findings
 

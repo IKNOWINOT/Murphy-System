@@ -7,9 +7,19 @@
 
 set -e
 
-echo "================================================================================"
-echo "                        MURPHY SYSTEM 1.0 - STARTUP                            "
-echo "================================================================================"
+echo ""
+# Use pyfiglet banner if available, otherwise fall back to simple banner
+python3 -c "
+try:
+    from src.cli_art import render_banner
+    print(render_banner(color=False))
+except Exception:
+    print('  ☠  Murphy System v1.0  ☠')
+" 2>/dev/null || {
+echo "  ☠  ════════════════════════════════════════════════════  ☠"
+echo "       💀  M U R P H Y   S Y S T E M   v 1 . 0  💀      "
+echo "  ☠  ════════════════════════════════════════════════════  ☠"
+}
 echo ""
 
 # Colors
@@ -79,15 +89,33 @@ echo -e "${GREEN}✓ Directories created${NC}"
 echo ""
 
 # Start Murphy System
-echo "================================================================================"
-echo -e "${GREEN}                    STARTING MURPHY SYSTEM 1.0                              ${NC}"
-echo "================================================================================"
 echo ""
-echo -e "${BLUE}🚀 Starting Murphy System on port $MURPHY_PORT...${NC}"
-echo -e "${BLUE}📊 API Documentation: http://localhost:$MURPHY_PORT/docs${NC}"
-echo -e "${BLUE}🔍 Health Check: http://localhost:$MURPHY_PORT/api/health${NC}"
-echo -e "${BLUE}📈 System Status: http://localhost:$MURPHY_PORT/api/status${NC}"
-echo -e "${BLUE}ℹ️  System Info: http://localhost:$MURPHY_PORT/api/info${NC}"
+python3 -c "
+import os
+port = os.getenv('MURPHY_PORT', '6666')
+try:
+    from src.cli_art import render_panel
+    print(render_panel('STARTUP', [
+        'Starting Murphy System v1.0',
+        f'  💀 Port:        {port}',
+        f'  💀 API Docs:    http://localhost:{port}/docs',
+        f'  💀 Health:      http://localhost:{port}/api/health',
+        f'  💀 Status:      http://localhost:{port}/api/status',
+        f'  💀 Onboarding:  http://localhost:{port}/api/onboarding/wizard/questions',
+    ], color=False))
+except Exception:
+    print('  ☠  Starting Murphy System v1.0  ☠')
+" 2>/dev/null || {
+echo "  ☠  ════════════════════════════════════════════════════  ☠"
+echo -e " 💀 ${GREEN}            STARTING MURPHY SYSTEM v1.0             ${NC} 💀"
+echo "  ☠  ════════════════════════════════════════════════════  ☠"
+echo ""
+echo -e "  💀 ${BLUE}Port:        $MURPHY_PORT${NC}"
+echo -e "  💀 ${BLUE}API Docs:    http://localhost:$MURPHY_PORT/docs${NC}"
+echo -e "  💀 ${BLUE}Health:      http://localhost:$MURPHY_PORT/api/health${NC}"
+echo -e "  💀 ${BLUE}Status:      http://localhost:$MURPHY_PORT/api/status${NC}"
+echo -e "  💀 ${BLUE}Onboarding:  http://localhost:$MURPHY_PORT/api/onboarding/wizard/questions${NC}"
+}
 echo ""
 echo -e "${YELLOW}Press Ctrl+C to stop${NC}"
 echo ""
