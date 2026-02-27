@@ -212,12 +212,14 @@ class SafetyGatewayIntegrator:
 
         # Check bypass
         with self._lock:
-            if route in self._bypass:
-                return self._record_decision(
-                    route, method, "minimal", GatewayAction.BYPASSED,
-                    "", "Route in bypass list",
-                    ctx.get("tenant_id", ""), ctx.get("user_id", ""),
-                )
+            is_bypass = route in self._bypass
+
+        if is_bypass:
+            return self._record_decision(
+                route, method, "minimal", GatewayAction.BYPASSED,
+                "", "Route in bypass list",
+                ctx.get("tenant_id", ""), ctx.get("user_id", ""),
+            )
 
         # Get risk classification (default: HIGH for unclassified)
         with self._lock:

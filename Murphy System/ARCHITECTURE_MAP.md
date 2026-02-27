@@ -1442,8 +1442,10 @@ with a design ticket and team owner.
    │ Operations   │ OPS-001, OPS-002, OPS-003, OPS-004│ 4           │
    │ Safety       │ SAF-001, SAF-002, SAF-003,       │ 5            │
    │              │ SAF-004, SAF-005                 │              │
+   │ Orchestration│ ORCH-001, ORCH-002, ORCH-003,    │ 4            │
+   │              │ ORCH-004                         │              │
    ├──────────────┼──────────────────────────────────┼──────────────┤
-   │ TOTAL        │                                  │ 42           │
+   │ TOTAL        │                                  │ 46           │
    └──────────────┴──────────────────────────────────┴──────────────┘
 ```
 
@@ -1599,13 +1601,82 @@ with a design ticket and team owner.
            Bounded status history with eviction policy.
 ```
 
+### Phase 10 — Cross-Module Orchestration & Operational Bootstrap Wiring
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│     CROSS-MODULE ORCHESTRATION & OPERATIONAL BOOTSTRAP              │
+└─────────────────────────────────────────────────────────────────────┘
+
+ [ORCH-001] SafetyGatewayIntegrator
+   Owner: Platform Engineering / Security Team
+   File:  src/safety_gateway_integrator.py
+   Purpose: Wires SAF-001 SafetyValidationPipeline into API request lifecycle.
+            - Per-route risk classification (CRITICAL/HIGH/MEDIUM/LOW/MINIMAL)
+            - Bypass list for health/monitoring endpoints
+            - Pre-execution validation via SAF-001 pipeline
+            - Fail-closed: unclassified routes default to HIGH risk
+            - Records gateway decisions (ALLOWED / BLOCKED / BYPASSED)
+   Wiring: Writes GatewayDecision to PersistenceManager.
+           Publishes SYSTEM_HEALTH events to EventBackbone.
+   Safety: Fail-closed: unclassified routes default to HIGH risk.
+           Bypass list for health-check endpoints.
+           Bounded decision history with eviction policy.
+
+ [ORCH-002] ReadinessBootstrapOrchestrator
+   Owner: Platform Engineering / DevOps Team
+   File:  src/readiness_bootstrap_orchestrator.py
+   Purpose: Seeds initial operational data across all subsystems.
+            - KPI baselines for all 8 default KPIs (OPS-002)
+            - RBAC roles for initial deployment team (SAF-002)
+            - Tenant resource limits for default tenants (SAF-003)
+            - Alert rule validation (SAF-004)
+            - Risk register verification (SAF-005)
+            - Idempotent: running twice does not duplicate data
+   Wiring: Writes BootstrapReport to PersistenceManager.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: Idempotent: safe to re-run without side effects.
+           Non-destructive: only seeds data, never deletes.
+           Bounded report store with eviction policy.
+
+ [ORCH-003] OperationalDashboardAggregator
+   Owner: Platform Engineering / DevOps Team
+   File:  src/operational_dashboard_aggregator.py
+   Purpose: Unified operational view aggregating status from all modules.
+            - Module registration by design label with status callable
+            - On-demand status collection across all modules
+            - Health classification: HEALTHY / DEGRADED / UNREACHABLE
+            - System-wide health derivation with threshold logic
+            - DashboardSnapshot with per-module and aggregate stats
+   Wiring: Writes DashboardSnapshot to PersistenceManager.
+           Publishes SYSTEM_HEALTH events to EventBackbone.
+   Safety: Non-destructive: read-only status collection.
+           Graceful degradation: unreachable modules logged, not fatal.
+           Bounded snapshot store with eviction policy.
+
+ [ORCH-004] ComplianceOrchestrationBridge
+   Owner: Compliance Team / Security Team
+   File:  src/compliance_orchestration_bridge.py
+   Purpose: Cross-module compliance validation pipeline (Plan §6.2).
+            - 5 default frameworks: GDPR, SOC2, HIPAA, PCI-DSS, ISO27001
+            - Per-framework controls with evidence source registration
+            - Assessment produces per-framework COMPLIANT/NON_COMPLIANT/PARTIAL
+            - Conservative: unknown control status counts as NOT_MET
+            - ComplianceAssessment with aggregate and per-framework results
+   Wiring: Writes ComplianceAssessment to PersistenceManager.
+           Publishes LEARNING_FEEDBACK events to EventBackbone.
+   Safety: Conservative: unknown evidence defaults to NOT_MET.
+           Non-destructive: read-only evidence collection.
+           Bounded assessment store with eviction policy.
+```
+
 ---
 
 ## Next Steps
 
-This architecture map documents Phases 0–9 of the self-automation plan (42 design labels):
+This architecture map documents Phases 0–10 of the self-automation plan (46 design labels):
 
-1. **Readiness Assessment:** Run OPS-001 to validate wiring across all 42 modules
+1. **Readiness Assessment:** Run OPS-001 to validate wiring across all 46 modules
 2. **Safety Pipeline Integration:** Wire SAF-001 into API gateway for pre/post validation
 3. **RBAC Bootstrap:** Configure SAF-002 roles/users for initial deployment team
 4. **Tenant Onboarding:** Configure SAF-003 limits for first production tenants
@@ -1614,7 +1685,7 @@ This architecture map documents Phases 0–9 of the self-automation plan (42 des
 7. **KPI Baseline:** Seed OPS-002 with initial metric observations for all 8 default KPIs
 8. **Mode Configuration:** Configure OPS-003 thresholds per environment
 9. **Emergency Stop Integration:** Wire OPS-004 into API gateway for global stop capability
-10. **End-to-End Integration Testing:** Exercise INT-001 with all 42 registered modules
+10. **End-to-End Integration Testing:** Exercise INT-001 with all 46 registered modules
 11. **Security Baseline:** Run SEC-001 across entire src/ directory for initial audit
 12. **Dependency Audit:** Run DEV-005 against requirements.txt to flag vulnerable packages
 13. **Documentation Generation:** Run DEV-003 across src/ to build label inventory

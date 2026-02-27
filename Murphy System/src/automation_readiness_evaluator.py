@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 _MAX_REPORTS = 500
 
 # ---------------------------------------------------------------------------
-# Default module registry — all 42 design labels from Phases 0–9
+# Default module registry — all 46 design labels from Phases 0–10
 # ---------------------------------------------------------------------------
 
 DEFAULT_PHASE_MODULES: Dict[str, List[str]] = {
@@ -65,6 +65,7 @@ DEFAULT_PHASE_MODULES: Dict[str, List[str]] = {
     "integration":   ["INT-001"],
     "operations":    ["OPS-001", "OPS-002", "OPS-003", "OPS-004"],
     "safety":        ["SAF-001", "SAF-002", "SAF-003", "SAF-004", "SAF-005"],
+    "orchestration": ["ORCH-001", "ORCH-002", "ORCH-003", "ORCH-004"],
 }
 
 
