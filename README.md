@@ -160,7 +160,7 @@ cd "Murphy System" && ./start_murphy_1.0.sh
 - Behavioral anomaly detection (z-score analysis, resource spikes, API patterns)
 - Unified security dashboard with event correlation and compliance reporting
 - 42 integrated modules, 1490+ module tests passing
-- Neon terminal UI across 9 components with consistent theme
+- Neon terminal UI across 7 HTML interfaces with consistent theme
 
 **Architect UI:** serve `Murphy System/terminal_architect.html` with `python -m http.server 8090` and open `http://localhost:8090/Murphy%20System/terminal_architect.html?apiPort=6666`
 
@@ -543,6 +543,7 @@ Container and Kubernetes deployment manifests are available as legacy reference 
 | [Execution Log](<Murphy System/docs/EXECUTION_LOG.md>) | Cycle 1 real test results |
 | [Gap Analysis](<Murphy System/docs/GAP_ANALYSIS.md>) | Actual vs expected — Cycle 1 |
 | [Remediation Plan](<Murphy System/docs/REMEDIATION_PLAN.md>) | Fixes for all identified gaps |
+| [Manual Commissioning Test Plan](<Murphy System/docs/MANUAL_COMMISSIONING_TEST_PLAN.md>) | Step-by-step manual UI and API verification |
 | [API Docs](http://localhost:6666/docs) | Interactive API docs (requires running server) |
 
 ---
@@ -655,7 +656,7 @@ strategy analysis.
 
 ---
 
-## 📊 Stats (Murphy System, as of 2026-02-09)
+## 📊 Stats (Murphy System, as of 2026-02-27)
 
 -   **Total Files:** ~1,500 files
 -   **Python Files:** 554 files
@@ -669,10 +670,10 @@ strategy analysis.
 
 ```bash
 # 1. Clone
-git clone https://github.com/inoni-llc/murphy.git
+git clone https://github.com/IKNOWINOT/Murphy-System.git
 
 # 2. Start
-cd murphy/Murphy System
+cd Murphy-System/Murphy\ System
 ./start_murphy_1.0.sh
 
 # 3. Use
