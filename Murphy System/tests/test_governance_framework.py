@@ -10,7 +10,7 @@ Tests all components of the formal governance framework:
 
 import pytest
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from unittest.mock import Mock, patch
 
 from src.governance_framework import (
@@ -80,14 +80,14 @@ class TestGovernanceArtifact:
         expired_artifact = GovernanceArtifact(
             "expired-policy", ArtifactType.POLICY, "Old Policy", "1.0.0", "System"
         )
-        expired_artifact.expires_at = datetime.utcnow() - timedelta(days=1)
+        expired_artifact.expires_at = datetime.now(timezone.utc) - timedelta(days=1)
         
         assert expired_artifact.is_expired() == True
         
         valid_artifact = GovernanceArtifact(
             "valid-policy", ArtifactType.POLICY, "Current Policy", "1.0.0", "System"
         )
-        valid_artifact.expires_at = datetime.utcnow() + timedelta(days=30)
+        valid_artifact.expires_at = datetime.now(timezone.utc) + timedelta(days=30)
         
         assert valid_artifact.is_expired() == False
     

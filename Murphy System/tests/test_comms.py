@@ -10,7 +10,7 @@ Tests:
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 
 from src.comms.schemas import (
     MessageArtifact,
@@ -69,7 +69,7 @@ class TestSchemas:
                 recipient_hash="recipient_hash",
                 content_redacted="test content",
                 intent=IntentClassification.QUESTION,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 direction="inbound",
                 external_party=False,
                 source_system="test",
@@ -130,7 +130,7 @@ class TestSchemas:
             AuditLogEntry(
                 log_id="test",
                 event_type="message_received",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 actor="system",
                 immutable=False  # Should fail
             )
@@ -145,7 +145,7 @@ class TestSchemas:
             recipient_hash="recipient",
             content_redacted="test",
             intent=IntentClassification.QUESTION,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             direction="inbound",
             external_party=False,
             source_system="test"
@@ -218,7 +218,7 @@ class TestPipeline:
                 recipient_hash="recipient",
                 content_redacted="test",
                 intent=IntentClassification.QUESTION,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 direction="inbound",
                 external_party=False,
                 source_system="test"
@@ -240,7 +240,7 @@ class TestPipeline:
             recipient_hash="recipient",
             content_redacted="What is the status?",
             intent=IntentClassification.UNKNOWN,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             direction="inbound",
             external_party=False,
             source_system="test"
@@ -273,7 +273,7 @@ class TestPipeline:
             recipient_hash="recipient",
             content_redacted="test",
             intent=IntentClassification.QUESTION,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             direction="inbound",
             external_party=False,
             source_system="test"
@@ -297,7 +297,7 @@ class TestPipeline:
             recipient_hash="recipient",
             content_redacted="test",
             intent=IntentClassification.QUESTION,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             direction="inbound",
             external_party=False,
             source_system="test"
@@ -361,7 +361,7 @@ class TestGovernance:
             recipient_hash="recipient",
             content_redacted="I approve this",
             intent=IntentClassification.APPROVAL_GRANT,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             direction="inbound",
             external_party=False,
             source_system="test"
@@ -408,7 +408,7 @@ class TestGovernance:
             recipient_hash="recipient",
             content_redacted="test",
             intent=IntentClassification.QUESTION,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             direction="inbound",
             external_party=False,
             source_system="test"
@@ -462,11 +462,11 @@ class TestCompliance:
             recipient_hash="recipient",
             content_redacted="test",
             intent=IntentClassification.QUESTION,
-            timestamp=datetime.utcnow() - timedelta(days=40),
+            timestamp=datetime.now(timezone.utc) - timedelta(days=40),
             direction="inbound",
             external_party=False,
             source_system="test",
-            created_at=datetime.utcnow() - timedelta(days=40)
+            created_at=datetime.now(timezone.utc) - timedelta(days=40)
         )
         
         assert manager.should_archive(message)
@@ -495,11 +495,11 @@ class TestCompliance:
             recipient_hash="recipient",
             content_redacted="test",
             intent=IntentClassification.QUESTION,
-            timestamp=datetime.utcnow() - timedelta(days=400),
+            timestamp=datetime.now(timezone.utc) - timedelta(days=400),
             direction="inbound",
             external_party=False,
             source_system="test",
-            created_at=datetime.utcnow() - timedelta(days=400)
+            created_at=datetime.now(timezone.utc) - timedelta(days=400)
         )
         
         # Add legal hold
@@ -515,14 +515,14 @@ class TestCompliance:
         log1 = AuditLogEntry(
             log_id="log1",
             event_type="message_received",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             actor="system"
         )
         
         log2 = AuditLogEntry(
             log_id="log2",
             event_type="message_sent",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             actor="user1"
         )
         
@@ -545,7 +545,7 @@ class TestCompliance:
             content_redacted="[EMAIL_REDACTED]",
             content_original="john@example.com",
             intent=IntentClassification.QUESTION,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             direction="inbound",
             external_party=False,
             source_system="test"
@@ -588,7 +588,7 @@ class TestIntegration:
             content_redacted="What is the status?",
             content_original="What is the status?",
             intent=IntentClassification.UNKNOWN,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             direction="inbound",
             external_party=False,
             source_system="test"
