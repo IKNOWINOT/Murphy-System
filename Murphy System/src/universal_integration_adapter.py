@@ -15,7 +15,7 @@ available actions) and the adapter handles:
   - Event-driven webhook ingestion
   - Thread-safe registry
 
-Pre-loaded with 55+ common integration templates (Slack, Discord, Notion,
+Pre-loaded with 75+ common integration templates (Slack, Discord, Notion,
 Airtable, Zapier, IFTTT, n8n, Make, Vercel, Netlify, Supabase, Firebase,
 Cloudflare, Twitch, YouTube, Spotify, Salesforce, HubSpot, Stripe, PayPal,
 Shopify, Zendesk, Datadog, PagerDuty, Sentry, Twilio, SendGrid, etc.).
@@ -342,7 +342,7 @@ class _IntegrationInstance:
 # ---------------------------------------------------------------------------
 
 def _default_integration_templates() -> List[IntegrationSpec]:
-    """Pre-loaded templates for 55+ common services."""
+    """Pre-loaded templates for 75+ common services."""
     return [
         # --- Communication ---
         IntegrationSpec(
@@ -955,6 +955,165 @@ def _default_integration_templates() -> List[IntegrationSpec]:
                 IntegrationAction("create_payment", "Record a payment", "POST", "/company/{realm_id}/payment"),
             ],
         ),
+        # --- Cloud Infrastructure ---
+        IntegrationSpec(
+            name="Amazon Web Services", category=IntegrationCategory.CLOUD_INFRASTRUCTURE,
+            description="Cloud computing platform with 200+ services",
+            base_url="https://aws.amazon.com",
+            auth_method=IntegrationAuthMethod.API_KEY,
+            actions=[
+                IntegrationAction("manage_ec2", "Manage EC2 instances", "POST", "/ec2"),
+                IntegrationAction("manage_s3", "Manage S3 buckets", "POST", "/s3"),
+                IntegrationAction("invoke_lambda", "Invoke Lambda function", "POST", "/lambda/invoke"),
+            ],
+        ),
+        IntegrationSpec(
+            name="Microsoft Azure", category=IntegrationCategory.CLOUD_INFRASTRUCTURE,
+            description="Enterprise cloud computing platform",
+            base_url="https://management.azure.com",
+            auth_method=IntegrationAuthMethod.OAUTH2,
+            actions=[
+                IntegrationAction("manage_vms", "Manage virtual machines", "POST", "/subscriptions/{sub_id}/providers/Microsoft.Compute/virtualMachines"),
+                IntegrationAction("manage_storage", "Manage storage accounts", "POST", "/subscriptions/{sub_id}/providers/Microsoft.Storage/storageAccounts"),
+            ],
+        ),
+        IntegrationSpec(
+            name="Google Cloud Platform", category=IntegrationCategory.CLOUD_INFRASTRUCTURE,
+            description="Suite of cloud computing services",
+            base_url="https://cloud.google.com",
+            auth_method=IntegrationAuthMethod.OAUTH2,
+            actions=[
+                IntegrationAction("manage_compute", "Manage Compute Engine instances", "POST", "/compute/v1/projects/{project}/zones/{zone}/instances"),
+                IntegrationAction("manage_storage", "Manage Cloud Storage", "POST", "/storage/v1/b"),
+            ],
+        ),
+        # --- DevOps ---
+        IntegrationSpec(
+            name="GitHub", category=IntegrationCategory.DEVELOPER_TOOLS,
+            description="Software development platform with version control and CI/CD",
+            base_url="https://api.github.com",
+            auth_method=IntegrationAuthMethod.BEARER_TOKEN,
+            actions=[
+                IntegrationAction("create_issue", "Create a repository issue", "POST", "/repos/{owner}/{repo}/issues"),
+                IntegrationAction("create_pr", "Create a pull request", "POST", "/repos/{owner}/{repo}/pulls"),
+                IntegrationAction("list_repos", "List repositories", "GET", "/user/repos"),
+                IntegrationAction("trigger_workflow", "Trigger a GitHub Actions workflow", "POST", "/repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches"),
+            ],
+        ),
+        IntegrationSpec(
+            name="GitLab", category=IntegrationCategory.DEVELOPER_TOOLS,
+            description="DevOps lifecycle platform with CI/CD",
+            base_url="https://gitlab.com/api/v4",
+            auth_method=IntegrationAuthMethod.BEARER_TOKEN,
+            actions=[
+                IntegrationAction("create_issue", "Create a project issue", "POST", "/projects/{project_id}/issues"),
+                IntegrationAction("create_mr", "Create a merge request", "POST", "/projects/{project_id}/merge_requests"),
+                IntegrationAction("trigger_pipeline", "Trigger a CI/CD pipeline", "POST", "/projects/{project_id}/pipeline"),
+            ],
+        ),
+        # --- Project Management ---
+        IntegrationSpec(
+            name="Jira", category=IntegrationCategory.PROJECT_MANAGEMENT,
+            description="Issue and project tracking for agile teams",
+            base_url="https://api.atlassian.com/ex/jira/{cloud_id}/rest/api/3",
+            auth_method=IntegrationAuthMethod.OAUTH2,
+            actions=[
+                IntegrationAction("create_issue", "Create an issue", "POST", "/issue"),
+                IntegrationAction("search_issues", "Search issues with JQL", "POST", "/search"),
+                IntegrationAction("transition_issue", "Transition issue status", "POST", "/issue/{issue_id}/transitions"),
+            ],
+        ),
+        IntegrationSpec(
+            name="Asana", category=IntegrationCategory.PROJECT_MANAGEMENT,
+            description="Work management platform for teams",
+            base_url="https://app.asana.com/api/1.0",
+            auth_method=IntegrationAuthMethod.BEARER_TOKEN,
+            actions=[
+                IntegrationAction("create_task", "Create a task", "POST", "/tasks"),
+                IntegrationAction("list_projects", "List projects", "GET", "/projects"),
+                IntegrationAction("update_task", "Update a task", "PUT", "/tasks/{task_id}"),
+            ],
+        ),
+        IntegrationSpec(
+            name="Monday.com", category=IntegrationCategory.PROJECT_MANAGEMENT,
+            description="Work OS for managing projects and workflows",
+            base_url="https://api.monday.com/v2",
+            auth_method=IntegrationAuthMethod.API_KEY,
+            actions=[
+                IntegrationAction("create_item", "Create a board item", "POST", ""),
+                IntegrationAction("list_boards", "List boards", "POST", ""),
+            ],
+        ),
+        # --- Knowledge & Content ---
+        IntegrationSpec(
+            name="Confluence", category=IntegrationCategory.CUSTOM,
+            description="Team workspace for documentation and knowledge sharing",
+            base_url="https://api.atlassian.com/ex/confluence/{cloud_id}/wiki/api/v2",
+            auth_method=IntegrationAuthMethod.OAUTH2,
+            actions=[
+                IntegrationAction("create_page", "Create a page", "POST", "/pages"),
+                IntegrationAction("search", "Search content", "GET", "/search"),
+                IntegrationAction("list_spaces", "List spaces", "GET", "/spaces"),
+            ],
+        ),
+        IntegrationSpec(
+            name="Google Workspace", category=IntegrationCategory.CUSTOM,
+            description="Cloud-based productivity and collaboration tools",
+            base_url="https://www.googleapis.com",
+            auth_method=IntegrationAuthMethod.OAUTH2,
+            actions=[
+                IntegrationAction("gmail_send", "Send an email via Gmail", "POST", "/gmail/v1/users/me/messages/send"),
+                IntegrationAction("drive_upload", "Upload a file to Drive", "POST", "/upload/drive/v3/files"),
+                IntegrationAction("calendar_create", "Create a calendar event", "POST", "/calendar/v3/calendars/primary/events"),
+                IntegrationAction("sheets_read", "Read spreadsheet data", "GET", "/v4/spreadsheets/{spreadsheet_id}/values/{range}"),
+            ],
+        ),
+        # --- ITSM ---
+        IntegrationSpec(
+            name="ServiceNow", category=IntegrationCategory.CUSTOM,
+            description="Digital workflow platform for enterprise IT service management",
+            base_url="https://{instance}.service-now.com/api",
+            auth_method=IntegrationAuthMethod.OAUTH2,
+            actions=[
+                IntegrationAction("create_incident", "Create an incident", "POST", "/now/table/incident"),
+                IntegrationAction("list_incidents", "List incidents", "GET", "/now/table/incident"),
+                IntegrationAction("create_change", "Create a change request", "POST", "/now/table/change_request"),
+            ],
+        ),
+        # --- Communication (Messaging) ---
+        IntegrationSpec(
+            name="WhatsApp Business", category=IntegrationCategory.COMMUNICATION,
+            description="Business messaging platform via Meta Cloud API",
+            base_url="https://graph.facebook.com/v17.0",
+            auth_method=IntegrationAuthMethod.BEARER_TOKEN,
+            actions=[
+                IntegrationAction("send_message", "Send a text message", "POST", "/{phone_number_id}/messages"),
+                IntegrationAction("send_template", "Send a template message", "POST", "/{phone_number_id}/messages"),
+                IntegrationAction("send_media", "Send a media message", "POST", "/{phone_number_id}/messages"),
+            ],
+        ),
+        IntegrationSpec(
+            name="Telegram", category=IntegrationCategory.COMMUNICATION,
+            description="Messaging platform with bot API",
+            base_url="https://api.telegram.org/bot{token}",
+            auth_method=IntegrationAuthMethod.BEARER_TOKEN,
+            actions=[
+                IntegrationAction("send_message", "Send a message", "POST", "/sendMessage"),
+                IntegrationAction("send_photo", "Send a photo", "POST", "/sendPhoto"),
+                IntegrationAction("get_updates", "Get bot updates", "GET", "/getUpdates"),
+            ],
+        ),
+        # --- Analytics ---
+        IntegrationSpec(
+            name="Snowflake", category=IntegrationCategory.ANALYTICS,
+            description="Cloud data platform for analytics and data warehousing",
+            base_url="https://{account}.snowflakecomputing.com",
+            auth_method=IntegrationAuthMethod.BEARER_TOKEN,
+            actions=[
+                IntegrationAction("execute_query", "Execute a SQL query", "POST", "/api/v2/statements"),
+                IntegrationAction("list_databases", "List databases", "GET", "/api/v2/databases"),
+            ],
+        ),
     ]
 
 
@@ -966,7 +1125,7 @@ class UniversalIntegrationAdapter:
     """
     Plug-and-play registry for connecting any external service to Murphy System.
 
-    Comes pre-loaded with 55+ integration templates. Users can:
+    Comes pre-loaded with 75+ integration templates. Users can:
 
     1. **Use a template** — ``adapter.configure("slack", {"token": "xoxb-..."})``
     2. **Add a custom service** — ``adapter.register(IntegrationSpec(...))``
