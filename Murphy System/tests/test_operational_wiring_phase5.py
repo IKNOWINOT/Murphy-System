@@ -607,7 +607,7 @@ class TestPhase5ModuleStatusMethods(unittest.TestCase):
         status = self.runtime.durable_swarm_orchestrator.get_status()
         self.assertIsInstance(status, dict)
 
-    def test_hitl_autonomy_controller_get_status(self):
+    def test_hitl_autonomy_controller_status(self):
         # Some implementations may use get_autonomy_stats instead
         obj = self.runtime.hitl_autonomy_controller
         status = getattr(obj, 'get_status', getattr(obj, 'get_autonomy_stats', None))
