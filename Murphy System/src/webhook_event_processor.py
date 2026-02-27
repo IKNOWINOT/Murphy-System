@@ -433,7 +433,7 @@ DEFAULT_SOURCES = [
         platform="asana",
         signature_header="X-Hook-Secret",
         signature_algorithm=SignatureAlgorithm.SHA256,
-        event_type_field="events.0.resource.resource_type",
+        event_type_field="resource_type",
     ),
     WebhookSource(
         source_id="notion_webhook",
@@ -787,7 +787,7 @@ DEFAULT_RULES = [
         source_id="asana_webhook",
         source_event="task",
         normalized_event="task_updated",
-        field_mapping={"events.0.resource.gid": "task_id", "events.0.action": "action"},
+        field_mapping={"resource.gid": "task_id", "action": "action"},
     ),
     NormalizationRule(
         rule_id="notion_page_updated",
