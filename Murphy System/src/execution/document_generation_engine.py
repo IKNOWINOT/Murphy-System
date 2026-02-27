@@ -216,8 +216,10 @@ class DocumentGenerationEngine:
 
         Uses reportlab when available; otherwise returns a structured
         text representation that downstream consumers can process.
+        Returns base64-encoded PDF data when reportlab is available.
         """
         try:
+            import base64
             from io import BytesIO
             from reportlab.lib.pagesizes import letter  # type: ignore[import-untyped]
             from reportlab.pdfgen import canvas as rl_canvas  # type: ignore[import-untyped]
@@ -228,7 +230,7 @@ class DocumentGenerationEngine:
             font_size = int(styling.get("size", 12))
             c.setFont(font_name, font_size)
 
-            # Simple text flow — one line per 14pt
+            # Simple text flow
             y = 750
             for line in content.split("\n"):
                 if y < 50:
@@ -238,7 +240,7 @@ class DocumentGenerationEngine:
                 c.drawString(72, y, line)
                 y -= font_size + 2
             c.save()
-            return buf.getvalue().decode("latin-1")
+            return base64.b64encode(buf.getvalue()).decode("ascii")
         except ImportError:
             # Graceful fallback — return structured text
             return f"%PDF-1.4-TEXT-FALLBACK\n{content}\n%%EOF"
@@ -248,10 +250,13 @@ class DocumentGenerationEngine:
 
         Uses python-docx when available; otherwise returns a minimal
         Office Open XML document string.
+        Returns base64-encoded DOCX data when python-docx is available.
         """
         try:
+            import base64
             from io import BytesIO
             from docx import Document as DocxDocument  # type: ignore[import-untyped]
+            from docx.shared import Pt  # type: ignore[import-untyped]
 
             doc = DocxDocument()
             font_name = styling.get("font", "Calibri")
@@ -260,10 +265,10 @@ class DocumentGenerationEngine:
                 p = doc.add_paragraph(para_text)
                 for run in p.runs:
                     run.font.name = font_name
-                    run.font.size = font_size * 12700  # EMU
+                    run.font.size = Pt(font_size)
             buf = BytesIO()
             doc.save(buf)
-            return buf.getvalue().decode("latin-1")
+            return base64.b64encode(buf.getvalue()).decode("ascii")
         except ImportError:
             # Graceful fallback — minimal XML payload
             escaped = content.replace("&", "&amp;").replace("<", "&lt;")
