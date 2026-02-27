@@ -393,10 +393,10 @@ class TestLaunchReadinessScore:
         assert passing_score / total_possible == 0.65
 
     def test_launch_readiness_score_documented(self, project_root):
-        """@qa-lead: Launch readiness score is 100% (all blockers resolved)."""
+        """@qa-lead: Launch readiness score is 100/100 (all blockers resolved)."""
         lra = project_root / "docs" / "commissioning" / "LAUNCH_READINESS_ASSESSMENT.md"
         content = lra.read_text()
-        assert "100" in content
+        assert "**100**" in content, "Launch score should be 100"
         assert "FULL GO" in content
 
     def test_source_module_count(self, src_dir):

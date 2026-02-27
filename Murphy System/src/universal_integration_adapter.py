@@ -15,7 +15,7 @@ available actions) and the adapter handles:
   - Event-driven webhook ingestion
   - Thread-safe registry
 
-Pre-loaded with 30+ common integration templates (Slack, Discord, Notion,
+Pre-loaded with 32+ common integration templates (Slack, Discord, Notion,
 Airtable, Zapier, IFTTT, n8n, Make, Vercel, Netlify, Supabase, Firebase,
 Cloudflare, Twitch, YouTube, Spotify, etc.).
 
@@ -341,7 +341,7 @@ class _IntegrationInstance:
 # ---------------------------------------------------------------------------
 
 def _default_integration_templates() -> List[IntegrationSpec]:
-    """Pre-loaded templates for 30+ common services."""
+    """Pre-loaded templates for 32+ common services."""
     return [
         # --- Communication ---
         IntegrationSpec(
@@ -691,7 +691,7 @@ class UniversalIntegrationAdapter:
     """
     Plug-and-play registry for connecting any external service to Murphy System.
 
-    Comes pre-loaded with 30+ integration templates. Users can:
+    Comes pre-loaded with 32+ integration templates. Users can:
 
     1. **Use a template** — ``adapter.configure("slack", {"token": "xoxb-..."})``
     2. **Add a custom service** — ``adapter.register(IntegrationSpec(...))``
