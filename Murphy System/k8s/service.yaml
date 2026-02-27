@@ -14,6 +14,6 @@ spec:
     component: api
   ports:
     - port: 80
-      targetPort: 6666
+      targetPort: 8000
       protocol: TCP
       name: http

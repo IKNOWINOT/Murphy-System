@@ -102,7 +102,7 @@ if [ ! "$SKIP_ENV" = true ]; then
 # Core Configuration
 MURPHY_VERSION=1.0.0
 MURPHY_ENV=development
-MURPHY_PORT=6666
+MURPHY_PORT=8000
 
 # LLM API Keys
 EOF
@@ -170,9 +170,9 @@ echo ""
 echo "  ./start_murphy_1.0.sh"
 echo ""
 echo -e "${CYAN}Once running, access:${NC}"
-echo "  • API Documentation: http://localhost:6666/docs"
-echo "  • Health Check:      http://localhost:6666/api/health"
-echo "  • System Status:     http://localhost:6666/api/status"
+echo "  • API Documentation: http://localhost:8000/docs"
+echo "  • Health Check:      http://localhost:8000/api/health"
+echo "  • System Status:     http://localhost:8000/api/status"
 echo ""
 echo -e "${CYAN}For more information:${NC}"
 echo "  • See GETTING_STARTED.md for detailed instructions"

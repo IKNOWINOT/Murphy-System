@@ -90,10 +90,10 @@ cd "Murphy System/"
 5. Server starts and displays:
    ```
    Murphy System 1.0 is running!
-   API Docs:    http://localhost:6666/docs
-   Health:      http://localhost:6666/api/health
-   Status:      http://localhost:6666/api/status
-   Info:        http://localhost:6666/api/info
+   API Docs:    http://localhost:8000/docs
+   Health:      http://localhost:8000/api/health
+   Status:      http://localhost:8000/api/status
+   Info:        http://localhost:8000/api/info
    ```
 6. No fatal errors in the console output. Warnings about optional subsystems not loading are acceptable.
 
@@ -107,7 +107,7 @@ cd "Murphy System/"
 
 **Steps** (in a second terminal):
 ```bash
-curl -s http://localhost:6666/api/health | python3 -m json.tool
+curl -s http://localhost:8000/api/health | python3 -m json.tool
 ```
 
 **Expected Result:** HTTP 200 with JSON containing at minimum:
@@ -126,7 +126,7 @@ curl -s http://localhost:6666/api/health | python3 -m json.tool
 
 **Steps:**
 ```bash
-curl -s http://localhost:6666/api/status | python3 -m json.tool
+curl -s http://localhost:8000/api/status | python3 -m json.tool
 ```
 
 **Expected Result:** HTTP 200 with a JSON object showing system status including subsystem states. The response should include fields such as `status`, component information, and uptime data.
@@ -139,7 +139,7 @@ curl -s http://localhost:6666/api/status | python3 -m json.tool
 
 **Steps:**
 ```bash
-curl -s http://localhost:6666/api/info | python3 -m json.tool
+curl -s http://localhost:8000/api/info | python3 -m json.tool
 ```
 
 **Expected Result:** HTTP 200 with JSON containing system information (version, capabilities, component count, etc.).
@@ -153,7 +153,7 @@ curl -s http://localhost:6666/api/info | python3 -m json.tool
 **Steps:**
 
 1. Open a web browser.
-2. Navigate to: `http://localhost:6666/docs`
+2. Navigate to: `http://localhost:8000/docs`
 
 **Expected Result:** The FastAPI Swagger UI loads, showing all available API endpoints grouped by category. You can expand each endpoint to see its parameters, request body schema, and response schema.
 
@@ -169,7 +169,7 @@ curl -s http://localhost:6666/api/info | python3 -m json.tool
 
 **Steps:**
 ```bash
-curl -s -X POST http://localhost:6666/api/execute \
+curl -s -X POST http://localhost:8000/api/execute \
   -H "Content-Type: application/json" \
   -d '{
     "task_description": "Analyze Q4 sales data",
@@ -193,7 +193,7 @@ curl -s -X POST http://localhost:6666/api/execute \
 
 **Steps:**
 ```bash
-curl -s -X POST http://localhost:6666/api/chat \
+curl -s -X POST http://localhost:8000/api/chat \
   -H "Content-Type: application/json" \
   -d '{
     "message": "What can you do?",
@@ -211,7 +211,7 @@ curl -s -X POST http://localhost:6666/api/chat \
 
 **Steps:**
 ```bash
-curl -s -X POST http://localhost:6666/api/sessions/create \
+curl -s -X POST http://localhost:8000/api/sessions/create \
   -H "Content-Type: application/json" \
   -d '{}' | python3 -m json.tool
 ```
@@ -226,7 +226,7 @@ curl -s -X POST http://localhost:6666/api/sessions/create \
 
 **Steps:**
 ```bash
-curl -s http://localhost:6666/api/modules | python3 -m json.tool
+curl -s http://localhost:8000/api/modules | python3 -m json.tool
 ```
 
 **Expected Result:** HTTP 200 with a JSON array or object listing available system modules.
@@ -239,7 +239,7 @@ curl -s http://localhost:6666/api/modules | python3 -m json.tool
 
 **Steps:**
 ```bash
-curl -s http://localhost:6666/api/system/info | python3 -m json.tool
+curl -s http://localhost:8000/api/system/info | python3 -m json.tool
 ```
 
 **Expected Result:** HTTP 200 with detailed system information JSON.
@@ -254,7 +254,7 @@ curl -s http://localhost:6666/api/system/info | python3 -m json.tool
 
 **Steps:**
 ```bash
-curl -s -X POST http://localhost:6666/api/documents \
+curl -s -X POST http://localhost:8000/api/documents \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Test Document",
@@ -276,7 +276,7 @@ curl -s -X POST http://localhost:6666/api/documents \
 
 **Steps:**
 ```bash
-curl -s http://localhost:6666/api/documents/<DOC_ID> | python3 -m json.tool
+curl -s http://localhost:8000/api/documents/<DOC_ID> | python3 -m json.tool
 ```
 
 Replace `<DOC_ID>` with the actual document ID.
@@ -291,7 +291,7 @@ Replace `<DOC_ID>` with the actual document ID.
 
 **Steps:**
 ```bash
-curl -s -X POST http://localhost:6666/api/documents/<DOC_ID>/magnify \
+curl -s -X POST http://localhost:8000/api/documents/<DOC_ID>/magnify \
   -H "Content-Type: application/json" \
   -d '{}' | python3 -m json.tool
 ```
@@ -306,7 +306,7 @@ curl -s -X POST http://localhost:6666/api/documents/<DOC_ID>/magnify \
 
 **Steps:**
 ```bash
-curl -s -X POST http://localhost:6666/api/documents/<DOC_ID>/simplify \
+curl -s -X POST http://localhost:8000/api/documents/<DOC_ID>/simplify \
   -H "Content-Type: application/json" \
   -d '{}' | python3 -m json.tool
 ```
@@ -321,7 +321,7 @@ curl -s -X POST http://localhost:6666/api/documents/<DOC_ID>/simplify \
 
 **Steps:**
 ```bash
-curl -s -X POST http://localhost:6666/api/documents/<DOC_ID>/solidify \
+curl -s -X POST http://localhost:8000/api/documents/<DOC_ID>/solidify \
   -H "Content-Type: application/json" \
   -d '{}' | python3 -m json.tool
 ```
@@ -336,7 +336,7 @@ curl -s -X POST http://localhost:6666/api/documents/<DOC_ID>/solidify \
 
 **Steps:**
 ```bash
-curl -s -X POST http://localhost:6666/api/documents/<DOC_ID>/gates \
+curl -s -X POST http://localhost:8000/api/documents/<DOC_ID>/gates \
   -H "Content-Type: application/json" \
   -d '{}' | python3 -m json.tool
 ```
@@ -351,7 +351,7 @@ curl -s -X POST http://localhost:6666/api/documents/<DOC_ID>/gates \
 
 **Steps:**
 ```bash
-curl -s http://localhost:6666/api/documents/<DOC_ID>/blocks | python3 -m json.tool
+curl -s http://localhost:8000/api/documents/<DOC_ID>/blocks | python3 -m json.tool
 ```
 
 **Expected Result:** HTTP 200 with a list or tree of content blocks within the document.
@@ -366,7 +366,7 @@ curl -s http://localhost:6666/api/documents/<DOC_ID>/blocks | python3 -m json.to
 
 **Steps:**
 ```bash
-curl -s -X POST http://localhost:6666/api/forms/task-execution \
+curl -s -X POST http://localhost:8000/api/forms/task-execution \
   -H "Content-Type: application/json" \
   -d '{
     "task_description": "Generate a weekly report",
@@ -385,7 +385,7 @@ curl -s -X POST http://localhost:6666/api/forms/task-execution \
 
 **Steps:**
 ```bash
-curl -s -X POST http://localhost:6666/api/forms/validation \
+curl -s -X POST http://localhost:8000/api/forms/validation \
   -H "Content-Type: application/json" \
   -d '{
     "task_description": "Deploy to production",
@@ -404,7 +404,7 @@ curl -s -X POST http://localhost:6666/api/forms/validation \
 
 **Steps:**
 ```bash
-curl -s -X POST http://localhost:6666/api/forms/correction \
+curl -s -X POST http://localhost:8000/api/forms/correction \
   -H "Content-Type: application/json" \
   -d '{
     "task_id": "test-task-001",
@@ -424,7 +424,7 @@ curl -s -X POST http://localhost:6666/api/forms/correction \
 
 **Steps:**
 ```bash
-curl -s -X POST http://localhost:6666/api/forms/plan-upload \
+curl -s -X POST http://localhost:8000/api/forms/plan-upload \
   -H "Content-Type: application/json" \
   -d '{
     "plan_name": "Q1 Marketing Plan",
@@ -442,7 +442,7 @@ curl -s -X POST http://localhost:6666/api/forms/plan-upload \
 
 **Steps:**
 ```bash
-curl -s -X POST http://localhost:6666/api/forms/plan-generation \
+curl -s -X POST http://localhost:8000/api/forms/plan-generation \
   -H "Content-Type: application/json" \
   -d '{
     "goal": "Increase website traffic by 50%",
@@ -463,7 +463,7 @@ curl -s -X POST http://localhost:6666/api/forms/plan-generation \
 
 **Steps:**
 ```bash
-curl -s http://localhost:6666/api/forms/submission/<SUBMISSION_ID> | python3 -m json.tool
+curl -s http://localhost:8000/api/forms/submission/<SUBMISSION_ID> | python3 -m json.tool
 ```
 
 **Expected Result:** HTTP 200 with the full submission record.
@@ -478,7 +478,7 @@ curl -s http://localhost:6666/api/forms/submission/<SUBMISSION_ID> | python3 -m 
 
 **Steps:**
 ```bash
-curl -s http://localhost:6666/api/corrections/patterns | python3 -m json.tool
+curl -s http://localhost:8000/api/corrections/patterns | python3 -m json.tool
 ```
 
 **Expected Result:** HTTP 200 with a JSON object or array of detected correction patterns (may be empty if no corrections have been submitted yet).
@@ -491,7 +491,7 @@ curl -s http://localhost:6666/api/corrections/patterns | python3 -m json.tool
 
 **Steps:**
 ```bash
-curl -s http://localhost:6666/api/corrections/statistics | python3 -m json.tool
+curl -s http://localhost:8000/api/corrections/statistics | python3 -m json.tool
 ```
 
 **Expected Result:** HTTP 200 with statistics about corrections (total count, patterns detected, etc.).
@@ -504,7 +504,7 @@ curl -s http://localhost:6666/api/corrections/statistics | python3 -m json.tool
 
 **Steps:**
 ```bash
-curl -s http://localhost:6666/api/corrections/training-data | python3 -m json.tool
+curl -s http://localhost:8000/api/corrections/training-data | python3 -m json.tool
 ```
 
 **Expected Result:** HTTP 200 with training data derived from corrections.
@@ -519,7 +519,7 @@ curl -s http://localhost:6666/api/corrections/training-data | python3 -m json.to
 
 **Steps:**
 ```bash
-curl -s http://localhost:6666/api/hitl/interventions/pending | python3 -m json.tool
+curl -s http://localhost:8000/api/hitl/interventions/pending | python3 -m json.tool
 ```
 
 **Expected Result:** HTTP 200 with a list of pending interventions (may be empty initially).
@@ -532,7 +532,7 @@ curl -s http://localhost:6666/api/hitl/interventions/pending | python3 -m json.t
 
 **Steps:**
 ```bash
-curl -s http://localhost:6666/api/hitl/statistics | python3 -m json.tool
+curl -s http://localhost:8000/api/hitl/statistics | python3 -m json.tool
 ```
 
 **Expected Result:** HTTP 200 with HITL statistics (intervention count, approval rate, etc.).
@@ -547,7 +547,7 @@ curl -s http://localhost:6666/api/hitl/statistics | python3 -m json.tool
 
 **Steps:**
 ```bash
-curl -s http://localhost:6666/api/mfgc/state | python3 -m json.tool
+curl -s http://localhost:8000/api/mfgc/state | python3 -m json.tool
 ```
 
 **Expected Result:** HTTP 200 with the current MFGC state including phase, confidence, and metrics.
@@ -560,7 +560,7 @@ curl -s http://localhost:6666/api/mfgc/state | python3 -m json.tool
 
 **Steps:**
 ```bash
-curl -s http://localhost:6666/api/mfgc/config | python3 -m json.tool
+curl -s http://localhost:8000/api/mfgc/config | python3 -m json.tool
 ```
 
 **Expected Result:** HTTP 200 with the current MFGC configuration (enabled status, gate settings).
@@ -573,7 +573,7 @@ curl -s http://localhost:6666/api/mfgc/config | python3 -m json.tool
 
 **Steps:**
 ```bash
-curl -s -X POST http://localhost:6666/api/mfgc/config \
+curl -s -X POST http://localhost:8000/api/mfgc/config \
   -H "Content-Type: application/json" \
   -d '{
     "enabled": true,
@@ -593,7 +593,7 @@ curl -s -X POST http://localhost:6666/api/mfgc/config \
 
 **Steps:**
 ```bash
-curl -s -X POST http://localhost:6666/api/mfgc/setup/production \
+curl -s -X POST http://localhost:8000/api/mfgc/setup/production \
   -H "Content-Type: application/json" \
   -d '{}' | python3 -m json.tool
 ```
@@ -608,7 +608,7 @@ curl -s -X POST http://localhost:6666/api/mfgc/setup/production \
 
 **Steps:**
 ```bash
-curl -s -X POST http://localhost:6666/api/mfgc/setup/development \
+curl -s -X POST http://localhost:8000/api/mfgc/setup/development \
   -H "Content-Type: application/json" \
   -d '{}' | python3 -m json.tool
 ```
@@ -623,7 +623,7 @@ curl -s -X POST http://localhost:6666/api/mfgc/setup/development \
 
 **Steps:**
 ```bash
-curl -s -X POST http://localhost:6666/api/mfgc/setup/certification \
+curl -s -X POST http://localhost:8000/api/mfgc/setup/certification \
   -H "Content-Type: application/json" \
   -d '{}' | python3 -m json.tool
 ```
@@ -640,7 +640,7 @@ curl -s -X POST http://localhost:6666/api/mfgc/setup/certification \
 
 **Steps:**
 ```bash
-curl -s -X POST http://localhost:6666/api/integrations/add \
+curl -s -X POST http://localhost:8000/api/integrations/add \
   -H "Content-Type: application/json" \
   -d '{
     "source": "https://github.com/psf/requests",
@@ -660,7 +660,7 @@ curl -s -X POST http://localhost:6666/api/integrations/add \
 
 **Steps:**
 ```bash
-curl -s http://localhost:6666/api/integrations/pending | python3 -m json.tool
+curl -s http://localhost:8000/api/integrations/pending | python3 -m json.tool
 ```
 
 **Expected Result:** HTTP 200 with a list that includes the integration from Test 8.1.
@@ -675,7 +675,7 @@ curl -s http://localhost:6666/api/integrations/pending | python3 -m json.tool
 
 **Steps:**
 ```bash
-curl -s -X POST http://localhost:6666/api/integrations/<REQUEST_ID>/approve \
+curl -s -X POST http://localhost:8000/api/integrations/<REQUEST_ID>/approve \
   -H "Content-Type: application/json" \
   -d '{}' | python3 -m json.tool
 ```
@@ -690,7 +690,7 @@ curl -s -X POST http://localhost:6666/api/integrations/<REQUEST_ID>/approve \
 
 **Steps:**
 ```bash
-curl -s http://localhost:6666/api/integrations/all | python3 -m json.tool
+curl -s http://localhost:8000/api/integrations/all | python3 -m json.tool
 ```
 
 **Expected Result:** HTTP 200 with a list of all integrations across all statuses.
@@ -705,7 +705,7 @@ curl -s http://localhost:6666/api/integrations/all | python3 -m json.tool
 
 **Steps:**
 ```bash
-curl -s -X POST http://localhost:6666/api/automation/sales/generate_leads \
+curl -s -X POST http://localhost:8000/api/automation/sales/generate_leads \
   -H "Content-Type: application/json" \
   -d '{
     "parameters": {"target_industry": "SaaS", "company_size": "10-50"}
@@ -722,7 +722,7 @@ curl -s -X POST http://localhost:6666/api/automation/sales/generate_leads \
 
 **Steps:**
 ```bash
-curl -s -X POST http://localhost:6666/api/automation/marketing/create_content \
+curl -s -X POST http://localhost:8000/api/automation/marketing/create_content \
   -H "Content-Type: application/json" \
   -d '{
     "parameters": {"content_type": "blog_post", "topic": "AI Automation"}
@@ -739,7 +739,7 @@ curl -s -X POST http://localhost:6666/api/automation/marketing/create_content \
 
 **Steps:**
 ```bash
-curl -s -X POST http://localhost:6666/api/automation/rnd/detect_bugs \
+curl -s -X POST http://localhost:8000/api/automation/rnd/detect_bugs \
   -H "Content-Type: application/json" \
   -d '{
     "parameters": {"target": "murphy_system_1.0_runtime.py"}
@@ -756,7 +756,7 @@ curl -s -X POST http://localhost:6666/api/automation/rnd/detect_bugs \
 
 **Steps:**
 ```bash
-curl -s -X POST http://localhost:6666/api/automation/business/manage_project \
+curl -s -X POST http://localhost:8000/api/automation/business/manage_project \
   -H "Content-Type: application/json" \
   -d '{
     "parameters": {"project_name": "Murphy 2.0 Planning"}
@@ -773,7 +773,7 @@ curl -s -X POST http://localhost:6666/api/automation/business/manage_project \
 
 **Steps:**
 ```bash
-curl -s -X POST http://localhost:6666/api/automation/production/monitor \
+curl -s -X POST http://localhost:8000/api/automation/production/monitor \
   -H "Content-Type: application/json" \
   -d '{
     "parameters": {"target": "all_systems"}
@@ -792,7 +792,7 @@ curl -s -X POST http://localhost:6666/api/automation/production/monitor \
 
 **Steps:**
 ```bash
-curl -s http://localhost:6666/api/images/styles | python3 -m json.tool
+curl -s http://localhost:8000/api/images/styles | python3 -m json.tool
 ```
 
 **Expected Result:** HTTP 200 with a list of available image generation styles.
@@ -805,7 +805,7 @@ curl -s http://localhost:6666/api/images/styles | python3 -m json.tool
 
 **Steps:**
 ```bash
-curl -s -X POST http://localhost:6666/api/images/generate \
+curl -s -X POST http://localhost:8000/api/images/generate \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "A futuristic AI control room",
@@ -823,7 +823,7 @@ curl -s -X POST http://localhost:6666/api/images/generate \
 
 **Steps:**
 ```bash
-curl -s http://localhost:6666/api/images/stats | python3 -m json.tool
+curl -s http://localhost:8000/api/images/stats | python3 -m json.tool
 ```
 
 **Expected Result:** HTTP 200 with image generation statistics.
@@ -838,7 +838,7 @@ curl -s http://localhost:6666/api/images/stats | python3 -m json.tool
 
 **Steps:**
 ```bash
-curl -s http://localhost:6666/api/universal-integrations/services | python3 -m json.tool
+curl -s http://localhost:8000/api/universal-integrations/services | python3 -m json.tool
 ```
 
 **Expected Result:** HTTP 200 with a list of available integration services.
@@ -851,7 +851,7 @@ curl -s http://localhost:6666/api/universal-integrations/services | python3 -m j
 
 **Steps:**
 ```bash
-curl -s http://localhost:6666/api/universal-integrations/categories | python3 -m json.tool
+curl -s http://localhost:8000/api/universal-integrations/categories | python3 -m json.tool
 ```
 
 **Expected Result:** HTTP 200 with available integration categories.
@@ -864,7 +864,7 @@ curl -s http://localhost:6666/api/universal-integrations/categories | python3 -m
 
 **Steps:**
 ```bash
-curl -s http://localhost:6666/api/universal-integrations/stats | python3 -m json.tool
+curl -s http://localhost:8000/api/universal-integrations/stats | python3 -m json.tool
 ```
 
 **Expected Result:** HTTP 200 with integration usage statistics.
@@ -879,7 +879,7 @@ curl -s http://localhost:6666/api/universal-integrations/stats | python3 -m json
 
 **Steps:**
 ```bash
-curl -s http://localhost:6666/api/diagnostics/activation | python3 -m json.tool
+curl -s http://localhost:8000/api/diagnostics/activation | python3 -m json.tool
 ```
 
 **Expected Result:** HTTP 200 with activation diagnostic information showing which subsystems loaded successfully.
@@ -892,7 +892,7 @@ curl -s http://localhost:6666/api/diagnostics/activation | python3 -m json.tool
 
 **Steps:**
 ```bash
-curl -s http://localhost:6666/api/diagnostics/activation/last | python3 -m json.tool
+curl -s http://localhost:8000/api/diagnostics/activation/last | python3 -m json.tool
 ```
 
 **Expected Result:** HTTP 200 with the most recent activation record.
@@ -905,7 +905,7 @@ curl -s http://localhost:6666/api/diagnostics/activation/last | python3 -m json.
 
 ### Test 13.0 — Serve the HTML Files
 
-**Prerequisites:** Murphy server running on port 6666.
+**Prerequisites:** Murphy server running on port 8000.
 
 **Steps:**
 
@@ -928,7 +928,7 @@ curl -s http://localhost:6666/api/diagnostics/activation/last | python3 -m json.
 **Steps:**
 
 1. Open a web browser.
-2. Navigate to: `http://localhost:8090/terminal_architect.html?apiPort=6666`
+2. Navigate to: `http://localhost:8090/terminal_architect.html?apiPort=8000`
 
 **Expected Result:**
 - The page loads with a dark neon terminal theme (green text on black background).
@@ -1029,7 +1029,7 @@ curl -s http://localhost:6666/api/diagnostics/activation/last | python3 -m json.
 
 **Steps:**
 
-1. Navigate to: `http://localhost:8090/terminal_integrated.html?apiPort=6666`
+1. Navigate to: `http://localhost:8090/terminal_integrated.html?apiPort=8000`
 
 **Expected Result:**
 - The page loads with a terminal interface and quick command buttons at the top.
@@ -1162,7 +1162,7 @@ curl -s http://localhost:6666/api/diagnostics/activation/last | python3 -m json.
 
 **Steps:**
 
-1. Navigate to: `http://localhost:8090/terminal_worker.html?apiPort=6666`
+1. Navigate to: `http://localhost:8090/terminal_worker.html?apiPort=8000`
 
 **Expected Result:**
 - The page loads with a worker-focused terminal UI.
@@ -1230,7 +1230,7 @@ curl -s http://localhost:6666/api/diagnostics/activation/last | python3 -m json.
 
 **Steps:**
 
-1. Navigate to: `http://localhost:8090/terminal_enhanced.html?apiPort=6666`
+1. Navigate to: `http://localhost:8090/terminal_enhanced.html?apiPort=8000`
 
 **Expected Result:**
 - The page loads with a terminal interface.
@@ -1367,7 +1367,7 @@ This test verifies the complete flow from task submission through execution and 
 
 1. **Submit a task:**
    ```bash
-   curl -s -X POST http://localhost:6666/api/execute \
+   curl -s -X POST http://localhost:8000/api/execute \
      -H "Content-Type: application/json" \
      -d '{
        "task_description": "Calculate total revenue for Q1 2024",
@@ -1379,7 +1379,7 @@ This test verifies the complete flow from task submission through execution and 
 
 2. **Submit a correction on the task:**
    ```bash
-   curl -s -X POST http://localhost:6666/api/forms/correction \
+   curl -s -X POST http://localhost:8000/api/forms/correction \
      -H "Content-Type: application/json" \
      -d '{
        "task_id": "<TASK_ID_FROM_STEP_1>",
@@ -1391,12 +1391,12 @@ This test verifies the complete flow from task submission through execution and 
 
 3. **Verify correction was recorded:**
    ```bash
-   curl -s http://localhost:6666/api/corrections/statistics | python3 -m json.tool
+   curl -s http://localhost:8000/api/corrections/statistics | python3 -m json.tool
    ```
 
 4. **Check that patterns were extracted:**
    ```bash
-   curl -s http://localhost:6666/api/corrections/patterns | python3 -m json.tool
+   curl -s http://localhost:8000/api/corrections/patterns | python3 -m json.tool
    ```
 
 **Expected Result:** The complete lifecycle works: task executes, correction is recorded, and the learning system tracks it.
@@ -1413,7 +1413,7 @@ This test verifies the document creation through MFGC processing.
 
 1. **Create a document:**
    ```bash
-   curl -s -X POST http://localhost:6666/api/documents \
+   curl -s -X POST http://localhost:8000/api/documents \
      -H "Content-Type: application/json" \
      -d '{
        "title": "Product Launch Plan",
@@ -1424,31 +1424,31 @@ This test verifies the document creation through MFGC processing.
 
 2. **Magnify the document:**
    ```bash
-   curl -s -X POST http://localhost:6666/api/documents/<DOC_ID>/magnify \
+   curl -s -X POST http://localhost:8000/api/documents/<DOC_ID>/magnify \
      -H "Content-Type: application/json" -d '{}' | python3 -m json.tool
    ```
 
 3. **Simplify the document:**
    ```bash
-   curl -s -X POST http://localhost:6666/api/documents/<DOC_ID>/simplify \
+   curl -s -X POST http://localhost:8000/api/documents/<DOC_ID>/simplify \
      -H "Content-Type: application/json" -d '{}' | python3 -m json.tool
    ```
 
 4. **Solidify the document:**
    ```bash
-   curl -s -X POST http://localhost:6666/api/documents/<DOC_ID>/solidify \
+   curl -s -X POST http://localhost:8000/api/documents/<DOC_ID>/solidify \
      -H "Content-Type: application/json" -d '{}' | python3 -m json.tool
    ```
 
 5. **Apply gates:**
    ```bash
-   curl -s -X POST http://localhost:6666/api/documents/<DOC_ID>/gates \
+   curl -s -X POST http://localhost:8000/api/documents/<DOC_ID>/gates \
      -H "Content-Type: application/json" -d '{}' | python3 -m json.tool
    ```
 
 6. **Get blocks:**
    ```bash
-   curl -s http://localhost:6666/api/documents/<DOC_ID>/blocks | python3 -m json.tool
+   curl -s http://localhost:8000/api/documents/<DOC_ID>/blocks | python3 -m json.tool
    ```
 
 **Expected Result:** The document passes through the full MFGC cycle (Magnify → Simplify → Solidify → Gates) and blocks are retrievable.
@@ -1461,7 +1461,7 @@ This test verifies the document creation through MFGC processing.
 
 **Steps:**
 
-1. Open `http://localhost:8090/terminal_architect.html?apiPort=6666`
+1. Open `http://localhost:8090/terminal_architect.html?apiPort=8000`
 2. Type a message: `Create a deployment plan for production release`
 3. Press Enter and wait for the response.
 4. Click the **GATES** tab — verify gates data appears.
@@ -1501,7 +1501,7 @@ This test verifies the document creation through MFGC processing.
    ```
 2. Verify health:
    ```bash
-   curl -s http://localhost:6666/api/health | python3 -m json.tool
+   curl -s http://localhost:8000/api/health | python3 -m json.tool
    ```
 
 **Expected Result:** System restarts successfully and health check passes.

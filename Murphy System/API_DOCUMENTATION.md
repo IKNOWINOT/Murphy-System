@@ -2,7 +2,7 @@
 
 ## Base URL
 ```
-http://localhost:6666/api
+http://localhost:8000/api
 ```
 
 ## Authentication
@@ -562,7 +562,7 @@ Future versions may support webhooks for:
 ```python
 import requests
 
-API_BASE = "http://localhost:6666/api"
+API_BASE = "http://localhost:8000/api"
 
 # Execute a task
 response = requests.post(
@@ -581,7 +581,7 @@ print(f"Confidence: {result['confidence_report']['combined_confidence']}")
 
 ### JavaScript
 ```javascript
-const API_BASE = 'http://localhost:6666/api';
+const API_BASE = 'http://localhost:8000/api';
 
 // Execute a task
 async function executeTask() {
@@ -604,7 +604,7 @@ async function executeTask() {
 ### cURL
 ```bash
 # Execute a task
-curl -X POST http://localhost:6666/api/forms/task-execution \
+curl -X POST http://localhost:8000/api/forms/task-execution \
   -H "Content-Type: application/json" \
   -d '{
     "task_type": "analysis",

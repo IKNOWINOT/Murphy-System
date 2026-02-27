@@ -158,11 +158,11 @@ pip install -r requirements_murphy_1.0.txt
 
 ### Server Won't Start
 
-Check if port 6666 is available:
+Check if port 8000 is available:
 
 ```bash
-lsof -i :6666  # Mac/Linux
-netstat -ano | findstr :6666  # Windows
+lsof -i :8000  # Mac/Linux
+netstat -ano | findstr :8000  # Windows
 ```
 
 ### Demo Script Errors
@@ -177,7 +177,7 @@ python demo_murphy.py --demo quick 2>&1 | tee demo.log
 
 - **DEMO_GUIDE.md** - Complete demo documentation
 - **MURPHY_NOW_WORKING.md** - User guide
-- **API Docs** - http://localhost:6666/docs
+- **API Docs** - http://localhost:8000/docs
 
 ## Support
 

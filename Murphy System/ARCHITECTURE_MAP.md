@@ -27,7 +27,7 @@
                                   │
                                   ▼
         ┌─────────────────────────────────────────────────────┐
-        │          REST API (FastAPI - Port 6666)             │
+        │          REST API (FastAPI - Port 8000)             │
         │     murphy_complete_backend_extended.py             │
         └─────────────────────────────────────────────────────┘
                                   │
@@ -756,7 +756,7 @@ Result Delivery & Scheduling
 - Redis (caching - optional)
 
 **Network:**
-- Inbound: REST API (port 6666)
+- Inbound: REST API (port 8000)
 - Outbound: External APIs, LLMs
 
 ⚠️ **Security Gap:** No rate limiting on API endpoints

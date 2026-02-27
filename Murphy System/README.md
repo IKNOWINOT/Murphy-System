@@ -11,7 +11,7 @@
 ./start_murphy_1.0.sh
 
 # 2. Verify the runtime
-curl http://localhost:6666/api/health
+curl http://localhost:8000/api/health
 ```
 
 **That's it!** Runtime 1.0 is now running.
@@ -167,7 +167,7 @@ Results: 5/5 tests passed
 python murphy_system_1.0_runtime.py
 ```
 
-Server starts on: **http://localhost:6666**
+Server starts on: **http://localhost:8000**
 
 ---
 
@@ -191,7 +191,7 @@ http://localhost:8090/terminal_architect.html?apiPort=8000
 
 #### Execute a Task
 ```bash
-curl -X POST http://localhost:6666/api/execute \
+curl -X POST http://localhost:8000/api/execute \
   -H "Content-Type: application/json" \
   -d '{
     "task_description": "Analyze Q4 sales data",
@@ -202,12 +202,12 @@ curl -X POST http://localhost:6666/api/execute \
 
 #### Check System Status
 ```bash
-curl http://localhost:6666/api/status
+curl http://localhost:8000/api/status
 ```
 
 #### Run Business Automation
 ```bash
-curl -X POST http://localhost:6666/api/automation/sales/generate_leads \
+curl -X POST http://localhost:8000/api/automation/sales/generate_leads \
   -H "Content-Type: application/json" \
   -d '{"parameters": {"target_industry": "SaaS"}}'
 ```
@@ -215,7 +215,7 @@ curl -X POST http://localhost:6666/api/automation/sales/generate_leads \
 #### Toggle Full Automation Mode ⭐ NEW
 ```bash
 # Enable full automation (requires admin/owner role)
-curl -X POST http://localhost:6666/api/automation/mode \
+curl -X POST http://localhost:8000/api/automation/mode \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{
@@ -225,10 +225,10 @@ curl -X POST http://localhost:6666/api/automation/mode \
   }'
 
 # Check current automation mode
-curl http://localhost:6666/api/automation/mode?tenant_id=your-tenant-id
+curl http://localhost:8000/api/automation/mode?tenant_id=your-tenant-id
 
 # Get automation metrics
-curl http://localhost:6666/api/automation/metrics?tenant_id=your-tenant-id
+curl http://localhost:8000/api/automation/metrics?tenant_id=your-tenant-id
 ```
 
 **Note:** Full automation can only be enabled by:

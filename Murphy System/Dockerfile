@@ -54,15 +54,15 @@ RUN mkdir -p /app/data /app/logs \
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 ENV MURPHY_ENV=production
-ENV MURPHY_PORT=6666
+ENV MURPHY_PORT=8000
 ENV MURPHY_DATA_DIR=/app/data
 ENV MURPHY_LOG_DIR=/app/logs
 
 USER murphy
 
-EXPOSE 6666
+EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-    CMD curl -f http://localhost:6666/api/health || exit 1
+    CMD curl -f http://localhost:8000/api/health || exit 1
 
 CMD ["python", "murphy_system_1.0_runtime.py"]

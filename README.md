@@ -62,8 +62,8 @@ setup_murphy.bat   # Windows
 start_murphy_1.0.bat   # Windows
 
 # 4. Access Murphy
-# API: http://localhost:6666/docs
-# Status: http://localhost:6666/api/status
+# API: http://localhost:8000/docs
+# Status: http://localhost:8000/api/status
 ```
 
 **📚 Documentation:**
@@ -162,7 +162,7 @@ cd "Murphy System" && ./start_murphy_1.0.sh
 - 42 integrated modules, 1490+ module tests passing
 - Neon terminal UI across 7 HTML interfaces with consistent theme
 
-**Architect UI:** serve `Murphy System/terminal_architect.html` with `python -m http.server 8090` and open `http://localhost:8090/Murphy%20System/terminal_architect.html?apiPort=6666`
+**Architect UI:** serve `Murphy System/terminal_architect.html` with `python -m http.server 8090` and open `http://localhost:8090/Murphy%20System/terminal_architect.html?apiPort=8000`
 
 ---
 
@@ -173,9 +173,9 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | Domain | Location | Purpose | Entry Points |
 | --- | --- | --- | --- |
 | **Runtime API** | `Murphy System/murphy_system_1.0_runtime.py` | Runtime 1.0 API server | `Murphy System/start_murphy_1.0.sh`, `GET /api/status` |
-| **Role-based UIs** | `Murphy System/terminal_architect.html` | Architect planning + gate review UI | `python -m http.server 8090`, `?apiPort=6666` |
-| **Operations UI** | `Murphy System/terminal_integrated.html` | Operations execution UI | `python -m http.server 8090`, `?apiPort=6666` |
-| **Worker UI** | `Murphy System/terminal_worker.html` | Delivery worker UI | `python -m http.server 8090`, `?apiPort=6666` |
+| **Role-based UIs** | `Murphy System/terminal_architect.html` | Architect planning + gate review UI | `python -m http.server 8090`, `?apiPort=8000` |
+| **Operations UI** | `Murphy System/terminal_integrated.html` | Operations execution UI | `python -m http.server 8090`, `?apiPort=8000` |
+| **Worker UI** | `Murphy System/terminal_worker.html` | Delivery worker UI | `python -m http.server 8090`, `?apiPort=8000` |
 | **Legacy UI Redirect** | `Murphy System/murphy_production_ui.html` | Redirects to architect UI; legacy toggle | `murphy_production_ui.html?legacy=true` |
 | **Legacy UI Assets** | `Murphy System/murphy_ui_integrated.html` | Legacy UI assets (scheduled for archive) | Open directly for reference |
 | **Screenshot Assets** | `docs/screenshots/` | UI verification images for capability grading | Referenced in `VISUAL_SETUP_GUIDE_WITH_SCREENSHOTS.md` |
@@ -543,7 +543,7 @@ Container and Kubernetes deployment manifests are available as legacy reference 
 | [Gap Analysis](<Murphy System/docs/GAP_ANALYSIS.md>) | System gap analysis and status |
 | [Remediation Plan](<Murphy System/docs/REMEDIATION_PLAN.md>) | Fixes for all identified gaps |
 | [Manual Commissioning Test Plan](<Murphy System/docs/MANUAL_COMMISSIONING_TEST_PLAN.md>) | Step-by-step manual UI and API verification |
-| [API Docs](http://localhost:6666/docs) | Interactive API docs (requires running server) |
+| [API Docs](http://localhost:8000/docs) | Interactive API docs (requires running server) |
 
 ---
 
@@ -676,7 +676,7 @@ cd Murphy-System/Murphy\ System
 ./start_murphy_1.0.sh
 
 # 3. Use
-curl http://localhost:6666/api/status
+curl http://localhost:8000/api/status
 ```
 
 **Welcome to the future of AI automation!** 🚀
