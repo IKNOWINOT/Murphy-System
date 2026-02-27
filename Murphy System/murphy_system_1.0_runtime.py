@@ -3068,6 +3068,246 @@ class MurphySystem:
             })
             wired += 1
 
+        # Event Backbone
+        eb = getattr(self, 'event_backbone', None)
+        if eb is not None:
+            binder.register_integration({
+                "integration_id": "event_backbone",
+                "name": "Event Backbone",
+                "category": "event_routing",
+                "capability": "publish,subscribe,dead_letter_queue",
+                "source": "event_backbone",
+            })
+            wired += 1
+
+        # Compliance Engine
+        ce = getattr(self, 'compliance_engine', None)
+        if ce is not None:
+            binder.register_integration({
+                "integration_id": "compliance_engine",
+                "name": "Compliance Engine",
+                "category": "compliance",
+                "capability": "requirement_check,release_readiness,audit",
+                "source": "compliance_engine",
+            })
+            wired += 1
+
+        # Ticketing Adapter
+        ta = getattr(self, 'ticketing_adapter', None)
+        if ta is not None:
+            binder.register_integration({
+                "integration_id": "ticketing_adapter",
+                "name": "Ticketing Adapter",
+                "category": "issue_tracking",
+                "capability": "create_ticket,escalate,patch_rollback",
+                "source": "ticketing_adapter",
+            })
+            wired += 1
+
+        # Wingman Protocol
+        wp = getattr(self, 'wingman_protocol', None)
+        if wp is not None:
+            binder.register_integration({
+                "integration_id": "wingman_protocol",
+                "name": "Wingman Protocol",
+                "category": "execution_validation",
+                "capability": "pair_executor_validator,runbook,validate_output",
+                "source": "wingman_protocol",
+            })
+            wired += 1
+
+        # Operational SLO Tracker
+        slo = getattr(self, 'slo_tracker', None)
+        if slo is not None:
+            binder.register_integration({
+                "integration_id": "slo_tracker",
+                "name": "Operational SLO Tracker",
+                "category": "slo_monitoring",
+                "capability": "record_execution,slo_compliance,metrics",
+                "source": "operational_slo_tracker",
+            })
+            wired += 1
+
+        # Automation Scheduler
+        asch = getattr(self, 'automation_scheduler', None)
+        if asch is not None:
+            binder.register_integration({
+                "integration_id": "automation_scheduler",
+                "name": "Automation Scheduler",
+                "category": "scheduling",
+                "capability": "project_scheduling,batch_execution,queue",
+                "source": "automation_scheduler",
+            })
+            wired += 1
+
+        # RBAC Governance
+        rbac = getattr(self, 'rbac_governance', None)
+        if rbac is not None:
+            binder.register_integration({
+                "integration_id": "rbac_governance",
+                "name": "RBAC Governance",
+                "category": "access_control",
+                "capability": "permission_check,tenant_isolation,role_management",
+                "source": "rbac_governance",
+            })
+            wired += 1
+
+        # Self-Improvement Engine
+        sie = getattr(self, 'self_improvement', None)
+        if sie is not None:
+            binder.register_integration({
+                "integration_id": "self_improvement_engine",
+                "name": "Self-Improvement Engine",
+                "category": "learning",
+                "capability": "pattern_extraction,remediation,confidence_calibration",
+                "source": "self_improvement_engine",
+            })
+            wired += 1
+
+        # Golden Path Bridge
+        gpb = getattr(self, 'golden_path_bridge', None)
+        if gpb is not None:
+            binder.register_integration({
+                "integration_id": "golden_path_bridge",
+                "name": "Golden Path Bridge",
+                "category": "execution_optimization",
+                "capability": "success_replay,path_matching,invalidation",
+                "source": "golden_path_bridge",
+            })
+            wired += 1
+
+        # Control Plane Separation
+        cps = getattr(self, 'control_plane_separation', None)
+        if cps is not None:
+            binder.register_integration({
+                "integration_id": "control_plane_separation",
+                "name": "Control Plane Separation",
+                "category": "routing",
+                "capability": "mode_switching,task_routing,handler_registry",
+                "source": "control_plane_separation",
+            })
+            wired += 1
+
+        # Runtime Profile Compiler
+        rpc = getattr(self, 'runtime_profile_compiler', None)
+        if rpc is not None:
+            binder.register_integration({
+                "integration_id": "runtime_profile_compiler",
+                "name": "Runtime Profile Compiler",
+                "category": "execution_profiles",
+                "capability": "profile_compile,autonomy_check,tool_allowlist",
+                "source": "runtime_profile_compiler",
+            })
+            wired += 1
+
+        # Durable Swarm Orchestrator
+        dso = getattr(self, 'durable_swarm_orchestrator', None)
+        if dso is not None:
+            binder.register_integration({
+                "integration_id": "durable_swarm_orchestrator",
+                "name": "Durable Swarm Orchestrator",
+                "category": "swarm_management",
+                "capability": "spawn_task,budget_control,rollback",
+                "source": "durable_swarm_orchestrator",
+            })
+            wired += 1
+
+        # HITL Autonomy Controller
+        hitl = getattr(self, 'hitl_autonomy_controller', None)
+        if hitl is not None:
+            binder.register_integration({
+                "integration_id": "hitl_autonomy_controller",
+                "name": "HITL Autonomy Controller",
+                "category": "human_oversight",
+                "capability": "autonomy_evaluation,cooldown,policy_management",
+                "source": "hitl_autonomy_controller",
+            })
+            wired += 1
+
+        # Shadow Agent Integration
+        sai = getattr(self, 'shadow_agent_integration', None)
+        if sai is not None:
+            binder.register_integration({
+                "integration_id": "shadow_agent_integration",
+                "name": "Shadow Agent Integration",
+                "category": "agent_management",
+                "capability": "shadow_create,governance_boundary,role_binding",
+                "source": "shadow_agent_integration",
+            })
+            wired += 1
+
+        # Semantics Boundary Controller
+        sbc = getattr(self, 'semantics_boundary_controller', None)
+        if sbc is not None:
+            binder.register_integration({
+                "integration_id": "semantics_boundary_controller",
+                "name": "Semantics Boundary Controller",
+                "category": "risk_analysis",
+                "capability": "belief_tracking,expected_loss,rvoi_questions",
+                "source": "semantics_boundary_controller",
+            })
+            wired += 1
+
+        # Rubix Evidence Adapter
+        rea = getattr(self, 'rubix_evidence_adapter', None)
+        if rea is not None:
+            binder.register_integration({
+                "integration_id": "rubix_evidence_adapter",
+                "name": "Rubix Evidence Adapter",
+                "category": "statistical_evidence",
+                "capability": "confidence_interval,hypothesis_test,monte_carlo",
+                "source": "rubix_evidence_adapter",
+            })
+            wired += 1
+
+        # Triage Rollcall Adapter
+        tra = getattr(self, 'triage_rollcall_adapter', None)
+        if tra is not None:
+            binder.register_integration({
+                "integration_id": "triage_rollcall_adapter",
+                "name": "Triage Rollcall Adapter",
+                "category": "bot_triage",
+                "capability": "candidate_probe,rollcall,ranking",
+                "source": "triage_rollcall_adapter",
+            })
+            wired += 1
+
+        # Bot Governance Policy Mapper
+        bgpm = getattr(self, 'bot_governance_policy_mapper', None)
+        if bgpm is not None:
+            binder.register_integration({
+                "integration_id": "bot_governance_policy_mapper",
+                "name": "Bot Governance Policy Mapper",
+                "category": "bot_governance",
+                "capability": "policy_mapping,gate_check,budget_report",
+                "source": "bot_governance_policy_mapper",
+            })
+            wired += 1
+
+        # Bot Telemetry Normalizer
+        btn = getattr(self, 'bot_telemetry_normalizer', None)
+        if btn is not None:
+            binder.register_integration({
+                "integration_id": "bot_telemetry_normalizer",
+                "name": "Bot Telemetry Normalizer",
+                "category": "telemetry",
+                "capability": "event_normalization,batch_normalize,unmapped_events",
+                "source": "bot_telemetry_normalizer",
+            })
+            wired += 1
+
+        # Legacy Compatibility Matrix
+        lcm = getattr(self, 'legacy_compatibility_matrix', None)
+        if lcm is not None:
+            binder.register_integration({
+                "integration_id": "legacy_compatibility_matrix",
+                "name": "Legacy Compatibility Matrix",
+                "category": "compatibility",
+                "capability": "compatibility_check,migration_path,bridge_execution",
+                "source": "legacy_compatibility_matrix",
+            })
+            wired += 1
+
         logger.info("Wired %d integration modules into executive planning engine binder", wired)
 
     # ==================== CORE EXECUTION ====================
