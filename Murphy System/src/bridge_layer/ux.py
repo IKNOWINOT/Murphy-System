@@ -60,33 +60,37 @@ class BlockingFeedback:
         # Try to use the centralised art module first
         try:
             from src.cli_art import render_panel
+            RED = "\033[91m"
+            YELLOW = "\033[93m"
+            CYAN = "\033[96m"
+            RST = "\033[0m"
             body = []
             executable = not self.blocking_reasons and not self.gates_blocking
-            status_label = "EXECUTABLE" if executable else "NOT EXECUTABLE"
+            status_label = "EXECUTABLE" if executable else f"{RED}NOT EXECUTABLE{RST}"
             body.append(f"Status: {status_label}")
             body.append(f"Hypothesis ID: {self.hypothesis_id}")
             body.append(f"Confidence: {self.confidence:.2f}")
             body.append(f"Authority: {self.authority_level}")
             body.append("")
             if self.blocking_reasons:
-                body.append("⚠ BLOCKING REASONS:")
+                body.append(f"{YELLOW}⚠ BLOCKING REASONS:{RST}")
                 for reason in self.blocking_reasons:
-                    body.append(f"  ✗ {self._format_reason(reason)}")
+                    body.append(f"  {RED}✗{RST} {self._format_reason(reason)}")
                 body.append("")
             if self.gates_blocking:
-                body.append("⚠ GATES BLOCKING:")
+                body.append(f"{YELLOW}⚠ GATES BLOCKING:{RST}")
                 for gate in self.gates_blocking:
-                    body.append(f"  ✗ {gate}")
+                    body.append(f"  {RED}✗{RST} {gate}")
                 body.append("")
             if self.verifications_pending:
-                body.append("⚠ VERIFICATIONS PENDING:")
+                body.append(f"{YELLOW}⚠ VERIFICATIONS PENDING:{RST}")
                 for v in self.verifications_pending:
-                    body.append(f"  ⧗ {v}")
+                    body.append(f"  {YELLOW}⧗{RST} {v}")
                 body.append("")
             if self.required_evidence:
-                body.append("→ REQUIRED EVIDENCE:")
+                body.append(f"{CYAN}→ REQUIRED EVIDENCE:{RST}")
                 for i, ev in enumerate(self.required_evidence, 1):
-                    body.append(f"  {i}. {ev}")
+                    body.append(f"  {CYAN}{i}.{RST} {ev}")
                 body.append("")
             body.append("→ NEXT STEPS:")
             body.append("  1. Complete pending verifications")

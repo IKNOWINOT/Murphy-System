@@ -435,9 +435,9 @@ class SCADASystemMock:
         }
         self.emergency_stop_active = False
         self.workspace_bounds = {
-            "x_min": 0, "x_max": 1000,
-            "y_min": 0, "y_max": 800,
-            "z_min": 0, "z_max": 500
+            "x_min": 0, "x_max": 200,
+            "y_min": 0, "y_max": 200,
+            "z_min": 0, "z_max": 100
         }
         
     def move_robot(self, robot_id: str, position: tuple) -> Dict[str, Any]:
