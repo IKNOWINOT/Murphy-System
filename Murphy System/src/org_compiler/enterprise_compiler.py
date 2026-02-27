@@ -22,7 +22,7 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from queue import Queue, Empty
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 
 try:
@@ -73,17 +73,19 @@ class PaginatedResult:
 class CompilationCache:
     """Multi-level caching for compiled templates"""
     
-    def __init__(self, max_l1_size: int = 100, max_l2_size: int = 1000):
+    def __init__(self, max_l1_size: int = 100, max_l2_size: int = 1000, cache_ttl: int = 3600):
         self._l1_cache: Dict[str, CacheEntry] = {}  # Fast memory cache
         self._l2_cache: Dict[str, CacheEntry] = {}  # Larger memory cache
         self._l3_persistent: Dict[str, dict] = {}  # Simulated disk cache
         self._lock = threading.RLock()
         self._max_l1_size = max_l1_size
         self._max_l2_size = max_l2_size
+        self._cache_ttl = cache_ttl
     
     def get(self, role_name: str) -> Optional[RoleTemplate]:
         """Get template from cache"""
         with self._lock:
+            expired = False
             # Check L1 cache (fastest)
             if role_name in self._l1_cache:
                 entry = self._l1_cache[role_name]
@@ -91,6 +93,7 @@ class CompilationCache:
                     return entry.template
                 else:
                     del self._l1_cache[role_name]
+                    expired = True
             
             # Check L2 cache
             if role_name in self._l2_cache:
@@ -101,6 +104,12 @@ class CompilationCache:
                     return entry.template
                 else:
                     del self._l2_cache[role_name]
+                    expired = True
+            
+            # If L1 or L2 had an expired entry, also remove from L3
+            if expired:
+                self._l3_persistent.pop(role_name, None)
+                return None
             
             # Check L3 cache (simulated disk)
             if role_name in self._l3_persistent:
@@ -603,7 +612,7 @@ class EnterpriseRoleTemplateCompiler:
                 error_rate_max=0.05
             ),
             version="1.0",
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
             source_documents=[],
             integrity_hash=self._calculate_integrity_hash(role_name)
         )

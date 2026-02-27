@@ -14,7 +14,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from typing import Dict, List, Optional, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 
 from .models import (
@@ -99,7 +99,7 @@ async def health_check():
     """Health check endpoint"""
     return {
         "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "components": {
             "telemetry_bus": "operational",
             "telemetry_ingester": "operational",
@@ -139,7 +139,7 @@ async def submit_telemetry(submission: TelemetrySubmission):
     
     return {
         "status": "accepted",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -150,7 +150,7 @@ async def ingest_telemetry(batch_size: int = 100):
     
     return {
         "ingested": ingested,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -174,7 +174,7 @@ async def query_telemetry(
     
     since = None
     if since_hours:
-        since = datetime.utcnow() - timedelta(hours=since_hours)
+        since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
     
     artifacts = telemetry_ingester.get_artifacts(
         domain=domain_enum,
@@ -201,7 +201,7 @@ async def analyze_telemetry(
     since_hours: int = Query(default=24, le=168),  # Max 1 week
 ):
     """Run learning loops on recent telemetry"""
-    since = datetime.utcnow() - timedelta(hours=since_hours)
+    since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
     
     # Get recent telemetry
     artifacts = telemetry_ingester.get_artifacts(since=since, limit=10000)
@@ -232,7 +232,7 @@ async def analyze_telemetry(
         "gate_proposals": [p.to_dict() for p in gate_proposals],
         "insights": [i.to_dict() for i in insights],
         "mode": shadow_controller.mode.value,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -245,7 +245,7 @@ async def get_insights(
     """Get insights and recommendations"""
     since = None
     if since_hours:
-        since = datetime.utcnow() - timedelta(hours=since_hours)
+        since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
     
     log = shadow_controller.get_shadow_log(since=since, limit=limit)
     
@@ -270,7 +270,7 @@ async def get_gate_proposals(
     """Get gate evolution proposals"""
     since = None
     if since_hours:
-        since = datetime.utcnow() - timedelta(hours=since_hours)
+        since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
     
     log = shadow_controller.get_shadow_log(since=since, limit=limit)
     
@@ -316,7 +316,7 @@ async def authorize_proposal(request: AuthorizationRequest):
         "status": "authorized",
         "evolution_id": request.evolution_id,
         "authorized_by": request.authorized_by,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -339,7 +339,7 @@ async def reject_proposal(request: RejectionRequest):
         "status": "rejected",
         "evolution_id": request.evolution_id,
         "rejected_by": request.rejected_by,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -361,7 +361,7 @@ async def rollback_evolution(request: RollbackRequest):
     return {
         "status": "rolled_back",
         "rollback_state": rollback_state,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -374,7 +374,7 @@ async def get_authorization_log(
     """Get authorization log"""
     since = None
     if since_hours:
-        since = datetime.utcnow() - timedelta(hours=since_hours)
+        since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
     
     from .shadow_mode import AuthorizationStatus
     status_enum = None
@@ -407,7 +407,7 @@ async def get_rollback_history(
     """Get rollback history"""
     since = None
     if since_hours:
-        since = datetime.utcnow() - timedelta(hours=since_hours)
+        since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
     
     history = authorization_interface.get_rollback_history(
         since=since,
@@ -451,7 +451,7 @@ async def set_shadow_mode(request: ModeChangeRequest):
         "status": "updated",
         "mode": shadow_controller.mode.value,
         "enforcement_percentage": shadow_controller.enforcement_percentage,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -463,7 +463,7 @@ async def get_shadow_log(
     """Get shadow mode log"""
     since = None
     if since_hours:
-        since = datetime.utcnow() - timedelta(hours=since_hours)
+        since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
     
     log = shadow_controller.get_shadow_log(since=since, limit=limit)
     
@@ -481,7 +481,7 @@ async def get_safety_violations(
     """Get safety violations"""
     since = None
     if since_hours:
-        since = datetime.utcnow() - timedelta(hours=since_hours)
+        since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
     
     violations = safety_enforcer.get_violations(since=since)
     
@@ -498,7 +498,7 @@ async def get_blocked_actions(
     """Get blocked execution actions"""
     since = None
     if since_hours:
-        since = datetime.utcnow() - timedelta(hours=since_hours)
+        since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
     
     blocked = safety_enforcer.get_blocked_actions(since=since)
     
@@ -516,7 +516,7 @@ async def get_all_stats():
         "telemetry": telemetry_ingester.get_stats(),
         "shadow_mode": shadow_controller.get_stats(),
         "authorization": authorization_interface.get_stats(),
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 

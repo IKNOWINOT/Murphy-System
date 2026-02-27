@@ -6,7 +6,7 @@ in the artifact graph with full provenance tracking.
 """
 
 from typing import Dict, List, Optional, Any, Set
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import deque
 import threading
 import logging
@@ -66,7 +66,7 @@ class TelemetryBus:
             
             # Add timestamp to data if not present
             if "timestamp" not in data:
-                data["timestamp"] = datetime.utcnow().isoformat()
+                data["timestamp"] = datetime.now(timezone.utc).isoformat()
             
             # Create artifact for deduplication check
             artifact = TelemetryArtifact.create(
