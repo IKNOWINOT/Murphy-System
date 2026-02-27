@@ -126,7 +126,7 @@ DEFAULT_KPI_BASELINES = {
     "kpi-success-rate": 0.0,
     "kpi-uptime": 99.0,
     "kpi-error-rate": 1.0,
-    "kpi-response-time": 500.0,
+    "kpi-response-time-p95": 500.0,
     "kpi-time-savings": 0.0,
     "kpi-cost-savings": 0.0,
     "kpi-test-coverage": 50.0,
