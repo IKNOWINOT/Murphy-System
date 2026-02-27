@@ -5,7 +5,7 @@ Design Label: GATE-001 — Risk-Based Confidence Gate Bypass
 Owner: AI Team / Platform Engineering
 Dependencies: None (standalone policy evaluator)
 
-Addresses Constraint 1 from MURPHY_SELF_AUTOMATION_PLAN.md:
+Addresses Constraint 1 from the self-automation plan:
   Confidence gates block simple text generation tasks.
 
 Implements a tiered risk classification that allows MINIMAL and LOW risk

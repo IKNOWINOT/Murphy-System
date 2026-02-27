@@ -5,6 +5,22 @@ All notable changes to Murphy System will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Security Implementation Plan** (`SECURITY_IMPLEMENTATION_PLAN.md`) — phased security enhancement roadmap addressing multi-agent risks (authorization hardening, PII sanitization, resource quotas, communication loop detection, bot identity verification, anomaly detection) with completion percentages per phase
+
+### Changed
+- **README.md** — updated completion table to reflect actual system state (UI/testing at 85%, security hardening at 47%); replaced verbose internal development log with concise runtime capabilities summary; fixed broken documentation links to removed archive paths; added security plan and additional docs to documentation table
+- **SECURITY.md** — added reference to the Security Implementation Plan
+- Updated internal file references in `ARCHITECTURE_MAP.md`, `MURPHY_COMMISSIONING_IMPLEMENTATION_PLAN.md`, and `gate_bypass_controller.py` to remove references to deleted planning documents
+
+### Removed
+- `comparison_analysis.md` — internal threat analysis document (not suitable for public repository)
+- `MURPHY_SELF_AUTOMATION_PLAN.md` — internal development roadmap (not suitable for public repository)
+- `MURPHY_COMMISSIONING_TEST_PLAN.md` — internal test specification (not suitable for public repository)
+- `murphy_system_security_plan.md` — raw security working document (replaced by `SECURITY_IMPLEMENTATION_PLAN.md`)
+
 ## [1.0.0] - 2025-02-27
 
 ### Added

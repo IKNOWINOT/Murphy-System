@@ -852,9 +852,7 @@ Schedule → Engine Select → Execute → External API → Result → Next Sche
 
 ## Foundation-Layer Automation Wiring
 
-The following components implement the self-automation foundation described in
-`MURPHY_SELF_AUTOMATION_PLAN.md` (Phase 0 + Phase 1). Each item is labelled
-with a design ticket and team owner.
+The following components implement the self-automation foundation (Phase 0 + Phase 1). Each item is labelled with a design ticket and team owner.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐

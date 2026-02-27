@@ -43,3 +43,7 @@ When deploying Murphy System:
 ## Scope
 
 This security policy covers the Murphy System core runtime and all modules in the `src/` directory. Third-party dependencies are covered by their own security policies.
+
+## Security Enhancement Roadmap
+
+Active security enhancements are tracked in the [Security Implementation Plan](SECURITY_IMPLEMENTATION_PLAN.md), which addresses multi-agent security risks including authorization hardening, data sanitization, resource quotas, swarm communication security, bot identity verification, and anomaly detection.
