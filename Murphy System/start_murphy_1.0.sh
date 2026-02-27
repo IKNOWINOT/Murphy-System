@@ -7,9 +7,13 @@
 
 set -e
 
-echo "================================================================================"
-echo "                        MURPHY SYSTEM 1.0 - STARTUP                            "
-echo "================================================================================"
+echo ""
+echo "  ☠  ════════════════════════════════════════════════════  ☠"
+echo " ╱╲                                                       ╱╲"
+echo "╱◉◉╲   💀  M U R P H Y   S Y S T E M   v 1 . 0  💀    ╱◉◉╲"
+echo "╲╰╯╱   ─────────────────────────────────────────────     ╲╰╯╱"
+echo " ╲╱    Universal AI Automation · No-Code Startup          ╲╱"
+echo "  ☠  ════════════════════════════════════════════════════  ☠"
 echo ""
 
 # Colors
@@ -79,15 +83,16 @@ echo -e "${GREEN}✓ Directories created${NC}"
 echo ""
 
 # Start Murphy System
-echo "================================================================================"
-echo -e "${GREEN}                    STARTING MURPHY SYSTEM 1.0                              ${NC}"
-echo "================================================================================"
 echo ""
-echo -e "${BLUE}🚀 Starting Murphy System on port $MURPHY_PORT...${NC}"
-echo -e "${BLUE}📊 API Documentation: http://localhost:$MURPHY_PORT/docs${NC}"
-echo -e "${BLUE}🔍 Health Check: http://localhost:$MURPHY_PORT/api/health${NC}"
-echo -e "${BLUE}📈 System Status: http://localhost:$MURPHY_PORT/api/status${NC}"
-echo -e "${BLUE}ℹ️  System Info: http://localhost:$MURPHY_PORT/api/info${NC}"
+echo "  ☠  ════════════════════════════════════════════════════  ☠"
+echo -e " 💀 ${GREEN}            STARTING MURPHY SYSTEM v1.0             ${NC} 💀"
+echo "  ☠  ════════════════════════════════════════════════════  ☠"
+echo ""
+echo -e "  💀 ${BLUE}Port:        $MURPHY_PORT${NC}"
+echo -e "  💀 ${BLUE}API Docs:    http://localhost:$MURPHY_PORT/docs${NC}"
+echo -e "  💀 ${BLUE}Health:      http://localhost:$MURPHY_PORT/api/health${NC}"
+echo -e "  💀 ${BLUE}Status:      http://localhost:$MURPHY_PORT/api/status${NC}"
+echo -e "  💀 ${BLUE}Onboarding:  http://localhost:$MURPHY_PORT/api/onboarding/wizard/questions${NC}"
 echo ""
 echo -e "${YELLOW}Press Ctrl+C to stop${NC}"
 echo ""

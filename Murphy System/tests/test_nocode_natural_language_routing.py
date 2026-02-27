@@ -1,0 +1,186 @@
+"""
+Tests for No-Code Natural Language Terminal Routing.
+
+Validates that the terminal_integrated.html processCommand function
+correctly routes unrecognized plain-English input to the natural
+language handler instead of showing "Unknown command" errors.
+
+Design Label: TEST-NLC-001
+Owner: QA Team
+"""
+
+import os
+import re
+import pytest
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+TERMINAL_PATH = os.path.join(
+    os.path.dirname(__file__), '..', 'terminal_integrated.html'
+)
+
+
+def _read_terminal_html() -> str:
+    """Read the terminal HTML source."""
+    with open(TERMINAL_PATH, 'r', encoding='utf-8') as f:
+        return f.read()
+
+
+# ---------------------------------------------------------------------------
+# Tests — Natural Language Routing
+# ---------------------------------------------------------------------------
+
+class TestNaturalLanguageRouting:
+    """Verify the terminal routes unrecognized input to NL handler."""
+
+    def test_default_case_routes_to_natural_language(self):
+        """The switch default case calls handleNaturalLanguage, not error."""
+        html = _read_terminal_html()
+        # The default case must NOT contain 'Unknown command'
+        # It should instead call handleNaturalLanguage
+        default_block = re.search(
+            r'default:\s*\n(.*?)(?:\})', html, re.DOTALL
+        )
+        assert default_block is not None, "default case not found in switch"
+        body = default_block.group(1)
+        assert 'handleNaturalLanguage' in body, \
+            "default case should route to handleNaturalLanguage"
+        assert 'Unknown command' not in body, \
+            "default case should NOT show 'Unknown command' error"
+
+    def test_handle_natural_language_function_exists(self):
+        """handleNaturalLanguage function is defined."""
+        html = _read_terminal_html()
+        assert 'async function handleNaturalLanguage' in html
+
+    def test_natural_language_sends_to_execute_api(self):
+        """NL handler posts to /execute endpoint."""
+        html = _read_terminal_html()
+        # Extract the function body
+        idx = html.index('async function handleNaturalLanguage')
+        func_body = html[idx:idx + 3000]
+        assert '/execute' in func_body, \
+            "handleNaturalLanguage should POST to /execute"
+        assert 'task_description' in func_body, \
+            "Should send task_description field"
+        assert 'natural_language' in func_body, \
+            "Should mark task_type as natural_language"
+
+    def test_confidence_follow_up_questions(self):
+        """Low confidence triggers follow-up questions."""
+        html = _read_terminal_html()
+        assert 'showFollowUpQuestions' in html, \
+            "Should have showFollowUpQuestions function"
+        assert 'confidence' in html.lower(), \
+            "Should reference confidence scoring"
+
+
+# ---------------------------------------------------------------------------
+# Tests — Sugar Skull Framing
+# ---------------------------------------------------------------------------
+
+class TestSugarSkullFraming:
+    """Verify skull framing art appears in terminal views."""
+
+    def test_integrated_terminal_has_skull_banner(self):
+        """terminal_integrated.html has ☠ skull framing."""
+        html = _read_terminal_html()
+        assert '☠' in html, "Should contain ☠ skull character"
+        assert '💀' in html, "Should contain 💀 skull emoji"
+
+    def test_help_text_has_skull_labels(self):
+        """Help text uses 💀 section labels."""
+        html = _read_terminal_html()
+        assert '💀 SYSTEM' in html
+        assert '💀 TASK EXECUTION' in html
+        assert '💀 NO-CODE ONBOARDING' in html
+
+    def test_enhanced_terminal_has_skull_banner(self):
+        """terminal_enhanced.html has skull framing."""
+        path = os.path.join(
+            os.path.dirname(__file__), '..', 'terminal_enhanced.html'
+        )
+        with open(path, 'r', encoding='utf-8') as f:
+            html = f.read()
+        assert '☠' in html
+        assert '💀' in html
+
+    def test_architect_terminal_has_skull_banner(self):
+        """terminal_architect.html has skull framing."""
+        path = os.path.join(
+            os.path.dirname(__file__), '..', 'terminal_architect.html'
+        )
+        with open(path, 'r', encoding='utf-8') as f:
+            html = f.read()
+        assert '☠' in html
+        assert '💀' in html
+
+    def test_worker_terminal_has_skull_banner(self):
+        """terminal_worker.html has skull framing."""
+        path = os.path.join(
+            os.path.dirname(__file__), '..', 'terminal_worker.html'
+        )
+        with open(path, 'r', encoding='utf-8') as f:
+            html = f.read()
+        assert '☠' in html
+        assert '💀' in html
+
+    def test_runtime_startup_has_skull_banner(self):
+        """murphy_system_1.0_runtime.py main() has skull framing."""
+        path = os.path.join(
+            os.path.dirname(__file__), '..', 'murphy_system_1.0_runtime.py'
+        )
+        with open(path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        assert '☠' in content
+        assert '💀' in content
+
+    def test_startup_script_has_skull_banner(self):
+        """start_murphy_1.0.sh has skull framing."""
+        path = os.path.join(
+            os.path.dirname(__file__), '..', 'start_murphy_1.0.sh'
+        )
+        with open(path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        assert '☠' in content
+        assert '💀' in content
+
+
+# ---------------------------------------------------------------------------
+# Tests — No-Code Messaging
+# ---------------------------------------------------------------------------
+
+class TestNoCodeMessaging:
+    """Verify the terminal communicates no-code usage clearly."""
+
+    def test_banner_mentions_no_code(self):
+        """Terminal banner mentions no-code."""
+        html = _read_terminal_html()
+        assert 'No-Code' in html or 'no-code' in html or 'No-code' in html
+
+    def test_banner_mentions_natural_language(self):
+        """Terminal banner mentions natural language control."""
+        html = _read_terminal_html()
+        assert 'Natural Language' in html or 'natural language' in html
+
+    def test_help_mentions_plain_english(self):
+        """Help text mentions typing in plain English."""
+        html = _read_terminal_html()
+        assert 'plain English' in html
+
+    def test_init_message_mentions_plain_english(self):
+        """System init message tells users to type anything."""
+        html = _read_terminal_html()
+        assert 'Type anything' in html or 'type anything' in html
+
+    def test_onboarding_wizard_mentions_no_code(self):
+        """Onboarding wizard page mentions no-code."""
+        path = os.path.join(
+            os.path.dirname(__file__), '..', 'onboarding_wizard.html'
+        )
+        with open(path, 'r', encoding='utf-8') as f:
+            html = f.read()
+        assert 'No-Code' in html or 'no-code' in html or 'No coding' in html
