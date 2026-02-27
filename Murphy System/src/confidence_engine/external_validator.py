@@ -5,7 +5,7 @@ Provides integration with external systems for validation and verification.
 
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pydantic import BaseModel, Field
 
@@ -36,7 +36,7 @@ class ValidationResult(BaseModel):
     status: ValidationStatus
     confidence: float = Field(ge=0.0, le=1.0)
     details: Dict[str, Any] = Field(default_factory=dict)
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     error_message: Optional[str] = None
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
@@ -106,7 +106,7 @@ class CredentialValidator(ExternalValidator):
                 details={
                     "credential_type": credential_type,
                     "service_name": service_name,
-                    "checked_at": datetime.utcnow().isoformat()
+                    "checked_at": datetime.now(timezone.utc).isoformat()
                 }
             )
             
@@ -157,7 +157,7 @@ class DataSourceValidator(ExternalValidator):
                 details={
                     "source_type": source_type,
                     "target": target,
-                    "checked_at": datetime.utcnow().isoformat()
+                    "checked_at": datetime.now(timezone.utc).isoformat()
                 }
             )
             

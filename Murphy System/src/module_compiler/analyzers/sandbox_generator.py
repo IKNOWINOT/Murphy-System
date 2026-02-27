@@ -376,10 +376,10 @@ class IntelligentSandboxGenerator:
             
             # Extract domains from code (simple heuristic)
             for node in ast.walk(tree):
-                if isinstance(node, ast.Str):
-                    if 'http://' in node.s or 'https://' in node.s:
+                if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                    if 'http://' in node.value or 'https://' in node.value:
                         # Extract domain
-                        domain = node.s.split('/')[2] if '/' in node.s else node.s
+                        domain = node.value.split('/')[2] if '/' in node.value else node.value
                         network['allowed_domains'].append(domain)
         
         # Check failure modes for network risks

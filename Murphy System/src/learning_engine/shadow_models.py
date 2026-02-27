@@ -5,7 +5,7 @@ This module defines the data structures for training the shadow agent from human
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Dict, List, Optional, Any
 from uuid import UUID, uuid4
@@ -64,7 +64,7 @@ class TrainingExample:
     label: Label = None
     weight: float = 1.0  # Sample weight for training
     split: DataSplitType = DataSplitType.TRAIN
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     
     # Context information
     task_id: Optional[UUID] = None
@@ -197,8 +197,8 @@ class TrainingDataset:
     quality_metrics: DataQualityMetrics = field(default_factory=DataQualityMetrics)
     
     # Metadata
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     version: str = "1.0.0"
     
     # Source information

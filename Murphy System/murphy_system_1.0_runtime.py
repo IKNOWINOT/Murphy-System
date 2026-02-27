@@ -556,7 +556,7 @@ class LivingDocument:
         self.history: List[Dict[str, Any]] = []
         self.children: List[Dict[str, Any]] = []
         self.parent_id: Optional[str] = None
-        self.created_at = datetime.utcnow().isoformat()
+        self.created_at = datetime.now(timezone.utc).isoformat()
         self.block_tree: Dict[str, Any] = {}
         self.gates: List[Dict[str, Any]] = []
         self.constraints: List[str] = []
@@ -574,7 +574,7 @@ class LivingDocument:
         self.history.append({
             "action": "magnify",
             "domain": domain,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         })
         return self.to_dict()
 
@@ -583,7 +583,7 @@ class LivingDocument:
         self.confidence = min(1.0, self.confidence + 0.05)
         self.history.append({
             "action": "simplify",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         })
         return self.to_dict()
 
@@ -592,7 +592,7 @@ class LivingDocument:
         self.confidence = min(1.0, self.confidence + 0.2)
         self.history.append({
             "action": "solidify",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         })
         return self.to_dict()
 
@@ -1785,7 +1785,7 @@ class MurphySystem:
         """
         instance = cls.__new__(cls)
         instance.version = "1.0.0"
-        instance.start_time = datetime.utcnow()
+        instance.start_time = datetime.now(timezone.utc)
         instance._initialize_configuration_defaults()
         instance.execution_metrics = {"total": 0, "success": 0, "total_time": 0.0}
         instance.module_manager = module_manager
@@ -1896,7 +1896,7 @@ class MurphySystem:
 
     def __init__(self):
         self.version = "1.0.0"
-        self.start_time = datetime.utcnow()
+        self.start_time = datetime.now(timezone.utc)
         self._initialize_configuration_defaults()
         
         logger.info("="*80)
@@ -2835,6 +2835,479 @@ class MurphySystem:
                 })
                 wired += 1
 
+        # Universal Integration Adapter
+        uia = getattr(self, 'universal_integration_adapter', None)
+        if uia is not None:
+            for svc in uia.list_services():
+                sid = svc.get("service_id", "unknown")
+                binder.register_integration({
+                    "integration_id": f"uia_{sid}",
+                    "name": svc.get("name", sid),
+                    "category": svc.get("category", "general"),
+                    "capability": ",".join(svc.get("actions", [])[:3]) if svc.get("actions") else "api",
+                    "source": "universal_integration_adapter",
+                })
+                wired += 1
+
+        # Webhook Event Processor
+        wep = getattr(self, 'webhook_event_processor', None)
+        if wep is not None:
+            for src in wep.list_sources():
+                src_id = src.get("source_id", "unknown") if isinstance(src, dict) else str(src)
+                binder.register_integration({
+                    "integration_id": f"wep_{src_id}",
+                    "name": f"Webhook – {src.get('name', src_id) if isinstance(src, dict) else src_id}",
+                    "category": "webhook",
+                    "capability": "inbound_webhook",
+                    "source": "webhook_event_processor",
+                })
+                wired += 1
+
+        # API Gateway Adapter
+        aga = getattr(self, 'api_gateway_adapter', None)
+        if aga is not None:
+            binder.register_integration({
+                "integration_id": "api_gateway_adapter",
+                "name": "API Gateway Adapter",
+                "category": "api_management",
+                "capability": "routing,rate_limiting,auth",
+                "source": "api_gateway_adapter",
+            })
+            wired += 1
+
+        # Automation Type Registry
+        atr = getattr(self, 'automation_type_registry', None)
+        if atr is not None:
+            for tmpl in atr.list_templates():
+                tid = tmpl.get("template_id", "unknown") if isinstance(tmpl, dict) else str(tmpl)
+                binder.register_integration({
+                    "integration_id": f"atr_{tid}",
+                    "name": f"Automation Template – {tmpl.get('name', tid) if isinstance(tmpl, dict) else tid}",
+                    "category": "automation",
+                    "capability": "workflow_template",
+                    "source": "automation_type_registry",
+                })
+                wired += 1
+
+        # Workflow DAG Engine
+        wde = getattr(self, 'workflow_dag_engine', None)
+        if wde is not None:
+            binder.register_integration({
+                "integration_id": "workflow_dag_engine",
+                "name": "Workflow DAG Engine",
+                "category": "workflow_orchestration",
+                "capability": "dag_execution,checkpointing,parallel",
+                "source": "workflow_dag_engine",
+            })
+            wired += 1
+
+        # Self-Automation Orchestrator
+        sao = getattr(self, 'self_automation_orchestrator', None)
+        if sao is not None:
+            binder.register_integration({
+                "integration_id": "self_automation_orchestrator",
+                "name": "Self-Automation Orchestrator",
+                "category": "self_automation",
+                "capability": "task_management,gap_analysis,prompt_generation",
+                "source": "self_automation_orchestrator",
+            })
+            wired += 1
+
+        # Plugin Extension SDK
+        pex = getattr(self, 'plugin_extension_sdk', None)
+        if pex is not None:
+            binder.register_integration({
+                "integration_id": "plugin_extension_sdk",
+                "name": "Plugin Extension SDK",
+                "category": "extensibility",
+                "capability": "plugin_install,plugin_execute,hooks",
+                "source": "plugin_extension_sdk",
+            })
+            wired += 1
+
+        # AI Workflow Generator
+        awg = getattr(self, 'ai_workflow_generator', None)
+        if awg is not None:
+            binder.register_integration({
+                "integration_id": "ai_workflow_generator",
+                "name": "AI Workflow Generator",
+                "category": "ai_automation",
+                "capability": "workflow_generation,step_types",
+                "source": "ai_workflow_generator",
+            })
+            wired += 1
+
+        # Workflow Template Marketplace
+        wtm = getattr(self, 'workflow_template_marketplace', None)
+        if wtm is not None:
+            binder.register_integration({
+                "integration_id": "workflow_template_marketplace",
+                "name": "Workflow Template Marketplace",
+                "category": "marketplace",
+                "capability": "template_publish,template_install,rating",
+                "source": "workflow_template_marketplace",
+            })
+            wired += 1
+
+        # Cross-Platform Data Sync
+        cpds = getattr(self, 'cross_platform_data_sync', None)
+        if cpds is not None:
+            binder.register_integration({
+                "integration_id": "cross_platform_data_sync",
+                "name": "Cross-Platform Data Sync",
+                "category": "data_sync",
+                "capability": "sync,conflict_resolution,mapping",
+                "source": "cross_platform_data_sync",
+            })
+            wired += 1
+
+        # Deterministic Routing Engine
+        dre = getattr(self, 'deterministic_routing_engine', None)
+        if dre is not None:
+            for pol in dre.list_policies():
+                pid = pol.get("policy_id", "unknown") if isinstance(pol, dict) else str(pol)
+                binder.register_integration({
+                    "integration_id": f"dre_{pid}",
+                    "name": f"Routing Policy – {pol.get('name', pid) if isinstance(pol, dict) else pid}",
+                    "category": "routing",
+                    "capability": "deterministic_routing,guardrails",
+                    "source": "deterministic_routing_engine",
+                })
+                wired += 1
+            if not dre.list_policies():
+                binder.register_integration({
+                    "integration_id": "deterministic_routing_engine",
+                    "name": "Deterministic Routing Engine",
+                    "category": "routing",
+                    "capability": "deterministic_routing,guardrails",
+                    "source": "deterministic_routing_engine",
+                })
+                wired += 1
+
+        # Observability Summary Counters
+        osc = getattr(self, 'observability_counters', None)
+        if osc is not None:
+            binder.register_integration({
+                "integration_id": "observability_counters",
+                "name": "Observability Summary Counters",
+                "category": "observability",
+                "capability": "metrics,counters,telemetry",
+                "source": "observability_counters",
+            })
+            wired += 1
+
+        # ML Strategy Engine
+        mse = getattr(self, 'ml_strategy_engine', None)
+        if mse is not None:
+            binder.register_integration({
+                "integration_id": "ml_strategy_engine",
+                "name": "ML Strategy Engine",
+                "category": "machine_learning",
+                "capability": "anomaly_detection,forecasting,classification",
+                "source": "ml_strategy_engine",
+            })
+            wired += 1
+
+        # Agentic API Provisioner
+        aap = getattr(self, 'agentic_api_provisioner', None)
+        if aap is not None:
+            binder.register_integration({
+                "integration_id": "agentic_api_provisioner",
+                "name": "Agentic API Provisioner",
+                "category": "api_provisioning",
+                "capability": "auto_provision,health_checks,openapi_spec",
+                "source": "agentic_api_provisioner",
+            })
+            wired += 1
+
+        # Analytics Dashboard
+        adb = getattr(self, 'analytics_dashboard', None)
+        if adb is not None:
+            binder.register_integration({
+                "integration_id": "analytics_dashboard",
+                "name": "Analytics Dashboard",
+                "category": "analytics",
+                "capability": "metrics,alerts,dashboards",
+                "source": "analytics_dashboard",
+            })
+            wired += 1
+
+        # Image Generation Engine
+        ige = getattr(self, 'image_generation_engine', None)
+        if ige is not None:
+            binder.register_integration({
+                "integration_id": "image_generation_engine",
+                "name": "Image Generation Engine",
+                "category": "content_generation",
+                "capability": "image_generation,style_transfer",
+                "source": "image_generation_engine",
+            })
+            wired += 1
+
+        # Security Hardening Config
+        shc = getattr(self, 'security_hardening_config', None)
+        if shc is not None:
+            binder.register_integration({
+                "integration_id": "security_hardening_config",
+                "name": "Security Hardening Config",
+                "category": "security",
+                "capability": "request_security,response_headers",
+                "source": "security_hardening_config",
+            })
+            wired += 1
+
+        # UI Testing Framework
+        utf = getattr(self, 'ui_testing_framework', None)
+        if utf is not None:
+            binder.register_integration({
+                "integration_id": "ui_testing_framework",
+                "name": "UI Testing Framework",
+                "category": "testing",
+                "capability": "ui_testing,accessibility,visual_regression",
+                "source": "ui_testing_framework",
+            })
+            wired += 1
+
+        # Event Backbone
+        eb = getattr(self, 'event_backbone', None)
+        if eb is not None:
+            binder.register_integration({
+                "integration_id": "event_backbone",
+                "name": "Event Backbone",
+                "category": "event_routing",
+                "capability": "publish,subscribe,dead_letter_queue",
+                "source": "event_backbone",
+            })
+            wired += 1
+
+        # Compliance Engine
+        ce = getattr(self, 'compliance_engine', None)
+        if ce is not None:
+            binder.register_integration({
+                "integration_id": "compliance_engine",
+                "name": "Compliance Engine",
+                "category": "compliance",
+                "capability": "requirement_check,release_readiness,audit",
+                "source": "compliance_engine",
+            })
+            wired += 1
+
+        # Ticketing Adapter
+        ta = getattr(self, 'ticketing_adapter', None)
+        if ta is not None:
+            binder.register_integration({
+                "integration_id": "ticketing_adapter",
+                "name": "Ticketing Adapter",
+                "category": "issue_tracking",
+                "capability": "create_ticket,escalate,patch_rollback",
+                "source": "ticketing_adapter",
+            })
+            wired += 1
+
+        # Wingman Protocol
+        wp = getattr(self, 'wingman_protocol', None)
+        if wp is not None:
+            binder.register_integration({
+                "integration_id": "wingman_protocol",
+                "name": "Wingman Protocol",
+                "category": "execution_validation",
+                "capability": "pair_executor_validator,runbook,validate_output",
+                "source": "wingman_protocol",
+            })
+            wired += 1
+
+        # Operational SLO Tracker
+        slo = getattr(self, 'slo_tracker', None)
+        if slo is not None:
+            binder.register_integration({
+                "integration_id": "slo_tracker",
+                "name": "Operational SLO Tracker",
+                "category": "slo_monitoring",
+                "capability": "record_execution,slo_compliance,metrics",
+                "source": "operational_slo_tracker",
+            })
+            wired += 1
+
+        # Automation Scheduler
+        asch = getattr(self, 'automation_scheduler', None)
+        if asch is not None:
+            binder.register_integration({
+                "integration_id": "automation_scheduler",
+                "name": "Automation Scheduler",
+                "category": "scheduling",
+                "capability": "project_scheduling,batch_execution,queue",
+                "source": "automation_scheduler",
+            })
+            wired += 1
+
+        # RBAC Governance
+        rbac = getattr(self, 'rbac_governance', None)
+        if rbac is not None:
+            binder.register_integration({
+                "integration_id": "rbac_governance",
+                "name": "RBAC Governance",
+                "category": "access_control",
+                "capability": "permission_check,tenant_isolation,role_management",
+                "source": "rbac_governance",
+            })
+            wired += 1
+
+        # Self-Improvement Engine
+        sie = getattr(self, 'self_improvement', None)
+        if sie is not None:
+            binder.register_integration({
+                "integration_id": "self_improvement_engine",
+                "name": "Self-Improvement Engine",
+                "category": "learning",
+                "capability": "pattern_extraction,remediation,confidence_calibration",
+                "source": "self_improvement_engine",
+            })
+            wired += 1
+
+        # Golden Path Bridge
+        gpb = getattr(self, 'golden_path_bridge', None)
+        if gpb is not None:
+            binder.register_integration({
+                "integration_id": "golden_path_bridge",
+                "name": "Golden Path Bridge",
+                "category": "execution_optimization",
+                "capability": "success_replay,path_matching,invalidation",
+                "source": "golden_path_bridge",
+            })
+            wired += 1
+
+        # Control Plane Separation
+        cps = getattr(self, 'control_plane_separation', None)
+        if cps is not None:
+            binder.register_integration({
+                "integration_id": "control_plane_separation",
+                "name": "Control Plane Separation",
+                "category": "routing",
+                "capability": "mode_switching,task_routing,handler_registry",
+                "source": "control_plane_separation",
+            })
+            wired += 1
+
+        # Runtime Profile Compiler
+        rpc = getattr(self, 'runtime_profile_compiler', None)
+        if rpc is not None:
+            binder.register_integration({
+                "integration_id": "runtime_profile_compiler",
+                "name": "Runtime Profile Compiler",
+                "category": "execution_profiles",
+                "capability": "profile_compile,autonomy_check,tool_allowlist",
+                "source": "runtime_profile_compiler",
+            })
+            wired += 1
+
+        # Durable Swarm Orchestrator
+        dso = getattr(self, 'durable_swarm_orchestrator', None)
+        if dso is not None:
+            binder.register_integration({
+                "integration_id": "durable_swarm_orchestrator",
+                "name": "Durable Swarm Orchestrator",
+                "category": "swarm_management",
+                "capability": "spawn_task,budget_control,rollback",
+                "source": "durable_swarm_orchestrator",
+            })
+            wired += 1
+
+        # HITL Autonomy Controller
+        hitl = getattr(self, 'hitl_autonomy_controller', None)
+        if hitl is not None:
+            binder.register_integration({
+                "integration_id": "hitl_autonomy_controller",
+                "name": "HITL Autonomy Controller",
+                "category": "human_oversight",
+                "capability": "autonomy_evaluation,cooldown,policy_management",
+                "source": "hitl_autonomy_controller",
+            })
+            wired += 1
+
+        # Shadow Agent Integration
+        sai = getattr(self, 'shadow_agent_integration', None)
+        if sai is not None:
+            binder.register_integration({
+                "integration_id": "shadow_agent_integration",
+                "name": "Shadow Agent Integration",
+                "category": "agent_management",
+                "capability": "shadow_create,governance_boundary,role_binding",
+                "source": "shadow_agent_integration",
+            })
+            wired += 1
+
+        # Semantics Boundary Controller
+        sbc = getattr(self, 'semantics_boundary_controller', None)
+        if sbc is not None:
+            binder.register_integration({
+                "integration_id": "semantics_boundary_controller",
+                "name": "Semantics Boundary Controller",
+                "category": "risk_analysis",
+                "capability": "belief_tracking,expected_loss,rvoi_questions",
+                "source": "semantics_boundary_controller",
+            })
+            wired += 1
+
+        # Rubix Evidence Adapter
+        rea = getattr(self, 'rubix_evidence_adapter', None)
+        if rea is not None:
+            binder.register_integration({
+                "integration_id": "rubix_evidence_adapter",
+                "name": "Rubix Evidence Adapter",
+                "category": "statistical_evidence",
+                "capability": "confidence_interval,hypothesis_test,monte_carlo",
+                "source": "rubix_evidence_adapter",
+            })
+            wired += 1
+
+        # Triage Rollcall Adapter
+        tra = getattr(self, 'triage_rollcall_adapter', None)
+        if tra is not None:
+            binder.register_integration({
+                "integration_id": "triage_rollcall_adapter",
+                "name": "Triage Rollcall Adapter",
+                "category": "bot_triage",
+                "capability": "candidate_probe,rollcall,ranking",
+                "source": "triage_rollcall_adapter",
+            })
+            wired += 1
+
+        # Bot Governance Policy Mapper
+        bgpm = getattr(self, 'bot_governance_policy_mapper', None)
+        if bgpm is not None:
+            binder.register_integration({
+                "integration_id": "bot_governance_policy_mapper",
+                "name": "Bot Governance Policy Mapper",
+                "category": "bot_governance",
+                "capability": "policy_mapping,gate_check,budget_report",
+                "source": "bot_governance_policy_mapper",
+            })
+            wired += 1
+
+        # Bot Telemetry Normalizer
+        btn = getattr(self, 'bot_telemetry_normalizer', None)
+        if btn is not None:
+            binder.register_integration({
+                "integration_id": "bot_telemetry_normalizer",
+                "name": "Bot Telemetry Normalizer",
+                "category": "telemetry",
+                "capability": "event_normalization,batch_normalize,unmapped_events",
+                "source": "bot_telemetry_normalizer",
+            })
+            wired += 1
+
+        # Legacy Compatibility Matrix
+        lcm = getattr(self, 'legacy_compatibility_matrix', None)
+        if lcm is not None:
+            binder.register_integration({
+                "integration_id": "legacy_compatibility_matrix",
+                "name": "Legacy Compatibility Matrix",
+                "category": "compatibility",
+                "capability": "compatibility_check,migration_path,bridge_execution",
+                "source": "legacy_compatibility_matrix",
+            })
+            wired += 1
+
         logger.info("Wired %d integration modules into executive planning engine binder", wired)
 
     # ==================== CORE EXECUTION ====================
@@ -3368,12 +3841,12 @@ class MurphySystem:
                 "status": "disabled",
                 "reason": f"Set {self.PERSISTENCE_DIR_ENV} to enable persistence snapshots."
             }
-        timestamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         snapshot_id = f"{self.PERSISTENCE_SNAPSHOT_PREFIX}_{doc.doc_id}_{timestamp}.json"
         snapshot_path = persistence_dir / snapshot_id
         snapshot = {
             "snapshot_id": snapshot_id,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "document": doc.to_dict(),
             "activation_preview": activation_preview,
             "metadata": metadata
@@ -4562,7 +5035,7 @@ class MurphySystem:
                 "metadata": {
                     "task_description": task_description,
                     "task_type": task_type,
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     "mode": "two_phase_orchestrator"
                 }
             }
@@ -5314,7 +5787,10 @@ class MurphySystem:
         workload_status = "ready" if operations_plan else "pending"
         integration_status = (
             "ready"
-            if self.system_integrator or self.integration_engine
+            if (self.system_integrator
+                or self.integration_engine
+                or getattr(self, 'universal_integration_adapter', None)
+                or getattr(self, 'platform_connector_framework', None))
             else "needs_wiring"
         )
         automation_loop_status = self._determine_automation_loop_status(
@@ -5936,7 +6412,7 @@ class MurphySystem:
         if not GOVERNANCE_AVAILABLE:
             return {"status": "unavailable"}
         scheduler = GovernanceScheduler()
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         triggers = [
             {"id": "marketing_cycle", "label": "Marketing cadence", "offset_min": 30},
             {"id": "executive_review", "label": "Executive review", "offset_min": 60, "dependencies": ["marketing_cycle"]},
@@ -6250,7 +6726,7 @@ class MurphySystem:
                 "signal": profile["signal"],
                 "value": sensor_value,
                 "source": sensor_source,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             },
             "external_api_sensors": sensor_plan,
             "control_effect": "If control_value < setpoint, magnify/simplify gates remain blocked."
@@ -11133,7 +11609,7 @@ class MurphySystem:
             "type": submission_type,
             "payload": payload,
             "status": "submitted",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         self.form_submissions[submission_id] = record
         return record
@@ -11153,7 +11629,7 @@ class MurphySystem:
         session = {
             "session_id": session_id,
             "name": name or "session",
-            "created_at": datetime.utcnow().isoformat()
+            "created_at": datetime.now(timezone.utc).isoformat()
         }
         self.sessions[session_id] = session
         return {"success": True, **session}
@@ -11169,7 +11645,7 @@ class MurphySystem:
         session.setdefault("history", []).append({
             "stage": current_stage["stage"],
             "message": message,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         })
         answers[current_stage["stage"]] = message
         next_index = min(stage_index + 1, len(self.flow_steps) - 1)
@@ -11313,7 +11789,7 @@ class MurphySystem:
                 "urgency": "high" if confidence_report["combined_confidence"] < 0.5 else "medium",
                 "reason": confidence_report["gate_result"]["reason"],
                 "status": "pending",
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
         return {
             "success": True,
@@ -11334,7 +11810,7 @@ class MurphySystem:
             "original_output": data.get("original_output"),
             "corrected_output": data.get("corrected_output"),
             "explanation": data.get("explanation"),
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         self.corrections.append(correction)
         patterns_extracted = 1 if correction.get("explanation") else 0
@@ -11500,7 +11976,7 @@ class MurphySystem:
     def get_system_status(self) -> Dict:
         """Get complete system status"""
         
-        uptime = (datetime.utcnow() - self.start_time).total_seconds()
+        uptime = (datetime.now(timezone.utc) - self.start_time).total_seconds()
         self_operation_enabled = self.inoni_automation is not None
         correction_system_available = self.correction_system is not None
         pending_integrations = 0

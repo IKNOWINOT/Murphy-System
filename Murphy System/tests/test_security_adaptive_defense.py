@@ -6,7 +6,7 @@ Tests anomaly detection, threat intelligence, and automated response.
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from src.security_plane.adaptive_defense import (
     ThreatLevel,
     AnomalyType,
@@ -32,7 +32,7 @@ class TestSecurityEvent:
     def test_security_event_creation(self):
         """Test creating security event"""
         event = SecurityEvent(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             principal_id="user1",
             event_type="login",
             source_ip="192.168.1.1",
@@ -46,7 +46,7 @@ class TestSecurityEvent:
     def test_security_event_to_dict(self):
         """Test converting event to dict"""
         event = SecurityEvent(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             principal_id="user1",
             event_type="login",
             source_ip="192.168.1.1"
@@ -65,7 +65,7 @@ class TestBehavioralAnomalyDetector:
         detector = BehavioralAnomalyDetector()
         
         event = SecurityEvent(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             principal_id="user1",
             event_type="login",
             source_ip="192.168.1.1"
@@ -81,7 +81,7 @@ class TestBehavioralAnomalyDetector:
         # Add 20 events
         for i in range(20):
             event = SecurityEvent(
-                timestamp=datetime.utcnow() - timedelta(minutes=i),
+                timestamp=datetime.now(timezone.utc) - timedelta(minutes=i),
                 principal_id="user1",
                 event_type="login",
                 source_ip="192.168.1.1",
@@ -103,7 +103,7 @@ class TestBehavioralAnomalyDetector:
         # Build baseline with normal IP
         for i in range(20):
             event = SecurityEvent(
-                timestamp=datetime.utcnow() - timedelta(minutes=i),
+                timestamp=datetime.now(timezone.utc) - timedelta(minutes=i),
                 principal_id="user1",
                 event_type="login",
                 source_ip="192.168.1.1"
@@ -114,7 +114,7 @@ class TestBehavioralAnomalyDetector:
         
         # Event from unusual IP
         unusual_event = SecurityEvent(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             principal_id="user1",
             event_type="login",
             source_ip="10.0.0.1"  # Different IP
@@ -131,7 +131,7 @@ class TestBehavioralAnomalyDetector:
         # Add baseline events
         for i in range(20):
             event = SecurityEvent(
-                timestamp=datetime.utcnow() - timedelta(minutes=i),
+                timestamp=datetime.now(timezone.utc) - timedelta(minutes=i),
                 principal_id="user1",
                 event_type="login",
                 source_ip="192.168.1.1",
@@ -144,7 +144,7 @@ class TestBehavioralAnomalyDetector:
         # Add multiple failures
         for i in range(5):
             event = SecurityEvent(
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 principal_id="user1",
                 event_type="login",
                 source_ip="192.168.1.1",
@@ -154,7 +154,7 @@ class TestBehavioralAnomalyDetector:
         
         # Check for anomaly
         test_event = SecurityEvent(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             principal_id="user1",
             event_type="login",
             source_ip="192.168.1.1",
@@ -267,7 +267,7 @@ class TestThreatIntelligence:
             threat_level=ThreatLevel.HIGH,
             description="Known malicious IP",
             source="threat_feed",
-            added_at=datetime.utcnow()
+            added_at=datetime.now(timezone.utc)
         )
         
         ti.add_indicator(indicator)
@@ -285,7 +285,7 @@ class TestThreatIntelligence:
             threat_level=ThreatLevel.HIGH,
             description="Known malicious IP",
             source="threat_feed",
-            added_at=datetime.utcnow()
+            added_at=datetime.now(timezone.utc)
         )
         
         ti.add_indicator(indicator)
@@ -305,7 +305,7 @@ class TestThreatIntelligence:
             threat_level=ThreatLevel.HIGH,
             description="Known malicious IP",
             source="threat_feed",
-            added_at=datetime.utcnow()
+            added_at=datetime.now(timezone.utc)
         )
         
         ti.add_indicator(indicator)
@@ -324,8 +324,8 @@ class TestThreatIntelligence:
             threat_level=ThreatLevel.HIGH,
             description="Expired threat",
             source="threat_feed",
-            added_at=datetime.utcnow() - timedelta(days=2),
-            expires_at=datetime.utcnow() - timedelta(days=1)
+            added_at=datetime.now(timezone.utc) - timedelta(days=2),
+            expires_at=datetime.now(timezone.utc) - timedelta(days=1)
         )
         
         ti.add_indicator(indicator)
@@ -347,7 +347,7 @@ class TestAttackPatternRecognizer:
         # Add multiple failed login attempts
         for i in range(10):
             event = SecurityEvent(
-                timestamp=datetime.utcnow() - timedelta(seconds=i),
+                timestamp=datetime.now(timezone.utc) - timedelta(seconds=i),
                 principal_id="user1",
                 event_type="login",
                 source_ip="10.0.0.1",
@@ -369,7 +369,7 @@ class TestAttackPatternRecognizer:
         # Add requests to many different resources
         for i in range(25):
             event = SecurityEvent(
-                timestamp=datetime.utcnow() - timedelta(seconds=i),
+                timestamp=datetime.now(timezone.utc) - timedelta(seconds=i),
                 principal_id="user1",
                 event_type="access",
                 source_ip="10.0.0.1",
@@ -397,7 +397,7 @@ class TestAutomatedResponseSystem:
             threat_level=ThreatLevel.LOW,
             principal_id="user1",
             description="Minor anomaly",
-            detected_at=datetime.utcnow(),
+            detected_at=datetime.now(timezone.utc),
             confidence=0.5
         )
         
@@ -415,7 +415,7 @@ class TestAutomatedResponseSystem:
             threat_level=ThreatLevel.HIGH,
             principal_id="user1",
             description="Serious anomaly",
-            detected_at=datetime.utcnow(),
+            detected_at=datetime.now(timezone.utc),
             confidence=0.9
         )
         
@@ -434,7 +434,7 @@ class TestAutomatedResponseSystem:
             threat_level=ThreatLevel.CRITICAL,
             principal_id="user1",
             description="Critical threat",
-            detected_at=datetime.utcnow(),
+            detected_at=datetime.now(timezone.utc),
             confidence=1.0
         )
         
@@ -493,13 +493,13 @@ class TestIntegration:
             threat_level=ThreatLevel.HIGH,
             description="Known attacker",
             source="threat_feed",
-            added_at=datetime.utcnow()
+            added_at=datetime.now(timezone.utc)
         )
         ti.add_indicator(indicator)
         
         # Create event from known threat
         event = SecurityEvent(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             principal_id="user1",
             event_type="login",
             source_ip="10.0.0.1",

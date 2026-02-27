@@ -10,7 +10,7 @@ CRITICAL SAFETY CONSTRAINTS:
 
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Literal
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 import hashlib
 import json
@@ -99,7 +99,7 @@ class AssumptionArtifact:
     status: AssumptionStatus = AssumptionStatus.ACTIVE
     
     # Metadata
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     created_by: str = "system"  # Who created this assumption
     
     # Integrity
@@ -143,7 +143,7 @@ class AssumptionArtifact:
         """Check if assumption is stale (needs review)"""
         if self.next_review is None:
             return False
-        return datetime.utcnow() >= self.next_review
+        return datetime.now(timezone.utc) >= self.next_review
     
     def is_valid(self) -> bool:
         """Check if assumption is currently valid"""
@@ -187,7 +187,7 @@ class SupervisorFeedbackArtifact:
     supervisor_role: str
     
     # Metadata
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     
     # Integrity
     integrity_hash: Optional[str] = None
@@ -236,7 +236,7 @@ class CorrectionAction:
     reason: str
     
     # Metadata
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     executed: bool = False
     executed_at: Optional[datetime] = None
 
@@ -259,7 +259,7 @@ class AssumptionBinding:
     is_critical: bool  # If true, invalidation blocks execution
     
     # Metadata
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 @dataclass
@@ -286,7 +286,7 @@ class ConfidenceTrend:
     def add_confidence_point(self, confidence: float, reason: str):
         """Add confidence measurement"""
         self.confidence_history.append({
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'confidence': confidence,
             'reason': reason
         })
@@ -356,7 +356,7 @@ class MurphyIndexTrend:
     def add_murphy_point(self, murphy_index: float, reason: str):
         """Add Murphy index measurement"""
         self.murphy_history.append({
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'murphy_index': murphy_index,
             'reason': reason
         })
@@ -419,7 +419,7 @@ class ValidationEvidence:
     is_external: bool  # MUST be True for validation
     
     # Metadata
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     
     def __post_init__(self):
         """Validate evidence"""

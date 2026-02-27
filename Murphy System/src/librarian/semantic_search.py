@@ -5,7 +5,7 @@ Provides intelligent search and retrieval capabilities
 
 import logging
 from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 import re
 import json
 
@@ -121,7 +121,7 @@ class SemanticSearchEngine:
             'terms': terms,
             'query_type': query_type,
             'concepts': concepts,
-            'processed_at': datetime.utcnow().isoformat()
+            'processed_at': datetime.now(timezone.utc).isoformat()
         }
     
     def _extract_terms(self, query: str) -> List[str]:
@@ -228,7 +228,7 @@ class SemanticSearchEngine:
                 if created_at:
                     try:
                         created_time = datetime.fromisoformat(created_at)
-                        days_old = (datetime.utcnow() - created_time).days
+                        days_old = (datetime.now(timezone.utc) - created_time).days
                         if days_old < 7:
                             score += 0.2
                         elif days_old < 30:
@@ -330,7 +330,7 @@ class SemanticSearchEngine:
             'terms': processed_query['terms'],
             'query_type': processed_query['query_type'],
             'result_count': result_count,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
         
         self.query_history.append(log_entry)

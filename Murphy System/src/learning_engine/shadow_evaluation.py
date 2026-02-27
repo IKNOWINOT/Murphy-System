@@ -5,7 +5,7 @@ This module implements comprehensive evaluation metrics and testing.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional, Tuple
 from uuid import UUID, uuid4
 import logging
@@ -80,7 +80,7 @@ class ComparisonResult:
     # Winner
     winner: Optional[UUID] = None
     
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class ModelEvaluator:
@@ -107,9 +107,9 @@ class ModelEvaluator:
             return EvaluationMetrics()
         
         # Make predictions
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         y_pred = model.predict(X)
-        prediction_time = (datetime.utcnow() - start_time).total_seconds()
+        prediction_time = (datetime.now(timezone.utc) - start_time).total_seconds()
         
         # Calculate metrics
         metrics = EvaluationMetrics()
@@ -343,7 +343,7 @@ class AutomatedTestSuite:
         logger.info("Running automated test suite")
         
         results = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "model_id": str(model.metadata.id),
             "tests": {}
         }
@@ -437,9 +437,9 @@ class AutomatedTestSuite:
             X, y = self._get_sample_data(dataset, n=100)
             
             # Measure prediction time
-            start = datetime.utcnow()
+            start = datetime.now(timezone.utc)
             predictions = model.predict(X)
-            duration = (datetime.utcnow() - start).total_seconds()
+            duration = (datetime.now(timezone.utc) - start).total_seconds()
             
             avg_time_ms = (duration * 1000) / len(X)
             

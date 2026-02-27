@@ -6,7 +6,7 @@ import threading
 import uuid
 import json
 from typing import Dict, Optional, Any, List
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import logging
 import hashlib
@@ -41,7 +41,7 @@ class StateTransition:
         self.to_state = to_state
         self.reason = reason
         self.metadata = metadata or {}
-        self.timestamp = datetime.utcnow()
+        self.timestamp = datetime.now(timezone.utc)
     
     def to_dict(self) -> Dict:
         """Convert transition to dictionary"""
@@ -71,8 +71,8 @@ class SystemState:
         self.state_name = state_name
         self.variables = variables or {}
         self.version = version
-        self.created_at = datetime.utcnow()
-        self.updated_at = datetime.utcnow()
+        self.created_at = datetime.now(timezone.utc)
+        self.updated_at = datetime.now(timezone.utc)
         self.transitions: List[StateTransition] = []
         self._lock = threading.Lock()
     
@@ -85,7 +85,7 @@ class SystemState:
         """Set a variable value"""
         with self._lock:
             self.variables[name] = value
-            self.updated_at = datetime.utcnow()
+            self.updated_at = datetime.now(timezone.utc)
     
     def get_variables(self) -> Dict:
         """Get all variables"""
@@ -96,14 +96,14 @@ class SystemState:
         """Set multiple variables"""
         with self._lock:
             self.variables.update(variables)
-            self.updated_at = datetime.utcnow()
+            self.updated_at = datetime.now(timezone.utc)
     
     def add_transition(self, transition: StateTransition) -> None:
         """Add a state transition"""
         with self._lock:
             self.transitions.append(transition)
             self.version += 1
-            self.updated_at = datetime.utcnow()
+            self.updated_at = datetime.now(timezone.utc)
     
     def get_transitions(self, limit: int = 100) -> List[Dict]:
         """Get state transitions"""
@@ -294,7 +294,7 @@ class StateManager:
         """Clean up old states"""
         from datetime import timedelta
         
-        cutoff_date = datetime.utcnow() - timedelta(days=days)
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
         removed_count = 0
         
         with self._lock:

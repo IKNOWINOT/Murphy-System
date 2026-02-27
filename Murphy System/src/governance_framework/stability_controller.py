@@ -8,7 +8,7 @@ Implements stability monitoring and refusal semantics including:
 - System invariant enforcement
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Dict, List, Optional, Set, Union
 from uuid import UUID, uuid4
@@ -105,7 +105,7 @@ class RefusalHandler:
             "agent_id": refusing_agent.get("agent_id"),
             "outcome": ExecutionOutcome.SUCCESS_REFUSED,
             "termination_reason": refusal_reason,
-            "completion_time": datetime.utcnow().isoformat()
+            "completion_time": datetime.now(timezone.utc).isoformat()
         }
         
         return outcome_record

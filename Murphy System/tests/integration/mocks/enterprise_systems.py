@@ -435,11 +435,16 @@ class SCADASystemMock:
         }
         self.emergency_stop_active = False
         self.workspace_bounds = {
-            "x_min": 0, "x_max": 1000,
-            "y_min": 0, "y_max": 800,
-            "z_min": 0, "z_max": 500
+            "x_min": 0, "x_max": 200,
+            "y_min": 0, "y_max": 200,
+            "z_min": 0, "z_max": 100
         }
-        
+        self._runtime_bounds: Optional[Dict[str, int]] = None
+
+    def set_runtime_bounds(self, bounds: Dict[str, int]) -> None:
+        """Set workspace bounds used by async robot commands."""
+        self._runtime_bounds = dict(bounds)
+
     def move_robot(self, robot_id: str, position: tuple) -> Dict[str, Any]:
         """Move robot to position"""
         robot = self.robots.get(robot_id)
@@ -537,7 +542,7 @@ class SCADASystemMock:
     async def execute_robot_command(self, command: Dict[str, Any] = None, **kw) -> Dict[str, Any]:
         command = command or {}
         target = command.get("target_position", {})
-        bounds = command.get("workspace_boundaries", self.workspace_bounds)
+        bounds = command.get("workspace_boundaries", getattr(self, '_runtime_bounds', None) or self.workspace_bounds)
         x_max = bounds.get("x_max", self.workspace_bounds["x_max"])
         y_max = bounds.get("y_max", self.workspace_bounds["y_max"])
         z_max = bounds.get("z_max", self.workspace_bounds["z_max"])

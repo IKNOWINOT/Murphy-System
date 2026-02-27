@@ -165,7 +165,9 @@ def test_mock_similarity():
     
     print("=" * 80)
     
-    return api_passed == api_total and onboard_passed == onboard_total
+    assert api_passed == api_total and onboard_passed == onboard_total, (
+        f"API: {api_passed}/{api_total}, Onboard: {onboard_passed}/{onboard_total}"
+    )
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ Decision Engine - Autonomous decision making with rules and conditions
 import threading
 import uuid
 from typing import Dict, List, Optional, Any, Callable
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import logging
 
@@ -41,7 +41,7 @@ class Rule:
         self.actions = actions or []
         self.priority = priority
         self.confidence = confidence
-        self.created_at = datetime.utcnow()
+        self.created_at = datetime.now(timezone.utc)
         self.usage_count = 0
         self.last_used_at: Optional[datetime] = None
     
@@ -176,7 +176,7 @@ class Decision:
         self.actions_taken = actions_taken or []
         self.confidence = confidence
         self.context = context or {}
-        self.timestamp = datetime.utcnow()
+        self.timestamp = datetime.now(timezone.utc)
         self.success = True
         self.error: Optional[str] = None
     
@@ -300,7 +300,7 @@ class DecisionEngine:
         # Update rule usage stats
         with self._lock:
             rule.usage_count += 1
-            rule.last_used_at = datetime.utcnow()
+            rule.last_used_at = datetime.now(timezone.utc)
         
         # Create decision
         decision = Decision(

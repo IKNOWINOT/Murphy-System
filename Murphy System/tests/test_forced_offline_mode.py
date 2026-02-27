@@ -21,15 +21,17 @@ def test_forced_offline_mode():
     llm = LLMIntegrationLayer(use_local_fallback=True)
     print()
     
-    # Simulate API failure by breaking the _call_aristotle method
+    # Simulate API failure by breaking ALL provider methods
     print("Simulating API failure...")
     original_call_aristotle = llm._call_aristotle
+    original_call_groq = llm._call_groq
     
-    def broken_aristotle(request):
+    def broken_api(request):
         raise Exception("Simulated API failure")
     
-    llm._call_aristotle = broken_aristotle
-    print("✅ API failure simulated")
+    llm._call_aristotle = broken_api
+    llm._call_groq = broken_api
+    print("✅ API failure simulated (Aristotle + Groq)")
     print()
     
     # Test request - should fall back to local LLM
@@ -59,8 +61,9 @@ def test_forced_offline_mode():
     print(f"  Model: {response.metadata.get('model', 'N/A')}")
     print()
     
-    # Restore original method
+    # Restore original methods
     llm._call_aristotle = original_call_aristotle
+    llm._call_groq = original_call_groq
     
     # Verify it matches mock format
     print("Verification:")
@@ -73,12 +76,13 @@ def test_forced_offline_mode():
         print("✅ SUCCESS: Offline mode working correctly")
         print("   - Local LLM was used")
         print("   - Output matches mock format")
-        return True
     else:
         print("❌ FAILURE: Offline mode not working correctly")
         print(f"   - Offline mode: {offline_mode}")
         print(f"   - Matches mock: {matches}")
-        return False
+
+    assert offline_mode, "Offline mode should be True"
+    assert matches, f"Response should contain '{expected_pattern}'"
 
 
 if __name__ == "__main__":

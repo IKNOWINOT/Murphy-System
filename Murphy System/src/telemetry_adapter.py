@@ -5,7 +5,7 @@ Provides telemetry data collection, analysis, and learning capabilities
 
 import logging
 from typing import Dict, List, Optional, Any, Union
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 
 # Configure logging
@@ -108,7 +108,7 @@ class TelemetryAdapter:
         if value is None:
             value = 0.0
         if timestamp is None:
-            timestamp = datetime.utcnow().isoformat()
+            timestamp = datetime.now(timezone.utc).isoformat()
         
         if labels is None:
             labels = {}
@@ -521,7 +521,7 @@ class TelemetryAdapter:
     def _cleanup_old_metrics(self):
         """Clean up metrics older than retention period"""
         retention_hours = self.config.get('data_retention_hours', 24)
-        cutoff_time = datetime.utcnow() - timedelta(hours=retention_hours)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=retention_hours)
         cutoff_str = cutoff_time.isoformat()
         
         for metric_type in self.metrics:

@@ -5,7 +5,7 @@ Combines knowledge base, semantic search, and document management
 
 import logging
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ class LibrarianModule:
         
         # Module statistics
         self.stats = {
-            'initialized_at': datetime.utcnow().isoformat(),
+            'initialized_at': datetime.now(timezone.utc).isoformat(),
             'total_operations': 0,
             'search_queries': 0,
             'documents_processed': 0

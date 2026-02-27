@@ -4,7 +4,7 @@ Advanced algorithms for calculating and updating risk scores.
 """
 
 from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pydantic import BaseModel, Field
 import statistics
@@ -39,7 +39,7 @@ class RiskScoreBreakdown(BaseModel):
     factors: List[RiskFactor] = Field(default_factory=list)
     method_used: ScoringMethod
     confidence: float = Field(ge=0.0, le=1.0)
-    calculated_at: datetime = Field(default_factory=datetime.utcnow)
+    calculated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class BasicRiskScorer:
@@ -639,7 +639,7 @@ class RiskScoringSystem:
         pattern.risk_score = breakdown.total_score
         pattern.impact_score = breakdown.impact_score
         pattern.probability_score = breakdown.probability_score
-        pattern.updated_at = datetime.utcnow()
+        pattern.updated_at = datetime.now(timezone.utc)
         
         return breakdown.total_score
     

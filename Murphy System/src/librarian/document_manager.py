@@ -5,7 +5,7 @@ Provides document ingestion, processing, and management capabilities
 
 import logging
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 import json
 
@@ -75,7 +75,7 @@ class DocumentManager:
             # Add document-specific metadata
             final_metadata.update({
                 'document_type': document_type,
-                'ingested_at': datetime.utcnow().isoformat(),
+                'ingested_at': datetime.now(timezone.utc).isoformat(),
                 'processing_pipeline': processing_pipeline,
                 'content_hash': self._compute_hash(str(processed_content))
             })
@@ -156,7 +156,7 @@ class DocumentManager:
             version_entry = {
                 'content': current_doc['content'],
                 'metadata': current_doc['metadata'],
-                'updated_at': current_doc.get('updated_at', datetime.utcnow().isoformat()),
+                'updated_at': current_doc.get('updated_at', datetime.now(timezone.utc).isoformat()),
                 'version_number': len(current_doc.get('versions', [])) + 1
             }
             
@@ -179,7 +179,7 @@ class DocumentManager:
                     
                     # Update registry
                     if document_id in self.document_registry:
-                        self.document_registry[document_id]['last_updated'] = datetime.utcnow().isoformat()
+                        self.document_registry[document_id]['last_updated'] = datetime.now(timezone.utc).isoformat()
                 
                 logger.info(f"Updated document {document_id}")
                 return True
@@ -264,7 +264,7 @@ class DocumentManager:
             Unique document ID
         """
         content_hash = self._compute_hash(str(content))
-        timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+        timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
         return f"doc_{document_type}_{timestamp}_{content_hash[:8]}"
     
     def _compute_hash(self, content: str) -> str:
@@ -292,7 +292,7 @@ class DocumentManager:
         """
         metadata = {
             'document_type': document_type,
-            'extraction_timestamp': datetime.utcnow().isoformat()
+            'extraction_timestamp': datetime.now(timezone.utc).isoformat()
         }
         
         try:

@@ -9,7 +9,7 @@ Integrates Org Compiler with:
 """
 
 from typing import List, Dict, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 import json
 
@@ -216,7 +216,7 @@ class GateSynthesisIntegration:
             'enforcement': 'all_gates_required',  # ALL gates must be satisfied
             'metadata': {
                 'proposal_id': proposal.proposal_id,
-                'created_at': datetime.utcnow().isoformat(),
+                'created_at': datetime.now(timezone.utc).isoformat(),
                 'risk_level': max(
                     proposal.risk_analysis.get('compliance_risk', 'low'),
                     proposal.risk_analysis.get('authority_risk', 'low'),
@@ -264,7 +264,7 @@ class ExecutionOrchestratorIntegration:
             'status': 'registered',
             'metadata': {
                 'proposal_id': proposal.proposal_id,
-                'registered_at': datetime.utcnow().isoformat()
+                'registered_at': datetime.now(timezone.utc).isoformat()
             }
         }
     
@@ -325,7 +325,7 @@ class TelemetryIntegration:
         """Send role compiled event"""
         return {
             'event_type': 'role_compiled',
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'data': {
                 'role_id': role_template.role_id,
                 'role_name': role_template.role_name,
@@ -341,7 +341,7 @@ class TelemetryIntegration:
         """Send proposal generated event"""
         return {
             'event_type': 'automation_proposal_generated',
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'data': {
                 'proposal_id': proposal.proposal_id,
                 'shadowed_role': proposal.shadowed_role,
@@ -361,7 +361,7 @@ class TelemetryIntegration:
         """Send gate evaluated event"""
         return {
             'event_type': 'substitution_gate_evaluated',
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'data': {
                 'gate_id': gate.gate_id,
                 'gate_type': gate.gate_type,
@@ -376,7 +376,7 @@ class TelemetryIntegration:
         """Send substitution approved event"""
         return {
             'event_type': 'automation_substitution_approved',
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'data': {
                 'proposal_id': proposal.proposal_id,
                 'shadowed_role': proposal.shadowed_role,

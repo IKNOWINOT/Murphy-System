@@ -121,7 +121,7 @@ def test_actual_local_llm_usage():
     print()
     print("=" * 80)
     
-    return all_present
+    assert all_present, "Not all expected fields present in response"
 
 
 if __name__ == "__main__":

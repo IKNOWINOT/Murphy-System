@@ -13,7 +13,7 @@ All engines generate recommendations, NOT execution policies.
 """
 
 from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 import logging
 import statistics
@@ -147,7 +147,7 @@ class GateStrengtheningEngine:
         contradiction_counts.sort(key=lambda x: x[0])
         
         # Calculate trend (recent vs historical)
-        recent_window = datetime.utcnow() - timedelta(hours=6)
+        recent_window = datetime.now(timezone.utc) - timedelta(hours=6)
         recent = [m for t, m in contradiction_counts if t >= recent_window]
         historical = [m for t, m in contradiction_counts if t < recent_window]
         

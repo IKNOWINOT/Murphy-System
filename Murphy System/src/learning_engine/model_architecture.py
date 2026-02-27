@@ -5,7 +5,7 @@ This module defines the hybrid decision tree/neural network model architecture.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Dict, List, Any, Optional
 from uuid import UUID, uuid4
@@ -134,7 +134,7 @@ class ModelMetadata:
     model_type: ModelType = ModelType.HYBRID
     
     # Training info
-    trained_at: datetime = field(default_factory=datetime.utcnow)
+    trained_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     training_duration_seconds: float = 0.0
     training_examples: int = 0
     

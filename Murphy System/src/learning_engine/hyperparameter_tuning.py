@@ -5,7 +5,7 @@ This module implements automated hyperparameter optimization.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional, Tuple
 from uuid import UUID, uuid4
 import logging
@@ -74,7 +74,7 @@ class TuningResult:
     n_trials_completed: int = 0
     
     # Metadata
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -96,7 +96,7 @@ class HyperparameterTuner:
         logger.info(f"Starting hyperparameter tuning for {model_type.value}")
         logger.info(f"Strategy: {self.config.strategy}, Trials: {self.config.n_trials}")
         
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         
         if self.config.strategy == "grid":
             result = self._grid_search(model_type, dataset, param_space)
@@ -105,7 +105,7 @@ class HyperparameterTuner:
         else:
             raise ValueError(f"Unknown strategy: {self.config.strategy}")
         
-        result.tuning_duration_seconds = (datetime.utcnow() - start_time).total_seconds()
+        result.tuning_duration_seconds = (datetime.now(timezone.utc) - start_time).total_seconds()
         self.results.append(result)
         
         logger.info(

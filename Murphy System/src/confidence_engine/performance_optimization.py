@@ -4,7 +4,7 @@ Caching, parallel processing, query optimization, monitoring, and benchmarking.
 """
 
 from typing import Dict, List, Optional, Any, Callable, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pydantic import BaseModel, Field
 import time
@@ -29,8 +29,8 @@ class CacheEntry(BaseModel):
     """Entry in the cache."""
     key: str
     value: Any
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    last_accessed: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    last_accessed: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     access_count: int = 0
     ttl_seconds: Optional[int] = None
 
@@ -63,14 +63,14 @@ class UncertaintyCache:
         
         # Check TTL
         if entry.ttl_seconds:
-            age = (datetime.utcnow() - entry.created_at).seconds
+            age = (datetime.now(timezone.utc) - entry.created_at).seconds
             if age > entry.ttl_seconds:
                 del self.cache[key]
                 self.misses += 1
                 return None
         
         # Update access info
-        entry.last_accessed = datetime.utcnow()
+        entry.last_accessed = datetime.now(timezone.utc)
         entry.access_count += 1
         
         self.hits += 1
@@ -336,7 +336,7 @@ class PerformanceMetric(BaseModel):
     name: str
     value: float
     unit: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
@@ -394,7 +394,7 @@ class PerformanceMonitor:
         
         # Filter by time window
         if time_window_minutes:
-            cutoff = datetime.utcnow() - timedelta(minutes=time_window_minutes)
+            cutoff = datetime.now(timezone.utc) - timedelta(minutes=time_window_minutes)
             metrics = [m for m in metrics if m.timestamp >= cutoff]
         
         if not metrics:
@@ -443,7 +443,7 @@ class BenchmarkResult(BaseModel):
     memory_mb: Optional[float] = None
     success: bool = True
     error: Optional[str] = None
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class PerformanceBenchmark:

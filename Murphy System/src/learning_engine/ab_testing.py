@@ -5,7 +5,7 @@ This module implements A/B testing for shadow agent vs Murphy Gate.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Dict, List, Any, Optional
 from uuid import UUID, uuid4
@@ -32,7 +32,7 @@ class ABTestConfig:
     variants: Dict[VariantType, float] = field(default_factory=dict)  # variant -> traffic %
     
     # Duration
-    start_date: datetime = field(default_factory=datetime.utcnow)
+    start_date: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     end_date: Optional[datetime] = None
     
     # Metrics to track
@@ -64,7 +64,7 @@ class ABTestResult:
     
     # Context
     task_id: Optional[UUID] = None
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     
     metadata: Dict[str, Any] = field(default_factory=dict)
 
@@ -90,7 +90,7 @@ class ABTestSummary:
     # Sample sizes
     samples_by_variant: Dict[VariantType, int] = field(default_factory=dict)
     
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class ABTestFramework:
@@ -108,7 +108,7 @@ class ABTestFramework:
             return VariantType.MURPHY_GATE  # Default
         
         # Check if test has ended
-        if self.config.end_date and datetime.utcnow() > self.config.end_date:
+        if self.config.end_date and datetime.now(timezone.utc) > self.config.end_date:
             self.is_active = False
             return VariantType.MURPHY_GATE
         
@@ -223,7 +223,7 @@ class ABTestFramework:
                 return True
         
         # Stop if end date reached
-        if self.config.end_date and datetime.utcnow() > self.config.end_date:
+        if self.config.end_date and datetime.now(timezone.utc) > self.config.end_date:
             return True
         
         return False
@@ -264,7 +264,7 @@ class GradualRollout:
         self.current_traffic = min(1.0, self.current_traffic + increment)
         
         self.rollout_history.append({
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "old_traffic": old_traffic,
             "new_traffic": self.current_traffic,
             "action": "increase"
@@ -281,7 +281,7 @@ class GradualRollout:
         self.current_traffic = max(0.0, self.current_traffic - decrement)
         
         self.rollout_history.append({
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "old_traffic": old_traffic,
             "new_traffic": self.current_traffic,
             "action": "decrease"

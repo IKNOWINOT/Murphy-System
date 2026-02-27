@@ -18,7 +18,7 @@ import sys
 import threading
 import tracemalloc
 from typing import List
-from datetime import datetime
+from datetime import datetime, timezone
 
 sys.path.insert(0, '/workspace')
 
@@ -110,10 +110,10 @@ def create_test_handoffs(roles: List[OrgChartNode], count: int = 10) -> List[Han
                 consumer_roles=[to_role.role_name],
                 content_hash=f"hash_{i}",
                 metadata={"description": f"Test artifact {i}"},
-                created_at=datetime.utcnow()
+                created_at=datetime.now(timezone.utc)
             ),
             approval_required=i % 2 == 0,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
         handoffs.append(handoff)
     
@@ -163,7 +163,7 @@ def measure_execution_time(func, *args, **kwargs):
 class TestEnterpriseScale:
     """Enterprise-scale test suite"""
     
-    def __init__(self):
+    def setup_method(self):
         self.test_results = []
         self.passed = 0
         self.failed = 0
@@ -423,7 +423,7 @@ class TestLargeOrganization(TestEnterpriseScale):
               f"{graph.number_of_edges()} edges")
 
 
-class TestEnterpriseScale(TestEnterpriseScale):
+class TestEnterpriseScaleOrganization(TestEnterpriseScale):
     """Test enterprise-scale organization (1000+ roles)"""
     
     def test_1000_roles_compilation(self):

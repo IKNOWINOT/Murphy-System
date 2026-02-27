@@ -17,7 +17,7 @@ Author: Murphy System (MFGC-AI)
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Any, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 import hashlib
 import hmac
@@ -91,7 +91,7 @@ class ExecutionPacket:
     
     def is_expired(self) -> bool:
         """Check if packet has expired"""
-        return datetime.utcnow() >= self.expires_at
+        return datetime.now(timezone.utc) >= self.expires_at
     
     def to_signable_dict(self) -> Dict:
         """
@@ -221,7 +221,7 @@ class PacketSigner:
             packet_id=packet.packet_id,
             signature=signature,
             algorithm="HMAC-SHA256",
-            signed_at=datetime.utcnow(),
+            signed_at=datetime.now(timezone.utc),
             signed_by=signed_by,
             key_id=self.key_id
         )
@@ -295,11 +295,11 @@ class ReplayPrevention:
         Args:
             nonce: Nonce to mark
         """
-        self.used_nonces[nonce] = datetime.utcnow()
+        self.used_nonces[nonce] = datetime.now(timezone.utc)
     
     def _cleanup_old_nonces(self):
         """Remove old nonces from tracking"""
-        cutoff = datetime.utcnow() - self.max_age
+        cutoff = datetime.now(timezone.utc) - self.max_age
         self.used_nonces = {
             nonce: timestamp
             for nonce, timestamp in self.used_nonces.items()
@@ -503,7 +503,7 @@ class PacketProtectionSystem:
         Returns:
             Created execution packet
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         
         packet = ExecutionPacket(
             packet_id=secrets.token_hex(16),
@@ -618,7 +618,7 @@ class PacketProtectionSystem:
         record = VerificationRecord(
             packet_id=packet.packet_id,
             result=result,
-            verified_at=datetime.utcnow(),
+            verified_at=datetime.now(timezone.utc),
             verified_by=verified_by,
             details=details
         )
