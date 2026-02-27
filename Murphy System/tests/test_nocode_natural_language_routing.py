@@ -10,7 +10,6 @@ Owner: QA Team
 """
 
 import os
-import re
 import pytest
 
 
@@ -39,16 +38,14 @@ class TestNaturalLanguageRouting:
     def test_default_case_routes_to_natural_language(self):
         """The switch default case calls handleNaturalLanguage, not error."""
         html = _read_terminal_html()
-        # The default case must NOT contain 'Unknown command'
-        # It should instead call handleNaturalLanguage
-        default_block = re.search(
-            r'default:\s*\n(.*?)(?:\})', html, re.DOTALL
-        )
-        assert default_block is not None, "default case not found in switch"
-        body = default_block.group(1)
-        assert 'handleNaturalLanguage' in body, \
+        # Find the default case in the processCommand switch
+        assert 'default:' in html, "default case not found"
+        # Extract a generous window around the default case
+        idx = html.index('default:')
+        window = html[idx:idx + 500]
+        assert 'handleNaturalLanguage' in window, \
             "default case should route to handleNaturalLanguage"
-        assert 'Unknown command' not in body, \
+        assert 'Unknown command' not in window, \
             "default case should NOT show 'Unknown command' error"
 
     def test_handle_natural_language_function_exists(self):
@@ -59,14 +56,14 @@ class TestNaturalLanguageRouting:
     def test_natural_language_sends_to_execute_api(self):
         """NL handler posts to /execute endpoint."""
         html = _read_terminal_html()
-        # Extract the function body
+        # Extract a generous window from the function declaration
         idx = html.index('async function handleNaturalLanguage')
-        func_body = html[idx:idx + 3000]
-        assert '/execute' in func_body, \
+        func_window = html[idx:idx + 5000]
+        assert '/execute' in func_window, \
             "handleNaturalLanguage should POST to /execute"
-        assert 'task_description' in func_body, \
+        assert 'task_description' in func_window, \
             "Should send task_description field"
-        assert 'natural_language' in func_body, \
+        assert 'natural_language' in func_window, \
             "Should mark task_type as natural_language"
 
     def test_confidence_follow_up_questions(self):

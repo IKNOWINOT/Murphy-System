@@ -1419,6 +1419,8 @@ Type 'help' for all commands · Type 'api' for endpoint reference
         // ── No-Code Natural Language Handler ──
         // Sends plain-English input to /api/execute as a task description.
         // Displays confidence, follow-up questions, and results.
+        const LOW_CONFIDENCE_THRESHOLD = 0.6;
+
         async function handleNaturalLanguage(userInput) {
             addOutput('💀 Interpreting: "' + userInput + '"', 'info');
             addOutput('   Routing through Murphy Confidence Engine...', 'info');
@@ -1439,11 +1441,11 @@ Type 'help' for all commands · Type 'api' for endpoint reference
                     // Show confidence score
                     if (result.confidence_report) {
                         const conf = result.confidence_report.combined_confidence;
-                        if (typeof conf === 'number' && !isNaN(conf)) {
+                        if (typeof conf === 'number' && !isNaN(conf) && conf >= 0 && conf <= 1) {
                             addOutput('☠ Confidence: ' + (conf * 100).toFixed(1) + '%', 'success');
                             showConfidenceBar(conf);
 
-                            if (conf < 0.6) {
+                            if (conf < LOW_CONFIDENCE_THRESHOLD) {
                                 addOutput('', '');
                                 addOutput('⚠ Low confidence — Murphy needs more information.', 'warning');
                                 addOutput('   Please provide additional details to raise confidence:', 'warning');
