@@ -6,7 +6,7 @@ Tests cryptographic signature verification, replay prevention, and integrity val
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 import secrets
 from src.security_plane.packet_protection import (
     PacketStatus,
@@ -29,7 +29,7 @@ class TestExecutionPacket:
     
     def test_packet_creation(self):
         """Test creating execution packet"""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         packet = ExecutionPacket(
             packet_id="test123",
             principal_id="user1",
@@ -47,7 +47,7 @@ class TestExecutionPacket:
     
     def test_packet_validation(self):
         """Test packet validation on creation"""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         
         # Missing packet_id
         with pytest.raises(ValueError):
@@ -77,7 +77,7 @@ class TestExecutionPacket:
     
     def test_packet_expiration(self):
         """Test packet expiration check"""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         
         # Not expired
         packet = ExecutionPacket(
@@ -107,7 +107,7 @@ class TestExecutionPacket:
     
     def test_packet_integrity_hash(self):
         """Test packet integrity hash computation"""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         packet = ExecutionPacket(
             packet_id="test",
             principal_id="user1",
@@ -139,7 +139,7 @@ class TestPacketSigner:
         signing_key = secrets.token_bytes(32)
         signer = PacketSigner(signing_key)
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         packet = ExecutionPacket(
             packet_id="test",
             principal_id="user1",
@@ -162,7 +162,7 @@ class TestPacketSigner:
         signing_key = secrets.token_bytes(32)
         signer = PacketSigner(signing_key)
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         packet = ExecutionPacket(
             packet_id="test",
             principal_id="user1",
@@ -185,7 +185,7 @@ class TestPacketSigner:
         signing_key = secrets.token_bytes(32)
         signer = PacketSigner(signing_key)
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         packet = ExecutionPacket(
             packet_id="test",
             principal_id="user1",
@@ -262,7 +262,7 @@ class TestAuthorityEnforcer:
         """Test checking sufficient authority"""
         enforcer = AuthorityEnforcer()
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         packet = ExecutionPacket(
             packet_id="test",
             principal_id="user1",
@@ -281,7 +281,7 @@ class TestAuthorityEnforcer:
         """Test checking insufficient authority"""
         enforcer = AuthorityEnforcer()
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         packet = ExecutionPacket(
             packet_id="test",
             principal_id="user1",
@@ -303,7 +303,7 @@ class TestAuthorityEnforcer:
         # Set custom requirement
         enforcer.set_requirement("special_action", AuthorityLevel.CRITICAL)
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         packet = ExecutionPacket(
             packet_id="test",
             principal_id="user1",
@@ -326,7 +326,7 @@ class TestIntegrityValidator:
         """Test storing and verifying integrity"""
         validator = IntegrityValidator()
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         packet = ExecutionPacket(
             packet_id="test",
             principal_id="user1",
@@ -348,7 +348,7 @@ class TestIntegrityValidator:
         """Test detecting packet tampering"""
         validator = IntegrityValidator()
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         packet = ExecutionPacket(
             packet_id="test",
             principal_id="user1",

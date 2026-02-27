@@ -6,7 +6,7 @@ Tests zero-trust access control with continuous trust re-computation.
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from src.security_plane.access_control import (
     AccessDecision,
     CapabilityScope,
@@ -23,7 +23,7 @@ from src.security_plane.schemas import TrustScore, AuthorityLevel, TrustLevel
 
 def create_trust_score(confidence: float, hours_ago: int = 0, decay_rate: float = 0.1) -> TrustScore:
     """Helper to create TrustScore with proper schema"""
-    computed_at = datetime.utcnow() - timedelta(hours=hours_ago)
+    computed_at = datetime.now(timezone.utc) - timedelta(hours=hours_ago)
     
     # Determine trust level from confidence
     if confidence >= 0.9:
@@ -58,9 +58,9 @@ class TestCapability:
         cap = Capability(
             scope=CapabilityScope.READ_ONLY,
             resource_pattern="execution_packets/*",
-            expires_at=datetime.utcnow() + timedelta(minutes=15),
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=15),
             granted_by="admin",
-            granted_at=datetime.utcnow()
+            granted_at=datetime.now(timezone.utc)
         )
         
         assert cap.scope == CapabilityScope.READ_ONLY
@@ -72,9 +72,9 @@ class TestCapability:
         cap = Capability(
             scope=CapabilityScope.READ_ONLY,
             resource_pattern="test/*",
-            expires_at=datetime.utcnow() - timedelta(minutes=1),
+            expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),
             granted_by="admin",
-            granted_at=datetime.utcnow() - timedelta(minutes=16)
+            granted_at=datetime.now(timezone.utc) - timedelta(minutes=16)
         )
         
         assert cap.is_expired()
@@ -84,9 +84,9 @@ class TestCapability:
         cap = Capability(
             scope=CapabilityScope.READ_ONLY,
             resource_pattern="execution_packets/*",
-            expires_at=datetime.utcnow() + timedelta(minutes=15),
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=15),
             granted_by="admin",
-            granted_at=datetime.utcnow()
+            granted_at=datetime.now(timezone.utc)
         )
         
         assert cap.matches_resource("execution_packets/123")

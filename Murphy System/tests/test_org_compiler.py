@@ -12,7 +12,7 @@ Tests:
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 import json
 
 from src.org_compiler.schemas import (
@@ -340,8 +340,8 @@ class TestShadowLearning:
         collector = TelemetryCollector()
         
         # Record events
-        collector.record_task_assignment("Designer 1", "Create mockup", datetime.utcnow())
-        collector.record_approval("Designer 1", "Design approval", True, datetime.utcnow())
+        collector.record_task_assignment("Designer 1", "Create mockup", datetime.now(timezone.utc))
+        collector.record_approval("Designer 1", "Design approval", True, datetime.now(timezone.utc))
         
         # Get telemetry
         telemetry = collector.get_telemetry_for_role("Designer 1", days=30)
@@ -358,7 +358,7 @@ class TestShadowLearning:
             collector.record_task_assignment(
                 "Designer 1",
                 "Create mockup",
-                datetime.utcnow() - timedelta(days=i)
+                datetime.now(timezone.utc) - timedelta(days=i)
             )
         
         telemetry = collector.get_telemetry_for_role("Designer 1", days=30)
@@ -377,7 +377,7 @@ class TestShadowLearning:
             collector.record_task_assignment(
                 "Designer 1",
                 "Create mockup",
-                datetime.utcnow() - timedelta(days=i)
+                datetime.now(timezone.utc) - timedelta(days=i)
             )
         
         # Create role template
