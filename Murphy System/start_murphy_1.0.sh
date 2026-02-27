@@ -8,12 +8,18 @@
 set -e
 
 echo ""
+# Use pyfiglet banner if available, otherwise fall back to simple banner
+python3 -c "
+try:
+    from src.cli_art import render_banner
+    print(render_banner(color=False))
+except Exception:
+    print('  ☠  Murphy System v1.0  ☠')
+" 2>/dev/null || {
 echo "  ☠  ════════════════════════════════════════════════════  ☠"
-echo " ╱╲                                                       ╱╲"
-echo "╱◉◉╲   💀  M U R P H Y   S Y S T E M   v 1 . 0  💀    ╱◉◉╲"
-echo "╲╰╯╱   ─────────────────────────────────────────────     ╲╰╯╱"
-echo " ╲╱    Universal AI Automation · No-Code Startup          ╲╱"
+echo "       💀  M U R P H Y   S Y S T E M   v 1 . 0  💀      "
 echo "  ☠  ════════════════════════════════════════════════════  ☠"
+}
 echo ""
 
 # Colors
@@ -84,6 +90,20 @@ echo ""
 
 # Start Murphy System
 echo ""
+python3 -c "
+try:
+    from src.cli_art import render_panel
+    print(render_panel('STARTUP', [
+        'Starting Murphy System v1.0',
+        '  💀 Port:        $MURPHY_PORT',
+        '  💀 API Docs:    http://localhost:$MURPHY_PORT/docs',
+        '  💀 Health:      http://localhost:$MURPHY_PORT/api/health',
+        '  💀 Status:      http://localhost:$MURPHY_PORT/api/status',
+        '  💀 Onboarding:  http://localhost:$MURPHY_PORT/api/onboarding/wizard/questions',
+    ], color=False))
+except Exception:
+    print('  ☠  Starting Murphy System v1.0  ☠')
+" 2>/dev/null || {
 echo "  ☠  ════════════════════════════════════════════════════  ☠"
 echo -e " 💀 ${GREEN}            STARTING MURPHY SYSTEM v1.0             ${NC} 💀"
 echo "  ☠  ════════════════════════════════════════════════════  ☠"
@@ -93,6 +113,7 @@ echo -e "  💀 ${BLUE}API Docs:    http://localhost:$MURPHY_PORT/docs${NC}"
 echo -e "  💀 ${BLUE}Health:      http://localhost:$MURPHY_PORT/api/health${NC}"
 echo -e "  💀 ${BLUE}Status:      http://localhost:$MURPHY_PORT/api/status${NC}"
 echo -e "  💀 ${BLUE}Onboarding:  http://localhost:$MURPHY_PORT/api/onboarding/wizard/questions${NC}"
+}
 echo ""
 echo -e "${YELLOW}Press Ctrl+C to stop${NC}"
 echo ""
