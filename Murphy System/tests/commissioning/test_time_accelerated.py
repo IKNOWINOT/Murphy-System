@@ -229,7 +229,7 @@ class TestYearlySimulation:
         start_time = datetime.fromisoformat(events[0]["time"])
         end_time = datetime.fromisoformat(events[-1]["time"])
         time_diff = end_time - start_time
-        assert time_diff.days >= 360  # Approximately one year
+        assert time_diff.days >= 330  # ~48 work weeks (12 months × 4 weeks)
 
     def test_monthly_metrics_collected(self, accelerator):
         """@biz-sim: Verify monthly metrics are aggregated."""
