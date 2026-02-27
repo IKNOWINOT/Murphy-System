@@ -9,7 +9,7 @@ Provides:
 """
 
 from typing import List, Dict, Optional, Set
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 import re
 import hashlib
@@ -211,7 +211,7 @@ class RetentionPolicyManager:
         if not policy:
             return False
         
-        age_days = (datetime.utcnow() - message.created_at).days
+        age_days = (datetime.now(timezone.utc) - message.created_at).days
         return age_days >= policy.archive_after_days
     
     def should_delete(self, message: MessageArtifact) -> bool:
@@ -224,7 +224,7 @@ class RetentionPolicyManager:
         if not policy:
             return False
         
-        age_days = (datetime.utcnow() - message.created_at).days
+        age_days = (datetime.now(timezone.utc) - message.created_at).days
         return age_days >= policy.delete_after_days
     
     def get_retention_status(self, message: MessageArtifact) -> Dict[str, any]:
@@ -233,7 +233,7 @@ class RetentionPolicyManager:
         if not policy:
             return {'status': 'no_policy'}
         
-        age_days = (datetime.utcnow() - message.created_at).days
+        age_days = (datetime.now(timezone.utc) - message.created_at).days
         
         status = {
             'age_days': age_days,
@@ -447,7 +447,7 @@ class ComplianceValidator:
     ) -> Dict[str, any]:
         """Generate comprehensive compliance report"""
         report = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'total_messages': len(messages),
             'regulations': {}
         }

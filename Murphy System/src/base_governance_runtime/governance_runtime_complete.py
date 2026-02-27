@@ -5,7 +5,7 @@ Main orchestration layer for base governance and compliance in the Murphy System
 Coordinates preset management, validation, and compliance monitoring with full functionality.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Dict, List, Optional, Set, Union, Any
 from uuid import UUID, uuid4
@@ -67,7 +67,7 @@ class GovernanceRuntime:
             "validations_performed": 0,
             "gaps_identified": 0,
             "presets_enabled": 0,
-            "last_status_change": datetime.utcnow()
+            "last_status_change": datetime.now(timezone.utc)
         }
     
     def initialize(self) -> ValidationResult:
@@ -111,8 +111,8 @@ class GovernanceRuntime:
                 self.status = RuntimeStatus.ERROR
                 self.logger.error("Runtime failed initialization - non-compliant")
             
-            self.initialization_time = datetime.utcnow()
-            self.last_validation_time = datetime.utcnow()
+            self.initialization_time = datetime.now(timezone.utc)
+            self.last_validation_time = datetime.now(timezone.utc)
             self.runtime_metrics["presets_enabled"] = len(enabled_presets)
             
             return initial_validation

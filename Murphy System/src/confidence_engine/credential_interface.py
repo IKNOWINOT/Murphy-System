@@ -4,7 +4,7 @@ Provides unified interface for credential verification across different services
 """
 
 from typing import Dict, List, Optional, Any, Protocol
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pydantic import BaseModel, Field
 from abc import ABC, abstractmethod
@@ -68,7 +68,7 @@ class VerificationResponse(BaseModel):
     rate_limit_remaining: Optional[int] = None
     rate_limit_reset_at: Optional[datetime] = None
     error_details: Optional[str] = None
-    verified_at: datetime = Field(default_factory=datetime.utcnow)
+    verified_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
@@ -153,7 +153,7 @@ class BaseCredentialVerifier(ABC):
         cache_key = f"{credential.id}_{request.service_provider}"
         if cache_key in self.verification_cache:
             cached_time, cached_response = self.verification_cache[cache_key]
-            if (datetime.utcnow() - cached_time).seconds < self.cache_ttl_seconds:
+            if (datetime.now(timezone.utc) - cached_time).seconds < self.cache_ttl_seconds:
                 return cached_response
         
         passed_methods = []
@@ -230,7 +230,7 @@ class BaseCredentialVerifier(ABC):
         )
         
         # Cache response
-        self.verification_cache[cache_key] = (datetime.utcnow(), response)
+        self.verification_cache[cache_key] = (datetime.now(timezone.utc), response)
         
         return response
     
@@ -322,7 +322,7 @@ class GitHubCredentialVerifier(BaseCredentialVerifier):
     ) -> Tuple[Optional[int], Optional[datetime]]:
         """Check GitHub rate limits."""
         # Placeholder - would check X-RateLimit-Remaining header
-        return 5000, datetime.utcnow() + timedelta(hours=1)
+        return 5000, datetime.now(timezone.utc) + timedelta(hours=1)
 
 
 class DatabaseCredentialVerifier(BaseCredentialVerifier):

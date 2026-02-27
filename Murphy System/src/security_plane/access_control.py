@@ -16,7 +16,7 @@ Author: Murphy System (MFGC-AI)
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 import hashlib
 import json
@@ -63,7 +63,7 @@ class Capability:
     
     def is_expired(self) -> bool:
         """Check if capability has expired"""
-        return datetime.utcnow() >= self.expires_at
+        return datetime.now(timezone.utc) >= self.expires_at
     
     def matches_resource(self, resource: str) -> bool:
         """Check if capability matches requested resource"""
@@ -91,7 +91,7 @@ class AccessRequest:
     resource: str
     action: str  # read, write, execute
     context: Dict[str, any] = field(default_factory=dict)
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     
     def to_dict(self) -> Dict:
         """Convert to dictionary"""
@@ -113,12 +113,12 @@ class AccessGrant:
     trust_score_at_grant: float
     authority_level: AuthorityLevel
     conditions: Dict[str, any] = field(default_factory=dict)
-    expires_at: datetime = field(default_factory=lambda: datetime.utcnow() + timedelta(minutes=5))
-    granted_at: datetime = field(default_factory=datetime.utcnow)
+    expires_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(minutes=5))
+    granted_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     
     def is_expired(self) -> bool:
         """Check if grant has expired"""
-        return datetime.utcnow() >= self.expires_at
+        return datetime.now(timezone.utc) >= self.expires_at
     
     def to_dict(self) -> Dict:
         """Convert to dictionary"""
@@ -168,7 +168,7 @@ class TrustRecomputer:
             Updated trust score
         """
         # Apply time-based decay
-        hours_elapsed = (datetime.utcnow() - current_trust.computed_at).total_seconds() / 3600
+        hours_elapsed = (datetime.now(timezone.utc) - current_trust.computed_at).total_seconds() / 3600
         decay_factor = (1 - self.decay_rate) ** hours_elapsed
         decayed_confidence = current_trust.confidence * decay_factor
         
@@ -176,7 +176,7 @@ class TrustRecomputer:
         signals = self.behavior_signals.get(principal_id, [])
         recent_signals = [
             signal for timestamp, signal in signals
-            if (datetime.utcnow() - timestamp).total_seconds() < 3600  # Last hour
+            if (datetime.now(timezone.utc) - timestamp).total_seconds() < 3600  # Last hour
         ]
         
         if recent_signals:
@@ -198,7 +198,7 @@ class TrustRecomputer:
             identity_id=current_trust.identity_id,
             trust_level=trust_level,
             confidence=decayed_confidence,
-            computed_at=datetime.utcnow(),
+            computed_at=datetime.now(timezone.utc),
             cryptographic_proof_strength=current_trust.cryptographic_proof_strength * decay_factor,
             behavioral_consistency=current_trust.behavioral_consistency * decay_factor,
             confidence_stability=current_trust.confidence_stability * decay_factor,
@@ -225,7 +225,7 @@ class TrustRecomputer:
         if principal_id not in self.behavior_signals:
             self.behavior_signals[principal_id] = []
         
-        self.behavior_signals[principal_id].append((datetime.utcnow(), signal))
+        self.behavior_signals[principal_id].append((datetime.now(timezone.utc), signal))
         
         # Keep only last 100 signals
         self.behavior_signals[principal_id] = self.behavior_signals[principal_id][-100:]
@@ -319,7 +319,7 @@ class AuthorityBandEnforcer:
         if principal_id not in self.authority_history:
             self.authority_history[principal_id] = []
         
-        self.authority_history[principal_id].append((datetime.utcnow(), new_authority))
+        self.authority_history[principal_id].append((datetime.now(timezone.utc), new_authority))
         
         # Keep only last 100 changes
         self.authority_history[principal_id] = self.authority_history[principal_id][-100:]
@@ -402,9 +402,9 @@ class CapabilityManager:
         capability = Capability(
             scope=scope,
             resource_pattern=resource_pattern,
-            expires_at=datetime.utcnow() + ttl,
+            expires_at=datetime.now(timezone.utc) + ttl,
             granted_by=granted_by,
-            granted_at=datetime.utcnow(),
+            granted_at=datetime.now(timezone.utc),
             conditions=conditions or {}
         )
         

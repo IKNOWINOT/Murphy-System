@@ -5,7 +5,7 @@ Database Connectors - SQL and NoSQL database connections
 import threading
 import uuid
 from typing import Dict, List, Optional, Any, Union
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import logging
 
@@ -52,7 +52,7 @@ class DatabaseConnector:
                 
                 if connection_success:
                     self.is_connected = True
-                    self.last_connected_at = datetime.utcnow()
+                    self.last_connected_at = datetime.now(timezone.utc)
                     logger.info(f"Connected to {self.database_type.value} database")
                     return True
                 else:
@@ -165,7 +165,7 @@ class SQLDatabaseConnector(DatabaseConnector):
                 {
                     'id': 1,
                     'name': 'Test Record',
-                    'created_at': datetime.utcnow().isoformat()
+                    'created_at': datetime.now(timezone.utc).isoformat()
                 }
             ]
         elif query_lower.startswith('insert'):
@@ -235,7 +235,7 @@ class NoSQLDatabaseConnector(DatabaseConnector):
                 '_id': document_id,
                 'collection': collection,
                 'data': 'Sample document',
-                'created_at': datetime.utcnow().isoformat()
+                'created_at': datetime.now(timezone.utc).isoformat()
             }
             return IntegrationResult(success=True, data=document)
         
@@ -257,7 +257,7 @@ class NoSQLDatabaseConnector(DatabaseConnector):
         
         try:
             if 'created_at' not in document:
-                document['created_at'] = datetime.utcnow().isoformat()
+                document['created_at'] = datetime.now(timezone.utc).isoformat()
             
             if collection not in self.collections:
                 self.collections[collection] = []

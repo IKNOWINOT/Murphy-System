@@ -5,7 +5,7 @@ Integration Framework - Manage external system integrations
 import threading
 import uuid
 from typing import Dict, List, Optional, Any, Callable
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import logging
 import time
@@ -61,7 +61,7 @@ class Integration:
         
         # Status
         self.status = IntegrationStatus.INACTIVE
-        self.created_at = datetime.utcnow()
+        self.created_at = datetime.now(timezone.utc)
         self.last_connected_at: Optional[datetime] = None
         self.last_error: Optional[str] = None
         self.connection_attempts = 0
@@ -100,7 +100,7 @@ class IntegrationResult:
         self.data = data
         self.error = error
         self.metadata = metadata or {}
-        self.timestamp = datetime.utcnow()
+        self.timestamp = datetime.now(timezone.utc)
     
     def to_dict(self) -> Dict:
         """Convert result to dictionary"""
@@ -181,7 +181,7 @@ class IntegrationFramework:
             
             if connection_success:
                 integration.status = IntegrationStatus.ACTIVE
-                integration.last_connected_at = datetime.utcnow()
+                integration.last_connected_at = datetime.now(timezone.utc)
                 integration.last_error = None
                 logger.info(f"Connected to integration: {integration_id}")
                 return True
@@ -291,7 +291,7 @@ class IntegrationFramework:
             'method': method,
             'success': result.success,
             'error': result.error,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
         
         history_key = f"{integration_id}_{method}"

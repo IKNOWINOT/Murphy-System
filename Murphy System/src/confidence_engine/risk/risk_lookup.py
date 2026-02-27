@@ -4,7 +4,7 @@ Fast, intelligent risk identification and assessment service.
 """
 
 from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pydantic import BaseModel, Field
 
@@ -49,7 +49,7 @@ class RiskLookupCache:
         """Get cached result if available and not expired."""
         if key in self.cache:
             cached_time, result = self.cache[key]
-            if (datetime.utcnow() - cached_time).seconds < self.ttl_seconds:
+            if (datetime.now(timezone.utc) - cached_time).seconds < self.ttl_seconds:
                 return result
             else:
                 # Remove expired entry
@@ -58,7 +58,7 @@ class RiskLookupCache:
     
     def set(self, key: str, result: RiskIdentificationResult):
         """Cache a result."""
-        self.cache[key] = (datetime.utcnow(), result)
+        self.cache[key] = (datetime.now(timezone.utc), result)
     
     def clear(self):
         """Clear all cached results."""
@@ -308,7 +308,7 @@ class RiskLookupService:
         Returns:
             List of risk incidents
         """
-        start_date = datetime.utcnow() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
         return self.storage.database.get_risk_incidents(
             pattern_id=pattern_id,
             start_date=start_date

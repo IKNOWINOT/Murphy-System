@@ -5,7 +5,7 @@ Validates system configuration against governance requirements and identifies
 gaps in control implementation and artifact availability.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Dict, List, Optional, Set, Union, Any
 from uuid import UUID, uuid4
@@ -148,7 +148,7 @@ class ValidationEngine:
     def validate_configuration(self, enabled_presets: List[GovernancePreset]) -> ValidationResult:
         """Validate current system configuration against enabled presets"""
         
-        validation_id = f"validation_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+        validation_id = f"validation_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
         
         # Collect all requirements
         all_requirements = []
@@ -183,7 +183,7 @@ class ValidationEngine:
         
         return ValidationResult(
             validation_id=validation_id,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             overall_status=overall_status,
             total_requirements=total_requirements,
             satisfied_requirements=satisfied_requirements,
@@ -278,7 +278,7 @@ class ValidationEngine:
         if missing_mandatory:
             return ValidationResult(
                 validation_id="mandatory_baseline_check",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 overall_status=ComplianceStatus.NON_COMPLIANT,
                 total_requirements=len(mandatory_controls),
                 satisfied_requirements=len(mandatory_controls) - len(missing_mandatory),
@@ -299,7 +299,7 @@ class ValidationEngine:
         
         return ValidationResult(
             validation_id="mandatory_baseline_check",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             overall_status=ComplianceStatus.COMPLIANT,
             total_requirements=len(mandatory_controls),
             satisfied_requirements=len(mandatory_controls),

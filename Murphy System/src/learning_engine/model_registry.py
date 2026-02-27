@@ -5,7 +5,7 @@ This module manages model versions and deployment.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from uuid import UUID, uuid4
@@ -39,8 +39,8 @@ class ModelVersion:
     deployment_environment: str = ""  # dev, staging, production
     
     # Timestamps
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     
     # Tags and labels
     tags: List[str] = field(default_factory=list)
@@ -153,9 +153,9 @@ class ModelRegistry:
         
         # Update model status
         model.status = "deployed"
-        model.deployed_at = datetime.utcnow()
+        model.deployed_at = datetime.now(timezone.utc)
         model.deployment_environment = environment
-        model.updated_at = datetime.utcnow()
+        model.updated_at = datetime.now(timezone.utc)
         
         # Track deployed model
         self.deployed_models[environment] = model
@@ -181,7 +181,7 @@ class ModelRegistry:
         logger.info(f"Archiving model {model.name} v{model.version}")
         
         model.status = "archived"
-        model.updated_at = datetime.utcnow()
+        model.updated_at = datetime.now(timezone.utc)
         
         self._save_registry()
     
@@ -197,7 +197,7 @@ class ModelRegistry:
             raise ValueError(f"Model not found: {model_id}")
         
         model.performance_metrics.update(metrics)
-        model.updated_at = datetime.utcnow()
+        model.updated_at = datetime.now(timezone.utc)
         
         self._save_registry()
     

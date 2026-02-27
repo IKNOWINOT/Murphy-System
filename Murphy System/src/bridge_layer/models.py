@@ -8,7 +8,7 @@ Defines all data structures for System A → System B bridging:
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Dict, List, Optional, Any, Literal
 import hashlib
@@ -63,7 +63,7 @@ class HypothesisArtifact:
     execution_rights: Literal[False] = False
     
     # Metadata
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     source_system: str = "system_a"
     provenance: Dict[str, Any] = field(default_factory=dict)
     integrity_hash: str = ""
@@ -139,7 +139,7 @@ class VerificationRequest:
     claim: str
     context: Dict[str, Any]
     priority: Literal["low", "medium", "high", "critical"]
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -185,7 +185,7 @@ class VerificationArtifact:
         provenance: Optional[Dict[str, Any]] = None,
     ) -> "VerificationArtifact":
         """Create a new verification artifact"""
-        timestamp = datetime.utcnow()
+        timestamp = datetime.now(timezone.utc)
         verification_id = f"verification_{hypothesis_id}_{timestamp.timestamp()}"
         
         if provenance is None:
@@ -256,7 +256,7 @@ class CompilationResult:
     verifications_complete: List[str]
     verifications_pending: List[str]
     required_evidence: List[str]
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -295,7 +295,7 @@ class IntakeResult:
     confidence_impact: Optional[float]  # Estimated impact on confidence
     admissible_scope: str  # Description of what can be done
     rejection_reasons: List[str]  # If not admitted
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     
     def to_dict(self) -> Dict[str, Any]:
         return {

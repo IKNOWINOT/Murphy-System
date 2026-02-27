@@ -4,7 +4,7 @@ Stores, retrieves, and manages corrections with advanced querying.
 """
 
 from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 import json
 
@@ -100,7 +100,7 @@ class CorrectionStore:
             if hasattr(correction, key):
                 setattr(correction, key, value)
         
-        correction.updated_at = datetime.utcnow()
+        correction.updated_at = datetime.now(timezone.utc)
         
         # Record event
         event = CorrectionEvent(
@@ -340,7 +340,7 @@ class CorrectionAnalytics:
         days: int = 30
     ) -> Dict[str, Any]:
         """Get correction trends over time."""
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         corrections = [
             c for c in self.store.corrections.values()
             if c.created_at >= cutoff

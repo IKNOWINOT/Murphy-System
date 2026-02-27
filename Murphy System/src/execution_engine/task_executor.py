@@ -6,7 +6,7 @@ import threading
 import time
 import uuid
 from typing import Dict, List, Optional, Callable, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 import logging
 from concurrent.futures import ThreadPoolExecutor, Future
@@ -62,7 +62,7 @@ class Task:
         self.retry_count = 0
         self.result = None
         self.error = None
-        self.created_at = datetime.utcnow()
+        self.created_at = datetime.now(timezone.utc)
         self.started_at: Optional[datetime] = None
         self.completed_at: Optional[datetime] = None
         self.execution_time: Optional[float] = None
@@ -212,7 +212,7 @@ class TaskExecutor:
     
     def _execute_task(self, task: Task) -> None:
         """Execute a single task"""
-        task.started_at = datetime.utcnow()
+        task.started_at = datetime.now(timezone.utc)
         self.scheduler.update_task_state(task.task_id, TaskState.RUNNING)
         
         try:
@@ -224,7 +224,7 @@ class TaskExecutor:
             # Task completed successfully
             task.result = result
             task.state = TaskState.COMPLETED
-            task.completed_at = datetime.utcnow()
+            task.completed_at = datetime.now(timezone.utc)
             task.execution_time = (task.completed_at - task.started_at).total_seconds()
             
             logger.info(f"Task completed: {task.task_id} in {task.execution_time:.2f}s")
@@ -233,7 +233,7 @@ class TaskExecutor:
             # Task failed
             task.error = e
             task.state = TaskState.FAILED
-            task.completed_at = datetime.utcnow()
+            task.completed_at = datetime.now(timezone.utc)
             task.execution_time = (task.completed_at - task.started_at).total_seconds()
             
             logger.error(f"Task failed: {task.task_id} - {e}")
@@ -251,7 +251,7 @@ class TaskExecutor:
         for attempt in range(task.max_retries + 1):
             try:
                 # Check timeout
-                if task.started_at and (datetime.utcnow() - task.started_at).total_seconds() > task.timeout:
+                if task.started_at and (datetime.now(timezone.utc) - task.started_at).total_seconds() > task.timeout:
                     raise TimeoutError(f"Task timeout after {task.timeout}s")
                 
                 # Execute the task action
@@ -286,7 +286,7 @@ class TaskExecutor:
             'task_id': task.task_id,
             'task_type': task.task_type,
             'parameters': task.parameters,
-            'executed_at': datetime.utcnow().isoformat()
+            'executed_at': datetime.now(timezone.utc).isoformat()
         }
     
     def cancel_task(self, task_id: str) -> bool:

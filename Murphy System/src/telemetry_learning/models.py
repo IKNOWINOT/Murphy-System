@@ -53,7 +53,7 @@ class OperationalTelemetry:
     latency_ms: float
     failure_reason: Optional[str] = None
     phase: Optional[str] = None
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -76,7 +76,7 @@ class HumanTelemetry:
     approval_latency_ms: Optional[float] = None
     override_reason: Optional[str] = None
     correction_details: Optional[Dict[str, Any]] = None
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -100,7 +100,7 @@ class ControlTelemetry:
     confidence_after: Optional[float] = None
     murphy_index: Optional[float] = None
     blocking_reason: Optional[str] = None
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -124,7 +124,7 @@ class SafetyTelemetry:
     abort_reason: Optional[str] = None
     near_miss_details: Optional[Dict[str, Any]] = None
     recovery_action: Optional[str] = None
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -145,7 +145,7 @@ class MarketTelemetry:
     source: str
     content: Dict[str, Any]
     relevance_score: float  # [0, 1]
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     
     def to_dict(self) -> Dict[str, Any]:
         return {

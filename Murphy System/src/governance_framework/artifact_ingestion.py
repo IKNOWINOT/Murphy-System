@@ -8,7 +8,7 @@ Implements the governance artifact ingestion layer including:
 - LLM suggestion vs enforcement boundary
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Dict, List, Optional, Set, Union
 from uuid import UUID, uuid4
@@ -49,7 +49,7 @@ class GovernanceArtifact:
     source_system: str
     
     # Required metadata
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     expires_at: Optional[datetime] = None
     authority_level: str = "LOW"
     scope: ArtifactScope = ArtifactScope.ORGANIZATION
@@ -71,7 +71,7 @@ class GovernanceArtifact:
         """Check if artifact is expired"""
         if self.expires_at is None:
             return False
-        return datetime.utcnow() > self.expires_at
+        return datetime.now(timezone.utc) > self.expires_at
 
 
 class ArtifactRegistry:

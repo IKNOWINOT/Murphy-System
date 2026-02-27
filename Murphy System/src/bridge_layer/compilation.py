@@ -11,7 +11,7 @@ CRITICAL: This is the ONLY way to create ExecutionPackets.
 """
 
 from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 import uuid as _uuid
 
@@ -244,7 +244,7 @@ class ExecutionPacketCompiler:
         import hashlib
         import uuid
         
-        timestamp = datetime.utcnow()
+        timestamp = datetime.now(timezone.utc)
         nonce = str(uuid.uuid4())
         
         # Build packet

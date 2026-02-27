@@ -4,7 +4,7 @@ Correction to Training Data Transformer
 This module transforms human corrections into training examples for the shadow agent.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from uuid import UUID
 import logging
@@ -108,7 +108,7 @@ class CorrectionToTrainingTransformer:
         
         # Create dataset
         dataset = TrainingDataset(
-            name=f"corrections_dataset_{datetime.utcnow().isoformat()}",
+            name=f"corrections_dataset_{datetime.now(timezone.utc).isoformat()}",
             description=f"Training dataset from {len(corrections)} corrections",
             examples=examples,
             feature_config=self.feature_config,

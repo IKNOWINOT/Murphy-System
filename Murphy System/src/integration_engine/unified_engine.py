@@ -14,7 +14,7 @@ import sys
 import os
 from pathlib import Path
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 
 # Add parent directory to path for imports
@@ -52,7 +52,7 @@ class IntegrationResult:
         self.errors = errors or []
         self.warnings = warnings or []
         self.metadata = metadata or {}
-        self.timestamp = datetime.utcnow()
+        self.timestamp = datetime.now(timezone.utc)
     
     def to_dict(self) -> Dict:
         """Convert to dictionary"""
@@ -245,7 +245,7 @@ class UnifiedIntegrationEngine:
                 print("\n⚠️  AUTO-APPROVE ENABLED (testing mode)")
                 approval_request.status = ApprovalStatus.APPROVED
                 approval_request.approved_by = "auto_approve"
-                approval_request.approved_at = datetime.utcnow()
+                approval_request.approved_at = datetime.now(timezone.utc)
             else:
                 # Display approval request to user
                 print("\n" + "="*80)
@@ -355,7 +355,7 @@ class UnifiedIntegrationEngine:
         # Update approval status
         approval_request.status = ApprovalStatus.APPROVED
         approval_request.approved_by = approved_by
-        approval_request.approved_at = datetime.utcnow()
+        approval_request.approved_at = datetime.now(timezone.utc)
         
         # Register module with Module Manager
         print("📦 Registering module with Module Manager...")
