@@ -100,6 +100,10 @@ class TestAdapterPhase2Templates(unittest.TestCase):
 
     def test_monday_adapter(self):
         self.assertIn("monday.com", self._service_ids())
+        svc = self.adapter.get_service("monday.com")
+        self.assertEqual(svc["category"], "project_management")
+        actions = [a["name"] for a in svc["actions"]]
+        self.assertIn("create_item", actions)
 
     # -- Knowledge --
 
@@ -711,17 +715,17 @@ class TestIntegrationMetrics(unittest.TestCase):
     def test_adapter_has_minimum_services(self):
         adapter = UniversalIntegrationAdapter()
         services = adapter.list_services()
-        self.assertGreaterEqual(len(services), 65, "Adapter should have 65+ services")
+        self.assertGreaterEqual(len(services), 69, "Adapter should have 69+ services")
 
     def test_connector_has_minimum_definitions(self):
         fw = PlatformConnectorFramework()
         connectors = fw.list_available_connectors()
-        self.assertGreaterEqual(len(connectors), 70, "Framework should have 70+ connectors")
+        self.assertGreaterEqual(len(connectors), 76, "Framework should have 76+ connectors")
 
     def test_webhooks_have_minimum_sources(self):
         wp = WebhookEventProcessor()
         sources = wp.list_sources()
-        self.assertGreaterEqual(len(sources), 40, "Processor should have 40+ webhook sources")
+        self.assertGreaterEqual(len(sources), 47, "Processor should have 47+ webhook sources")
 
     def test_adapter_categories_are_comprehensive(self):
         adapter = UniversalIntegrationAdapter()
