@@ -2,7 +2,7 @@
 
 **Universal AI Automation System**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/inoni-llc/murphy) [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.11+-yellow.svg)](https://www.python.org/)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/IKNOWINOT/Murphy-System) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.11+-yellow.svg)](https://www.python.org/)
 
 ---
 
@@ -23,20 +23,42 @@ Murphy is a **complete, operational AI automation system** that can automate any
 
 ## 🚀 Quick Start
 
-### First Time Setup (10 minutes)
+### One-Line Install (Recommended)
 
 ```bash
-# 1. Navigate to Murphy
-cd "Murphy System"
+curl -fsSL https://raw.githubusercontent.com/IKNOWINOT/Murphy-System/main/install.sh | bash
+```
+
+This downloads Murphy, creates a virtual environment, installs all dependencies, and sets up the `murphy` CLI. Then start automating:
+
+```bash
+murphy start          # Start in foreground
+murphy start -d       # Start as background daemon
+murphy status         # Check health
+murphy stop           # Stop daemon
+murphy help           # See all commands
+```
+
+> **No API key required** — the onboard LLM works out of the box. Add a [Groq API key](https://console.groq.com) to `.env` for enhanced quality (optional).
+
+Install to a custom directory:
+```bash
+curl -fsSL https://raw.githubusercontent.com/IKNOWINOT/Murphy-System/main/install.sh | bash -s -- /opt/murphy
+```
+
+### Manual Setup
+
+```bash
+# 1. Clone and navigate
+git clone https://github.com/IKNOWINOT/Murphy-System.git
+cd Murphy-System/Murphy\ System
 
 # 2. Run setup script
 ./setup_murphy.sh  # Linux/Mac
-# OR
 setup_murphy.bat   # Windows
 
 # 3. Start Murphy
 ./start_murphy_1.0.sh  # Linux/Mac
-# OR
 start_murphy_1.0.bat   # Windows
 
 # 4. Access Murphy
@@ -44,12 +66,8 @@ start_murphy_1.0.bat   # Windows
 # Status: http://localhost:6666/api/status
 ```
 
-**⚠️ Important:** You need at least one API key (Groq recommended - free at https://console.groq.com)
-
-**Dependency install from repo root:** run `python -m pip install -r requirements.txt` (this root file points to `Murphy System/requirements.txt`, which includes `pytest`).
-
-**📚 Setup Documentation:**
-- **Complete Guide:** [GETTING_STARTED.md](GETTING_STARTED.md) - Comprehensive instructions
+**📚 Documentation:**
+- **Complete Guide:** [GETTING_STARTED.md](GETTING_STARTED.md)
 - **Quick Start:** [Murphy System/MURPHY_1.0_QUICK_START.md](Murphy%20System/MURPHY_1.0_QUICK_START.md)
 - **API Reference:** [Murphy System/API_DOCUMENTATION.md](Murphy%20System/API_DOCUMENTATION.md)
 - **Deployment Guide:** [Murphy System/DEPLOYMENT_GUIDE.md](Murphy%20System/DEPLOYMENT_GUIDE.md)
@@ -79,11 +97,19 @@ start_murphy_1.0.bat   # Windows
 Murphy-System/
 ├── README.md                           ← You are here
 ├── GETTING_STARTED.md                  ← Setup guide
-├── LICENSE
+├── CONTRIBUTING.md                     ← Contribution guidelines
+├── CODE_OF_CONDUCT.md                  ← Community standards
+├── SECURITY.md                         ← Vulnerability reporting
+├── CHANGELOG.md                        ← Version history
+├── LICENSE                             ← BSL 1.1 (→ Apache 2.0 after 4 yr)
+├── install.sh                          ← One-line CLI installer
 ├── .gitignore
 ├── requirements.txt
-├── docs/screenshots/                   ← 41 verification screenshots
+├── docs/
+│   ├── screenshots/                    ← 41 verification screenshots
+│   └── LICENSE_STRATEGY.md             ← License rationale
 └── Murphy System/                      ← ACTIVE SYSTEM
+    ├── murphy                          ← CLI tool (start/stop/status/…)
     ├── murphy_system_1.0_runtime.py    ← Single production runtime
     ├── src/                            ← 420+ production modules
     ├── tests/                          ← 210+ test files (4100+ tests)
@@ -95,6 +121,7 @@ Murphy-System/
     ├── scripts/                        ← Operational scripts
     ├── *.html                          ← 7 neon terminal UIs
     ├── USER_MANUAL.md                  ← Comprehensive user manual
+    ├── BUSINESS_MODEL.md               ← Open-core editions
     ├── README.md, API_DOCUMENTATION.md, DEPLOYMENT_GUIDE.md
     ├── Dockerfile, docker-compose.yml  ← Container deployment
     └── archive/                        ← Archived legacy files
@@ -297,6 +324,7 @@ Murphy-System/
 - **Bot telemetry normalizer (IMPLEMENTED):** `src/bot_telemetry_normalizer.py` standardizes triage/rubix bot event payloads into Murphy observability schema with 9 default rules. Single/batch normalization, unmapped event tracking, and reporting. 25 tests in `tests/test_bot_telemetry_normalizer.py`.
 - **Legacy compatibility matrix (IMPLEMENTED):** `src/legacy_compatibility_matrix.py` routes legacy orchestration bridge hooks and compatibility-matrix decisions through profile-governed runtime controls. Compatibility entry registry, bridge hook execution, BFS multi-hop migration paths, readiness scoring, and governance validation. 37 tests in `tests/test_legacy_compatibility_matrix.py`.
 - **HITL autonomy controller (IMPLEMENTED):** `src/hitl_autonomy_controller.py` provides runtime policy toggles for HITL arming/disarming and high-confidence autonomy enablement. Confidence thresholds (95%+ default), risk-level auto-approve, max autonomous action limits, cooldown management, and autonomy stats. 35 tests in `tests/test_hitl_autonomy_controller.py`.
+- **Freelancer validator (IMPLEMENTED):** `src/freelancer_validator/` dispatches HITL validation tasks to freelance platforms (Fiverr, Upwork, generic). Org-level budget enforcement (monthly + per-task limits), structured criteria with weighted scoring, format-validated responses, credential verification against public records (BBB, state license boards) with complaint/disciplinary-action lookup, and automatic wiring of freelancer verdicts back into the HITL monitor as `InterventionResponse` objects. 47 tests in `tests/commissioning/test_freelancer_validator.py`.
 - **Compliance region validator (IMPLEMENTED):** `src/compliance_region_validator.py` validates compliance sensors against region-specific requirements before delivery. Pre-registered defaults for 6 regions (EU/GDPR, US_CA/CCPA, US_HIPAA/HIPAA, CA/PIPEDA, BR/LGPD, AU/APPs), cross-border checks, data residency, retention validation, and framework aggregation. 39 tests in `tests/test_compliance_region_validator.py`.
 - **Observability summary counters (IMPLEMENTED):** `src/observability_counters.py` provides summary counters distinguishing behavior fixes from permutation-only coverage for closed-loop improvement. Counter registration by category, increment tracking, behavior-vs-permutation ratio, module summary, improvement velocity, and filtered history. 37 tests in `tests/test_observability_counters.py`.
 - **Deterministic routing engine (IMPLEMENTED):** `src/deterministic_routing_engine.py` provides policy-driven deterministic vs LLM routing with default policies (math/compute/validation → deterministic, creative/generation → LLM, analysis → hybrid), guardrail evaluation, MFGC fallback promotion, route parity validation, and routing statistics. 59 tests in `tests/test_deterministic_routing_engine.py`.
@@ -389,6 +417,7 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **Bot Telemetry Normalizer** | `src/bot_telemetry_normalizer.py` | Triage/rubix bot events → Murphy observability schema |
 | **Legacy Compatibility Matrix** | `src/legacy_compatibility_matrix.py` | Legacy orchestration bridge hooks, migration paths, governance validation |
 | **HITL Autonomy Controller** | `src/hitl_autonomy_controller.py` | HITL arming/disarming, confidence-gated autonomy, cooldown management |
+| **Freelancer Validator** | `src/freelancer_validator/` | Freelance-platform HITL: Fiverr/Upwork adapters, org budgets, criteria scoring, credential verification |
 | **Compliance Region Validator** | `src/compliance_region_validator.py` | Region-specific compliance validation, cross-border checks, data residency |
 | **Observability Summary Counters** | `src/observability_counters.py` | Behavior fix vs coverage tracking, improvement velocity, closed-loop metrics |
 | **Deterministic Routing Engine** | `src/deterministic_routing_engine.py` | Policy-driven deterministic/LLM/hybrid routing, fallback promotion, parity |
@@ -720,18 +749,28 @@ k6 run tests/performance/load-test.js
 
 ## 🤝 Contributing
 
-We welcome contributions! See the [documentation index](<Murphy System/documentation/README.md>) for guidelines.
+We welcome contributions! Please read:
+- [CONTRIBUTING.md](CONTRIBUTING.md) — How to contribute
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — Community standards
+- [SECURITY.md](SECURITY.md) — Reporting vulnerabilities
 
 ---
 
 ## 📄 License
 
-**Apache License 2.0**
+**Business Source License 1.1 (BSL 1.1)**
 
-Copyright © 2020 Inoni Limited Liability Company  
+Copyright © 2025 Inoni Limited Liability Company  
 Creator: Corey Post
 
-See [LICENSE](LICENSE) for details.
+The core Murphy System is licensed under BSL 1.1, which converts to Apache
+License 2.0 after four years. You may freely use, modify, and redistribute
+the software for any purpose except offering it as a competing hosted service.
+Enterprise features are available under a separate commercial license.
+
+See [LICENSE](LICENSE) for the full license text and
+[docs/LICENSE_STRATEGY.md](docs/LICENSE_STRATEGY.md) for the detailed license
+strategy analysis.
 
 ---
 

@@ -490,6 +490,20 @@ except ImportError as e:
     print(f"Warning: Security hardening config not available: {e}")
     SecurityHardeningConfig = None
 
+# Image Generation Engine (open-source, no API key required)
+try:
+    from src.image_generation_engine import ImageGenerationEngine, ImageRequest, ImageStyle
+except ImportError as e:
+    print(f"Warning: Image generation engine not available: {e}")
+    ImageGenerationEngine = None
+
+# Universal Integration Adapter (plug-and-play for any service)
+try:
+    from src.universal_integration_adapter import UniversalIntegrationAdapter, IntegrationSpec
+except ImportError as e:
+    print(f"Warning: Universal integration adapter not available: {e}")
+    UniversalIntegrationAdapter = None
+
 # FastAPI for REST API
 try:
     from fastapi import FastAPI, HTTPException, Request
@@ -2642,6 +2656,32 @@ class MurphySystem:
                 self.security_hardening_config = None
         else:
             self.security_hardening_config = None
+
+        # Image Generation Engine (open-source, no API key required)
+        if ImageGenerationEngine:
+            try:
+                self.image_generation_engine = ImageGenerationEngine()
+                logger.info("Image generation engine initialized (backend=%s, styles=%d)",
+                            self.image_generation_engine.get_active_backend(),
+                            len(self.image_generation_engine.get_available_styles()))
+            except Exception as exc:
+                logger.warning("Image generation engine initialization failed: %s", exc)
+                self.image_generation_engine = None
+        else:
+            self.image_generation_engine = None
+
+        # Universal Integration Adapter (32+ pre-loaded service templates)
+        if UniversalIntegrationAdapter:
+            try:
+                self.universal_integration_adapter = UniversalIntegrationAdapter()
+                stats = self.universal_integration_adapter.statistics()
+                logger.info("Universal integration adapter initialized with %d services across %d categories",
+                            stats["total_integrations"], len(stats["categories"]))
+            except Exception as exc:
+                logger.warning("Universal integration adapter initialization failed: %s", exc)
+                self.universal_integration_adapter = None
+        else:
+            self.universal_integration_adapter = None
 
         # ---- Wire all integration modules into executive planning binder ----
         self._wire_integrations_to_planning_engine()
@@ -12213,6 +12253,135 @@ def create_app() -> FastAPI:
         """Get latest activation preview from request processing"""
         preview = murphy.latest_activation_preview
         return JSONResponse({"success": bool(preview), "preview": preview})
+
+    # ==================== IMAGE GENERATION ENDPOINTS ====================
+
+    @app.post("/api/images/generate")
+    async def generate_image(request: Request):
+        """Generate an image using the open-source image generation engine."""
+        if not murphy.image_generation_engine:
+            return JSONResponse({"success": False, "error": "Image generation engine not available"}, status_code=503)
+        data = await request.json()
+        from src.image_generation_engine import ImageRequest as ImgReq, ImageStyle as ImgStyle
+        style_str = data.get("style", "digital_art")
+        try:
+            style = ImgStyle(style_str)
+        except ValueError:
+            style = ImgStyle.DIGITAL_ART
+        req = ImgReq(
+            prompt=data.get("prompt", ""),
+            negative_prompt=data.get("negative_prompt", ""),
+            width=data.get("width", 1024),
+            height=data.get("height", 1024),
+            style=style,
+            seed=data.get("seed"),
+        )
+        result = murphy.image_generation_engine.generate(req)
+        return JSONResponse({"success": result.status.value == "complete", **result.to_dict()})
+
+    @app.get("/api/images/styles")
+    async def list_image_styles():
+        """List available image generation styles."""
+        if not murphy.image_generation_engine:
+            return JSONResponse({"success": False, "error": "Image generation engine not available"}, status_code=503)
+        return JSONResponse({
+            "success": True,
+            "styles": murphy.image_generation_engine.get_available_styles(),
+            "backends": murphy.image_generation_engine.get_available_backends(),
+            "active_backend": murphy.image_generation_engine.get_active_backend(),
+        })
+
+    @app.get("/api/images/stats")
+    async def image_generation_stats():
+        """Get image generation statistics."""
+        if not murphy.image_generation_engine:
+            return JSONResponse({"success": False, "error": "Image generation engine not available"}, status_code=503)
+        return JSONResponse({"success": True, **murphy.image_generation_engine.get_statistics()})
+
+    # ==================== UNIVERSAL INTEGRATION ENDPOINTS ====================
+
+    @app.get("/api/universal-integrations/services")
+    async def list_universal_integrations(request: Request):
+        """List all available universal integration services."""
+        if not murphy.universal_integration_adapter:
+            return JSONResponse({"success": False, "error": "Universal integration adapter not available"}, status_code=503)
+        category = request.query_params.get("category")
+        services = murphy.universal_integration_adapter.list_services(category)
+        return JSONResponse({"success": True, "services": services, "total": len(services)})
+
+    @app.get("/api/universal-integrations/categories")
+    async def list_integration_categories():
+        """List all integration categories."""
+        if not murphy.universal_integration_adapter:
+            return JSONResponse({"success": False, "error": "Universal integration adapter not available"}, status_code=503)
+        return JSONResponse({"success": True, "categories": murphy.universal_integration_adapter.list_categories()})
+
+    @app.get("/api/universal-integrations/services/{service_id}")
+    async def get_integration_service(service_id: str):
+        """Get details for a specific integration service."""
+        if not murphy.universal_integration_adapter:
+            return JSONResponse({"success": False, "error": "Universal integration adapter not available"}, status_code=503)
+        service = murphy.universal_integration_adapter.get_service(service_id)
+        if service is None:
+            return JSONResponse({"success": False, "error": f"Service '{service_id}' not found"}, status_code=404)
+        return JSONResponse({"success": True, **service})
+
+    @app.post("/api/universal-integrations/services/{service_id}/configure")
+    async def configure_integration(service_id: str, request: Request):
+        """Configure credentials for an integration service."""
+        if not murphy.universal_integration_adapter:
+            return JSONResponse({"success": False, "error": "Universal integration adapter not available"}, status_code=503)
+        data = await request.json()
+        result = murphy.universal_integration_adapter.configure(service_id, data.get("credentials", {}))
+        return JSONResponse({"success": "error" not in result, **result})
+
+    @app.post("/api/universal-integrations/services/{service_id}/execute/{action_name}")
+    async def execute_integration_action(service_id: str, action_name: str, request: Request):
+        """Execute an action on an integration service."""
+        if not murphy.universal_integration_adapter:
+            return JSONResponse({"success": False, "error": "Universal integration adapter not available"}, status_code=503)
+        try:
+            data = await request.json()
+        except Exception:
+            data = {}
+        result = murphy.universal_integration_adapter.execute(service_id, action_name, data.get("params", data))
+        return JSONResponse({"success": result.status.value == "success", **result.to_dict()})
+
+    @app.post("/api/universal-integrations/register")
+    async def register_custom_integration(request: Request):
+        """Register a custom integration service."""
+        if not murphy.universal_integration_adapter:
+            return JSONResponse({"success": False, "error": "Universal integration adapter not available"}, status_code=503)
+        data = await request.json()
+        from src.universal_integration_adapter import IntegrationSpec as ISpec, IntegrationAction as IAction
+        from src.universal_integration_adapter import IntegrationCategory as ICat, IntegrationAuthMethod as IAuth
+        try:
+            cat = ICat(data.get("category", "custom"))
+        except ValueError:
+            cat = ICat.CUSTOM
+        try:
+            auth = IAuth(data.get("auth_method", "api_key"))
+        except ValueError:
+            auth = IAuth.API_KEY
+        actions = [IAction(name=a["name"], description=a.get("description", ""), method=a.get("method", "POST"), endpoint=a.get("endpoint", "")) for a in data.get("actions", [])]
+        spec = ISpec(
+            name=data.get("name", "Custom Service"),
+            category=cat,
+            description=data.get("description", ""),
+            base_url=data.get("base_url", ""),
+            auth_method=auth,
+            actions=actions,
+            metadata=data.get("metadata", {}),
+        )
+        result = murphy.universal_integration_adapter.register(spec)
+        return JSONResponse({"success": True, **result})
+
+    @app.get("/api/universal-integrations/stats")
+    async def universal_integration_stats():
+        """Get universal integration adapter statistics."""
+        if not murphy.universal_integration_adapter:
+            return JSONResponse({"success": False, "error": "Universal integration adapter not available"}, status_code=503)
+        return JSONResponse({"success": True, **murphy.universal_integration_adapter.statistics()})
 
     return app
 

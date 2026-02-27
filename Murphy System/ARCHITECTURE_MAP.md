@@ -374,6 +374,35 @@ Safe if: murphy_index > threshold (default 0.5)
 5. **Decision** - Approve/Reject/Modify
 6. **Execution** - Continue or abort based on decision
 
+#### Freelancer Validator (`src/freelancer_validator/`)
+
+Extends the HITL system to hire external human validators on freelance
+platforms (Fiverr, Upwork, or a generic self-hosted queue).
+
+**Components:**
+- `models.py` — FreelancerTask, FreelancerResponse, ValidationCriteria, BudgetConfig, Credential, CredentialRequirement, ValidatorCredentialProfile
+- `platform_client.py` — Abstract client + Fiverr/Upwork/Generic adapters
+- `budget_manager.py` — Org-level monthly + per-task budget enforcement
+- `criteria_engine.py` — Build criteria, format instructions, score responses
+- `credential_verifier.py` — Verifies validator credentials against public records (BBB, state license boards), checks for complaints/disciplinary actions
+- `hitl_bridge.py` — Orchestrates dispatch → credential gate → ingest → HITL monitor wiring
+
+**Credential Verification:**
+- 7 credential types: professional license, industry certification, academic degree, government clearance, trade certification, language proficiency, platform verified
+- Pluggable public-record sources: BBB, state/provincial license boards, generic registries
+- Complaint/disciplinary-action lookup across all registered sources
+- Country/region filtering, authority validation, expiry checks
+- Tasks can require specific credentials; validators are verified before response acceptance
+
+**Flow:**
+1. **Dispatch** — HITL monitor flags low-confidence/high-risk task
+2. **Budget Gate** — BudgetManager verifies org can afford the task
+3. **Post** — Task + structured criteria + credential requirements posted to freelance platform
+4. **Validate** — Freelancer evaluates against per-criterion rubric (boolean/scale/text)
+5. **Credential Gate** — CredentialVerifier checks validator credentials against public databases and complaint registries
+6. **Ingest** — CriteriaEngine scores the response, derives verdict
+7. **Wire** — FreelancerHITLBridge calls `respond_to_intervention()` on HITL monitor
+
 ### 10. Security Plane
 
 **Component:** `src/security_plane/`
@@ -638,6 +667,8 @@ Result Delivery & Scheduling
 | **AWS** | boto3 SDK | Cloud storage |
 | **GCP** | google-cloud SDK | Cloud storage |
 | **Azure** | azure SDK | Cloud storage |
+| **Fiverr** | REST API (Business) | Freelancer HITL validation |
+| **Upwork** | REST API | Freelancer HITL validation |
 
 ### Internal Integrations
 
@@ -646,6 +677,9 @@ Result Delivery & Scheduling
 | REST API | All Systems | Function calls |
 | Form Intake | Confidence Engine | Validation pipeline |
 | Confidence Engine | HITL System | Approval workflow |
+| Freelancer Validator | HITL System | External human validation → InterventionResponse |
+| Freelancer Validator | Budget Manager | Org-level spend authorization |
+| Freelancer Validator | Credential Verifier | Public-record verification (BBB, license boards) |
 | Execution Engine | Universal Control Plane | Engine execution |
 | Execution Engine | Inoni Business | Business execution |
 | Learning Engine | Execution Engine | Telemetry collection |
