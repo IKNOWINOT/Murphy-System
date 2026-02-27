@@ -168,7 +168,6 @@ def _wire(runtime):
     # API Gateway Adapter
     aga = getattr(runtime, 'api_gateway_adapter', None)
     if aga is not None:
-        aga.get_statistics()
         binder.register_integration({
             "integration_id": "api_gateway_adapter",
             "name": "API Gateway Adapter",
@@ -361,8 +360,8 @@ def _wire(runtime):
         wired += 1
 
     # UI Testing Framework
-    utf_mod = getattr(runtime, 'ui_testing_framework', None)
-    if utf_mod is not None:
+    ui_test_fw = getattr(runtime, 'ui_testing_framework', None)
+    if ui_test_fw is not None:
         binder.register_integration({
             "integration_id": "ui_testing_framework",
             "name": "UI Testing Framework",
