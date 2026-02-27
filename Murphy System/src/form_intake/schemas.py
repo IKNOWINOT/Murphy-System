@@ -7,7 +7,7 @@ Each form type has validation rules, field types, and constraints.
 
 from typing import Dict, Any, List, Optional
 from enum import Enum
-from pydantic import BaseModel, ConfigDict, Field, validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from datetime import datetime
 
 
@@ -130,7 +130,7 @@ class PlanUploadForm(BaseModel):
     validation_criteria: List[str] = Field(
         ...,
         description="How will you know the plan is executed correctly?",
-        min_items=1
+        min_length=1
     )
     
     human_checkpoints: List[CheckpointType] = Field(
@@ -148,7 +148,8 @@ class PlanUploadForm(BaseModel):
         description="User ID who submitted the form"
     )
     
-    @validator('plan_document')
+    @field_validator('plan_document')
+    @classmethod
     def validate_document_format(cls, v):
         """Validate document format"""
         allowed_extensions = ['.pdf', '.docx', '.txt', '.md']
@@ -156,7 +157,8 @@ class PlanUploadForm(BaseModel):
             raise ValueError(f"Document must be one of: {', '.join(allowed_extensions)}")
         return v
     
-    @validator('validation_criteria')
+    @field_validator('validation_criteria')
+    @classmethod
     def validate_criteria_not_empty(cls, v):
         """Ensure validation criteria are not empty strings"""
         if any(not criterion.strip() for criterion in v):
@@ -235,7 +237,7 @@ class PlanGenerationForm(BaseModel):
     success_criteria: List[str] = Field(
         ...,
         description="How will you measure success?",
-        min_items=1
+        min_length=1
     )
     
     known_constraints: List[str] = Field(
@@ -258,14 +260,16 @@ class PlanGenerationForm(BaseModel):
         description="User ID who submitted the form"
     )
     
-    @validator('goal')
+    @field_validator('goal')
+    @classmethod
     def validate_goal_substance(cls, v):
         """Ensure goal has substance"""
         if len(v.split()) < 10:
             raise ValueError("Goal must be at least 10 words to provide sufficient context")
         return v
     
-    @validator('success_criteria')
+    @field_validator('success_criteria')
+    @classmethod
     def validate_criteria_measurable(cls, v):
         """Ensure success criteria are not empty"""
         if any(not criterion.strip() for criterion in v):
@@ -428,7 +432,8 @@ class ValidationForm(BaseModel):
         description="User ID who submitted the form"
     )
     
-    @validator('feedback')
+    @field_validator('feedback')
+    @classmethod
     def validate_feedback_substance(cls, v):
         """Ensure feedback has substance"""
         if len(v.split()) < 5:
@@ -488,7 +493,7 @@ class CorrectionForm(BaseModel):
     correction_type: List[CorrectionType] = Field(
         ...,
         description="Types of corrections being made",
-        min_items=1
+        min_length=1
     )
     
     original_output: Dict[str, Any] = Field(
@@ -523,7 +528,8 @@ class CorrectionForm(BaseModel):
         description="User ID who submitted the form"
     )
     
-    @validator('correction_rationale')
+    @field_validator('correction_rationale')
+    @classmethod
     def validate_rationale_substance(cls, v):
         """Ensure rationale has substance"""
         if len(v.split()) < 10:
