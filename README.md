@@ -2,7 +2,7 @@
 
 **Universal AI Automation System**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/inoni-llc/murphy) [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.11+-yellow.svg)](https://www.python.org/)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/inoni-llc/murphy) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.11+-yellow.svg)](https://www.python.org/)
 
 ---
 
@@ -726,12 +726,19 @@ We welcome contributions! See the [documentation index](<Murphy System/documenta
 
 ## 📄 License
 
-**Apache License 2.0**
+**Business Source License 1.1 (BSL 1.1)**
 
-Copyright © 2020 Inoni Limited Liability Company  
+Copyright © 2025 Murphy System Contributors  
 Creator: Corey Post
 
-See [LICENSE](LICENSE) for details.
+The core Murphy System is licensed under BSL 1.1, which converts to Apache
+License 2.0 after four years. You may freely use, modify, and redistribute
+the software for any purpose except offering it as a competing hosted service.
+Enterprise features are available under a separate commercial license.
+
+See [LICENSE](LICENSE) for the full license text and
+[docs/LICENSE_STRATEGY.md](docs/LICENSE_STRATEGY.md) for the detailed license
+strategy analysis.
 
 ---
 
