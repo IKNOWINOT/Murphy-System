@@ -222,7 +222,5 @@ All configuration values support runtime updates through `src/governance_toggle.
 ## References
 
 - "Agents of Chaos: Multi-Agent System Security Risk Analysis" — arXiv:2602.20021
-- Murphy System Security Plan — `murphy_system_security_plan.md`
-- Murphy System Commissioning Test Plan — `MURPHY_COMMISSIONING_TEST_PLAN.md`
 - OWASP Top 10 for LLM Applications (2025)
 - NIST AI Risk Management Framework (AI RMF 1.0)
