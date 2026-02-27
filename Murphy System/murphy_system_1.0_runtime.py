@@ -12383,6 +12383,173 @@ def create_app() -> FastAPI:
             return JSONResponse({"success": False, "error": "Universal integration adapter not available"}, status_code=503)
         return JSONResponse({"success": True, **murphy.universal_integration_adapter.statistics()})
 
+    # ==================== NO-CODE ONBOARDING ENDPOINTS ====================
+
+    # --- Setup Wizard (system configuration) ---
+
+    try:
+        from setup_wizard import SetupWizard, SetupProfile
+        _setup_wizard = SetupWizard()
+    except Exception:
+        _setup_wizard = None
+
+    try:
+        from onboarding_automation_engine import OnboardingAutomationEngine
+        _onboarding_engine = OnboardingAutomationEngine()
+    except Exception:
+        _onboarding_engine = None
+
+    @app.get("/api/onboarding/wizard/questions")
+    async def onboarding_wizard_questions():
+        """Get all setup wizard questions for no-code configuration."""
+        if _setup_wizard is None:
+            return JSONResponse({"success": False, "error": "Setup wizard not available"}, status_code=503)
+        questions = _setup_wizard.get_questions()
+        return JSONResponse({"success": True, "questions": questions, "total": len(questions)})
+
+    @app.post("/api/onboarding/wizard/answer")
+    async def onboarding_wizard_answer(request: Request):
+        """Submit an answer to a setup wizard question."""
+        if _setup_wizard is None:
+            return JSONResponse({"success": False, "error": "Setup wizard not available"}, status_code=503)
+        data = await request.json()
+        question_id = data.get("question_id", "")
+        answer = data.get("answer")
+        if not question_id:
+            return JSONResponse({"success": False, "error": "question_id is required"}, status_code=400)
+        result = _setup_wizard.apply_answer(question_id, answer)
+        return JSONResponse({"success": result["ok"], "error": result.get("error")})
+
+    @app.get("/api/onboarding/wizard/profile")
+    async def onboarding_wizard_profile():
+        """Get the current setup wizard profile state."""
+        if _setup_wizard is None:
+            return JSONResponse({"success": False, "error": "Setup wizard not available"}, status_code=503)
+        from dataclasses import asdict
+        profile = _setup_wizard.get_profile()
+        return JSONResponse({"success": True, "profile": asdict(profile)})
+
+    @app.post("/api/onboarding/wizard/validate")
+    async def onboarding_wizard_validate():
+        """Validate the current setup wizard profile."""
+        if _setup_wizard is None:
+            return JSONResponse({"success": False, "error": "Setup wizard not available"}, status_code=503)
+        profile = _setup_wizard.get_profile()
+        result = _setup_wizard.validate_profile(profile)
+        return JSONResponse({"success": True, **result})
+
+    @app.post("/api/onboarding/wizard/generate-config")
+    async def onboarding_wizard_generate_config():
+        """Generate a complete Murphy System configuration from wizard answers."""
+        if _setup_wizard is None:
+            return JSONResponse({"success": False, "error": "Setup wizard not available"}, status_code=503)
+        profile = _setup_wizard.get_profile()
+        validation = _setup_wizard.validate_profile(profile)
+        config = _setup_wizard.generate_config(profile)
+        summary = _setup_wizard.summarize(profile)
+        return JSONResponse({
+            "success": True,
+            "config": config,
+            "validation": validation,
+            "summary": summary,
+        })
+
+    @app.get("/api/onboarding/wizard/summary")
+    async def onboarding_wizard_summary():
+        """Get a human-readable summary of the current wizard configuration."""
+        if _setup_wizard is None:
+            return JSONResponse({"success": False, "error": "Setup wizard not available"}, status_code=503)
+        profile = _setup_wizard.get_profile()
+        summary = _setup_wizard.summarize(profile)
+        modules = _setup_wizard.get_enabled_modules(profile)
+        bots = _setup_wizard.get_recommended_bots(profile)
+        return JSONResponse({
+            "success": True,
+            "summary": summary,
+            "modules": modules,
+            "bots": bots,
+            "module_count": len(modules),
+            "bot_count": len(bots),
+        })
+
+    @app.post("/api/onboarding/wizard/reset")
+    async def onboarding_wizard_reset():
+        """Reset the setup wizard to start over."""
+        nonlocal _setup_wizard
+        try:
+            from setup_wizard import SetupWizard
+            _setup_wizard = SetupWizard()
+            return JSONResponse({"success": True})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    # --- Onboarding Automation Engine (employee onboarding) ---
+
+    @app.post("/api/onboarding/employees")
+    async def onboarding_create_employee(request: Request):
+        """Create a new employee onboarding profile."""
+        if _onboarding_engine is None:
+            return JSONResponse({"success": False, "error": "Onboarding engine not available"}, status_code=503)
+        data = await request.json()
+        employee_name = data.get("employee_name", "")
+        role = data.get("role", "")
+        department = data.get("department", "")
+        if not employee_name or not role or not department:
+            return JSONResponse({"success": False, "error": "employee_name, role, and department are required"}, status_code=400)
+        profile = _onboarding_engine.create_onboarding(
+            employee_name=employee_name,
+            role=role,
+            department=department,
+            mentor=data.get("mentor", ""),
+            start_date=data.get("start_date", ""),
+        )
+        return JSONResponse({"success": True, "profile": profile.to_dict()})
+
+    @app.get("/api/onboarding/employees")
+    async def onboarding_list_employees(status: str = None, department: str = None):
+        """List employee onboarding profiles."""
+        if _onboarding_engine is None:
+            return JSONResponse({"success": False, "error": "Onboarding engine not available"}, status_code=503)
+        profiles = _onboarding_engine.list_profiles(status=status, department=department)
+        return JSONResponse({"success": True, "profiles": profiles, "total": len(profiles)})
+
+    @app.get("/api/onboarding/employees/{profile_id}")
+    async def onboarding_get_employee(profile_id: str):
+        """Get a specific employee onboarding profile."""
+        if _onboarding_engine is None:
+            return JSONResponse({"success": False, "error": "Onboarding engine not available"}, status_code=503)
+        profile = _onboarding_engine.get_profile(profile_id)
+        if profile is None:
+            return JSONResponse({"success": False, "error": "Profile not found"}, status_code=404)
+        return JSONResponse({"success": True, "profile": profile})
+
+    @app.post("/api/onboarding/employees/{profile_id}/tasks/{task_id}/complete")
+    async def onboarding_complete_task(profile_id: str, task_id: str):
+        """Mark an onboarding task as completed."""
+        if _onboarding_engine is None:
+            return JSONResponse({"success": False, "error": "Onboarding engine not available"}, status_code=503)
+        result = _onboarding_engine.complete_task(profile_id, task_id)
+        if result is None:
+            return JSONResponse({"success": False, "error": "Profile or task not found"}, status_code=404)
+        return JSONResponse({"success": True, "profile": result.to_dict()})
+
+    @app.post("/api/onboarding/employees/{profile_id}/tasks/{task_id}/skip")
+    async def onboarding_skip_task(profile_id: str, task_id: str):
+        """Skip an onboarding task."""
+        if _onboarding_engine is None:
+            return JSONResponse({"success": False, "error": "Onboarding engine not available"}, status_code=503)
+        result = _onboarding_engine.skip_task(profile_id, task_id)
+        if result is None:
+            return JSONResponse({"success": False, "error": "Profile or task not found"}, status_code=404)
+        return JSONResponse({"success": True, "profile": result.to_dict()})
+
+    @app.get("/api/onboarding/status")
+    async def onboarding_engine_status():
+        """Get onboarding engine status."""
+        if _onboarding_engine is None:
+            return JSONResponse({"success": False, "error": "Onboarding engine not available"}, status_code=503)
+        return JSONResponse({"success": True, **_onboarding_engine.get_status()})
+
     return app
 
 

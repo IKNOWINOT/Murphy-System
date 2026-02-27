@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murphy System — No-Code Onboarding Wizard</title>
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --surface: #141414;
+            --border: #2a2a2a;
+            --accent: #00ff88;
+            --accent-dim: #00cc6e;
+            --text: #e0e0e0;
+            --text-dim: #888;
+            --error: #ff4444;
+            --warning: #ffaa00;
+            --info: #44aaff;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .header {
+            width: 100%;
+            padding: 20px 40px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header h1 { font-size: 1.4rem; color: var(--accent); }
+        .header .status { font-size: 0.85rem; color: var(--text-dim); }
+        .header .status.online { color: var(--accent); }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            padding: 30px 20px;
+            flex: 1;
+        }
+
+        /* Progress bar */
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 3px;
+            transition: width 0.4s ease;
+        }
+        .progress-text {
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+        }
+
+        /* Welcome screen */
+        .welcome {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        .welcome h2 { font-size: 2rem; color: var(--accent); margin-bottom: 16px; }
+        .welcome p { color: var(--text-dim); font-size: 1.1rem; margin-bottom: 30px; line-height: 1.6; }
+
+        /* Question card */
+        .question-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            transition: opacity 0.3s ease;
+        }
+        .question-card .q-number {
+            color: var(--accent);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .question-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: var(--text);
+        }
+
+        /* Input styles */
+        .text-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .text-input:focus { border-color: var(--accent); }
+
+        .option-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px;
+        }
+        .option-btn {
+            padding: 12px 16px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        .option-btn:hover { border-color: var(--accent); background: #0d1f12; }
+        .option-btn.selected {
+            border-color: var(--accent);
+            background: #0d2a16;
+            color: var(--accent);
+        }
+
+        .bool-group { display: flex; gap: 12px; }
+        .bool-btn {
+            flex: 1;
+            padding: 14px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        .bool-btn:hover { border-color: var(--accent); }
+        .bool-btn.selected {
+            border-color: var(--accent);
+            background: #0d2a16;
+            color: var(--accent);
+        }
+
+        /* Navigation */
+        .nav-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .nav-btn {
+            padding: 12px 28px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        .nav-btn.back {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+        }
+        .nav-btn.back:hover { border-color: var(--text-dim); color: var(--text); }
+        .nav-btn.next {
+            background: var(--accent);
+            color: #000;
+            font-weight: 600;
+        }
+        .nav-btn.next:hover { background: var(--accent-dim); }
+        .nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* Error/validation */
+        .error-msg {
+            color: var(--error);
+            font-size: 0.9rem;
+            margin-top: 8px;
+            display: none;
+        }
+
+        /* Summary screen */
+        .summary { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 30px; }
+        .summary h2 { color: var(--accent); margin-bottom: 20px; }
+        .summary-section { margin-bottom: 16px; }
+        .summary-section h4 { color: var(--accent); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+        .summary-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); }
+        .summary-row .label { color: var(--text-dim); }
+        .summary-row .value { color: var(--text); }
+        .module-list, .bot-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 6px;
+        }
+        .tag {
+            padding: 4px 10px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.8rem;
+            color: var(--accent);
+        }
+
+        .validation-issues {
+            background: #1a1000;
+            border: 1px solid var(--warning);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .validation-issues h4 { color: var(--warning); margin-bottom: 8px; }
+        .validation-issues li { color: var(--warning); margin-left: 16px; font-size: 0.9rem; }
+
+        .success-banner {
+            text-align: center;
+            padding: 40px;
+            background: #0d2a16;
+            border: 1px solid var(--accent);
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+        .success-banner h2 { color: var(--accent); margin-bottom: 10px; }
+        .success-banner p { color: var(--text-dim); }
+
+        /* Onboarding tab */
+        .tab-bar {
+            display: flex;
+            gap: 0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--border);
+        }
+        .tab-btn {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--text-dim);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover { color: var(--text); }
+        .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Employee onboarding forms */
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; color: var(--text-dim); font-size: 0.85rem; margin-bottom: 6px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .profile-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 12px;
+        }
+        .profile-card h4 { color: var(--accent); margin-bottom: 8px; }
+        .profile-card .meta { color: var(--text-dim); font-size: 0.85rem; }
+        .task-list { margin-top: 12px; }
+        .task-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+        .task-item .task-status {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .task-item .task-status.completed {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+        .task-item .task-status.skipped {
+            background: var(--warning);
+            border-color: var(--warning);
+        }
+        .task-item .task-title { flex: 1; }
+        .task-item .task-category {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .task-item .skip-btn {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 2px 8px;
+            cursor: pointer;
+        }
+        .task-item .skip-btn:hover { color: var(--warning); border-color: var(--warning); }
+
+        .progress-inline {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        .progress-inline .bar {
+            flex: 1;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .progress-inline .bar .fill {
+            height: 100%;
+            background: var(--accent);
+            transition: width 0.3s;
+        }
+        .progress-inline .pct { color: var(--accent); font-size: 0.85rem; min-width: 45px; text-align: right; }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .option-grid { grid-template-columns: 1fr; }
+            .form-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔧 Murphy System — No-Code Onboarding</h1>
+        <div class="status" id="connStatus">Connecting...</div>
+    </div>
+
+    <div class="container">
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="switchTab('wizard')">System Setup Wizard</button>
+            <button class="tab-btn" onclick="switchTab('employees')">Employee Onboarding</button>
+        </div>
+
+        <!-- ============ SYSTEM SETUP WIZARD TAB ============ -->
+        <div class="tab-content active" id="tab-wizard">
+            <div id="wizardWelcome" class="welcome">
+                <h2>Welcome to Murphy System</h2>
+                <p>This no-code wizard will configure your Murphy System in just a few steps.<br>
+                No coding required — just answer the questions and we'll set everything up for you.</p>
+                <button class="nav-btn next" onclick="startWizard()">Start Setup →</button>
+            </div>
+
+            <div id="wizardActive" style="display:none;">
+                <div class="progress-text" id="progressText">Question 1 of 12</div>
+                <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+                <div class="question-card" id="questionCard">
+                    <div class="q-number" id="qNumber">Question 1</div>
+                    <h3 id="qText">Loading...</h3>
+                    <div id="qInput"></div>
+                    <div class="error-msg" id="qError"></div>
+                </div>
+
+                <div class="nav-bar">
+                    <button class="nav-btn back" id="btnBack" onclick="prevQuestion()" disabled>← Back</button>
+                    <button class="nav-btn next" id="btnNext" onclick="nextQuestion()">Next →</button>
+                </div>
+            </div>
+
+            <div id="wizardSummary" style="display:none;"></div>
+        </div>
+
+        <!-- ============ EMPLOYEE ONBOARDING TAB ============ -->
+        <div class="tab-content" id="tab-employees">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="color: var(--accent);">Employee Onboarding</h2>
+                <button class="nav-btn next" onclick="showNewEmployeeForm()">+ New Employee</button>
+            </div>
+
+            <div id="newEmployeeForm" style="display: none;">
+                <div class="question-card">
+                    <h3>New Employee Onboarding</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Employee Name *</label>
+                            <input type="text" class="text-input" id="empName" placeholder="Jane Smith">
+                        </div>
+                        <div class="form-group">
+                            <label>Role *</label>
+                            <input type="text" class="text-input" id="empRole" placeholder="Backend Engineer">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Department *</label>
+                            <select class="text-input" id="empDept">
+                                <option value="engineering">Engineering</option>
+                                <option value="support">Support</option>
+                                <option value="sales">Sales</option>
+                                <option value="marketing">Marketing</option>
+                                <option value="finance">Finance</option>
+                                <option value="hr">HR</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Mentor (optional)</label>
+                            <input type="text" class="text-input" id="empMentor" placeholder="Senior team member">
+                        </div>
+                    </div>
+                    <div class="nav-bar">
+                        <button class="nav-btn back" onclick="hideNewEmployeeForm()">Cancel</button>
+                        <button class="nav-btn next" onclick="createEmployee()">Create Onboarding →</button>
+                    </div>
+                    <div class="error-msg" id="empError" style="display:none;"></div>
+                </div>
+            </div>
+
+            <div id="employeeList"></div>
+        </div>
+    </div>
+
+    <script>
+        // ============ Configuration ============
+        const API_PORTS = [6666, 8000, 8080, 5000];
+        let API_BASE = '';
+        let systemOnline = false;
+
+        // ============ Setup Wizard State ============
+        let questions = [];
+        let currentQ = 0;
+        let answers = {};
+
+        // ============ API Resolution ============
+        async function resolveApiBase() {
+            for (const port of API_PORTS) {
+                try {
+                    const url = `http://localhost:${port}`;
+                    const resp = await fetch(`${url}/api/health`, { signal: AbortSignal.timeout(2000) });
+                    if (resp.ok) {
+                        API_BASE = url;
+                        systemOnline = true;
+                        document.getElementById('connStatus').textContent = `Online (port ${port})`;
+                        document.getElementById('connStatus').className = 'status online';
+                        return;
+                    }
+                } catch (_) {}
+            }
+            document.getElementById('connStatus').textContent = 'Offline — start Murphy runtime first';
+        }
+
+        // ============ Tab Switching ============
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            if (tab === 'employees') loadEmployees();
+        }
+
+        // ============ Setup Wizard ============
+        async function startWizard() {
+            if (!systemOnline) {
+                alert('Murphy System backend is not running. Please start it first.');
+                return;
+            }
+            try {
+                // Reset wizard state on server
+                await fetch(`${API_BASE}/api/onboarding/wizard/reset`, { method: 'POST' });
+                const resp = await fetch(`${API_BASE}/api/onboarding/wizard/questions`);
+                const data = await resp.json();
+                if (data.success) {
+                    questions = data.questions;
+                    currentQ = 0;
+                    answers = {};
+                    document.getElementById('wizardWelcome').style.display = 'none';
+                    document.getElementById('wizardActive').style.display = 'block';
+                    document.getElementById('wizardSummary').style.display = 'none';
+                    renderQuestion();
+                }
+            } catch (err) {
+                alert('Failed to load wizard: ' + err.message);
+            }
+        }
+
+        function renderQuestion() {
+            const q = questions[currentQ];
+            const total = questions.length;
+
+            document.getElementById('progressText').textContent = `Question ${currentQ + 1} of ${total}`;
+            document.getElementById('progressFill').style.width = `${((currentQ + 1) / total) * 100}%`;
+            document.getElementById('qNumber').textContent = `Question ${currentQ + 1}`;
+            document.getElementById('qText').textContent = q.text;
+            document.getElementById('qError').style.display = 'none';
+
+            const container = document.getElementById('qInput');
+            container.innerHTML = '';
+
+            const savedAnswer = answers[q.id];
+
+            if (q.question_type === 'text') {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'text-input';
+                input.placeholder = q.default || 'Type your answer...';
+                input.value = savedAnswer || '';
+                input.id = 'answerInput';
+                container.appendChild(input);
+
+            } else if (q.question_type === 'choice') {
+                const grid = document.createElement('div');
+                grid.className = 'option-grid';
+                for (const opt of q.options) {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn' + (savedAnswer === opt ? ' selected' : '');
+                    btn.textContent = opt;
+                    btn.onclick = () => {
+                        grid.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+                        btn.classList.add('selected');
+                    };
+                    grid.appendChild(btn);
+                }
+                container.appendChild(grid);
+
+            } else if (q.question_type === 'multi_choice') {
+                const grid = document.createElement('div');
+                grid.className = 'option-grid';
+                const selected = savedAnswer || [];
+                for (const opt of q.options) {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn' + (selected.includes(opt) ? ' selected' : '');
+                    btn.textContent = opt;
+                    btn.onclick = () => btn.classList.toggle('selected');
+                    grid.appendChild(btn);
+                }
+                container.appendChild(grid);
+
+            } else if (q.question_type === 'boolean') {
+                const group = document.createElement('div');
+                group.className = 'bool-group';
+                for (const [label, val] of [['Yes', true], ['No', false]]) {
+                    const btn = document.createElement('button');
+                    btn.className = 'bool-btn' + (savedAnswer === val ? ' selected' : '');
+                    btn.textContent = label;
+                    btn.onclick = () => {
+                        group.querySelectorAll('.bool-btn').forEach(b => b.classList.remove('selected'));
+                        btn.classList.add('selected');
+                    };
+                    group.appendChild(btn);
+                }
+                container.appendChild(group);
+            }
+
+            document.getElementById('btnBack').disabled = currentQ === 0;
+            document.getElementById('btnNext').textContent = currentQ === total - 1 ? 'Finish ✓' : 'Next →';
+        }
+
+        function getCurrentAnswer() {
+            const q = questions[currentQ];
+            if (q.question_type === 'text') {
+                const input = document.getElementById('answerInput');
+                return input ? input.value : q.default;
+            } else if (q.question_type === 'choice') {
+                const selected = document.querySelector('#qInput .option-btn.selected');
+                return selected ? selected.textContent : q.default;
+            } else if (q.question_type === 'multi_choice') {
+                const selected = document.querySelectorAll('#qInput .option-btn.selected');
+                return Array.from(selected).map(b => b.textContent);
+            } else if (q.question_type === 'boolean') {
+                const selected = document.querySelector('#qInput .bool-btn.selected');
+                if (!selected) return q.default;
+                return selected.textContent === 'Yes';
+            }
+            return q.default;
+        }
+
+        async function submitAnswer() {
+            const q = questions[currentQ];
+            const answer = getCurrentAnswer();
+            answers[q.id] = answer;
+
+            try {
+                const resp = await fetch(`${API_BASE}/api/onboarding/wizard/answer`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question_id: q.id, answer }),
+                });
+                const data = await resp.json();
+                if (!data.success) {
+                    document.getElementById('qError').textContent = data.error || 'Invalid answer';
+                    document.getElementById('qError').style.display = 'block';
+                    return false;
+                }
+                return true;
+            } catch (err) {
+                document.getElementById('qError').textContent = 'Network error: ' + err.message;
+                document.getElementById('qError').style.display = 'block';
+                return false;
+            }
+        }
+
+        async function nextQuestion() {
+            const ok = await submitAnswer();
+            if (!ok) return;
+
+            if (currentQ < questions.length - 1) {
+                currentQ++;
+
+                // Skip robotics protocols (q7) if robotics disabled
+                if (questions[currentQ].id === 'q7' && answers['q6'] === false) {
+                    await fetch(`${API_BASE}/api/onboarding/wizard/answer`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ question_id: 'q7', answer: [] }),
+                    });
+                    answers['q7'] = [];
+                    currentQ++;
+                }
+
+                renderQuestion();
+            } else {
+                showSummary();
+            }
+        }
+
+        function prevQuestion() {
+            if (currentQ > 0) {
+                currentQ--;
+                // Skip robotics protocols going back too
+                if (questions[currentQ].id === 'q7' && answers['q6'] === false) {
+                    currentQ--;
+                }
+                renderQuestion();
+            }
+        }
+
+        async function showSummary() {
+            document.getElementById('wizardActive').style.display = 'none';
+            const summaryDiv = document.getElementById('wizardSummary');
+            summaryDiv.style.display = 'block';
+            summaryDiv.innerHTML = '<p style="color: var(--text-dim);">Generating configuration...</p>';
+
+            try {
+                const resp = await fetch(`${API_BASE}/api/onboarding/wizard/generate-config`, { method: 'POST' });
+                const data = await resp.json();
+
+                if (!data.success) {
+                    summaryDiv.innerHTML = `<div class="validation-issues"><h4>Error</h4><p>${data.error}</p></div>`;
+                    return;
+                }
+
+                const config = data.config;
+                const validation = data.validation;
+                let html = '<div class="summary">';
+                html += '<h2>✅ Configuration Complete</h2>';
+
+                if (!validation.valid) {
+                    html += '<div class="validation-issues"><h4>⚠ Validation Issues</h4><ul>';
+                    for (const issue of validation.issues) {
+                        html += `<li>${issue}</li>`;
+                    }
+                    html += '</ul></div>';
+                }
+
+                // Organization
+                html += '<div class="summary-section"><h4>Organization</h4>';
+                html += summaryRow('Name', config.organization.name || '(not set)');
+                html += summaryRow('Industry', config.organization.industry);
+                html += summaryRow('Size', config.organization.company_size);
+                html += '</div>';
+
+                // Automation
+                html += '<div class="summary-section"><h4>Automation</h4>';
+                html += summaryRow('Types', (config.automation.enabled_types || []).join(', ') || 'none');
+                html += summaryRow('Security', config.security.level);
+                html += summaryRow('Compliance', (config.security.compliance_frameworks || []).join(', ') || 'none');
+                html += '</div>';
+
+                // Features
+                html += '<div class="summary-section"><h4>Features</h4>';
+                html += summaryRow('Robotics', config.robotics.enabled ? 'Enabled' : 'Disabled');
+                if (config.robotics.enabled) {
+                    html += summaryRow('Protocols', (config.robotics.protocols || []).join(', '));
+                }
+                html += summaryRow('Avatar', config.avatar.enabled ? 'Enabled' : 'Disabled');
+                html += summaryRow('LLM Provider', config.llm.provider);
+                html += summaryRow('Monitoring', config.monitoring.enabled ? 'Enabled' : 'Disabled');
+                html += summaryRow('Deployment', config.deployment.mode);
+                html += summaryRow('Sales Automation', config.sales_automation.enabled ? 'Enabled' : 'Disabled');
+                html += '</div>';
+
+                // Modules
+                html += '<div class="summary-section"><h4>Enabled Modules (' + config.modules.length + ')</h4>';
+                html += '<div class="module-list">';
+                for (const mod of config.modules) {
+                    html += `<span class="tag">${mod}</span>`;
+                }
+                html += '</div></div>';
+
+                // Bots
+                html += '<div class="summary-section"><h4>Recommended Bots (' + config.bots.length + ')</h4>';
+                html += '<div class="bot-list">';
+                for (const bot of config.bots) {
+                    html += `<span class="tag">${bot}</span>`;
+                }
+                html += '</div></div>';
+
+                html += '</div>';
+
+                // Actions
+                html += '<div class="success-banner">';
+                html += '<h2>🚀 Ready to Launch</h2>';
+                html += `<p>Your Murphy System is configured with ${config.modules.length} modules and ${config.bots.length} bots.</p>`;
+                html += '<div style="margin-top: 20px; display: flex; gap: 12px; justify-content: center;">';
+                html += '<button class="nav-btn next" onclick="downloadConfig()">Download Config</button>';
+                html += '<button class="nav-btn back" onclick="restartWizard()">Start Over</button>';
+                html += '</div></div>';
+
+                summaryDiv.innerHTML = html;
+            } catch (err) {
+                summaryDiv.innerHTML = `<div class="validation-issues"><h4>Error</h4><p>${err.message}</p></div>`;
+            }
+        }
+
+        function summaryRow(label, value) {
+            return `<div class="summary-row"><span class="label">${label}</span><span class="value">${value}</span></div>`;
+        }
+
+        async function downloadConfig() {
+            try {
+                const resp = await fetch(`${API_BASE}/api/onboarding/wizard/generate-config`, { method: 'POST' });
+                const data = await resp.json();
+                if (data.success) {
+                    const blob = new Blob([JSON.stringify(data.config, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'murphy_config.json';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }
+            } catch (err) {
+                alert('Download failed: ' + err.message);
+            }
+        }
+
+        function restartWizard() {
+            document.getElementById('wizardSummary').style.display = 'none';
+            document.getElementById('wizardWelcome').style.display = 'block';
+        }
+
+        // ============ Employee Onboarding ============
+        function showNewEmployeeForm() {
+            document.getElementById('newEmployeeForm').style.display = 'block';
+        }
+
+        function hideNewEmployeeForm() {
+            document.getElementById('newEmployeeForm').style.display = 'none';
+            document.getElementById('empError').style.display = 'none';
+        }
+
+        async function createEmployee() {
+            if (!systemOnline) {
+                alert('Murphy System backend is not running.');
+                return;
+            }
+            const name = document.getElementById('empName').value.trim();
+            const role = document.getElementById('empRole').value.trim();
+            const dept = document.getElementById('empDept').value;
+            const mentor = document.getElementById('empMentor').value.trim();
+
+            if (!name || !role) {
+                document.getElementById('empError').textContent = 'Name and Role are required.';
+                document.getElementById('empError').style.display = 'block';
+                return;
+            }
+
+            try {
+                const resp = await fetch(`${API_BASE}/api/onboarding/employees`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ employee_name: name, role, department: dept, mentor }),
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    hideNewEmployeeForm();
+                    document.getElementById('empName').value = '';
+                    document.getElementById('empRole').value = '';
+                    document.getElementById('empMentor').value = '';
+                    loadEmployees();
+                } else {
+                    document.getElementById('empError').textContent = data.error || 'Failed to create';
+                    document.getElementById('empError').style.display = 'block';
+                }
+            } catch (err) {
+                document.getElementById('empError').textContent = 'Network error: ' + err.message;
+                document.getElementById('empError').style.display = 'block';
+            }
+        }
+
+        async function loadEmployees() {
+            if (!systemOnline) {
+                document.getElementById('employeeList').innerHTML =
+                    '<p style="color: var(--text-dim); text-align: center; padding: 40px;">Start Murphy System backend to manage employee onboarding.</p>';
+                return;
+            }
+
+            try {
+                const resp = await fetch(`${API_BASE}/api/onboarding/employees`);
+                const data = await resp.json();
+                if (!data.success) return;
+
+                const list = document.getElementById('employeeList');
+                if (data.profiles.length === 0) {
+                    list.innerHTML = '<p style="color: var(--text-dim); text-align: center; padding: 40px;">No onboarding profiles yet. Click "+ New Employee" to get started.</p>';
+                    return;
+                }
+
+                let html = '';
+                for (const p of data.profiles) {
+                    html += `<div class="profile-card">`;
+                    html += `<div style="display: flex; justify-content: space-between; align-items: start;">`;
+                    html += `<div><h4>${esc(p.employee_name)}</h4>`;
+                    html += `<div class="meta">${esc(p.role)} · ${esc(p.department)} · Status: ${esc(p.status)}</div>`;
+                    if (p.mentor) html += `<div class="meta">Mentor: ${esc(p.mentor)}</div>`;
+                    html += `</div>`;
+                    html += `<div class="meta">${esc(p.start_date)}</div>`;
+                    html += `</div>`;
+
+                    // Progress
+                    html += `<div class="progress-inline">`;
+                    html += `<div class="bar"><div class="fill" style="width: ${p.progress_pct}%"></div></div>`;
+                    html += `<div class="pct">${p.progress_pct}%</div>`;
+                    html += `</div>`;
+
+                    // Tasks
+                    html += `<div class="task-list">`;
+                    for (const t of p.tasks) {
+                        const statusClass = t.status === 'completed' ? 'completed' : t.status === 'skipped' ? 'skipped' : '';
+                        html += `<div class="task-item">`;
+                        html += `<div class="task-status ${statusClass}" onclick="completeTask('${p.profile_id}', '${t.task_id}')" title="Click to complete"></div>`;
+                        html += `<span class="task-title" style="${t.status !== 'pending' ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${esc(t.title)}</span>`;
+                        html += `<span class="task-category">${esc(t.category)}</span>`;
+                        if (t.status === 'pending') {
+                            html += `<button class="skip-btn" onclick="skipTask('${p.profile_id}', '${t.task_id}')">Skip</button>`;
+                        }
+                        html += `</div>`;
+                    }
+                    html += `</div></div>`;
+                }
+                list.innerHTML = html;
+            } catch (err) {
+                document.getElementById('employeeList').innerHTML =
+                    `<p style="color: var(--error); text-align: center; padding: 20px;">Error loading profiles: ${err.message}</p>`;
+            }
+        }
+
+        async function completeTask(profileId, taskId) {
+            try {
+                await fetch(`${API_BASE}/api/onboarding/employees/${profileId}/tasks/${taskId}/complete`, { method: 'POST' });
+                loadEmployees();
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        async function skipTask(profileId, taskId) {
+            try {
+                await fetch(`${API_BASE}/api/onboarding/employees/${profileId}/tasks/${taskId}/skip`, { method: 'POST' });
+                loadEmployees();
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        function esc(s) {
+            const div = document.createElement('div');
+            div.textContent = s || '';
+            return div.innerHTML;
+        }
+
+        // ============ Init ============
+        resolveApiBase();
+    </script>
+</body>
+</html>

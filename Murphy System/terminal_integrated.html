@@ -229,6 +229,7 @@ Type 'api' to see new integrated endpoints
             <button class="command-btn" onclick="executeQuickCommand('integrations all')">Integrations</button>
             <button class="command-btn" onclick="executeQuickCommand('services')">Services</button>
             <button class="command-btn" onclick="executeQuickCommand('diagnostics')">Diagnostics</button>
+            <button class="command-btn" onclick="executeQuickCommand('onboarding status')">Onboarding</button>
             <button class="command-btn" onclick="executeQuickCommand('clear')">Clear</button>
         </div>
     </div>
@@ -405,6 +406,9 @@ Type 'api' to see new integrated endpoints
                 case 'plan':
                     await handlePlan(args);
                     break;
+                case 'onboarding':
+                    await handleOnboarding(args);
+                    break;
                 case 'clear':
                     document.getElementById('output').innerHTML = '';
                     break;
@@ -474,6 +478,13 @@ Type 'api' to see new integrated endpoints
             addOutput('  automate          - Run a business automation engine');
             addOutput('                      Example: automate {"engine":"content","action":"generate","parameters":{}}');
             addOutput('');
+            addOutput('NO-CODE ONBOARDING:', 'info');
+            addOutput('  onboarding status    - Show onboarding engine status');
+            addOutput('  onboarding wizard    - Show setup wizard questions');
+            addOutput('  onboarding list      - List employee onboarding profiles');
+            addOutput('  onboarding create    - Create a new employee onboarding');
+            addOutput('                         Example: onboarding create {"employee_name":"Alice","role":"dev","department":"engineering"}');
+            addOutput('');
             addOutput('For detailed API documentation, see API_DOCUMENTATION.md', 'info');
         }
         
@@ -525,6 +536,21 @@ Type 'api' to see new integrated endpoints
             addOutput('');
             addOutput('AUTOMATION ENDPOINTS:', 'info');
             addOutput('  POST /api/automation/<engine>/<action>     - Run automation engine');
+            addOutput('');
+            addOutput('NO-CODE ONBOARDING ENDPOINTS:', 'info');
+            addOutput('  GET  /api/onboarding/wizard/questions      - Get setup wizard questions');
+            addOutput('  POST /api/onboarding/wizard/answer         - Submit a wizard answer');
+            addOutput('  GET  /api/onboarding/wizard/profile        - Get current wizard profile');
+            addOutput('  POST /api/onboarding/wizard/validate       - Validate wizard profile');
+            addOutput('  POST /api/onboarding/wizard/generate-config - Generate final config');
+            addOutput('  GET  /api/onboarding/wizard/summary        - Get config summary');
+            addOutput('  POST /api/onboarding/wizard/reset          - Reset wizard');
+            addOutput('  POST /api/onboarding/employees             - Create employee onboarding');
+            addOutput('  GET  /api/onboarding/employees             - List employee profiles');
+            addOutput('  GET  /api/onboarding/employees/<id>        - Get profile details');
+            addOutput('  POST /api/onboarding/employees/<id>/tasks/<tid>/complete - Complete task');
+            addOutput('  POST /api/onboarding/employees/<id>/tasks/<tid>/skip    - Skip task');
+            addOutput('  GET  /api/onboarding/status                - Get engine status');
             addOutput('');
             addOutput('Base URL: ' + API_BASE, 'success');
         }
@@ -1242,6 +1268,131 @@ Type 'api' to see new integrated endpoints
             } catch (error) {
                 addOutput('✗ Error: ' + error.message, 'error');
                 addOutput('Make sure JSON is valid', 'warning');
+            }
+        }
+
+        async function handleOnboarding(argsStr) {
+            if (!argsStr) {
+                addOutput('Usage: onboarding <status|wizard|list|create> [JSON]', 'info');
+                addOutput('Examples:', 'info');
+                addOutput('  onboarding status', 'info');
+                addOutput('  onboarding wizard', 'info');
+                addOutput('  onboarding list', 'info');
+                addOutput('  onboarding create {"employee_name":"Alice","role":"dev","department":"engineering"}', 'info');
+                return;
+            }
+            const parts = argsStr.match(/^(\S+)\s*(.*)/s);
+            if (!parts) {
+                addOutput('Usage: onboarding <status|wizard|list|create> [JSON]', 'info');
+                return;
+            }
+            const subCommand = parts[1].toLowerCase();
+            const jsonStr = parts[2] || '';
+
+            if (subCommand === 'status') {
+                try {
+                    const response = await fetch(`${API_BASE}/api/onboarding/status`);
+                    const data = await response.json();
+                    if (data.success) {
+                        addOutput('=== Onboarding Engine Status ===', 'info');
+                        addOutput('Total profiles: ' + data.total_profiles, 'success');
+                        addOutput('Max profiles: ' + data.max_profiles);
+                        addOutput('Persistence: ' + (data.persistence_attached ? 'attached' : 'not attached'));
+                        addOutput('Event backbone: ' + (data.backbone_attached ? 'attached' : 'not attached'));
+                        if (data.by_status) {
+                            addOutput('By status:', 'info');
+                            for (const [status, count] of Object.entries(data.by_status)) {
+                                addOutput('  ' + status + ': ' + count);
+                            }
+                        }
+                        if (data.avg_progress_pct !== undefined) {
+                            addOutput('Avg progress: ' + data.avg_progress_pct + '%');
+                        }
+                    } else {
+                        addOutput('✗ ' + (data.error || 'Failed to get status'), 'error');
+                    }
+                } catch (error) {
+                    addOutput('✗ Error: ' + error.message, 'error');
+                }
+            } else if (subCommand === 'wizard') {
+                try {
+                    const response = await fetch(`${API_BASE}/api/onboarding/wizard/questions`);
+                    const data = await response.json();
+                    if (data.success) {
+                        addOutput('=== Setup Wizard Questions ===', 'info');
+                        addOutput('Total questions: ' + data.total, 'success');
+                        addOutput('');
+                        for (const q of data.questions) {
+                            addOutput(`[${q.id}] ${q.text}`, 'info');
+                            if (q.options) {
+                                addOutput('  Options: ' + q.options.join(', '), 'warning');
+                            }
+                            addOutput('  Type: ' + q.question_type + ' | Default: ' + JSON.stringify(q.default));
+                        }
+                        addOutput('');
+                        addOutput('Use the onboarding wizard UI at onboarding_wizard.html for a visual experience.', 'info');
+                    } else {
+                        addOutput('✗ ' + (data.error || 'Failed to get questions'), 'error');
+                    }
+                } catch (error) {
+                    addOutput('✗ Error: ' + error.message, 'error');
+                }
+            } else if (subCommand === 'list') {
+                try {
+                    const response = await fetch(`${API_BASE}/api/onboarding/employees`);
+                    const data = await response.json();
+                    if (data.success) {
+                        addOutput('=== Employee Onboarding Profiles ===', 'info');
+                        addOutput('Total: ' + data.total, 'success');
+                        if (data.profiles.length > 0) {
+                            for (const p of data.profiles) {
+                                addOutput('');
+                                addOutput(`${p.employee_name} (${p.role})`, 'info');
+                                addOutput('  ID: ' + p.profile_id);
+                                addOutput('  Department: ' + p.department + ' | Status: ' + p.status);
+                                addOutput('  Progress: ' + p.progress_pct + '%');
+                                addOutput('  Tasks: ' + p.tasks.length);
+                            }
+                        } else {
+                            addOutput('No profiles yet. Use "onboarding create" to add one.', 'warning');
+                        }
+                    } else {
+                        addOutput('✗ ' + (data.error || 'Failed to list profiles'), 'error');
+                    }
+                } catch (error) {
+                    addOutput('✗ Error: ' + error.message, 'error');
+                }
+            } else if (subCommand === 'create') {
+                if (!jsonStr) {
+                    addOutput('Usage: onboarding create <JSON>', 'info');
+                    addOutput('Example: onboarding create {"employee_name":"Alice","role":"dev","department":"engineering"}', 'info');
+                    return;
+                }
+                try {
+                    const data = JSON.parse(jsonStr);
+                    addOutput('Creating onboarding profile...', 'info');
+                    const response = await fetch(`${API_BASE}/api/onboarding/employees`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        addOutput('✓ Onboarding profile created', 'success');
+                        addOutput('  Profile ID: ' + result.profile.profile_id, 'success');
+                        addOutput('  Employee: ' + result.profile.employee_name);
+                        addOutput('  Department: ' + result.profile.department);
+                        addOutput('  Tasks: ' + result.profile.tasks.length);
+                    } else {
+                        addOutput('✗ ' + (result.error || 'Failed to create'), 'error');
+                    }
+                } catch (error) {
+                    addOutput('✗ Error: ' + error.message, 'error');
+                    addOutput('Make sure JSON is valid', 'warning');
+                }
+            } else {
+                addOutput('Unknown onboarding sub-command: ' + subCommand, 'error');
+                addOutput('Use: onboarding <status|wizard|list|create>', 'info');
             }
         }
         
