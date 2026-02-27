@@ -212,12 +212,67 @@ class DocumentGenerationEngine:
         return template.render(data)
     
     def _convert_to_pdf(self, content: str, styling: Dict) -> str:
-        """Convert content to PDF format"""
-        return f"[PDF FORMAT]\n{content}\n[END PDF]"
+        """Convert content to PDF format.
+
+        Uses reportlab when available; otherwise returns a structured
+        text representation that downstream consumers can process.
+        """
+        try:
+            from io import BytesIO
+            from reportlab.lib.pagesizes import letter  # type: ignore[import-untyped]
+            from reportlab.pdfgen import canvas as rl_canvas  # type: ignore[import-untyped]
+
+            buf = BytesIO()
+            c = rl_canvas.Canvas(buf, pagesize=letter)
+            font_name = styling.get("font", "Helvetica")
+            font_size = int(styling.get("size", 12))
+            c.setFont(font_name, font_size)
+
+            # Simple text flow — one line per 14pt
+            y = 750
+            for line in content.split("\n"):
+                if y < 50:
+                    c.showPage()
+                    c.setFont(font_name, font_size)
+                    y = 750
+                c.drawString(72, y, line)
+                y -= font_size + 2
+            c.save()
+            return buf.getvalue().decode("latin-1")
+        except ImportError:
+            # Graceful fallback — return structured text
+            return f"%PDF-1.4-TEXT-FALLBACK\n{content}\n%%EOF"
     
     def _convert_to_word(self, content: str, styling: Dict) -> str:
-        """Convert content to Word format"""
-        return f"[WORD FORMAT]\n{content}\n[END WORD]"
+        """Convert content to Word (OOXML) format.
+
+        Uses python-docx when available; otherwise returns a minimal
+        Office Open XML document string.
+        """
+        try:
+            from io import BytesIO
+            from docx import Document as DocxDocument  # type: ignore[import-untyped]
+
+            doc = DocxDocument()
+            font_name = styling.get("font", "Calibri")
+            font_size = int(styling.get("size", 12))
+            for para_text in content.split("\n"):
+                p = doc.add_paragraph(para_text)
+                for run in p.runs:
+                    run.font.name = font_name
+                    run.font.size = font_size * 12700  # EMU
+            buf = BytesIO()
+            doc.save(buf)
+            return buf.getvalue().decode("latin-1")
+        except ImportError:
+            # Graceful fallback — minimal XML payload
+            escaped = content.replace("&", "&amp;").replace("<", "&lt;")
+            return (
+                '<?xml version="1.0" encoding="UTF-8"?>\n'
+                "<document>\n"
+                f"  <body>{escaped}</body>\n"
+                "</document>"
+            )
     
     def _wrap_in_html(self, content: str, styling: Dict) -> str:
         """Wrap content in HTML structure"""
