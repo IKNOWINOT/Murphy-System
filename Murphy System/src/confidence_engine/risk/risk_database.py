@@ -538,10 +538,10 @@ class RiskDatabase:
     def export_to_json(self, filepath: str):
         """Export database to JSON file."""
         data = {
-            "risk_patterns": [p.dict() for p in self.risk_patterns.values()],
-            "risk_incidents": [i.dict() for i in self.risk_incidents.values()],
-            "mitigation_strategies": [s.dict() for s in self.mitigation_strategies.values()],
-            "risk_assessments": [a.dict() for a in self.risk_assessments.values()]
+            "risk_patterns": [p.model_dump() for p in self.risk_patterns.values()],
+            "risk_incidents": [i.model_dump() for i in self.risk_incidents.values()],
+            "mitigation_strategies": [s.model_dump() for s in self.mitigation_strategies.values()],
+            "risk_assessments": [a.model_dump() for a in self.risk_assessments.values()]
         }
         
         with open(filepath, 'w') as f:

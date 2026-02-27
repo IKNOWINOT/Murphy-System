@@ -521,7 +521,7 @@ class HumanFeedbackSystem:
         
         # Validate
         validation = self.validator.validate(feedback)
-        feedback.metadata["validation"] = validation.dict()
+        feedback.metadata["validation"] = validation.model_dump()
         
         # Store
         self.all_feedback[feedback.id] = feedback

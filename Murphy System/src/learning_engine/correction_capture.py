@@ -92,7 +92,7 @@ class InteractiveCorrectionCapture:
             "task_id": task_id,
             "original_output": original_output,
             "prompts": self._generate_prompts(),
-            "context": context.dict()
+            "context": context.model_dump()
         }
     
     def _generate_prompts(self) -> List[Dict[str, Any]]:

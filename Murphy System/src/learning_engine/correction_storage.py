@@ -522,7 +522,7 @@ class CorrectionStorageSystem:
         else:
             corrections = list(self.store.corrections.values())
         
-        return [c.dict() for c in corrections]
+        return [c.model_dump() for c in corrections]
     
     def import_corrections(
         self,
