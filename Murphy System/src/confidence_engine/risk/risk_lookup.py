@@ -520,7 +520,7 @@ class RiskLookupAnalyzer:
         
         return {
             "operation": operation,
-            "context": context.dict(),
+            "context": context.model_dump(),
             "total_risk_score": result.total_risk_score,
             "confidence": result.confidence,
             "requires_human_review": result.requires_human_review,

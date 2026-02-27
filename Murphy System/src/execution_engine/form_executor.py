@@ -242,7 +242,7 @@ class FormDrivenExecutor:
                 'phase': phase.value,
                 'gate_allowed': False,
                 'confidence': validation_report.confidence,
-                'validation_report': validation_report.dict(),
+                'validation_report': validation_report.model_dump(),
                 'output': {}
             }
         
@@ -263,7 +263,7 @@ class FormDrivenExecutor:
             'gate_allowed': True,
             'confidence': validation_report.confidence,
             'risk_score': validation_report.uncertainty_scores.UR,
-            'validation_report': validation_report.dict(),
+            'validation_report': validation_report.model_dump(),
             'output': phase_output
         }
     

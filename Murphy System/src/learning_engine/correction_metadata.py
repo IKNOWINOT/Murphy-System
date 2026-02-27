@@ -128,7 +128,7 @@ class CorrectionMetadataTracker:
         self._add_metadata_entry(
             correction_id,
             "system_metadata",
-            metadata.dict(),
+            metadata.model_dump(),
             MetadataCategory.SYSTEM
         )
     
@@ -143,7 +143,7 @@ class CorrectionMetadataTracker:
         self._add_metadata_entry(
             correction_id,
             "user_metadata",
-            metadata.dict(),
+            metadata.model_dump(),
             MetadataCategory.USER
         )
     
@@ -158,7 +158,7 @@ class CorrectionMetadataTracker:
         self._add_metadata_entry(
             correction_id,
             "context_metadata",
-            metadata.dict(),
+            metadata.model_dump(),
             MetadataCategory.CONTEXT
         )
     
@@ -173,7 +173,7 @@ class CorrectionMetadataTracker:
         self._add_metadata_entry(
             correction_id,
             "performance_metadata",
-            metadata.dict(),
+            metadata.model_dump(),
             MetadataCategory.PERFORMANCE
         )
     
@@ -188,7 +188,7 @@ class CorrectionMetadataTracker:
         self._add_metadata_entry(
             correction_id,
             "quality_metadata",
-            metadata.dict(),
+            metadata.model_dump(),
             MetadataCategory.QUALITY
         )
     
@@ -203,7 +203,7 @@ class CorrectionMetadataTracker:
         self._add_metadata_entry(
             correction_id,
             "learning_metadata",
-            metadata.dict(),
+            metadata.model_dump(),
             MetadataCategory.LEARNING
         )
     
@@ -233,7 +233,7 @@ class CorrectionMetadataTracker:
             "performance": self.performance_metadata.get(correction_id),
             "quality": self.quality_metadata.get(correction_id),
             "learning": self.learning_metadata.get(correction_id),
-            "entries": [e.dict() for e in self.metadata_store.get(correction_id, [])]
+            "entries": [e.model_dump() for e in self.metadata_store.get(correction_id, [])]
         }
     
     def get_metadata_by_category(

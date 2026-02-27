@@ -198,7 +198,7 @@ if __name__ == "__main__":
         task_lower = task.lower()
         
         if "api" in task_lower or "fetch" in task_lower:
-            code = '''/**
+            code = r'''/**
  * API Client with error handling
  */
 class APIClient {

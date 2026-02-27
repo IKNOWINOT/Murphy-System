@@ -6,7 +6,7 @@ Defines uncertainty scores, gate results, and confidence reports.
 
 from typing import Dict, Any, Optional, List
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from enum import Enum
 
 
@@ -90,16 +90,15 @@ class UncertaintyScores(BaseModel):
             'UG': self.UG
         }
     
-    class Config:
-        schema_extra = {
-            "example": {
-                "UD": 0.2,
-                "UA": 0.15,
-                "UI": 0.1,
-                "UR": 0.25,
-                "UG": 0.05
-            }
-        }
+    model_config = ConfigDict(json_schema_extra={
+        "examples": [{
+            "UD": 0.2,
+            "UA": 0.15,
+            "UI": 0.1,
+            "UR": 0.25,
+            "UG": 0.05
+        }]
+    })
 
 
 class GateResult(BaseModel):
@@ -154,18 +153,17 @@ class GateResult(BaseModel):
         description="Additional decision metadata"
     )
     
-    class Config:
-        schema_extra = {
-            "example": {
-                "allowed": True,
-                "confidence": 0.82,
-                "threshold": 0.7,
-                "margin": 0.12,
-                "action": "proceed_with_monitoring",
-                "rationale": "Confidence 0.82 exceeds threshold 0.70 in execute phase. Proceeding with monitoring.",
-                "phase": "execute"
-            }
-        }
+    model_config = ConfigDict(json_schema_extra={
+        "examples": [{
+            "allowed": True,
+            "confidence": 0.82,
+            "threshold": 0.7,
+            "margin": 0.12,
+            "action": "proceed_with_monitoring",
+            "rationale": "Confidence 0.82 exceeds threshold 0.70 in execute phase. Proceeding with monitoring.",
+            "phase": "execute"
+        }]
+    })
 
 
 class ConfidenceReport(BaseModel):
@@ -215,35 +213,34 @@ class ConfidenceReport(BaseModel):
         description="When report was generated"
     )
     
-    class Config:
-        schema_extra = {
-            "example": {
-                "uncertainty_scores": {
-                    "UD": 0.2,
-                    "UA": 0.15,
-                    "UI": 0.1,
-                    "UR": 0.25,
-                    "UG": 0.05
-                },
+    model_config = ConfigDict(json_schema_extra={
+        "examples": [{
+            "uncertainty_scores": {
+                "UD": 0.2,
+                "UA": 0.15,
+                "UI": 0.1,
+                "UR": 0.25,
+                "UG": 0.05
+            },
+            "confidence": 0.82,
+            "confidence_v1": 0.85,
+            "gate_result": {
+                "allowed": True,
                 "confidence": 0.82,
-                "confidence_v1": 0.85,
-                "gate_result": {
-                    "allowed": True,
-                    "confidence": 0.82,
-                    "threshold": 0.7,
-                    "margin": 0.12,
-                    "action": "proceed_with_monitoring",
-                    "rationale": "Confidence exceeds threshold"
-                },
-                "factors": {
-                    "data_quality": "high",
-                    "source_credibility": "verified",
-                    "goal_clarity": "clear"
-                },
-                "recommendations": [
-                    "Consider additional data validation",
-                    "Review risk mitigation strategies"
-                ],
-                "warnings": []
-            }
-        }
+                "threshold": 0.7,
+                "margin": 0.12,
+                "action": "proceed_with_monitoring",
+                "rationale": "Confidence exceeds threshold"
+            },
+            "factors": {
+                "data_quality": "high",
+                "source_credibility": "verified",
+                "goal_clarity": "clear"
+            },
+            "recommendations": [
+                "Consider additional data validation",
+                "Review risk mitigation strategies"
+            ],
+            "warnings": []
+        }]
+    })

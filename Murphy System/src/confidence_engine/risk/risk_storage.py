@@ -503,7 +503,7 @@ class RiskPatternStorage:
             severity=severity
         )
         
-        return [p.dict() for p in patterns]
+        return [p.model_dump() for p in patterns]
     
     def import_patterns(self, patterns_data: List[Dict[str, Any]]) -> List[str]:
         """
