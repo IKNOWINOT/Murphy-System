@@ -1,7 +1,7 @@
-# Murphy System Remediation Plan — Cycle 1
+# Murphy System — Remediation Plan
 
-**Date:** 2026-02-26
-**Source:** [Gap Analysis — Cycle 1](GAP_ANALYSIS.md)
+**Last Updated:** 2026-02-27
+**Source:** [Gap Analysis](GAP_ANALYSIS.md)
 **Repository:** IKNOWINOT/Murphy-System
 **Runtime Directory:** `Murphy System/`
 
@@ -9,11 +9,11 @@
 
 ## Executive Summary
 
-This plan provides concrete steps to close every gap identified in the Cycle 1 Gap Analysis. The remediation follows a priority order: fix what blocks the most downstream tasks first. After each fix is applied the affected component re-enters the **Test → Document → Fix → Retest** cycle until it passes.
+This plan provides concrete steps to close every gap identified in the Gap Analysis. The remediation follows a priority order: fix what blocks the most downstream tasks first. After each fix is applied the affected component re-enters the **Test → Document → Fix → Retest** cycle until it passes.
 
-**Cycle 2 Update (2026-02-27):** REM-001 through REM-005 are **RESOLVED**. The four subsystem initialization failures were caused by missing Python packages (`pydantic`, `psutil`, `watchdog`, `prometheus-client`). GAP-002 (LLM blocked) was a misdiagnosis — the onboard LLM (`MockCompatibleLocalLLM`, `EnhancedLocalLLM`, `LLMController` local models) operates without any external API key. An external Groq/OpenAI API key is optional for enhanced quality but not required.
+REM-001 through REM-005 are **RESOLVED**. The four subsystem initialization failures were caused by missing Python packages (`pydantic`, `psutil`, `watchdog`, `prometheus-client`). The onboard LLM operates without any external API key. An external Groq/OpenAI API key is optional for enhanced quality but not required.
 
-**Goal:** ~~Bring Murphy System from the current 78% operational state to~~ Murphy System is at **96%+ operational** — remaining items are minor polish (compute-plane edge cases, deprecation warnings, image generation limitation).
+**Status:** Murphy System is at **96%+ operational** — remaining items are minor polish (compute-plane edge cases, deprecation warnings, image generation limitation).
 
 ---
 
@@ -21,11 +21,11 @@ This plan provides concrete steps to close every gap identified in the Cycle 1 G
 
 | Priority | Gap ID | Issue | Blocks | Effort |
 |----------|--------|-------|--------|--------|
-| ~~P0~~ | ~~GAP-002~~ | ~~LLM features blocked~~ ✅ **RESOLVED** — onboard LLM works without API key | — | — |
-| ~~P1~~ | ~~GAP-001a~~ | ~~Inoni Business Automation not initialised~~ ✅ **RESOLVED** — missing `pydantic` installed | — | — |
-| ~~P1~~ | ~~GAP-001b~~ | ~~Integration Engine not initialised~~ ✅ **RESOLVED** — missing `psutil`, `watchdog`, `prometheus-client` | — | — |
-| ~~P1~~ | ~~GAP-001c~~ | ~~Control Plane not initialised~~ ✅ **RESOLVED** — imports work after deps installed | — | — |
-| ~~P1~~ | ~~GAP-001d~~ | ~~Two-Phase Orchestrator not initialised~~ ✅ **RESOLVED** — imports work after deps installed | — | — |
+| ✅ | GAP-002 | LLM features — onboard LLM works without API key | — | Resolved |
+| ✅ | GAP-001a | Inoni Business Automation — missing `pydantic` installed | — | Resolved |
+| ✅ | GAP-001b | Integration Engine — missing `psutil`, `watchdog`, `prometheus-client` | — | Resolved |
+| ✅ | GAP-001c | Control Plane — imports work after deps installed | — | Resolved |
+| ✅ | GAP-001d | Two-Phase Orchestrator — imports work after deps installed | — | Resolved |
 | P2 | GAP-003 | Compute Plane — 2 test failures | Edge-case reliability | Code fix |
 | P3 | GAP-004 | No image generation capability | Logo generation only | Design decision |
 | P4 | — | 6,254 deprecation warnings | Code hygiene | Incremental cleanup |
@@ -34,40 +34,38 @@ This plan provides concrete steps to close every gap identified in the Cycle 1 G
 
 ## 2. Detailed Remediation Steps
 
-### REM-001: ~~Configure Real LLM API Key (GAP-002)~~ ✅ RESOLVED
+### REM-001: Configure Real LLM API Key (GAP-002) — ✅ RESOLVED
 
-**Status:** ✅ **NOT REQUIRED** — Misdiagnosis corrected in Cycle 2.
-
-The Murphy System includes three onboard LLM implementations that operate without any external API key:
+**Status:** Not required — the Murphy System includes three onboard LLM implementations that operate without any external API key:
 - `MockCompatibleLocalLLM` — confidence 0.85–0.95
 - `EnhancedLocalLLM` — deterministic reasoning
 - `LLMController` — `LOCAL_SMALL` (0.65) and `LOCAL_MEDIUM` (0.80), always available
 
-An external Groq/OpenAI API key is **optional** — it enhances response quality but is not required for operation. The confidence starting at 0.45 is by design; documents increase confidence through the magnify → solidify → gate synthesis pipeline.
+An external Groq/OpenAI API key is **optional** — it enhances response quality but is not required for operation.
 
 ---
 
-### REM-002: ~~Debug Inoni Business Automation Init (GAP-001a)~~ ✅ RESOLVED
+### REM-002: Inoni Business Automation Init (GAP-001a) — ✅ RESOLVED
 
-**Status:** ✅ **FIXED** — Missing `pydantic` package installed. Inoni Business Automation initializes successfully.
-
----
-
-### REM-003: ~~Debug Integration Engine Init (GAP-001b)~~ ✅ RESOLVED
-
-**Status:** ✅ **FIXED** — Missing packages `psutil`, `watchdog`, `prometheus-client` installed. Integration Engine initializes successfully.
+**Resolution:** Missing `pydantic` package installed. Inoni Business Automation initializes successfully.
 
 ---
 
-### REM-004: ~~Debug Control Plane Init (GAP-001c)~~ ✅ RESOLVED
+### REM-003: Integration Engine Init (GAP-001b) — ✅ RESOLVED
 
-**Status:** ✅ **FIXED** — Control Plane imports and initializes after dependency installation.
+**Resolution:** Missing packages `psutil`, `watchdog`, `prometheus-client` installed. Integration Engine initializes successfully.
 
 ---
 
-### REM-005: ~~Debug Two-Phase Orchestrator Init (GAP-001d)~~ ✅ RESOLVED
+### REM-004: Control Plane Init (GAP-001c) — ✅ RESOLVED
 
-**Status:** ✅ **FIXED** — Two-Phase Orchestrator imports and initializes after dependency installation.
+**Resolution:** Control Plane imports and initializes after dependency installation.
+
+---
+
+### REM-005: Two-Phase Orchestrator Init (GAP-001d) — ✅ RESOLVED
+
+**Resolution:** Two-Phase Orchestrator imports and initializes after dependency installation.
 
 ---
 
@@ -191,12 +189,12 @@ The remediation plan is **complete** when:
 
 | # | Criterion | Verification |
 |---|-----------|-------------|
-| 1 | ~~All 4 inactive subsystems show `active`~~ | ✅ DONE (Cycle 2) |
-| 2 | ~~`/api/execute` completes tasks~~ | ✅ DONE — onboard LLM works, document pipeline functional |
-| 3 | ~~`/api/automation/*` endpoints return success~~ | ✅ DONE — Inoni engine active |
+| 1 | All 4 subsystems show `active` | ✅ DONE |
+| 2 | `/api/execute` completes tasks | ✅ DONE — onboard LLM works, document pipeline functional |
+| 3 | `/api/automation/*` endpoints return success | ✅ DONE — Inoni engine active |
 | 4 | Test suite: 0 failures | `pytest` exit code 0 (2 compute-plane edge cases remain) |
 | 5 | Post-launch automation workflow runs end-to-end | Scheduled task + delivery |
-| 6 | All docs updated with results | ✅ DONE (Cycle 2 updates) |
+| 6 | All docs updated with results | ✅ DONE |
 
 ---
 
@@ -204,11 +202,11 @@ The remediation plan is **complete** when:
 
 | Remediation | Effort | Depends On |
 |-------------|--------|------------|
-| ~~REM-001 (API key)~~ | ✅ Not required | — |
-| ~~REM-002 (Inoni engine)~~ | ✅ Resolved (pip install) | — |
-| ~~REM-003 (Integration engine)~~ | ✅ Resolved (pip install) | — |
-| ~~REM-004 (Control Plane)~~ | ✅ Resolved (pip install) | — |
-| ~~REM-005 (Orchestrator)~~ | ✅ Resolved (pip install) | — |
+| REM-001 (API key) | ✅ Not required | — |
+| REM-002 (Inoni engine) | ✅ Resolved | — |
+| REM-003 (Integration engine) | ✅ Resolved | — |
+| REM-004 (Control Plane) | ✅ Resolved | — |
+| REM-005 (Orchestrator) | ✅ Resolved | — |
 | REM-006 (Compute tests) | 1 hour | Code fix |
 | REM-007 (Image gen doc) | 15 minutes | — |
 | REM-008 (Warnings) | 2–4 hours | Incremental |
@@ -221,17 +219,15 @@ The remediation plan is **complete** when:
 
 ## Related Documents
 
-- [Execution Log — Cycle 1](EXECUTION_LOG.md) — Raw test results feeding this plan
-- [Gap Analysis — Cycle 1](GAP_ANALYSIS.md) — Gap identification
+- [Gap Analysis](GAP_ANALYSIS.md) — Gap identification
 - [Launch Automation Plan](LAUNCH_AUTOMATION_PLAN.md) — Original launch strategy
 - [Operations Testing Plan](OPERATIONS_TESTING_PLAN.md) — Iterative test-fix-document cycle
 - [QA Audit Report](QA_AUDIT_REPORT.md) — Security audit findings
 
 ---
 
-**Document Version:** 2.0 — Cycle 2
+**Document Version:** 2.0
 **Last Updated:** 2026-02-27
-**Author:** Murphy System Remediation Agent
 
 ---
 

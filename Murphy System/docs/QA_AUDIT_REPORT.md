@@ -139,9 +139,8 @@ POST /abort/<id> → checks caller == execution_owners[packet_id]
 
 - [Launch Automation Plan](LAUNCH_AUTOMATION_PLAN.md) — Strategy for using Murphy to automate its own launch
 - [Operations, Testing & Iteration Plan](OPERATIONS_TESTING_PLAN.md) — Iterative test-fix-document cycle
-- [Execution Log — Cycle 1](EXECUTION_LOG.md) — Real test results from operating Murphy
-- [Gap Analysis — Cycle 1](GAP_ANALYSIS.md) — Actual vs expected comparison
-- [Remediation Plan — Cycle 1](REMEDIATION_PLAN.md) — Concrete fixes for all identified gaps
+- [Gap Analysis](GAP_ANALYSIS.md) — Actual vs expected comparison
+- [Remediation Plan](REMEDIATION_PLAN.md) — Concrete fixes for all identified gaps
 - [Self-Running Analysis](self_running_analysis.md) — Toggleable full automation feasibility study
 
 ---

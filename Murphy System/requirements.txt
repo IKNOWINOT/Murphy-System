@@ -13,8 +13,32 @@ networkx>=3.1
 # Cryptography for execution packets
 cryptography>=41.0.0
 
+# Web framework — REST API runtime
+fastapi>=0.100.0
+uvicorn>=0.23.0
+starlette>=0.49.1
+
+# Web framework — sub-module API servers
+Flask>=3.0.0
+flask-cors>=4.0.0
+
+# Data validation and models
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+jsonschema>=4.19.0
+
+# HTTP client
+requests>=2.31.0
+
+# System monitoring
+psutil>=5.9.0
+
+# Symbolic computation (compute plane)
+sympy>=1.12
+
 # Terminal UI
 rich>=13.0.0
+pyfiglet>=1.0.0
 prompt-toolkit>=3.0.0
 
 # Configuration
@@ -23,3 +47,4 @@ pyyaml>=6.0
 # Testing
 pytest>=7.4.0
 pytest-cov>=4.1.0
+pytest-asyncio>=0.21.0

@@ -39,6 +39,7 @@ setup(
         "networkx>=3.1",
         "cryptography>=41.0.0",
         "rich>=13.0.0",
+        "pyfiglet>=1.0.0",
         "prompt-toolkit>=3.0.0",
         "pyyaml>=6.0",
     ],
