@@ -368,6 +368,7 @@ def _default_integration_templates() -> List[IntegrationSpec]:
             ],
         ),
         IntegrationSpec(
+            service_id="ms_teams",
             name="Microsoft Teams", category=IntegrationCategory.COMMUNICATION,
             description="Enterprise team collaboration",
             base_url="https://graph.microsoft.com/v1.0",
@@ -441,6 +442,7 @@ def _default_integration_templates() -> List[IntegrationSpec]:
             ],
         ),
         IntegrationSpec(
+            service_id="make",
             name="Make (Integromat)", category=IntegrationCategory.AUTOMATION,
             description="Visual automation platform",
             base_url="https://hook.make.com",
@@ -536,6 +538,7 @@ def _default_integration_templates() -> List[IntegrationSpec]:
         ),
         # --- Social Media ---
         IntegrationSpec(
+            service_id="twitter",
             name="Twitter/X", category=IntegrationCategory.SOCIAL_MEDIA,
             description="Social media platform for posts and engagement",
             base_url="https://api.twitter.com/2",
@@ -829,6 +832,7 @@ def _default_integration_templates() -> List[IntegrationSpec]:
             ],
         ),
         IntegrationSpec(
+            service_id="newrelic",
             name="New Relic", category=IntegrationCategory.MONITORING,
             description="Full-stack observability platform",
             base_url="https://api.newrelic.com/v2",
@@ -945,6 +949,7 @@ def _default_integration_templates() -> List[IntegrationSpec]:
         ),
         # --- Accounting ---
         IntegrationSpec(
+            service_id="quickbooks",
             name="QuickBooks Online", category=IntegrationCategory.CUSTOM,
             description="Cloud accounting software for small businesses",
             base_url="https://quickbooks.api.intuit.com/v3",
@@ -957,6 +962,7 @@ def _default_integration_templates() -> List[IntegrationSpec]:
         ),
         # --- Cloud Infrastructure ---
         IntegrationSpec(
+            service_id="aws",
             name="Amazon Web Services", category=IntegrationCategory.CLOUD_INFRASTRUCTURE,
             description="Cloud computing platform with 200+ services",
             base_url="https://aws.amazon.com",
@@ -968,6 +974,7 @@ def _default_integration_templates() -> List[IntegrationSpec]:
             ],
         ),
         IntegrationSpec(
+            service_id="azure",
             name="Microsoft Azure", category=IntegrationCategory.CLOUD_INFRASTRUCTURE,
             description="Enterprise cloud computing platform",
             base_url="https://management.azure.com",
@@ -978,6 +985,7 @@ def _default_integration_templates() -> List[IntegrationSpec]:
             ],
         ),
         IntegrationSpec(
+            service_id="gcp",
             name="Google Cloud Platform", category=IntegrationCategory.CLOUD_INFRASTRUCTURE,
             description="Suite of cloud computing services",
             base_url="https://cloud.google.com",
@@ -1035,6 +1043,7 @@ def _default_integration_templates() -> List[IntegrationSpec]:
             ],
         ),
         IntegrationSpec(
+            service_id="monday",
             name="Monday.com", category=IntegrationCategory.PROJECT_MANAGEMENT,
             description="Work OS for managing projects and workflows",
             base_url="https://api.monday.com/v2",
@@ -1082,6 +1091,7 @@ def _default_integration_templates() -> List[IntegrationSpec]:
         ),
         # --- Communication (Messaging) ---
         IntegrationSpec(
+            service_id="whatsapp",
             name="WhatsApp Business", category=IntegrationCategory.COMMUNICATION,
             description="Business messaging platform via Meta Cloud API",
             base_url="https://graph.facebook.com/v17.0",

@@ -114,7 +114,7 @@ class TestUniversalAdapterWiredIntegrations(unittest.TestCase):
         self.assertIn("sentry", self._service_ids())
 
     def test_new_relic_registered(self):
-        self.assertIn("new_relic", self._service_ids())
+        self.assertIn("newrelic", self._service_ids())
 
     # -- CI/CD --
 
@@ -163,7 +163,7 @@ class TestUniversalAdapterWiredIntegrations(unittest.TestCase):
     # -- Accounting --
 
     def test_quickbooks_online_registered(self):
-        self.assertIn("quickbooks_online", self._service_ids())
+        self.assertIn("quickbooks", self._service_ids())
 
     # -- Action execution (unconfigured returns auth error) --
 
