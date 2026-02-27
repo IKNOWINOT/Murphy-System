@@ -93,7 +93,7 @@ Create a `.env` file in the `Murphy System` directory:
 # Core Configuration
 MURPHY_VERSION=1.0.0
 MURPHY_ENV=development
-MURPHY_PORT=6666
+MURPHY_PORT=8000
 
 # LLM API Keys (at least one required for AI features)
 # Get free API key from: https://console.groq.com
@@ -155,9 +155,9 @@ start_murphy_1.0.bat   # Windows
 ### Step 5: Verify It's Running
 
 Open your browser and visit:
-- **API Docs:** http://localhost:6666/docs
-- **Health Check:** http://localhost:6666/api/health
-- **System Status:** http://localhost:6666/api/status
+- **API Docs:** http://localhost:8000/docs
+- **Health Check:** http://localhost:8000/api/health
+- **System Status:** http://localhost:8000/api/status
 
 ---
 
@@ -192,7 +192,7 @@ Once Murphy is running, you can:
 ### 1. Check System Status
 
 ```bash
-curl http://localhost:6666/api/status
+curl http://localhost:8000/api/status
 ```
 
 Returns Murphy's current state and loaded components.
@@ -200,7 +200,7 @@ Returns Murphy's current state and loaded components.
 ### 2. Execute a Simple Task
 
 ```bash
-curl -X POST http://localhost:6666/api/execute \
+curl -X POST http://localhost:8000/api/execute \
   -H "Content-Type: application/json" \
   -d '{
     "task_description": "What is the capital of France?",
@@ -211,7 +211,7 @@ curl -X POST http://localhost:6666/api/execute \
 ### 3. Add a GitHub Integration (Advanced)
 
 ```bash
-curl -X POST http://localhost:6666/api/integrations/add \
+curl -X POST http://localhost:8000/api/integrations/add \
   -H "Content-Type: application/json" \
   -d '{
     "source": "https://github.com/requests/requests",
@@ -239,7 +239,7 @@ pip install fastapi uvicorn pydantic
 pip install -r requirements_murphy_1.0.txt
 ```
 
-### Issue: "Port 6666 already in use"
+### Issue: "Port 8000 already in use"
 
 **Solution:** Change port in `.env`:
 ```bash
@@ -397,7 +397,7 @@ Before moving forward, verify:
 - [ ] Dependencies installed (no import errors)
 - [ ] .env file created with GROQ_API_KEY
 - [ ] Murphy starts without errors
-- [ ] Can access http://localhost:6666/docs
+- [ ] Can access http://localhost:8000/docs
 - [ ] Health check returns {"status": "healthy"}
 
 If all checked ✅, you're ready to use Murphy!
@@ -408,7 +408,7 @@ If all checked ✅, you're ready to use Murphy!
 
 Once Murphy is running:
 
-1. **Explore API Docs:** http://localhost:6666/docs
+1. **Explore API Docs:** http://localhost:8000/docs
 2. **Try Examples:** Run `python3 demo_murphy.py`
 3. **Read Specification:** [MURPHY_SYSTEM_1.0_SPECIFICATION.md](Murphy%20System/MURPHY_SYSTEM_1.0_SPECIFICATION.md)
 4. **Add Integrations:** Try adding a GitHub repo

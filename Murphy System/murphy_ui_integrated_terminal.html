@@ -598,7 +598,7 @@
             const params = new URLSearchParams(window.location.search);
             const overridePort = params.get('apiPort');
             if (window.location.hostname === 'localhost') {
-                const port = overridePort || '6666';
+                const port = overridePort || '8000';
                 return `http://localhost:${port}`;
             }
             return window.location.origin;

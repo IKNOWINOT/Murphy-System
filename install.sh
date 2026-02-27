@@ -17,7 +17,7 @@ set -euo pipefail
 REPO="IKNOWINOT/Murphy-System"
 BRANCH="main"
 INSTALL_DIR="${1:-$HOME/murphy-system}"
-MURPHY_PORT="${MURPHY_PORT:-6666}"
+MURPHY_PORT="${MURPHY_PORT:-8000}"
 MIN_PYTHON="3.10"
 
 # ---- colours ---------------------------------------------------------------
@@ -180,7 +180,7 @@ ${BOLD}USAGE${NC}
   murphy <command> [options]
 
 ${BOLD}COMMANDS${NC}
-  ${GREEN}start${NC}       Start Murphy System (port ${MURPHY_PORT:-6666})
+  ${GREEN}start${NC}       Start Murphy System (port ${MURPHY_PORT:-8000})
   ${GREEN}stop${NC}        Stop Murphy System
   ${GREEN}status${NC}      Check if Murphy is running
   ${GREEN}health${NC}      Query /api/health
@@ -204,7 +204,7 @@ case "${1:-help}" in
     if [[ "${1:-}" == "-d" || "${1:-}" == "--daemon" ]]; then
       DAEMON=true
     fi
-    echo -e "${CYAN}🚀 Starting Murphy System 1.0 on port ${MURPHY_PORT:-6666}…${NC}"
+    echo -e "${CYAN}🚀 Starting Murphy System 1.0 on port ${MURPHY_PORT:-8000}…${NC}"
     if $DAEMON; then
       nohup python3 murphy_system_1.0_runtime.py > logs/murphy.log 2>&1 &
       echo $! > .murphy.pid
@@ -212,15 +212,15 @@ case "${1:-help}" in
       if kill -0 "$(cat .murphy.pid)" 2>/dev/null; then
         echo -e "${GREEN}✓ Murphy running in background (PID $(cat .murphy.pid))${NC}"
         echo -e "  Logs: ${BLUE}tail -f $MURPHY_DIR/logs/murphy.log${NC}"
-        echo -e "  API:  ${BLUE}http://localhost:${MURPHY_PORT:-6666}/docs${NC}"
+        echo -e "  API:  ${BLUE}http://localhost:${MURPHY_PORT:-8000}/docs${NC}"
       else
         echo -e "${RED}✗ Failed to start. Check logs/murphy.log${NC}"
         exit 1
       fi
     else
-      echo -e "  API Docs:  ${BLUE}http://localhost:${MURPHY_PORT:-6666}/docs${NC}"
-      echo -e "  Health:    ${BLUE}http://localhost:${MURPHY_PORT:-6666}/api/health${NC}"
-      echo -e "  Status:    ${BLUE}http://localhost:${MURPHY_PORT:-6666}/api/status${NC}"
+      echo -e "  API Docs:  ${BLUE}http://localhost:${MURPHY_PORT:-8000}/docs${NC}"
+      echo -e "  Health:    ${BLUE}http://localhost:${MURPHY_PORT:-8000}/api/health${NC}"
+      echo -e "  Status:    ${BLUE}http://localhost:${MURPHY_PORT:-8000}/api/status${NC}"
       echo ""
       python3 murphy_system_1.0_runtime.py
     fi
@@ -241,7 +241,7 @@ case "${1:-help}" in
     fi
     ;;
   status)
-    PORT="${MURPHY_PORT:-6666}"
+    PORT="${MURPHY_PORT:-8000}"
     if curl -sf "http://localhost:$PORT/api/health" >/dev/null 2>&1; then
       RESP=$(curl -sf "http://localhost:$PORT/api/health")
       echo -e "${GREEN}✓ Murphy is running on port $PORT${NC}"
@@ -254,12 +254,12 @@ case "${1:-help}" in
     fi
     ;;
   health)
-    PORT="${MURPHY_PORT:-6666}"
+    PORT="${MURPHY_PORT:-8000}"
     curl -sf "http://localhost:$PORT/api/health" 2>/dev/null | python3 -m json.tool 2>/dev/null || \
       echo -e "${RED}✗ Cannot reach http://localhost:$PORT/api/health${NC}"
     ;;
   info)
-    PORT="${MURPHY_PORT:-6666}"
+    PORT="${MURPHY_PORT:-8000}"
     curl -sf "http://localhost:$PORT/api/info" 2>/dev/null | python3 -m json.tool 2>/dev/null || \
       echo -e "${RED}✗ Cannot reach http://localhost:$PORT/api/info${NC}"
     ;;

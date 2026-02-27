@@ -72,7 +72,7 @@ class MurphyUserSimulator:
     current_section: str = "login"
     system_state: Dict[str, Any] = field(default_factory=dict)
 
-    def login(self, url: str = "http://localhost:6666") -> ActionResult:
+    def login(self, url: str = "http://localhost:8000") -> ActionResult:
         """Simulate login to the Murphy System.
 
         Args:

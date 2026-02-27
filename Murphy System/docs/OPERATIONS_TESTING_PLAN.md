@@ -40,7 +40,7 @@ Create `.env` in the `Murphy System/` directory with required keys:
 
 ```bash
 GROQ_API_KEY=<your-groq-api-key>
-MURPHY_CORS_ORIGINS=http://localhost:6666
+MURPHY_CORS_ORIGINS=http://localhost:8000
 MURPHY_ENV=development
 ```
 
@@ -55,9 +55,9 @@ bash start_murphy_1.0.sh
 
 | Endpoint | Method | Expected Response | Status |
 |----------|--------|-------------------|--------|
-| `http://localhost:6666/docs` | GET | Swagger UI / API documentation page loads | ✅ Pass (Cycle 1) |
-| `http://localhost:6666/api/health` | GET | `{"status": "healthy"}` or equivalent 200 OK | ✅ Pass (Cycle 1) |
-| `http://localhost:6666/api/status` | GET | System status JSON with component states | ✅ Pass (Cycle 1) |
+| `http://localhost:8000/docs` | GET | Swagger UI / API documentation page loads | ✅ Pass (Cycle 1) |
+| `http://localhost:8000/api/health` | GET | `{"status": "healthy"}` or equivalent 200 OK | ✅ Pass (Cycle 1) |
+| `http://localhost:8000/api/status` | GET | System status JSON with component states | ✅ Pass (Cycle 1) |
 
 ### 1.5 Acceptance Criteria
 
@@ -244,7 +244,7 @@ curl -X POST https://api.groq.com/openai/v1/chat/completions \
   -d '{"model": "llama3-8b-8192", "messages": [{"role": "user", "content": "Hello"}]}'
 
 # Verify Murphy routes through correctly
-curl -X POST http://localhost:6666/api/generate \
+curl -X POST http://localhost:8000/api/generate \
   -H "Content-Type: application/json" \
   -d '{"prompt": "Test prompt for integration verification"}'
 ```

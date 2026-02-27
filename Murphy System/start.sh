@@ -31,7 +31,7 @@ if [ ! -f ".env" ]; then
 # Murphy System 1.0 - Configuration
 MURPHY_VERSION=1.0.0
 MURPHY_ENV=development
-MURPHY_PORT=6666
+MURPHY_PORT=8000
 
 # API Keys (add your own)
 GROQ_API_KEY=your_groq_key_here
@@ -60,9 +60,9 @@ fi
 echo ""
 echo "🚀 Starting Murphy System 1.0..."
 echo ""
-echo "📊 API Documentation will be at: http://localhost:6666/docs"
-echo "🔍 Health Check: http://localhost:6666/api/health"
-echo "📈 System Status: http://localhost:6666/api/status"
+echo "📊 API Documentation will be at: http://localhost:8000/docs"
+echo "🔍 Health Check: http://localhost:8000/api/health"
+echo "📈 System Status: http://localhost:8000/api/status"
 echo ""
 echo "Press CTRL+C to stop Murphy"
 echo ""

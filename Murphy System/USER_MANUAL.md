@@ -75,10 +75,10 @@ chmod +x start_murphy_1.0.sh
 start_murphy_1.0.bat
 ```
 
-The system starts on **port 6666** by default. Verify with:
+The system starts on **port 8000** by default. Verify with:
 
 ```bash
-curl http://localhost:6666/api/health
+curl http://localhost:8000/api/health
 ```
 
 Expected response:
@@ -95,10 +95,10 @@ Expected response:
 
 | Access Method | URL / Command |
 |---------------|--------------|
-| REST API | `http://localhost:6666/api/` |
-| Landing Page | `http://localhost:6666/` (murphy_landing_page.html) |
-| Integrated Dashboard | `http://localhost:6666/dashboard` |
-| Terminal UI | `http://localhost:6666/terminal` |
+| REST API | `http://localhost:8000/api/` |
+| Landing Page | `http://localhost:8000/` (murphy_landing_page.html) |
+| Integrated Dashboard | `http://localhost:8000/dashboard` |
+| Terminal UI | `http://localhost:8000/terminal` |
 
 ### 1.5 Configuration
 
@@ -107,7 +107,7 @@ Configuration is managed via environment variables or `src/config.py` (Pydantic 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `MURPHY_HOST` | `0.0.0.0` | API bind address |
-| `MURPHY_PORT` | `6666` | API port |
+| `MURPHY_PORT` | `8000` | API port |
 | `MURPHY_DB_PATH` | `murphy.db` | SQLite database path |
 | `MURPHY_LLM_PROVIDER` | `groq` | LLM provider (groq, openai, local) |
 | `GROQ_API_KEY` | — | Groq API key |
@@ -122,7 +122,7 @@ Configuration is managed via environment variables or `src/config.py` (Pydantic 
 Send any task to Murphy via the execute endpoint:
 
 ```bash
-curl -X POST http://localhost:6666/api/execute \
+curl -X POST http://localhost:8000/api/execute \
   -H "Content-Type: application/json" \
   -d '{
     "task": "Generate a quarterly sales report",
@@ -147,7 +147,7 @@ Response:
 Upload a pre-defined execution plan:
 
 ```bash
-curl -X POST http://localhost:6666/api/forms/plan-upload \
+curl -X POST http://localhost:8000/api/forms/plan-upload \
   -H "Content-Type: application/json" \
   -d '{
     "plan_name": "weekly-etl",
@@ -164,7 +164,7 @@ curl -X POST http://localhost:6666/api/forms/plan-upload \
 Let Murphy generate a plan from a description:
 
 ```bash
-curl -X POST http://localhost:6666/api/forms/plan-generation \
+curl -X POST http://localhost:8000/api/forms/plan-generation \
   -d '{"description": "Set up a CI/CD pipeline for our Python microservice"}'
 ```
 
@@ -173,7 +173,7 @@ curl -X POST http://localhost:6666/api/forms/plan-generation \
 Submit a task with built-in validation checks:
 
 ```bash
-curl -X POST http://localhost:6666/api/forms/task-execution \
+curl -X POST http://localhost:8000/api/forms/task-execution \
   -d '{
     "task": "Deploy staging environment",
     "validation": {
@@ -188,10 +188,10 @@ curl -X POST http://localhost:6666/api/forms/task-execution \
 
 ```bash
 # Check execution status
-curl http://localhost:6666/api/status?execution_id=exec-a1b2c3
+curl http://localhost:8000/api/status?execution_id=exec-a1b2c3
 
 # List all active executions
-curl http://localhost:6666/api/status
+curl http://localhost:8000/api/status
 ```
 
 ---
@@ -214,17 +214,17 @@ Murphy supports six automation domains, each handled by the Universal Control Pl
 ### 3.2 Factory/IoT Automation
 
 ```bash
-curl -X POST http://localhost:6666/api/automation/sensor/read \
+curl -X POST http://localhost:8000/api/automation/sensor/read \
   -d '{"sensor_id": "temp-floor-3", "protocol": "modbus"}'
 
-curl -X POST http://localhost:6666/api/automation/actuator/execute \
+curl -X POST http://localhost:8000/api/automation/actuator/execute \
   -d '{"actuator_id": "valve-07", "command": "open", "parameters": {"percent": 75}}'
 ```
 
 ### 3.3 Content Automation
 
 ```bash
-curl -X POST http://localhost:6666/api/automation/content/generate \
+curl -X POST http://localhost:8000/api/automation/content/generate \
   -d '{
     "type": "blog_post",
     "topic": "AI in Manufacturing",
@@ -236,21 +236,21 @@ curl -X POST http://localhost:6666/api/automation/content/generate \
 ### 3.4 Data Automation
 
 ```bash
-curl -X POST http://localhost:6666/api/automation/database/query \
+curl -X POST http://localhost:8000/api/automation/database/query \
   -d '{"query": "SELECT * FROM orders WHERE status = ?", "params": ["pending"]}'
 ```
 
 ### 3.5 System Automation
 
 ```bash
-curl -X POST http://localhost:6666/api/automation/command/execute \
+curl -X POST http://localhost:8000/api/automation/command/execute \
   -d '{"command": "systemctl restart nginx", "require_approval": true}'
 ```
 
 ### 3.6 Agent Automation (Swarm)
 
 ```bash
-curl -X POST http://localhost:6666/api/automation/agent/swarm \
+curl -X POST http://localhost:8000/api/automation/agent/swarm \
   -d '{
     "objective": "Research competitor pricing strategies",
     "agent_count": 3,
@@ -271,7 +271,7 @@ The Inoni Business Automation layer contains five engines:
 | **Production Management** | Scheduling, quality control, inventory |
 
 ```bash
-curl -X POST http://localhost:6666/api/automation/sales/score-lead \
+curl -X POST http://localhost:8000/api/automation/sales/score-lead \
   -d '{"company": "Acme Corp", "contact": "jane@acme.com", "signals": ["demo_request"]}'
 ```
 
@@ -291,7 +291,7 @@ Repository URL → SwissKiss Analysis → Capability Extraction
 ### 4.2 Adding a GitHub Integration
 
 ```bash
-curl -X POST http://localhost:6666/api/integrations/add \
+curl -X POST http://localhost:8000/api/integrations/add \
   -d '{
     "repository_url": "https://github.com/org/repo",
     "integration_type": "github",
@@ -332,14 +332,14 @@ Pending integrations require human approval:
 
 ```bash
 # List pending integrations
-curl http://localhost:6666/api/hitl/interventions/pending
+curl http://localhost:8000/api/hitl/interventions/pending
 
 # Approve an integration
-curl -X POST http://localhost:6666/api/integrations/approve \
+curl -X POST http://localhost:8000/api/integrations/approve \
   -d '{"integration_id": "int-xyz789", "approver": "admin"}'
 
 # Reject an integration
-curl -X POST http://localhost:6666/api/integrations/reject \
+curl -X POST http://localhost:8000/api/integrations/reject \
   -d '{"integration_id": "int-xyz789", "reason": "Incompatible license"}'
 ```
 
@@ -347,9 +347,9 @@ curl -X POST http://localhost:6666/api/integrations/reject \
 
 ```bash
 # List all integrations by status
-curl http://localhost:6666/api/integrations/active
-curl http://localhost:6666/api/integrations/pending
-curl http://localhost:6666/api/integrations/rejected
+curl http://localhost:8000/api/integrations/active
+curl http://localhost:8000/api/integrations/pending
+curl http://localhost:8000/api/integrations/rejected
 ```
 
 ---
@@ -363,7 +363,7 @@ Murphy continuously improves through human corrections, pattern extraction, and 
 When Murphy makes an error, submit a correction:
 
 ```bash
-curl -X POST http://localhost:6666/api/corrections/submit \
+curl -X POST http://localhost:8000/api/corrections/submit \
   -d '{
     "execution_id": "exec-a1b2c3",
     "field": "output.recommendation",
@@ -390,13 +390,13 @@ Correction → Pattern Extraction → Shadow Agent Training → Evaluation → D
 
 ```bash
 # View extracted patterns
-curl http://localhost:6666/api/corrections/patterns
+curl http://localhost:8000/api/corrections/patterns
 
 # View correction statistics
-curl http://localhost:6666/api/corrections/statistics
+curl http://localhost:8000/api/corrections/statistics
 
 # Export training data
-curl http://localhost:6666/api/corrections/training-data
+curl http://localhost:8000/api/corrections/training-data
 ```
 
 ### 5.4 Adaptive Decision Engine
@@ -441,10 +441,10 @@ Murphy maintains a trust graph across all modules, agents, and integrations:
 
 ```bash
 # Check trust score for a module
-curl http://localhost:6666/api/documents/{id}/magnify
+curl http://localhost:8000/api/documents/{id}/magnify
 
 # Solidify a validated artifact
-curl -X POST http://localhost:6666/api/documents/{id}/solidify
+curl -X POST http://localhost:8000/api/documents/{id}/solidify
 ```
 
 ### 6.4 Phase Transitions
@@ -462,7 +462,7 @@ A phase transition requires the confidence score to meet the configured threshol
 ### 6.5 Risk Assessment
 
 ```bash
-curl http://localhost:6666/api/documents/{id}/gates
+curl http://localhost:8000/api/documents/{id}/gates
 ```
 
 Returns risk assessment with severity levels (`low`, `medium`, `high`, `critical`) and recommended mitigations.
@@ -488,7 +488,7 @@ The security plane provides defense-in-depth:
 
 ```bash
 # API requests require the X-API-Key header
-curl -H "X-API-Key: your-api-key" http://localhost:6666/api/execute \
+curl -H "X-API-Key: your-api-key" http://localhost:8000/api/execute \
   -d '{"task": "..."}'
 ```
 
@@ -517,10 +517,10 @@ All operations are logged with full audit trails:
 
 ```bash
 # View audit log
-curl http://localhost:6666/api/audit/log?limit=50
+curl http://localhost:8000/api/audit/log?limit=50
 
 # Filter by action type
-curl http://localhost:6666/api/audit/log?action=execution&limit=20
+curl http://localhost:8000/api/audit/log?action=execution&limit=20
 ```
 
 ---
@@ -550,7 +550,7 @@ Murphy integrates with 12 robotics/industrial protocol clients:
 
 ```bash
 # Register a robot
-curl -X POST http://localhost:6666/api/robotics/register \
+curl -X POST http://localhost:8000/api/robotics/register \
   -d '{
     "robot_id": "ur5e-cell-1",
     "protocol": "universal_robots",
@@ -559,7 +559,7 @@ curl -X POST http://localhost:6666/api/robotics/register \
   }'
 
 # List registered robots
-curl http://localhost:6666/api/robotics/registry
+curl http://localhost:8000/api/robotics/registry
 ```
 
 ### 8.3 Sensor Engine
@@ -567,7 +567,7 @@ curl http://localhost:6666/api/robotics/registry
 Unified sensor reads with caching:
 
 ```bash
-curl -X POST http://localhost:6666/api/automation/sensor/read \
+curl -X POST http://localhost:8000/api/automation/sensor/read \
   -d '{"sensor_id": "temp-zone-A", "protocol": "modbus", "cache_ttl": 5}'
 ```
 
@@ -576,7 +576,7 @@ curl -X POST http://localhost:6666/api/automation/sensor/read \
 Command execution with full audit logging:
 
 ```bash
-curl -X POST http://localhost:6666/api/automation/actuator/execute \
+curl -X POST http://localhost:8000/api/automation/actuator/execute \
   -d '{
     "actuator_id": "gripper-01",
     "command": "close",
@@ -589,10 +589,10 @@ curl -X POST http://localhost:6666/api/automation/actuator/execute \
 
 ```bash
 # Emergency stop — all robots
-curl -X POST http://localhost:6666/api/robotics/emergency-stop
+curl -X POST http://localhost:8000/api/robotics/emergency-stop
 
 # Emergency stop — specific robot
-curl -X POST http://localhost:6666/api/robotics/emergency-stop \
+curl -X POST http://localhost:8000/api/robotics/emergency-stop \
   -d '{"robot_id": "ur5e-cell-1"}'
 ```
 
@@ -616,7 +616,7 @@ The Avatar system gives Murphy configurable personality, voice, and behavioral t
 ### 9.2 Persona Injection
 
 ```bash
-curl -X POST http://localhost:6666/api/avatar/inject \
+curl -X POST http://localhost:8000/api/avatar/inject \
   -d '{
     "session_id": "sess-001",
     "persona": {
@@ -638,7 +638,7 @@ curl -X POST http://localhost:6666/api/avatar/inject \
 ### 9.4 Session Management
 
 ```bash
-curl http://localhost:6666/api/avatar/session/sess-001
+curl http://localhost:8000/api/avatar/session/sess-001
 # Returns: session_id, total_tokens, estimated_cost_usd, interactions, sentiment_score
 ```
 
@@ -669,18 +669,18 @@ Each agent maintains structured state with fields for `identity`, `goals`, `task
 
 ```bash
 # Create
-curl -X POST http://localhost:6666/api/rosetta/agents \
+curl -X POST http://localhost:8000/api/rosetta/agents \
   -d '{"agent_id": "agent-sales-01", "identity": {...}, "goals": [...]}'
 
 # Read
-curl http://localhost:6666/api/rosetta/agents/agent-sales-01
+curl http://localhost:8000/api/rosetta/agents/agent-sales-01
 
 # Update
-curl -X PUT http://localhost:6666/api/rosetta/agents/agent-sales-01 \
+curl -X PUT http://localhost:8000/api/rosetta/agents/agent-sales-01 \
   -d '{"goals": ["increase_conversion_rate", "expand_market"]}'
 
 # Delete
-curl -X DELETE http://localhost:6666/api/rosetta/agents/agent-sales-01
+curl -X DELETE http://localhost:8000/api/rosetta/agents/agent-sales-01
 ```
 
 ### 10.3 Archive & Recalibration
@@ -692,7 +692,7 @@ curl -X DELETE http://localhost:6666/api/rosetta/agents/agent-sales-01
 ### 10.4 Global Health
 
 ```bash
-curl http://localhost:6666/api/rosetta/health
+curl http://localhost:8000/api/rosetta/health
 # Returns: active agents, average drift, recalibration queue depth
 ```
 
@@ -714,7 +714,7 @@ Task Analysis → Failure Mode Enumeration → Gate Generation
 Murphy analyzes each execution to enumerate possible failure modes:
 
 ```bash
-curl -X POST http://localhost:6666/api/documents/{id}/gates \
+curl -X POST http://localhost:8000/api/documents/{id}/gates \
   -d '{"enumerate_failures": true}'
 ```
 
@@ -735,7 +735,7 @@ Gates are conditional checks inserted at critical execution points:
 Exposure analysis quantifies the blast radius of potential failures:
 
 ```bash
-curl http://localhost:6666/api/gate-synthesis/exposure?execution_id=exec-a1b2c3
+curl http://localhost:8000/api/gate-synthesis/exposure?execution_id=exec-a1b2c3
 ```
 
 ### 11.5 Synthetic Failure Generation (Chaos Engineering)
@@ -743,7 +743,7 @@ curl http://localhost:6666/api/gate-synthesis/exposure?execution_id=exec-a1b2c3
 Generate synthetic failures to test system resilience:
 
 ```bash
-curl -X POST http://localhost:6666/api/gate-synthesis/chaos \
+curl -X POST http://localhost:8000/api/gate-synthesis/chaos \
   -d '{
     "target": "database_engine",
     "failure_type": "latency_spike",
@@ -763,7 +763,7 @@ curl -X POST http://localhost:6666/api/gate-synthesis/chaos \
 The orchestrator compiles self-contained execution packets (task + plan + context + gates + risk):
 
 ```bash
-curl -X POST http://localhost:6666/api/orchestrator/compile \
+curl -X POST http://localhost:8000/api/orchestrator/compile \
   -d '{"task_id": "task-001", "include_gates": true, "include_risk": true}'
 ```
 
@@ -775,22 +775,22 @@ Control execution flow with lifecycle commands:
 
 ```bash
 # Pause execution
-curl -X POST http://localhost:6666/api/orchestrator/pause \
+curl -X POST http://localhost:8000/api/orchestrator/pause \
   -d '{"execution_id": "exec-a1b2c3"}'
 
 # Resume execution
-curl -X POST http://localhost:6666/api/orchestrator/resume \
+curl -X POST http://localhost:8000/api/orchestrator/resume \
   -d '{"execution_id": "exec-a1b2c3"}'
 
 # Abort execution
-curl -X POST http://localhost:6666/api/orchestrator/abort \
+curl -X POST http://localhost:8000/api/orchestrator/abort \
   -d '{"execution_id": "exec-a1b2c3", "reason": "Resource constraint"}'
 ```
 
 ### 12.3 Telemetry & Risk Certificates
 
 ```bash
-curl http://localhost:6666/api/orchestrator/telemetry?execution_id=exec-a1b2c3
+curl http://localhost:8000/api/orchestrator/telemetry?execution_id=exec-a1b2c3
 ```
 
 Returns real-time metrics: step progress, latency, resource usage, and gate status.
@@ -806,7 +806,7 @@ Each execution also produces a **risk certificate** summarizing pre/post risk as
 Murphy exposes a Prometheus-compatible metrics endpoint:
 
 ```bash
-curl http://localhost:6666/metrics
+curl http://localhost:8000/metrics
 ```
 
 Key metrics:
@@ -823,7 +823,7 @@ Key metrics:
 ### 13.2 System Health
 
 ```bash
-curl http://localhost:6666/api/health
+curl http://localhost:8000/api/health
 ```
 
 Returns aggregated health across all subsystems:
@@ -845,7 +845,7 @@ Returns aggregated health across all subsystems:
 
 ### 13.3 Analytics Dashboard
 
-Access via the integrated UI at `http://localhost:6666/dashboard`. The dashboard shows:
+Access via the integrated UI at `http://localhost:8000/dashboard`. The dashboard shows:
 
 - Real-time execution pipeline
 - Confidence score distributions
@@ -905,7 +905,7 @@ All bots operate under governance policies:
 ### 14.4 Bot Telemetry
 
 ```bash
-curl http://localhost:6666/api/bots/telemetry
+curl http://localhost:8000/api/bots/telemetry
 ```
 
 Returns per-bot metrics: invocation count, success rate, average latency, and resource consumption.
@@ -946,7 +946,7 @@ docker build -t murphy-system:1.0 .
 # Run the container
 docker run -d \
   --name murphy \
-  -p 6666:6666 \
+  -p 8000:8000 \
   -e GROQ_API_KEY=your-key \
   -v murphy-data:/app/data \
   murphy-system:1.0
@@ -962,7 +962,7 @@ The `docker-compose.yml` includes:
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| `murphy` | 6666 | Main application |
+| `murphy` | 8000 | Main application |
 | `prometheus` | 9090 | Metrics collection |
 | `grafana` | 3000 | Metrics visualization |
 
@@ -1098,7 +1098,7 @@ The `.github/workflows/` directory contains CI/CD configurations:
 **Execute a task:**
 
 ```bash
-curl -X POST http://localhost:6666/api/execute \
+curl -X POST http://localhost:8000/api/execute \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your-api-key" \
   -d '{"task": "Analyze Q4 sales data", "priority": "high", "timeout_seconds": 300}'
@@ -1116,7 +1116,7 @@ curl -X POST http://localhost:6666/api/execute \
 
 | Problem | Cause | Solution |
 |---------|-------|----------|
-| System won't start | Port 6666 in use | `lsof -i :6666` and kill conflicting process |
+| System won't start | Port 8000 in use | `lsof -i :8000` and kill conflicting process |
 | `ModuleNotFoundError` | Missing dependencies | `pip install -r requirements_murphy_1.0.txt` |
 | LLM requests fail | Missing API key | Set `GROQ_API_KEY` or `OPENAI_API_KEY` env var |
 | Low confidence scores | Insufficient context | Provide more detailed task descriptions |
@@ -1162,13 +1162,13 @@ export MURPHY_LOG_LEVEL=DEBUG
 
 ```bash
 # System diagnostics
-curl http://localhost:6666/api/diagnostics/activation
+curl http://localhost:8000/api/diagnostics/activation
 
 # Module status
-curl http://localhost:6666/api/modules
+curl http://localhost:8000/api/modules
 
 # Health deep-check
-curl http://localhost:6666/api/health
+curl http://localhost:8000/api/health
 ```
 
 ### 18.5 Support Channels
@@ -1218,14 +1218,14 @@ curl http://localhost:6666/api/health
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  START:    ./start_murphy_1.0.sh                                │
-│  HEALTH:   curl localhost:6666/api/health                       │
-│  EXECUTE:  curl -X POST localhost:6666/api/execute -d '{...}'   │
-│  STATUS:   curl localhost:6666/api/status                       │
-│  METRICS:  curl localhost:6666/metrics                          │
+│  HEALTH:   curl localhost:8000/api/health                       │
+│  EXECUTE:  curl -X POST localhost:8000/api/execute -d '{...}'   │
+│  STATUS:   curl localhost:8000/api/status                       │
+│  METRICS:  curl localhost:8000/metrics                          │
 │  LOGS:     docker logs murphy -f                                │
 │  STOP:     docker stop murphy                                   │
 │                                                                 │
-│  DEFAULT PORT: 6666                                             │
+│  DEFAULT PORT: 8000                                             │
 │  CONFIG:       src/config.py or environment variables           │
 │  DOCS:         documentation/ directory                         │
 │                                                                 │
