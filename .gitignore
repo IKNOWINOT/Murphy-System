@@ -56,7 +56,10 @@ logs/
 .mypy_cache/
 .ruff_cache/
 
-# Murphy specific
+# Murphy runtime artifacts
+.murphy.pid
+*/.murphy.pid
+
 # Murphy specific caches
 murphy_v3/__pycache__/
 *.pyc

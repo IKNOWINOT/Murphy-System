@@ -9,16 +9,17 @@
 ## Model: Open-Core
 
 Murphy System follows an **open-core** business model — the same strategy
-used by GitLab, Elastic, Hashicorp, and Confluent.  The core automation
-engine, all connectors, and the testing framework are open-source under
-the MIT license.  Enterprise features (multi-tenant SaaS, managed hosting,
+used by GitLab, Elastic, HashiCorp, and Confluent.  The core automation
+engine, all connectors, and the testing framework are source-available under
+the **BSL 1.1** (Business Source License) which converts to Apache 2.0 after
+four years.  Enterprise features (multi-tenant SaaS, managed hosting,
 premium support, white-label) are offered commercially.
 
 ---
 
 ## Editions
 
-### Community Edition (Open Source — MIT)
+### Community Edition (Source-Available — BSL 1.1 → Apache 2.0)
 
 Everything a solo developer, startup, or small team needs to run a
 universal generative automation control plane.
@@ -90,7 +91,7 @@ assistance, and dedicated engineering support.
 
 ## What Is Open-Source vs. Commercial
 
-### Open-Source (Community Edition)
+### Source-Available (Community Edition — BSL 1.1)
 
 - All source modules in `src/`
 - Runtime, gate synthesis, swarm orchestration
