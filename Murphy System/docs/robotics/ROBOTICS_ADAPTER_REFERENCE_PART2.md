@@ -1,5 +1,5 @@
 # Murphy System — Robotics Integration Layer
-## GitHub Copilot Implementation Prompt (Part 2 of 3)
+## Industrial Adapter Technical Reference (Part 2 of 3)
 
 ---
 

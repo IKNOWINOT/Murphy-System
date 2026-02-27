@@ -158,8 +158,7 @@ Verify each advertised capability end-to-end:
 | Automation Toggle | `docs/librarian_knowledge_base/automation_toggle.md` | — | ⏳ Pending | — |
 | Rosetta Agent State Template | `docs/state_management/ROSETTA_AGENT_STATE_TEMPLATE.md` | — | ⏳ Pending | — |
 | Rosetta State Management | `docs/state_management/ROSETTA_STATE_MANAGEMENT_SYSTEM.md` | — | ⏳ Pending | — |
-| Robotics Copilot Prompt (Parts 1–3) | `docs/robotics/ROBOTICS_COPILOT_PROMPT_PART*.md` | — | ⏳ Pending | — |
-| Copilot Implementation Prompt | `docs/avatar/COPILOT_IMPLEMENTATION_PROMPT.md` | — | ⏳ Pending | — |
+| Robotics Adapter Reference (Parts 2–3) | `docs/robotics/ROBOTICS_ADAPTER_REFERENCE_PART*.md` | — | ⏳ Pending | — |
 | Avatar Architecture Analysis | `docs/avatar/AVATAR_ARCHITECTURE_ANALYSIS.md` | — | ⏳ Pending | — |
 | Operations, Testing & Iteration Plan | `docs/OPERATIONS_TESTING_PLAN.md` | — | ✅ Current | This document |
 
@@ -391,9 +390,8 @@ The Murphy System Operations, Testing & Iteration Plan is **complete** when:
 ## Related Documents
 
 - [Launch Automation Plan](LAUNCH_AUTOMATION_PLAN.md)
-- [Execution Log — Cycle 1](EXECUTION_LOG.md)
-- [Gap Analysis — Cycle 1](GAP_ANALYSIS.md)
-- [Remediation Plan — Cycle 1](REMEDIATION_PLAN.md)
+- [Gap Analysis](GAP_ANALYSIS.md)
+- [Remediation Plan](REMEDIATION_PLAN.md)
 - [QA Audit Report](QA_AUDIT_REPORT.md)
 - [Self-Running Analysis](self_running_analysis.md)
 - [Test Coverage](../documentation/testing/TEST_COVERAGE.md)

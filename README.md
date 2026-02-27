@@ -540,8 +540,7 @@ Container and Kubernetes deployment manifests are available as legacy reference 
 | [User Manual](<Murphy System/USER_MANUAL.md>) | Comprehensive user manual |
 | [Launch Automation Plan](<Murphy System/docs/LAUNCH_AUTOMATION_PLAN.md>) | Self-automating launch strategy |
 | [Operations & Testing Plan](<Murphy System/docs/OPERATIONS_TESTING_PLAN.md>) | Iterative test-fix-document cycle |
-| [Execution Log](<Murphy System/docs/EXECUTION_LOG.md>) | Cycle 1 real test results |
-| [Gap Analysis](<Murphy System/docs/GAP_ANALYSIS.md>) | Actual vs expected — Cycle 1 |
+| [Gap Analysis](<Murphy System/docs/GAP_ANALYSIS.md>) | System gap analysis and status |
 | [Remediation Plan](<Murphy System/docs/REMEDIATION_PLAN.md>) | Fixes for all identified gaps |
 | [Manual Commissioning Test Plan](<Murphy System/docs/MANUAL_COMMISSIONING_TEST_PLAN.md>) | Step-by-step manual UI and API verification |
 | [API Docs](http://localhost:6666/docs) | Interactive API docs (requires running server) |
