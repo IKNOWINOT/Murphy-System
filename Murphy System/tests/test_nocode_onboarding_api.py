@@ -31,12 +31,17 @@ class TestSetupWizardAPIContract:
     """Validate that the SetupWizard produces data suitable for API responses."""
 
     def test_questions_serializable(self):
-        """All questions can be serialized to JSON."""
+        """All questions can be serialized to JSON with required structure."""
         wiz = SetupWizard()
         questions = wiz.get_questions()
         serialized = json.dumps(questions)
         loaded = json.loads(serialized)
         assert len(loaded) == len(questions)
+        for q in loaded:
+            assert "id" in q
+            assert "text" in q
+            assert "question_type" in q
+            assert "field" in q
 
     def test_profile_serializable(self):
         """Profile can be converted to dict and serialized."""
