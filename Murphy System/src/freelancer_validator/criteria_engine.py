@@ -185,7 +185,7 @@ class CriteriaEngine:
         for cid in required_ids - submitted_ids:
             errors.append(f"Missing required criterion: {cid}")
 
-        if response.verdict not in ResponseVerdict.__members__.values():
+        if not isinstance(response.verdict, ResponseVerdict):
             errors.append(f"Invalid verdict: {response.verdict}")
 
         return errors

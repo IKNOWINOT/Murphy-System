@@ -12,12 +12,12 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
+from pydantic import BaseModel, Field
+
 
 def _utcnow() -> datetime:
     """Return a timezone-aware UTC datetime."""
     return datetime.now(timezone.utc)
-
-from pydantic import BaseModel, Field
 
 
 # ── Enums ────────────────────────────────────────────────────────────────
