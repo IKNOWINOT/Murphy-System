@@ -52,6 +52,11 @@ class TestIndustrialManufacturingWorkflow:
         
         # Initialize enterprise systems
         self.scada_system = SCADARoboticsSystem()
+        self.scada_system.set_runtime_bounds({
+            "x_min": 0, "x_max": 1000,
+            "y_min": 0, "y_max": 800,
+            "z_min": 0, "z_max": 500
+        })
         self.mes_system = ManufacturingExecutionSystem()
         self.qc_system = QualityControlSystem()
         self.security_system = SecuritySystem()
