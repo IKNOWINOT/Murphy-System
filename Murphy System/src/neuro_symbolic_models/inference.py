@@ -115,11 +115,22 @@ class MLInferenceService:
             inference_time = (datetime.now() - start_time).total_seconds() * 1000
             
             # Extract values
+            h_val = float(H_ml.item())
+            d_val = float(D_ml.item())
+            r_val = float(R_ml.item())
+
+            # Derive prediction confidence from the model outputs:
+            # H (health) and D (dependency-stability) are in [0,1] after
+            # sigmoid; combine them via geometric mean for a single score.
+            prediction_confidence = round(
+                (max(0.0, min(1.0, h_val)) * max(0.0, min(1.0, d_val))) ** 0.5, 4
+            )
+
             result = {
-                "H_ml": float(H_ml.item()),
-                "D_ml": float(D_ml.item()),
-                "R_ml": float(R_ml.item()),
-                "prediction_confidence": 0.85,  # Placeholder - use ensemble for real confidence
+                "H_ml": h_val,
+                "D_ml": d_val,
+                "R_ml": r_val,
+                "prediction_confidence": prediction_confidence,
                 "model_version": self.model_version,
                 "inference_time_ms": inference_time,
                 "features_used": ["graph_structure", "symbolic_features"]
@@ -140,28 +151,88 @@ class MLInferenceService:
     ) -> tuple:
         """
         Prepare input tensors from graph data.
-        
+
+        Extracts real node features, edge relationships, and symbolic
+        attributes from the provided artifact/gate graphs.  Falls back
+        to zero-initialised tensors when graph data is sparse.
+
         Returns:
             (node_features, edge_index, symbolic_features)
         """
-        # Simplified input preparation
-        # In practice, parse actual graph structure
-        
-        # Create dummy node features
-        num_nodes = 10
         node_feature_dim = 64
-        node_features = torch.randn(num_nodes, node_feature_dim)
-        
-        # Create dummy edge index
-        edge_index = torch.tensor([
-            [0, 1, 2, 3, 4, 5, 6, 7, 8],
-            [1, 2, 3, 4, 5, 6, 7, 8, 9]
-        ], dtype=torch.long)
-        
-        # Create dummy symbolic features
         symbolic_feature_dim = 32
-        symbolic_features = torch.randn(1, symbolic_feature_dim)
-        
+
+        # --- Node features ---------------------------------------------------
+        nodes = artifact_graph.get("nodes", [])
+        if not nodes:
+            # Minimal single-node graph when no nodes are provided
+            nodes = [{"id": "root"}]
+
+        num_nodes = len(nodes)
+        node_features = torch.zeros(num_nodes, node_feature_dim)
+
+        node_id_map: Dict[str, int] = {}
+        for idx, node in enumerate(nodes):
+            node_id_map[str(node.get("id", idx))] = idx
+            # Encode available scalar attributes into the feature vector
+            props = node.get("properties", node)
+            feat_idx = 0
+            for key in sorted(props.keys()):
+                val = props[key]
+                if isinstance(val, (int, float)):
+                    if feat_idx < node_feature_dim:
+                        node_features[idx, feat_idx] = float(val)
+                        feat_idx += 1
+                elif isinstance(val, str):
+                    # Deterministic string hash → float in [0, 1]
+                    if feat_idx < node_feature_dim:
+                        node_features[idx, feat_idx] = (hash(val) % 10000) / 10000.0
+                        feat_idx += 1
+
+        # --- Edge index -------------------------------------------------------
+        edges = artifact_graph.get("edges", [])
+        if edges:
+            src_indices = []
+            dst_indices = []
+            for edge in edges:
+                src = str(edge.get("source", edge.get("from", "")))
+                dst = str(edge.get("target", edge.get("to", "")))
+                if src in node_id_map and dst in node_id_map:
+                    src_indices.append(node_id_map[src])
+                    dst_indices.append(node_id_map[dst])
+            if src_indices:
+                edge_index = torch.tensor([src_indices, dst_indices], dtype=torch.long)
+            else:
+                # Self-loop on first node when no valid edges
+                edge_index = torch.tensor([[0], [0]], dtype=torch.long)
+        else:
+            # Default: linear chain when no edge info supplied
+            if num_nodes > 1:
+                edge_index = torch.tensor(
+                    [list(range(num_nodes - 1)), list(range(1, num_nodes))],
+                    dtype=torch.long,
+                )
+            else:
+                edge_index = torch.tensor([[0], [0]], dtype=torch.long)
+
+        # --- Symbolic features ------------------------------------------------
+        symbolic_features = torch.zeros(1, symbolic_feature_dim)
+        feat_idx = 0
+        if gate_graph:
+            gates = gate_graph.get("gates", [])
+            for g in gates:
+                if feat_idx < symbolic_feature_dim:
+                    symbolic_features[0, feat_idx] = float(g.get("weight", 0.5))
+                    feat_idx += 1
+        if interface_bindings:
+            for key, val in sorted(interface_bindings.items()):
+                if feat_idx < symbolic_feature_dim:
+                    symbolic_features[0, feat_idx] = (hash(str(val)) % 10000) / 10000.0
+                    feat_idx += 1
+        if current_phase:
+            if feat_idx < symbolic_feature_dim:
+                symbolic_features[0, feat_idx] = (hash(current_phase) % 10000) / 10000.0
+
         return node_features, edge_index, symbolic_features
     
     def predict_batch(
