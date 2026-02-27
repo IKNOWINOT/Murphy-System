@@ -87,8 +87,8 @@ start_murphy_1.0.bat   # Windows
 | File system cleanup | **100%** |
 | Test coverage (dynamic chains) | **100%** |
 | UI + user testing | **85%** |
-| Security hardening ([plan](SECURITY_IMPLEMENTATION_PLAN.md)) | **47%** |
-| **Overall average** | **~93%** |
+| Security hardening ([plan](SECURITY_IMPLEMENTATION_PLAN.md)) | **100%** |
+| **Overall average** | **~98%** |
 
 ---
 
@@ -152,7 +152,14 @@ cd "Murphy System" && ./start_murphy_1.0.sh
 - Operational SLO tracking (success rates, latency percentiles)
 - Compliance validation (GDPR/SOC 2/HIPAA/PCI-DSS) with regional support
 - RBAC governance with shadow agent integration
-- 42 integrated modules, 1440+ module tests passing
+- Per-request ownership verification and session context enforcement
+- PII detection and automated log sanitization (8 pattern types)
+- Per-bot and per-swarm resource quotas with auto-suspension
+- Swarm communication loop detection (DFS cycle detection, rate limiting)
+- Cryptographic bot identity verification (HMAC-SHA256 signing)
+- Behavioral anomaly detection (z-score analysis, resource spikes, API patterns)
+- Unified security dashboard with event correlation and compliance reporting
+- 42 integrated modules, 1490+ module tests passing
 - Neon terminal UI across 9 components with consistent theme
 
 **Architect UI:** serve `Murphy System/terminal_architect.html` with `python -m http.server 8090` and open `http://localhost:8090/Murphy%20System/terminal_architect.html?apiPort=6666`
@@ -232,8 +239,15 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **Remote Access Connector** | `src/remote_access_connector.py` | TeamViewer/AnyDesk/RDP/VNC/SSH/Parsec/Chrome Remote Desktop/Guacamole/Splashtop |
 | **UI Testing Framework** | `src/ui_testing_framework.py` | 12 testing capabilities: visual regression, interactive components, E2E, performance, cross-browser, mobile gestures, dark mode, security, i18n |
 | **Security Hardening Config** | `src/security_hardening_config.py` | Input sanitization (XSS/SQLi/path traversal), CORS lockdown, token-bucket rate limiting, CSP headers, API key rotation, audit logging, session security (MFA, concurrent limits) |
+| **Authorization Enhancer** | `src/security_plane/authorization_enhancer.py` | Per-request ownership verification, session context enforcement, audit trail |
+| **Log Sanitizer** | `src/security_plane/log_sanitizer.py` | PII detection (8 types), automated redaction, retroactive log sanitization |
+| **Bot Resource Quotas** | `src/security_plane/bot_resource_quotas.py` | Per-bot quotas, swarm aggregate limits, auto-suspension |
+| **Swarm Communication Monitor** | `src/security_plane/swarm_communication_monitor.py` | Message graph tracking, DFS cycle detection, rate limiting, pattern detection |
+| **Bot Identity Verifier** | `src/security_plane/bot_identity_verifier.py` | HMAC-SHA256 signing, message verification, identity registry, key revocation |
+| **Bot Anomaly Detector** | `src/security_plane/bot_anomaly_detector.py` | Z-score anomaly detection, resource spikes, API pattern analysis |
+| **Security Dashboard** | `src/security_plane/security_dashboard.py` | Unified event view, correlation, compliance reports, escalation |
 
-**Progress tracking:** Security enhancements are tracked in [SECURITY_IMPLEMENTATION_PLAN.md](SECURITY_IMPLEMENTATION_PLAN.md). All RFI items (`RFI-001`..`RFI-015`) have been resolved.
+**Progress tracking:** All security enhancements are complete — see [SECURITY_IMPLEMENTATION_PLAN.md](SECURITY_IMPLEMENTATION_PLAN.md). All RFI items (`RFI-001`..`RFI-015`) have been resolved.
 
 ---
 
@@ -475,6 +489,16 @@ POST /api/integrations/add
 -   ✅ Includes HIPAA-aligned controls (requires review)
 -   ✅ Includes PCI DSS-aligned controls (requires review)
 
+### Multi-Agent Security Enhancements ([full plan](SECURITY_IMPLEMENTATION_PLAN.md))
+
+-   ✅ Per-request ownership verification with session context enforcement (`authorization_enhancer.py`)
+-   ✅ PII detection and automated log sanitization — 8 pattern types (`log_sanitizer.py`)
+-   ✅ Per-bot and per-swarm resource quotas with auto-suspension (`bot_resource_quotas.py`)
+-   ✅ Swarm communication loop detection — DFS cycle detection, rate limiting (`swarm_communication_monitor.py`)
+-   ✅ Cryptographic bot identity verification — HMAC-SHA256 signing and revocation (`bot_identity_verifier.py`)
+-   ✅ Behavioral anomaly detection — z-score analysis, resource spikes, API patterns (`bot_anomaly_detector.py`)
+-   ✅ Unified security dashboard with event correlation and compliance reporting (`security_dashboard.py`)
+
 ---
 
 ## 📈 Performance (Design Targets)
@@ -512,7 +536,7 @@ Container and Kubernetes deployment manifests are available as legacy reference 
 | [Specification](<Murphy System/MURPHY_SYSTEM_1.0_SPECIFICATION.md>) | Complete system spec |
 | [API Documentation](<Murphy System/API_DOCUMENTATION.md>) | API reference |
 | [Deployment Guide](<Murphy System/DEPLOYMENT_GUIDE.md>) | Deployment instructions |
-| [Security Implementation Plan](SECURITY_IMPLEMENTATION_PLAN.md) | Security enhancement roadmap |
+| [Security Implementation Plan](SECURITY_IMPLEMENTATION_PLAN.md) | Security enhancements — all phases complete |
 | [User Manual](<Murphy System/USER_MANUAL.md>) | Comprehensive user manual |
 | [Launch Automation Plan](<Murphy System/docs/LAUNCH_AUTOMATION_PLAN.md>) | Self-automating launch strategy |
 | [Operations & Testing Plan](<Murphy System/docs/OPERATIONS_TESTING_PLAN.md>) | Iterative test-fix-document cycle |
