@@ -130,7 +130,7 @@ DEFAULT_PLATFORMS = [
         platform="microsoft_teams",
         auth_type=AuthType.OAUTH2,
         base_url="https://graph.microsoft.com/v1.0",
-        capabilities=["send_message", "create_channel", "list_teams", "schedule_meeting", "upload_file"],
+        capabilities=["send_message", "create_channel", "list_teams", "schedule_meeting", "upload_file", "webhook"],
     ),
     ConnectorDefinition(
         connector_id="discord",
@@ -157,7 +157,7 @@ DEFAULT_PLATFORMS = [
         platform="asana",
         auth_type=AuthType.OAUTH2,
         base_url="https://app.asana.com/api/1.0",
-        capabilities=["create_task", "update_task", "list_projects", "add_comment", "assign_task"],
+        capabilities=["create_task", "update_task", "list_projects", "add_comment", "assign_task", "webhook"],
     ),
     ConnectorDefinition(
         connector_id="monday",
@@ -166,7 +166,7 @@ DEFAULT_PLATFORMS = [
         platform="monday",
         auth_type=AuthType.API_KEY,
         base_url="https://api.monday.com/v2",
-        capabilities=["create_item", "update_item", "list_boards", "create_update"],
+        capabilities=["create_item", "update_item", "list_boards", "create_update", "webhook"],
     ),
     ConnectorDefinition(
         connector_id="salesforce",
@@ -247,7 +247,7 @@ DEFAULT_PLATFORMS = [
         platform="atlassian_confluence",
         auth_type=AuthType.OAUTH2,
         base_url="https://api.atlassian.com",
-        capabilities=["create_page", "update_page", "search", "list_spaces", "manage_attachments"],
+        capabilities=["create_page", "update_page", "search", "list_spaces", "manage_attachments", "webhook"],
     ),
     ConnectorDefinition(
         connector_id="notion",
@@ -256,7 +256,7 @@ DEFAULT_PLATFORMS = [
         platform="notion",
         auth_type=AuthType.TOKEN,
         base_url="https://api.notion.com/v1",
-        capabilities=["create_page", "update_page", "query_database", "search", "manage_blocks"],
+        capabilities=["create_page", "update_page", "query_database", "search", "manage_blocks", "webhook"],
     ),
     ConnectorDefinition(
         connector_id="servicenow",
@@ -283,7 +283,7 @@ DEFAULT_PLATFORMS = [
         platform="google_workspace",
         auth_type=AuthType.OAUTH2,
         base_url="https://www.googleapis.com",
-        capabilities=["gmail_send", "drive_upload", "calendar_create", "sheets_read", "docs_create"],
+        capabilities=["gmail_send", "drive_upload", "calendar_create", "sheets_read", "docs_create", "webhook"],
     ),
     ConnectorDefinition(
         connector_id="zapier",
@@ -421,7 +421,7 @@ DEFAULT_PLATFORMS = [
         platform="woocommerce",
         auth_type=AuthType.BASIC,
         base_url="https://store.example.com/wp-json/wc/v3",
-        capabilities=["list_products", "create_product", "list_orders", "update_order", "manage_customers"],
+        capabilities=["list_products", "create_product", "list_orders", "update_order", "manage_customers", "webhook"],
     ),
     # ---- Customer Support ----
     ConnectorDefinition(
@@ -449,7 +449,7 @@ DEFAULT_PLATFORMS = [
         platform="freshdesk",
         auth_type=AuthType.API_KEY,
         base_url="https://domain.freshdesk.com/api/v2",
-        capabilities=["create_ticket", "update_ticket", "list_tickets", "add_note", "search"],
+        capabilities=["create_ticket", "update_ticket", "list_tickets", "add_note", "search", "webhook"],
     ),
     # ---- Observability & Monitoring ----
     ConnectorDefinition(
@@ -486,7 +486,7 @@ DEFAULT_PLATFORMS = [
         platform="newrelic",
         auth_type=AuthType.API_KEY,
         base_url="https://api.newrelic.com/v2",
-        capabilities=["list_applications", "get_metrics", "create_deployment", "query_nrql"],
+        capabilities=["list_applications", "get_metrics", "create_deployment", "query_nrql", "webhook"],
     ),
     # ---- CI/CD ----
     ConnectorDefinition(
@@ -505,7 +505,7 @@ DEFAULT_PLATFORMS = [
         platform="jenkins",
         auth_type=AuthType.BASIC,
         base_url="https://jenkins.example.com/api",
-        capabilities=["trigger_build", "get_build_status", "list_jobs", "get_console_output"],
+        capabilities=["trigger_build", "get_build_status", "list_jobs", "get_console_output", "webhook"],
     ),
     # ---- Communication (SMS/Voice) ----
     ConnectorDefinition(
@@ -573,7 +573,7 @@ DEFAULT_PLATFORMS = [
         platform="quickbooks",
         auth_type=AuthType.OAUTH2,
         base_url="https://quickbooks.api.intuit.com/v3",
-        capabilities=["create_invoice", "list_customers", "create_payment", "generate_report", "manage_expenses"],
+        capabilities=["create_invoice", "list_customers", "create_payment", "generate_report", "manage_expenses", "webhook"],
     ),
     # ---- AI/ML ----
     ConnectorDefinition(
@@ -620,7 +620,7 @@ DEFAULT_PLATFORMS = [
         platform="firebase",
         auth_type=AuthType.TOKEN,
         base_url="https://firestore.googleapis.com/v1",
-        capabilities=["get_document", "create_document", "auth", "storage", "functions"],
+        capabilities=["get_document", "create_document", "auth", "storage", "functions", "webhook"],
     ),
     ConnectorDefinition(
         connector_id="mongodb_atlas",
@@ -629,7 +629,7 @@ DEFAULT_PLATFORMS = [
         platform="mongodb_atlas",
         auth_type=AuthType.API_KEY,
         base_url="https://data.mongodb-api.com/app/data/endpoint/data/v1",
-        capabilities=["find", "insert_one", "update_one", "delete_one", "aggregate"],
+        capabilities=["find", "insert_one", "update_one", "delete_one", "aggregate", "webhook"],
     ),
     # ---- Deployment ----
     ConnectorDefinition(
@@ -704,7 +704,7 @@ DEFAULT_PLATFORMS = [
         platform="linkedin",
         auth_type=AuthType.OAUTH2,
         base_url="https://api.linkedin.com/v2",
-        capabilities=["create_post", "get_profile", "manage_connections"],
+        capabilities=["create_post", "get_profile", "manage_connections", "webhook"],
     ),
     ConnectorDefinition(
         connector_id="reddit",
