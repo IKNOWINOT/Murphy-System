@@ -420,27 +420,59 @@ Type 'api' to see new integrated endpoints
             addOutput('  help              - Show this help message');
             addOutput('  api               - Show available API endpoints');
             addOutput('  status            - Show system status and components');
+            addOutput('  health            - Show system health check');
+            addOutput('  modules           - List all loaded modules');
+            addOutput('  diagnostics       - Show activation diagnostics');
             addOutput('  clear             - Clear terminal output');
             addOutput('');
-            addOutput('FORM SUBMISSION:', 'info');
-            addOutput('  submit            - Submit a task for execution');
+            addOutput('TASK EXECUTION:', 'info');
+            addOutput('  execute           - Execute a task directly');
+            addOutput('                      Example: execute {"task_description":"Analyze data","task_type":"analysis"}');
+            addOutput('  submit            - Submit a task via form validation');
             addOutput('                      Example: submit {"task_type":"analysis","description":"Analyze data"}');
             addOutput('  validate          - Validate a task without executing');
             addOutput('                      Example: validate {"task_type":"general","description":"Test"}');
+            addOutput('');
+            addOutput('BLOCK COMMANDS:', 'info');
             addOutput('  magnify           - Magnify current block command tree');
             addOutput('                      Example: magnify automation');
             addOutput('  simplify          - Simplify current block command tree');
             addOutput('  solidify          - Solidify current block command tree');
             addOutput('  blocks            - Show current block command tree');
             addOutput('');
+            addOutput('PLAN MANAGEMENT:', 'info');
+            addOutput('  plan upload       - Upload a pre-existing plan');
+            addOutput('                      Example: plan upload {"plan_name":"Q4","steps":["step1","step2"]}');
+            addOutput('  plan generate     - Generate a plan from description');
+            addOutput('                      Example: plan generate {"description":"Launch marketing campaign"}');
+            addOutput('');
             addOutput('LEARNING & CORRECTIONS:', 'info');
             addOutput('  correct           - Submit a correction');
             addOutput('                      Example: correct {"task_id":"123","correction_type":"output_error"}');
             addOutput('  patterns          - Show extracted correction patterns');
             addOutput('  stats             - Show correction statistics');
+            addOutput('  training          - Show shadow agent training data');
             addOutput('');
             addOutput('HUMAN-IN-THE-LOOP:', 'info');
             addOutput('  interventions     - Show pending intervention requests');
+            addOutput('  respond           - Respond to an intervention');
+            addOutput('                      Example: respond {"id":"abc-123","status":"resolved","response":"Approved"}');
+            addOutput('  hitlstats         - Show HITL statistics');
+            addOutput('');
+            addOutput('INTEGRATIONS:', 'info');
+            addOutput('  integrations      - List integrations (optionally by status)');
+            addOutput('                      Example: integrations pending');
+            addOutput('  integrate         - Add a new integration');
+            addOutput('                      Example: integrate {"source":"github.com/repo","integration_type":"repository"}');
+            addOutput('  approve           - Approve a pending integration');
+            addOutput('                      Example: approve <request_id>');
+            addOutput('  reject            - Reject a pending integration');
+            addOutput('                      Example: reject <request_id> <reason>');
+            addOutput('  services          - List universal integration services');
+            addOutput('');
+            addOutput('AUTOMATION:', 'info');
+            addOutput('  automate          - Run a business automation engine');
+            addOutput('                      Example: automate {"engine":"content","action":"generate","parameters":{}}');
             addOutput('');
             addOutput('For detailed API documentation, see API_DOCUMENTATION.md', 'info');
         }
@@ -448,30 +480,51 @@ Type 'api' to see new integrated endpoints
         function showAPIEndpoints() {
             addOutput('=== Integrated API Endpoints ===', 'info');
             addOutput('');
-            addOutput('FORM ENDPOINTS:', 'info');
-            addOutput('  POST /api/forms/plan-upload         - Upload pre-existing plan');
-            addOutput('  POST /api/forms/plan-generation     - Generate plan from description');
-            addOutput('  POST /api/forms/task-execution      - Execute task with Murphy validation');
-            addOutput('  POST /api/forms/validation          - Validate task without executing');
-            addOutput('  POST /api/forms/correction          - Submit correction');
-            addOutput('  GET  /api/forms/submission/<id>     - Get submission status');
+            addOutput('SYSTEM ENDPOINTS:', 'info');
+            addOutput('  GET  /api/health                     - Health check');
+            addOutput('  GET  /api/status                     - System status');
+            addOutput('  GET  /api/system/info                - System information');
+            addOutput('  GET  /api/modules                    - List loaded modules');
+            addOutput('  GET  /api/diagnostics/activation     - Activation diagnostics');
+            addOutput('');
+            addOutput('TASK EXECUTION:', 'info');
+            addOutput('  POST /api/execute                    - Execute a task directly');
+            addOutput('  POST /api/forms/task-execution       - Execute task with Murphy validation');
+            addOutput('  POST /api/forms/validation           - Validate task without executing');
+            addOutput('');
+            addOutput('PLAN MANAGEMENT:', 'info');
+            addOutput('  POST /api/forms/plan-upload          - Upload pre-existing plan');
+            addOutput('  POST /api/forms/plan-generation      - Generate plan from description');
+            addOutput('  GET  /api/forms/submission/<id>      - Get submission status');
+            addOutput('');
+            addOutput('DOCUMENT ENDPOINTS:', 'info');
+            addOutput('  POST /api/documents/<id>/magnify     - Magnify block command tree');
+            addOutput('  POST /api/documents/<id>/simplify    - Simplify block command tree');
+            addOutput('  POST /api/documents/<id>/solidify    - Solidify block command tree');
+            addOutput('  GET  /api/documents/<id>/blocks      - Fetch block command tree');
             addOutput('');
             addOutput('CORRECTION ENDPOINTS:', 'info');
-            addOutput('  GET  /api/corrections/patterns      - Get extracted patterns');
-            addOutput('  GET  /api/corrections/statistics    - Get correction statistics');
-            addOutput('  GET  /api/corrections/training-data - Get shadow agent training data');
+            addOutput('  POST /api/forms/correction           - Submit correction');
+            addOutput('  GET  /api/corrections/patterns       - Get extracted patterns');
+            addOutput('  GET  /api/corrections/statistics     - Get correction statistics');
+            addOutput('  GET  /api/corrections/training-data  - Get shadow agent training data');
             addOutput('');
             addOutput('HITL ENDPOINTS:', 'info');
-            addOutput('  GET  /api/hitl/interventions/pending      - Get pending interventions');
-            addOutput('  POST /api/hitl/interventions/<id>/respond - Respond to intervention');
-            addOutput('  GET  /api/hitl/statistics                 - Get HITL statistics');
+            addOutput('  GET  /api/hitl/interventions/pending       - Get pending interventions');
+            addOutput('  POST /api/hitl/interventions/<id>/respond  - Respond to intervention');
+            addOutput('  GET  /api/hitl/statistics                  - Get HITL statistics');
             addOutput('');
-            addOutput('SYSTEM ENDPOINTS:', 'info');
-            addOutput('  GET  /api/system/info               - Get system information');
-            addOutput('  POST /api/documents/<id>/magnify    - Magnify block command tree');
-            addOutput('  POST /api/documents/<id>/simplify   - Simplify block command tree');
-            addOutput('  POST /api/documents/<id>/solidify   - Solidify block command tree');
-            addOutput('  GET  /api/documents/<id>/blocks     - Fetch block command tree');
+            addOutput('INTEGRATION ENDPOINTS:', 'info');
+            addOutput('  GET  /api/integrations/<status>            - List integrations by status');
+            addOutput('  POST /api/integrations/add                 - Add a new integration');
+            addOutput('  POST /api/integrations/<id>/approve        - Approve integration');
+            addOutput('  POST /api/integrations/<id>/reject         - Reject integration');
+            addOutput('');
+            addOutput('UNIVERSAL INTEGRATION ENDPOINTS:', 'info');
+            addOutput('  GET  /api/universal-integrations/services  - List available services');
+            addOutput('');
+            addOutput('AUTOMATION ENDPOINTS:', 'info');
+            addOutput('  POST /api/automation/<engine>/<action>     - Run automation engine');
             addOutput('');
             addOutput('Base URL: ' + API_BASE, 'success');
         }
@@ -775,6 +828,414 @@ Type 'api' to see new integrated endpoints
                 }
             } catch (error) {
                 addOutput('✗ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function respondToIntervention(argsStr) {
+            if (!argsStr) {
+                addOutput('Usage: respond <JSON>', 'info');
+                addOutput('Example: respond {"id":"abc-123","status":"resolved","response":"Approved"}', 'info');
+                return;
+            }
+            try {
+                const data = JSON.parse(argsStr);
+                const interventionId = data.id;
+                if (!interventionId) {
+                    addOutput('✗ Missing "id" field in JSON', 'error');
+                    return;
+                }
+                addOutput('Responding to intervention ' + interventionId + '...', 'info');
+                const response = await fetch(`${API_BASE}/hitl/interventions/${interventionId}/respond`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: data.status || 'resolved', response: data.response || '' })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    addOutput('✓ Intervention resolved successfully', 'success');
+                    if (result.intervention) {
+                        addOutput('Status: ' + (result.intervention.status || 'resolved'), 'success');
+                    }
+                } else {
+                    addOutput('✗ Intervention not found or failed', 'error');
+                }
+            } catch (error) {
+                addOutput('✗ Error: ' + error.message, 'error');
+                addOutput('Make sure JSON is valid', 'warning');
+            }
+        }
+
+        async function showHITLStatistics() {
+            try {
+                const response = await fetch(`${API_BASE}/hitl/statistics`);
+                const data = await response.json();
+                if (data.success) {
+                    addOutput('=== HITL Statistics ===', 'info');
+                    const stats = data.statistics || {};
+                    for (const [key, value] of Object.entries(stats)) {
+                        addOutput('  ' + key + ': ' + JSON.stringify(value));
+                    }
+                    if (Object.keys(stats).length === 0) {
+                        addOutput('No HITL statistics available yet', 'warning');
+                    }
+                } else {
+                    addOutput('✗ Failed to get HITL statistics', 'error');
+                }
+            } catch (error) {
+                addOutput('✗ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function showHealth() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                addOutput('=== System Health ===', 'info');
+                addOutput('Status: ' + (data.status || 'unknown'), data.status === 'healthy' ? 'success' : 'error');
+                if (data.version) {
+                    addOutput('Version: ' + data.version, 'success');
+                }
+            } catch (error) {
+                addOutput('✗ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function showModules() {
+            try {
+                const response = await fetch(`${API_BASE}/modules`);
+                const data = await response.json();
+                addOutput('=== Loaded Modules ===', 'info');
+                if (data.modules) {
+                    data.modules.forEach((mod) => {
+                        const status = mod.active || mod.status === 'active' ? '✓' : '✗';
+                        const color = mod.active || mod.status === 'active' ? 'success' : 'warning';
+                        addOutput('  ' + status + ' ' + (mod.name || mod), color);
+                    });
+                    addOutput('');
+                    addOutput('Total: ' + data.modules.length + ' modules', 'info');
+                } else if (Array.isArray(data)) {
+                    data.forEach((mod) => {
+                        addOutput('  • ' + (typeof mod === 'string' ? mod : mod.name || JSON.stringify(mod)));
+                    });
+                    addOutput('');
+                    addOutput('Total: ' + data.length + ' modules', 'info');
+                } else {
+                    addOutput(JSON.stringify(data, null, 2), 'json');
+                }
+            } catch (error) {
+                addOutput('✗ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function showDiagnostics() {
+            try {
+                const response = await fetch(`${API_BASE}/diagnostics/activation`);
+                const data = await response.json();
+                addOutput('=== Activation Diagnostics ===', 'info');
+                if (data.inactive_modules) {
+                    addOutput('Inactive modules: ' + data.inactive_modules.length, data.inactive_modules.length === 0 ? 'success' : 'warning');
+                    data.inactive_modules.forEach((mod) => {
+                        addOutput('  ✗ ' + (mod.name || mod), 'warning');
+                        if (mod.hint) addOutput('    Hint: ' + mod.hint, 'info');
+                    });
+                }
+                if (data.active_modules) {
+                    addOutput('Active modules: ' + data.active_modules.length, 'success');
+                }
+                if (!data.inactive_modules && !data.active_modules) {
+                    addOutput(JSON.stringify(data, null, 2), 'json');
+                }
+            } catch (error) {
+                addOutput('✗ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function showTrainingData() {
+            try {
+                const response = await fetch(`${API_BASE}/corrections/training-data`);
+                const data = await response.json();
+                if (data.success) {
+                    addOutput('=== Shadow Agent Training Data ===', 'info');
+                    const trainingData = data.data || [];
+                    addOutput('Total entries: ' + trainingData.length, 'success');
+                    if (trainingData.length > 0) {
+                        trainingData.slice(0, 10).forEach((entry, idx) => {
+                            addOutput('');
+                            addOutput(`Entry ${idx + 1}:`, 'info');
+                            addOutput(JSON.stringify(entry, null, 2), 'json');
+                        });
+                        if (trainingData.length > 10) {
+                            addOutput('');
+                            addOutput('... and ' + (trainingData.length - 10) + ' more entries', 'warning');
+                        }
+                    } else {
+                        addOutput('No training data available yet', 'warning');
+                    }
+                } else {
+                    addOutput('✗ Failed to get training data', 'error');
+                }
+            } catch (error) {
+                addOutput('✗ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function executeTask(argsStr) {
+            if (!argsStr) {
+                addOutput('Usage: execute <JSON>', 'info');
+                addOutput('Example: execute {"task_description":"Analyze Q4 sales","task_type":"analysis"}', 'info');
+                return;
+            }
+            try {
+                const taskData = JSON.parse(argsStr);
+                addOutput('Executing task...', 'info');
+                const response = await fetch(`${API_BASE}/execute`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(taskData)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    addOutput('✓ Task executed successfully', 'success');
+                    if (result.task_id) addOutput('Task ID: ' + result.task_id, 'success');
+                    if (result.result) {
+                        addOutput('Result:', 'info');
+                        addOutput(JSON.stringify(result.result, null, 2), 'json');
+                    }
+                    if (result.output) {
+                        addOutput('Output:', 'info');
+                        addOutput(JSON.stringify(result.output, null, 2), 'json');
+                    }
+                    if (result.confidence_report) {
+                        const conf = result.confidence_report.combined_confidence;
+                        addOutput('Confidence: ' + (conf * 100).toFixed(1) + '%', 'success');
+                        showConfidenceBar(conf);
+                    }
+                } else {
+                    addOutput('✗ Execution failed: ' + (result.error || result.reason || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                addOutput('✗ Error: ' + error.message, 'error');
+                addOutput('Make sure JSON is valid', 'warning');
+            }
+        }
+
+        async function addIntegration(argsStr) {
+            if (!argsStr) {
+                addOutput('Usage: integrate <JSON>', 'info');
+                addOutput('Example: integrate {"source":"github.com/repo","integration_type":"repository","category":"general"}', 'info');
+                return;
+            }
+            try {
+                const data = JSON.parse(argsStr);
+                addOutput('Adding integration...', 'info');
+                const response = await fetch(`${API_BASE}/integrations/add`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    addOutput('✓ Integration added successfully', 'success');
+                    if (result.request_id) addOutput('Request ID: ' + result.request_id, 'success');
+                    if (result.status) addOutput('Status: ' + result.status, 'success');
+                } else {
+                    addOutput('✗ Failed to add integration: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                addOutput('✗ Error: ' + error.message, 'error');
+                addOutput('Make sure JSON is valid', 'warning');
+            }
+        }
+
+        async function listIntegrations(statusFilter) {
+            try {
+                const status = statusFilter || 'all';
+                addOutput('Fetching integrations (status: ' + status + ')...', 'info');
+                const response = await fetch(`${API_BASE}/integrations/${status}`);
+                const data = await response.json();
+                if (data.success) {
+                    addOutput('=== Integrations (' + status + ') ===', 'info');
+                    const integrations = data.integrations || [];
+                    addOutput('Total: ' + integrations.length, 'success');
+                    integrations.forEach((integration, idx) => {
+                        addOutput('');
+                        addOutput(`Integration ${idx + 1}:`, 'info');
+                        addOutput('  Source: ' + (integration.source || 'N/A'));
+                        addOutput('  Type: ' + (integration.integration_type || 'N/A'));
+                        addOutput('  Status: ' + (integration.status || 'N/A'));
+                        if (integration.request_id) addOutput('  ID: ' + integration.request_id);
+                    });
+                    if (integrations.length === 0) {
+                        addOutput('No integrations found', 'warning');
+                    }
+                } else {
+                    addOutput('✗ Failed to list integrations: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                addOutput('✗ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function approveIntegration(argsStr) {
+            if (!argsStr) {
+                addOutput('Usage: approve <request_id>', 'info');
+                return;
+            }
+            try {
+                const requestId = argsStr.trim();
+                addOutput('Approving integration ' + requestId + '...', 'info');
+                const response = await fetch(`${API_BASE}/integrations/${requestId}/approve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ approved_by: 'user' })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    addOutput('✓ Integration approved', 'success');
+                } else {
+                    addOutput('✗ Failed to approve: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                addOutput('✗ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function rejectIntegration(argsStr) {
+            if (!argsStr) {
+                addOutput('Usage: reject <request_id> [reason]', 'info');
+                return;
+            }
+            try {
+                const parts = argsStr.trim().split(/\s+/);
+                const requestId = parts[0];
+                const reason = parts.slice(1).join(' ') || 'User rejected';
+                addOutput('Rejecting integration ' + requestId + '...', 'info');
+                const response = await fetch(`${API_BASE}/integrations/${requestId}/reject`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reason: reason })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    addOutput('✓ Integration rejected', 'success');
+                } else {
+                    addOutput('✗ Failed to reject: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                addOutput('✗ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function runAutomation(argsStr) {
+            if (!argsStr) {
+                addOutput('Usage: automate <JSON>', 'info');
+                addOutput('Example: automate {"engine":"content","action":"generate","parameters":{}}', 'info');
+                return;
+            }
+            try {
+                const data = JSON.parse(argsStr);
+                const engine = data.engine;
+                const action = data.action;
+                if (!engine || !action) {
+                    addOutput('✗ Missing "engine" or "action" field', 'error');
+                    return;
+                }
+                addOutput('Running automation: ' + engine + '/' + action + '...', 'info');
+                const response = await fetch(`${API_BASE}/automation/${engine}/${action}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ parameters: data.parameters || {} })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    addOutput('✓ Automation completed', 'success');
+                    if (result.result) {
+                        addOutput('Result:', 'info');
+                        addOutput(JSON.stringify(result.result, null, 2), 'json');
+                    }
+                } else {
+                    addOutput('✗ Automation failed: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                addOutput('✗ Error: ' + error.message, 'error');
+                addOutput('Make sure JSON is valid', 'warning');
+            }
+        }
+
+        async function showServices() {
+            try {
+                const response = await fetch(`${API_BASE}/universal-integrations/services`);
+                const data = await response.json();
+                if (data.success) {
+                    addOutput('=== Universal Integration Services ===', 'info');
+                    addOutput('Total: ' + (data.total || 0), 'success');
+                    const services = data.services || [];
+                    services.forEach((svc, idx) => {
+                        addOutput('');
+                        addOutput(`Service ${idx + 1}:`, 'info');
+                        addOutput('  Name: ' + (svc.name || svc.service_id || 'N/A'));
+                        if (svc.category) addOutput('  Category: ' + svc.category);
+                        if (svc.status) addOutput('  Status: ' + svc.status);
+                        if (svc.description) addOutput('  Description: ' + svc.description);
+                    });
+                    if (services.length === 0) {
+                        addOutput('No services available', 'warning');
+                    }
+                } else {
+                    addOutput('✗ Failed to list services: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                addOutput('✗ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function handlePlan(argsStr) {
+            if (!argsStr) {
+                addOutput('Usage: plan <upload|generate> <JSON>', 'info');
+                addOutput('Examples:', 'info');
+                addOutput('  plan upload {"plan_name":"Q4","steps":["step1","step2"]}', 'info');
+                addOutput('  plan generate {"description":"Launch marketing campaign"}', 'info');
+                return;
+            }
+            const parts = argsStr.match(/^(\S+)\s+(.*)/s);
+            if (!parts) {
+                addOutput('Usage: plan <upload|generate> <JSON>', 'info');
+                return;
+            }
+            const subCommand = parts[1].toLowerCase();
+            const jsonStr = parts[2];
+            if (subCommand !== 'upload' && subCommand !== 'generate') {
+                addOutput('✗ Unknown plan sub-command: ' + subCommand, 'error');
+                addOutput('Use: plan upload <JSON>  or  plan generate <JSON>', 'info');
+                return;
+            }
+            try {
+                const data = JSON.parse(jsonStr);
+                const endpoint = subCommand === 'upload' ? 'plan-upload' : 'plan-generation';
+                addOutput('Processing plan ' + subCommand + '...', 'info');
+                const response = await fetch(`${API_BASE}/forms/${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    addOutput('✓ Plan ' + subCommand + ' successful', 'success');
+                    if (result.submission_id) addOutput('Submission ID: ' + result.submission_id, 'success');
+                    if (result.plan) {
+                        addOutput('Plan:', 'info');
+                        addOutput(JSON.stringify(result.plan, null, 2), 'json');
+                    }
+                    if (result.output) {
+                        addOutput('Output:', 'info');
+                        addOutput(JSON.stringify(result.output, null, 2), 'json');
+                    }
+                } else {
+                    addOutput('✗ Plan ' + subCommand + ' failed: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                addOutput('✗ Error: ' + error.message, 'error');
+                addOutput('Make sure JSON is valid', 'warning');
             }
         }
         
