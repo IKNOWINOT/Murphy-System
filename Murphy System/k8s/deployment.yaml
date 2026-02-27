@@ -26,7 +26,7 @@ spec:
         - name: murphy-api
           image: murphy-system:latest
           ports:
-            - containerPort: 6666
+            - containerPort: 8000
               protocol: TCP
           envFrom:
             - configMapRef:
@@ -43,7 +43,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /api/health
-              port: 6666
+              port: 8000
             periodSeconds: 30
             initialDelaySeconds: 15
             timeoutSeconds: 5
@@ -51,7 +51,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /api/health
-              port: 6666
+              port: 8000
             periodSeconds: 10
             initialDelaySeconds: 5
             timeoutSeconds: 3

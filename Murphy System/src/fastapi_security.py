@@ -39,7 +39,7 @@ def get_cors_origins() -> List[str]:
     Reads MURPHY_CORS_ORIGINS env var (comma-separated).
     Defaults to localhost origins for development.
     """
-    default_origins = "http://localhost:3000,http://localhost:8080,http://localhost:6666"
+    default_origins = "http://localhost:3000,http://localhost:8080,http://localhost:8000"
     origins_str = os.environ.get("MURPHY_CORS_ORIGINS", default_origins)
     return [o.strip() for o in origins_str.split(",") if o.strip()]
 

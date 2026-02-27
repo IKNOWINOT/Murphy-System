@@ -13046,7 +13046,7 @@ def main():
     app = create_app()
     
     # Run server
-    port = int(os.getenv('MURPHY_PORT', 6666))
+    port = int(os.getenv('PORT') or os.getenv('MURPHY_PORT') or 8000)
 
     try:
         from src.cli_art import render_panel

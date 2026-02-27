@@ -60,7 +60,7 @@ if exist ".env" (
 )
 
 REM Set default port if not set
-if not defined MURPHY_PORT set MURPHY_PORT=6666
+if defined PORT (set MURPHY_PORT=%PORT%) else (if not defined MURPHY_PORT set MURPHY_PORT=8000)
 echo [OK] Port: %MURPHY_PORT%
 echo.
 

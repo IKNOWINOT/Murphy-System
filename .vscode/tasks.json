@@ -46,13 +46,13 @@
         {
             "label": "Murphy: Health Check",
             "type": "shell",
-            "command": "curl http://localhost:6666/api/health",
+            "command": "curl http://localhost:8000/api/health",
             "problemMatcher": []
         },
         {
             "label": "Murphy: View API Docs",
             "type": "shell",
-            "command": "open http://localhost:6666/docs || xdg-open http://localhost:6666/docs",
+            "command": "open http://localhost:8000/docs || xdg-open http://localhost:8000/docs",
             "problemMatcher": []
         },
         {

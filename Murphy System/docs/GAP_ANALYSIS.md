@@ -152,7 +152,7 @@ An external Groq/OpenAI API key enhances quality but is **not required** for sys
 
 These areas have **zero gap** between plan and reality:
 
-1. **Server startup** — Murphy boots in ~10 seconds, serves on port 6666
+1. **Server startup** — Murphy boots in ~10 seconds, serves on port 8000
 2. **API surface** — 38 routes, full OpenAPI spec, Swagger UI
 3. **Health monitoring** — `/api/health`, `/api/status`, `/api/info` all accurate
 4. **Test suite** — 98.5% pass rate (4,298 / 4,364)

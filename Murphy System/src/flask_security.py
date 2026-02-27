@@ -51,7 +51,7 @@ def get_cors_origins() -> List[str]:
     Returns:
         List of allowed origin strings
     """
-    default_origins = "http://localhost:3000,http://localhost:8080,http://localhost:6666"
+    default_origins = "http://localhost:3000,http://localhost:8080,http://localhost:8000"
     origins_str = os.environ.get("MURPHY_CORS_ORIGINS", default_origins)
     origins = [o.strip() for o in origins_str.split(",") if o.strip()]
     return origins

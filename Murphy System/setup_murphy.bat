@@ -84,7 +84,7 @@ if not "%SKIP_ENV%"=="true" (
         echo # Core Configuration
         echo MURPHY_VERSION=1.0.0
         echo MURPHY_ENV=development
-        echo MURPHY_PORT=6666
+        echo MURPHY_PORT=8000
         echo.
         echo # LLM API Keys
     ) > .env
@@ -150,9 +150,9 @@ echo.
 echo   start_murphy_1.0.bat
 echo.
 echo Once running, access:
-echo   * API Documentation: http://localhost:6666/docs
-echo   * Health Check:      http://localhost:6666/api/health
-echo   * System Status:     http://localhost:6666/api/status
+echo   * API Documentation: http://localhost:8000/docs
+echo   * Health Check:      http://localhost:8000/api/health
+echo   * System Status:     http://localhost:8000/api/status
 echo.
 echo For more information:
 echo   * See GETTING_STARTED.md for detailed instructions

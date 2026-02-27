@@ -74,7 +74,7 @@ else
 fi
 
 # Set default port if not set
-export MURPHY_PORT=${MURPHY_PORT:-6666}
+export MURPHY_PORT=${PORT:-${MURPHY_PORT:-8000}}
 echo -e "${GREEN}✓ Port: $MURPHY_PORT${NC}"
 echo ""
 
@@ -92,7 +92,7 @@ echo ""
 echo ""
 python3 -c "
 import os
-port = os.getenv('MURPHY_PORT', '6666')
+port = os.getenv('PORT', os.getenv('MURPHY_PORT', '8000'))
 try:
     from src.cli_art import render_panel
     print(render_panel('STARTUP', [

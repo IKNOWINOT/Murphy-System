@@ -112,7 +112,7 @@ class TestMurphyUserSimulator:
         murphy = MurphyUserSimulator()
 
         # Step 1: Login
-        murphy.login("http://localhost:6666")
+        murphy.login("http://localhost:8000")
         assert murphy.authenticated
 
         # Step 2: Navigate to self-automation
