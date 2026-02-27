@@ -301,9 +301,9 @@ License text copyright (c) 2020 MariaDB Corporation Ab, All Rights Reserved.
 
 Parameters
 
-Licensor:             Murphy System Contributors
+Licensor:             Inoni Limited Liability Company (Corey Post)
 Licensed Work:        Murphy System
-                      The Licensed Work is (c) 2025 Murphy System Contributors.
+                      The Licensed Work is (c) 2025 Inoni Limited Liability Company.
 Additional Use Grant: You may make production use of the Licensed Work,
                       provided Your use does not include offering the Licensed
                       Work to third parties as a hosted or managed service that

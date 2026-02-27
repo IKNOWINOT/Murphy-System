@@ -2,7 +2,7 @@
 
 **Universal AI Automation System**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/inoni-llc/murphy) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.11+-yellow.svg)](https://www.python.org/)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/IKNOWINOT/Murphy-System) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.11+-yellow.svg)](https://www.python.org/)
 
 ---
 
@@ -23,20 +23,42 @@ Murphy is a **complete, operational AI automation system** that can automate any
 
 ## 🚀 Quick Start
 
-### First Time Setup (10 minutes)
+### One-Line Install (Recommended)
 
 ```bash
-# 1. Navigate to Murphy
-cd "Murphy System"
+curl -fsSL https://raw.githubusercontent.com/IKNOWINOT/Murphy-System/main/install.sh | bash
+```
+
+This downloads Murphy, creates a virtual environment, installs all dependencies, and sets up the `murphy` CLI. Then start automating:
+
+```bash
+murphy start          # Start in foreground
+murphy start -d       # Start as background daemon
+murphy status         # Check health
+murphy stop           # Stop daemon
+murphy help           # See all commands
+```
+
+> **No API key required** — the onboard LLM works out of the box. Add a [Groq API key](https://console.groq.com) to `.env` for enhanced quality (optional).
+
+Install to a custom directory:
+```bash
+curl -fsSL https://raw.githubusercontent.com/IKNOWINOT/Murphy-System/main/install.sh | bash -s -- /opt/murphy
+```
+
+### Manual Setup
+
+```bash
+# 1. Clone and navigate
+git clone https://github.com/IKNOWINOT/Murphy-System.git
+cd Murphy-System/Murphy\ System
 
 # 2. Run setup script
 ./setup_murphy.sh  # Linux/Mac
-# OR
 setup_murphy.bat   # Windows
 
 # 3. Start Murphy
 ./start_murphy_1.0.sh  # Linux/Mac
-# OR
 start_murphy_1.0.bat   # Windows
 
 # 4. Access Murphy
@@ -44,12 +66,8 @@ start_murphy_1.0.bat   # Windows
 # Status: http://localhost:6666/api/status
 ```
 
-**⚠️ Important:** You need at least one API key (Groq recommended - free at https://console.groq.com)
-
-**Dependency install from repo root:** run `python -m pip install -r requirements.txt` (this root file points to `Murphy System/requirements.txt`, which includes `pytest`).
-
-**📚 Setup Documentation:**
-- **Complete Guide:** [GETTING_STARTED.md](GETTING_STARTED.md) - Comprehensive instructions
+**📚 Documentation:**
+- **Complete Guide:** [GETTING_STARTED.md](GETTING_STARTED.md)
 - **Quick Start:** [Murphy System/MURPHY_1.0_QUICK_START.md](Murphy%20System/MURPHY_1.0_QUICK_START.md)
 - **API Reference:** [Murphy System/API_DOCUMENTATION.md](Murphy%20System/API_DOCUMENTATION.md)
 - **Deployment Guide:** [Murphy System/DEPLOYMENT_GUIDE.md](Murphy%20System/DEPLOYMENT_GUIDE.md)
@@ -79,11 +97,19 @@ start_murphy_1.0.bat   # Windows
 Murphy-System/
 ├── README.md                           ← You are here
 ├── GETTING_STARTED.md                  ← Setup guide
-├── LICENSE
+├── CONTRIBUTING.md                     ← Contribution guidelines
+├── CODE_OF_CONDUCT.md                  ← Community standards
+├── SECURITY.md                         ← Vulnerability reporting
+├── CHANGELOG.md                        ← Version history
+├── LICENSE                             ← BSL 1.1 (→ Apache 2.0 after 4 yr)
+├── install.sh                          ← One-line CLI installer
 ├── .gitignore
 ├── requirements.txt
-├── docs/screenshots/                   ← 41 verification screenshots
+├── docs/
+│   ├── screenshots/                    ← 41 verification screenshots
+│   └── LICENSE_STRATEGY.md             ← License rationale
 └── Murphy System/                      ← ACTIVE SYSTEM
+    ├── murphy                          ← CLI tool (start/stop/status/…)
     ├── murphy_system_1.0_runtime.py    ← Single production runtime
     ├── src/                            ← 420+ production modules
     ├── tests/                          ← 210+ test files (4100+ tests)
@@ -95,6 +121,7 @@ Murphy-System/
     ├── scripts/                        ← Operational scripts
     ├── *.html                          ← 7 neon terminal UIs
     ├── USER_MANUAL.md                  ← Comprehensive user manual
+    ├── BUSINESS_MODEL.md               ← Open-core editions
     ├── README.md, API_DOCUMENTATION.md, DEPLOYMENT_GUIDE.md
     ├── Dockerfile, docker-compose.yml  ← Container deployment
     └── archive/                        ← Archived legacy files
@@ -720,7 +747,10 @@ k6 run tests/performance/load-test.js
 
 ## 🤝 Contributing
 
-We welcome contributions! See the [documentation index](<Murphy System/documentation/README.md>) for guidelines.
+We welcome contributions! Please read:
+- [CONTRIBUTING.md](CONTRIBUTING.md) — How to contribute
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — Community standards
+- [SECURITY.md](SECURITY.md) — Reporting vulnerabilities
 
 ---
 
@@ -728,7 +758,7 @@ We welcome contributions! See the [documentation index](<Murphy System/documenta
 
 **Business Source License 1.1 (BSL 1.1)**
 
-Copyright © 2025 Murphy System Contributors  
+Copyright © 2025 Inoni Limited Liability Company  
 Creator: Corey Post
 
 The core Murphy System is licensed under BSL 1.1, which converts to Apache

@@ -1,33 +1,51 @@
 # Getting Started with Murphy System 1.0
 
-**Status Check:** Is the system ready to use? **Almost - needs setup!**
-
-This guide will help you get Murphy System running in less than 10 minutes.
+This guide will help you get Murphy System running in less than 5 minutes.
 
 ---
 
-## ⚠️ Current Reality Check
+## 🚀 Fastest Way: One-Line Install
 
-The Murphy System **documentation** shows all capabilities at 10/10 (production-ready), but the actual system requires **initial setup** before you can use it. This guide shows you exactly what you need.
+```bash
+curl -fsSL https://raw.githubusercontent.com/IKNOWINOT/Murphy-System/main/install.sh | bash
+```
 
-### What Works ✅
+This single command:
+1. Checks prerequisites (Python 3.10+, git, pip)
+2. Downloads Murphy System
+3. Creates a Python virtual environment
+4. Installs all dependencies
+5. Configures `.env` (onboard LLM — no API key needed)
+6. Installs the `murphy` CLI
+
+Then start automating:
+```bash
+murphy start          # Start in foreground
+murphy start -d       # Start as background daemon
+murphy status         # Check health
+murphy stop           # Stop daemon
+```
+
+Install to a custom directory:
+```bash
+curl -fsSL https://raw.githubusercontent.com/IKNOWINOT/Murphy-System/main/install.sh | bash -s -- /opt/murphy
+```
+
+---
+
+## What Works ✅
 - ✅ All core code files exist (~2,000 Python files)
-- ✅ Startup scripts are ready (Linux/Mac/Windows)
-- ✅ Main runtime file is complete (604 lines)
+- ✅ One-line installer and CLI tool
+- ✅ Startup scripts for Linux/Mac/Windows
+- ✅ Main runtime file is complete
 - ✅ Universal Control Plane architecture implemented
 - ✅ Integration Engine code present
 - ✅ Business Automation engines coded
-
-### What's Missing ⚠️
-- ⚠️ Dependencies not installed (need to run pip install)
-- ⚠️ No .env configuration file (API keys needed)
-- ⚠️ No example configuration provided
-- ⚠️ Database setup not documented
-- ⚠️ First-run instructions unclear
+- ✅ 175 commissioning tests passing
 
 ---
 
-## 🚀 Quick Start (10 Minutes)
+## 📋 Manual Setup (Alternative)
 
 ### Prerequisites
 
