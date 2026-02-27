@@ -151,11 +151,49 @@ class TestAdapterPhase2Templates(unittest.TestCase):
         actions = [a["name"] for a in svc["actions"]]
         self.assertIn("execute_query", actions)
 
+    # -- Messaging (Extended) --
+
+    def test_signal_adapter(self):
+        self.assertIn("signal", self._service_ids())
+        svc = self.adapter.get_service("signal")
+        self.assertEqual(svc["category"], "communication")
+        actions = [a["name"] for a in svc["actions"]]
+        self.assertIn("send_message", actions)
+
+    def test_google_business_messages_adapter(self):
+        self.assertIn("google_business_messages", self._service_ids())
+        svc = self.adapter.get_service("google_business_messages")
+        self.assertEqual(svc["category"], "communication")
+
+    def test_kakaotalk_adapter(self):
+        self.assertIn("kakaotalk", self._service_ids())
+        svc = self.adapter.get_service("kakaotalk")
+        self.assertEqual(svc["category"], "communication")
+
+    def test_line_adapter(self):
+        self.assertIn("line", self._service_ids())
+        svc = self.adapter.get_service("line")
+        self.assertEqual(svc["category"], "communication")
+
+    def test_wechat_adapter(self):
+        self.assertIn("wechat", self._service_ids())
+        svc = self.adapter.get_service("wechat")
+        self.assertEqual(svc["category"], "communication")
+
+    def test_snapchat_adapter(self):
+        self.assertIn("snapchat", self._service_ids())
+        svc = self.adapter.get_service("snapchat")
+        self.assertEqual(svc["category"], "social_media")
+
+    def test_zenbusiness_adapter(self):
+        self.assertIn("zenbusiness", self._service_ids())
+        svc = self.adapter.get_service("zenbusiness")
+
     # -- Service count --
 
     def test_total_adapter_services_count(self):
         services = self.adapter.list_services()
-        self.assertGreaterEqual(len(services), 69)
+        self.assertGreaterEqual(len(services), 76)
 
     def test_cloud_category_has_services(self):
         services = self.adapter.list_services(category="cloud_infrastructure")
@@ -767,7 +805,7 @@ class TestIntegrationMetrics(unittest.TestCase):
     def test_adapter_has_minimum_services(self):
         adapter = UniversalIntegrationAdapter()
         services = adapter.list_services()
-        self.assertGreaterEqual(len(services), 69, "Adapter should have 69+ services")
+        self.assertGreaterEqual(len(services), 76, "Adapter should have 76+ services")
 
     def test_connector_has_minimum_definitions(self):
         fw = PlatformConnectorFramework()
@@ -777,7 +815,7 @@ class TestIntegrationMetrics(unittest.TestCase):
     def test_webhooks_have_minimum_sources(self):
         wp = WebhookEventProcessor()
         sources = wp.list_sources()
-        self.assertGreaterEqual(len(sources), 47, "Processor should have 47+ webhook sources")
+        self.assertGreaterEqual(len(sources), 61, "Processor should have 61+ webhook sources")
 
     def test_adapter_categories_are_comprehensive(self):
         adapter = UniversalIntegrationAdapter()
@@ -790,6 +828,21 @@ class TestIntegrationMetrics(unittest.TestCase):
         ]
         for cat in expected:
             self.assertIn(cat, categories, f"Category '{cat}' should exist in adapter")
+
+    def test_adapter_connector_full_alignment(self):
+        """Every adapter service must have a matching connector and vice versa."""
+        adapter = UniversalIntegrationAdapter()
+        fw = PlatformConnectorFramework()
+        adapter_ids = set(s["service_id"] for s in adapter.list_services())
+        connector_ids = set(c["connector_id"] for c in fw.list_available_connectors())
+        self.assertEqual(
+            sorted(adapter_ids - connector_ids), [],
+            "Adapter services missing connector definitions",
+        )
+        self.assertEqual(
+            sorted(connector_ids - adapter_ids), [],
+            "Connectors missing adapter services",
+        )
 
 
 if __name__ == "__main__":
