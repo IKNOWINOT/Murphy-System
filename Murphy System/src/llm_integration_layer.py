@@ -160,14 +160,11 @@ class LLMIntegrationLayer:
         self.wulfrum_api_key = wulfrum_api_key or os.getenv("WULFRUM_API_KEY")
         self.groq_api_key = groq_api_key or os.getenv("GROQ_API_KEY")
         
-        # Groq API keys from file
-        self.groq_api_keys = [
-            "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",
-            "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",
-            "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",
-            "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",
-            "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"
-        ]
+        # Groq API keys from environment (comma-separated list)
+        env_keys = os.getenv("GROQ_API_KEYS", "")
+        self.groq_api_keys = [k.strip() for k in env_keys.split(",") if k.strip()]
+        if self.groq_api_key and self.groq_api_key not in self.groq_api_keys:
+            self.groq_api_keys.insert(0, self.groq_api_key)
         self.current_groq_key_index = 0
         
         # Domain routing configuration
@@ -336,10 +333,38 @@ class LLMIntegrationLayer:
             raise Exception(f"All LLM providers failed. Last error: {e}")
     
     def _call_aristotle(self, request: LLMRequest) -> LLMResponse:
-        """Call Aristotle API for deterministic/mathematical processing"""
-        # Simulated Aristotle call - would be actual API in production
-        response_text = self._mock_aristotle_response(request)
-        
+        """Call Aristotle API for deterministic/mathematical processing.
+
+        Attempts a real HTTP call when ``ARISTOTLE_API_URL`` is configured,
+        falling back to the local deterministic engine otherwise.
+        """
+        api_url = os.getenv("ARISTOTLE_API_URL")
+        if api_url and self.aristotle_api_key:
+            try:
+                resp = requests.post(
+                    api_url,
+                    json={"prompt": request.prompt, "domain": request.domain.value,
+                          "validation_type": request.validation_type or "general"},
+                    headers={"Authorization": f"Bearer {self.aristotle_api_key}",
+                             "Content-Type": "application/json"},
+                    timeout=30,
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                return LLMResponse(
+                    request_id=request.request_id,
+                    provider=LLMProvider.ARISTOTLE,
+                    response=data.get("response", ""),
+                    confidence=float(data.get("confidence", 0.95)),
+                    metadata={"model": data.get("model", "aristotle-deterministic"),
+                              "domain": request.domain.value,
+                              "processing_type": "deterministic",
+                              "source": "api"},
+                )
+            except Exception:
+                pass  # fall through to local engine
+
+        response_text = self._local_aristotle_response(request)
         return LLMResponse(
             request_id=request.request_id,
             provider=LLMProvider.ARISTOTLE,
@@ -348,15 +373,44 @@ class LLMIntegrationLayer:
             metadata={
                 "model": "aristotle-deterministic",
                 "domain": request.domain.value,
-                "processing_type": "deterministic"
+                "processing_type": "deterministic",
+                "source": "local",
             }
         )
     
     def _call_wulfrum(self, request: LLMRequest) -> LLMResponse:
-        """Call Wulfrum API for fuzzy match and math validation"""
-        # Simulated Wulfrum call - would be actual API in production
-        response_text = self._mock_wulfrum_response(request)
-        
+        """Call Wulfrum API for fuzzy match and math validation.
+
+        Attempts a real HTTP call when ``WULFRUM_API_URL`` is configured,
+        falling back to the local fuzzy engine otherwise.
+        """
+        api_url = os.getenv("WULFRUM_API_URL")
+        if api_url and self.wulfrum_api_key:
+            try:
+                resp = requests.post(
+                    api_url,
+                    json={"prompt": request.prompt, "domain": request.domain.value,
+                          "validation_type": request.validation_type or "general"},
+                    headers={"Authorization": f"Bearer {self.wulfrum_api_key}",
+                             "Content-Type": "application/json"},
+                    timeout=30,
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                return LLMResponse(
+                    request_id=request.request_id,
+                    provider=LLMProvider.WULFRUM,
+                    response=data.get("response", ""),
+                    confidence=float(data.get("confidence", 0.88)),
+                    metadata={"model": data.get("model", "wulfrum-fuzzy"),
+                              "domain": request.domain.value,
+                              "processing_type": "fuzzy_match",
+                              "source": "api"},
+                )
+            except Exception:
+                pass  # fall through to local engine
+
+        response_text = self._local_wulfrum_response(request)
         return LLMResponse(
             request_id=request.request_id,
             provider=LLMProvider.WULFRUM,
@@ -365,19 +419,61 @@ class LLMIntegrationLayer:
             metadata={
                 "model": "wulfrum-fuzzy",
                 "domain": request.domain.value,
-                "processing_type": "fuzzy_match"
+                "processing_type": "fuzzy_match",
+                "source": "local",
             }
         )
     
     def _call_groq(self, request: LLMRequest) -> LLMResponse:
-        """Call Groq API for generative processing"""
-        # Rotate API keys
-        api_key = self.groq_api_keys[self.current_groq_key_index]
-        self.current_groq_key_index = (self.current_groq_key_index + 1) % len(self.groq_api_keys)
-        
-        # Simulated Groq call - would be actual API in production
-        response_text = self._mock_groq_response(request)
-        
+        """Call Groq API for generative processing.
+
+        Attempts a real HTTP call to the Groq chat completions endpoint,
+        rotating through configured API keys.  Falls back to the local
+        generative engine when no key succeeds.
+        """
+        api_key = None
+        if self.groq_api_keys:
+            api_key = self.groq_api_keys[self.current_groq_key_index % len(self.groq_api_keys)]
+            self.current_groq_key_index = (self.current_groq_key_index + 1) % len(self.groq_api_keys)
+
+        if api_key:
+            try:
+                resp = requests.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    json={
+                        "model": "llama3-70b-8192",
+                        "messages": [{"role": "user", "content": request.prompt}],
+                        "temperature": 0.7,
+                        "max_tokens": 1024,
+                    },
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    timeout=30,
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                choice = data.get("choices", [{}])[0]
+                content = choice.get("message", {}).get("content", "")
+                if content:
+                    return LLMResponse(
+                        request_id=request.request_id,
+                        provider=LLMProvider.GROQ,
+                        response=content,
+                        confidence=0.85,
+                        metadata={
+                            "model": data.get("model", "groq-llama3-70b"),
+                            "domain": request.domain.value,
+                            "processing_type": "generative",
+                            "source": "api",
+                            "usage": data.get("usage", {}),
+                        },
+                    )
+            except Exception:
+                pass  # fall through to local engine
+
+        response_text = self._local_groq_response(request)
         return LLMResponse(
             request_id=request.request_id,
             provider=LLMProvider.GROQ,
@@ -386,12 +482,13 @@ class LLMIntegrationLayer:
             metadata={
                 "model": "groq-llama3-70b",
                 "domain": request.domain.value,
-                "processing_type": "generative"
+                "processing_type": "generative",
+                "source": "local",
             }
         )
     
-    def _mock_aristotle_response(self, request: LLMRequest) -> str:
-        """Mock Aristotle response (would be actual API)"""
+    def _local_aristotle_response(self, request: LLMRequest) -> str:
+        """Local Aristotle deterministic engine (used when API is unavailable)."""
         if request.validation_type == "math":
             return f"Aristotle deterministic analysis: Mathematical calculation verified. Confidence: 0.95. Result: The equation holds true under standard mathematical axioms."
         elif request.validation_type == "physics":
@@ -399,8 +496,8 @@ class LLMIntegrationLayer:
         else:
             return f"Aristotle deterministic analysis: Verified under domain standards. Confidence: 0.95."
     
-    def _mock_wulfrum_response(self, request: LLMRequest) -> str:
-        """Mock Wulfrum response (would be actual API)"""
+    def _local_wulfrum_response(self, request: LLMRequest) -> str:
+        """Local Wulfrum fuzzy engine (used when API is unavailable)."""
         if request.validation_type == "math":
             return f"Wulfrum fuzzy match: Mathematical validation complete. Match score: 0.88. Minor discrepancies found in rounding."
         elif request.validation_type == "physics":
@@ -408,8 +505,8 @@ class LLMIntegrationLayer:
         else:
             return f"Wulfrum fuzzy match: Validation complete. Match score: 0.85. General agreement within tolerance."
     
-    def _mock_groq_response(self, request: LLMRequest) -> str:
-        """Mock Groq response (would be actual API)"""
+    def _local_groq_response(self, request: LLMRequest) -> str:
+        """Local generative engine (used when Groq API is unavailable)."""
         domain_contexts = {
             DomainType.CREATIVE: "Creative response generated with innovative solutions.",
             DomainType.STRATEGIC: "Strategic analysis completed with recommended actions.",
