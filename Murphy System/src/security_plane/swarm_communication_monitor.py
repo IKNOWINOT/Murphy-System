@@ -299,14 +299,17 @@ class SwarmCommunicationMonitor:
             color[node] = GRAY
             for neighbour in graph.get(node, set()):
                 if color[neighbour] == GRAY:
-                    # Back edge found — reconstruct cycle
+                    # Back edge found — reconstruct cycle via parent chain
                     cycle = [neighbour, node]
-                    cur = node
-                    while cur != neighbour:
-                        cur = parent.get(cur)  # type: ignore[assignment]
+                    cur: Optional[str] = node
+                    max_steps = len(color)
+                    steps = 0
+                    while cur is not None and cur != neighbour and steps < max_steps:
+                        cur = parent.get(cur)
                         if cur is None or cur == neighbour:
                             break
                         cycle.append(cur)
+                        steps += 1
                     cycle.reverse()
                     return cycle
                 if color[neighbour] == WHITE:
