@@ -181,6 +181,7 @@ class TestExecutionOrchestratorViewport:
 
     @pytest.fixture
     def client(self):
+        pytest.importorskip("flask", reason="Flask not installed")
         from execution_orchestrator.api import app
         app.config['TESTING'] = True
         with app.test_client() as c:

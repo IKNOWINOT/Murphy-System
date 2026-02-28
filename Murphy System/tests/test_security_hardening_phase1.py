@@ -14,6 +14,8 @@ import threading
 from datetime import datetime
 from unittest.mock import patch
 
+flask = pytest.importorskip("flask", reason="Flask not installed — skipping Flask security tests")
+
 from src.flask_security import (
     get_cors_origins,
     get_configured_api_keys,

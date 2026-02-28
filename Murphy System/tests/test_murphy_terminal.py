@@ -17,6 +17,8 @@ import pytest
 # Ensure the parent directory (containing murphy_terminal.py) is on the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+pytest.importorskip("textual", reason="textual not installed — skipping terminal UI tests")
+
 from murphy_terminal import (
     MurphyAPIClient,
     MurphyTerminalApp,
