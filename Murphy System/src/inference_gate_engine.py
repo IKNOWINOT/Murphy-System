@@ -230,7 +230,6 @@ INDUSTRY_KEYWORDS: Dict[str, List[str]] = {
     "retail": ["store", "ecommerce", "shop", "retail", "marketplace", "consumer", "brand", "merchandise"],
     "energy": ["energy", "utility", "power", "grid", "solar", "wind", "oil", "gas", "renewable"],
     "media": ["media", "content", "publishing", "news", "entertainment", "streaming", "social", "creative"],
-    "manufacturing": ["factory", "manufacturing", "production", "assembly", "industrial", "plant", "supply chain"],
 }
 
 # Gate inference keywords — maps concepts to gate types
