@@ -23,14 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Murphy terminal tests** (`tests/test_murphy_terminal.py`) — added `pytest.importorskip("textual")` since the Textual TUI library is optional
 
 ### Changed
-- **README.md** — added warning banner, updated test counts (210+ → 265 files, 4100+ → 5,900+ tests), added test status table, added self-healing documentation, updated module test count (1490+ → 5,900+)
+- **README.md** — added warning banner, updated test counts (210+ → 265 files, 4100+ → 5,900+ tests), added test status table, added self-healing documentation, updated module test count (1490+ → 5,900+); updated completion table (security hardening 100%, overall ~98%); added security capabilities to runtime status; added multi-agent security section to Safety & Governance
 - **Test results** — from 25 failed + 14 errors → 0 failed + 0 errors (5,946 passing, 71 skipped)
-
-### Security
-- All Flask import paths now fail gracefully when Flask is absent, preventing `ModuleNotFoundError` crashes during test collection or runtime import scanning
-
-### Changed
-- **README.md** — updated completion table (security hardening 100%, overall ~98%); added security capabilities to runtime status; added multi-agent security section to Safety & Governance
 - **SECURITY_IMPLEMENTATION_PLAN.md** — updated all phases to 100% completion with implementation details, file paths, and test counts
 - **SECURITY.md** — added reference to completed security enhancements
 - **CHANGELOG.md** — documented all security enhancement implementations
