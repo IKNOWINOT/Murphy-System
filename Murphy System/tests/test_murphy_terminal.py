@@ -29,6 +29,8 @@ from murphy_terminal import (
     WELCOME_TEXT,
     RECONNECT_INTERVAL,
     MAX_RECONNECT_ATTEMPTS,
+    MODULE_COMMAND_MAP,
+    DASHBOARD_LINKS,
 )
 from textual.widgets import Input
 
@@ -317,12 +319,21 @@ class TestWelcomeText:
     def test_contains_examples(self):
         assert "health" in WELCOME_TEXT
         assert "help" in WELCOME_TEXT
-        assert "exit" in WELCOME_TEXT
+        assert "start interview" in WELCOME_TEXT
 
     def test_contains_new_commands(self):
         assert "start interview" in WELCOME_TEXT
-        assert "set api" in WELCOME_TEXT
-        assert "reconnect" in WELCOME_TEXT
+        assert "show modules" in WELCOME_TEXT
+        assert "librarian" in WELCOME_TEXT
+
+    def test_contains_greeting(self):
+        assert "Hello" in WELCOME_TEXT or "hello" in WELCOME_TEXT
+        assert "automation" in WELCOME_TEXT.lower()
+
+    def test_contains_dashboard_links(self):
+        assert "Dashboard Links" in WELCOME_TEXT
+        assert "/docs" in WELCOME_TEXT
+        assert "localhost:8000" in WELCOME_TEXT
 
 
 # ---------------------------------------------------------------------------
@@ -726,20 +737,20 @@ class TestTUIUserInteraction:
         async with app.run_test(size=(120, 40)) as pilot:
             await pilot.pause()
             await pilot.pause()
-            # Start interview and fill first two steps
+            # Start interview and fill first two steps (name, business_goal)
             for cmd in ["start interview", "Me", "all of them"]:
                 for ch in cmd:
                     await pilot.press(ch)
                 await pilot.press("enter")
                 await pilot.pause()
-            assert app.dialog.collected["use_case"] == "all"
+            assert app.dialog.collected["business_goal"] == "all"
 
-            # Third step: "not sure"
+            # Third step (use_case): "not sure"
             for ch in "not sure":
                 await pilot.press(ch)
             await pilot.press("enter")
             await pilot.pause()
-            assert app.dialog.collected["billing_tier"] == "(needs guidance)"
+            assert app.dialog.collected["use_case"] == "(needs guidance)"
 
     @pytest.mark.asyncio
     async def test_user_full_interview_to_confirm(self):
@@ -748,7 +759,10 @@ class TestTUIUserInteraction:
         async with app.run_test(size=(120, 40)) as pilot:
             await pilot.pause()
             await pilot.pause()
-            answers = ["start interview", "My Org", "automation", "pro", "GitHub", "yes"]
+            answers = [
+                "start interview", "My Org", "grow revenue",
+                "automation", "Slack and email", "pro", "GitHub", "yes",
+            ]
             for cmd in answers:
                 for ch in cmd:
                     await pilot.press(ch)
@@ -829,5 +843,214 @@ class TestTUIUserInteraction:
             await pilot.pause()
             # No crash means it handled the error gracefully
             # The input should be cleared
+            input_widget = app.query_one("#user-input", Input)
+            assert input_widget.value == ""
+
+
+# ---------------------------------------------------------------------------
+# New intent detection tests for added commands
+# ---------------------------------------------------------------------------
+
+
+class TestNewModuleIntentDetection:
+    """Tests for newly added module intent patterns."""
+
+    def test_librarian_intent(self):
+        assert detect_intent("librarian") == "intent_librarian"
+        assert detect_intent("show library") == "intent_librarian"
+        assert detect_intent("knowledge base search") == "intent_librarian"
+
+    def test_modules_intent(self):
+        assert detect_intent("show modules") == "intent_modules"
+        assert detect_intent("list modules") == "intent_modules"
+        assert detect_intent("modules") == "intent_modules"
+
+    def test_billing_intent(self):
+        assert detect_intent("billing") == "intent_billing"
+        assert detect_intent("show subscription") == "intent_billing"
+        assert detect_intent("pricing") == "intent_billing"
+
+    def test_links_intent(self):
+        assert detect_intent("links") == "intent_links"
+        assert detect_intent("show urls") == "intent_links"
+        assert detect_intent("open ui") == "intent_links"
+        assert detect_intent("dashboards") == "intent_links"
+
+    def test_plan_intent(self):
+        assert detect_intent("plan") == "intent_plan"
+        assert detect_intent("execution plan") == "intent_plan"
+        assert detect_intent("two-plane") == "intent_plan"
+        assert detect_intent("show planning") == "intent_plan"
+
+
+# ---------------------------------------------------------------------------
+# Module command map and dashboard links
+# ---------------------------------------------------------------------------
+
+
+class TestModuleCommandMap:
+    """Tests for MODULE_COMMAND_MAP data structure."""
+
+    def test_module_map_not_empty(self):
+        assert len(MODULE_COMMAND_MAP) > 0
+
+    def test_all_modules_have_commands(self):
+        for module, cmds in MODULE_COMMAND_MAP.items():
+            assert isinstance(cmds, list), f"{module} should map to a list"
+            assert len(cmds) > 0, f"{module} should have at least one command"
+
+    def test_key_modules_present(self):
+        assert "billing" in MODULE_COMMAND_MAP
+        assert "librarian" in MODULE_COMMAND_MAP
+        assert "hitl" in MODULE_COMMAND_MAP
+        assert "execution" in MODULE_COMMAND_MAP
+        assert "health_monitor" in MODULE_COMMAND_MAP
+        assert "planning" in MODULE_COMMAND_MAP
+
+
+class TestDashboardLinks:
+    """Tests for DASHBOARD_LINKS data structure."""
+
+    def test_links_not_empty(self):
+        assert len(DASHBOARD_LINKS) > 0
+
+    def test_links_have_name_and_url(self):
+        for link in DASHBOARD_LINKS:
+            assert "name" in link
+            assert "url" in link
+            assert link["url"].startswith("/")
+
+    def test_swagger_link_present(self):
+        urls = [link["url"] for link in DASHBOARD_LINKS]
+        assert "/docs" in urls
+
+
+# ---------------------------------------------------------------------------
+# Enhanced interview steps
+# ---------------------------------------------------------------------------
+
+
+class TestEnhancedInterview:
+    """Tests for the enhanced business-first interview flow."""
+
+    def test_business_goal_before_technical(self):
+        """Interview should ask about business goals before technical details."""
+        steps = DialogContext.INTERVIEW_STEPS
+        keys = [s["key"] for s in steps]
+        assert "business_goal" in keys
+        assert "platforms" in keys
+        # business_goal should come before billing_tier
+        assert keys.index("business_goal") < keys.index("billing_tier")
+
+    def test_interview_has_seven_steps(self):
+        assert len(DialogContext.INTERVIEW_STEPS) == 7
+
+    def test_platforms_step_exists(self):
+        keys = [s["key"] for s in DialogContext.INTERVIEW_STEPS]
+        assert "platforms" in keys
+
+    def test_infer_auto_configure(self):
+        assert DialogContext._infer_value("integrations", "auto") == "(auto-configure)"
+        assert DialogContext._infer_value("integrations", "let murphy decide") == "(auto-configure)"
+        assert DialogContext._infer_value("integrations", "you decide") == "(auto-configure)"
+
+    def test_full_interview_business_first(self):
+        """Complete the full enhanced interview and verify all keys collected."""
+        ctx = DialogContext()
+        ctx.start()
+        answers = [
+            "Acme Corp",       # name
+            "reduce costs",    # business_goal
+            "automation",      # use_case
+            "Slack, GitHub",   # platforms
+            "pro",             # billing_tier
+            "auto",            # integrations
+            "yes",             # confirm
+        ]
+        for ans in answers:
+            ctx.advance(ans)
+        assert ctx.is_complete is True
+        assert ctx.collected["name"] == "Acme Corp"
+        assert ctx.collected["business_goal"] == "reduce costs"
+        assert ctx.collected["platforms"] == "Slack, GitHub"
+        assert ctx.collected["integrations"] == "(auto-configure)"
+
+
+# ---------------------------------------------------------------------------
+# TUI integration tests for new features
+# ---------------------------------------------------------------------------
+
+
+class TestTUINewFeatures:
+    """Integration tests for new terminal UI features."""
+
+    @pytest.mark.asyncio
+    async def test_user_types_modules(self):
+        """User types 'show modules' and gets module listing."""
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            for ch in "show modules":
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
+            # No crash and input cleared
+            input_widget = app.query_one("#user-input", Input)
+            assert input_widget.value == ""
+
+    @pytest.mark.asyncio
+    async def test_user_types_billing(self):
+        """User types 'billing' and gets billing info."""
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            for ch in "billing":
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
+            input_widget = app.query_one("#user-input", Input)
+            assert input_widget.value == ""
+
+    @pytest.mark.asyncio
+    async def test_user_types_links(self):
+        """User types 'links' and gets dashboard URLs."""
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            for ch in "links":
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
+            input_widget = app.query_one("#user-input", Input)
+            assert input_widget.value == ""
+
+    @pytest.mark.asyncio
+    async def test_user_types_librarian(self):
+        """User types 'librarian' and gets librarian info."""
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            for ch in "librarian":
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
+            input_widget = app.query_one("#user-input", Input)
+            assert input_widget.value == ""
+
+    @pytest.mark.asyncio
+    async def test_user_types_plan(self):
+        """User types 'plan' and gets two-plane execution info."""
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            for ch in "plan":
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
             input_widget = app.query_one("#user-input", Input)
             assert input_widget.value == ""

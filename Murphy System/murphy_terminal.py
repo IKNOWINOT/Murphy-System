@@ -47,6 +47,28 @@ RECONNECT_INTERVAL = 15  # seconds between auto-reconnect attempts
 MAX_RECONNECT_ATTEMPTS = 5
 
 # ---------------------------------------------------------------------------
+# Module → Command mapping (used for audit / discoverability)
+# ---------------------------------------------------------------------------
+
+MODULE_COMMAND_MAP: dict[str, list[str]] = {
+    "billing": ["billing", "subscription", "tier", "pricing"],
+    "librarian": ["librarian", "knowledge base", "search docs"],
+    "hitl": ["hitl", "pending interventions", "hitl stats"],
+    "execution": ["execute <task>", "run task", "launch"],
+    "corrections": ["corrections", "correction stats"],
+    "health_monitor": ["health", "alive", "ping"],
+    "analytics_dashboard": ["status", "dashboard"],
+    "onboarding": ["start interview", "onboard me", "setup", "begin"],
+    "compliance_engine": ["compliance status"],
+    "planning": ["plan", "execution plan", "two-plane"],
+    "sales_automation": ["sales report"],
+    "system_librarian": ["librarian", "knowledge base"],
+    "integration_engine": ["integrations", "show integrations"],
+    "command_system": ["help", "commands", "show modules"],
+    "conversation_handler": ["chat (natural language)"],
+}
+
+# ---------------------------------------------------------------------------
 # Backend API client
 # ---------------------------------------------------------------------------
 
@@ -168,9 +190,11 @@ class DialogContext:
 
     INTERVIEW_STEPS: list[dict] = [
         {"key": "name", "prompt": "What is your name or organisation?", "label": "Name / Org"},
+        {"key": "business_goal", "prompt": "What is the primary business goal you'd like Murphy to help with? (e.g. increase sales, reduce costs, automate operations, improve compliance)", "label": "Business Goal"},
         {"key": "use_case", "prompt": "What is your primary use-case for Murphy? (e.g. onboarding, automation, monitoring)", "label": "Use-Case"},
+        {"key": "platforms", "prompt": "What platforms or tools does your team use today? (e.g. email, Slack, GitHub, CRM, social media — or 'skip' if unsure)", "label": "Current Platforms"},
         {"key": "billing_tier", "prompt": "Which billing tier interests you? (free / starter / pro / enterprise, or 'all' to see details)", "label": "Billing Tier"},
-        {"key": "integrations", "prompt": "Which integrations do you need? (e.g. GitHub, Slack, email — or 'skip' if unsure)", "label": "Integrations"},
+        {"key": "integrations", "prompt": "Based on your answers, which integrations should Murphy set up? (e.g. GitHub, Slack, email — or 'auto' to let Murphy decide)", "label": "Integrations"},
         {"key": "confirm", "prompt": "Here's what I have so far — shall I proceed? (yes / no / edit)", "label": "Confirmation"},
     ]
 
@@ -303,6 +327,8 @@ class DialogContext:
             return "yes"
         if text in ("no", "nope", "nah", "n"):
             return "no"
+        if text in ("auto", "automatic", "let murphy decide", "you decide"):
+            return "(auto-configure)"
         return original if original else text
 
 
@@ -329,6 +355,11 @@ INTENT_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"^(review|show collected)\b", re.I), "intent_review"),
     (re.compile(r"^(restart)\b", re.I), "intent_restart_interview"),
     (re.compile(r"^(confirm)\b", re.I), "intent_confirm"),
+    (re.compile(r"\b(librarian|library|knowledge base)\b", re.I), "intent_librarian"),
+    (re.compile(r"^(show modules|list modules|modules)\b", re.I), "intent_modules"),
+    (re.compile(r"\b(billing|subscription|tier|pricing)\b", re.I), "intent_billing"),
+    (re.compile(r"\b(links|urls|dashboards|open ui)\b", re.I), "intent_links"),
+    (re.compile(r"\b(plan|planning|two.?plane|execution plan)\b", re.I), "intent_plan"),
 ]
 
 # Patterns that indicate user frustration or feedback
@@ -363,17 +394,38 @@ WELCOME_TEXT = """\
 ║                  Natural Language Interface                   ║
 ╚══════════════════════════════════════════════════════════════╝[/bold cyan]
 
-[dim]Type a message to interact with Murphy.  Examples:[/dim]
-  • [green]show health status[/green]
-  • [green]show system status[/green]
-  • [green]start interview[/green]  — guided onboarding dialog
-  • [green]set api http://host:port[/green]  — change backend URL
-  • [green]test connection[/green]  — verify backend reachability
-  • [green]reconnect[/green]  — retry backend connection
-  • [green]help[/green]  /  [green]exit[/green]
+[bold]Hello! I'm Murphy — your professional automation assistant.[/bold]
+I help teams automate operations, onboard new users, manage integrations,
+and run end-to-end workflows with minimal manual effort.
 
-[dim]Or type any question — Murphy will respond via natural language chat.[/dim]
+[bold cyan]🚀 Getting Started[/bold cyan]
+  • [green]start interview[/green]  — guided onboarding (I'll learn about your needs first)
+  • [green]help[/green]             — see all available commands
+  • [green]show modules[/green]    — list all system modules and their commands
+
+[bold cyan]📡 Quick Commands[/bold cyan]
+  • [green]health[/green] / [green]status[/green]  — check system health
+  • [green]execute <task>[/green]   — run a task or workflow
+  • [green]librarian[/green]       — consult the knowledge base expert
+  • [green]billing[/green]         — view billing and subscription info
+  • [green]links[/green]           — show dashboard and UI links
+
+[bold cyan]🔗 Dashboard Links[/bold cyan]
+  • Swagger API Docs : [link=http://localhost:8000/docs]http://localhost:8000/docs[/link]
+  • System Dashboard : [link=http://localhost:8000/api/status]http://localhost:8000/api/status[/link]
+  • Onboarding UI    : [link=http://localhost:8000/onboarding]http://localhost:8000/onboarding[/link]
+  • Terminal (Web)   : [link=http://localhost:8000/terminal]http://localhost:8000/terminal[/link]
+
+[dim]Type any question in natural language — Murphy will respond conversationally.[/dim]
 """
+
+DASHBOARD_LINKS: list[dict[str, str]] = [
+    {"name": "Swagger API Docs", "url": "/docs"},
+    {"name": "System Dashboard", "url": "/api/status"},
+    {"name": "Onboarding UI", "url": "/onboarding"},
+    {"name": "Terminal (Web)", "url": "/terminal"},
+    {"name": "Health Check", "url": "/api/health"},
+]
 
 
 class StatusBar(Static):
@@ -462,6 +514,11 @@ class MurphyTerminalApp(App):
                     "[dim]health[/dim]\n"
                     "[dim]status[/dim]\n"
                     "[dim]start interview[/dim]\n"
+                    "[dim]show modules[/dim]\n"
+                    "[dim]librarian[/dim]\n"
+                    "[dim]billing[/dim]\n"
+                    "[dim]links[/dim]\n"
+                    "[dim]plan[/dim]\n"
                     "[dim]set api <url>[/dim]\n"
                     "[dim]test connection[/dim]\n"
                     "[dim]reconnect[/dim]\n"
@@ -615,6 +672,11 @@ class MurphyTerminalApp(App):
                 "[dim]health[/dim]\n"
                 "[dim]status[/dim]\n"
                 "[dim]start interview[/dim]\n"
+                "[dim]show modules[/dim]\n"
+                "[dim]librarian[/dim]\n"
+                "[dim]billing[/dim]\n"
+                "[dim]links[/dim]\n"
+                "[dim]plan[/dim]\n"
                 "[dim]set api <url>[/dim]\n"
                 "[dim]test connection[/dim]\n"
                 "[dim]reconnect[/dim]\n"
@@ -639,7 +701,7 @@ class MurphyTerminalApp(App):
             intent = detect_intent(message)
             if intent in ("intent_help", "intent_exit", "intent_health",
                           "intent_status", "intent_set_api", "intent_test_api",
-                          "intent_reconnect"):
+                          "intent_reconnect", "intent_links", "intent_modules"):
                 handler = getattr(self, intent, None)
                 if handler:
                     handler(message)
@@ -730,18 +792,27 @@ class MurphyTerminalApp(App):
             return
 
         self._write_murphy(
-            "I can help with the following:\n"
+            "I can help with the following:\n\n"
+            "[bold cyan]System[/bold cyan]\n"
             "  • [green]health[/green] — check backend health\n"
             "  • [green]status[/green] — view system status\n"
             "  • [green]info[/green] — system version & information\n"
-            "  • [green]execute <task>[/green] — run a task\n"
-            "  • [green]pending / hitl[/green] — pending interventions\n"
-            "  • [green]corrections[/green] — correction statistics\n"
+            "  • [green]links[/green] — show dashboard and UI URLs\n\n"
+            "[bold cyan]Onboarding & Interview[/bold cyan]\n"
             "  • [green]start interview[/green] — guided onboarding dialog\n"
+            "  • [green]billing[/green] — view billing tiers & subscription\n\n"
+            "[bold cyan]Modules & Execution[/bold cyan]\n"
+            "  • [green]execute <task>[/green] — run a task\n"
+            "  • [green]show modules[/green] — list all modules and commands\n"
+            "  • [green]librarian[/green] — consult knowledge-base expert\n"
+            "  • [green]plan[/green] — two-plane planning & execution overview\n"
+            "  • [green]pending / hitl[/green] — pending interventions\n"
+            "  • [green]corrections[/green] — correction statistics\n\n"
+            "[bold cyan]Connection[/bold cyan]\n"
             "  • [green]set api <url>[/green] — change backend address\n"
             "  • [green]test connection[/green] — verify backend reachability\n"
-            "  • [green]reconnect[/green] — retry backend connection\n"
-            "  • Or type any natural language message for chat\n"
+            "  • [green]reconnect[/green] — retry backend connection\n\n"
+            "Or type any natural language message for chat\n"
             "  • [green]exit[/green] — quit the terminal"
         )
 
@@ -859,6 +930,61 @@ class MurphyTerminalApp(App):
             )
         else:
             self._write_murphy("Nothing to confirm. Type [green]start interview[/green] to begin.")
+
+    # -- module exposure intents --
+
+    def intent_librarian(self, _msg: str) -> None:
+        self._write_murphy(
+            "[bold cyan]📚 Murphy Librarian[/bold cyan]\n\n"
+            "The Librarian is Murphy's knowledge-base expert. It can:\n"
+            "  • Search system documentation and transcripts\n"
+            "  • Generate execution plans from your requirements\n"
+            "  • Review and synthesize automation workflows\n"
+            "  • Provide module-level guidance and API references\n\n"
+            "Try: [green]execute librarian review[/green] or ask a question about any module."
+        )
+
+    def intent_modules(self, _msg: str) -> None:
+        lines = ["[bold cyan]📦 Murphy System — Module ↔ Command Map[/bold cyan]\n"]
+        for module, cmds in MODULE_COMMAND_MAP.items():
+            cmd_list = ", ".join(f"[green]{c}[/green]" for c in cmds)
+            lines.append(f"  [bold]{module}[/bold]: {cmd_list}")
+        lines.append(f"\n[dim]Total: {len(MODULE_COMMAND_MAP)} modules mapped to front-end commands.[/dim]")
+        self._write_murphy("\n".join(lines))
+
+    def intent_billing(self, _msg: str) -> None:
+        self._write_murphy(
+            "[bold cyan]💳 Billing & Subscription[/bold cyan]\n\n"
+            "Available tiers:\n"
+            "  • [green]Free[/green]       — basic automation, community support\n"
+            "  • [green]Starter[/green]    — 5 modules, email support\n"
+            "  • [green]Pro[/green]        — all modules, priority support, HITL\n"
+            "  • [green]Enterprise[/green] — custom SLA, dedicated onboarding, full API\n\n"
+            "To check your current tier or manage billing, use:\n"
+            "  [green]execute billing status[/green]"
+        )
+
+    def intent_links(self, _msg: str) -> None:
+        base = self.client.base_url
+        lines = ["[bold cyan]🔗 Murphy Dashboard & UI Links[/bold cyan]\n"]
+        for link in DASHBOARD_LINKS:
+            full_url = f"{base}{link['url']}"
+            lines.append(f"  • {link['name']}: [link={full_url}]{full_url}[/link]")
+        lines.append("\n[dim]Tip: Click any link to open in your browser.[/dim]")
+        self._write_murphy("\n".join(lines))
+
+    def intent_plan(self, _msg: str) -> None:
+        self._write_murphy(
+            "[bold cyan]📋 Two-Plane Execution: Planning & Execution[/bold cyan]\n\n"
+            "Murphy uses a two-plane model:\n"
+            "  [bold]Planning Plane[/bold]  — Librarian reviews context, generates plan\n"
+            "  [bold]Execution Plane[/bold] — Domain gates execute approved steps\n\n"
+            "Workflow:\n"
+            "  1. Describe your goal → Murphy drafts a plan\n"
+            "  2. Review the plan (HITL approval)\n"
+            "  3. Execute — Murphy runs each step with safety checks\n\n"
+            "Try: [green]execute plan for <your goal>[/green]"
+        )
 
     # -- chat fallback --
 
