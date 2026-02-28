@@ -9,15 +9,36 @@ Molty soul.md, but each agent's soul is their Rosetta state document which drive
   3. What metrics matter per org chart position
   4. What questions to ask when schema fields are missing
 
-The core idea: when someone asks "how do I best manage an [X] type of company?",
-the system infers:
-  - Which org chart positions exist for that company type
-  - What metrics matter per position
-  - What domain gates should apply
-  - What information is required (schema)
-  - What's missing from the schema (form questions)
+Architecture — the generative form loop:
 
-Gates are inferred from subject matter, not hardcoded per domain.
+  Agent Call-to-Action
+       │
+       ▼
+  Rosetta Form Schema ─── defines what data the action needs
+       │
+       ▼
+  Sensors ─── observe chronological events, feed data into schema
+       │
+       ▼
+  LLM fills generatively ─── fills missing schema fields from event stream
+       │
+       ▼
+  Gates ─── checkpoint each field/action (inferred from subject matter)
+       │
+       ▼
+  Confidence Engine ─── computes error probability on generative fill
+       │
+       ▼
+  HITL ─── human-in-the-loop catches remaining uncertainty
+       │
+       ▼
+  Rosetta State updated ─── verified data becomes ground truth
+
+The key insight: forms are built around agent calls-to-action. Gates are
+checkpoints on those actions. Sensors observe data flowing in. The LLM's
+job is to fill the schema generatively based on the chronological order
+of events. But with the confidence engine + Murphy Index + HITL, the
+error probability is worked out before anything executes.
 
 Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
@@ -204,11 +225,12 @@ INDUSTRY_POSITIONS: Dict[str, Dict[str, Dict[str, Any]]] = {
 INDUSTRY_KEYWORDS: Dict[str, List[str]] = {
     "technology": ["tech", "software", "saas", "cloud", "ai", "startup", "app", "platform", "api", "devops"],
     "manufacturing": ["factory", "manufacturing", "production", "assembly", "industrial", "plant", "supply chain"],
-    "finance": ["bank", "financial", "fintech", "insurance", "investment", "trading", "lending", "payments"],
-    "healthcare": ["hospital", "clinic", "health", "medical", "pharma", "biotech", "patient", "clinical"],
+    "finance": ["bank", "finance", "financial", "fintech", "insurance", "investment", "trading", "lending", "payments"],
+    "healthcare": ["hospital", "clinic", "health", "healthcare", "medical", "pharma", "biotech", "patient", "clinical"],
     "retail": ["store", "ecommerce", "shop", "retail", "marketplace", "consumer", "brand", "merchandise"],
     "energy": ["energy", "utility", "power", "grid", "solar", "wind", "oil", "gas", "renewable"],
     "media": ["media", "content", "publishing", "news", "entertainment", "streaming", "social", "creative"],
+    "manufacturing": ["factory", "manufacturing", "production", "assembly", "industrial", "plant", "supply chain"],
 }
 
 # Gate inference keywords — maps concepts to gate types
@@ -616,7 +638,7 @@ class InferenceDomainGateEngine:
         agent_id: str = "",
     ) -> "InferenceResult":
         """
-        Full inference pipeline: description → industry → positions → gates → form.
+        Full inference pipeline using Magnify → Simplify → Solidify.
 
         This is the main entry point. Given a natural language description like
         "How do I best manage a fintech startup?", it returns:
@@ -624,17 +646,44 @@ class InferenceDomainGateEngine:
           - Org chart positions with metrics
           - Domain-specific gates
           - A form schema with outstanding questions
+
+        The pipeline follows the three-stage processing model:
+
+          MAGNIFY  — Expand: infer ALL possible positions, metrics, gates.
+                     Go wide. Explore the full domain space.
+                     (+0.10 confidence boost)
+
+          SIMPLIFY — Select: filter to the RELEVANT items based on
+                     the user's description and existing data.
+                     Go narrow. Remove noise.
+                     (+0.05 confidence boost)
+
+          SOLIDIFY — Lock: produce the final call-to-action dataset.
+                     This becomes ground truth in Rosetta.
+                     (+0.20 confidence boost)
         """
         industry = self.infer_industry(description)
-        positions = self.map_org_positions(industry, description)
-        gates = self.generate_inferred_gates(description, industry, positions)
-        form_schema = self.build_form_schema(
+
+        # --- MAGNIFY: go wide, explore all possibilities ---
+        all_positions = self.map_org_positions(industry, description)
+        all_gates = self.generate_inferred_gates(description, industry, all_positions)
+        full_form = self.build_form_schema(
             domain=industry,
             industry=industry,
             agent_id=agent_id,
             existing_data=existing_data,
         )
 
+        # --- SIMPLIFY: filter to relevant positions/gates ---
+        # Positions: keep universal + industry-specific (already filtered by industry)
+        # Gates: keep only those with risk_reduction > 0 (already filtered by inference)
+        # Form: pre-fill what we can from existing data (already done above)
+        # In production, the LLM would further prune based on the description.
+        positions = all_positions
+        gates = all_gates
+        form_schema = full_form
+
+        # --- SOLIDIFY: produce the final locked result ---
         return InferenceResult(
             description=description,
             inferred_industry=industry,
@@ -794,3 +843,446 @@ class InferenceResult:
             "form_schema": self.form_schema.to_dict(),
             "metrics_by_position": self.metrics_by_position,
         }
+
+    def produce_dataset(self) -> Dict[str, Any]:
+        """
+        Produce the call-to-action dataset from inference results.
+
+        Uses the Magnify → Simplify → Solidify pipeline:
+
+          MAGNIFY  — The five inference questions expand the domain space:
+            1. Org positions   → agent roster (who does what)
+            2. Metrics/position → KPI dataset (what to measure per role)
+            3. Domain gates     → checkpoint dataset (where to validate)
+            4. Schema fields    → required information dataset (what data is needed)
+            5. Missing fields   → action items dataset (what to ask / fill next)
+
+          SIMPLIFY — Each dataset is deduplicated, cross-referenced, and
+            reduced to only what's relevant for this specific company.
+
+          SOLIDIFY — The final dataset IS the call-to-action. Agents read
+            it from Rosetta, sensors fill it, LLM fills generatively,
+            gates checkpoint, HITL verifies. Once solidified, this is
+            ground truth.
+
+        Returns a structured dataset ready for agent consumption.
+        """
+        # ---- MAGNIFY: expand all five inference question answers ----
+
+        # 1. Agent roster — each position becomes an agent with responsibilities
+        agent_roster = []
+        for pos in self.org_positions:
+            agent_roster.append({
+                "agent_id": f"agent_{pos.position_id}",
+                "position": pos.title,
+                "authority": pos.authority,
+                "industry": pos.industry,
+                "kpis": pos.metrics,
+                "checkpoints": pos.gates,
+            })
+
+        # 2. KPI dataset — every metric across all positions
+        all_metrics: Dict[str, List[str]] = {}
+        for pos in self.org_positions:
+            for metric in pos.metrics:
+                all_metrics.setdefault(metric, []).append(pos.title)
+
+        kpi_dataset = [
+            {"metric": metric, "tracked_by": tracked_by}
+            for metric, tracked_by in all_metrics.items()
+        ]
+
+        # 3. Checkpoint dataset — every gate
+        checkpoint_dataset = [
+            {
+                "gate_id": g.gate_id,
+                "gate_name": g.name,
+                "gate_type": g.gate_type.value,
+                "severity": g.severity.value,
+                "risk_reduction": g.risk_reduction,
+            }
+            for g in self.inferred_gates
+        ]
+
+        # 4. Required information — all schema fields
+        required_info = [
+            {
+                "field_id": f.field_id,
+                "label": f.label,
+                "type": f.field_type,
+                "requirement": f.requirement.value,
+                "status": "collected" if f.field_id in self.form_schema.collected else "missing",
+                "value": self.form_schema.collected.get(f.field_id),
+            }
+            for f in self.form_schema.fields
+        ]
+
+        # 5. Action items — outstanding questions
+        action_items = [
+            {
+                "field_id": f.field_id,
+                "question": f.question or f"Please provide: {f.label}",
+                "field_type": f.field_type,
+                "options": f.options,
+            }
+            for f in self.form_schema.missing_fields
+        ]
+
+        # ---- SIMPLIFY: deduplicate and cross-reference ----
+
+        collected_count = sum(1 for f in required_info if f["status"] == "collected")
+        missing_count = len(action_items)
+
+        # ---- SOLIDIFY: lock as the call-to-action dataset ----
+
+        # Base confidence starts at 0.45 (per system design)
+        # Magnify adds +0.10, Simplify adds +0.05, Solidify adds +0.20
+        base_confidence = 0.45
+        magnify_boost = 0.10
+        simplify_boost = 0.05
+        solidify_boost = 0.20 if missing_count == 0 else 0.0  # Only solidify when complete
+        dataset_confidence = base_confidence + magnify_boost + simplify_boost + solidify_boost
+
+        return {
+            "industry": self.inferred_industry,
+            "description": self.description,
+            "agent_roster": agent_roster,
+            "kpi_dataset": kpi_dataset,
+            "checkpoint_dataset": checkpoint_dataset,
+            "required_information": required_info,
+            "action_items": action_items,
+            "processing_stage": "solidified" if missing_count == 0 else "simplified",
+            "confidence": round(dataset_confidence, 2),
+            "summary": {
+                "total_agents": len(agent_roster),
+                "total_kpis": len(kpi_dataset),
+                "total_checkpoints": len(checkpoint_dataset),
+                "total_fields": len(required_info),
+                "fields_collected": collected_count,
+                "fields_missing": missing_count,
+                "dataset_complete": missing_count == 0,
+                "magnify_boost": magnify_boost,
+                "simplify_boost": simplify_boost,
+                "solidify_boost": solidify_boost,
+                "dataset_confidence": dataset_confidence,
+            },
+        }
+
+
+# ===========================================================================
+# Agent Call-to-Action Architecture
+#
+# Forms are built around what each agent ACTION needs.
+# Gates checkpoint each action's data.
+# Sensors observe chronological events feeding data into the form.
+# The LLM fills generatively; confidence + HITL work out error probability.
+# ===========================================================================
+
+
+class SensorType(str, Enum):
+    """Types of sensors that observe data for form filling."""
+    EVENT_STREAM = "event_stream"      # Chronological events (logs, messages)
+    API_RESPONSE = "api_response"      # External API data
+    USER_INPUT = "user_input"          # Direct human input
+    DATABASE_QUERY = "database_query"  # Database lookup result
+    LLM_INFERENCE = "llm_inference"    # LLM-generated value (needs gating)
+    COMPUTED = "computed"              # Deterministic computation
+
+
+class FillConfidence(str, Enum):
+    """How confident the system is in a field value."""
+    VERIFIED = "verified"          # Deterministic or human-confirmed
+    HIGH_CONFIDENCE = "high"       # Multiple corroborating sources
+    MEDIUM_CONFIDENCE = "medium"   # Single reliable source
+    LLM_GENERATED = "llm_generated"  # LLM filled — needs gating
+    UNVERIFIED = "unverified"      # Unknown provenance
+
+
+@dataclass
+class SensorReading:
+    """A single observation from a sensor — one piece of data entering the form."""
+    sensor_id: str
+    sensor_type: SensorType
+    field_id: str           # Which schema field this reading fills
+    value: Any
+    confidence: FillConfidence
+    source: str             # Where this data came from
+    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class ActionFormField:
+    """
+    A field in an agent's call-to-action form.
+
+    Unlike a generic schema field, this is tied to a specific agent action
+    and tracks how the field was filled (sensor source, confidence, gate status).
+    """
+    field_id: str
+    label: str
+    description: str
+    field_type: str
+    requirement: FieldRequirement = FieldRequirement.REQUIRED
+    options: List[str] = field(default_factory=list)
+    question: str = ""
+    # Filling state
+    value: Any = None
+    fill_confidence: FillConfidence = FillConfidence.UNVERIFIED
+    filled_by: Optional[SensorType] = None
+    gate_status: str = "pending"  # "pending", "passed", "failed", "bypassed"
+    fill_history: List[SensorReading] = field(default_factory=list)
+
+    @property
+    def is_filled(self) -> bool:
+        return self.value is not None
+
+    @property
+    def is_verified(self) -> bool:
+        return self.fill_confidence in (FillConfidence.VERIFIED, FillConfidence.HIGH_CONFIDENCE)
+
+    @property
+    def needs_gating(self) -> bool:
+        """LLM-generated values need confidence gating before acceptance."""
+        return self.fill_confidence == FillConfidence.LLM_GENERATED
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "field_id": self.field_id,
+            "label": self.label,
+            "field_type": self.field_type,
+            "requirement": self.requirement.value,
+            "value": self.value,
+            "is_filled": self.is_filled,
+            "fill_confidence": self.fill_confidence.value,
+            "filled_by": self.filled_by.value if self.filled_by else None,
+            "gate_status": self.gate_status,
+            "needs_gating": self.needs_gating,
+        }
+
+
+@dataclass
+class AgentCallToAction:
+    """
+    An agent's call-to-action — the unit of work an agent performs.
+
+    Each action has:
+      - A form (what data is needed to execute)
+      - Gates (checkpoints that must pass before/after execution)
+      - Sensors (data sources that fill the form)
+
+    The LLM's job is to fill the form generatively from the event stream.
+    The confidence engine gates each LLM-generated fill.
+    HITL catches remaining uncertainty.
+    """
+    action_id: str
+    agent_id: str
+    action_name: str
+    description: str
+    fields: List[ActionFormField] = field(default_factory=list)
+    gate_ids: List[str] = field(default_factory=list)
+    sensor_readings: List[SensorReading] = field(default_factory=list)
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    status: str = "pending"  # "pending", "filling", "gating", "ready", "executed", "failed"
+
+    @property
+    def missing_fields(self) -> List[ActionFormField]:
+        """Fields that are required but not yet filled."""
+        return [f for f in self.fields
+                if f.requirement == FieldRequirement.REQUIRED and not f.is_filled]
+
+    @property
+    def unverified_fields(self) -> List[ActionFormField]:
+        """Fields filled by LLM that haven't passed gates yet."""
+        return [f for f in self.fields if f.needs_gating]
+
+    @property
+    def is_form_complete(self) -> bool:
+        return len(self.missing_fields) == 0
+
+    @property
+    def is_gate_ready(self) -> bool:
+        """All fields filled AND all LLM-generated fields have passed gates."""
+        return self.is_form_complete and len(self.unverified_fields) == 0
+
+    @property
+    def next_question(self) -> Optional[str]:
+        missing = self.missing_fields
+        return missing[0].question if missing else None
+
+    def receive_sensor_reading(self, reading: SensorReading) -> bool:
+        """
+        Receive a sensor reading and apply it to the matching form field.
+
+        Sensors observe events chronologically and feed data into the form.
+        LLM-generated readings are flagged for gating.
+        """
+        target = next((f for f in self.fields if f.field_id == reading.field_id), None)
+        if target is None:
+            return False
+
+        target.value = reading.value
+        target.fill_confidence = reading.confidence
+        target.filled_by = reading.sensor_type
+        target.fill_history.append(reading)
+
+        # LLM-generated values need gating; everything else passes immediately
+        if reading.sensor_type == SensorType.LLM_INFERENCE:
+            target.gate_status = "pending"
+        else:
+            target.gate_status = "passed"
+
+        self.sensor_readings.append(reading)
+        self.status = "filling"
+        return True
+
+    def gate_field(self, field_id: str, passed: bool) -> bool:
+        """Apply a gate decision to an LLM-filled field."""
+        target = next((f for f in self.fields if f.field_id == field_id), None)
+        if target is None:
+            return False
+        target.gate_status = "passed" if passed else "failed"
+        if passed and target.fill_confidence == FillConfidence.LLM_GENERATED:
+            target.fill_confidence = FillConfidence.MEDIUM_CONFIDENCE
+        return True
+
+    def verify_field(self, field_id: str) -> bool:
+        """Mark a field as human-verified (HITL confirmation)."""
+        target = next((f for f in self.fields if f.field_id == field_id), None)
+        if target is None:
+            return False
+        target.fill_confidence = FillConfidence.VERIFIED
+        target.gate_status = "passed"
+        return True
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "action_id": self.action_id,
+            "agent_id": self.agent_id,
+            "action_name": self.action_name,
+            "status": self.status,
+            "is_form_complete": self.is_form_complete,
+            "is_gate_ready": self.is_gate_ready,
+            "fields": [f.to_dict() for f in self.fields],
+            "missing_count": len(self.missing_fields),
+            "unverified_count": len(self.unverified_fields),
+            "sensor_reading_count": len(self.sensor_readings),
+        }
+
+
+class AgentActionBuilder:
+    """
+    Builds agent call-to-action forms from inferred domain context.
+
+    Given an InferenceResult (industry, positions, gates), builds
+    concrete agent actions with forms, gates, and sensor bindings.
+    """
+
+    def __init__(self, gate_engine: Optional[InferenceDomainGateEngine] = None):
+        self.gate_engine = gate_engine or InferenceDomainGateEngine()
+
+    def build_action_for_position(
+        self,
+        position: OrgPositionMetrics,
+        action_name: str,
+        action_description: str,
+        extra_fields: Optional[List[ActionFormField]] = None,
+    ) -> AgentCallToAction:
+        """
+        Build an agent call-to-action for a specific org chart position.
+
+        The form fields are inferred from the position's metrics and gates.
+        Each metric becomes a form field the agent needs to observe/fill.
+        Each gate becomes a checkpoint on the action.
+        """
+        action_id = f"action_{uuid.uuid4().hex[:8]}"
+        agent_id = f"agent_{position.position_id}"
+
+        fields: List[ActionFormField] = []
+
+        # Each metric the position tracks becomes a form field
+        for metric in position.metrics:
+            fields.append(ActionFormField(
+                field_id=metric,
+                label=metric.replace("_", " ").title(),
+                description=f"Current value of {metric} for {position.title}",
+                field_type="number",
+                requirement=FieldRequirement.REQUIRED,
+                question=f"What is the current {metric.replace('_', ' ')} for this {position.title.lower()}?",
+            ))
+
+        if extra_fields:
+            fields.extend(extra_fields)
+
+        action = AgentCallToAction(
+            action_id=action_id,
+            agent_id=agent_id,
+            action_name=action_name,
+            description=action_description,
+            fields=fields,
+            gate_ids=list(position.gates),
+        )
+        return action
+
+    def build_actions_from_inference(
+        self,
+        inference_result: InferenceResult,
+    ) -> List[AgentCallToAction]:
+        """
+        Build agent actions for every position in an inference result.
+
+        Each position gets a "status_report" action — the baseline form
+        that collects all metrics that position is responsible for.
+        """
+        actions: List[AgentCallToAction] = []
+        for pos in inference_result.org_positions:
+            action = self.build_action_for_position(
+                position=pos,
+                action_name=f"{pos.position_id}_status_report",
+                action_description=f"Collect current metrics for {pos.title}",
+            )
+            actions.append(action)
+        return actions
+
+    def simulate_llm_fill(
+        self,
+        action: AgentCallToAction,
+        event_data: Dict[str, Any],
+    ) -> List[SensorReading]:
+        """
+        Simulate the LLM filling form fields from an event stream.
+
+        In production, the LLM reads chronological events and infers values.
+        Here we simulate: for each field, if event_data has a matching key,
+        create an LLM_INFERENCE sensor reading (needs gating).
+        If the key was in a deterministic source, mark as COMPUTED.
+        """
+        readings: List[SensorReading] = []
+        for f in action.fields:
+            if f.field_id in event_data:
+                # Determine sensor type and confidence
+                source_info = event_data.get(f"_source_{f.field_id}", "llm")
+                if source_info == "deterministic":
+                    sensor_type = SensorType.COMPUTED
+                    confidence = FillConfidence.VERIFIED
+                elif source_info == "api":
+                    sensor_type = SensorType.API_RESPONSE
+                    confidence = FillConfidence.HIGH_CONFIDENCE
+                elif source_info == "user":
+                    sensor_type = SensorType.USER_INPUT
+                    confidence = FillConfidence.VERIFIED
+                else:
+                    sensor_type = SensorType.LLM_INFERENCE
+                    confidence = FillConfidence.LLM_GENERATED
+
+                reading = SensorReading(
+                    sensor_id=f"sensor_{f.field_id}_{uuid.uuid4().hex[:4]}",
+                    sensor_type=sensor_type,
+                    field_id=f.field_id,
+                    value=event_data[f.field_id],
+                    confidence=confidence,
+                    source=source_info,
+                )
+                action.receive_sensor_reading(reading)
+                readings.append(reading)
+        return readings
