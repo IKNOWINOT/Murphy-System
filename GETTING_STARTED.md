@@ -4,21 +4,42 @@ This guide will help you get Murphy System running in less than 5 minutes.
 
 ---
 
-## 🚀 Fastest Way: One-Line Install
+## 🚀 One-Command Setup & Start (Recommended)
+
+After cloning the repository, run **one command** from the repo root:
+
+```bash
+# Linux / macOS
+bash setup_and_start.sh
+```
+
+```cmd
+REM Windows
+setup_and_start.bat
+```
+
+This single script:
+1. ✓ Checks prerequisites (Python 3.10+, pip)
+2. ✓ Creates (or reuses) a Python virtual environment
+3. ✓ Installs **all** dependencies — main, optional, and extras
+4. ✓ Configures `.env` (onboard LLM — no API key needed)
+5. ✓ Creates runtime directories
+6. ✓ Starts Murphy (backend server **or** terminal UI — your choice)
+
+No manual activation, no missing packages, no platform-specific errors.
+
+---
+
+## 🌐 Remote One-Line Install
+
+If you haven't cloned the repo yet:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/IKNOWINOT/Murphy-System/main/install.sh | bash
 ```
 
-This single command:
-1. Checks prerequisites (Python 3.10+, git, pip)
-2. Downloads Murphy System
-3. Creates a Python virtual environment
-4. Installs all dependencies
-5. Configures `.env` (onboard LLM — no API key needed)
-6. Installs the `murphy` CLI
+This downloads Murphy, creates a virtual environment, installs all dependencies, and sets up the `murphy` CLI. Then start automating:
 
-Then start automating:
 ```bash
 murphy start          # Start in foreground
 murphy start -d       # Start as background daemon
