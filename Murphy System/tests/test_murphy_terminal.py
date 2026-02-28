@@ -21,9 +21,13 @@ from murphy_terminal import (
     MurphyAPIClient,
     MurphyTerminalApp,
     detect_intent,
+    detect_feedback,
+    DialogContext,
     INTENT_PATTERNS,
     DEFAULT_API_URL,
     WELCOME_TEXT,
+    RECONNECT_INTERVAL,
+    MAX_RECONNECT_ATTEMPTS,
 )
 
 
@@ -312,3 +316,251 @@ class TestWelcomeText:
         assert "health" in WELCOME_TEXT
         assert "help" in WELCOME_TEXT
         assert "exit" in WELCOME_TEXT
+
+    def test_contains_new_commands(self):
+        assert "start interview" in WELCOME_TEXT
+        assert "set api" in WELCOME_TEXT
+        assert "reconnect" in WELCOME_TEXT
+
+
+# ---------------------------------------------------------------------------
+# API Client — new methods
+# ---------------------------------------------------------------------------
+
+
+class TestMurphyAPIClientNew:
+    """Tests for newly added API client methods."""
+
+    def test_set_base_url(self):
+        client = MurphyAPIClient(base_url="http://localhost:8000")
+        client.session_id = "old-session"
+        client.set_base_url("http://newhost:9000/")
+        assert client.base_url == "http://newhost:9000"
+        assert client.session_id is None
+        assert client.last_error is None
+
+    @patch("murphy_terminal.requests.get")
+    def test_test_connection_success(self, mock_get):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"status": "healthy", "version": "2.0"}
+        mock_resp.raise_for_status = MagicMock()
+        mock_get.return_value = mock_resp
+
+        client = MurphyAPIClient(base_url="http://localhost:8000")
+        ok, detail = client.test_connection()
+        assert ok is True
+        assert "Healthy" in detail
+        assert client.last_error is None
+
+    @patch("murphy_terminal.requests.get")
+    def test_test_connection_refused(self, mock_get):
+        mock_get.side_effect = requests.ConnectionError("refused")
+        client = MurphyAPIClient(base_url="http://localhost:8000")
+        ok, detail = client.test_connection()
+        assert ok is False
+        assert "refused" in detail.lower() or "connection" in detail.lower()
+        assert client.last_error is not None
+
+    @patch("murphy_terminal.requests.get")
+    def test_test_connection_timeout(self, mock_get):
+        mock_get.side_effect = requests.Timeout("timed out")
+        client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
+        ok, detail = client.test_connection()
+        assert ok is False
+        assert "timeout" in detail.lower() or "Timeout" in detail
+
+
+# ---------------------------------------------------------------------------
+# Dialog Context — synthetic interview
+# ---------------------------------------------------------------------------
+
+
+class TestDialogContext:
+    """Tests for the interview / dialog context tracker."""
+
+    def test_initial_state(self):
+        ctx = DialogContext()
+        assert ctx.active is False
+        assert ctx.step_index == 0
+        assert ctx.collected == {}
+        assert ctx.is_complete is False
+
+    def test_start_interview(self):
+        ctx = DialogContext()
+        prompt = ctx.start()
+        assert ctx.active is True
+        assert "Step 1/" in prompt
+        assert "name" in ctx.asked_questions
+
+    def test_advance_records_answer(self):
+        ctx = DialogContext()
+        ctx.start()
+        response = ctx.advance("Acme Corp")
+        assert ctx.collected["name"] == "Acme Corp"
+        assert ctx.step_index == 1
+        assert "Step 2/" in response
+
+    def test_advance_to_completion(self):
+        ctx = DialogContext()
+        ctx.start()
+        for i in range(len(DialogContext.INTERVIEW_STEPS)):
+            ctx.advance(f"answer-{i}")
+        assert ctx.is_complete is True
+        assert ctx.active is False
+
+    def test_skip_step(self):
+        ctx = DialogContext()
+        ctx.start()
+        response = ctx.advance("skip")
+        assert ctx.collected["name"] == "(skipped)"
+        assert ctx.step_index == 1
+        assert "Step 2/" in response
+
+    def test_go_back(self):
+        ctx = DialogContext()
+        ctx.start()
+        ctx.advance("Acme Corp")
+        assert ctx.step_index == 1
+        response = ctx._go_back()
+        assert ctx.step_index == 0
+        assert "Step 1/" in response
+
+    def test_go_back_at_start(self):
+        ctx = DialogContext()
+        ctx.start()
+        response = ctx._go_back()
+        assert ctx.step_index == 0
+        assert "beginning" in response.lower() or "Step 1/" in response
+
+    def test_review_shows_collected(self):
+        ctx = DialogContext()
+        ctx.start()
+        ctx.advance("Acme Corp")
+        summary = ctx.summary()
+        assert "Acme Corp" in summary
+
+    def test_summary_empty(self):
+        ctx = DialogContext()
+        assert "no information" in ctx.summary().lower()
+
+    def test_progress_label(self):
+        ctx = DialogContext()
+        ctx.start()
+        label = ctx.progress_label
+        assert "Step 1/" in label
+
+    def test_infer_all(self):
+        assert DialogContext._infer_value("billing_tier", "all of them") == "all"
+        assert DialogContext._infer_value("billing_tier", "all tiers") == "all"
+        assert DialogContext._infer_value("billing_tier", "everything") == "all"
+
+    def test_infer_unsure(self):
+        assert DialogContext._infer_value("use_case", "not sure") == "(needs guidance)"
+        assert DialogContext._infer_value("use_case", "idk") == "(needs guidance)"
+        assert DialogContext._infer_value("use_case", "no idea") == "(needs guidance)"
+
+    def test_infer_yes_no(self):
+        assert DialogContext._infer_value("confirm", "yes") == "yes"
+        assert DialogContext._infer_value("confirm", "yep") == "yes"
+        assert DialogContext._infer_value("confirm", "no") == "no"
+        assert DialogContext._infer_value("confirm", "nope") == "no"
+
+    def test_infer_passthrough(self):
+        assert DialogContext._infer_value("name", "my company", "My Company") == "My Company"
+
+    def test_record_feedback(self):
+        ctx = DialogContext()
+        ctx.record_feedback("system is too complicated")
+        assert len(ctx.feedback_log) == 1
+        assert "complicated" in ctx.feedback_log[0]
+
+
+# ---------------------------------------------------------------------------
+# Feedback detection
+# ---------------------------------------------------------------------------
+
+
+class TestFeedbackDetection:
+    """Tests for the frustration / feedback detection patterns."""
+
+    def test_detects_frustration(self):
+        assert detect_feedback("this is too complicated") is True
+        assert detect_feedback("I'm confused") is True
+        assert detect_feedback("this is broken") is True
+        assert detect_feedback("it's not working") is True
+
+    def test_detects_feedback_keywords(self):
+        assert detect_feedback("I have some feedback") is True
+        assert detect_feedback("here's a suggestion") is True
+
+    def test_detects_help_request(self):
+        assert detect_feedback("please help me") is True
+        assert detect_feedback("i need help") is True
+        assert detect_feedback("I'm stuck") is True
+
+    def test_no_feedback_for_normal_input(self):
+        assert detect_feedback("show health status") is False
+        assert detect_feedback("hello there") is False
+        assert detect_feedback("run task deploy") is False
+
+
+# ---------------------------------------------------------------------------
+# New intent detection
+# ---------------------------------------------------------------------------
+
+
+class TestNewIntentDetection:
+    """Tests for newly added intent patterns."""
+
+    def test_set_api_intent(self):
+        assert detect_intent("set api http://host:9000") == "intent_set_api"
+        assert detect_intent("set_api http://host:9000") == "intent_set_api"
+
+    def test_test_api_intent(self):
+        assert detect_intent("test api") == "intent_test_api"
+        assert detect_intent("test connection") == "intent_test_api"
+        assert detect_intent("test_connection") == "intent_test_api"
+
+    def test_reconnect_intent(self):
+        assert detect_intent("reconnect") == "intent_reconnect"
+
+    def test_start_interview_intent(self):
+        assert detect_intent("start interview") == "intent_start_interview"
+        assert detect_intent("onboard me") == "intent_start_interview"
+        assert detect_intent("setup") == "intent_start_interview"
+        assert detect_intent("begin") == "intent_start_interview"
+
+    def test_skip_intent(self):
+        assert detect_intent("skip") == "intent_skip"
+
+    def test_back_intent(self):
+        assert detect_intent("back") == "intent_back"
+        assert detect_intent("previous") == "intent_back"
+
+    def test_review_intent(self):
+        assert detect_intent("review") == "intent_review"
+
+    def test_restart_intent(self):
+        assert detect_intent("restart") == "intent_restart_interview"
+
+    def test_confirm_intent(self):
+        assert detect_intent("confirm") == "intent_confirm"
+
+
+# ---------------------------------------------------------------------------
+# App — new attributes
+# ---------------------------------------------------------------------------
+
+
+class TestMurphyTerminalAppNew:
+    """Tests for new application attributes and configuration."""
+
+    def test_app_has_dialog_context(self):
+        app = MurphyTerminalApp(api_url="http://localhost:9999")
+        assert isinstance(app.dialog, DialogContext)
+
+    def test_app_reconnect_defaults(self):
+        app = MurphyTerminalApp(api_url="http://localhost:9999")
+        assert app._reconnect_attempts == 0
+        assert RECONNECT_INTERVAL > 0
+        assert MAX_RECONNECT_ATTEMPTS > 0
