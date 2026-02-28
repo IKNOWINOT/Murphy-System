@@ -61,12 +61,21 @@ class MurphyGate:
         Args:
             confidence: Confidence score (0.0 to 1.0)
             threshold: Custom threshold (optional, uses phase/default if not provided)
-            phase: Current execution phase (optional)
+            phase: Current execution phase (optional, accepts Phase enum or string)
             context: Additional context for decision (optional)
             
         Returns:
             GateResult with decision and rationale
         """
+        # Coerce string phase to Phase enum
+        if isinstance(phase, str):
+            try:
+                phase = Phase(phase.lower())
+            except ValueError:
+                try:
+                    phase = Phase[phase.upper()]
+                except KeyError:
+                    phase = None
         # Determine effective threshold
         effective_threshold = self._determine_threshold(threshold, phase)
         
@@ -150,7 +159,7 @@ class MurphyGate:
     ) -> str:
         """Generate human-readable rationale for decision"""
         
-        phase_str = f" in {phase.value} phase" if phase else ""
+        phase_str = f" in {phase.value if hasattr(phase, 'value') else phase} phase" if phase else ""
         
         if action == GateAction.PROCEED_AUTOMATICALLY:
             return (
