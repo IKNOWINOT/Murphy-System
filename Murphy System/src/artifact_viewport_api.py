@@ -22,7 +22,19 @@ Query Parameters (for /project):
 """
 
 import re
-from flask import Blueprint, request, jsonify
+try:
+    from flask import Blueprint, request, jsonify
+    _HAS_FLASK = True
+except ImportError:
+    _HAS_FLASK = False
+    # Stub so module-level @viewport_bp.route() decorators don't crash
+    class _StubBlueprint:
+        """No-op Blueprint stand-in when Flask is absent."""
+        def route(self, *a, **kw):
+            return lambda fn: fn
+    Blueprint = _StubBlueprint  # type: ignore[misc,assignment]
+    request = None  # type: ignore[assignment]
+    jsonify = None  # type: ignore[assignment]
 from typing import Optional
 
 from artifact_viewport import (
@@ -33,8 +45,8 @@ from artifact_viewport import (
     MAX_VIEWPORT_LINES,
 )
 
-# Create blueprint
-viewport_bp = Blueprint('viewport', __name__, url_prefix='/viewport')
+# Create blueprint (stub when Flask is absent)
+viewport_bp = Blueprint('viewport', __name__, url_prefix='/viewport') if _HAS_FLASK else Blueprint()
 
 # Shared viewport service instance (set by mount_viewport_api)
 _viewport: Optional[ArtifactViewport] = None

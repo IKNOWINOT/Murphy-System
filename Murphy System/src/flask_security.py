@@ -21,8 +21,13 @@ import functools
 from typing import List, Optional, Dict, Any, Callable
 from datetime import datetime
 
-from flask import Flask, request, jsonify, Response
-from flask_cors import CORS
+try:
+    from flask import Flask, request, jsonify, Response
+    from flask_cors import CORS
+    _HAS_FLASK = True
+except ImportError:
+    Flask = None  # type: ignore[misc,assignment]
+    _HAS_FLASK = False
 
 logger = logging.getLogger(__name__)
 
