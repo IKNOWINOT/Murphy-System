@@ -475,6 +475,44 @@ class SetupWizard:
 
         return {"valid": len(issues) == 0, "issues": issues}
 
+    # -- Tuning #1: cross-reference inference --------------------------------
+    # If the user's automation_types or organization_name imply sales usage
+    # but q12 (sales_automation_enabled) is still False, suggest enabling it.
+
+    _SALES_HINT_KEYWORDS = frozenset([
+        "sales", "pipeline", "lead", "crm", "outreach", "prospect",
+        "revenue", "deal", "quota", "commission",
+    ])
+
+    def infer_sales_enabled(self, profile: Optional[SetupProfile] = None) -> Dict[str, Any]:
+        """
+        Cross-reference profile fields to infer whether sales automation
+        should be enabled.
+
+        Returns {"should_enable": bool, "reason": str}
+        """
+        profile = profile or self._profile
+        if profile.sales_automation_enabled:
+            return {"should_enable": False, "reason": "Already enabled"}
+
+        # Check automation types for business/agent (common sales triggers)
+        if "business" in profile.automation_types:
+            return {
+                "should_enable": True,
+                "reason": "Automation type 'business' selected — sales modules recommended",
+            }
+
+        # Check organization name for sales-related keywords
+        org_lower = profile.organization_name.lower()
+        for kw in self._SALES_HINT_KEYWORDS:
+            if kw in org_lower:
+                return {
+                    "should_enable": True,
+                    "reason": f"Organization name contains '{kw}' — sales modules recommended",
+                }
+
+        return {"should_enable": False, "reason": "No sales indicators detected"}
+
     def export_config(self, config: Dict[str, Any], path: str) -> None:
         """Export configuration to a JSON file."""
         with open(path, "w", encoding="utf-8") as fh:

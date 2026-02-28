@@ -337,9 +337,13 @@ This means every uncertain decision creates an explicit checkpoint, not a silent
 
 | # | Recommendation | Status | Detail |
 |---|----------------|--------|--------|
+| 1 | Setup Wizard inference | ✅ Implemented | Added `infer_sales_enabled()` method that cross-references org name and automation types for sales-related keywords. When "business" automation or sales-related org name detected, suggests enabling sales modules. |
+| 2 | Lead Scoring borderline | ✅ Implemented | Three-tier qualification: ≥40 qualified (demo), 30-39 borderline (interest discovery), <30 not qualified (nurture). Borderline tier recovers leads that binary scoring would lose. |
 | 3 | Domain Gates cold-start | ✅ Implemented | Added `sales` domain with 4 default gates: `lead_data_validation_gate` (HIGH), `can_spam_compliance_gate` (CRITICAL), `scoring_output_validation_gate` (MEDIUM), `proposal_authority_gate` (HIGH). `generate_gates_for_system({'domain': 'sales'})` now returns 4 gates instead of 0. |
 | 4 | TYPE/ENUMERATE differentiation | ✅ Implemented | Changed ENUMERATE threshold from 0.6 to 0.625, creating a meaningful separation between TYPE (classification) and ENUMERATE (action listing) phases. |
 | 5 | Bootstrap confidence floor | ✅ Implemented | Sparse graphs (<5 nodes) at EXPAND phase now receive a minimum confidence of 0.5. This prevents cold-start blocking where empty graphs would compute confidence=0.0 and halt exploration. |
+| 6 | Murphy Index breakdown | ✅ Implemented | Added `get_failure_mode_breakdown()` method that returns zone classification (low_risk/ambiguous/high_risk), ranked failure mode contributions, and dominant failure mode. Middle-range MI (0.3-0.7) now has actionable breakdown for operators. |
+| 7 | Bootstrap gate seeding | ✅ Implemented | Added `_bootstrap_domain_gates()` task to `ReadinessBootstrapOrchestrator.run_bootstrap()`. Seeds gate templates for 8 domains (software, sales, manufacturing, healthcare, finance, retail, energy, media) on first run. |
 
 ### Phase 2 Test Coverage
 
@@ -361,6 +365,21 @@ Expanded from 34 to 85 test scenarios (+51 new):
 | Inference | Form loop (incomplete→complete, pre-fill) | 3 | ✅ Pass |
 | Inference | Agent actions (sensor fill, LLM gating, HITL verify) | 7 | ✅ Pass |
 | MSS | Magnify→Simplify→Solidify pipeline (stages, confidence, datasets) | 7 | ✅ Pass |
+
+### Phase 3 Test Coverage
+
+Expanded from 85 to 109 test scenarios (+24 new):
+
+| Area | Module/Chapter | Scenarios | Status |
+|------|---------------|-----------|--------|
+| Tuning #1 | SetupWizard.infer_sales_enabled() | 4 | ✅ Pass |
+| Tuning #2 | SalesAutomationEngine.qualify_lead() borderline tier | 3 | ✅ Pass |
+| Tuning #6 | MurphyCalculator.get_failure_mode_breakdown() | 3 | ✅ Pass |
+| Tuning #7 | ReadinessBootstrapOrchestrator domain gate seeding | 3 | ✅ Pass |
+| Ch 8 | UniversalControlPlane, ControlTypeAnalyzer, EngineRegistry | 3 | ✅ Pass |
+| Ch 18 | AnalyticsDashboard, KPITracker snapshots | 2 | ✅ Pass |
+| Ch 21 | AvatarSessionManager (create, messages, end) | 3 | ✅ Pass |
+| Ch 23 | BotIdentityVerifier, SensitiveDataClassifier, TrustRecomputer | 3 | ✅ Pass |
 
 ### Inference Gate Engine — New Architecture
 
@@ -429,10 +448,19 @@ Agent Call-to-Action → Rosetta Form Schema → Sensors observe events
 ## Conclusion
 
 The Murphy System runtime matches the storyline specification with high fidelity.
-All 85 operational scenarios passed their assertions. The three high/medium priority
-tuning recommendations have been implemented and verified. The inference gate engine
-adds the capability to generate domain-specific gates, forms, and agent datasets for
-ANY subject matter — not just hardcoded domains.
+All 109 operational scenarios passed their assertions across 3 test phases covering
+all 25 storyline chapters. All 7 tuning recommendations have been implemented and
+verified:
+
+| Tuning | Area | Priority | Status |
+|--------|------|----------|--------|
+| #1 | Setup Wizard inference | Medium | ✅ Implemented |
+| #2 | Lead Scoring borderline | Low | ✅ Implemented |
+| #3 | Domain Gates cold-start | High | ✅ Implemented |
+| #4 | TYPE/ENUMERATE thresholds | Low | ✅ Implemented |
+| #5 | Bootstrap confidence floor | Medium | ✅ Implemented |
+| #6 | Murphy Index breakdown | Low | ✅ Implemented |
+| #7 | Bootstrap gate seeding | High | ✅ Implemented |
 
 The Magnify → Simplify → Solidify pipeline provides the confidence-building trajectory
 that turns generative exploration into verified ground truth. Forms are built around
@@ -442,6 +470,6 @@ system is generative but safe.
 
 ---
 
-*Generated from test results in `docs/storyline_test_results.json` and `docs/storyline_test_results_phase2.json`*
-*Test suites: `tests/test_storyline_actuals.py`, `tests/test_storyline_actuals_phase2.py`*
+*Generated from test results in `docs/storyline_test_results.json`, `docs/storyline_test_results_phase2.json`, and `docs/storyline_test_results_phase3.json`*
+*Test suites: `tests/test_storyline_actuals.py`, `tests/test_storyline_actuals_phase2.py`, `tests/test_storyline_actuals_phase3.py`*
 *Date: 2026-02-28*
