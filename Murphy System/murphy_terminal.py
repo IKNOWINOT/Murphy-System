@@ -92,16 +92,21 @@ class MurphyAPIClient:
             status = data.get("status", "unknown")
             version = data.get("version", "n/a")
             return True, f"Healthy — status={status}, version={version}"
-        except requests.ConnectionError as exc:
-            msg = f"Connection refused: {self.base_url} ({exc})"
+        except requests.ConnectionError:
+            msg = f"Connection refused at {self.base_url}"
             self.last_error = msg
             return False, msg
         except requests.Timeout:
             msg = f"Timeout after {self.timeout}s reaching {self.base_url}"
             self.last_error = msg
             return False, msg
+        except requests.HTTPError as exc:
+            code = exc.response.status_code if exc.response is not None else "?"
+            msg = f"HTTP {code} from {self.base_url}"
+            self.last_error = msg
+            return False, msg
         except Exception as exc:
-            msg = f"Error: {exc}"
+            msg = f"Cannot reach {self.base_url}: {type(exc).__name__}"
             self.last_error = msg
             return False, msg
 
@@ -378,10 +383,9 @@ class StatusBar(Static):
     api_url = reactive("")
 
     def render(self) -> str:
-        url_label = f" [dim]({self.api_url})[/dim]" if self.api_url else ""
         if self.connected:
-            return f"[bold green]● Connected[/bold green]{url_label}"
-        return f"[bold red]● Disconnected[/bold red]{url_label}"
+            return "[bold green]● Connected[/bold green]"
+        return "[bold red]● Disconnected[/bold red]"
 
 
 # ---------------------------------------------------------------------------
@@ -481,6 +485,7 @@ class MurphyTerminalApp(App):
     def _update_status_url(self) -> None:
         status_bar = self.query_one(StatusBar)
         status_bar.api_url = self.client.base_url
+        self.sub_title = f"API: {self.client.base_url}"
 
     def _check_connection(self) -> None:
         status_bar = self.query_one(StatusBar)
@@ -547,6 +552,22 @@ class MurphyTerminalApp(App):
             pass
 
     # -- helpers --
+
+    @staticmethod
+    def _friendly_error(exc: Exception) -> str:
+        """Return a short, human-readable error description.
+
+        Strips verbose Python internals (urllib3 traces, object addresses)
+        and returns a concise message suitable for display in the TUI.
+        """
+        if isinstance(exc, requests.ConnectionError):
+            return "Connection refused — is the backend running?"
+        if isinstance(exc, requests.Timeout):
+            return "Request timed out"
+        if isinstance(exc, requests.HTTPError):
+            code = exc.response.status_code if exc.response is not None else "?"
+            return f"HTTP error {code}"
+        return type(exc).__name__
 
     def _write_user(self, text: str) -> None:
         chat = self.query_one("#chat-log", RichLog)
@@ -675,21 +696,21 @@ class MurphyTerminalApp(App):
                 f"(version {data.get('version', 'n/a')})"
             )
         except Exception as exc:
-            self._write_murphy(f"[red]Could not fetch health: {exc}[/red]")
+            self._write_murphy(f"[red]Could not fetch health: {self._friendly_error(exc)}[/red]")
 
     def intent_status(self, _msg: str) -> None:
         try:
             data = self.client.status()
             self._write_murphy("System status:\n" + self._format_json(data))
         except Exception as exc:
-            self._write_murphy(f"[red]Could not fetch status: {exc}[/red]")
+            self._write_murphy(f"[red]Could not fetch status: {self._friendly_error(exc)}[/red]")
 
     def intent_info(self, _msg: str) -> None:
         try:
             data = self.client.info()
             self._write_murphy("System info:\n" + self._format_json(data))
         except Exception as exc:
-            self._write_murphy(f"[red]Could not fetch info: {exc}[/red]")
+            self._write_murphy(f"[red]Could not fetch info: {self._friendly_error(exc)}[/red]")
 
     def intent_help(self, _msg: str) -> None:
         # Context-aware help
@@ -733,14 +754,14 @@ class MurphyTerminalApp(App):
             data = self.client.corrections_stats()
             self._write_murphy("Correction statistics:\n" + self._format_json(data))
         except Exception as exc:
-            self._write_murphy(f"[red]Could not fetch corrections: {exc}[/red]")
+            self._write_murphy(f"[red]Could not fetch corrections: {self._friendly_error(exc)}[/red]")
 
     def intent_hitl(self, _msg: str) -> None:
         try:
             data = self.client.hitl_pending()
             self._write_murphy("Pending interventions:\n" + self._format_json(data))
         except Exception as exc:
-            self._write_murphy(f"[red]Could not fetch HITL data: {exc}[/red]")
+            self._write_murphy(f"[red]Could not fetch HITL data: {self._friendly_error(exc)}[/red]")
 
     def intent_execute(self, msg: str) -> None:
         # Strip the trigger word and send the rest as task description
@@ -755,7 +776,7 @@ class MurphyTerminalApp(App):
             data = self.client.execute(task_description=task_desc)
             self._write_murphy("Task result:\n" + self._format_json(data))
         except Exception as exc:
-            self._write_murphy(f"[red]Execution failed: {exc}[/red]")
+            self._write_murphy(f"[red]Execution failed: {self._friendly_error(exc)}[/red]")
 
     # -- connectivity intents --
 
@@ -848,7 +869,7 @@ class MurphyTerminalApp(App):
             self._write_murphy(str(response))
         except Exception as exc:
             self._write_murphy(
-                f"[red]Chat error: {exc}[/red]\n"
+                f"[red]Chat error: {self._friendly_error(exc)}[/red]\n"
                 "[dim]Tip: Is Murphy backend running? "
                 f"Expected at {self.client.base_url}[/dim]"
             )

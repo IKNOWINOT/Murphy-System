@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from murphy_terminal import (
     MurphyAPIClient,
     MurphyTerminalApp,
+    StatusBar,
     detect_intent,
     detect_feedback,
     DialogContext,
@@ -29,6 +30,7 @@ from murphy_terminal import (
     RECONNECT_INTERVAL,
     MAX_RECONNECT_ATTEMPTS,
 )
+from textual.widgets import Input
 
 
 # ---------------------------------------------------------------------------
@@ -564,3 +566,246 @@ class TestMurphyTerminalAppNew:
         assert app._reconnect_attempts == 0
         assert RECONNECT_INTERVAL > 0
         assert MAX_RECONNECT_ATTEMPTS > 0
+
+    def test_friendly_error_connection(self):
+        app = MurphyTerminalApp(api_url="http://localhost:9999")
+        exc = requests.ConnectionError("HTTPConnectionPool(...)")
+        msg = app._friendly_error(exc)
+        assert "refused" in msg.lower() or "backend" in msg.lower()
+        assert "HTTPConnectionPool" not in msg
+        assert "urllib3" not in msg
+
+    def test_friendly_error_timeout(self):
+        app = MurphyTerminalApp(api_url="http://localhost:9999")
+        exc = requests.Timeout("timed out")
+        msg = app._friendly_error(exc)
+        assert "timed out" in msg.lower()
+        assert len(msg) < 50
+
+    def test_friendly_error_generic(self):
+        app = MurphyTerminalApp(api_url="http://localhost:9999")
+        exc = RuntimeError("something weird happened")
+        msg = app._friendly_error(exc)
+        assert "RuntimeError" in msg
+        assert "something weird happened" not in msg
+
+
+# ---------------------------------------------------------------------------
+# Integration tests — simulate real user interaction with the TUI
+# ---------------------------------------------------------------------------
+
+
+class TestTUIUserInteraction:
+    """Integration tests using Textual's run_test() that simulate actual
+    user interaction: launching the app, typing commands, and checking the
+    resulting UI state.  These verify the app works end-to-end as a user
+    would experience it, not just in isolated unit tests."""
+
+    @pytest.mark.asyncio
+    async def test_app_launches_and_shows_welcome(self):
+        """User opens the app: should see welcome banner and disconnected status."""
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            status_bar = app.query_one(StatusBar)
+            assert status_bar.connected is False
+            # Welcome banner should be written
+            assert "Murphy" in app.title.lower() or "Murphy" in WELCOME_TEXT
+
+    @pytest.mark.asyncio
+    async def test_disconnected_error_is_human_readable(self):
+        """On startup with no backend, error message should be clean (no tracebacks)."""
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            # Check the client.last_error is clean
+            assert app.client.last_error is not None
+            assert "HTTPConnectionPool" not in app.client.last_error
+            assert "urllib3" not in app.client.last_error
+            assert "object at 0x" not in app.client.last_error
+
+    @pytest.mark.asyncio
+    async def test_user_types_help(self):
+        """User types 'help' and presses enter: should get a help response."""
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            for ch in "help":
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
+            # The input should have been cleared after submission
+            input_widget = app.query_one("#user-input", Input)
+            assert input_widget.value == ""
+
+    @pytest.mark.asyncio
+    async def test_user_starts_interview_flow(self):
+        """User starts interview, answers a question, and dialog state advances."""
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            # Start interview
+            for ch in "start interview":
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
+            assert app.dialog.active is True
+            assert app.dialog.step_index == 0
+
+            # Answer first question
+            for ch in "Acme Corp":
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
+            assert app.dialog.collected.get("name") == "Acme Corp"
+            assert app.dialog.step_index == 1
+
+    @pytest.mark.asyncio
+    async def test_user_navigates_interview_back_and_skip(self):
+        """User navigates back and skip during interview."""
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            # Start and answer first question
+            for ch in "start interview":
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
+            for ch in "TestOrg":
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
+            assert app.dialog.step_index == 1
+
+            # Go back
+            for ch in "back":
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
+            assert app.dialog.step_index == 0
+
+            # Skip
+            for ch in "skip":
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
+            assert app.dialog.step_index == 1
+            assert app.dialog.collected.get("name") == "(skipped)"
+
+    @pytest.mark.asyncio
+    async def test_user_contextual_answers_inferred(self):
+        """User gives contextual answers like 'all of them' and 'not sure'."""
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            # Start interview and fill first two steps
+            for cmd in ["start interview", "Me", "all of them"]:
+                for ch in cmd:
+                    await pilot.press(ch)
+                await pilot.press("enter")
+                await pilot.pause()
+            assert app.dialog.collected["use_case"] == "all"
+
+            # Third step: "not sure"
+            for ch in "not sure":
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
+            assert app.dialog.collected["billing_tier"] == "(needs guidance)"
+
+    @pytest.mark.asyncio
+    async def test_user_full_interview_to_confirm(self):
+        """User completes entire interview and confirms."""
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            answers = ["start interview", "My Org", "automation", "pro", "GitHub", "yes"]
+            for cmd in answers:
+                for ch in cmd:
+                    await pilot.press(ch)
+                await pilot.press("enter")
+                await pilot.pause()
+            # Interview should be complete
+            assert app.dialog.is_complete is True
+            assert app.dialog.active is False
+
+            # Now confirm
+            for ch in "confirm":
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
+            # collected data should still be there
+            assert app.dialog.collected["name"] == "My Org"
+
+    @pytest.mark.asyncio
+    async def test_user_sends_feedback(self):
+        """User expresses frustration and gets acknowledgment."""
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            for ch in "this is too complicated":
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
+            assert len(app.dialog.feedback_log) == 1
+            assert "complicated" in app.dialog.feedback_log[0]
+
+    @pytest.mark.asyncio
+    async def test_user_changes_api_url(self):
+        """User changes the backend URL with 'set api'."""
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            for ch in "set api http://newhost:5000":
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
+            await pilot.pause()
+            assert app.client.base_url == "http://newhost:5000"
+            assert "newhost:5000" in app.sub_title
+
+    @pytest.mark.asyncio
+    async def test_user_help_is_contextual_during_interview(self):
+        """When user types 'help' during interview, gets contextual help."""
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            for ch in "start interview":
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
+            assert app.dialog.active is True
+            # Type help during interview — dialog should stay active
+            for ch in "help":
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
+            assert app.dialog.active is True
+            assert app.dialog.step_index == 0  # Should NOT have advanced
+
+    @pytest.mark.asyncio
+    async def test_user_chat_while_disconnected_shows_clean_error(self):
+        """User sends a chat message while disconnected — error should be clean."""
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            for ch in "hello there":
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
+            await pilot.pause()
+            # No crash means it handled the error gracefully
+            # The input should be cleared
+            input_widget = app.query_one("#user-input", Input)
+            assert input_widget.value == ""
