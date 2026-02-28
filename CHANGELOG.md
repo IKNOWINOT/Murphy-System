@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Account Management System** (`src/account_management/`) — complete account lifecycle with OAuth, credential vault, consent-based import, and self-ticketing
+  - `models.py` — OAuthProvider (Microsoft/Google/Meta/GitHub/Custom), AccountRecord, OAuthToken, StoredCredential, ConsentRecord, AccountEvent with 16 event types
+  - `oauth_provider_registry.py` — OAuth authorization flows with PKCE, state management, profile normalization per provider, token lifecycle
+  - `credential_vault.py` — encrypted credential storage (Fernet or HMAC fallback), SHA-256 hash verification, rotation tracking, thread-safe operations
+  - `account_manager.py` — top-level orchestrator: account creation, OAuth signup/link/unlink, credential CRUD, consent-based import flow, auto-ticketing for missing integrations, full audit log
+  - 107 tests across 10 test categories (models, mappers, registry, vault, manager, OAuth, credentials, consent, ticketing, thread safety)
 - **Test Status section in README** — real-time test results table, skip explanations, known flaky test documentation
 - **Self-Healing & Patch Capabilities section in README** — documents self-improvement infrastructure and what Murphy can/cannot auto-fix
 - **Professional warning banner in README** — honest status disclosure: single developer, alpha quality, emergent bugs being classified
