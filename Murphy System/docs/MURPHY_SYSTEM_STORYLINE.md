@@ -258,10 +258,12 @@ COMPLIANCE first, then BUDGET, then EXECUTIVE, then OPERATIONS, then QA, then HI
 order matters — there's no point checking content quality if the compliance gate already
 failed.
 
-The `MurphyGate` in the confidence engine applies phase-specific thresholds. During the
-EXECUTE phase, confidence must be at least 0.85. If it's above 0.85 but below 1.0, Murphy
-proceeds with monitoring. If it's below 0.85, Murphy requests human review. Below 0.70,
-execution is blocked entirely.
+The `MurphyGate` in the confidence engine applies phase-specific thresholds. Each phase
+has its own minimum: EXPAND requires 0.5, TYPE and ENUMERATE require 0.6, CONSTRAIN
+requires 0.7, COLLAPSE requires 0.75, BIND requires 0.8, and EXECUTE — the final gate —
+requires 0.85. If confidence is above the threshold but below 1.0, Murphy proceeds with
+monitoring. If it's below the threshold, Murphy requests human review. If it drops more
+than 0.15 below the threshold, execution is blocked entirely.
 
 The `AuthorityGate` enforces five invariants: facts must be verified from external sources,
 confidence must exceed the minimum threshold, there must be no unresolved unknowns, facts
