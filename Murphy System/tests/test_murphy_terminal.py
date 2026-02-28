@@ -11,7 +11,7 @@ import sys
 import re
 from unittest.mock import patch, MagicMock
 
-import requests as requests_lib
+import requests
 import pytest
 
 # Ensure the parent directory (containing murphy_terminal.py) is on the path
@@ -268,9 +268,9 @@ class TestMurphyAPIClient:
 
     @patch("murphy_terminal.requests.get")
     def test_connection_error_propagates(self, mock_get):
-        mock_get.side_effect = requests_lib.ConnectionError("refused")
+        mock_get.side_effect = requests.ConnectionError("refused")
         client = self._make_client()
-        with pytest.raises(requests_lib.ConnectionError):
+        with pytest.raises(requests.ConnectionError):
             client.health()
 
 
