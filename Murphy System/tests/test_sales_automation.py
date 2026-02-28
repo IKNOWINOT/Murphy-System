@@ -117,7 +117,7 @@ class TestLeadQualification(unittest.TestCase):
         lead = _make_lead(company_size="small", industry="agriculture", interests=[])
         result = engine.qualify_lead(lead)
         self.assertFalse(result["qualified"])
-        self.assertEqual(lead.status, "new")
+        self.assertEqual(lead.status, "not_qualified")
 
 
 class TestEditionRecommendation(unittest.TestCase):

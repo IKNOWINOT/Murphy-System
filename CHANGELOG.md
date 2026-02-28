@@ -8,18 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Security Implementation Plan** (`SECURITY_IMPLEMENTATION_PLAN.md`) — phased security enhancement roadmap addressing multi-agent risks, now at 100% completion
-- **Authorization Enhancer** (`src/security_plane/authorization_enhancer.py`) — per-request ownership verification, session context enforcement with configurable TTL, and bounded audit trail. 8 tests.
-- **Log Sanitizer** (`src/security_plane/log_sanitizer.py`) — PII detection for 8 sensitive data types (email, phone, SSN, credit card, API key, password, auth token, IP address) with automated redaction and retroactive log sanitization. 11 tests.
-- **Bot Resource Quotas** (`src/security_plane/bot_resource_quotas.py`) — per-bot resource quotas (memory, CPU, API calls, budget), swarm aggregate limits with bot count caps, and automatic suspension at 100% / warning at 80% thresholds. 6 tests.
-- **Swarm Communication Monitor** (`src/security_plane/swarm_communication_monitor.py`) — directed graph message tracking, DFS-based cycle detection, per-bot and per-channel rate limiting, and unusual communication pattern detection. 7 tests.
-- **Bot Identity Verifier** (`src/security_plane/bot_identity_verifier.py`) — HMAC-SHA256 signing key generation, message signing and verification with constant-time comparison, centralized identity registry, and immediate key revocation. 8 tests.
-- **Bot Anomaly Detector** (`src/security_plane/bot_anomaly_detector.py`) — per-bot metric collection (7 metric types), z-score anomaly detection over rolling windows, resource spike detection, and API pattern analysis via bigram frequency. 6 tests.
-- **Security Dashboard** (`src/security_plane/security_dashboard.py`) — unified security event aggregation (11 event types), same-bot event correlation, severity-based escalation callbacks, and compliance reporting with actionable recommendations. 7 tests.
-- **Comprehensive test suite** — `tests/test_security_enhancements.py` with 53 tests covering all 7 new security modules
+- **Account Management System** (`src/account_management/`) — complete account lifecycle with OAuth, credential vault, consent-based import, and self-ticketing
+  - `models.py` — OAuthProvider (Microsoft/Google/Meta/GitHub/Custom), AccountRecord, OAuthToken, StoredCredential, ConsentRecord, AccountEvent with 16 event types
+  - `oauth_provider_registry.py` — OAuth authorization flows with PKCE, state management, profile normalization per provider, token lifecycle
+  - `credential_vault.py` — encrypted credential storage (Fernet or HMAC fallback), SHA-256 hash verification, rotation tracking, thread-safe operations
+  - `account_manager.py` — top-level orchestrator: account creation, OAuth signup/link/unlink, credential CRUD, consent-based import flow, auto-ticketing for missing integrations, full audit log
+  - 107 tests across 10 test categories (models, mappers, registry, vault, manager, OAuth, credentials, consent, ticketing, thread safety)
+- **Test Status section in README** — real-time test results table, skip explanations, known flaky test documentation
+- **Self-Healing & Patch Capabilities section in README** — documents self-improvement infrastructure and what Murphy can/cannot auto-fix
+- **Professional warning banner in README** — honest status disclosure: single developer, alpha quality, emergent bugs being classified
+
+### Fixed
+- **Flask import guard** (`src/flask_security.py`) — guarded `from flask import ...` with try/except so the module loads cleanly when Flask is not installed (Flask is optional; the system uses FastAPI)
+- **Artifact Viewport API import guard** (`src/artifact_viewport_api.py`) — stub `Blueprint` class when Flask is absent so `@viewport_bp.route()` decorators don't crash at module load
+- **Bootstrap orchestrator test count** (`tests/test_readiness_bootstrap_orchestrator.py`) — updated assertions from `== 5` to `== 6` to match the 6th subsystem (`_bootstrap_domain_gates`) added to the source
+- **ML feature verification module list** (`tests/test_ml_feature_verification.py`) — replaced `flask_security` with `fastapi_security` in `SECURITY_MODULE_NAMES` since the system's primary security module is FastAPI-based
+- **Security hardening phase 1 tests** (`tests/test_security_hardening_phase1.py`) — added `pytest.importorskip("flask")` so tests skip cleanly when Flask is not installed
+- **Security hardening phase 2 tests** (`tests/test_security_hardening_phase2.py`) — added `pytest.importorskip("flask")` to both `TestArtifactViewportAPI` and `TestExecutionOrchestratorInputValidation` fixtures
+- **Viewport integration tests** (`tests/test_viewport_integration.py`) — added `pytest.importorskip("flask")` to `TestExecutionOrchestratorViewport` fixture
+- **Murphy terminal tests** (`tests/test_murphy_terminal.py`) — added `pytest.importorskip("textual")` since the Textual TUI library is optional
 
 ### Changed
-- **README.md** — updated completion table (security hardening 100%, overall ~98%); added security capabilities to runtime status; added multi-agent security section to Safety & Governance
+- **README.md** — added warning banner, updated test counts (210+ → 265 files, 4100+ → 5,900+ tests), added test status table, added self-healing documentation, updated module test count (1490+ → 5,900+); updated completion table (security hardening 100%, overall ~98%); added security capabilities to runtime status; added multi-agent security section to Safety & Governance
+- **Test results** — from 25 failed + 14 errors → 0 failed + 0 errors (5,946 passing, 71 skipped)
 - **SECURITY_IMPLEMENTATION_PLAN.md** — updated all phases to 100% completion with implementation details, file paths, and test counts
 - **SECURITY.md** — added reference to completed security enhancements
 - **CHANGELOG.md** — documented all security enhancement implementations
