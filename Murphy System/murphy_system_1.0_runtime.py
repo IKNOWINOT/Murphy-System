@@ -11691,10 +11691,233 @@ class MurphySystem:
             }
         }
 
+    # Intent patterns for chat routing (Chapter 1 storyline: 23 defined intents)
+    # More specific patterns must appear before general ones (e.g. "compliance status" before "status").
+    _INTENT_PATTERNS = [
+        (r"\b(start interview|onboard me|begin|setup)\b", "onboarding"),
+        (r"\b(help|commands)\b", "help"),
+        (r"\b(show modules|modules)\b", "modules"),
+        (r"\b(compliance status)\b", "compliance"),
+        (r"\b(sales report)\b", "sales_report"),
+        (r"\b(status|dashboard)\b", "status"),
+        (r"\b(health|alive|ping)\b", "health"),
+        (r"\b(billing|subscription|tier|pricing)\b", "billing"),
+        (r"\b(librarian|knowledge base|search docs)\b", "librarian"),
+        (r"\b(corrections|correction stats)\b", "corrections"),
+        (r"\b(hitl|pending interventions|hitl stats)\b", "hitl"),
+        (r"\b(plan|execution plan|two-plane)\b", "plan"),
+        (r"\b(integrations|show integrations)\b", "integrations"),
+        (r"\b(hello|hi|hey|greetings|good morning|good afternoon)\b", "greeting"),
+        (r"\b(info|system info)\b", "info"),
+    ]
+
+    def _detect_intent(self, message: str) -> Optional[str]:
+        """Detect user intent from message using regex pattern matching."""
+        msg_lower = message.lower().strip()
+        for pattern, intent in self._INTENT_PATTERNS:
+            if re.search(pattern, msg_lower):
+                return intent
+        return None
+
+    def _handle_intent(self, intent: str, message: str, session_id: str) -> Optional[Dict[str, Any]]:
+        """Handle a detected intent and return a chat response, or None if unhandled."""
+        if intent == "greeting":
+            return self._chat_response(
+                "Hello! I'm Murphy — your professional automation assistant. "
+                "I help teams automate operations, onboard new users, manage integrations, "
+                "and run end-to-end workflows.\n\n"
+                "Type 'help' to see available commands, or 'start interview' to begin onboarding.",
+                session_id, intent=intent
+            )
+        if intent == "help":
+            lines = [
+                "**Murphy System — Available Commands**\n",
+                "• **start interview** — Begin the 7-step onboarding interview",
+                "• **show modules** — List all loaded modules",
+                "• **status** / **dashboard** — View system status",
+                "• **health** — Check system health",
+                "• **sales report** — View sales automation summary",
+                "• **billing** — View billing and subscription tiers",
+                "• **compliance status** — Check compliance posture",
+                "• **librarian** — Access the knowledge base",
+                "• **corrections** — View correction statistics",
+                "• **hitl** — View pending human-in-the-loop interventions",
+                "• **plan** — View the execution plan model",
+                "• **integrations** — View registered integrations",
+                "• **info** — Show system information",
+                "• **reset** / **start over** — Reset the onboarding flow",
+            ]
+            return self._chat_response("\n".join(lines), session_id, intent=intent)
+        if intent == "modules":
+            modules = self.list_modules()
+            summary = [f"**Loaded Modules ({len(modules)}):**\n"]
+            for m in modules[:20]:
+                name = m.get("name", "unknown")
+                status = m.get("status", "unknown")
+                summary.append(f"• {name} — {status}")
+            if len(modules) > 20:
+                summary.append(f"\n…and {len(modules) - 20} more. Use GET /api/modules for full list.")
+            return self._chat_response("\n".join(summary), session_id, intent=intent)
+        if intent == "status":
+            st = self.get_system_status()
+            components = st.get("components", {})
+            active = sum(1 for v in components.values() if v == "active")
+            total = len(components)
+            uptime = st.get("uptime_seconds", 0)
+            return self._chat_response(
+                f"**System Status:** {st.get('status', 'unknown')}\n"
+                f"**Version:** {st.get('version', '?')}\n"
+                f"**Uptime:** {uptime:.0f}s\n"
+                f"**Components:** {active}/{total} active",
+                session_id, intent=intent
+            )
+        if intent == "health":
+            return self._chat_response(
+                f"**Health:** healthy\n**Version:** {self.version}",
+                session_id, intent=intent
+            )
+        if intent == "sales_report":
+            try:
+                from src.sales_automation import SalesAutomationEngine
+                engine = SalesAutomationEngine()
+                config = engine.config
+                return self._chat_response(
+                    f"**Sales Automation Report**\n\n"
+                    f"**Qualification tiers:** ≥40 qualified, 30-39 borderline, <30 nurture\n"
+                    f"**Target industries:** {', '.join(config.target_industries)}\n"
+                    f"**Available agents:** LeadScorer, LeadQualifier, EditionRecommender, "
+                    f"DemoScriptGenerator, ProposalGenerator\n"
+                    f"**Pipeline stages:** score → qualify → recommend edition → demo → proposal",
+                    session_id, intent=intent
+                )
+            except Exception as e:
+                return self._chat_response(f"Sales module error: {e}", session_id, intent=intent)
+        if intent == "billing":
+            return self._chat_response(
+                "**Billing Tiers:**\n\n"
+                "• **Community** (Free) — Core modules, 1 automation, local LLM\n"
+                "• **Professional** ($99/mo) — All modules, 10 automations, cloud LLM\n"
+                "• **Enterprise** (Custom) — Unlimited, dedicated support, on-prem option",
+                session_id, intent=intent
+            )
+        if intent == "compliance":
+            if hasattr(self, "compliance_engine") and self.compliance_engine:
+                status = self.compliance_engine.get_status()
+                frameworks = status.get("framework_requirement_counts", {})
+                return self._chat_response(
+                    f"**Compliance Status**\n\n"
+                    f"**Frameworks:** {', '.join(frameworks.keys()) or 'none'}\n"
+                    f"**Total requirements:** {status.get('total_requirements', 0)}\n"
+                    f"**Total checks run:** {status.get('total_checks', 0)}\n"
+                    f"**Breakdown:** " + ", ".join(f"{k}: {v}" for k, v in frameworks.items()),
+                    session_id, intent=intent
+                )
+            return self._chat_response("Compliance engine is not configured.", session_id, intent=intent)
+        if intent == "librarian":
+            return self._chat_response(
+                "**Librarian — Knowledge Base**\n\n"
+                "The librarian stores domain knowledge, transcripts, and verified facts.\n"
+                "Use the onboarding wizard or API to add knowledge.\n\n"
+                "• POST /api/librarian/search — Search the knowledge base\n"
+                "• Every action is logged as a TranscriptEntry for full audit trail.",
+                session_id, intent=intent
+            )
+        if intent == "corrections":
+            stats = self.get_correction_statistics()
+            s = stats.get("statistics", {})
+            return self._chat_response(
+                f"**Correction Statistics**\n\n"
+                f"**Total corrections:** {s.get('total_corrections', 0)}\n"
+                f"**Unique tasks:** {s.get('unique_tasks', 0)}\n"
+                f"**Patterns:** {s.get('total_patterns', 0)}",
+                session_id, intent=intent
+            )
+        if intent == "hitl":
+            state = self.get_hitl_state()
+            s = state.get("statistics", {})
+            return self._chat_response(
+                f"**Human-in-the-Loop Status**\n\n"
+                f"**Pending interventions:** {s.get('pending_count', 0)}\n"
+                f"**Total interventions:** {s.get('total_interventions', 0)}",
+                session_id, intent=intent
+            )
+        if intent == "plan":
+            return self._chat_response(
+                "**Execution Model — Two-Plane Architecture**\n\n"
+                "**Phase 1 (Generative Setup):** Information gathering → Regulation discovery → "
+                "Constraint compilation → Agent generation → Sandbox creation\n\n"
+                "**Phase 2 (Production Execution):** EXPAND → TYPE → ENUMERATE → CONSTRAIN → "
+                "COLLAPSE → BIND → EXECUTE\n\n"
+                "Each phase is confidence-gated by the MurphyGate (0.5 → 0.85 thresholds).",
+                session_id, intent=intent
+            )
+        if intent == "integrations":
+            return self._chat_response(
+                "**Integrations**\n\n"
+                "Use the Universal Integration Adapter for 76+ service templates across 17 categories.\n\n"
+                "• GET /api/universal-integrations/services — List available services\n"
+                "• GET /api/universal-integrations/categories — List categories\n"
+                "• POST /api/integrations/add — Add a new integration",
+                session_id, intent=intent
+            )
+        if intent == "info":
+            info = self.get_system_info()
+            return self._chat_response(
+                f"**{info.get('name', 'Murphy System')} v{info.get('version', '?')}**\n\n"
+                f"{info.get('description', '')}\n"
+                f"**Owner:** {info.get('owner', '?')}\n"
+                f"**Creator:** {info.get('creator', '?')}\n"
+                f"**License:** {info.get('license', '?')}",
+                session_id, intent=intent
+            )
+        return None
+
+    def _chat_response(self, message: str, session_id: str, intent: str = "general") -> Dict[str, Any]:
+        """Build a standard chat response dict."""
+        return {
+            "success": True,
+            "session_id": session_id,
+            "message": message,
+            "intent": intent,
+        }
+
     def handle_chat(self, message: str, session_id: Optional[str], use_mfgc: bool) -> Dict[str, Any]:
         session_id = session_id or "default"
         session = self.chat_sessions.setdefault(session_id, {"stage_index": 0, "history": []})
         start = time.perf_counter()
+
+        # --- Intent detection (Chapter 1: route recognised commands) ---
+        intent = self._detect_intent(message)
+        in_flow = session.get("in_flow", False)
+        if intent == "onboarding":
+            # Start the onboarding flow
+            session["stage_index"] = 0
+            session["in_flow"] = True
+            session["answers"] = {}
+            session["history"] = []
+            first = self.flow_steps[0]
+            duration = time.perf_counter() - start
+            self._record_execution(success=True, duration=duration)
+            return {
+                "success": True,
+                "session_id": session_id,
+                "message": (
+                    "Welcome to Murphy onboarding! Let's set up your system.\n\n"
+                    f"**Step 1 ({first['stage']}):** {first['prompt']}"
+                ),
+                "intent": "onboarding",
+                "flow_stage": first["stage"],
+            }
+
+        if intent and not in_flow:
+            # Handle non-flow intents
+            resp = self._handle_intent(intent, message, session_id)
+            if resp is not None:
+                duration = time.perf_counter() - start
+                self._record_execution(success=True, duration=duration)
+                return resp
+
+        # --- Onboarding flow advancement (only when in_flow or no intent detected) ---
         flow = self._advance_flow(session, message)
         default_values = {
             "current_stage": "unknown",
@@ -11715,10 +11938,19 @@ class MurphySystem:
                 sorted(applied_defaults.keys()),
                 applied_defaults
             )
-        response = (
-            f"Captured {current_stage} details. "
-            f"Next step ({next_stage}): {prompt}"
-        )
+        # Check if the flow has finished (last stage)
+        stage_index = session.get("stage_index", 0)
+        if stage_index >= len(self.flow_steps) - 1:
+            session["in_flow"] = False
+            response = (
+                f"Captured {current_stage} details. "
+                f"Onboarding complete! Type 'help' to see available commands."
+            )
+        else:
+            response = (
+                f"Captured {current_stage} details. "
+                f"Next step ({next_stage}): {prompt}"
+            )
         duration = time.perf_counter() - start
         self._record_execution(success=True, duration=duration)
         doc = self._ensure_document(message, "conversation", session_id)
