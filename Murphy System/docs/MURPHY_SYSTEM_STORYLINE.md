@@ -1,11 +1,12 @@
 # Murphy System — The Full Story
 
-## How the System Works: A User's Journey from First Contact to Full Automation
+## How the System Works: Inoni LLC Sets Up Murphy to Sell Itself
 
-*This document tells the story of Murphy System as experienced by a real person — from the
-moment they first open the terminal, through onboarding, into building their first automation,
-and finally watching the system learn, protect itself, and grow. Every section maps to actual
-code running in the current runtime. Nothing here is aspirational — this is what the code does.*
+*This document tells the story of Murphy System as experienced by Inoni LLC — the company
+that built Murphy and now uses it to sell itself. From the moment a team member opens the
+terminal, through onboarding, into building the first sales automation, and finally watching
+the system learn, protect itself, and grow. Every section maps to actual code running in the
+current runtime. Nothing here is aspirational — this is what the code does.*
 
 ---
 
@@ -27,14 +28,15 @@ universal control plane that loads only the engines needed for each job. It is a
 runtime that can automate content publishing, invoice processing, sales pipelines, social
 media campaigns, factory floor robotics, trading strategies, and its own self-improvement.
 
-Here is the story of what happens when someone uses it.
+Here is the story of what happens when Inoni LLC uses Murphy to sell Murphy.
 
 ---
 
 ## Chapter 1: The First Encounter
 
-A user opens the Murphy terminal. On their screen appears a conversational interface — not
-a dashboard full of buttons, but a natural language chat window.
+A team member at Inoni LLC opens the Murphy terminal. On their screen appears a
+conversational interface — not a dashboard full of buttons, but a natural language chat
+window.
 
 Murphy introduces itself:
 
@@ -45,8 +47,9 @@ Below the greeting, the user sees links to Swagger API docs, the system dashboar
 onboarding wizard, and the web terminal — all clickable, all live. A sidebar lists available
 commands. A status indicator shows whether the backend is connected.
 
-The user has never used Murphy before. They don't know what modules exist, what bots are
-available, or what "domain gates" means. They just know they want to automate something.
+The team member's goal: set up Murphy to automate Inoni LLC's sales pipeline — lead
+generation, qualification, demo scheduling, and proposal creation — so that Murphy can
+sell itself to prospective customers.
 
 They type: **"start interview"**
 
@@ -78,8 +81,8 @@ The user can type "skip" to pass a question, "back" to revisit, or "review" to s
 collected answers. Help is context-aware — if the user types "help" during the interview,
 Murphy shows interview-specific navigation, not the general command list.
 
-At the end, Murphy summarizes: *"Here's what I collected: Name: Acme Corp, Business Goal:
-reduce costs, Use-Case: automation, Platforms: Slack and GitHub, Integrations:
+At the end, Murphy summarizes: *"Here's what I collected: Name: Inoni LLC, Business Goal:
+sell the Murphy System, Use-Case: sales automation, Platforms: email and CRM, Integrations:
 auto-configure. Shall I proceed?"*
 
 The user types **"confirm."**
@@ -101,19 +104,24 @@ which automation types to enable (factory IoT, content, data, system, agent, bus
 security level, robotics integration, avatar identity, LLM provider, compliance frameworks,
 deployment mode, and sales automation.
 
-Based on the answers, it activates modules. A manufacturing company gets
-`building_automation_connectors`, `manufacturing_automation_standards`, and
-`energy_management_connectors`. A media company gets `content_creator_platform_modulator`
-and `social_media_moderation`. Everyone gets the core: `config`, `module_manager`,
-`command_parser`, `conversation_handler`, `compliance_engine`, `authority_gate`, and
-`capability_map`.
+For Inoni LLC, the answers map to: organization "Inoni LLC", industry "technology", company
+size "small", automation types ["business", "agent"], security level "standard", sales
+automation enabled. This activates the business automation modules
+(`trading_bot_engine`, `executive_planning_engine`, `workflow_template_marketplace`) and
+agent modules (`agentic_api_provisioner`, `shadow_agent_integration`, `advanced_swarm_system`,
+`true_swarm_system`, `domain_swarms`).
 
-It also recommends bots. Finance gets `trading_bot`, `compliance_bot`, `risk_analysis_bot`.
-Healthcare gets `patient_data_bot`, `scheduling_bot`. Manufacturing gets `factory_floor_bot`,
-`quality_assurance_bot`, `supply_chain_bot`.
+Because sales automation is enabled, Murphy adds the sales-specific modules
+(`workflow_template_marketplace`, `executive_planning_engine`) and sales bots
+(`sales_outreach_bot`, `lead_scoring_bot`, `marketing_automation_bot`). Because the
+industry is "technology", it also recommends `devops_bot`, `code_review_bot`, and
+`incident_response_bot`.
 
-The configuration is exported as a JSON file. Murphy is now tailored to this specific
-organization.
+Everyone gets the core modules: `config`, `module_manager`, `command_parser`,
+`conversation_handler`, `compliance_engine`, `authority_gate`, and `capability_map`.
+
+The configuration is exported as a JSON file. Murphy is now tailored to Inoni LLC's
+mission: selling the Murphy System itself.
 
 **What happens in the code:**
 `SetupWizard.generate_config()` consults `AUTOMATION_MODULE_MAP`, `INDUSTRY_BOT_MAP`,
@@ -157,19 +165,20 @@ status. If a critical module is unwired, it's flagged for remediation.
 
 ## Chapter 5: The User Asks for Their First Automation
 
-The user returns to the terminal. They type:
+The Inoni LLC team member returns to the terminal. They type:
 
-**"I want to automate our weekly blog publishing. We write in Notion, and we publish to
-WordPress and Medium."**
+**"I want to automate our sales pipeline. When a lead comes in, score them, qualify them,
+generate a personalized demo script, and create a proposal if they're qualified."**
 
 Murphy's command system detects this isn't a slash-command — it's natural language. The
 `ConversationHandler` classifies the question type (procedural), identifies entities
-(Notion, WordPress, Medium, blog, weekly), and routes it through the state machine.
+(leads, scoring, qualification, demo, proposal), and routes it through the state machine.
 
-The `DomainEngine` identifies the affected domains: **Marketing** (content distribution)
-and **Operations** (scheduling, reliability). It applies domain-specific constraints: no
-spam, attribution required, content quality standards. It applies domain-specific gates:
-Content Quality Gate, Approval Gate, Compliance Gate.
+The `DomainEngine` identifies the affected domains: **Sales** (pipeline management) and
+**Operations** (scheduling, reliability). It applies domain-specific constraints: lead data
+must be validated, proposals must match the correct edition, and demo scripts must be
+personalized to industry. It applies domain-specific gates: Lead Validation Gate, Budget
+Gate, Compliance Gate.
 
 The `OrgCompiler` checks: does this user's role have authority to create automations?
 What's their decision authority level? What escalation paths apply? Are there compliance
@@ -189,16 +198,16 @@ The `TwoPhaseOrchestrator` takes over. Phase 1 is about *understanding and build
 executing.
 
 **Step 1: Information Gathering**
-The `InformationGatheringAgent` extracts: platforms (Notion, WordPress, Medium), source
-(Notion), schedule (weekly), and whether human approval is needed. If anything is ambiguous,
-Murphy asks — but only one question at a time, managed by the `QuestionManager` which queues
-up to 9 questions and formats them with progress indicators.
+The `InformationGatheringAgent` extracts: pipeline stages (lead scoring, qualification, demo,
+proposal), data sources (lead intake form, CRM), output targets (email, proposals), and
+whether human approval is needed. If anything is ambiguous, Murphy asks — but only one
+question at a time, managed by the `QuestionManager` which queues up to 9 questions and
+formats them with progress indicators.
 
 **Step 2: Regulation Discovery**
-The `RegulationDiscoveryAgent` discovers platform APIs (WordPress REST, Medium API, Notion
-API), content policies (WordPress terms, Medium rules), legal requirements (copyright,
-attribution, GDPR for EU readers), and technical constraints (rate limits, image size
-limits, authentication methods).
+The `RegulationDiscoveryAgent` discovers CRM APIs, email sending policies, data privacy
+requirements (GDPR for EU leads, CAN-SPAM for email outreach), and technical constraints
+(API rate limits, data retention rules, authentication methods).
 
 **Step 3: Constraint Compilation**
 The `ConstraintCompiler` takes all discovered constraints — technical, business, legal,
@@ -207,12 +216,12 @@ for the automation.
 
 **Step 4: Agent Generation**
 The `AgentGenerator` creates specialized agents from templates, constrained by the compiled
-rules. For blog publishing, it generates:
-- **ContentFetcher** — pulls content from Notion API
-- **ContentValidator** — checks quality, length, formatting
-- **ApprovalGate** — waits for human sign-off (if required by org policy)
-- **WordPressPublisher** — posts to WordPress
-- **MediumPublisher** — cross-posts to Medium
+rules. For the Inoni LLC sales pipeline, it generates:
+- **LeadScorer** — scores leads 0-100 based on company size, industry match, and interests
+- **LeadQualifier** — determines if score meets the qualification threshold (≥40)
+- **EditionRecommender** — maps company size to edition (enterprise/professional/community)
+- **DemoScriptGenerator** — creates personalized demo scripts with industry-specific features
+- **ProposalGenerator** — produces complete sales proposals with implementation timelines
 
 **Step 5: Sandbox Creation**
 The `SandboxManager` creates an isolated Docker environment with only the dependencies
@@ -238,15 +247,15 @@ The `DomainGateGenerator` creates gates based on the system requirements, the do
 and the librarian's knowledge base. It doesn't use predefined checklists — it generates
 gates from the actual risks discovered for *this specific automation*.
 
-For blog publishing, the gates might include:
-- **Content Quality Gate** (QUALITY type, HIGH severity): Is the content above minimum
-  word count? Does it have a title? Are images properly attributed?
-- **API Rate Limit Gate** (PERFORMANCE type, MEDIUM severity): Will this execution
-  exceed WordPress API rate limits?
-- **Compliance Gate** (COMPLIANCE type, CRITICAL severity): Does the content comply with
-  GDPR requirements for reader tracking? Is copyright attribution present?
-- **Approval Gate** (AUTHORIZATION type, HIGH severity): Has a human approved this
-  content for publication?
+For the Inoni LLC sales pipeline, the gates might include:
+- **Lead Data Validation Gate** (VALIDATION type, HIGH severity): Does the lead have
+  a valid email? Is the company name present? Is the industry recognized?
+- **Budget Gate** (BUSINESS type, MEDIUM severity): Will the cost of outreach stay
+  within the allocated sales budget?
+- **Compliance Gate** (COMPLIANCE type, CRITICAL severity): Does the outreach comply
+  with CAN-SPAM and GDPR? Is consent recorded for email communication?
+- **Approval Gate** (AUTHORIZATION type, HIGH severity): Has a sales manager approved
+  proposals above a certain deal size?
 
 Each gate has conditions (threshold checks, presence checks, format validations), pass
 actions (proceed, log), and fail actions (block, escalate, retry). Each gate has a
@@ -286,15 +295,16 @@ runs them in dependency order. `MurphyGate.evaluate()` applies threshold logic.
 The `UniversalControlPlane` analyzes the automation request and determines which execution
 engines are needed. It doesn't load everything — it loads *only what's required*.
 
-The `ControlTypeAnalyzer` classifies this blog publishing task as a "content_api" control
-type. The `EngineRegistry` maps this to two engines: the `ContentEngine` (for content
-processing) and the `APIEngine` (for external API calls). The `SensorEngine` and
-`ActuatorEngine` stay dormant — they're not needed for blog publishing.
+The `ControlTypeAnalyzer` classifies the Inoni LLC sales pipeline as a "content_api" control
+type — it processes data (lead profiles) and calls external APIs (CRM, email). The
+`EngineRegistry` maps this to two engines: the `ContentEngine` (for proposal/demo generation)
+and the `APIEngine` (for CRM and email API calls). The `SensorEngine` and `ActuatorEngine`
+stay dormant — they're not needed for sales automation.
 
 An `IsolatedSession` is created with only those two engines loaded. The session has its own
-state, its own engine instances, and its own execution context. If another user is running
-a factory automation at the same time, their session loads the `SensorEngine` and
-`ActuatorEngine` instead, and the two sessions are completely isolated.
+state, its own engine instances, and its own execution context. If another team at Inoni is
+running a content automation at the same time, their session loads different engines, and
+the two sessions are completely isolated.
 
 The `PacketCompiler` then creates an `ExecutionPacket` — an immutable, cryptographically
 signed contract that defines exactly what actions are allowed, what safety constraints
@@ -315,19 +325,20 @@ and starts the workflow.
 
 The execution follows a 7-phase pipeline managed by the `FormDrivenExecutor`:
 
-1. **EXPAND** — Expand the task scope. What exactly needs to happen? Pull from Notion?
-   Format for WordPress? Cross-post to Medium?
-2. **TYPE** — Classify the task type. Content publishing. Multi-platform. Scheduled.
-3. **ENUMERATE** — List all specific actions. Fetch content. Validate. Convert format.
-   Upload images. Set categories. Publish.
-4. **CONSTRAIN** — Apply all constraints. API limits. Content length. Image sizes.
-   GDPR compliance. Publication schedule.
+1. **EXPAND** — Expand the task scope. What exactly needs to happen? Score the lead?
+   Qualify? Generate demo? Create proposal?
+2. **TYPE** — Classify the task type. Sales pipeline. Data processing. Multi-step.
+3. **ENUMERATE** — List all specific actions. Receive lead data. Validate fields.
+   Score by size/industry/interests. Qualify against threshold. Recommend edition.
+   Generate demo script. Create proposal.
+4. **CONSTRAIN** — Apply all constraints. CAN-SPAM compliance. GDPR for EU leads.
+   Budget limits. Approval requirements for large deals.
 5. **COLLAPSE** — Narrow to the optimal execution path. Choose the most efficient
    sequence of actions that satisfies all constraints.
-6. **BIND** — Bind actions to concrete implementations. Map "publish to WordPress" to
-   the `WordPressPublisher` agent with specific API credentials.
-7. **EXECUTE** — Run the bound actions. Content flows from Notion through validation
-   through formatting through publication.
+6. **BIND** — Bind actions to concrete implementations. Map "score lead" to the
+   `SalesAutomationEngine.score_lead()` method with the Inoni LLC configuration.
+7. **EXECUTE** — Run the bound actions. Lead data flows from intake through scoring
+   through qualification through demo generation through proposal creation.
 
 At each phase, the `ConfidenceEngine` computes a confidence score. The `MurphyGate`
 checks whether confidence is high enough to proceed. If confidence drops below the phase
@@ -434,7 +445,178 @@ feasibility, and risk. The best candidates survive; the rest inform learning.
 
 ---
 
-## Chapter 12: Murphy Learns
+## Chapter 12: How Bots Do the Work
+
+Murphy's intelligence is distributed across 100+ specialized bots. Every bot extends one
+of two base classes: `AsyncBot` (for async message handling) or `HiveBot` (for dynamically
+loaded plugins). Each bot implements a `handle(message)` method that receives a `Message`
+(sender + content) and returns a string response.
+
+For Inoni LLC's sales pipeline, the key bots include:
+
+- **`sales_outreach_bot`** — handles lead outreach emails, follow-ups, and scheduling
+- **`lead_scoring_bot`** — scores leads based on company size, industry, and interests
+  using the `SalesAutomationEngine.score_lead()` formula: base score from company size
+  (small=10, medium=30, enterprise=50), +20 for target industry match, +5 per interest
+  (max 30), capped at 100
+- **`marketing_automation_bot`** — manages campaign creation, content scheduling, and
+  social media coordination
+
+Bots are loaded dynamically via a plugin system (`load_plugin()`, `load_plugins()`,
+`reload_plugin()`). The `composite_registry.json` maps bot names to their implementations.
+When Murphy's `SetupWizard` configures the system for Inoni LLC with
+`sales_automation_enabled=True`, it adds `SALES_BOTS` to the active bot roster.
+
+Bots don't operate independently — they're orchestrated by the `GovernanceKernel`, which
+routes every tool call through centralized policy checks. Each bot's execution is bounded
+by the `AgentDescriptor` that defines its authority level, resource caps, access scope,
+and termination conditions.
+
+**What happens in the code:**
+`AsyncBot.handle(message)` processes requests. `HiveBot.init()` + `register_handlers()`
+wire into the runtime. `SalesAutomationEngine` provides the lead scoring logic. The
+`GovernanceScheduler` schedules bot execution while enforcing resource containment and
+authority precedence.
+
+---
+
+## Chapter 13: The Confidence Engine — The Math Behind Every Decision
+
+Every decision Murphy makes is backed by a mathematical framework that quantifies
+uncertainty. This is the confidence engine — the system's core mathematical foundation.
+
+**The Confidence Equation:**
+
+    c_t = w_g(p_t) × G(x_t) + w_d(p_t) × D(x_t)
+
+Where:
+- `c_t` is the overall confidence at time t
+- `w_g(p_t)` is the phase-dependent weight for generative adequacy
+- `w_d(p_t)` is the phase-dependent weight for deterministic grounding
+- `G(x_t)` measures how thoroughly Murphy has explored the solution space
+- `D(x_t)` measures how much of that exploration is backed by verified evidence
+
+**Generative Adequacy** breaks down further:
+
+    G(x) = 0.4 × hypothesis_coverage + 0.3 × decision_branching + 0.3 × question_quality
+
+- `hypothesis_coverage` = how many diverse hypotheses have been generated (measured via
+  entropy analysis of the artifact graph)
+- `decision_branching` = how many decision points have been explored
+- `question_quality` = ratio of resolved questions to total questions
+
+**Deterministic Grounding** measures verified evidence:
+
+    D(x) = Σ(verified_artifacts × trust_weight × stability_score) / total_weight
+
+Each artifact in the graph has a trust weight (how reliable the source is) and a stability
+score (how much it has changed over iterations). Only verified artifacts contribute.
+
+**Epistemic Instability** tracks how uncertain the system is:
+
+    H(x) = (conflict_score + semantic_variance) / 2
+
+Higher H means more internal contradictions and semantic drift — a sign that Murphy should
+slow down and ask for human input.
+
+For Inoni LLC's sales pipeline, when Murphy scores a lead, the confidence engine computes
+G(x) from the hypothesis coverage (did we explore multiple scoring strategies?), D(x) from
+the verified data (is the lead's company size confirmed?), and H(x) from any
+contradictions (does the lead claim to be "enterprise" but have 5 employees?).
+
+**What happens in the code:**
+`ConfidenceCalculator.compute_confidence()` computes c_t using `GraphAnalyzer` for graph
+metrics. `calculate_generative_adequacy()` computes G(x). `calculate_deterministic_grounding()`
+computes D(x). `calculate_epistemic_instability()` computes H(x).
+
+---
+
+## Chapter 14: The Murphy Index — Quantifying What Can Go Wrong
+
+The Murphy Index is the system's namesake formula. It answers: "Given what we know, how
+much risk remains?"
+
+**The Murphy Index:**
+
+    M_t = Σ_k (L_k × p_k)
+
+Where:
+- `L_k` is the loss magnitude for failure mode k (0.1 to 0.9)
+- `p_k` is the probability of failure mode k, computed via sigmoid:
+
+    p_k = σ(α × H + β × (1 - D) + γ × Exposure + δ × AuthorityRisk)
+
+The sigmoid weights are empirically tuned:
+- α = 2.0 — epistemic instability (contradictions and drift)
+- β = 1.5 — lack of deterministic grounding (unverified claims)
+- γ = 1.0 — exposure (ratio of unverified artifacts to total)
+- δ = 1.2 — authority risk (executing with low confidence)
+
+**Five Failure Modes** are identified for every execution:
+
+1. **Contradiction-induced failure** — detected contradictions in the artifact graph.
+   Loss scales from 0.1 to 0.9 based on how many contradictions exist.
+2. **Insufficient grounding** — when D < 0.5, the system is operating on unverified
+   claims. Loss = 0.5.
+3. **High exposure** — when more than 30% of artifacts are unverified. Loss = 0.4.
+4. **Authority risk** — executing in a high-authority phase with low confidence.
+   Loss = 0.7. Authority risk increases through phases: EXPAND (0) → TYPE (0.1) →
+   ENUMERATE (0.2) → CONSTRAIN (0.3) → COLLAPSE (0.5) → BIND (0.7) → EXECUTE (1.0).
+5. **Unresolved dependencies** — missing links between artifacts. Loss = 0.5.
+
+The Murphy Index is normalized to [0, 1]. Higher means more risk. When M_t is high, more
+gates activate, more human oversight is required, and execution may be blocked entirely.
+
+For Inoni LLC's sales pipeline: if a lead's company data is unverified (low D), the Murphy
+Index spikes due to "insufficient grounding" and "high exposure" failure modes. Murphy would
+pause scoring and ask for data verification before proceeding.
+
+**What happens in the code:**
+`MurphyCalculator.calculate_murphy_index()` iterates failure modes, computes each p_k via
+sigmoid, multiplies by L_k, and sums to produce M_t.
+
+---
+
+## Chapter 15: The Deterministic Compute Plane
+
+Not everything should be handled by an LLM. Murphy's `DeterministicRoutingEngine` decides
+which tasks get deterministic execution (pure functions, reproducible results) and which
+get LLM execution (generative, creative, stochastic).
+
+**The routing decision** is policy-based. Four default policies define the boundary:
+
+- **Math/Compute tasks** → deterministic (guardrails: max_iterations=1000, timeout=30s).
+  Lead scoring is math — `score = size_points + industry_bonus + interest_points`. No LLM
+  needed.
+- **Validation/Verification tasks** → deterministic (guardrails: strict_mode=True). Email
+  validation, data format checks, threshold comparisons — all pure functions.
+- **Creative/Generation tasks** → LLM (guardrails: content_filter, max_tokens=4096). Demo
+  script personalization, proposal narrative — these benefit from language generation.
+- **Analysis/Research tasks** → hybrid (guardrails: require_sources). Market analysis,
+  competitive positioning — combine data lookup with LLM synthesis.
+
+The `DeterministicRoutingEngine` matches each task against registered `RoutingPolicy`
+objects by comparing task tags. The highest-priority matching policy wins. If no policy
+matches, the fallback is always "deterministic" — fail safe, not fail creative.
+
+**Guardrails** are applied per route type:
+- **Deterministic**: output_validation, strict_mode
+- **LLM**: content_filter, token_limits, pii_redaction
+- **Hybrid**: both sets of guardrails
+- **Universal** (all routes): timeout_enforcement, production_safety_gate
+
+For Inoni LLC's sales pipeline: lead scoring routes to deterministic (pure math), proposal
+text routes to LLM (creative writing), and lead qualification routes to deterministic
+(threshold comparison: score ≥ 40).
+
+**What happens in the code:**
+`DeterministicRoutingEngine.route_task()` matches policies. `evaluate_guardrails()` applies
+safety checks. `promote_fallback()` promotes successful deterministic outputs to the main
+graph. `validate_route_parity()` ensures routing consistency.
+
+---
+
+## Chapter 16: Murphy Learns
 
 Every execution produces data. The `LearningEngine` consumes it.
 
@@ -442,10 +624,10 @@ The `PerformanceTracker` records metrics from every run: execution time, success
 error types, resource usage. The `PatternRecognizer` analyzes these metrics using linear
 regression for trend detection and cycle detection for recurring patterns.
 
-When a user provides a correction — "that blog post title was wrong" or "don't publish
-on holidays" — the `FeedbackSystem` captures it with a type tag (CORRECTION, SUGGESTION,
-BUG_REPORT, FEATURE_REQUEST, PRAISE). The `FeedbackValidator` checks quality. The
-`FeedbackAnalyzer` categorizes patterns.
+When the Inoni LLC team provides a correction — "that lead should have been qualified" or
+"don't contact leads in the EU without explicit consent" — the `FeedbackSystem` captures it
+with a type tag (CORRECTION, SUGGESTION, BUG_REPORT, FEATURE_REQUEST, PRAISE). The
+`FeedbackValidator` checks quality. The `FeedbackAnalyzer` categorizes patterns.
 
 The `AdaptiveDecisionEngine` turns all of this into better future decisions. It maintains
 `DecisionHistory` — every decision made, with its outcome and utility score. From this
@@ -470,7 +652,7 @@ tasks always go through full gates, no matter how many times they've succeeded.
 
 ---
 
-## Chapter 13: The Librarian Remembers Everything
+## Chapter 17: The Librarian Remembers Everything
 
 The `SystemLibrarian` is Murphy's institutional memory.
 
@@ -500,16 +682,16 @@ knowledge. `ResponseComposer.compose()` builds verified-facts-only responses.
 
 ---
 
-## Chapter 14: The User Sees Results
+## Chapter 18: The User Sees Results
 
-Back in the terminal, the user sees:
+Back in the terminal, the Inoni LLC team member sees:
 
-> ✓ Automation "weekly-blog-publishing" created and executed successfully.
-> — 3 blog posts fetched from Notion
-> — Content validated (all passed quality gates)
-> — Published to WordPress (3 posts)
-> — Cross-posted to Medium (3 posts)
-> — Next scheduled run: Monday 9:00 AM
+> ✓ Automation "inoni-sales-pipeline" created and executed successfully.
+> — 5 new leads scored and qualified
+> — 3 leads qualified (score ≥ 40), 2 need nurturing
+> — Demo scripts generated for qualified leads (personalized by industry)
+> — Proposals created: 1 Enterprise, 2 Professional editions
+> — Next pipeline review: Monday 9:00 AM
 
 The `ResponseFormatter` has cleaned the output — removing internal metric lines, system
 noise, and technical artifacts. It shows the user only what matters: what happened, what
@@ -525,7 +707,7 @@ Every feature is discoverable.
 
 ---
 
-## Chapter 15: Murphy Automates Itself
+## Chapter 19: Murphy Automates Itself
 
 The `SelfAutomationOrchestrator` is Murphy's most ambitious module. It performs continuous
 self-improvement through a structured cycle:
@@ -635,7 +817,13 @@ improves the system; governance ensures it doesn't improve itself into a dangero
 | Event communication | `event_backbone.py`, `EventBackbone` |
 | Self-improvement | `self_automation_orchestrator.py`, `SelfAutomationOrchestrator` |
 | Capability scanning | `capability_map.py`, `CapabilityMap` |
-| Bot orchestration | `bots/`, 100+ specialized bots |
+| Bot orchestration | `bots/`, `AsyncBot`, `HiveBot`, `composite_registry.json` |
+| Sales bots | `sales_outreach_bot`, `lead_scoring_bot`, `marketing_automation_bot` |
+| Confidence equation | `confidence_engine/confidence_calculator.py`, `ConfidenceCalculator` |
+| Murphy Index math | `confidence_engine/murphy_calculator.py`, `MurphyCalculator` |
+| Deterministic routing | `deterministic_routing_engine.py`, `DeterministicRoutingEngine` |
+| Sales automation | `sales_automation.py`, `SalesAutomationEngine`, `SalesAutomationConfig` |
+| Lead pipeline | `LeadProfile`, `score_lead()`, `qualify_lead()`, `generate_proposal()` |
 | KPI monitoring | `kpi_tracker.py`, `KPITracker` |
 | Compliance validation | `compliance_engine.py`, `ComplianceEngine` |
 | Telemetry & observability | `telemetry_adapter.py`, `telemetry_system/` |
