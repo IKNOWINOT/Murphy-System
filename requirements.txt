@@ -1,4 +1,13 @@
-# Root requirements entrypoint.
+# Root requirements entrypoint — unified install.
 # Use this from the repository root:
-#   python -m pip install -r requirements.txt
+#   pip install -r requirements.txt
+#
+# Installs both the base requirements and the comprehensive Murphy 1.0
+# requirements so that all features work out of the box.
+
 -r "Murphy System/requirements.txt"
+-r "Murphy System/requirements_murphy_1.0.txt"
+
+# Extras commonly needed at runtime but not listed elsewhere
+watchdog>=3.0.0
+matplotlib>=3.7.0

@@ -23,47 +23,40 @@ Murphy is a **complete, operational AI automation system** that can automate any
 
 ## 🚀 Quick Start
 
-### One-Line Install (Recommended)
+### One-Step Setup & Start (Recommended)
+
+Clone the repo, then run **one command** — it installs everything and starts Murphy:
+
+```bash
+git clone https://github.com/IKNOWINOT/Murphy-System.git
+cd Murphy-System
+bash setup_and_start.sh
+```
+
+On Windows:
+```cmd
+git clone https://github.com/IKNOWINOT/Murphy-System.git
+cd Murphy-System
+setup_and_start.bat
+```
+
+That's it. The script handles the virtual environment, installs **all** dependencies (including extras), configures `.env`, and lets you choose between the backend server or the terminal UI.
+
+> **No API key required** — the onboard LLM works out of the box. Add a [Groq API key](https://console.groq.com) to `.env` for enhanced quality (optional).
+
+### Remote One-Line Install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/IKNOWINOT/Murphy-System/main/install.sh | bash
 ```
 
-This downloads Murphy, creates a virtual environment, installs all dependencies, and sets up the `murphy` CLI. Then start automating:
-
+Then use the `murphy` CLI:
 ```bash
 murphy start          # Start in foreground
 murphy start -d       # Start as background daemon
 murphy status         # Check health
 murphy stop           # Stop daemon
 murphy help           # See all commands
-```
-
-> **No API key required** — the onboard LLM works out of the box. Add a [Groq API key](https://console.groq.com) to `.env` for enhanced quality (optional).
-
-Install to a custom directory:
-```bash
-curl -fsSL https://raw.githubusercontent.com/IKNOWINOT/Murphy-System/main/install.sh | bash -s -- /opt/murphy
-```
-
-### Manual Setup
-
-```bash
-# 1. Clone and navigate
-git clone https://github.com/IKNOWINOT/Murphy-System.git
-cd Murphy-System/Murphy\ System
-
-# 2. Run setup script
-./setup_murphy.sh  # Linux/Mac
-setup_murphy.bat   # Windows
-
-# 3. Start Murphy
-./start_murphy_1.0.sh  # Linux/Mac
-start_murphy_1.0.bat   # Windows
-
-# 4. Access Murphy
-# API: http://localhost:8000/docs
-# Status: http://localhost:8000/api/status
 ```
 
 **📚 Documentation:**
