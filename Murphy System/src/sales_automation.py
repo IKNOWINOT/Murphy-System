@@ -140,19 +140,39 @@ class SalesAutomationEngine:
         return lead.score
 
     def qualify_lead(self, lead: LeadProfile) -> Dict:
-        """Determine whether a lead is qualified and return details."""
+        """Determine whether a lead is qualified and return details.
+
+        Tuning #2: Three-tier qualification:
+            >= 40  → qualified (schedule demo)
+            30-39  → borderline (interest discovery)
+            < 30   → not qualified (nurture with content)
+        """
         score = self.score_lead(lead)
-        qualified = score >= 40
-        if qualified:
+        if score >= 40:
+            qualified = True
+            tier = "qualified"
             lead.status = "qualified"
+            reason = "Score meets threshold"
+            action = "Schedule demo"
+        elif score >= 30:
+            qualified = False
+            tier = "borderline"
+            lead.status = "borderline"
+            reason = "Score in borderline range — needs interest discovery"
+            action = "Targeted interest discovery"
+        else:
+            qualified = False
+            tier = "not_qualified"
+            lead.status = "not_qualified"
+            reason = "Score below threshold"
+            action = "Nurture with content"
         return {
             "lead_id": lead.lead_id,
             "score": score,
             "qualified": qualified,
-            "reason": "Score meets threshold" if qualified else "Score below threshold",
-            "recommended_action": (
-                "Schedule demo" if qualified else "Nurture with content"
-            ),
+            "tier": tier,
+            "reason": reason,
+            "recommended_action": action,
         }
 
     def recommend_edition(self, lead: LeadProfile) -> str:

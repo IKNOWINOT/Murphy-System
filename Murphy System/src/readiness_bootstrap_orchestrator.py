@@ -198,6 +198,7 @@ class ReadinessBootstrapOrchestrator:
         tasks.append(self._bootstrap_tenants())
         tasks.append(self._bootstrap_alerts())
         tasks.append(self._bootstrap_risks())
+        tasks.append(self._bootstrap_domain_gates())
 
         completed = sum(1 for t in tasks if t.status == BootstrapTaskStatus.COMPLETED)
         failed = sum(1 for t in tasks if t.status == BootstrapTaskStatus.FAILED)
@@ -367,6 +368,38 @@ class ReadinessBootstrapOrchestrator:
             risks = self._risks.list_risks()
             task.status = BootstrapTaskStatus.COMPLETED
             task.message = f"Verified {len(risks)} risks in register"
+        except Exception as exc:
+            task.status = BootstrapTaskStatus.FAILED
+            task.message = str(exc)[:200]
+        task.completed_at = datetime.now(timezone.utc).isoformat()
+        return task
+
+    def _bootstrap_domain_gates(self) -> BootstrapTask:
+        """Tuning #7: Seed domain gate templates on first run.
+
+        Ensures every known domain has at least a minimal set of gates so
+        ``generate_gates_for_system()`` never returns empty.
+        """
+        task = BootstrapTask(
+            task_id=f"bt-{uuid.uuid4().hex[:8]}",
+            subsystem="domain_gate_generator",
+            description="Seed default domain gate templates for cold-start prevention",
+        )
+        task.status = BootstrapTaskStatus.RUNNING
+        task.started_at = datetime.now(timezone.utc).isoformat()
+        try:
+            from domain_gate_generator import DomainGateGenerator
+            gen = DomainGateGenerator()
+            domains_seeded = 0
+            for domain in ("software", "sales", "manufacturing", "healthcare",
+                           "finance", "retail", "energy", "media"):
+                gates, _ = gen.generate_gates_for_system(
+                    {"domain": domain, "complexity": "medium"}
+                )
+                if gates:
+                    domains_seeded += 1
+            task.status = BootstrapTaskStatus.COMPLETED
+            task.message = f"Seeded gate templates for {domains_seeded} domains"
         except Exception as exc:
             task.status = BootstrapTaskStatus.FAILED
             task.message = str(exc)[:200]
