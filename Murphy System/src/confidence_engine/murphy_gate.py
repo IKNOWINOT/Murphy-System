@@ -31,7 +31,7 @@ class MurphyGate:
         self.phase_thresholds = {
             Phase.EXPAND: 0.5,      # Lower threshold for exploration
             Phase.TYPE: 0.6,        # Moderate threshold for classification
-            Phase.ENUMERATE: 0.6,   # Moderate threshold for enumeration
+            Phase.ENUMERATE: 0.625, # Slightly above TYPE to gate enumeration separately
             Phase.CONSTRAIN: 0.7,   # Standard threshold for constraints
             Phase.COLLAPSE: 0.75,   # Higher threshold for decisions
             Phase.BIND: 0.8,        # Very high for commitment
