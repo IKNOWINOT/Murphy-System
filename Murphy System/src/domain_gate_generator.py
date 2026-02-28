@@ -699,6 +699,39 @@ class DomainGateGenerator:
                 risk_reduction=0.85
             ))
         
+        elif domain == "sales":
+            gates.append(self.generate_gate(
+                name="lead_data_validation_gate",
+                description="Validate lead data has required fields (email, company, industry)",
+                gate_type=GateType.VALIDATION,
+                severity=GateSeverity.HIGH,
+                risk_reduction=0.6
+            ))
+            
+            gates.append(self.generate_gate(
+                name="can_spam_compliance_gate",
+                description="Ensure outreach emails comply with CAN-SPAM and GDPR",
+                gate_type=GateType.COMPLIANCE,
+                severity=GateSeverity.CRITICAL,
+                risk_reduction=0.9
+            ))
+            
+            gates.append(self.generate_gate(
+                name="scoring_output_validation_gate",
+                description="Validate lead scores are within expected range (0-100)",
+                gate_type=GateType.VALIDATION,
+                severity=GateSeverity.MEDIUM,
+                risk_reduction=0.5
+            ))
+            
+            gates.append(self.generate_gate(
+                name="proposal_authority_gate",
+                description="Verify proposer has authority for the recommended edition pricing",
+                gate_type=GateType.AUTHORIZATION,
+                severity=GateSeverity.HIGH,
+                risk_reduction=0.7
+            ))
+        
         return gates
     
     def _generate_complexity_gates(
