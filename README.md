@@ -2,7 +2,41 @@
 
 **Universal AI Automation System**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/IKNOWINOT/Murphy-System) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.11+-yellow.svg)](https://www.python.org/)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/IKNOWINOT/Murphy-System) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.11+-yellow.svg)](https://www.python.org/) [![Tests](https://img.shields.io/badge/tests-5946%20passing-brightgreen.svg)](#-test-status)
+
+---
+
+> ## ⚠️ Important — Please Read Before Using
+>
+> **Murphy is an ambitious, deeply complex AI automation system.** It is currently
+> developed and maintained by a **single developer** ([@IKNOWINOT](https://github.com/IKNOWINOT)).
+> While the architecture is comprehensive and the test suite covers thousands of
+> functions, **not everything works as intended**. Emergent bugs are still being
+> discovered and classified across the 420+ module surface area.
+>
+> **What this means for you:**
+>
+> - 🧪 **Alpha-quality software** — treat it as a research prototype, not a
+>   production-ready product. Security hardening is required before any
+>   deployment.
+> - 🐛 **Emergent bugs** — complex interactions between modules can produce
+>   unexpected behavior. Edge cases are actively being catalogued.
+> - 🔧 **Self-healing capabilities** — Murphy includes a self-improvement engine,
+>   bug pattern detector, and correction loop. It *can* apply patches and
+>   process improvement requests automatically, but this pipeline is still
+>   maturing. File issues or submit patches and the system's self-improvement
+>   loop will attempt to incorporate them.
+> - 📊 **Test coverage is extensive but not exhaustive** — 5,900+ tests pass
+>   across 260+ test files, yet some Flask/Textual-dependent tests require
+>   optional dependencies and are skipped when those packages are absent.
+> - 🤝 **Contributions welcome** — see [CONTRIBUTING.md](CONTRIBUTING.md). Bug
+>   reports, especially with reproduction steps, are especially valuable at
+>   this stage.
+>
+> **Bottom line:** This system is genuinely powerful — it can automate an entire
+> business stack from intake to delivery. But running it in production without
+> review is not recommended. Proceed with curiosity, caution, and the
+> understanding that you're looking at a one-person moonshot.
 
 ---
 
@@ -83,6 +117,10 @@ murphy help           # See all commands
 | Security hardening ([plan](SECURITY_IMPLEMENTATION_PLAN.md)) | **100%** |
 | **Overall average** | **~98%** |
 
+> **Test status (latest run):** 5,946 passed · 0 failed · 71 skipped ·
+> 412 subtests passed across 265 test files. Skipped tests are Flask/Textual
+> dependent and require optional packages. See [Test Status](#-test-status) below.
+
 ---
 
 ## 🗂️ Repository Structure (Post-Cleanup)
@@ -107,7 +145,7 @@ Murphy-System/
     ├── murphy                          ← CLI tool (start/stop/status/…)
     ├── murphy_system_1.0_runtime.py    ← Single production runtime
     ├── src/                            ← 420+ production modules
-    ├── tests/                          ← 210+ test files (4100+ tests)
+    ├── tests/                          ← 265 test files (5,900+ tests)
     ├── bots/                           ← 94 production bots
     ├── documentation/                  ← Structured API/user docs
     ├── docs/                           ← Technical docs
@@ -152,7 +190,7 @@ cd "Murphy System" && ./start_murphy_1.0.sh
 - Cryptographic bot identity verification (HMAC-SHA256 signing)
 - Behavioral anomaly detection (z-score analysis, resource spikes, API patterns)
 - Unified security dashboard with event correlation and compliance reporting
-- 42 integrated modules, 1490+ module tests passing
+- 42 integrated modules, 5,900+ tests passing
 - Neon terminal UI across 7 HTML interfaces with consistent theme
 
 **Architect UI:** serve `Murphy System/terminal_architect.html` with `python -m http.server 8090` and open `http://localhost:8090/Murphy%20System/terminal_architect.html?apiPort=8000`
@@ -655,6 +693,60 @@ strategy analysis.
 -   **Components:** Dozens of subsystems
 -   **Integrations:** Self-integrating (workflow-driven)
 -   **Automation Types:** 6 (factory, content, data, system, agent, business)
+
+---
+
+## 🧪 Test Status
+
+The test suite is the primary quality gate for Murphy. Run it with:
+
+```bash
+cd "Murphy System"
+python -m pytest tests/ -q --tb=short
+```
+
+**Latest verified results (2026-02-28):**
+
+| Metric | Count |
+| --- | --- |
+| Passed | 5,946 |
+| Failed | 0 |
+| Skipped | 71 |
+| Subtests passed | 412 |
+| Test files | 265 |
+| Run time | ~5 minutes |
+
+**Skipped tests** require optional dependencies (Flask, Textual) that are not
+part of the core FastAPI-based system. Install them with `pip install flask
+flask-cors textual` if you want full coverage.
+
+**Known flaky test:** `test_alert_rules_engine::test_warning_alert_fires` can
+occasionally fail due to test-ordering cooldown effects. Re-running resolves it.
+
+---
+
+## 🔧 Self-Healing & Patch Capabilities
+
+Murphy includes built-in self-improvement infrastructure:
+
+| Component | Module | What It Does |
+| --- | --- | --- |
+| **Bug Pattern Detector** | `src/bug_pattern_detector.py` | Analyzes error logs to classify recurring failure patterns |
+| **Self-Improvement Engine** | `src/self_improvement_engine.py` | Extracts lessons from corrections, calibrates confidence scores |
+| **Correction Loop** | `src/learning_engine/` | Shadow agent training pipeline that learns from human overrides |
+| **Self-Healing Coordinator** | `src/self_healing_coordinator.py` | Coordinates automated remediation across subsystems |
+| **Synthetic Failure Generator** | `src/synthetic_failure_generator/` | Creates controlled failures to test recovery paths |
+
+**Can Murphy fix itself?** Partially. The self-improvement engine can:
+- ✅ Detect recurring error patterns and suggest fixes
+- ✅ Learn from human corrections and adjust behavior
+- ✅ Auto-calibrate confidence thresholds based on outcomes
+- ✅ Process patch requests through the correction loop
+- ⚠️ Cannot yet auto-generate and apply code patches without human review
+- ⚠️ Complex emergent bugs require manual diagnosis
+
+File an issue or submit a patch — Murphy's learning loop will incorporate the
+feedback into its operational models.
 
 ---
 

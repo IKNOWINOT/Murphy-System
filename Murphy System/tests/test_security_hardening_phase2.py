@@ -80,6 +80,7 @@ class TestExecutionOrchestratorInputValidation:
     @pytest.fixture
     def client(self):
         """Create test client"""
+        pytest.importorskip("flask", reason="Flask not installed")
         from src.execution_orchestrator.api import app
         app.config['TESTING'] = True
         with app.test_client() as c:
