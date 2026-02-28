@@ -327,7 +327,7 @@ class TestWelcomeText:
         assert "librarian" in WELCOME_TEXT
 
     def test_contains_greeting(self):
-        assert "Hello" in WELCOME_TEXT or "hello" in WELCOME_TEXT
+        assert "Hello!" in WELCOME_TEXT
         assert "automation" in WELCOME_TEXT.lower()
 
     def test_contains_dashboard_links(self):
@@ -953,6 +953,11 @@ class TestEnhancedInterview:
         assert DialogContext._infer_value("integrations", "auto") == "(auto-configure)"
         assert DialogContext._infer_value("integrations", "let murphy decide") == "(auto-configure)"
         assert DialogContext._infer_value("integrations", "you decide") == "(auto-configure)"
+
+    def test_infer_auto_configure_not_triggered_by_other_input(self):
+        assert DialogContext._infer_value("integrations", "github", "GitHub") == "GitHub"
+        assert DialogContext._infer_value("integrations", "slack and email", "Slack and email") == "Slack and email"
+        assert DialogContext._infer_value("name", "auto company", "Auto Company") == "Auto Company"
 
     def test_full_interview_business_first(self):
         """Complete the full enhanced interview and verify all keys collected."""
