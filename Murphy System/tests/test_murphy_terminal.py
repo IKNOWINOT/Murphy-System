@@ -589,6 +589,28 @@ class TestMurphyTerminalAppNew:
         assert "RuntimeError" in msg
         assert "something weird happened" not in msg
 
+    def test_friendly_error_http_error(self):
+        app = MurphyTerminalApp(api_url="http://localhost:9999")
+        mock_resp = MagicMock()
+        mock_resp.status_code = 503
+        exc = requests.HTTPError(response=mock_resp)
+        msg = app._friendly_error(exc)
+        assert "503" in msg
+        assert "HTTP" in msg
+
+    @patch("murphy_terminal.requests.get")
+    def test_test_connection_http_error(self, mock_get):
+        mock_resp = MagicMock()
+        mock_resp.status_code = 500
+        mock_resp.raise_for_status.side_effect = requests.HTTPError(response=mock_resp)
+        mock_get.return_value = mock_resp
+
+        client = MurphyAPIClient(base_url="http://localhost:8000")
+        ok, detail = client.test_connection()
+        assert ok is False
+        assert "500" in detail
+        assert client.last_error is not None
+
 
 # ---------------------------------------------------------------------------
 # Integration tests — simulate real user interaction with the TUI
