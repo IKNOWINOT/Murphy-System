@@ -163,6 +163,7 @@ class SalesAutomationEngine:
         else:
             qualified = False
             tier = "not_qualified"
+            lead.status = "not_qualified"
             reason = "Score below threshold"
             action = "Nurture with content"
         return {
