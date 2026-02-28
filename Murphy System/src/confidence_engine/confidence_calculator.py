@@ -65,6 +65,15 @@ class ConfidenceCalculator:
         # Compute confidence
         confidence = w_g * G_score + w_d * D_score
         
+        # Bootstrap confidence floor: sparse graphs at EXPAND phase get a
+        # minimum confidence of 0.5 to prevent cold-start blocking.
+        # This ensures early exploration isn't gated by insufficient data.
+        # (Case Study Tuning Recommendation #5)
+        SPARSE_GRAPH_THRESHOLD = 5
+        BOOTSTRAP_FLOOR = 0.5
+        if phase == Phase.EXPAND and len(graph.nodes) < SPARSE_GRAPH_THRESHOLD:
+            confidence = max(confidence, BOOTSTRAP_FLOOR)
+        
         # Clamp to [0, 1]
         confidence = max(0.0, min(1.0, confidence))
         
