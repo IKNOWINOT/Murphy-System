@@ -11691,7 +11691,7 @@ class MurphySystem:
             }
         }
 
-    # Intent patterns for chat routing (Chapter 1 storyline: 23 defined intents)
+    # Intent patterns for chat routing (15 recognised intents)
     # More specific patterns must appear before general ones (e.g. "compliance status" before "status").
     _INTENT_PATTERNS = [
         (r"\b(start interview|onboard me|begin|setup)\b", "onboarding"),
