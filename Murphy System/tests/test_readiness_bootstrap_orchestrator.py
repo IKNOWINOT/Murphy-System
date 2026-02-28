@@ -68,12 +68,13 @@ def full_bootstrapper(pm, backbone):
 class TestBootstrapExecution:
     def test_all_skipped_when_unattached(self, bootstrapper):
         report = bootstrapper.run_bootstrap()
+        # 5 controller-dependent tasks skip; domain_gates is self-contained
         assert report.skipped_count == 5
-        assert report.completed_count == 0
+        assert report.completed_count == 1
 
     def test_full_bootstrap_succeeds(self, full_bootstrapper):
         report = full_bootstrapper.run_bootstrap()
-        assert report.completed_count == 5
+        assert report.completed_count == 6
         assert report.failed_count == 0
 
     def test_bootstrap_sets_flag(self, full_bootstrapper):
@@ -86,7 +87,7 @@ class TestBootstrapExecution:
         d = report.to_dict()
         assert "report_id" in d
         assert "tasks" in d
-        assert len(d["tasks"]) == 5
+        assert len(d["tasks"]) == 6
 
 
 # ------------------------------------------------------------------

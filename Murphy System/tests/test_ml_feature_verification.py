@@ -57,7 +57,7 @@ SECURITY_MODULE_NAMES = [
     "security_hardening_config",
     "input_validation",
     "rbac_governance",
-    "flask_security",
+    "fastapi_security",
     "secure_key_manager",
 ]
 

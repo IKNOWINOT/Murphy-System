@@ -442,6 +442,7 @@ class TestArtifactViewportAPI:
     @pytest.fixture
     def client(self):
         """Create test client with viewport API mounted"""
+        pytest.importorskip("flask", reason="Flask not installed")
         from flask import Flask
         from src.artifact_viewport import ArtifactViewport
         from src.artifact_viewport_api import mount_viewport_api
