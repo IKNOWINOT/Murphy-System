@@ -226,7 +226,7 @@ The sigmoid with α=2.0 creates a sharp transition. This is desirable — the Mu
 should be decisive, not ambiguous. When risk is high, it should scream; when risk is
 low, it should be silent.
 
-**Lesson Learned:** The Murphy Index is a **effective binary classifier** in extreme cases
+**Lesson Learned:** The Murphy Index is an **effective binary classifier** in extreme cases
 but may lack granularity in the middle range. For the sales pipeline use case, most
 operations will fall in the extremes (lead scoring is fully deterministic → MI ≈ 0;
 new unverified LLM proposals → MI → 1.0), so the binary behavior is actually appropriate.
