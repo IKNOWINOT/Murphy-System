@@ -270,7 +270,7 @@ class TestChapter5_6_SalesAutomation:
         assert lead.status == "qualified"
 
     def test_qualify_lead_below_threshold(self):
-        """Score < 40 → not qualified, needs nurturing."""
+        """Score 30-39 → borderline tier (Tuning #2), needs interest discovery."""
         from src.sales_automation import SalesAutomationEngine, LeadProfile
         engine = SalesAutomationEngine()
 
@@ -283,10 +283,11 @@ class TestChapter5_6_SalesAutomation:
             interests=[],
         )
         result = engine.qualify_lead(lead)
-        # small=10 + retail=20 + 0 interests → 30 → not qualified
+        # small=10 + retail=20 + 0 interests → 30 → borderline (Tuning #2)
         assert result["qualified"] is False
         assert result["score"] == 30
-        assert "Nurture" in result["recommended_action"]
+        assert result["tier"] == "borderline"
+        assert "interest discovery" in result["recommended_action"].lower()
 
     def test_recommend_edition_by_size(self):
         """EditionRecommender agent: enterprise→enterprise, medium→professional, small→community."""
