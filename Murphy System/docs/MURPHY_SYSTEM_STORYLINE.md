@@ -735,6 +735,326 @@ threshold.
 
 ---
 
+## Chapter 20: The LLM Dual-Write and Rosetta State Management
+
+Murphy's LLM layer writes in two directions simultaneously. Externally, it generates
+user-facing content — demo scripts, proposals, natural-language responses. Internally,
+it writes to the **Rosetta state system** — the canonical document store that drives
+every agentic function call, org chart lookup, and archive review in the runtime.
+
+The `LLMIntegrationLayer` is the router. Every request enters through `route_request()`,
+which consults `domain_routing` tables to decide: does this go to a cloud provider (Groq,
+Aristotle), or to the `local_llm` fallback? The layer tracks `request_count`,
+`validation_count`, and `trigger_count`. When a response triggers a follow-up action,
+`get_pending_triggers()` queues it and `resolve_trigger()` fires it. This is how one LLM
+call chains into three agentic steps — without recursion and without losing audit trail.
+
+The `SafeLLMWrapper` intercepts every LLM output before it reaches the user or Rosetta.
+`safe_generate()` enforces safety gates: content filtering, PII redaction, token limits.
+`verify_against_sources()` cross-checks the LLM's claims against the librarian's
+knowledge base. If the LLM asserts a fact that contradicts verified sources, the output
+is flagged as **unverified** and never written to Rosetta as ground truth.
+
+**The Rosetta State System** is the internal document backbone:
+
+- `RosettaManager` provides the core state API: `save_state()`, `load_state()`,
+  `update_state()`, `delete_state()`, `list_agents()`, and `aggregate()`. Every agent
+  in the system reads from and writes to Rosetta documents. These documents are the
+  single source of truth — not the LLM's memory, not a database, not a config file.
+
+- `ArchiveClassifier` categorizes completed Rosetta documents by domain and importance.
+  `classify()` assigns a category; `should_archive()` decides retention; `archive_item()`
+  moves the document to long-term storage.
+
+- `RosettaStoneHeartbeat` monitors translator health. `register_translator()` adds a new
+  Rosetta translator to the pulse system. `emit_pulse()` sends a heartbeat. `sync_check()`
+  verifies all translators are synchronized. `get_tier_state()` reports health per tier.
+  If a translator falls behind, the heartbeat catches it before stale state propagates.
+
+- `RecalibrationScheduler` triggers periodic Rosetta state reconciliation.
+  `run_recalibration()` forces a full state audit. `get_status()` reports whether
+  recalibration is running, idle, or overdue.
+
+**Key principle:** The LLM is never the source of truth. It generates; Rosetta stores.
+The `RosettaManager` drives agentic calls — agents read their instructions from Rosetta
+documents, execute, and write results back. The LLM accelerates but never governs.
+
+**What happens in the code:**
+`LLMIntegrationLayer.route_request()` → `SafeLLMWrapper.safe_generate()` →
+`RosettaManager.save_state()` (internal write) + user response (external write) →
+`ArchiveClassifier.classify()` → `RosettaStoneHeartbeat.sync_check()` →
+`RecalibrationScheduler.run_recalibration()` (periodic).
+
+---
+
+## Chapter 21: Avatar Sessions Coin-Join with Agent Calls via Streaming
+
+When Inoni LLC demos Murphy to a prospect, the system doesn't just show slides — it
+runs a **live avatar session** that coin-joins with agent execution in real time. The
+avatar speaks, the agents execute, and the prospect sees both on a shared screen.
+
+The `AvatarSessionManager` is the coordinator. `start_session()` creates an isolated
+session with a persona, cost tracking, and message history. `record_message()` logs
+every utterance. `add_cost()` tracks token and compute spend per session. `end_session()`
+finalizes and archives the session record. `list_active_sessions()` shows all live demos
+running across the org.
+
+The avatar pipeline has four stages:
+
+1. **Persona Injection** — `PersonaInjector` loads the avatar's personality, vocabulary,
+   and behavioral boundaries from the org chart. The avatar for Inoni LLC's sales demos
+   speaks confidently about automation but defers technical architecture questions to a
+   human engineer.
+
+2. **Sentiment Classification** — `SentimentClassifier` analyzes the prospect's
+   responses in real time. Is the prospect engaged, skeptical, confused, or excited?
+   This feeds back into the avatar's response strategy.
+
+3. **Behavioral Scoring** — `BehavioralScoringEngine` evaluates the avatar's own
+   performance: staying on-script, avoiding hallucinated claims, maintaining appropriate
+   tone, and respecting compliance boundaries.
+
+4. **Compliance Guard** — `ComplianceGuard` blocks the avatar from making commitments
+   the system can't fulfill — pricing promises, timeline guarantees, feature claims that
+   don't match the current runtime.
+
+The avatar connects to external platforms through pluggable connectors:
+`ElevenLabs` (voice synthesis), `HeyGen` (video avatar), `Tavus` (personalized video),
+and `VAPI` (voice API). Each connector implements a standard interface; the
+`AvatarRegistry` manages active connectors and their health.
+
+**Streaming Integration:**
+The `VideoStreamingRegistry` manages live streaming connections. `create_simulcast()`
+sets up multi-platform broadcasting. `list_platforms()` shows available streaming
+targets. The `SimulcastManager` handles simultaneous streaming to multiple platforms.
+
+The **coin-join** works like this: when the avatar calls a Murphy agent (e.g., "let me
+score that lead for you live"), the agent execution happens in real time, the result
+flows back through the avatar pipeline, and the avatar narrates the outcome — all
+within the same streaming session. The prospect sees Murphy working, not just talking.
+
+**What happens in the code:**
+`AvatarSessionManager.start_session()` → `PersonaInjector.inject()` →
+`SentimentClassifier.classify()` → agent execution via `LLMIntegrationLayer` →
+`BehavioralScoringEngine.score()` → `ComplianceGuard.check()` →
+`VideoStreamingRegistry.create_simulcast()` → live stream.
+
+---
+
+## Chapter 22: Shadow Agents and the Org Chart
+
+Every role in Inoni LLC's org chart has a **shadow agent** — a passive learning entity
+that watches how the role operates, learns patterns, and can eventually propose
+automations or substitutions when the role holder is unavailable.
+
+The `ShadowAgentIntegration` manages the lifecycle:
+
+- `create_account()` registers a new organizational account
+- `create_shadow_agent()` spawns a shadow for a specific role
+- `bind_shadow_to_role()` attaches the shadow to an org chart position
+- `get_shadows_for_org()` lists all active shadows in the organization
+- `get_shadows_for_account()` lists shadows for a specific team
+- `check_shadow_permission()` verifies a shadow has authority for an action
+- `get_shadow_governance_boundary()` returns what the shadow can and cannot do
+- `suspend_shadow()` pauses a shadow (e.g., when its role holder returns)
+- `revoke_shadow()` permanently removes a shadow
+- `reactivate_shadow()` brings a suspended shadow back online
+
+The `OrgChartEnforcement` system ensures shadows respect organizational boundaries.
+Escalation paths are immutable — defined by the org chart, not by the shadow. A shadow
+agent for a sales rep cannot approve deals above the rep's authority limit. A shadow
+for a department head cannot modify another department's budget.
+
+The `RoleTemplateCompiler` compiles org chart data into executable role templates:
+- `add_org_chart()` loads the organizational structure
+- `add_process_flow()` adds workflow definitions
+- `add_sop_data()` adds standard operating procedures
+- `add_work_artifacts()` adds example work outputs
+- `add_handoff_events()` defines when roles transfer responsibility
+- `compile_role_template()` generates a complete template for one role
+- `compile_all()` generates templates for the entire organization
+
+The `ShadowLearningAgent` in `org_compiler/shadow_learning` observes role execution
+patterns, detects recurring tasks, and proposes automation candidates. It uses a
+`TelemetryCollector` to gather execution data, a `PatternRecognitionEngine` to identify
+repeating patterns, and a `TemplateProposalGenerator` to suggest new role templates.
+
+**Chronological Archive Review:**
+Shadow agents participate in the **Rosetta archive review cycle**. When the
+`RecalibrationScheduler` triggers a review, each shadow agent reads its role's Rosetta
+documents chronologically, checks whether events match expected patterns, and flags
+deviations. This is how the system detects organizational drift — when actual practice
+diverges from documented process.
+
+**What happens in the code:**
+`ShadowAgentIntegration.create_shadow_agent()` → `bind_shadow_to_role()` →
+`RoleTemplateCompiler.compile_role_template()` → `ShadowLearningAgent.observe()` →
+`RecalibrationScheduler.run_recalibration()` → chronological Rosetta document review →
+`ArchiveClassifier.classify()` → drift detection.
+
+---
+
+## Chapter 23: The Security Plane
+
+Murphy operates under a **zero-trust security model**. Every request, every agent call,
+every data access is verified — no matter where it originates.
+
+The `ZeroTrustAccessController` in `security_plane/access_control` enforces this:
+- Every access request is evaluated against capability scopes and authority bands
+- `AuthorityBandEnforcer` ensures agents operate within their declared authority level
+- `CapabilityManager` tracks what each agent is allowed to do
+- `TrustRecomputer` dynamically adjusts trust scores based on behavior — an agent that
+  consistently produces verified results earns higher trust; one that triggers safety
+  gates loses trust
+
+**Bot Verification:**
+- `BotIdentityVerifier` in `security_plane/bot_identity_verifier` validates that every
+  bot is who it claims to be — checking signatures, version hashes, and registry entries
+- `BotAnomalyDetector` in `security_plane/bot_anomaly_detector` watches for behavioral
+  anomalies — a bot suddenly accessing data it has never accessed, or calling APIs at
+  unusual rates
+- `BotResourceQuotas` in `security_plane/bot_resource_quotas` enforces per-bot resource
+  limits — CPU, memory, API calls, token spend
+
+**Data Protection:**
+- `DataLeakPreventionSystem` in `security_plane/data_leak_prevention` classifies data by
+  sensitivity level, monitors data transfers, and blocks unauthorized exfiltration. The
+  `SensitiveDataClassifier` categorizes data; the `ExfiltrationDetector` watches for
+  leaks; the `EncryptionEnforcer` ensures data-at-rest and data-in-transit encryption.
+- `PacketProtectionSystem` in `security_plane/packet_protection` protects execution
+  packets — the immutable contracts that define what agents can do. `PacketSigner`
+  creates cryptographic signatures; `IntegrityValidator` verifies them; `ReplayPrevention`
+  stops packet reuse attacks.
+- `LogSanitizer` in `security_plane/log_sanitizer` scrubs sensitive data from logs
+  before they're stored or transmitted.
+- `AntiSurveillance` in `security_plane/anti_surveillance` detects and blocks attempts
+  to monitor system internals from outside.
+
+**Adaptive Defense:**
+- `AdaptiveDefense` in `security_plane/adaptive_defense` adjusts security posture based
+  on threat level. During normal operation, monitoring is standard. When anomalies spike,
+  the system tightens access controls, increases logging verbosity, and alerts humans.
+
+For Inoni LLC's sales pipeline: lead PII (emails, phone numbers) is classified as
+sensitive by the `SensitiveDataClassifier`. The `DataLeakPreventionSystem` ensures lead
+data never leaves the sandbox. The `BotIdentityVerifier` confirms that only the
+authorized `sales_outreach_bot` can access lead contact information.
+
+**What happens in the code:**
+`ZeroTrustAccessController.evaluate()` → `BotIdentityVerifier.verify()` →
+`BotAnomalyDetector.check()` → `DataLeakPreventionSystem.monitor()` →
+`PacketProtectionSystem.validate()` → `AdaptiveDefense.assess()`.
+
+---
+
+## Chapter 24: The Recursive Stability Controller
+
+When Murphy's agents spawn sub-agents, and those sub-agents spawn further sub-agents,
+the system risks **recursive instability** — exponential resource consumption,
+oscillating decisions, or infinite loops. The Recursive Stability Controller (RSC)
+prevents this.
+
+**Lyapunov Monitoring:**
+The `LyapunovMonitor` in `recursive_stability_controller/lyapunov_monitor` applies
+control theory to agent recursion. It tracks a `LyapunovState` — a mathematical
+representation of the system's energy level. If the Lyapunov function is decreasing,
+the system is converging toward stability. If it's increasing, the system is diverging
+and intervention is needed. A `LyapunovViolation` is raised when divergence exceeds
+safety thresholds.
+
+**Gate Damping:**
+The `GateDampingController` in `recursive_stability_controller/gate_damping` prevents
+oscillation in gate evaluations. When a gate flip-flops (pass → fail → pass → fail),
+the damping controller smooths the signal. It tracks gate synthesis requests and
+responses, applying exponential decay to prevent rapid-fire gate state changes.
+
+**Spawn Control:**
+The `SpawnRateController` in `recursive_stability_controller/spawn_controller` limits
+how fast agents can create sub-agents. Every `SpawnRequest` is evaluated: Is the parent
+agent within its spawn budget? Is the global spawn rate below the safety limit? Would
+this spawn push the Lyapunov function toward instability? The controller returns a
+`SpawnDecision` — approved, denied, or deferred.
+
+**Stability Scoring:**
+The `StabilityScoreCalculator` in `recursive_stability_controller/stability_score`
+computes a single stability metric that combines Lyapunov energy, gate damping state,
+spawn rate, and resource utilization. This score feeds into the confidence engine — if
+stability drops, confidence drops, and gates tighten automatically.
+
+**Supporting Infrastructure:**
+- `ControlSignals` manage the feedback loops between stability components
+- `FeedbackIsolation` prevents stability corrections from creating new instabilities
+- `RecursionEnergy` tracks computational energy spent on recursive operations
+- `StateVariables` maintain the RSC's own internal state
+- `RSCTelemetry` exports stability metrics to the observability stack
+
+For Inoni LLC: when the `SelfAutomationOrchestrator` discovers a gap and spawns agents
+to fix it, the RSC ensures the fix doesn't spawn more fixes in an infinite loop. The
+`SpawnRateController` caps recursion depth. The `LyapunovMonitor` detects divergence.
+The `GateDampingController` prevents oscillating gate decisions.
+
+**What happens in the code:**
+`SpawnRateController.evaluate()` → `LyapunovMonitor.check()` →
+`GateDampingController.damp()` → `StabilityScoreCalculator.compute()` →
+feeds into `ConfidenceEngine` → gate thresholds adjust automatically.
+
+---
+
+## Chapter 25: The Supervisor System and Correction Loops
+
+Above all the automation sits the **Supervisor System** — the layer that manages
+assumptions, detects when they become invalid, and triggers correction loops.
+
+**Assumption Management:**
+The `AssumptionRegistry` in `supervisor_system/assumption_management` tracks every
+assumption the system makes during execution. When Murphy scores a lead and assumes
+"technology companies prefer CI/CD automation," that assumption is registered with its
+source, confidence level, and expiration conditions.
+
+The `SupervisorInterface` in `supervisor_system/supervisor_loop` provides the feedback
+API: `submit_feedback()` accepts human corrections, `process_feedback()` routes them to
+the appropriate handler, and `get_statistics()` reports correction patterns. The
+`SupervisorAuditLogger` records every feedback event immutably.
+
+**Correction Loops:**
+When an assumption is invalidated — by human feedback, by contradicting evidence, or by
+time expiration — the `InvalidationDetector` in `supervisor_system/correction_loop`
+triggers a correction cascade:
+
+1. The `ConfidenceDecayer` reduces confidence for all decisions that depended on the
+   invalidated assumption
+2. The `AuthorityDecayer` downgrades the authority of agents that relied on it
+3. The `ExecutionFreezer` pauses any in-flight executions that depend on it
+4. The `ReExpansionTrigger` queues the affected workflow for re-evaluation from the
+   EXPAND phase — starting fresh with the corrected understanding
+
+The `AssumptionBindingManager` tracks which decisions depend on which assumptions. When
+assumption A is invalidated, it finds every decision that transitively depends on A and
+marks them for review. The `MurphyIndexTrend` monitors whether corrections are improving
+or degrading the system's overall risk profile.
+
+**Anti-Recursion:**
+The `AntiRecursionSystem` in `supervisor_system/anti_recursion` prevents correction
+loops from becoming recursive. If correcting assumption A invalidates assumption B,
+which invalidates assumption C, which re-validates assumption A — the anti-recursion
+system detects the cycle. The `CircularDependencyDetector` maps assumption dependencies.
+The `SelfValidationBlocker` prevents an assumption from validating itself. The
+`ValidationSourceTracker` ensures every validation comes from an independent source.
+
+For Inoni LLC: when a human corrects a lead scoring assumption ("retail companies
+actually do want CI/CD automation"), the `InvalidationDetector` finds all leads scored
+under the old assumption, the `ConfidenceDecayer` reduces their confidence scores, and
+the `ReExpansionTrigger` re-queues them for re-scoring. The anti-recursion system
+ensures the re-scoring doesn't trigger another cascade.
+
+**What happens in the code:**
+`AssumptionRegistry.register()` → human feedback via `SupervisorInterface.submit_feedback()` →
+`InvalidationDetector.detect()` → `ConfidenceDecayer.decay()` +
+`AuthorityDecayer.decay()` + `ExecutionFreezer.freeze()` →
+`ReExpansionTrigger.trigger()` → `AntiRecursionSystem.check_cycle()`.
+
+---
+
 ## Epilogue: The Design Philosophy
 
 Murphy System is built on a set of principles visible in every line of code:
@@ -808,7 +1128,7 @@ improves the system; governance ensures it doesn't improve itself into a dangero
 | Self-healing | `self_healing_coordinator.py`, `SelfHealingCoordinator` |
 | Swarm intelligence | `true_swarm_system.py`, `advanced_swarm_system.py` |
 | Learning from execution | `learning_engine/`, `PerformanceTracker`, `PatternRecognizer` |
-| User feedback | `learning_engine/feedback_system.py`, `FeedbackSystem` |
+| User feedback | `learning_engine/feedback_system.py`, `HumanFeedbackSystem` |
 | Policy evolution | `learning_engine/adaptive_decision_engine.py`, `PolicyManager` |
 | Golden path caching | `golden_path_bridge.py`, `GoldenPathBridge` |
 | Gate bypass for low-risk | `gate_bypass_controller.py`, `GateBypassController` |
@@ -826,8 +1146,129 @@ improves the system; governance ensures it doesn't improve itself into a dangero
 | Lead pipeline | `LeadProfile`, `score_lead()`, `qualify_lead()`, `generate_proposal()` |
 | KPI monitoring | `kpi_tracker.py`, `KPITracker` |
 | Compliance validation | `compliance_engine.py`, `ComplianceEngine` |
-| Telemetry & observability | `telemetry_adapter.py`, `telemetry_system/` |
-| Avatar personas | `avatar/`, `AvatarSessionManager` |
-| Deterministic compute | `deterministic_compute_plane/`, `DeterministicRoutingEngine` |
+| Telemetry & observability | `telemetry_adapter.py`, `telemetry_system/`, `telemetry_learning/` |
+| LLM request routing | `llm_integration_layer.py`, `LLMIntegrationLayer`, `route_request()` |
+| LLM safety wrapper | `safe_llm_wrapper.py`, `SafeLLMWrapper`, `safe_generate()` |
+| LLM controller | `llm_controller.py`, `llm_integration.py`, `llm_routing_completeness.py` |
+| Local LLM fallback | `local_llm_fallback.py`, `local_model_layer.py`, `mock_compatible_local_llm.py` |
+| Rosetta state management | `rosetta/rosetta_manager.py`, `RosettaManager`, `save_state()`, `load_state()` |
+| Rosetta archive classifier | `rosetta/archive_classifier.py`, `ArchiveClassifier`, `classify()` |
+| Rosetta heartbeat | `rosetta_stone_heartbeat.py`, `RosettaStoneHeartbeat`, `emit_pulse()` |
+| Rosetta recalibration | `rosetta/recalibration_scheduler.py`, `RecalibrationScheduler` |
+| Rosetta models & aggregator | `rosetta/rosetta_models.py`, `rosetta/global_aggregator.py` |
+| Avatar session management | `avatar/avatar_session_manager.py`, `AvatarSessionManager` |
+| Avatar persona & scoring | `avatar/persona_injector.py`, `avatar/behavioral_scoring_engine.py` |
+| Avatar sentiment & compliance | `avatar/sentiment_classifier.py`, `avatar/compliance_guard.py` |
+| Avatar connectors | `avatar/connectors/elevenlabs.py`, `heygen.py`, `tavus.py`, `vapi.py` |
+| Avatar cost tracking | `avatar/cost_ledger.py`, `avatar/user_adaptation_engine.py` |
+| Video streaming | `video_streaming_connector.py`, `VideoStreamingRegistry`, `SimulcastManager` |
+| Shadow agent lifecycle | `shadow_agent_integration.py`, `ShadowAgentIntegration` |
+| Org chart enforcement | `org_chart_enforcement.py`, `OrgChartEnforcement` |
+| Org compiler & roles | `org_compiler/compiler.py`, `RoleTemplateCompiler`, `compile_role_template()` |
+| Shadow learning | `org_compiler/shadow_learning.py`, `ShadowLearningAgent` |
+| Org chart visualization | `org_compiler/visualization.py`, `org_compiler/parsers.py` |
+| Org chart schemas | `org_compiler/schemas.py`, `org_compiler/substitution.py` |
+| Zero-trust access | `security_plane/access_control.py`, `ZeroTrustAccessController` |
+| Bot identity verification | `security_plane/bot_identity_verifier.py`, `BotIdentityVerifier` |
+| Bot anomaly detection | `security_plane/bot_anomaly_detector.py`, `BotAnomalyDetector` |
+| Bot resource quotas | `security_plane/bot_resource_quotas.py`, `BotResourceQuotas` |
+| Data leak prevention | `security_plane/data_leak_prevention.py`, `DataLeakPreventionSystem` |
+| Packet protection | `security_plane/packet_protection.py`, `PacketProtectionSystem` |
+| Security hardening | `security_plane/hardening.py`, `security_hardening_config.py` |
+| Adaptive defense | `security_plane/adaptive_defense.py`, `AdaptiveDefense` |
+| Anti-surveillance | `security_plane/anti_surveillance.py`, `AntiSurveillance` |
+| Log sanitization | `security_plane/log_sanitizer.py`, `LogSanitizer` |
+| Security dashboard | `security_plane/security_dashboard.py`, `security_audit_scanner.py` |
+| Cryptography | `security_plane/cryptography.py`, `security_plane/authentication.py` |
+| Security middleware | `security_plane/middleware.py`, `fastapi_security.py`, `flask_security.py` |
+| Swarm communication monitor | `security_plane/swarm_communication_monitor.py` |
+| Lyapunov stability | `recursive_stability_controller/lyapunov_monitor.py`, `LyapunovMonitor` |
+| Gate damping | `recursive_stability_controller/gate_damping.py`, `GateDampingController` |
+| Spawn rate control | `recursive_stability_controller/spawn_controller.py`, `SpawnRateController` |
+| Stability scoring | `recursive_stability_controller/stability_score.py`, `StabilityScoreCalculator` |
+| RSC feedback isolation | `recursive_stability_controller/feedback_isolation.py` |
+| RSC control signals | `recursive_stability_controller/control_signals.py` |
+| RSC telemetry | `recursive_stability_controller/telemetry.py`, `rsc_telemetry.py` |
+| Recursion energy | `recursive_stability_controller/recursion_energy.py` |
+| RSC state variables | `recursive_stability_controller/state_variables.py` |
+| RSC API service | `recursive_stability_controller/rsc_service.py` |
+| Supervisor feedback loop | `supervisor_system/supervisor_loop.py`, `SupervisorInterface` |
+| Assumption management | `supervisor_system/assumption_management.py`, `AssumptionRegistry` |
+| Correction loops | `supervisor_system/correction_loop.py`, `InvalidationDetector` |
+| Anti-recursion | `supervisor_system/anti_recursion.py`, `AntiRecursionSystem` |
+| HITL monitoring | `supervisor_system/hitl_monitor.py`, `supervisor_system/hitl_models.py` |
+| Supervisor schemas | `supervisor_system/schemas.py`, `supervisor/schemas.py` |
+| Execution orchestrator | `execution_orchestrator/`, `orchestrator.py`, `executor.py` |
+| Execution packet compiler | `execution_packet_compiler/`, `compiler.py`, `packet_sealer.py` |
+| Form intake | `form_intake/`, `form_intake/api.py`, `plan_decomposer.py` |
+| Bridge layer | `bridge_layer/`, `compilation.py`, `hypothesis.py`, `intake.py` |
+| Module compiler | `module_compiler/`, `compiler.py`, `analyzers/`, `registry/` |
+| Governance framework | `governance_framework/`, `agent_descriptor.py`, `artifact_ingestion.py` |
+| Governance runtime | `base_governance_runtime/`, `governance_runtime.py`, `validation_engine.py` |
+| Integration engine | `integration_engine/`, `unified_engine.py`, `agent_generator.py` |
+| Synthetic failure generator | `synthetic_failure_generator/`, `injection_pipeline.py` |
+| Freelancer validator | `freelancer_validator/`, `criteria_engine.py`, `hitl_bridge.py` |
+| Neuro-symbolic models | `neuro_symbolic_models/`, `inference.py`, `integration.py` |
+| Robotics | `robotics/`, `actuator_engine.py`, `sensor_engine.py`, `robot_registry.py` |
+| Compute plane | `compute_plane/`, `service.py`, `solvers/`, `parsers/` |
+| Deterministic compute | `deterministic_compute_plane/`, `deterministic_compute.py` |
+| Confidence engine risk | `confidence_engine/risk/`, `risk_scoring.py`, `risk_mitigation.py` |
+| Confidence engine phases | `confidence_engine/phase_controller.py`, `uncertainty_calculator.py` |
+| Confidence credentials | `confidence_engine/credential_verifier.py`, `credential_interface.py` |
+| Learning corrections | `learning_engine/correction_capture.py`, `correction_storage.py` |
+| Shadow monitoring | `learning_engine/shadow_agent.py`, `shadow_monitoring.py` |
+| Training pipeline | `learning_engine/training_pipeline.py`, `training_data_validator.py` |
+| AB testing | `learning_engine/ab_testing.py`, `learning_engine/model_registry.py` |
+| Librarian knowledge | `librarian/knowledge_base.py`, `librarian/semantic_search.py` |
+| Librarian documents | `librarian/document_manager.py`, `librarian_adapter.py` |
+| Comms system | `comms/`, `comms_system/`, `communication_system/` |
 | Workflow DAGs | `workflow_dag_engine.py`, `WorkflowDAGEngine` |
 | Template marketplace | `workflow_template_marketplace.py` |
+| Content pipeline | `content_pipeline_engine.py`, `content_creator_platform_modulator.py` |
+| Campaign orchestrator | `campaign_orchestrator.py`, `marketing_analytics_aggregator.py` |
+| Invoice processing | `invoice_processing_pipeline.py`, `financial_reporting_engine.py` |
+| Social media | `social_media_scheduler.py`, `social_media_moderation.py` |
+| SEO & content | `seo_optimisation_engine.py`, `faq_generation_engine.py` |
+| Image & digital assets | `image_generation_engine.py`, `digital_asset_generator.py` |
+| Customer comms | `customer_communication_manager.py`, `delivery_adapters.py` |
+| Ticketing & triage | `ticket_triage_engine.py`, `ticketing_adapter.py` |
+| Enterprise integrations | `enterprise_integrations.py`, `universal_integration_adapter.py` |
+| Platform connectors | `platform_connector_framework.py`, `cross_platform_data_sync.py` |
+| Webhook processing | `webhook_event_processor.py`, `remote_access_connector.py` |
+| Database connectors | `integrations/database_connectors.py`, `integrations/integration_framework.py` |
+| Adapter framework | `adapter_framework/`, `adapter_contract.py`, `adapter_runtime.py` |
+| Domain experts | `domain_expert_system.py`, `domain_expert_integration.py` |
+| Code generation | `code_generation_gateway.py`, `smart_codegen.py`, `multi_language_codegen.py` |
+| Research engines | `research_engine.py`, `advanced_research.py`, `multi_source_research.py` |
+| Analytics & reports | `analytics_dashboard.py`, `advanced_reports.py`, `statistics_collector.py` |
+| Trading & finance | `trading_bot_engine.py`, `financial_reporting_engine.py` |
+| Manufacturing & IoT | `manufacturing_automation_standards.py`, `building_automation_connectors.py` |
+| Energy & robotics | `energy_management_connectors.py`, `additive_manufacturing_connectors.py` |
+| Memory & persistence | `memory_management.py`, `memory_artifact_system.py`, `persistence_manager.py` |
+| Config & runtime | `config.py`, `modular_runtime.py`, `runtime_profile_compiler.py` |
+| Logging & health | `logging_system.py`, `health_monitor.py`, `log_analysis_engine.py` |
+| Metrics & SLOs | `metrics.py`, `observability_counters.py`, `operational_slo_tracker.py` |
+| RAG & search | `rag_vector_integration.py`, `reasoning_engine.py` |
+| Plugin SDK | `plugin_extension_sdk.py`, `dynamic_command_discovery.py` |
+| RBAC & governance | `rbac_governance.py`, `governance_toggle.py`, `automation_rbac_controller.py` |
+| Deployment & scaling | `deployment_automation_controller.py`, `resource_scaling_controller.py` |
+| Shutdown & SLO | `shutdown_manager.py`, `slo_remediation_bridge.py` |
+| Bot governance | `bot_governance_policy_mapper.py`, `bot_inventory_library.py` |
+| Bot telemetry | `bot_telemetry_normalizer.py` |
+| Top-level scripts | `inoni_business_automation.py`, `murphy_system_1.0_runtime.py` |
+| Bots: Engineering | `bots/Engineering_bot.py`, `bots/engineering_bot.py`, `bots/coding_bot.py` |
+| Bots: Ghost Controller | `bots/Ghost_Controller_Bot.py`, `bots/ghost_controller_bot/` |
+| Bots: Analysis | `bots/analysis_bot.py`, `bots/analytics.py`, `bots/anomaly_detection.py` |
+| Bots: Memory & knowledge | `bots/memory_cortex_bot.py`, `bots/crosslinked_knowledge_index.py` |
+| Bots: Optimization | `bots/optimization_bot.py`, `bots/efficiency_optimizer.py` |
+| Bots: Planning | `bots/plan_structurer_bot.py`, `bots/execution_planner_bot.py` |
+| Bots: Scheduling | `bots/scheduler_bot.py`, `bots/scheduler_ui.py` |
+| Bots: Security | `bots/security_bot.py`, `bots/crypto_utils.py` |
+| Bots: Simulation | `bots/simulation_bot.py`, `bots/simulation_sandbox.py` |
+| Bots: Streaming | `bots/streaming_handler.py`, `bots/matrix_chatbot.py` |
+| Bots: Task execution | `bots/task_graph_executor.py`, `bots/recursive_executor_bot.py` |
+| Bots: Policy & RL | `bots/policy_trainer_bot.py`, `bots/rl_training.py` |
+| Bots: Telemetry | `bots/telemetry_bot.py`, `bots/vanta_metrics.py` |
+| Bots: Triage & feedback | `bots/triage_bot.py`, `bots/feedback_bot.py` |
+| Bots: Valon & tuning | `bots/valon.py`, `bots/valon_engine.py`, `bots/tuning_refiner_bot.py` |
+| Bots: Infrastructure | `bots/bot_base.py`, `bots/composite_registry.py`, `bots/plugin_loader.py` |
