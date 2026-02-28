@@ -252,3 +252,51 @@ class MurphyCalculator:
             List of failure mode details
         """
         return self._identify_failure_modes(graph, confidence_state, phase)
+
+    def get_failure_mode_breakdown(
+        self,
+        graph: ArtifactGraph,
+        confidence_state: ConfidenceState,
+        phase: Phase
+    ) -> Dict[str, Any]:
+        """
+        Tuning #6: Summarized breakdown for middle-range Murphy Index values.
+
+        When the Murphy Index is between 0.3 and 0.7 (the "ambiguous zone"),
+        operators need to understand *which* failure mode contributes most.
+
+        Returns:
+            Dict with murphy_index, zone classification, ranked mode
+            contributions, and the dominant failure mode.
+        """
+        murphy_index = self.calculate_murphy_index(graph, confidence_state, phase)
+        modes = self._identify_failure_modes(graph, confidence_state, phase)
+
+        # Classify zone
+        if murphy_index < 0.3:
+            zone = "low_risk"
+        elif murphy_index <= 0.7:
+            zone = "ambiguous"
+        else:
+            zone = "high_risk"
+
+        # Rank failure modes by contribution (loss * probability)
+        contributions = []
+        for mode in modes:
+            contribution = mode["loss"] * mode["probability"]
+            contributions.append({
+                "type": mode["type"],
+                "contribution": round(contribution, 4),
+                "loss": round(mode["loss"], 4),
+                "probability": round(mode["probability"], 4),
+            })
+        contributions.sort(key=lambda c: c["contribution"], reverse=True)
+
+        dominant = contributions[0]["type"] if contributions else "none"
+
+        return {
+            "murphy_index": round(murphy_index, 4),
+            "zone": zone,
+            "dominant_failure_mode": dominant,
+            "contributions": contributions,
+        }
