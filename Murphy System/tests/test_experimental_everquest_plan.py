@@ -712,7 +712,6 @@ class TestCrossDocumentConsistency:
     def test_plan_section_numbers_unique(self):
         """Verify no duplicate subsection numbers in the main plan."""
         text = _load_doc(self.PLAN)
-        import re
         headings = re.findall(r"^(### \d+\.\d+)\s", text, re.MULTILINE)
         assert len(headings) == len(set(headings)), (
             f"Duplicate subsection numbers found: "
