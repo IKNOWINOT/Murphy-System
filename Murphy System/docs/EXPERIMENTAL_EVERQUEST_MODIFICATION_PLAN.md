@@ -322,7 +322,7 @@ The leveling experience is designed to **mirror the original EverQuest progressi
 - Characters who reach Plane of Time and complete the final encounter have **finished the journey** and can enter the Remake System
 - The experience is designed so that reaching the end of PoP feels like a genuine achievement, not an inevitability
 
-### 4.2 Progression Unlock Schedule
+### 4.3 Progression Unlock Schedule
 
 | Era | Level Cap | Key Content | Duration |
 |---|---|---|---|
@@ -332,7 +332,7 @@ The leveling experience is designed to **mirror the original EverQuest progressi
 | **Luclin** | 65 | Luclin zones, Vex Thal, AAs introduced | 8 weeks |
 | **Planes of Power** | 65 | Planar progression, Plane of Time, full AA | Permanent |
 
-### 4.3 Sourcerior in Progression
+### 4.4 Sourcerior in Progression
 
 The Sourcerior class is available from Classic era but its abilities scale through progression:
 
@@ -719,6 +719,8 @@ The raid leader gains Murphy-powered moderation tools:
 - [ ] Configure original EQ XP rates and leveling curve (hell levels, death penalty, corpse runs)
 - [ ] Implement soul engine with memory/archive/recall
 - [ ] Create Sourcerior class in spell/ability tables
+- [ ] Configure Sourcerior eligible races (Dark Elf, Erudite, Human, High Elf, Gnome)
+- [ ] Configure Sourcerior armor restrictions (cloth, leather, Fungi Tunic)
 - [ ] Implement AI agent class archetypes (pure melee, int caster, cleric)
 - [ ] Define immutable class play-style templates for each agent archetype
 - [ ] Basic agent spawning with soul documents
@@ -729,8 +731,12 @@ The raid leader gains Murphy-powered moderation tools:
 - [ ] Implement Sourcerior abilities (procs, pets, flame blink, sacrifice)
 - [ ] Implement Invoke Pet / Meld system (earth, air, fire, water aspects)
 - [ ] Implement AE mez spells from enchanter category
-- [ ] Implement song-like proc system (overhaste, buff, heal)
+- [ ] Implement bard proc line system (overhaste, ATK, AC, pet heal — weaker than bard equivalents)
 - [ ] Balance pet scaling (6 pets, four elements, low HP, decent damage)
+- [ ] Implement single-element pet rule (one element at a time; dismiss all on element switch)
+- [ ] Implement Discipline of Rumblecrush (tanking disc — pets gain Defensive-like buff; procs cost mana)
+- [ ] Implement Lord of the Maelstrom discipline (level 60 raid drop — lifts single-element restriction)
+- [ ] Implement weapon restrictions (1H slashing, 1H piercing, staves only — no 1H blunt)
 - [ ] Implement two-handed staff weapon class and epic quest framework
 - [ ] Implement agent permadeath system (death archival, soul removal)
 - [ ] Implement betrayal detection and resurrection exception

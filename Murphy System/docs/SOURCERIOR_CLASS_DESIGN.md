@@ -379,7 +379,7 @@ The Sourcerior scales from mostly-monk at low levels to a fully hybrid class at 
 | **Melee DPS** | Higher sustained single-target | Lower sustained, higher AE |
 | **Survivability** | Feign death (reliable aggro drop) | Flame blink (repositioning + aggro dump) |
 | **Utility** | Pulling, splitting | AE CC, pet tanking, group procs |
-| **Pets** | None | Up to 6 fire elementals |
+| **Pets** | None | Up to 6 elementals (single element unless Lord of the Maelstrom) |
 | **Group value** | Pure DPS + puller | DPS + minor CC + minor bard-like buffs |
 
 ### 4.2 vs Mage

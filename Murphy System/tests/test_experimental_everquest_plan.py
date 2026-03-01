@@ -633,8 +633,91 @@ class TestSourceriorClassDesign:
 
 
 # ===========================================================================
-# Race Cultural Identity Design Document
+# Cross-Document Consistency — Sourcerior features match in both docs
 # ===========================================================================
+
+
+class TestCrossDocumentConsistency:
+    """Verify key Sourcerior features are documented consistently in both
+    the main plan and the class design document."""
+
+    PLAN = "EXPERIMENTAL_EVERQUEST_MODIFICATION_PLAN.md"
+    CLASS = "SOURCERIOR_CLASS_DESIGN.md"
+
+    def test_both_mention_rumblecrush(self):
+        plan = _load_doc(self.PLAN).lower()
+        cls = _load_doc(self.CLASS).lower()
+        assert "rumblecrush" in plan
+        assert "rumblecrush" in cls
+
+    def test_both_mention_lord_of_the_maelstrom(self):
+        plan = _load_doc(self.PLAN).lower()
+        cls = _load_doc(self.CLASS).lower()
+        assert "lord of the maelstrom" in plan
+        assert "lord of the maelstrom" in cls
+
+    def test_both_mention_single_element_rule(self):
+        plan = _load_doc(self.PLAN).lower()
+        cls = _load_doc(self.CLASS).lower()
+        assert "single-element" in plan or "single element" in plan or "one element" in plan
+        assert "single-element" in cls or "single element" in cls or "one element" in cls
+
+    def test_both_mention_bard_proc_line(self):
+        plan = _load_doc(self.PLAN).lower()
+        cls = _load_doc(self.CLASS).lower()
+        assert "bard" in plan and "proc" in plan
+        assert "bard" in cls and "proc" in cls
+
+    def test_both_mention_eligible_races(self):
+        plan = _load_doc(self.PLAN).lower()
+        cls = _load_doc(self.CLASS).lower()
+        for race in ["dark elf", "erudite", "human", "high elf", "gnome"]:
+            assert race in plan, f"{race} missing from main plan"
+            assert race in cls, f"{race} missing from class design"
+
+    def test_both_mention_weapon_restrictions(self):
+        plan = _load_doc(self.PLAN).lower()
+        cls = _load_doc(self.CLASS).lower()
+        assert "1h slashing" in plan or "1h slash" in plan
+        assert "1h slashing" in cls or "1h slash" in cls
+        assert "piercing" in plan
+        assert "piercing" in cls
+
+    def test_both_mention_fungi_tunic(self):
+        plan = _load_doc(self.PLAN).lower()
+        cls = _load_doc(self.CLASS).lower()
+        assert "fungi" in plan
+        assert "fungi" in cls
+
+    def test_both_mention_defensive_disc_comparison(self):
+        plan = _load_doc(self.PLAN).lower()
+        cls = _load_doc(self.CLASS).lower()
+        assert "defensive" in plan
+        assert "defensive" in cls
+
+    def test_both_mention_beastlord_synergy(self):
+        plan = _load_doc(self.PLAN).lower()
+        cls = _load_doc(self.CLASS).lower()
+        assert "beastlord" in plan
+        assert "beastlord" in cls
+
+    def test_plan_implementation_has_rumblecrush_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "rumblecrush" in plan and ("implement" in plan or "[ ]" in plan)
+
+    def test_plan_implementation_has_maelstrom_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "maelstrom" in plan and ("implement" in plan or "[ ]" in plan)
+
+    def test_plan_section_numbers_unique(self):
+        """Verify no duplicate subsection numbers in the main plan."""
+        text = _load_doc(self.PLAN)
+        import re
+        headings = re.findall(r"^(### \d+\.\d+)\s", text, re.MULTILINE)
+        assert len(headings) == len(set(headings)), (
+            f"Duplicate subsection numbers found: "
+            f"{[h for h in headings if headings.count(h) > 1]}"
+        )
 
 
 class TestRaceCulturalIdentityDesign:
