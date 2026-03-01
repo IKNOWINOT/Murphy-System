@@ -43,7 +43,7 @@ step "Step 1: Create D1 Database"
 # ─────────────────────────────────────────────
 
 # Check if database already exists
-EXISTING_DB=$(npx wrangler d1 list 2>/dev/null | grep "murphy-system-db" || true)
+EXISTING_DB=$(npx wrangler d1 list 2>/dev/null | grep -w "murphy-system-db" || true)
 
 if [ -n "$EXISTING_DB" ]; then
   warn "D1 database 'murphy-system-db' already exists."
@@ -80,7 +80,7 @@ fi
 step "Step 2: Create R2 Bucket"
 # ─────────────────────────────────────────────
 
-EXISTING_R2=$(npx wrangler r2 bucket list 2>/dev/null | grep "murphy-agent-artifacts" || true)
+EXISTING_R2=$(npx wrangler r2 bucket list 2>/dev/null | grep -w "murphy-agent-artifacts" || true)
 if [ -n "$EXISTING_R2" ]; then
   warn "R2 bucket 'murphy-agent-artifacts' already exists."
 else
@@ -92,7 +92,7 @@ fi
 step "Step 3: Create Queue"
 # ─────────────────────────────────────────────
 
-EXISTING_Q=$(npx wrangler queues list 2>/dev/null | grep "murphy-hitl-approvals" || true)
+EXISTING_Q=$(npx wrangler queues list 2>/dev/null | grep -w "murphy-hitl-approvals" || true)
 if [ -n "$EXISTING_Q" ]; then
   warn "Queue 'murphy-hitl-approvals' already exists."
 else

@@ -74,7 +74,7 @@ jobs:
   deploy:
     name: Deploy Worker
     runs-on: ubuntu-latest
-    needs: [typecheck, migrate]
+    needs: typecheck
     if: >-
       github.event_name == 'push' ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_worker == 'true')
@@ -105,6 +105,11 @@ jobs:
           echo "${{ secrets.CF_STRIPE_WEBHOOK_SECRET }}" | npx wrangler secret put STRIPE_WEBHOOK_SECRET
           echo "${{ secrets.CF_SERVICE_TOKEN }}" | npx wrangler secret put SERVICE_TOKEN
           echo "${{ secrets.CF_FOUNDER_SECRET }}" | npx wrangler secret put FOUNDER_ASSIGNMENT_SECRET
-          if [ -n "${{ secrets.CF_LLM_KEYS_JSON }}" ]; then
-            echo "${{ secrets.CF_LLM_KEYS_JSON }}" | npx wrangler secret put LLM_PROVIDER_KEYS_JSON
-          fi
+        env:
+          CF_LLM_KEYS: ${{ secrets.CF_LLM_KEYS_JSON }}
+
+      - name: Set optional LLM keys secret
+        if: env.CF_LLM_KEYS != ''
+        run: echo "$CF_LLM_KEYS" | npx wrangler secret put LLM_PROVIDER_KEYS_JSON
+        env:
+          CF_LLM_KEYS: ${{ secrets.CF_LLM_KEYS_JSON }}
