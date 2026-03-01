@@ -174,6 +174,18 @@ class MurphyAPIClient:
     def hitl_stats(self) -> dict:
         return self._get("/api/hitl/statistics")
 
+    def librarian_ask(self, message: str) -> dict:
+        payload: dict = {"message": message}
+        if self.session_id:
+            payload["session_id"] = self.session_id
+        return self._post("/api/librarian/ask", payload)
+
+    def llm_status(self) -> dict:
+        return self._get("/api/llm/status")
+
+    def librarian_status(self) -> dict:
+        return self._get("/api/librarian/status")
+
 
 # ---------------------------------------------------------------------------
 # Dialog context — synthetic interview state tracking
@@ -339,6 +351,8 @@ class DialogContext:
 # Mapping of intent keywords → handler method names on the app.
 INTENT_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"\b(health|alive|ping)\b", re.I), "intent_health"),
+    (re.compile(r"^llm[_ ]?status\b", re.I), "intent_llm_status"),
+    (re.compile(r"^librarian[_ ]?status\b", re.I), "intent_librarian_status"),
     (re.compile(r"\b(status|state|dashboard)\b", re.I), "intent_status"),
     (re.compile(r"\b(info|about|version)\b", re.I), "intent_info"),
     (re.compile(r"\b(help|commands|what can)\b", re.I), "intent_help"),
@@ -433,11 +447,13 @@ class StatusBar(Static):
 
     connected = reactive(False)
     api_url = reactive("")
+    llm_enabled = reactive(False)
 
     def render(self) -> str:
+        llm = "[green]LLM ✓[/green]" if self.llm_enabled else "[yellow]LLM ✗[/yellow]"
         if self.connected:
-            return "[bold green]● Connected[/bold green]"
-        return "[bold red]● Disconnected[/bold red]"
+            return f"[bold green]● Connected[/bold green]  {llm}"
+        return f"[bold red]● Disconnected[/bold red]  {llm}"
 
 
 # ---------------------------------------------------------------------------
@@ -519,6 +535,8 @@ class MurphyTerminalApp(App):
                     "[dim]billing[/dim]\n"
                     "[dim]links[/dim]\n"
                     "[dim]plan[/dim]\n"
+                    "[dim]llm status[/dim]\n"
+                    "[dim]librarian status[/dim]\n"
                     "[dim]set api <url>[/dim]\n"
                     "[dim]test connection[/dim]\n"
                     "[dim]reconnect[/dim]\n"
@@ -553,6 +571,7 @@ class MurphyTerminalApp(App):
             self._cancel_reconnect_timer()
             self._write_system(f"Connected to Murphy backend. ({detail})")
             self._ensure_session()
+            self._check_llm_status()
         else:
             status_bar.connected = False
             self._write_system(
@@ -607,6 +626,27 @@ class MurphyTerminalApp(App):
             self._write_system(f"Session created: [cyan]{sid}[/cyan]")
         except Exception:
             pass
+
+    def _check_llm_status(self) -> None:
+        """Query backend LLM status and update the status bar."""
+        status_bar = self.query_one(StatusBar)
+        try:
+            data = self.client.llm_status()
+            enabled = data.get("enabled", False)
+            status_bar.llm_enabled = enabled
+            provider = data.get("provider") or "none"
+            if enabled:
+                model = data.get("model") or "default"
+                self._write_system(f"LLM enabled — provider=[cyan]{provider}[/cyan] model=[cyan]{model}[/cyan]")
+            else:
+                error = data.get("error", "not configured")
+                self._write_system(
+                    f"[yellow]LLM not configured ({error})[/yellow] — "
+                    "running in deterministic mode. "
+                    "Set MURPHY_LLM_PROVIDER and API keys to enable."
+                )
+        except Exception:
+            status_bar.llm_enabled = False
 
     # -- helpers --
 
@@ -677,6 +717,8 @@ class MurphyTerminalApp(App):
                 "[dim]billing[/dim]\n"
                 "[dim]links[/dim]\n"
                 "[dim]plan[/dim]\n"
+                "[dim]llm status[/dim]\n"
+                "[dim]librarian status[/dim]\n"
                 "[dim]set api <url>[/dim]\n"
                 "[dim]test connection[/dim]\n"
                 "[dim]reconnect[/dim]\n"
@@ -701,7 +743,8 @@ class MurphyTerminalApp(App):
             intent = detect_intent(message)
             if intent in ("intent_help", "intent_exit", "intent_health",
                           "intent_status", "intent_set_api", "intent_test_api",
-                          "intent_reconnect", "intent_links", "intent_modules"):
+                          "intent_reconnect", "intent_links", "intent_modules",
+                          "intent_llm_status", "intent_librarian_status"):
                 handler = getattr(self, intent, None)
                 if handler:
                     handler(message)
@@ -730,8 +773,8 @@ class MurphyTerminalApp(App):
             if handler:
                 handler(message)
                 return
-        # Default: send as chat to backend
-        self._send_chat(message)
+        # Default: route through Librarian + LLM
+        self._send_librarian(message)
 
     # -- feedback handling --
 
@@ -797,7 +840,9 @@ class MurphyTerminalApp(App):
             "  • [green]health[/green] — check backend health\n"
             "  • [green]status[/green] — view system status\n"
             "  • [green]info[/green] — system version & information\n"
-            "  • [green]links[/green] — show dashboard and UI URLs\n\n"
+            "  • [green]links[/green] — show dashboard and UI URLs\n"
+            "  • [green]llm status[/green] — check LLM provider configuration\n"
+            "  • [green]librarian status[/green] — check librarian health\n\n"
             "[bold cyan]Onboarding & Interview[/bold cyan]\n"
             "  • [green]start interview[/green] — guided onboarding dialog\n"
             "  • [green]billing[/green] — view billing tiers & subscription\n\n"
@@ -812,7 +857,7 @@ class MurphyTerminalApp(App):
             "  • [green]set api <url>[/green] — change backend address\n"
             "  • [green]test connection[/green] — verify backend reachability\n"
             "  • [green]reconnect[/green] — retry backend connection\n\n"
-            "Or type any natural language message for chat\n"
+            "Or type any natural language message — Murphy will respond conversationally.\n"
             "  • [green]exit[/green] — quit the terminal"
         )
 
@@ -933,16 +978,52 @@ class MurphyTerminalApp(App):
 
     # -- module exposure intents --
 
-    def intent_librarian(self, _msg: str) -> None:
-        self._write_murphy(
-            "[bold cyan]📚 Murphy Librarian[/bold cyan]\n\n"
-            "The Librarian is Murphy's knowledge-base expert. It can:\n"
-            "  • Search system documentation and transcripts\n"
-            "  • Generate execution plans from your requirements\n"
-            "  • Review and synthesize automation workflows\n"
-            "  • Provide module-level guidance and API references\n\n"
-            "Try: [green]execute librarian review[/green] or ask a question about any module."
-        )
+    def intent_librarian(self, msg: str) -> None:
+        # Strip the trigger word to extract the actual question
+        question = re.sub(r"^(librarian|library|knowledge base)\s*", "", msg, flags=re.I).strip()
+        if not question:
+            question = "What can you help me with?"
+        self._send_librarian(question)
+
+    def intent_llm_status(self, _msg: str) -> None:
+        try:
+            data = self.client.llm_status()
+            enabled = data.get("enabled", False)
+            provider = data.get("provider") or "none"
+            model = data.get("model") or "n/a"
+            healthy = data.get("healthy", False)
+            error = data.get("error", "")
+            if enabled:
+                self._write_murphy(
+                    f"[bold cyan]🤖 LLM Status[/bold cyan]\n\n"
+                    f"  Provider : [green]{provider}[/green]\n"
+                    f"  Model    : [green]{model}[/green]\n"
+                    f"  Healthy  : {'[green]yes[/green]' if healthy else '[red]no[/red]'}"
+                )
+            else:
+                self._write_murphy(
+                    f"[bold yellow]🤖 LLM Status — Not Configured[/bold yellow]\n\n"
+                    f"  Error: {error}\n\n"
+                    "To enable LLM, set these environment variables:\n"
+                    "  [green]MURPHY_LLM_PROVIDER[/green] = groq\n"
+                    "  [green]GROQ_API_KEY[/green] = <your key>\n"
+                    "  [green]MURPHY_LLM_MODEL[/green] = llama3-8b-8192  (optional)"
+                )
+        except Exception as exc:
+            self._write_murphy(f"[red]Could not fetch LLM status: {self._friendly_error(exc)}[/red]")
+
+    def intent_librarian_status(self, _msg: str) -> None:
+        try:
+            data = self.client.librarian_status()
+            enabled = data.get("enabled", False)
+            healthy = data.get("healthy", False)
+            self._write_murphy(
+                f"[bold cyan]📚 Librarian Status[/bold cyan]\n\n"
+                f"  Enabled : {'[green]yes[/green]' if enabled else '[yellow]no[/yellow]'}\n"
+                f"  Healthy : {'[green]yes[/green]' if healthy else '[yellow]no[/yellow]'}"
+            )
+        except Exception as exc:
+            self._write_murphy(f"[red]Could not fetch librarian status: {self._friendly_error(exc)}[/red]")
 
     def intent_modules(self, _msg: str) -> None:
         lines = ["[bold cyan]📦 Murphy System — Module ↔ Command Map[/bold cyan]\n"]
@@ -988,10 +1069,27 @@ class MurphyTerminalApp(App):
 
     # -- chat fallback --
 
+    def _send_librarian(self, message: str) -> None:
+        """Route a message through the Librarian + LLM endpoint."""
+        try:
+            data = self.client.librarian_ask(message)
+            response = data.get("reply_text") or data.get("message") or self._format_json(data)
+            mode = data.get("mode", "unknown")
+            suggested = data.get("suggested_commands", [])
+            text = str(response)
+            if suggested:
+                text += "\n\n[dim]Suggested: " + ", ".join(f"[green]{c}[/green]" for c in suggested) + "[/dim]"
+            if mode == "deterministic":
+                text += "\n[dim](deterministic mode — set MURPHY_LLM_PROVIDER to enable LLM)[/dim]"
+            self._write_murphy(text)
+        except Exception:
+            # Fall back to /api/chat if /api/librarian/ask is unavailable
+            self._send_chat(message)
+
     def _send_chat(self, message: str) -> None:
         try:
             data = self.client.chat(message)
-            response = data.get("response") or data.get("message") or self._format_json(data)
+            response = data.get("reply_text") or data.get("response") or data.get("message") or self._format_json(data)
             self._write_murphy(str(response))
         except Exception as exc:
             self._write_murphy(
