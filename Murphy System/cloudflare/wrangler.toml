@@ -1,0 +1,37 @@
+name = "murphy-system-edge"
+main = "src/worker.ts"
+compatibility_date = "2024-01-15"
+
+[vars]
+ENVIRONMENT = "production"
+PLATFORM_FEE_PERCENT = "15"
+FAIRNESS_THRESHOLD = "0.7"
+MIN_COMPATIBILITY_SCORE = "0.5"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "murphy-system-db"
+database_id = "REPLACE_WITH_ACTUAL_D1_DATABASE_ID"
+
+[[r2_buckets]]
+binding = "AGENT_ARTIFACTS"
+bucket_name = "murphy-agent-artifacts"
+
+[[queues.producers]]
+binding = "APPROVAL_QUEUE"
+queue = "murphy-hitl-approvals"
+
+[[queues.consumers]]
+queue = "murphy-hitl-approvals"
+max_batch_size = 10
+max_batch_timeout = 30
+
+[durable_objects]
+bindings = [
+  { name = "NEGOTIATION_SESSION", class_name = "NegotiationSession" },
+  { name = "SHADOW_AGENT_STATE", class_name = "ShadowAgentState" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["NegotiationSession", "ShadowAgentState"]

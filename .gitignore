@@ -79,8 +79,9 @@ handoff_queue_snapshot_*.json
 # Bytecode caches (repo has nested folders)
 **/__pycache__/
 
-# Node modules (if any frontend tooling)
+# Node modules
 node_modules/
+Murphy System/cloudflare/node_modules/
 
 # OS files
 Thumbs.db
