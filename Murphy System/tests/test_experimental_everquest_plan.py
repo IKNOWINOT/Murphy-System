@@ -23,6 +23,10 @@ integration.  The plan covers:
   - Race cultural identity system (cultural mappings for all races)
   - Orc as new playable race (Crushbone starting zone)
   - Streaming pipeline
+  - EQ isolation boundary (sandbox gateway, tight separation from Murphy core)
+  - Agent language restriction (in-game languages + Common Tongue only, no code)
+  - Agent self-preservation (flee on "run" command, healer death, hybrid healer exception)
+  - Liquify ability (Sourcerior aggro drop + invisibility with water pets, level 40+)
 
 Each test class validates a planning document's structure and required content.
 
@@ -261,6 +265,79 @@ class TestExperimentalEverQuestPlan:
         assert "planes of power" in lower
         assert "ending" in lower or "culmination" in lower or "capstone" in lower
 
+    # --- EQ Isolation Boundary ---
+
+    def test_has_eq_isolation_boundary_section(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "EQ Isolation Boundary" in text or "Isolation Boundary" in text
+
+    def test_has_sandbox_gateway(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "sandbox" in lower and "gateway" in lower
+
+    def test_eq_gateway_module_defined(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "eq_gateway" in text
+
+    def test_no_code_capability_for_agents(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "cannot" in lower and "code" in lower or "no code" in lower or "zero knowledge of programming" in lower
+
+    def test_one_way_data_flow(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "one-way" in lower or "one way" in lower
+
+    # --- Agent Language Restriction ---
+
+    def test_has_agent_language_restriction(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "language restriction" in lower or "language capability" in lower
+
+    def test_common_tongue_defined(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Common Tongue" in text
+
+    def test_agents_cannot_produce_code(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "cannot" in lower and "code" in lower
+
+    def test_no_fourth_wall_awareness(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "fourth wall" in lower or "fourth-wall" in lower
+
+    # --- Agent Self-Preservation ---
+
+    def test_has_self_preservation_section(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Self-Preservation" in text or "self-preservation" in text
+
+    def test_flee_on_run_command(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "run" in lower and "flee" in lower
+
+    def test_flee_on_healer_death(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "healer" in lower and ("death" in lower or "dies" in lower)
+        assert "flee" in lower
+
+    def test_hybrid_healer_exception(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "hybrid healer" in lower or "hybrid" in lower and "healer" in lower
+
+    def test_liquify_referenced_in_flee(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "liquify" in lower
+
 
 # ===========================================================================
 # OpenClaw Molty Soul Concept Document
@@ -361,6 +438,54 @@ class TestOpenClawMoltySoulConcept:
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
         assert "death state" in lower or "death_state" in lower or "alive/dead" in lower
+
+    # --- Language Restriction in Soul ---
+
+    def test_has_language_layer_in_soul(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "language" in lower and ("layer" in lower or "capability" in lower)
+
+    def test_soul_language_common_tongue(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Common Tongue" in text
+
+    def test_soul_no_code_capability(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "cannot" in lower and "code" in lower or "no" in lower and "programming" in lower
+
+    def test_soul_sandbox_gateway_enforcement(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "sandbox" in lower or "eq_gateway" in lower or "gateway" in lower
+
+    # --- Self-Preservation in Soul ---
+
+    def test_has_self_preservation_layer_in_soul(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "self-preservation" in lower or "self preservation" in lower
+
+    def test_soul_flee_on_run_command(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "run" in lower and "flee" in lower
+
+    def test_soul_flee_on_healer_death(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "healer" in lower and ("death" in lower or "dies" in lower)
+
+    def test_soul_hybrid_healer_exception(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "hybrid healer" in lower or "hybrid" in lower and "healer" in lower
+
+    def test_soul_liquify_escape_referenced(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "liquify" in lower
 
 
 # ===========================================================================
@@ -631,6 +756,40 @@ class TestSourceriorClassDesign:
         lower = text.lower()
         assert "no 1h blunt" in lower or "cannot" in lower and "1h blunt" in lower or "no" in lower and "blunt" in lower
 
+    # --- Liquify Ability ---
+
+    def test_liquify_ability_exists(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "liquify" in lower
+
+    def test_liquify_requires_water_pet(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "water" in lower and "pet" in lower
+        assert "liquify" in lower
+
+    def test_liquify_aggro_drop(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "aggro" in lower and "drop" in lower or "aggro drop" in lower
+
+    def test_liquify_invisibility(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "invisibility" in lower or "invisible" in lower or "invis" in lower
+
+    def test_liquify_level_40(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "liquify" in lower
+        assert "40" in text
+
+    def test_liquify_in_ability_table(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "liquify i" in lower or "liquify ii" in lower
+
 
 # ===========================================================================
 # Cross-Document Consistency — Sourcerior features match in both docs
@@ -718,6 +877,45 @@ class TestCrossDocumentConsistency:
             f"{[h for h in headings if headings.count(h) > 1]}"
         )
 
+    # --- EQ Isolation, Language, Self-Preservation consistency ---
+
+    def test_both_mention_liquify(self):
+        plan = _load_doc(self.PLAN).lower()
+        cls = _load_doc(self.CLASS).lower()
+        assert "liquify" in plan
+        assert "liquify" in cls
+
+    def test_plan_and_soul_mention_language_restriction(self):
+        plan = _load_doc(self.PLAN).lower()
+        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
+        assert "language" in plan and ("restriction" in plan or "capability" in plan)
+        assert "language" in soul and ("restriction" in soul or "capability" in soul)
+
+    def test_plan_and_soul_mention_self_preservation(self):
+        plan = _load_doc(self.PLAN).lower()
+        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
+        assert "self-preservation" in plan or "self preservation" in plan
+        assert "self-preservation" in soul or "self preservation" in soul
+
+    def test_plan_and_soul_mention_flee_on_healer_death(self):
+        plan = _load_doc(self.PLAN).lower()
+        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
+        assert "healer" in plan and "flee" in plan
+        assert "healer" in soul and "flee" in soul
+
+    def test_plan_and_soul_mention_hybrid_healer_exception(self):
+        plan = _load_doc(self.PLAN).lower()
+        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
+        assert "hybrid" in plan and "healer" in plan
+        assert "hybrid" in soul and "healer" in soul
+
+    def test_plan_has_isolation_implementation_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "isolation" in plan and ("implement" in plan or "[ ]" in plan)
+
+    def test_plan_has_liquify_implementation_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "liquify" in plan and ("implement" in plan or "[ ]" in plan)
 
 class TestRaceCulturalIdentityDesign:
     """Validate RACE_CULTURAL_IDENTITY_DESIGN.md structure."""

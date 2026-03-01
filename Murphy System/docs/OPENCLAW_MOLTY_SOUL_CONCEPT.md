@@ -59,6 +59,18 @@ The game agent soul extends the Rosetta soul pattern with game-specific layers:
 │   Zone familiarity (mapped areas, known spawns)                │
 │   Player profiles (built from encounters, not inspection)       │
 ├────────────────────────────────────────────────────────────────┤
+│ LANGUAGE LAYER                                                  │
+│   language_capability: ["Common Tongue", racial_language]        │
+│   No programming language knowledge — agents cannot produce code│
+│   No real-world vocabulary — agents know only in-game concepts  │
+│   Enforced by sandbox gateway (eq_gateway) at isolation boundary│
+├────────────────────────────────────────────────────────────────┤
+│ SELF-PRESERVATION LAYER                                         │
+│   Flee triggers: "run" command, healer death, HP threshold      │
+│   Flee exception: hybrid healer sustaining the group            │
+│   Agents treat their life as their only life (permadeath real)  │
+│   Sourceriors use Liquify (water pets, level 40+) to escape     │
+├────────────────────────────────────────────────────────────────┤
 │ DEATH STATE                                                     │
 │   Alive/dead status, death cause, killer identity               │
 │   Betrayal flag — sole exception to permadeath                  │
@@ -250,6 +262,36 @@ A core design principle: agents express themselves **exclusively through actions
 - This creates emergent storytelling — "why does this NPC keep challenging me?" or "this cleric always heals me"
 - No verbal communication prevents toxic NPC behavior and keeps the world immersive
 - Agent feelings are a mystery the player solves through gameplay, not through reading text
+
+### 4.6 Language Restriction — In-Game Languages Only
+
+Agents inside the EQ experiment operate under a **strict language restriction**: they can only communicate in and understand **in-game languages and Common Tongue**. They have **no knowledge of programming languages, code, or real-world technical concepts**.
+
+- The soul document `language_capability` field defines which languages the agent knows: Common Tongue + their racial language
+- Agents **cannot produce code** in any form — no programming syntax, no script generation, no technical vocabulary
+- Agents **cannot reference the real world** — they have no knowledge of anything outside the game world of Norrath
+- This restriction is enforced by the **sandbox gateway** (eq_gateway) at the EQ isolation boundary
+- Language restriction applies to all soul layers — memory, recall, knowledge, and faction interactions are all scoped to in-game concepts
+
+### 4.7 Self-Preservation — Flee Behavior
+
+Because agents live under **permadeath**, they treat their life as their **only life** and will flee when survival is threatened.
+
+**Flee triggers:**
+- **"Run" command** — any group member saying or signaling "run" causes the agent to flee
+- **Healer death** — if the group's dedicated cleric dies, agents flee unless a hybrid healer (beastlord, druid, Sourcerior with pet heals) is sustaining the group
+- **HP threshold** — agents evaluate flee at 20% HP when no healer is available
+- **Group wipe momentum** — 3+ group member deaths in rapid succession triggers flee
+
+**Flee exceptions:**
+- Agents do not flee if a **hybrid healer** is keeping the group alive after the primary healer falls
+- Town guards defending a siege fight to the death (they do not flee)
+
+**Self-preservation behavior in soul:**
+- Flee decisions are driven by the self-preservation layer in the soul document
+- Agents that successfully flee retain their complete soul — memory, gear, faction standing
+- Fleeing agents remember the encounter and hold grudges against entities that caused the wipe
+- Sourcerior agents use **Liquify** (water pets, level 40+) for aggro drop + invisibility escape
 
 ---
 
