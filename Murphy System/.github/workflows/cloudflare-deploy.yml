@@ -1,0 +1,110 @@
+name: Cloudflare Edge Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Murphy System/cloudflare/**"
+  workflow_dispatch:
+    inputs:
+      run_migrations:
+        description: "Run D1 migrations"
+        required: false
+        type: boolean
+        default: true
+      deploy_worker:
+        description: "Deploy worker"
+        required: false
+        type: boolean
+        default: true
+
+defaults:
+  run:
+    working-directory: "Murphy System/cloudflare"
+
+env:
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+jobs:
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: "Murphy System/cloudflare/package-lock.json"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript type check
+        run: npx tsc --noEmit
+
+  migrate:
+    name: D1 Migrations
+    runs-on: ubuntu-latest
+    needs: typecheck
+    if: >-
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.run_migrations == 'true')
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: "Murphy System/cloudflare/package-lock.json"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set D1 database_id in wrangler.toml
+        run: |
+          sed -i "s/REPLACE_WITH_ACTUAL_D1_DATABASE_ID/${{ secrets.D1_DATABASE_ID }}/" wrangler.toml
+
+      - name: Run D1 migrations
+        run: npx wrangler d1 execute murphy-system-db --file=migrations/0001_initial.sql --remote
+
+  deploy:
+    name: Deploy Worker
+    runs-on: ubuntu-latest
+    needs: [typecheck, migrate]
+    if: >-
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_worker == 'true')
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: "Murphy System/cloudflare/package-lock.json"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set D1 database_id in wrangler.toml
+        run: |
+          sed -i "s/REPLACE_WITH_ACTUAL_D1_DATABASE_ID/${{ secrets.D1_DATABASE_ID }}/" wrangler.toml
+
+      - name: Deploy worker
+        run: npx wrangler deploy
+
+      - name: Set worker secrets
+        run: |
+          echo "${{ secrets.CF_JWT_SECRET }}" | npx wrangler secret put JWT_SECRET
+          echo "${{ secrets.CF_STRIPE_SECRET_KEY }}" | npx wrangler secret put STRIPE_SECRET_KEY
+          echo "${{ secrets.CF_STRIPE_PUBLISHABLE_KEY }}" | npx wrangler secret put STRIPE_PUBLISHABLE_KEY
+          echo "${{ secrets.CF_STRIPE_WEBHOOK_SECRET }}" | npx wrangler secret put STRIPE_WEBHOOK_SECRET
+          echo "${{ secrets.CF_SERVICE_TOKEN }}" | npx wrangler secret put SERVICE_TOKEN
+          echo "${{ secrets.CF_FOUNDER_SECRET }}" | npx wrangler secret put FOUNDER_ASSIGNMENT_SECRET
+          if [ -n "${{ secrets.CF_LLM_KEYS_JSON }}" ]; then
+            echo "${{ secrets.CF_LLM_KEYS_JSON }}" | npx wrangler secret put LLM_PROVIDER_KEYS_JSON
+          fi
