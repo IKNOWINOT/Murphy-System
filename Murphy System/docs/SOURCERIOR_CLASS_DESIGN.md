@@ -1,7 +1,7 @@
 # Sourcerior Class Design
 
 **Murphy System — Experimental EverQuest Class Specification**
-**Version:** 1.0.0
+**Version:** 2.0.0
 **Date:** 2026-03-01
 **Status:** Experimental / Draft
 **Parent:** `EXPERIMENTAL_EVERQUEST_MODIFICATION_PLAN.md`
@@ -58,25 +58,41 @@ The Sourcerior's defining mechanic: **melee attacks trigger damaging AE procs** 
 - AE radius increases at higher tier procs
 - Procs **replace kicks** as the primary secondary DPS source at higher levels
 
-### 2.3 Pet System — Fire Elementals
+### 2.3 Pet System — Elemental Companions
 
-The Sourcerior summons **minor fire elementals** — up to 6 active at once. Pets are low HP but deal decent damage scaled to the level of the summoning spell.
+The Sourcerior summons **minor elementals** of four types — up to 6 active at once. Pets are low HP but deal decent damage scaled to the level of the summoning spell. Each element has a distinct combat role that becomes critical during **Invoke Pet / Meld** (see section 2.8).
 
-| Summon Spell | Level | Pet Level | Max HP | Damage/Round | Notes |
-|---|---|---|---|---|---|
-| **Summon: Spark** | 4 | 4 | 50 | 5–8 | First pet, very basic |
-| **Summon: Ember Wisp** | 12 | 12 | 120 | 12–18 | Can be summoned alongside Spark |
-| **Summon: Flame Sprite** | 22 | 22 | 250 | 25–35 | Unlocks 3-pet maximum |
-| **Summon: Fire Mote** | 32 | 32 | 400 | 40–55 | Unlocks 4-pet maximum |
-| **Summon: Blaze Imp** | 42 | 42 | 600 | 60–80 | Unlocks 5-pet maximum |
-| **Summon: Inferno Minion** | 52 | 52 | 850 | 85–110 | Unlocks 6-pet maximum |
+| Summon Spell | Level | Element | Pet Level | Max HP | Damage/Round | Notes |
+|---|---|---|---|---|---|---|
+| **Summon: Spark** | 4 | Fire | 4 | 50 | 5–8 | First pet, very basic |
+| **Summon: Dust Devil** | 8 | Air | 8 | 45 | 7–10 | Fast attacks, lower HP |
+| **Summon: Ember Wisp** | 12 | Fire | 12 | 120 | 12–18 | Unlocks 3-pet maximum |
+| **Summon: Stone Mote** | 16 | Earth | 16 | 180 | 8–12 | High HP, taunts on spawn |
+| **Summon: Flame Sprite** | 22 | Fire | 22 | 250 | 25–35 | Unlocks 4-pet maximum |
+| **Summon: Tidal Wisp** | 26 | Water | 26 | 200 | 18–28 | Boosts magic crit nearby |
+| **Summon: Fire Mote** | 32 | Fire | 32 | 400 | 40–55 | Unlocks 5-pet maximum |
+| **Summon: Gale Sprite** | 36 | Air | 36 | 320 | 45–60 | Fast, flanking attacks |
+| **Summon: Blaze Imp** | 42 | Fire | 42 | 600 | 60–80 | Unlocks 6-pet maximum |
+| **Summon: Boulder Imp** | 46 | Earth | 46 | 750 | 35–50 | Highest HP pet, taunts |
+| **Summon: Inferno Minion** | 52 | Fire | 52 | 850 | 85–110 | Strongest fire pet |
+| **Summon: Torrent Minion** | 56 | Water | 56 | 700 | 70–95 | Strongest water pet |
+
+**Elemental types and roles:**
+
+| Element | HP | Damage | Special Trait | Meld Aspect |
+|---|---|---|---|---|
+| **Earth** | Highest | Low | Taunts on spawn, high AC | HP boost + taunt |
+| **Air** | Lowest | High | Fast attack speed, flanking | Backstab |
+| **Fire** | Medium | Highest | Damage shield aura | DS + area burn |
+| **Water** | Medium | Medium | Magic crit aura nearby | Crit magic |
 
 **Pet behavior:**
 - Pets auto-attack the Sourcerior's target
-- Pets have no special abilities beyond melee (they are "minor" elementals)
+- Each element has a passive special trait active while summoned
 - Pets persist until killed or dismissed
 - Summoning a pet while at max count replaces the lowest-level pet
 - All pets benefit from the Sourcerior's proc-based pet buffs
+- Pets can be consumed via **Invoke Pet / Meld** (section 2.8) or **Sacrifice** (section 2.7)
 
 ### 2.4 Flame Blink (Replaces Feign Death)
 
@@ -157,20 +173,106 @@ The Sourcerior can **consume active pets** to release their energy as a direct d
 - Instant cast — can be used while running
 - After sacrifice, pets must be resummoned (mana cost, cast time)
 
+### 2.8 Invoke Pet — Elemental Meld System
+
+The Sourcerior's signature advanced mechanic: **Invoke Pet** allows the player to **meld with one of their active pets**, absorbing it and gaining its elemental aspect as a temporary personal buff. The meld lasts until cancelled or the duration expires. Only one meld can be active at a time; invoking a new meld replaces the current one. The pet is consumed on meld.
+
+**Meld aspects by element:**
+
+| Invoke Spell | Level | Element | Meld Aspect | Duration |
+|---|---|---|---|---|
+| **Invoke: Earth** | 20 | Earth | +25% max HP, gains **Taunt** ability, +20 AC | 120s |
+| **Invoke: Air** | 24 | Air | Gains **Backstab** ability (30% bonus from behind), +15% attack speed | 120s |
+| **Invoke: Fire** | 28 | Fire | Gains **Damage Shield** (15–40 per hit taken), **Area Burn** AE pulse (50–120 fire, 6s tick) | 120s |
+| **Invoke: Water** | 32 | Water | +15% **Critical Magic** chance on all procs and spells, +10% mana regen | 120s |
+
+**Higher-rank melds (scale with pet level used):**
+
+| Invoke Spell | Level | Element | Enhanced Aspect | Duration |
+|---|---|---|---|---|
+| **Invoke: Greater Earth** | 40 | Earth | +40% max HP, Taunt, +35 AC, minor regen | 150s |
+| **Invoke: Greater Air** | 42 | Air | Backstab (45% bonus), +25% attack speed, minor dodge | 150s |
+| **Invoke: Greater Fire** | 44 | Fire | DS (30–70), Area Burn AE (100–220, 6s tick), fire resist aura | 150s |
+| **Invoke: Greater Water** | 46 | Water | +25% Crit Magic, +20% mana regen, minor spell haste | 150s |
+
+**Meld mechanics:**
+- The melded pet is **consumed** — it disappears and its power merges with the Sourcerior
+- Only **one meld** can be active at a time; invoking a new element replaces the current meld
+- The Sourcerior can meld with **whatever elemental pets their current level spells allow**
+- Meld potency scales with the **level of the pet consumed** — higher-level pets yield stronger aspects
+- **Base weapon damage** affects meld effectiveness: higher base DMG on equipped weapon amplifies meld bonuses (see section 2.9 — Epic Weapon)
+- During meld, the Sourcerior's appearance shifts to reflect the element (stone skin, wind aura, fire glow, water shimmer)
+- Meld can be cancelled early; the pet is still consumed
+
+**Tactical usage:**
+- **Earth Meld** for tanking or emergency survival — high HP + taunt pulls aggro off healers
+- **Air Meld** for burst DPS — backstab + attack speed is devastating from behind mobs
+- **Fire Meld** for AE situations — damage shield + area burn in conjunction with AE procs
+- **Water Meld** for magic-heavy phases — crit magic boosts all proc damage significantly
+
+### 2.9 Epic Weapon — Staff of Converging Souls
+
+The Sourcerior's epic weapon is a **very slow two-handed staff with heavy base damage**. It is the strongest pet focus item in the game for the Sourcerior and directly amplifies the Invoke Pet / Meld system.
+
+**Staff of Converging Souls**
+
+| Stat | Value |
+|---|---|
+| **Type** | Two-Handed Blunt (Staff) |
+| **Damage** | 65 |
+| **Delay** | 52 (very slow) |
+| **Ratio** | 1.25 (excellent for procs) |
+| **AC** | 25 |
+| **STR** | +25 |
+| **AGI** | +20 |
+| **STA** | +20 |
+| **INT** | +15 |
+| **HP** | +150 |
+| **Mana** | +100 |
+| **Effect: Convergence** | Meld duration +30%, meld potency +25% |
+| **Effect: Soul Focus** | Pet damage +15%, pet HP +10% |
+| **Proc: Elemental Confluence** | On melee hit (5%): 200–400 damage matching active meld element |
+| **Lore** | *"Four elements bound by discipline, channeled through the one who walks between worlds."* |
+
+**Why base damage matters for meld:**
+- Meld effectiveness scales with the **base damage** of the Sourcerior's equipped weapon
+- Higher base DMG = stronger meld aspect bonuses (HP multiplier, backstab damage, DS value, crit chance)
+- The very slow speed / high damage design of staves maximizes this scaling
+- This makes **two-handed staves** the Sourcerior's optimal weapon class
+- The epic staff has the highest base damage of any Sourcerior-usable weapon, making it the best meld amplifier
+
+**Epic quest design — combines Monk and Mage epic difficulty:**
+
+The epic quest mirrors the difficulty and scope of both the Monk epic (Celestial Fists) and the Mage epic (Orb of Mastery):
+
+| Phase | Monk Parallel | Mage Parallel | Sourcerior Quest |
+|---|---|---|---|
+| **Phase 1** | Headband of the Celestials gathering | Elemental focus gathering | Gather four elemental essences from planar bosses |
+| **Phase 2** | Robe of the Whistling Fists fight | Power of the Elements combines | Meld with each element in specific trial encounters |
+| **Phase 3** | Celestial Fists final combine | Orb of Mastery final fight | Defeat a quad-elemental boss while cycling all four melds |
+| **Phase 4** | — | — | Final combine: four essences + pristine staff blank + soul gem |
+
+**Quest difficulty:**
+- Requires access to Planes of Power zones
+- Multiple raid-level boss encounters
+- Solo trial encounters testing mastery of each meld element
+- Final combine requires tradeskill (smithing 200+) for the staff blank
+- Similar total time investment to Monk and Mage epics
+
 ---
 
 ## 3. Level Scaling Matrix
 
 The Sourcerior scales from mostly-monk at low levels to a fully hybrid class at high levels:
 
-| Level Range | Monk Skills | Proc DPS | Pets | CC | Song Procs | Identity |
-|---|---|---|---|---|---|---|
-| **1–10** | Primary focus | Minor (1 proc) | 1 pet | None | Ember Tempo | "Monk with a spark" |
-| **11–20** | Strong base | 2 procs available | 2 pets | Daze of Embers | Flame Vigor | "Monk with fire magic" |
-| **21–30** | Full monk kit | 3 procs, notable DPS | 3 pets | Daze of Embers | Soulfire Resonance | "True hybrid emerging" |
-| **31–40** | Monk + riposte | 4 procs, strong AE | 4 pets | Flame Stupor | Pyretic Ward | "Fire-channeling monk" |
-| **41–50** | Triple attack | 5 procs, heavy AE | 5 pets | Flame Stupor | Inferno Chorus | "Sourcerior comes online" |
-| **51–60** | Full monk power | All 6 procs, peak AE | 6 pets | Inferno Trance | Blaze Anthem | "Full Sourcerior" |
+| Level Range | Monk Skills | Proc DPS | Pets | CC | Song Procs | Meld | Identity |
+|---|---|---|---|---|---|---|---|
+| **1–10** | Primary focus | Minor (1 proc) | 1 pet | None | Ember Tempo | None | "Monk with a spark" |
+| **11–20** | Strong base | 2 procs available | 2 pets | Daze of Embers | Flame Vigor | Earth Meld | "Monk with fire magic" |
+| **21–30** | Full monk kit | 3 procs, notable DPS | 3 pets | Daze of Embers | Soulfire Resonance | Earth/Air/Fire Meld | "True hybrid emerging" |
+| **31–40** | Monk + riposte | 4 procs, strong AE | 4 pets | Flame Stupor | Pyretic Ward | All 4 Melds | "Fire-channeling monk" |
+| **41–50** | Triple attack | 5 procs, heavy AE | 5 pets | Flame Stupor | Inferno Chorus | Greater Melds | "Sourcerior comes online" |
+| **51–60** | Full monk power | All 6 procs, peak AE | 6 pets | Inferno Trance | Blaze Anthem | Full Meld + Epic | "Full Sourcerior" |
 
 ---
 
@@ -236,38 +338,40 @@ The Sourcerior scales from mostly-monk at low levels to a fully hybrid class at 
 | Level | New Abilities |
 |---|---|
 | 1 | Hand-to-Hand, Dodge |
-| 4 | Tiger Claw, Summon: Spark |
+| 4 | Tiger Claw, Summon: Spark (Fire) |
 | 6 | Ember Strike (proc) |
-| 8 | Round Kick |
+| 8 | Round Kick, Summon: Dust Devil (Air) |
 | 10 | Ember Tempo (song proc), Sacrifice: Spark |
-| 12 | Summon: Ember Wisp |
+| 12 | Summon: Ember Wisp (Fire) |
 | 13 | Dual Wield |
 | 14 | Flame Lash (proc) |
 | 15 | Eagle Strike |
-| 16 | Double Attack |
+| 16 | Double Attack, Summon: Stone Mote (Earth) |
 | 17 | Flame Blink I |
 | 18 | Flame Vigor (pet heal proc) |
-| 20 | Flying Kick, Daze of Embers (AE mez) |
-| 22 | Summon: Flame Sprite |
-| 24 | Sacrifice: Flame |
+| 20 | Flying Kick, Daze of Embers (AE mez), **Invoke: Earth** |
+| 22 | Summon: Flame Sprite (Fire) |
+| 24 | Sacrifice: Flame, **Invoke: Air** |
 | 25 | Dragon Punch, Riposte |
-| 26 | Inferno Burst (proc) |
-| 28 | Soulfire Resonance (ATK proc) |
-| 32 | Summon: Fire Mote |
+| 26 | Inferno Burst (proc), Summon: Tidal Wisp (Water) |
+| 28 | Soulfire Resonance (ATK proc), **Invoke: Fire** |
+| 32 | Summon: Fire Mote (Fire), **Invoke: Water** |
 | 34 | Flame Stupor (AE mez) |
 | 35 | Flame Blink II |
-| 36 | Pyretic Ward (AC proc) |
+| 36 | Pyretic Ward (AC proc), Summon: Gale Sprite (Air) |
 | 38 | Soulfire Cascade (proc) |
-| 40 | Sacrifice: Inferno |
-| 42 | Summon: Blaze Imp |
-| 44 | Inferno Chorus (haste proc) |
-| 46 | Triple Attack |
+| 40 | Sacrifice: Inferno, **Invoke: Greater Earth** |
+| 42 | Summon: Blaze Imp (Fire), **Invoke: Greater Air** |
+| 44 | Inferno Chorus (haste proc), **Invoke: Greater Fire** |
+| 46 | Triple Attack, Summon: Boulder Imp (Earth), **Invoke: Greater Water** |
 | 48 | Inferno Trance (AE mez) |
 | 50 | Pyre Storm (proc), Flame Blink III |
-| 52 | Summon: Inferno Minion |
+| 52 | Summon: Inferno Minion (Fire) |
 | 54 | Blaze Anthem (group buff proc) |
 | 55 | Sacrifice: Conflagration |
+| 56 | Summon: Torrent Minion (Water) |
 | 60 | Arcane Conflagration (proc) |
+| Epic | **Staff of Converging Souls** (epic quest, see section 2.9) |
 
 ---
 
@@ -286,11 +390,12 @@ The Sourcerior scales from mostly-monk at low levels to a fully hybrid class at 
 
 ### 7.2 Gear Restrictions
 
-- Can wear **leather** armor (like monks)
-- Can use **hand-to-hand** weapons, **1H blunt**, **1H slash**
-- Cannot use **shields** (dual wield focus)
+- Can wear **cloth** and **leather** armor
+- **Core weapon: Two-Handed Staves** — primary weapon class, maximizes meld effectiveness via base damage
+- Can also use **hand-to-hand** weapons, **1H blunt**, **1H slash** (for dual wield builds)
 - Can use **range slot** for stat items
 - Weight restrictions similar to monk (heavy gear reduces effectiveness)
+- **Epic weapon** is a two-handed staff (see section 2.9 — Staff of Converging Souls)
 
 ---
 

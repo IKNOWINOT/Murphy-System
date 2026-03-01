@@ -7,9 +7,16 @@ integration.  The plan covers:
 
   - Agent soul architecture with memory/archive/recall (OpenClaw Molty soul.md)
   - Sourcerior class design (monk/mage hybrid)
+  - Invoke Pet / Meld system (elemental aspects)
+  - Epic weapon (two-handed staff)
+  - AI agent classes (pure melee, int caster, cleric)
+  - Individual agent faction with grudge/friendship mechanics
+  - Actions-only expression (agents cannot speak)
   - Voice chat integration with raid-leader admin moderation
   - Faction soul functions and agent warfare
   - Duel and loot system with inspect asymmetry
+  - Progression server (Planes of Power cap)
+  - Remake system (1% stat/skill cap increase per cycle)
   - Streaming pipeline
 
 Each test class validates a planning document's structure and required content.
@@ -120,6 +127,64 @@ class TestExperimentalEverQuestPlan:
         assert "Raid Leader" in text or "raid leader" in text
         assert "moderation" in text.lower()
 
+    def test_has_progression_server_section(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Progression Server" in text or "Planes of Power" in text
+
+    def test_has_remake_system_section(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Remake System" in text or "Remake" in text
+
+    def test_remake_one_percent_increase(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "1%" in text
+        assert "stat" in text.lower() and "cap" in text.lower()
+
+    def test_remake_applies_to_all_classes(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "every class" in text.lower() or "all classes" in text.lower()
+
+    def test_has_ai_agent_classes(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "pure melee" in text.lower()
+        assert "int caster" in text.lower()
+        assert "cleric" in text.lower()
+
+    def test_has_individual_agent_faction(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "individual" in text.lower() and "faction" in text.lower()
+
+    def test_has_grudge_mechanics(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "grudge" in text.lower()
+
+    def test_has_friendship_mechanics(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "friend" in text.lower()
+
+    def test_agents_actions_only_no_verbal(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "actions speak" in text.lower() or "actions only" in text.lower() or "cannot respond verbally" in text.lower()
+
+    def test_agents_cannot_spam_hate(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "cannot spam hate" in text.lower() or "spam hate" in text.lower()
+
+    def test_has_invoke_pet_meld_in_sourcerior_summary(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Meld" in text or "meld" in text
+        assert "Invoke" in text or "invoke" in text
+
+    def test_has_epic_weapon_in_sourcerior_summary(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Epic" in text or "epic" in text
+        assert "staff" in text.lower()
+
+    def test_sourcerior_cloth_and_leather(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "cloth" in text.lower()
+        assert "leather" in text.lower()
+
 
 # ===========================================================================
 # OpenClaw Molty Soul Concept Document
@@ -171,6 +236,33 @@ class TestOpenClawMoltySoulConcept:
     def test_inspect_asymmetry_documented(self):
         text = _load_doc(self.DOC_NAME)
         assert "previously possessed" in text.lower() or "previously_possessed" in text
+
+    def test_has_individual_interaction_faction(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "individual" in text.lower()
+        assert "interaction" in text.lower() or "standing" in text.lower()
+
+    def test_has_grudge_mechanic(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "grudge" in text.lower()
+
+    def test_has_friendship_mechanic(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "friend" in text.lower()
+
+    def test_actions_only_silence_rule(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "actions" in text.lower()
+        assert "cannot" in text.lower() and ("chat" in text.lower() or "verbal" in text.lower() or "speak" in text.lower())
+
+    def test_agents_no_spam_hate(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "spam hate" in text.lower() or "verbal aggression" in text.lower()
+
+    def test_agent_class_archetypes_in_identity(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "melee" in text.lower()
+        assert "caster" in text.lower() or "cleric" in text.lower()
 
 
 # ===========================================================================
@@ -246,3 +338,83 @@ class TestSourceriorClassDesign:
         assert "vs Monk" in text or "vs monk" in text
         assert "vs Mage" in text or "vs mage" in text
         assert "vs Bard" in text or "vs bard" in text
+
+    def test_invoke_pet_meld_system(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Invoke" in text or "invoke" in text
+        assert "Meld" in text or "meld" in text
+
+    def test_meld_earth_hp_taunt(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "earth" in lower
+        assert "hp" in lower or "hit point" in lower
+        assert "taunt" in lower
+
+    def test_meld_air_backstab(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "air" in lower
+        assert "backstab" in lower
+
+    def test_meld_fire_ds_area_burn(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "fire" in lower
+        assert "damage shield" in lower or "ds" in lower
+        assert "area burn" in lower or "burn" in lower
+
+    def test_meld_water_crit_magic(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "water" in lower
+        assert "crit" in lower and "magic" in lower
+
+    def test_epic_weapon_two_handed_staff(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "epic" in lower
+        assert "staff" in lower
+        assert "two-handed" in lower or "2h" in lower or "two handed" in lower
+
+    def test_epic_weapon_slow_heavy_damage(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "slow" in lower
+        assert "heavy" in lower or "high" in lower
+        assert "base" in lower and "damage" in lower or "base dmg" in lower or "base damage" in lower
+
+    def test_epic_boosts_meld_effectiveness(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "meld" in lower
+        assert "effectiveness" in lower or "potency" in lower or "amplif" in lower
+
+    def test_two_handed_staff_core_weapon(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "core weapon" in lower or "core" in lower and "staff" in lower
+
+    def test_cloth_armor_support(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "cloth" in lower
+
+    def test_leather_armor_support(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "leather" in lower
+
+    def test_epic_monk_mage_difficulty(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "monk" in lower and "mage" in lower
+        assert "epic" in lower and ("difficulty" in lower or "parallel" in lower)
+
+    def test_four_elemental_pet_types(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "earth" in lower
+        assert "air" in lower
+        assert "fire" in lower
+        assert "water" in lower

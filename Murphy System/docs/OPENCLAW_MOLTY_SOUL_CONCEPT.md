@@ -1,7 +1,7 @@
 # OpenClaw Molty Soul Concept — Game Agent Adaptation
 
 **Murphy System — Agent Soul Architecture for Game NPCs**
-**Version:** 1.0.0
+**Version:** 2.0.0
 **Date:** 2026-03-01
 **Status:** Experimental / Draft
 **Parent:** `EXPERIMENTAL_EVERQUEST_MODIFICATION_PLAN.md`
@@ -28,8 +28,9 @@ The game agent soul extends the Rosetta soul pattern with game-specific layers:
 │   Form schema, gates, metrics, confidence engine               │
 ├────────────────────────────────────────────────────────────────┤
 │ IDENTITY LAYER                                                  │
-│   Name, class, level, faction, personality archetype            │
-│   Voice profile, combat style preference, risk tolerance        │
+│   Name, class (pure melee / int caster / cleric), level         │
+│   Faction, personality archetype, combat style preference        │
+│   Risk tolerance, individual player standings                    │
 ├────────────────────────────────────────────────────────────────┤
 │ MEMORY LAYER                                                    │
 │   Short-term: rolling event buffer (50–100 events)             │
@@ -42,7 +43,8 @@ The game agent soul extends the Rosetta soul pattern with game-specific layers:
 │   Confidence decay: older memories fade unless reinforced       │
 ├────────────────────────────────────────────────────────────────┤
 │ FACTION LAYER                                                   │
-│   Faction identity and standings                                │
+│   Faction identity and global standings                         │
+│   Individual player standings (grudge/friendship per player)    │
 │   War/peace state machine                                       │
 │   Diplomacy history and trust scores                            │
 ├────────────────────────────────────────────────────────────────┤
@@ -74,10 +76,10 @@ Sensors provide: player_id, current zone, player gear (if visible)
 LLM fills generatively: threat assessment, conversation topic
     │
     ▼
-Gates check: faction standing threshold, duel cooldown, aggression limit
+Gates check: faction standing threshold, individual standing, duel cooldown, aggression limit
     │
     ▼
-Action: greet, challenge to duel, trade, or ignore
+Action: assist, challenge to duel, trade, or ignore (never verbal — actions only)
 ```
 
 ---
@@ -187,6 +189,56 @@ Agents interact with players based on the player's **faction standing** with the
 | `-0.6 to -1.0` | Hostile — will challenge to duel, refuse all interaction |
 
 **Key rule**: Agents **cannot attack players unprovoked**. Even at KOS standing, the maximum hostile action is issuing a duel challenge. Players must accept.
+
+### 4.4 Individual Interaction-Based Faction
+
+Beyond the global faction standings above, each agent maintains **individual reputation** with every player it has interacted with. This is stored per-agent in the soul document and can override global faction behavior.
+
+**Individual standing tracks:**
+
+| Data Point | Stored In | Effect |
+|---|---|---|
+| `interaction_count` | `encountered_players` | Total interactions with this player |
+| `positive_interactions` | `encountered_players` | Count of help, heals, buffs, fair trades |
+| `negative_interactions` | `encountered_players` | Count of attacks, theft, griefing, ally kills |
+| `individual_standing` | `encountered_players` | Computed score: positive − (negative × 1.5) |
+| `grudge_flag` | `encountered_players` | `true` if negative_interactions > 5 in rolling window |
+| `friendship_flag` | `encountered_players` | `true` if positive_interactions > 10 in rolling window |
+
+**Grudge mechanics:**
+- Grudges are triggered when negative interactions exceed a threshold (5+ in a rolling time window)
+- A grudge-holding agent will challenge the player to a duel on sight and refuse all positive interaction
+- Grudges decay slowly over real time (configurable half-life, default: 7 days per point)
+- Repeated negative interactions deepen the grudge and extend decay time
+
+**Friendship mechanics:**
+- Friendship builds through consistent positive interactions (10+ in a rolling window)
+- A friendly agent will assist in combat, offer trades, and buff the player
+- Friendship can override hostile global faction standing — a personally friendly agent helps despite faction wars
+- Friendship decays moderately if not reinforced (default: 3 days per point)
+
+### 4.5 Actions Speak — The Silence Rule
+
+A core design principle: agents express themselves **exclusively through actions**, never through words.
+
+**What agents cannot do:**
+- Agents **cannot send chat messages** to players — no tells, no say, no shout, no OOC
+- Agents **cannot use emote text** to express hostility or friendship
+- Agents **cannot spam hate** or any form of verbal aggression
+- Agents have **no dialogue system** — they do not talk
+
+**How agents express themselves:**
+- A **hostile agent** challenges to duel, refuses trades, walks away, or positions aggressively
+- A **friendly agent** assists in combat, heals/buffs, offers favorable trades, follows the player
+- A **neutral agent** ignores the player entirely
+- A **grudge-holding agent** immediately challenges to duel when the player is seen, then ignores
+- A **deeply friendly agent** actively seeks out the player across zones to assist
+
+**Design intent:**
+- Players must **observe agent behavior** to understand relationship status
+- This creates emergent storytelling — "why does this NPC keep challenging me?" or "this cleric always heals me"
+- No verbal communication prevents toxic NPC behavior and keeps the world immersive
+- Agent feelings are a mystery the player solves through gameplay, not through reading text
 
 ---
 
