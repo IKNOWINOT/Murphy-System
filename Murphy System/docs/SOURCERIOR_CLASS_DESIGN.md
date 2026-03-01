@@ -11,11 +11,13 @@
 ## 1. Class Identity
 
 **Name:** Sourcerior
-**Archetype:** Monk / Mage Hybrid
-**Primary Role:** Melee DPS with AE Proc Utility and Pet Support
-**Secondary Role:** Minor Crowd Control (AE Mez), Group Buffs via Procs
+**Archetype:** Monk / Mage Hybrid — Primarily a Damage Class
+**Primary Role:** Melee DPS with AE Proc Damage
+**Secondary Role:** Situational Utility (AE Mez, Group Procs, Pet Support, Meld Tanking)
 
-The Sourcerior blends **monk martial discipline** with **arcane fire magic**, channeling power through melee strikes that trigger damaging AE procs. Instead of casting directly, the Sourcerior fights up close and lets magic flow through combat — procs replace kicks for DPS, fire elementals provide sustained damage, and song-like buffs proc passively to support the group.
+The Sourcerior is **primarily a damage class** with a wide toolkit of **situational utility**. It blends **monk martial discipline** with **arcane fire magic**, channeling power through melee strikes that trigger damaging AE procs. Instead of casting directly, the Sourcerior fights up close and lets magic flow through combat — procs replace kicks for DPS, fire elementals provide sustained damage, and song-like buffs proc passively to support the group.
+
+**Hybrid identity:** While the Sourcerior touches many roles — emergency CC, minor group buffs, pet tanking via meld — its core identity is **damage output**. The utility is situational: AE mez for emergencies, haste procs when they fire, earth meld tanking when the main tank drops. A Sourcerior who isn't dealing damage isn't fulfilling their role. The situational utility makes the Sourcerior adaptable, not a replacement for dedicated support or tank classes.
 
 ---
 
