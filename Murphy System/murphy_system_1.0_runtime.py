@@ -11976,7 +11976,7 @@ class MurphySystem:
                     "https://api.groq.com/openai/v1/chat/completions",
                     headers=headers,
                     json=body,
-                    timeout=30,
+                    timeout=15,
                 )
                 resp.raise_for_status()
                 data = resp.json()
@@ -12021,12 +12021,15 @@ class MurphySystem:
         # Deterministic fallback
         fallback_reply = self._deterministic_reply(message, nl_intent)
         llm_status = self._get_llm_status()
-        if not llm_status.get("enabled"):
+        # Show LLM-not-configured notice once per session
+        session = self.chat_sessions.get(session_id, {})
+        if not llm_status.get("enabled") and not session.get("_llm_notice_shown"):
             fallback_reply += (
                 "\n\n_LLM is not configured; running in deterministic mode. "
                 "To enable: set MURPHY_LLM_PROVIDER and the appropriate API key "
                 "(e.g. GROQ_API_KEY)._"
             )
+            session["_llm_notice_shown"] = True
         return {
             "success": True,
             "session_id": session_id,

@@ -450,7 +450,7 @@ class StatusBar(Static):
     llm_enabled = reactive(False)
 
     def render(self) -> str:
-        llm = "[green]LLM ✓[/green]" if self.llm_enabled else "[yellow]LLM ✗[/yellow]"
+        llm = "[green]LLM: On[/green]" if self.llm_enabled else "[yellow]LLM: Off[/yellow]"
         if self.connected:
             return f"[bold green]● Connected[/bold green]  {llm}"
         return f"[bold red]● Disconnected[/bold red]  {llm}"
@@ -1069,14 +1069,23 @@ class MurphyTerminalApp(App):
 
     # -- chat fallback --
 
+    @staticmethod
+    def _extract_response(data: dict) -> str:
+        """Extract the display-ready response text from an API result."""
+        return str(
+            data.get("reply_text")
+            or data.get("response")
+            or data.get("message")
+            or json.dumps(data, indent=2, default=str)
+        )
+
     def _send_librarian(self, message: str) -> None:
         """Route a message through the Librarian + LLM endpoint."""
         try:
             data = self.client.librarian_ask(message)
-            response = data.get("reply_text") or data.get("message") or self._format_json(data)
+            text = self._extract_response(data)
             mode = data.get("mode", "unknown")
             suggested = data.get("suggested_commands", [])
-            text = str(response)
             if suggested:
                 text += "\n\n[dim]Suggested: " + ", ".join(f"[green]{c}[/green]" for c in suggested) + "[/dim]"
             if mode == "deterministic":
@@ -1089,8 +1098,7 @@ class MurphyTerminalApp(App):
     def _send_chat(self, message: str) -> None:
         try:
             data = self.client.chat(message)
-            response = data.get("reply_text") or data.get("response") or data.get("message") or self._format_json(data)
-            self._write_murphy(str(response))
+            self._write_murphy(self._extract_response(data))
         except Exception as exc:
             self._write_murphy(
                 f"[red]Chat error: {self._friendly_error(exc)}[/red]\n"
