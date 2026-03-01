@@ -393,7 +393,7 @@ The Sourcerior scales from mostly-monk at low levels to a fully hybrid class at 
 | **11–20** | Strong base | Fire + Earth procs | 2 pets (single element) | Daze of Embers | Flame Vigor | Earth Meld | — | "Monk with elemental magic" |
 | **21–30** | Full monk kit | 3 proc lines, notable DPS | 3 pets (single element) | Daze of Embers | Soulfire Resonance | Earth/Air/Fire Meld | Rumblecrush I | "True hybrid emerging" |
 | **31–40** | Monk + riposte | 4 proc lines, strong AE | 4 pets (single element) | Flame Stupor | Pyretic Ward | All 4 Melds | Rumblecrush I | "Fire-channeling monk" |
-| **41–50** | Triple attack | 5 proc lines, heavy AE | 5 pets (single element) | Flame Stupor | Inferno Chorus | Greater Melds | Rumblecrush II + Liquify | "Sourcerior comes online" |
+| **41–50** | Triple attack | 5 proc lines, heavy AE | 5 pets (single element) | Flame Stupor | Inferno Chorus | Greater Melds | Rumblecrush II; Liquify at 40 | "Sourcerior comes online" |
 | **51–60** | Full monk power | All procs, peak AE | 6 pets (mixed w/ Maelstrom) | Inferno Trance | Blaze Anthem | Full Meld + Epic | Rumblecrush III + Lord of the Maelstrom | "Full Sourcerior" |
 
 ---
