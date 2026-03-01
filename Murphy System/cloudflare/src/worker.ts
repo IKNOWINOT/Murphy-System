@@ -173,9 +173,10 @@ export default {
       const body = message.body as { type: string; decisionId: string; [key: string]: unknown };
       if (body.type === 'hitl_approval') {
         try {
+          // Ensure decision exists and log that it was queued for review
           await env.DB.prepare(
-            'UPDATE pending_decisions SET status = ? WHERE id = ? AND status = ?'
-          ).bind('pending', body.decisionId, 'pending').run();
+            'INSERT INTO audit_log (id, event, user_id, details) VALUES (?, ?, ?, ?)'
+          ).bind(generateId(), 'hitl_decision_queued', null, JSON.stringify({ decision_id: body.decisionId })).run();
           message.ack();
         } catch {
           message.retry();

@@ -11,6 +11,7 @@ MIN_COMPATIBILITY_SCORE = "0.5"
 [[d1_databases]]
 binding = "DB"
 database_name = "murphy-system-db"
+# Run `wrangler d1 create murphy-system-db` and paste the returned database_id here
 database_id = "REPLACE_WITH_ACTUAL_D1_DATABASE_ID"
 
 [[r2_buckets]]

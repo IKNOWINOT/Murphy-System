@@ -83,15 +83,18 @@ export async function handleLLMKeys(request: Request, env: Env, auth: AuthContex
       termsUrl, request.headers.get('CF-Connecting-IP') ?? 'unknown'
     ).run();
 
-    // Store the key (encrypted_key stores the raw key — in production, encrypt with a KMS)
+    // Encrypt the key using AES-GCM before storage
+    const encryptedKey = await encryptKey(body.key, env.JWT_SECRET);
+
+    // Store the encrypted key
     await env.DB.prepare(
       `INSERT INTO user_llm_keys (id, user_id, provider, encrypted_key, display_label)
        VALUES (?, ?, ?, ?, ?)
        ON CONFLICT(user_id, provider) DO UPDATE SET encrypted_key = ?, display_label = ?, is_active = 1`
     ).bind(
-      generateId(), auth.userId, body.provider, body.key,
+      generateId(), auth.userId, body.provider, encryptedKey,
       body.displayLabel ?? body.provider,
-      body.key, body.displayLabel ?? body.provider
+      encryptedKey, body.displayLabel ?? body.provider
     ).run();
 
     // Audit log
@@ -127,4 +130,37 @@ export async function handleLLMKeys(request: Request, env: Env, auth: AuthContex
   }
 
   return jsonResponse({ error: 'Method not allowed' }, 405);
+}
+
+/**
+ * Encrypt an LLM API key using AES-GCM with a derived key from the JWT secret.
+ */
+async function encryptKey(plaintext: string, secret: string): Promise<string> {
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'PBKDF2' },
+    false,
+    ['deriveKey']
+  );
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const derivedKey = await crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt']
+  );
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    derivedKey,
+    new TextEncoder().encode(plaintext)
+  );
+  // Encode as base64: salt + iv + ciphertext
+  const combined = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
+  combined.set(salt, 0);
+  combined.set(iv, salt.length);
+  combined.set(new Uint8Array(encrypted), salt.length + iv.length);
+  return btoa(String.fromCharCode(...combined));
 }

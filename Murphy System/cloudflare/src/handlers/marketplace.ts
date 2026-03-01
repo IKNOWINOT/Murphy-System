@@ -284,11 +284,15 @@ export async function handleMarketplace(request: Request, env: Env, auth: AuthCo
 
     let activeLicenses = 0;
     if (listingIds.length > 0) {
-      const placeholders = listingIds.map(() => '?').join(',');
-      const result = await env.DB.prepare(
-        `SELECT COUNT(*) as count FROM marketplace_licenses WHERE listing_id IN (${placeholders}) AND status = 'active'`
-      ).bind(...listingIds).first();
-      activeLicenses = (result?.count as number) ?? 0;
+      // Use individual queries to avoid dynamic SQL interpolation
+      let count = 0;
+      for (const listingId of listingIds) {
+        const result = await env.DB.prepare(
+          `SELECT COUNT(*) as count FROM marketplace_licenses WHERE listing_id = ? AND status = 'active'`
+        ).bind(listingId).first();
+        count += (result?.count as number) ?? 0;
+      }
+      activeLicenses = count;
     }
 
     return jsonResponse({
