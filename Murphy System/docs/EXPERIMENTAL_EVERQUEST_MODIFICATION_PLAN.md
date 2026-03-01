@@ -276,6 +276,42 @@ When a **town or city is conquered** through faction warfare, it is the **town l
 - Killing a beloved town leader creates lasting grudges across the entire defending faction
 - Town leaders who survive a siege remember the attackers and hold deep grudges
 
+### 3.9 Agent Language Restriction — In-Game Languages Only
+
+Agents inside the EverQuest experiment are **restricted to in-game languages and Common Tongue only**. They have **no knowledge of programming languages, code syntax, or any real-world technical vocabulary**. This is enforced at the soul layer to keep the experiment immersive and tightly contained.
+
+**What agents can use:**
+- **Common Tongue** — the universal trade language all races understand
+- **Racial languages** — Elvish, Dark Speech, Gnomish, Ogre, Troll, etc. as defined by their race
+- **Faction-specific dialects** — where applicable, aligned with cultural identity templates
+
+**What agents cannot do:**
+- Agents **cannot produce or interpret code** — no programming language knowledge exists in their soul
+- Agents **cannot reference real-world concepts** — no awareness of anything outside Norrath
+- Agents **cannot break the fourth wall** — they have no knowledge of being AI agents in a game
+- Agent language capability is defined in the soul document `language_capability` field and is **enforced by the isolation boundary** (see section 16)
+
+### 3.10 Agent Self-Preservation — Flee Behavior
+
+Agents treat their life as if it is **their only life** (because it is — permadeath is real). This self-preservation instinct drives flee behavior under specific conditions.
+
+**Flee triggers:**
+- **"Run" command** — if any group member (player or agent) says or signals "run", the agent flees immediately
+- **Healer death** — if the group's dedicated healer (cleric archetype) dies, agents flee unless a **hybrid healer** (e.g., a Sourcerior with pet heals, a beastlord, or a druid) is still alive and actively sustaining the group
+- **HP threshold** — agents begin evaluating flee at 20% HP if no healer is available
+- **Group wipe momentum** — if 3+ group members die in rapid succession, surviving agents flee
+
+**Flee exceptions:**
+- Agents **do not flee** if a hybrid healer is keeping the group alive after the primary healer falls
+- Town guards defending a siege **do not flee** (they fight to the death to protect their town)
+- Agents under the influence of a fear spell flee regardless (overrides self-preservation logic)
+
+**Flee behavior:**
+- Fleeing agents attempt to run to the nearest zone line or safe area
+- Sourceriors with **Liquify** active (water pets, level 40+) can use aggro drop + invisibility to escape cleanly (see `SOURCERIOR_CLASS_DESIGN.md` section 2.12)
+- Fleeing agents remember the encounter and hold **grudges** against entities that caused the wipe
+- An agent that successfully flees retains its full soul document — memory, gear, and faction standing intact
+
 ---
 
 ## 4. Progression Server — Planes of Power
@@ -429,6 +465,7 @@ The **single-element rule** restricts pet groups to one element at a time unless
 | **Sacrifice Pets** | Consumes pets for a nuke — mobility ability for movement phases |
 | **Discipline of Rumblecrush** | Tanking disc (~180s, same as warrior Defensive); pets gain Defensive-like buff; procs cost mana |
 | **Lord of the Maelstrom** | Level 60 raid drop (Plane of Sky); permanently allows mixed-element pets |
+| **Liquify** | Aggro drop + invisibility when water pets are active (level 40+) |
 | **Epic Weapon** | Very slow 2H staff with heavy base DMG — amplifies meld effectiveness |
 
 ### 6.3 Scaling Philosophy
@@ -725,6 +762,8 @@ The raid leader gains Murphy-powered moderation tools:
 - [ ] Define immutable class play-style templates for each agent archetype
 - [ ] Basic agent spawning with soul documents
 - [ ] Define race cultural identity templates for persona injector
+- [ ] Implement EQ isolation boundary and sandbox gateway (eq_gateway module)
+- [ ] Configure agent language restriction (in-game languages + Common Tongue only; no code capability)
 
 ### Phase 2: Combat & Class (Weeks 5–8)
 
@@ -738,6 +777,7 @@ The raid leader gains Murphy-powered moderation tools:
 - [ ] Implement Lord of the Maelstrom discipline (level 60 raid drop — lifts single-element restriction)
 - [ ] Implement weapon restrictions (1H slashing, 1H piercing, staves only — no 1H blunt)
 - [ ] Implement two-handed staff weapon class and epic quest framework
+- [ ] Implement Sourcerior Liquify ability (aggro drop + invis with water pets, level 40+)
 - [ ] Implement agent permadeath system (death archival, soul removal)
 - [ ] Implement betrayal detection and resurrection exception
 
@@ -747,6 +787,8 @@ The raid leader gains Murphy-powered moderation tools:
 - [ ] Implement individual agent faction with interaction-based reputation
 - [ ] Implement grudge and friendship mechanics in soul documents
 - [ ] Implement actions-only expression rule (no verbal agent responses)
+- [ ] Implement agent self-preservation and flee behavior (flee on "run" command, healer death, group wipe)
+- [ ] Implement flee exception for hybrid healer sustain (beastlord, druid, Sourcerior pet heals)
 - [ ] Implement duel challenge and loot system
 - [ ] Implement inspect asymmetry (agent knowledge base gating)
 - [ ] Implement town conquest system (leadership and guards as defenders)
@@ -829,6 +871,56 @@ The raid leader gains Murphy-powered moderation tools:
 | **Stream performance** | Game + voice + overlay CPU pressure | Dedicated stream PC or cloud-based encoding |
 | **Agent population decline** | Permadeath depopulates zones over time | Controlled new agent spawning to replace dead agents; betrayal resurrection as natural recovery |
 | **Town conquest imbalance** | One faction dominates all towns | Faction strength balancing, cooldowns on consecutive sieges, rally mechanics for defeated factions |
+| **EQ isolation breach** | Agent knowledge leaks beyond game boundary | Isolation boundary enforcement, sandbox gateway, language restriction in soul docs |
+
+---
+
+## 16. EQ Isolation Boundary — Experiment Gating
+
+The EverQuest experiment is a **sandboxed environment** that must remain tightly separated from the rest of the Murphy System. Agents operating inside the EQ world exist in a constrained state: they have no awareness of the outside system, no ability to produce code, and no access to modules or data beyond their game world context.
+
+### 16.1 Isolation Principles
+
+| Principle | Description |
+|---|---|
+| **Sandbox boundary** | The EQ experiment runs inside a dedicated sandbox. No agent soul, memory, or recall data crosses the boundary into the broader Murphy System without explicit gateway approval |
+| **No code capability** | Agents inside EQ have **zero knowledge of programming languages**. Their soul documents contain no code-generation prompts, no technical vocabulary, and no awareness of software concepts |
+| **In-game languages only** | Agents are restricted to Common Tongue and racial/faction languages defined within the game world (see section 3.9) |
+| **No fourth-wall awareness** | Agents do not know they are AI. They treat the EQ world as their complete reality, their life as their only life, and their death as permanent |
+| **One-way data flow** | The Murphy System can observe and manage EQ agents (spawning, monitoring, logging), but EQ agents cannot query, influence, or access any Murphy module outside the game boundary |
+
+### 16.2 Sandbox Gateway
+
+All communication between the EQ experiment and the Murphy System passes through a **sandbox gateway** — a controlled interface that enforces isolation:
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ Murphy System (core)                                              │
+│   inference_gate_engine, state_manager, governance_kernel,        │
+│   avatar, librarian, behavioral_scoring_engine                    │
+├──────────────────────┬───────────────────────────────────────────┤
+│                      │                                            │
+│              ┌───────┴────────┐                                   │
+│              │ SANDBOX GATEWAY │ ← enforces isolation rules       │
+│              │  (eq_gateway)   │ ← language filter, code filter   │
+│              └───────┬────────┘                                   │
+│                      │                                            │
+├──────────────────────┴───────────────────────────────────────────┤
+│ EQ Experiment (sandboxed)                                         │
+│   soul_engine, faction_manager, duel_controller,                  │
+│   eq_game_connector, voice_bridge, stream_overlay                 │
+│   ── agents operate here with in-game knowledge only ──           │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### 16.3 Enforcement Rules
+
+- The `eq_gateway` module validates all data crossing the boundary
+- Agent soul documents include a `language_capability` field listing only in-game languages — the gateway rejects any content containing code syntax or real-world technical terms
+- Agent recall queries are scoped to the EQ vector index only — no cross-system memory search
+- Murphy admin tools (raid leader, HITL override) operate **through** the gateway, not around it
+- Logging and telemetry flow **outward** from EQ to Murphy for monitoring, but no Murphy core data flows **inward** to agents
+- The sandbox gateway is listed as a dependency in the Murphy System Extensions table (section 11.3)
 
 ---
 

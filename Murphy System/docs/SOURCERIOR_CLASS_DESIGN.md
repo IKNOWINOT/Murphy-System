@@ -353,6 +353,34 @@ The Sourcerior's signature tanking ability. **Discipline of Rumblecrush** is a d
 - After Lord of the Maelstrom: The Sourcerior can build mixed-element armies tailored to each encounter — 3 earth tanks + 3 fire DPS, or 2 earth + 2 water + 2 air, etc.
 - Combined with Discipline of Rumblecrush, a mixed-element army with earth tanks and fire damage creates the ultimate emergency tanking setup
 
+### 2.12 Liquify — Water Pet Aggro Drop and Invisibility
+
+**Liquify** is the Sourcerior's escape ability, available when **water pets are active** starting at level 40. The Sourcerior channels the essence of their water elementals to shed aggro and turn invisible — the water pets dissolve momentarily to cloak the Sourcerior, then reform.
+
+| Ability | Level | Cooldown | Requirement | Effect |
+|---|---|---|---|---|
+| **Liquify I** | 40 | 180s | At least 1 water pet active | Instant aggro drop, 18s invisibility (broken by combat or casting) |
+| **Liquify II** | 52 | 150s | At least 1 water pet active | Instant aggro drop, 24s invisibility, +15% movement speed while invisible |
+
+**Mechanics:**
+- Requires at least one **water elemental pet** to be currently summoned — if only fire, earth, or air pets are active, Liquify is unavailable
+- Activating Liquify **does not consume** the water pet — the pet briefly dissolves into the Sourcerior, cloaking them, then reforms
+- The aggro drop is **complete** — all hate is erased from the Sourcerior's target (similar to feign death + memory blur)
+- The invisibility effect breaks on any offensive action, casting, or taking damage
+- Unlike Flame Blink (which repositions + dumps aggro via fire elementals), Liquify is a **stand-still escape** — the Sourcerior becomes invisible in place without moving
+- This makes Liquify the ideal **flee tool** during group wipes: drop aggro, go invisible, and walk to safety
+- Agents running the Sourcerior class template will use Liquify as their primary self-preservation ability when flee conditions are met (see `EXPERIMENTAL_EVERQUEST_MODIFICATION_PLAN.md` section 3.10)
+
+**Comparison to other aggro drops:**
+
+| Class | Ability | Type | Level |
+|---|---|---|---|
+| **Monk** | Feign Death | Aggro drop (play dead) | 17 |
+| **Sourcerior** | Flame Blink | Aggro drop + reposition | 17 |
+| **Sourcerior** | Liquify | Aggro drop + invisibility (requires water pets) | 40 |
+| **Enchanter** | Memory Blur | Targeted aggro reset | 24 |
+| **Rogue** | Escape | Aggro drop + hide | 40+ |
+
 ---
 
 ## 3. Level Scaling Matrix
@@ -365,7 +393,7 @@ The Sourcerior scales from mostly-monk at low levels to a fully hybrid class at 
 | **11–20** | Strong base | Fire + Earth procs | 2 pets (single element) | Daze of Embers | Flame Vigor | Earth Meld | — | "Monk with elemental magic" |
 | **21–30** | Full monk kit | 3 proc lines, notable DPS | 3 pets (single element) | Daze of Embers | Soulfire Resonance | Earth/Air/Fire Meld | Rumblecrush I | "True hybrid emerging" |
 | **31–40** | Monk + riposte | 4 proc lines, strong AE | 4 pets (single element) | Flame Stupor | Pyretic Ward | All 4 Melds | Rumblecrush I | "Fire-channeling monk" |
-| **41–50** | Triple attack | 5 proc lines, heavy AE | 5 pets (single element) | Flame Stupor | Inferno Chorus | Greater Melds | Rumblecrush II | "Sourcerior comes online" |
+| **41–50** | Triple attack | 5 proc lines, heavy AE | 5 pets (single element) | Flame Stupor | Inferno Chorus | Greater Melds | Rumblecrush II + Liquify | "Sourcerior comes online" |
 | **51–60** | Full monk power | All procs, peak AE | 6 pets (mixed w/ Maelstrom) | Inferno Trance | Blaze Anthem | Full Meld + Epic | Rumblecrush III + Lord of the Maelstrom | "Full Sourcerior" |
 
 ---
@@ -455,14 +483,14 @@ The Sourcerior scales from mostly-monk at low levels to a fully hybrid class at 
 | 35 | Flame Blink II |
 | 36 | Pyretic Ward (bard proc — AC), Summon: Gale Sprite (Air) |
 | 38 | Soulfire Cascade (fire proc) |
-| 40 | Sacrifice: Inferno, **Invoke: Greater Earth** |
+| 40 | Sacrifice: Inferno, **Invoke: Greater Earth**, **Liquify I** (requires water pet) |
 | 42 | Summon: Blaze Imp (Fire), **Invoke: Greater Air**, Bedrock Shackle (earth proc) |
 | 44 | Inferno Chorus (bard proc — haste), **Invoke: Greater Fire** |
 | 45 | **Discipline of Rumblecrush II** |
 | 46 | Triple Attack, Summon: Boulder Imp (Earth), **Invoke: Greater Water** |
 | 48 | Inferno Trance (AE mez) |
 | 50 | Pyre Storm (fire proc), Flame Blink III |
-| 52 | Summon: Inferno Minion (Fire) |
+| 52 | Summon: Inferno Minion (Fire), **Liquify II** (requires water pet) |
 | 54 | Blaze Anthem (bard proc — group buff), Tectonic Cage (earth proc) |
 | 55 | Sacrifice: Conflagration, **Discipline of Rumblecrush III** |
 | 56 | Summon: Torrent Minion (Water) |
