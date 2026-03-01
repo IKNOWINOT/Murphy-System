@@ -468,11 +468,12 @@ class TestRaceCulturalIdentityDesign:
 
     # --- Core race–culture mappings ---
 
-    def test_gnome_spartan(self):
+    def test_gnome_spartan_roman(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
         assert "gnome" in lower
         assert "spartan" in lower
+        assert "roman" in lower
 
     def test_dark_elf_german(self):
         text = _load_doc(self.DOC_NAME)

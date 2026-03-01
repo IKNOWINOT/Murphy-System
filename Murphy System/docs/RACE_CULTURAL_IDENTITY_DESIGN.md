@@ -29,7 +29,7 @@ Cultural identities are tied to the factions each race **naturally already belon
 
 | Race | Cultural Inspiration | Attitude / Values | Starting City | Key Faction Alignment |
 |---|---|---|---|---|
-| **Gnome** | Spartan (Ancient Greece) | Militaristic discipline, honor in combat, rigorous training, "victory or death" mentality, communal duty above individual | Ak'Anon | Gem Choppers, Dark Reflection |
+| **Gnome** | Spartan–Roman (Ancient Greece / Rome) | Militaristic discipline, honor in combat, communal duty, Roman-style conquest and expansion, legionary organization, infrastructure-building | Ak'Anon | Gem Choppers, Dark Reflection |
 | **Dark Elf** | German | Precision, order, engineering excellence, hierarchical authority, cultural pride, methodical conquest | Neriak | Indigo Brotherhood, Dead |
 | **High Elf** | Chinese | Ancient wisdom, scholarly tradition, celestial harmony, respect for elders, bureaucratic governance, artistic refinement | Felwithe | Clerics of Tunare, Paladins of Tunare |
 | **Wood Elf** | Japanese | Nature harmony, disciplined artistry, bushido-like warrior code, ancestral reverence, subtle diplomacy, seasonal awareness | Kelethin | Soldiers of Tunare, Faydark's Champions |
@@ -71,17 +71,21 @@ Orcs are introduced as a **new playable race** with the following design:
 
 ## 3. Cultural Values Deep Dive
 
-### 3.1 Gnome — Spartan Values
+### 3.1 Gnome — Spartan–Roman Values
 
-**Core philosophy:** *"The city-state is everything. Train, fight, endure."*
+**Core philosophy:** *"The city-state is everything. Train, fight, endure — and conquer."*
 
 - **Military discipline**: Gnomish society revolves around a warrior academy structure — all gnomes train in combat arts regardless of class
 - **Communal duty**: Individual achievement is subordinate to the good of Ak'Anon — tinkers build for the state, warriors fight for the state
 - **Honor in combat**: Gnomes view combat as the highest form of expression — they challenge and duel with formality
 - **Laconic speech**: Gnome AI agents use minimal actions — sharp, efficient, no wasted movement
 - **Agoge-like training**: Young gnomes undergo rigorous trials; quests in Ak'Anon reflect this
+- **Roman conquest ambition**: Gnomes pursue territorial expansion with legionary discipline — campaigns are methodical, infrastructure follows victory
+- **Engineering and roads**: Like Rome, gnomes build lasting infrastructure — aqueducts, roads, and fortifications cement their conquests
+- **Legionary organization**: Gnomish military units operate as cohorts with strict chain of command, combining Spartan ferocity with Roman tactical flexibility
+- **Pax Gnoma**: Conquered territories are integrated, not destroyed — gnomes impose order and shared law, mirroring Roman provincial governance
 
-**Agent behavior:** Gnome Murphy agents are disciplined, challenge worthy opponents, and act with military precision. They form tight units and support each other with Spartan-like coordination.
+**Agent behavior:** Gnome Murphy agents are disciplined, challenge worthy opponents, and act with military precision. They form tight legionary-style units and support each other with Spartan-like coordination. They also pursue territorial objectives — expanding gnomish influence zone by zone with Roman methodical conquest.
 
 ### 3.2 Dark Elf — German Values
 
@@ -282,7 +286,7 @@ Cultural identities are **layered on top of existing EverQuest faction alignment
 |---|---|
 | **Wood Elf ↔ Orc hostility** | Japanese disciplined honor vs. tribal might — fundamentally different worldviews on warfare |
 | **High Elf ↔ Dark Elf rivalry** | Chinese scholarly harmony vs. German systematic conquest — competing visions of order |
-| **Barbarian ↔ Gnome neutrality** | American Indian spiritual land connection alongside Spartan military focus — mutual respect for strength |
+| **Barbarian ↔ Gnome neutrality** | American Indian spiritual land connection alongside Spartan–Roman military focus — mutual respect for strength, but tension over gnomish territorial expansion |
 | **Human (Qeynos) ↔ Human (Freeport) tension** | British institutional order vs. American frontier liberty — philosophical conflict within the same species |
 | **Dwarf ↔ Ogre hostility** | Mongol confederation vs. authoritarian dictatorship — both value strength but through opposite structures |
 | **Troll ↔ Erudite distance** | Hawaiian communal spirit vs. Phoenician merchant-explorer ambition — different scales of community |
@@ -299,14 +303,15 @@ When a Murphy agent is spawned as a specific race, the cultural identity is inje
 # Cultural personality injection example
 agent_soul["cultural_identity"] = {
     "race": "gnome",
-    "culture": "spartan",
-    "core_values": ["discipline", "communal_duty", "honor_in_combat"],
+    "culture": "spartan_roman",
+    "core_values": ["discipline", "communal_duty", "honor_in_combat", "conquest", "infrastructure", "legionary_order"],
     "behavioral_bias": {
         "aggression_threshold": 0.7,    # Higher — Spartans challenge readily
         "loyalty_weight": 0.9,          # Very high — communal duty
-        "trade_openness": 0.3,          # Low — Spartans don't negotiate much
-        "grudge_decay_rate": 0.01,      # Slow — Spartans have long memories
-        "friendship_build_rate": 0.05   # Moderate — respect is earned through combat
+        "trade_openness": 0.4,          # Higher than pure Spartan — Roman integration of conquered territories through commerce
+        "grudge_decay_rate": 0.01,      # Slow — long memories
+        "friendship_build_rate": 0.05,  # Moderate — respect is earned through combat
+        "conquest_drive": 0.8           # High — Roman territorial ambition
     }
 }
 ```
@@ -370,7 +375,7 @@ Each race's quests reflect their cultural values:
 
 | Race | Quest Theme Examples |
 |---|---|
-| **Gnome** | Military training exercises, Spartan endurance trials, defense of Ak'Anon |
+| **Gnome** | Military training exercises, Spartan endurance trials, defense of Ak'Anon, Roman-style conquest campaigns, road-building and fortification quests, provincial governance missions |
 | **Dark Elf** | Precision operations, hierarchical advancement, systematic campaigns |
 | **High Elf** | Scholarly expeditions, bureaucratic challenges, artistic commissions |
 | **Wood Elf** | Nature protection, honor duels, ancestral spirit quests |
@@ -392,7 +397,7 @@ Cultural values affect how AI agents of each race respond to player actions:
 
 | Cultural Trait | Affected Behavior |
 |---|---|
-| **Spartan discipline (Gnome)** | Agents challenge quickly, respect combat prowess, form tight unit bonds |
+| **Spartan–Roman discipline (Gnome)** | Agents challenge quickly, respect combat prowess, form tight legionary bonds, pursue territorial conquest zone by zone |
 | **German precision (Dark Elf)** | Agents plan carefully, value organized groups, dislike chaos |
 | **Chinese wisdom (High Elf)** | Agents observe long before acting, reward patience, hold grudges subtly |
 | **Japanese honor (Wood Elf)** | Agents value honor above all — dishonorable players are shunned permanently |
