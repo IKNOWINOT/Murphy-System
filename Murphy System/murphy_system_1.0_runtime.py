@@ -11814,14 +11814,7 @@ class MurphySystem:
                 )
             return self._chat_response("Compliance engine is not configured.", session_id, intent=intent)
         if intent == "librarian":
-            return self._chat_response(
-                "**Librarian — Knowledge Base**\n\n"
-                "The librarian stores domain knowledge, transcripts, and verified facts.\n"
-                "Use the onboarding wizard or API to add knowledge.\n\n"
-                "• POST /api/librarian/search — Search the knowledge base\n"
-                "• Every action is logged as a TranscriptEntry for full audit trail.",
-                session_id, intent=intent
-            )
+            return self.librarian_ask(message, session_id)
         if intent == "corrections":
             stats = self.get_correction_statistics()
             s = stats.get("statistics", {})
@@ -11881,6 +11874,224 @@ class MurphySystem:
             "intent": intent,
         }
 
+    # -- LLM status ----------------------------------------------------------
+
+    def _get_llm_status(self) -> Dict[str, Any]:
+        """Return current LLM provider configuration and health."""
+        provider = os.environ.get("MURPHY_LLM_PROVIDER", "").strip().lower()
+        model = os.environ.get("MURPHY_LLM_MODEL", "").strip()
+        if not provider:
+            return {
+                "enabled": False,
+                "provider": None,
+                "model": None,
+                "healthy": False,
+                "error": "MURPHY_LLM_PROVIDER not set",
+            }
+        # Validate provider-specific keys
+        if provider == "groq":
+            api_key = os.environ.get("GROQ_API_KEY", "").strip()
+            if not api_key:
+                return {
+                    "enabled": False,
+                    "provider": provider,
+                    "model": model or None,
+                    "healthy": False,
+                    "error": "GROQ_API_KEY not set",
+                }
+            return {
+                "enabled": True,
+                "provider": provider,
+                "model": model or "llama3-8b-8192",
+                "healthy": True,
+            }
+        # Generic provider — enabled but health unknown
+        return {
+            "enabled": True,
+            "provider": provider,
+            "model": model or None,
+            "healthy": True,
+        }
+
+    def _get_librarian_status(self) -> Dict[str, Any]:
+        """Return librarian subsystem health."""
+        librarian = getattr(self, "librarian", None)
+        return {
+            "enabled": librarian is not None,
+            "healthy": librarian is not None,
+        }
+
+    # -- Librarian ask --------------------------------------------------------
+
+    def _classify_nl_intent(self, message: str) -> str:
+        """Lightweight NL intent classification (keyword heuristic)."""
+        lower = message.lower()
+        if any(w in lower for w in ("status", "how is", "running", "health")):
+            return "status_inquiry"
+        if any(w in lower for w in ("onboard", "start", "setup", "begin", "getting started")):
+            return "onboarding"
+        if any(w in lower for w in ("integrate", "connect", "plugin", "service")):
+            return "integration_discovery"
+        if any(w in lower for w in ("plan", "automate", "workflow", "strategy")):
+            return "plan_request"
+        if any(w in lower for w in ("execute", "run", "deploy", "launch")):
+            return "execution_request"
+        return "general"
+
+    def _try_llm_generate(self, prompt: str, context: str = "") -> Optional[str]:
+        """Attempt to generate a response via the configured LLM provider.
+
+        Returns the generated text, or ``None`` if LLM is unavailable.
+        """
+        llm_status = self._get_llm_status()
+        if not llm_status.get("enabled") or not llm_status.get("healthy"):
+            return None
+        provider = llm_status["provider"]
+        model = llm_status.get("model") or ""
+        if provider == "groq":
+            api_key = os.environ.get("GROQ_API_KEY", "")
+            if not api_key:
+                return None
+            try:
+                import requests as _requests
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                }
+                body = {
+                    "model": model or "llama3-8b-8192",
+                    "messages": [
+                        {"role": "system", "content": (
+                            "You are Murphy, a professional automation assistant. "
+                            "You help teams automate operations, onboard users, "
+                            "manage integrations, and run end-to-end workflows. "
+                            "Be concise, friendly, and action-oriented."
+                        )},
+                    ],
+                }
+                if context:
+                    body["messages"].append({"role": "system", "content": f"Context: {context}"})
+                body["messages"].append({"role": "user", "content": prompt})
+                resp = _requests.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers=headers,
+                    json=body,
+                    timeout=30,
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                return data["choices"][0]["message"]["content"]
+            except Exception as exc:
+                logger.warning("LLM call failed (%s): %s", provider, exc)
+                return None
+        return None
+
+    def librarian_ask(self, message: str, session_id: Optional[str] = None) -> Dict[str, Any]:
+        """Route a natural-language message through the Librarian + optional LLM.
+
+        1. Classify the intent
+        2. Try LLM-backed response generation
+        3. Fall back to deterministic guidance if LLM is unavailable
+        """
+        session_id = session_id or "default"
+        nl_intent = self._classify_nl_intent(message)
+
+        # Gather librarian context
+        librarian = getattr(self, "librarian", None)
+        context_parts = []
+        if librarian and hasattr(librarian, "knowledge_base"):
+            kb = librarian.knowledge_base
+            topics = list(kb.keys())[:10] if isinstance(kb, dict) else []
+            if topics:
+                context_parts.append(f"Knowledge-base topics: {', '.join(topics)}")
+
+        # Attempt LLM generation
+        llm_text = self._try_llm_generate(message, " | ".join(context_parts))
+        if llm_text:
+            return {
+                "success": True,
+                "session_id": session_id,
+                "reply_text": llm_text,
+                "message": llm_text,
+                "intent": nl_intent,
+                "mode": "llm",
+                "suggested_commands": self._suggest_commands(nl_intent),
+            }
+
+        # Deterministic fallback
+        fallback_reply = self._deterministic_reply(message, nl_intent)
+        llm_status = self._get_llm_status()
+        if not llm_status.get("enabled"):
+            fallback_reply += (
+                "\n\n_LLM is not configured; running in deterministic mode. "
+                "To enable: set MURPHY_LLM_PROVIDER and the appropriate API key "
+                "(e.g. GROQ_API_KEY)._"
+            )
+        return {
+            "success": True,
+            "session_id": session_id,
+            "reply_text": fallback_reply,
+            "message": fallback_reply,
+            "intent": nl_intent,
+            "mode": "deterministic",
+            "suggested_commands": self._suggest_commands(nl_intent),
+        }
+
+    def _suggest_commands(self, nl_intent: str) -> List[str]:
+        """Return suggested commands for a given NL intent."""
+        mapping: Dict[str, List[str]] = {
+            "status_inquiry": ["status", "health"],
+            "onboarding": ["start interview"],
+            "integration_discovery": ["integrations", "show modules"],
+            "plan_request": ["plan", "execute plan for <goal>"],
+            "execution_request": ["execute <task>"],
+            "general": ["help", "start interview", "status"],
+        }
+        return mapping.get(nl_intent, mapping["general"])
+
+    def _deterministic_reply(self, message: str, nl_intent: str) -> str:
+        """Generate a helpful deterministic reply when LLM is unavailable."""
+        if nl_intent == "status_inquiry":
+            st = self.get_system_status()
+            return (
+                f"**System Status:** {st.get('status', 'unknown')} | "
+                f"**Version:** {st.get('version', '?')}\n\n"
+                "For full details, type **status**."
+            )
+        if nl_intent == "onboarding":
+            return (
+                "It sounds like you'd like to get started! Type **start interview** "
+                "to begin the guided onboarding — I'll learn about your business needs "
+                "and recommend the best setup."
+            )
+        if nl_intent == "integration_discovery":
+            return (
+                "I can help you explore integrations. Type **integrations** to see "
+                "available services, or **show modules** to browse the full module catalogue."
+            )
+        if nl_intent == "plan_request":
+            return (
+                "I can draft an execution plan for your goal. Type **plan** for an overview "
+                "of the two-plane execution model, or describe your goal after "
+                "**execute plan for** and I'll help."
+            )
+        if nl_intent == "execution_request":
+            return (
+                "Tell me what you'd like to run! Use **execute <task description>** "
+                "and I'll route it through the execution pipeline."
+            )
+        # General / catch-all
+        return (
+            "I'm Murphy — your professional automation assistant. "
+            "I can help with onboarding, integrations, execution plans, and more.\n\n"
+            "Try:\n"
+            "• **start interview** — guided onboarding\n"
+            "• **help** — see all commands\n"
+            "• **status** — system health\n"
+            "• **plan** — execution plan overview\n\n"
+            "Or just describe what you'd like to accomplish and I'll guide you."
+        )
+
     def handle_chat(self, message: str, session_id: Optional[str], use_mfgc: bool) -> Dict[str, Any]:
         session_id = session_id or "default"
         session = self.chat_sessions.setdefault(session_id, {"stage_index": 0, "history": []})
@@ -11917,7 +12128,14 @@ class MurphySystem:
                 self._record_execution(success=True, duration=duration)
                 return resp
 
-        # --- Onboarding flow advancement (only when in_flow or no intent detected) ---
+        # --- Natural-language routing (not in onboarding flow, no recognised intent) ---
+        if not in_flow and not intent:
+            result = self.librarian_ask(message, session_id)
+            duration = time.perf_counter() - start
+            self._record_execution(success=True, duration=duration)
+            return result
+
+        # --- Onboarding flow advancement (only when in_flow) ---
         flow = self._advance_flow(session, message)
         default_values = {
             "current_stage": "unknown",
@@ -12263,6 +12481,8 @@ class MurphySystem:
             'status': 'running',
             'uptime_seconds': uptime,
             'start_time': self.start_time.isoformat(),
+            'llm': self._get_llm_status(),
+            'librarian': self._get_librarian_status(),
             'components': {
                 'control_plane': self._component_status(self.control_plane),
                 'inoni_automation': self._component_status(self.inoni_automation),
@@ -12662,6 +12882,28 @@ def create_app() -> FastAPI:
     async def health_check():
         """Health check"""
         return JSONResponse({'status': 'healthy', 'version': murphy.version})
+
+    # ==================== LIBRARIAN ENDPOINTS ====================
+
+    @app.post("/api/librarian/ask")
+    async def librarian_ask(request: Request):
+        """Route a natural-language message through the Librarian + optional LLM."""
+        data = await request.json()
+        result = murphy.librarian_ask(
+            message=data.get("message", ""),
+            session_id=data.get("session_id"),
+        )
+        return JSONResponse(result)
+
+    @app.get("/api/librarian/status")
+    async def librarian_status():
+        """Return librarian health status."""
+        return JSONResponse(murphy._get_librarian_status())
+
+    @app.get("/api/llm/status")
+    async def llm_status():
+        """Return LLM provider configuration and health."""
+        return JSONResponse(murphy._get_llm_status())
 
     # ==================== SESSION ENDPOINTS ====================
 
