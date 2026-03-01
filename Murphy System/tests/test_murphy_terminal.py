@@ -93,6 +93,22 @@ class TestIntentDetection:
         assert detect_intent("Status") == "intent_status"
         assert detect_intent("EXIT") == "intent_exit"
 
+    def test_llm_status_intent(self):
+        assert detect_intent("llm status") == "intent_llm_status"
+        assert detect_intent("llm_status") == "intent_llm_status"
+
+    def test_librarian_status_intent(self):
+        assert detect_intent("librarian status") == "intent_librarian_status"
+        assert detect_intent("librarian_status") == "intent_librarian_status"
+
+    def test_llm_status_before_general_status(self):
+        """'llm status' should match llm_status, not general status."""
+        assert detect_intent("llm status") == "intent_llm_status"
+
+    def test_librarian_status_before_librarian(self):
+        """'librarian status' should match librarian_status, not librarian."""
+        assert detect_intent("librarian status") == "intent_librarian_status"
+
 
 # ---------------------------------------------------------------------------
 # API Client
@@ -282,6 +298,70 @@ class TestMurphyAPIClient:
         client = self._make_client()
         with pytest.raises(requests.ConnectionError):
             client.health()
+
+    @patch("murphy_terminal.requests.post")
+    def test_librarian_ask(self, mock_post):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {
+            "success": True,
+            "reply_text": "I can help with that!",
+            "intent": "general",
+            "mode": "deterministic",
+            "suggested_commands": ["help"],
+        }
+        mock_resp.raise_for_status = MagicMock()
+        mock_post.return_value = mock_resp
+
+        client = self._make_client()
+        client.session_id = "s-1"
+        result = client.librarian_ask("hello")
+
+        assert result["success"] is True
+        assert result["reply_text"] == "I can help with that!"
+        mock_post.assert_called_once_with(
+            "http://localhost:8000/api/librarian/ask",
+            json={"message": "hello", "session_id": "s-1"},
+            timeout=5,
+        )
+
+    @patch("murphy_terminal.requests.get")
+    def test_llm_status(self, mock_get):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {
+            "enabled": True,
+            "provider": "groq",
+            "model": "llama3-8b-8192",
+            "healthy": True,
+        }
+        mock_resp.raise_for_status = MagicMock()
+        mock_get.return_value = mock_resp
+
+        client = self._make_client()
+        result = client.llm_status()
+
+        assert result["enabled"] is True
+        assert result["provider"] == "groq"
+        mock_get.assert_called_once_with(
+            "http://localhost:8000/api/llm/status", timeout=5
+        )
+
+    @patch("murphy_terminal.requests.get")
+    def test_librarian_status(self, mock_get):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {
+            "enabled": True,
+            "healthy": True,
+        }
+        mock_resp.raise_for_status = MagicMock()
+        mock_get.return_value = mock_resp
+
+        client = self._make_client()
+        result = client.librarian_status()
+
+        assert result["enabled"] is True
+        mock_get.assert_called_once_with(
+            "http://localhost:8000/api/librarian/status", timeout=5
+        )
 
 
 # ---------------------------------------------------------------------------
