@@ -6,16 +6,19 @@ exist and contain the required sections for the Murphy System game agent
 integration.  The plan covers:
 
   - Agent soul architecture with memory/archive/recall (OpenClaw Molty soul.md)
-  - Sourcerior class design (monk/mage hybrid)
+  - Sourcerior class design (monk/mage hybrid — primarily damage with situational utility)
   - Invoke Pet / Meld system (elemental aspects)
   - Epic weapon (two-handed staff)
   - AI agent classes (pure melee, int caster, cleric)
+  - Class play-style templates (immutable agent guides)
+  - Agent permadeath (permanent death unless betrayed)
+  - Town conquest (leadership and guards fight)
   - Individual agent faction with grudge/friendship mechanics
   - Actions-only expression (agents cannot speak)
   - Voice chat integration with raid-leader admin moderation
   - Faction soul functions and agent warfare
   - Duel and loot system with inspect asymmetry
-  - Progression server (Planes of Power cap)
+  - Progression server (original EQ leveling built into Planes of Power ending)
   - Remake system (1% stat/skill cap increase per cycle)
   - Race cultural identity system (cultural mappings for all races)
   - Orc as new playable race (Crushbone starting zone)
@@ -210,6 +213,54 @@ class TestExperimentalEverQuestPlan:
         assert "cultural" in text.lower()
         assert "persona_injector" in text.lower() or "personality" in text.lower()
 
+    def test_sourcerior_primarily_damage_class(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "primarily a damage class" in lower or "primarily damage" in lower
+
+    def test_sourcerior_situational_utility(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "situational utility" in lower or "situational" in lower
+
+    def test_has_class_play_style_templates(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "play-style template" in lower or "play style template" in lower
+        assert "immutable" in lower
+
+    def test_has_agent_permadeath(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "permadeath" in lower or "permanently dead" in lower
+
+    def test_permadeath_betrayal_exception(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "betrayal" in lower
+        assert "resurrect" in lower or "resurrectable" in lower
+
+    def test_has_town_conquest(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "town" in lower and "conquest" in lower or "siege" in lower
+
+    def test_town_conquest_leadership_and_guards(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "leadership" in lower and "guards" in lower
+
+    def test_original_eq_leveling_experience(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "original" in lower and "leveling" in lower or "original everquest" in lower
+
+    def test_leveling_built_into_pop_ending(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "planes of power" in lower
+        assert "ending" in lower or "culmination" in lower or "capstone" in lower
+
 
 # ===========================================================================
 # OpenClaw Molty Soul Concept Document
@@ -289,6 +340,28 @@ class TestOpenClawMoltySoulConcept:
         assert "melee" in text.lower()
         assert "caster" in text.lower() or "cleric" in text.lower()
 
+    def test_has_class_play_style_template_in_soul(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "play-style template" in lower or "class template" in lower or "class play" in lower
+        assert "immutable" in lower or "read-only" in lower
+
+    def test_has_permadeath_in_soul(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "permadeath" in lower or "permanently dead" in lower or "permanent death" in lower
+
+    def test_has_betrayal_exception_in_soul(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "betrayal" in lower
+        assert "resurrect" in lower or "resurrectable" in lower or "exception" in lower
+
+    def test_has_death_state_in_soul_layers(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "death state" in lower or "death_state" in lower or "alive/dead" in lower
+
 
 # ===========================================================================
 # Sourcerior Class Design Document
@@ -307,6 +380,16 @@ class TestSourceriorClassDesign:
         text = _load_doc(self.DOC_NAME)
         assert "Monk" in text or "monk" in text
         assert "Mage" in text or "mage" in text
+
+    def test_primarily_damage_class(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "primarily a damage class" in lower
+
+    def test_situational_utility(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "situational utility" in lower
 
     def test_proc_based_dps(self):
         text = _load_doc(self.DOC_NAME)

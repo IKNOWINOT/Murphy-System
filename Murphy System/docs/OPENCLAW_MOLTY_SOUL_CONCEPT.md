@@ -27,6 +27,12 @@ The game agent soul extends the Rosetta soul pattern with game-specific layers:
 │ ROSETTA SOUL (base layer — from inference_gate_engine.py)       │
 │   Form schema, gates, metrics, confidence engine               │
 ├────────────────────────────────────────────────────────────────┤
+│ CLASS PLAY-STYLE TEMPLATE (immutable — read-only reference)     │
+│   Combat rotation, positioning, target selection, group role    │
+│   Buff priority, emergency actions, item valuation              │
+│   Fixed at server definition — shared across all same-class     │
+│   agents — never changes — the "how to play this class" guide   │
+├────────────────────────────────────────────────────────────────┤
 │ IDENTITY LAYER                                                  │
 │   Name, class (pure melee / int caster / cleric), level         │
 │   Faction, personality archetype, combat style preference        │
@@ -52,6 +58,11 @@ The game agent soul extends the Rosetta soul pattern with game-specific layers:
 │   Item database (only items previously possessed are known)     │
 │   Zone familiarity (mapped areas, known spawns)                │
 │   Player profiles (built from encounters, not inspection)       │
+├────────────────────────────────────────────────────────────────┤
+│ DEATH STATE                                                     │
+│   Alive/dead status, death cause, killer identity               │
+│   Betrayal flag — sole exception to permadeath                  │
+│   Resurrectable only if betrayed by ally/faction member         │
 └────────────────────────────────────────────────────────────────┘
 ```
 
@@ -294,21 +305,77 @@ knowledge_base = {
 
 ---
 
-## 6. Integration with Murphy System
+## 6. Class Play-Style Templates
 
-### 6.1 Module Mapping
+### 6.1 Immutable Class Guides
+
+Each agent class archetype is governed by a **class play-style template** — an immutable, read-only reference document that defines how agents of that class should play. Templates are the "how to play this class" guide for agents and **never change** once defined.
+
+**The template is fixed:**
+- Defined once at server configuration time
+- Shared across all agents of the same class archetype
+- Read-only — agents consult the template but cannot modify it
+- Ensures consistent, recognizable class behavior across all agents
+- Individual agent variation comes from the soul document (personality, memory, faction) — not from the template
+
+**Template contents:**
+
+| Field | Description |
+|---|---|
+| `combat_rotation` | Priority-ordered list of abilities to use in combat |
+| `positioning` | Where to stand relative to enemies and allies (front, back, range) |
+| `target_selection` | How to pick combat targets (highest threat, lowest HP, marked) |
+| `group_role` | Role in group content (tank, DPS, healer, CC) |
+| `buff_priority` | Which buffs to maintain and in what order |
+| `emergency_actions` | What to do when HP low, mana empty, or group wiping |
+| `item_valuation` | Stats and items to prioritize for gear and duel loot |
+
+---
+
+## 7. Agent Permadeath
+
+### 7.1 Permanent Death Rule
+
+AI agents follow a **permadeath rule**: when an agent dies, it is **permanently dead**. The soul document is archived but the agent ceases to exist in the game world. It does not respawn, get replaced, or come back.
+
+- All grudges, friendships, knowledge, and faction standing die with the agent
+- Players who built relationships with the agent lose those relationships permanently
+- Every agent encounter has real stakes — killing an agent has permanent consequences
+
+### 7.2 Betrayal Exception
+
+The **sole exception** to permadeath is **betrayal**. If an agent was killed through betrayal by an allied agent or faction member, the betrayed agent can be resurrected.
+
+**Betrayal is defined as:**
+- An agent killed by a member of its own faction
+- An agent lured into a trap by a supposed ally
+- An agent killed while under a ceasefire or truce agreement
+
+**Resurrection mechanics:**
+- A betrayed agent's soul document is flagged as `death_cause: "betrayal"` and `resurrectable: True`
+- A faction leader NPC or high-standing player of the agent's faction can resurrect it
+- Resurrected agents retain their **full soul document** — memory, grudges, knowledge — and gain a deep grudge against the betrayer
+- This creates emergent revenge narratives: a betrayed agent returns and hunts its killer
+
+---
+
+## 8. Integration with Murphy System
+
+### 8.1 Module Mapping
 
 | Soul Layer | Murphy Module | Integration |
 |---|---|---|
 | Rosetta base | `inference_gate_engine.py` | Form schemas drive agent action selection |
+| Class template | Server config (read-only) | Immutable class play-style guides |
 | Identity | `avatar/persona_injector.py` | Personality traits injected from avatar system |
 | Memory | `state_manager.py` | Rosetta state persistence for soul documents |
 | Recall | RAG vector integration | Vector similarity search for memory recall |
 | Faction | `governance_kernel.py` | Faction rules enforced as governance gates |
 | Knowledge | `librarian/` | Item/entity knowledge stored and indexed |
+| Death state | `state_manager.py` | Permadeath tracking and betrayal resurrection |
 | Behavior | `avatar/behavioral_scoring_engine.py` | Behavior scoring and adjustment loops |
 
-### 6.2 Persistence Strategy
+### 8.2 Persistence Strategy
 
 Soul documents are persisted through the existing Murphy persistence layer:
 

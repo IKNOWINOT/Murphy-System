@@ -10,11 +10,13 @@
 
 ## 1. Executive Summary
 
-This document defines the complete plan for an **experimental modification of EverQuest** powered by the Murphy System's multi-Rosetta soul architecture. The modification introduces Murphy-driven AI agents as in-game NPCs with persistent souls, a novel hybrid class called the **Sourcerior** (monk/mage hybrid), integrated voice chat with raid-leader moderation, a faction-based agent warfare system, and a player-vs-agent duel-and-loot mechanic. The entire experience is designed to be **streamed live**.
+This document defines the complete plan for an **experimental modification of EverQuest** powered by the Murphy System's multi-Rosetta soul architecture. The modification introduces Murphy-driven AI agents as in-game NPCs with persistent souls, a novel hybrid class called the **Sourcerior** (monk/mage hybrid — primarily a damage class with situational utility), integrated voice chat with raid-leader moderation, a faction-based agent warfare system, and a player-vs-agent duel-and-loot mechanic. The entire experience is designed to be **streamed live**.
 
-The server is a **Planes of Power progression server** with a universal **Remake System** — once any class maxes out level, AA, and skills, they can "remake" with a 1% permanent increase in stat and skill caps, starting again slightly stronger.
+The server is a **Planes of Power progression server** with leveling that mirrors the **original EverQuest experience** — same XP rates, hell levels, death penalties, and zone progression — built into the Planes of Power ending as the culmination of the journey. A universal **Remake System** allows any class that maxes out level, AA, and skills to "remake" with a 1% permanent increase in stat and skill caps, starting again slightly stronger.
 
-AI agents operate as **pure melee**, **int caster**, or **cleric** archetypes. Each agent builds **individual faction** with players based on direct interactions — holding grudges when mistreated and becoming friendly when helped. Agents express themselves **only through actions** — they cannot respond verbally or spam hate text at players.
+AI agents operate as **pure melee**, **int caster**, or **cleric** archetypes, each governed by an **immutable class play-style template** that defines how to play the class. Agents follow **permadeath** — when they die, they are permanently gone unless killed through **betrayal** by an ally, in which case they can be resurrected. Each agent builds **individual faction** with players based on direct interactions — holding grudges when mistreated and becoming friendly when helped. Agents express themselves **only through actions** — they cannot respond verbally or spam hate text at players.
+
+When **towns are conquered** through faction warfare, it is the **leadership and guards** that fight — civilian NPCs are non-combatants. Dead guards and leaders follow permadeath rules, and conquered towns change faction control.
 
 The agent soul system follows the **OpenClaw Molty soul.md** pattern (see `OPENCLAW_MOLTY_SOUL_CONCEPT.md`) where each agent's Rosetta state document acts as its persistent soul — driving memory, recall, faction loyalty, combat decisions, and social interactions.
 
@@ -28,14 +30,17 @@ The agent soul system follows the **OpenClaw Molty soul.md** pattern (see `OPENC
 |---|---|---|
 | **Agent Soul Engine** | Memory/archive system for NPC agents with recall triggers | `inference_gate_engine.py`, Rosetta state layer |
 | **AI Agent Classes** | Pure melee, int caster, and cleric archetypes for agents | Soul engine, class ability tables |
-| **Sourcerior Class** | Monk/mage hybrid class with unique mechanics | Game client modification, spell/ability tables |
+| **Class Play-Style Templates** | Immutable how-to-play guides for each agent class archetype | Soul engine, server config |
+| **Agent Permadeath** | Permanent death for agents — no respawn unless betrayed by ally | Soul engine, death state tracking |
+| **Town Conquest** | Leadership and guards defend towns in faction warfare sieges | Faction system, permadeath, agent spawning |
+| **Sourcerior Class** | Monk/mage hybrid — primarily damage with situational utility | Game client modification, spell/ability tables |
 | **Voice Chat Integration** | Group/raid toggle voice with admin moderation | WebRTC or Mumble protocol, Murphy admin controls |
 | **Faction Soul System** | Agent-to-agent warfare driven by faction standings | Soul engine, faction DB, event backbone |
 | **Individual Agent Faction** | Per-agent interaction-based reputation with players | Soul engine, interaction tracker |
 | **Duel & Loot System** | Player-vs-agent 1v1 duels with single-item loot stakes | Combat engine, inventory hooks, inspect gates |
 | **Streaming Pipeline** | Live-stream-ready overlay and event capture | OBS integration, event telemetry |
 | **Raid Leader Admin** | Murphy-powered raid leader moderation tools | Voice chat system, governance kernel |
-| **Progression Server** | Planes of Power era cap with controlled progression | EQEmu server configuration |
+| **Progression Server** | Original EQ leveling experience built into Planes of Power ending | EQEmu server configuration |
 | **Remake System** | 1% stat/skill cap increase per cycle for all classes | Character DB, AA system, progression tracker |
 | **Race Cultural Identity** | Cultural values per race, orc playable race, agent personality biases | Soul engine, persona_injector.py, EQEmu race tables |
 
@@ -169,6 +174,108 @@ All AI agents (Murphy NPCs) are assigned one of three class archetypes. Each arc
 - Faction affiliation influences ability selection (e.g., a fire-aligned faction's int casters favor fire spells)
 - Individual interaction history affects **who** agents use their abilities on — a friendly cleric heals you, a grudge-holding melee challenges you
 
+### 3.6 Class Play-Style Templates — Immutable Agent Guides
+
+Each agent class archetype is governed by a **class play-style template** — a fixed, immutable reference document that defines how agents of that class should play. Templates act as the agent's "how to play this class" guide and **never change** once defined. They are embedded in the soul architecture as a read-only layer.
+
+**Template structure:**
+
+| Template Section | Purpose |
+|---|---|
+| **Combat rotation** | Priority list of abilities to use in combat (e.g., taunt → bash → melee for Pure Melee) |
+| **Positioning** | Where the agent should stand relative to enemies and allies (front/back/range) |
+| **Target selection** | How the agent picks targets (lowest HP, highest threat, marked target) |
+| **Group role** | What the agent's job is in a group (tank, DPS, healer, CC) |
+| **Buff priority** | Which buffs to maintain and in what order |
+| **Emergency actions** | What to do when HP is low, mana is empty, or group is wiping |
+| **Item valuation** | Which stats and items the agent prioritizes for gear upgrades and duel loot |
+
+**Immutability rule:**
+- Class play-style templates are **fixed at server definition time** and do not change
+- The template is a read-only reference — agents consult it but cannot modify it
+- All agents of the same class archetype share the same template
+- Individual agent variation comes from the **soul document** (personality, memory, faction) — not from the template
+- Templates ensure consistent, recognizable class behavior: a Pure Melee always tanks like a warrior, an Int Caster always positions at range, a Cleric always prioritizes healing
+
+```python
+# Class play-style template (immutable — never changes)
+class_template = {
+    "archetype": "pure_melee",
+    "immutable": True,
+    "combat_rotation": ["taunt", "bash", "kick", "melee", "riposte"],
+    "positioning": "front_line",
+    "target_selection": "highest_threat_to_group",
+    "group_role": "tank_dps",
+    "buff_priority": ["haste", "strength", "ac"],
+    "emergency_actions": ["defensive_disc", "flee_at_10pct_hp", "bandage"],
+    "item_valuation": {"priority": ["ac", "hp", "str", "sta"]},
+}
+```
+
+### 3.7 Agent Permadeath — Permanent Death and Betrayal Exception
+
+AI agents follow a **permadeath rule**: when an agent dies, it is **permanently dead** and does not respawn. The agent's soul document is archived but the agent ceases to exist in the world. This creates real stakes for agent–agent warfare, town defense, and player interactions.
+
+**Permadeath mechanics:**
+- When an agent's HP reaches zero, the agent **dies permanently**
+- The soul document is moved to a **dead archive** — preserved for historical reference but no longer active
+- The agent does not respawn, re-enter the world, or get replaced by a copy
+- All grudges, friendships, knowledge, and faction standing die with the agent
+- Players who built relationships with that agent lose those relationships permanently
+- This makes every agent encounter meaningful — killing an agent has permanent consequences
+
+**Betrayal exception — the only path back:**
+- The **sole exception** to permadeath is **betrayal**: if an agent was killed through betrayal by an allied agent or faction member, the betrayed agent can be **resurrected**
+- Betrayal is defined as: an agent killed by a member of its own faction, an agent that was lured into a trap by a supposed ally, or an agent killed while under a ceasefire/truce
+- A betrayed agent's soul document is flagged as `death_cause: "betrayal"` instead of archived
+- Betrayed agents can be resurrected by a faction leader NPC or a high-standing player of the agent's faction
+- Resurrected agents retain their full soul document — memory, grudges, knowledge — and gain a **deep grudge** against the betrayer
+- This creates emergent revenge narratives: a betrayed agent comes back and hunts its killer
+
+**Death tracking in soul document:**
+
+```python
+agent_soul["death_state"] = {
+    "alive": False,
+    "death_cause": "combat",        # "combat", "betrayal", "town_siege"
+    "killer_id": "agent_4821",
+    "death_zone": "West Commonlands",
+    "death_timestamp": "2026-04-15T14:22:00Z",
+    "betrayal_flag": False,          # True if killed by ally/faction member
+    "resurrectable": False,          # True only when betrayal_flag is True
+    "resurrection_count": 0,
+}
+```
+
+### 3.8 Town Conquest — Leadership and Guards
+
+When a **town or city is conquered** through faction warfare, it is the **town leadership and guards** that fight to defend it — not the general population. Town conquest is a structured event, not a massacre.
+
+**Town defense structure:**
+
+| Defender Role | Description |
+|---|---|
+| **Town Leader** | The highest-ranking agent NPC in the town — faction leader, mayor, or guildmaster. Fights last, retreats if overwhelmed |
+| **Guard Captain** | Commands the guard force. Coordinates defense positioning and rallies guards |
+| **Town Guards** | Standing military force of the town. These are the primary combatants in a siege |
+| **Elite Guards** | Stronger named guard agents with full soul documents — permadeath applies |
+| **Civilian NPCs** | Non-combatants — merchants, quest givers, trainers. They **do not fight** and are not targeted |
+
+**Conquest mechanics:**
+- Faction warfare can escalate to **town sieges** when one faction's agents amass enough force near an enemy town
+- Only **leadership and guards** engage in combat during a siege — civilian NPCs are non-combatants
+- Guards follow permadeath rules — dead guards do not respawn automatically
+- If all guards and leadership are defeated, the town **changes faction control**
+- The conquering faction installs its own leadership and guards (new agents with new soul documents)
+- Conquered town services (merchants, trainers) continue operating under new management
+- Players aligned with the conquered faction lose access to town services until faction is restored
+- Town reconquest is possible — the defeated faction can rally agents to retake the town
+
+**Leadership agents:**
+- Town leaders and guard captains are **named agents with full soul documents** — they have memory, grudges, and individual faction standing
+- Killing a beloved town leader creates lasting grudges across the entire defending faction
+- Town leaders who survive a siege remember the attackers and hold deep grudges
+
 ---
 
 ## 4. Progression Server — Planes of Power
@@ -182,6 +289,38 @@ The experimental server is a **Planes of Power progression server**:
 - Level cap: **65** (PoP era)
 - AA cap: All AAs available through PoP era
 - All content and itemization designed around PoP-era balance
+
+### 4.2 Original EverQuest Leveling Experience
+
+The leveling experience is designed to **mirror the original EverQuest progression** — the same pacing, difficulty, and zone flow that defined the classic game. This is not a fast-track or accelerated server. Players and agents experience the full journey from level 1 to 65 as it was originally intended, built into the Planes of Power ending.
+
+**Original experience philosophy:**
+- **XP rates match original EQ** — leveling should feel like the original game, not a modern fast-pass
+- **Hell levels preserved** — the notoriously difficult leveling stretches (44, 51, 54, 59) are intact
+- **Zone progression follows classic paths** — Crushbone → Unrest → Mistmoore → SolB → Lower Guk → Plane of Fear/Hate → Kunark dungeons → Velious → Luclin → PoP
+- **Group-dependent gameplay** — soloing is slow and dangerous past the teens; grouping is the intended path
+- **Death penalty intact** — corpse runs, XP loss on death, and the fear of dying are core to the experience
+- **No instances** (Classic–Velious) — open-world contested content with camp competition, just like original EQ
+- **Planes of Power as the capstone** — the entire leveling journey builds toward Planar progression and the Plane of Time as the ultimate achievement
+
+**Leveling milestones (matching original EQ pacing):**
+
+| Level Range | Typical Zones | Time Investment | Key Milestones |
+|---|---|---|---|
+| **1–10** | Starting cities, newbie yards, local dungeons | 4–8 hours | Learn class basics, first group experiences |
+| **11–20** | Crushbone, Befallen, Blackburrow, Unrest | 15–25 hours | First dungeon crawls, group roles solidify |
+| **21–30** | Mistmoore, Upper/Lower Guk, Highpass | 25–40 hours | Class identity defined, key abilities unlock |
+| **31–40** | Solusek B, Permafrost, Cazic-Thule | 40–60 hours | Hell levels begin, grouping essential |
+| **41–50** | Plane of Fear/Hate, Kedge Keep, Old Sebilis | 60–100 hours | First planar content, epic quests begin |
+| **51–60** | Kunark/Velious raid zones, Temple of Veeshan | 100–160 hours | Raid progression, AA accumulation begins |
+| **61–65** | Luclin/PoP zones, Planar progression | 80–120 hours | Plane of Time flagging, final AA push |
+
+**Built into the Planes of Power ending:**
+- The entire progression arc — from level 1 in a starting city to level 65 in the Plane of Time — tells a complete story
+- Planes of Power is not just an expansion unlock; it is the **culmination** of the leveling journey
+- Planar progression (Plane of Justice → Plane of Valor → Plane of Storms → Plane of Tactics → Plane of Time) is the endgame
+- Characters who reach Plane of Time and complete the final encounter have **finished the journey** and can enter the Remake System
+- The experience is designed so that reaching the end of PoP feels like a genuine achievement, not an inevitability
 
 ### 4.2 Progression Unlock Schedule
 
@@ -267,7 +406,9 @@ AI agents also participate in the Remake System:
 
 ### 6.1 Class Identity
 
-The Sourcerior is a **monk/mage hybrid** that scales between melee discipline and arcane power. The class favors proc-based damage over direct-cast nukes, summons up to 6 elementals of four types (earth, air, fire, water), and provides group utility through proc-based song-like buffs. The Sourcerior can **meld with pets** for elemental aspect buffs, and wields a **two-handed staff** as its core weapon.
+The Sourcerior is a **monk/mage hybrid** — **primarily a damage class** with a wide range of **situational utility**. The class favors proc-based damage over direct-cast nukes, summons up to 6 elementals of four types (earth, air, fire, water), and provides group utility through proc-based song-like buffs. The Sourcerior can **meld with pets** for elemental aspect buffs, and wields a **two-handed staff** as its core weapon.
+
+The Sourcerior's core identity is **damage output**. Its utility — AE mez for emergencies, haste procs when they fire, earth meld tanking when the main tank drops — is situational and secondary. A Sourcerior who isn't dealing damage isn't fulfilling its role.
 
 ### 6.2 Core Mechanics Summary
 
@@ -567,9 +708,11 @@ The raid leader gains Murphy-powered moderation tools:
 ### Phase 1: Foundation (Weeks 1–4)
 
 - [ ] Set up EQEmu development server with Planes of Power progression config
+- [ ] Configure original EQ XP rates and leveling curve (hell levels, death penalty, corpse runs)
 - [ ] Implement soul engine with memory/archive/recall
 - [ ] Create Sourcerior class in spell/ability tables
 - [ ] Implement AI agent class archetypes (pure melee, int caster, cleric)
+- [ ] Define immutable class play-style templates for each agent archetype
 - [ ] Basic agent spawning with soul documents
 - [ ] Define race cultural identity templates for persona injector
 
@@ -581,6 +724,8 @@ The raid leader gains Murphy-powered moderation tools:
 - [ ] Implement song-like proc system (overhaste, buff, heal)
 - [ ] Balance pet scaling (6 pets, four elements, low HP, decent damage)
 - [ ] Implement two-handed staff weapon class and epic quest framework
+- [ ] Implement agent permadeath system (death archival, soul removal)
+- [ ] Implement betrayal detection and resurrection exception
 
 ### Phase 3: Social Systems (Weeks 9–12)
 
@@ -590,6 +735,7 @@ The raid leader gains Murphy-powered moderation tools:
 - [ ] Implement actions-only expression rule (no verbal agent responses)
 - [ ] Implement duel challenge and loot system
 - [ ] Implement inspect asymmetry (agent knowledge base gating)
+- [ ] Implement town conquest system (leadership and guards as defenders)
 - [ ] Voice chat integration with group/raid toggles
 
 ### Phase 4: Murphy Integration (Weeks 13–16)
@@ -667,6 +813,8 @@ The raid leader gains Murphy-powered moderation tools:
 | **Duel exploitation** | Economy manipulation through duel farming | Cooldown timers, item rarity caps, anti-farming detection |
 | **Agent behavior** | Agents behaving inappropriately | Governance kernel gates, behavior scoring, HITL override |
 | **Stream performance** | Game + voice + overlay CPU pressure | Dedicated stream PC or cloud-based encoding |
+| **Agent population decline** | Permadeath depopulates zones over time | Controlled new agent spawning to replace dead agents; betrayal resurrection as natural recovery |
+| **Town conquest imbalance** | One faction dominates all towns | Faction strength balancing, cooldowns on consecutive sieges, rally mechanics for defeated factions |
 
 ---
 
