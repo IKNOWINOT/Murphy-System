@@ -406,22 +406,29 @@ AI agents also participate in the Remake System:
 
 ### 6.1 Class Identity
 
-The Sourcerior is a **monk/mage hybrid** — **primarily a damage class** with a wide range of **situational utility**. The class favors proc-based damage over direct-cast nukes, summons up to 6 elementals of four types (earth, air, fire, water), and provides group utility through proc-based song-like buffs. The Sourcerior can **meld with pets** for elemental aspect buffs, and wields a **two-handed staff** as its core weapon.
+The Sourcerior is a **monk/mage hybrid** — **primarily a damage class** with a wide range of **situational utility** and a unique **avoidance tanking** capability. The class favors proc-based damage over direct-cast nukes, summons up to 6 elementals of four types (earth, air, fire, water), and provides group utility through **bard proc line** effects. The Sourcerior can **meld with pets** for elemental aspect buffs, and wields a **two-handed staff** as its core weapon.
 
-The Sourcerior's core identity is **damage output**. Its utility — AE mez for emergencies, haste procs when they fire, earth meld tanking when the main tank drops — is situational and secondary. A Sourcerior who isn't dealing damage isn't fulfilling its role.
+**Eligible races:** Dark Elf, Erudite, Human, High Elf, Gnome (int caster races).
+
+The Sourcerior has **higher proc modifiers than any other class** — the slower the weapon, the better. **Discipline of Rumblecrush** enables emergency avoidance tanking for the same duration as a warrior's **Defensive Discipline** (~180s), with pets gaining Defensive-like mitigation. This burns mana per proc, making **beastlord** mana sustain essential.
+
+The **single-element rule** restricts pet groups to one element at a time unless the Sourcerior acquires **Lord of the Maelstrom** — a level 60 raid drop from the final Plane of Sky boss that permanently lifts the restriction.
 
 ### 6.2 Core Mechanics Summary
 
 | Mechanic | Description |
 |---|---|
 | **Melee Foundation** | Monk-style hand-to-hand and kick skills as primary combat |
-| **Proc-Based DPS** | Damage procs replace kicks — AE damage procs on melee hits |
-| **Pet System** | Up to 6 elementals of four types (earth, air, fire, water) |
+| **Fire Procs** | AE fire damage + AC/damage shield on melee hits |
+| **Earth Procs** | Root targets + runes (damage absorption) on melee hits |
+| **Bard Proc Line** | Overhaste, ATK, AC, pet heal procs from bard spell lines — weaker than bard equivalents |
+| **Pet System** | Up to 6 elementals; single element at a time (unless Lord of the Maelstrom) |
 | **Invoke Pet / Meld** | Absorb a pet to gain its elemental aspect (HP+taunt, backstab, DS+burn, crit magic) |
 | **Flame Blink** | Forward blink replaces feign death — releases elementals that root and taunt |
 | **AE Mez** | Minor enchanter-category AE mesmerize spells |
-| **Song-Like Procs** | AE pet heal, buff, haste procs (overhaste-style, weaker than bard lines) |
 | **Sacrifice Pets** | Consumes pets for a nuke — mobility ability for movement phases |
+| **Discipline of Rumblecrush** | Tanking disc (~180s, same as warrior Defensive); pets gain Defensive-like buff; procs cost mana |
+| **Lord of the Maelstrom** | Level 60 raid drop (Plane of Sky); permanently allows mixed-element pets |
 | **Epic Weapon** | Very slow 2H staff with heavy base DMG — amplifies meld effectiveness |
 
 ### 6.3 Scaling Philosophy
@@ -430,10 +437,11 @@ The Sourcerior scales between monk and mage power curves:
 - At low levels, plays mostly as a monk with minor pet summons
 - At mid levels, proc effects become meaningful and pet count increases
 - At high levels, the full 6-pet army with proc-based AE DPS and meld cycling is online
-- Bard song lines of equivalent level should always be **stronger** than Sourcerior procs
+- Bard proc lines of equivalent level should always be **stronger** than Sourcerior procs
 - The value is in the combination: melee DPS + pet DPS + meld aspects + proc utility
 - **Two-handed staves** are the core weapon — high base damage maximizes proc and meld scaling
-- Can wear **cloth and leather** armor
+- Can also dual wield **1H slashing** and **1H piercing** weapons (no 1H blunt)
+- Can wear **cloth and leather** armor, plus the **Fungi Tunic** for regeneration synergy
 
 ---
 
