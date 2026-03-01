@@ -17,6 +17,8 @@ integration.  The plan covers:
   - Duel and loot system with inspect asymmetry
   - Progression server (Planes of Power cap)
   - Remake system (1% stat/skill cap increase per cycle)
+  - Race cultural identity system (cultural mappings for all races)
+  - Orc as new playable race (Crushbone starting zone)
   - Streaming pipeline
 
 Each test class validates a planning document's structure and required content.
@@ -109,6 +111,7 @@ class TestExperimentalEverQuestPlan:
         text = _load_doc(self.DOC_NAME)
         assert "OPENCLAW_MOLTY_SOUL_CONCEPT.md" in text
         assert "SOURCERIOR_CLASS_DESIGN.md" in text
+        assert "RACE_CULTURAL_IDENTITY_DESIGN.md" in text
 
     def test_has_data_models(self):
         text = _load_doc(self.DOC_NAME)
@@ -184,6 +187,28 @@ class TestExperimentalEverQuestPlan:
         text = _load_doc(self.DOC_NAME)
         assert "cloth" in text.lower()
         assert "leather" in text.lower()
+
+    def test_has_race_cultural_identity_section(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Race Cultural Identity" in text
+
+    def test_has_orc_playable_race(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Orc" in text or "orc" in text
+        assert "playable" in text.lower() or "new playable" in text.lower()
+
+    def test_has_crushbone_starting_zone(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Crushbone" in text
+
+    def test_references_race_cultural_identity_doc(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "RACE_CULTURAL_IDENTITY_DESIGN.md" in text
+
+    def test_has_cultural_personality_in_agents(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "cultural" in text.lower()
+        assert "persona_injector" in text.lower() or "personality" in text.lower()
 
 
 # ===========================================================================
@@ -418,3 +443,190 @@ class TestSourceriorClassDesign:
         assert "air" in lower
         assert "fire" in lower
         assert "water" in lower
+
+
+# ===========================================================================
+# Race Cultural Identity Design Document
+# ===========================================================================
+
+
+class TestRaceCulturalIdentityDesign:
+    """Validate RACE_CULTURAL_IDENTITY_DESIGN.md structure."""
+
+    DOC_NAME = "RACE_CULTURAL_IDENTITY_DESIGN.md"
+
+    def test_document_exists(self):
+        assert (DOCS_DIR / self.DOC_NAME).exists()
+
+    def test_has_overview_section(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Overview" in text
+
+    def test_has_race_culture_mapping_table(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Race" in text and "Cultural Inspiration" in text
+
+    # --- Core race–culture mappings ---
+
+    def test_gnome_spartan(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "gnome" in lower
+        assert "spartan" in lower
+
+    def test_dark_elf_german(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "dark elf" in lower
+        assert "german" in lower
+
+    def test_high_elf_chinese(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "high elf" in lower
+        assert "chinese" in lower
+
+    def test_wood_elf_japanese(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "wood elf" in lower
+        assert "japanese" in lower
+
+    def test_barbarian_american_indian(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "barbarian" in lower
+        assert "american indian" in lower
+
+    def test_vah_shir_irish(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "vah shir" in lower
+        assert "irish" in lower
+
+    def test_halfling_muslim_persian(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "halfling" in lower
+        assert "persian" in lower
+
+    def test_human_qeynos_british(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "qeynos" in lower
+        assert "british" in lower
+
+    def test_human_freeport_american(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "freeport" in lower
+        assert "american" in lower
+
+    def test_dwarf_mongol(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "dwarf" in lower
+        assert "mongol" in lower
+
+    def test_ogre_dictatorship_rebellion(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "ogre" in lower
+        assert "dictatorship" in lower
+        assert "rebellion" in lower
+
+    def test_troll_hawaiian(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "troll" in lower
+        assert "hawaiian" in lower
+
+    def test_erudite_phoenician(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "erudite" in lower
+        assert "phoenician" in lower
+
+    def test_iksar_nordic_viking(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "iksar" in lower
+        assert "viking" in lower or "nordic" in lower
+
+    # --- New playable race: Orc ---
+
+    def test_orc_playable_race(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "orc" in lower
+        assert "playable" in lower or "new playable" in lower
+
+    def test_orc_crushbone_starting_zone(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "orc" in lower
+        assert "crushbone" in lower
+        assert "starting" in lower
+
+    def test_orc_barbarian_class_availability(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "warrior" in lower
+        assert "rogue" in lower
+        assert "shaman" in lower
+
+    def test_orc_starting_faction(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "crushbone orc" in lower or "clan of the fist" in lower
+
+    # --- Remaining races have cultures assigned ---
+
+    def test_half_elf_has_culture(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "half elf" in lower
+        assert "byzantine" in lower or any(c in lower for c in [
+            "roman", "greek", "celtic", "slavic", "ethiopian", "korean",
+            "thai", "mayan", "inuit", "polynesian", "scottish",
+        ])
+
+    # --- Cultural integration ---
+
+    def test_cultural_values_affect_agent_behavior(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "behavioral" in lower or "behavior" in lower
+        assert "agent" in lower
+
+    def test_has_faction_culture_alignment(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Faction" in text
+        assert "Cultural" in text or "cultural" in text
+
+    def test_has_soul_document_cultural_identity_block(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "cultural_identity" in text
+
+    def test_has_persona_injector_integration(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "persona_injector" in text
+
+    def test_has_behavioral_bias_parameters(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "aggression_threshold" in lower or "aggression" in lower
+        assert "grudge_decay" in lower or "grudge" in lower
+        assert "friendship_build" in lower or "friendship" in lower
+
+    def test_cultural_values_deep_dive_exists(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Cultural Values" in text or "Deep Dive" in text
+
+    def test_quest_design_themes_by_race(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Quest" in text or "quest" in text
+
+    def test_implementation_notes_exist(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Implementation" in text
