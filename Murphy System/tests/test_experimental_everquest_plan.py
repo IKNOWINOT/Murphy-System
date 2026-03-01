@@ -513,6 +513,11 @@ class TestSourceriorClassDesign:
         lower = text.lower()
         assert "leather" in lower
 
+    def test_fungi_tunic_usable(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "fungi tunic" in lower
+
     def test_epic_monk_mage_difficulty(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
@@ -526,6 +531,105 @@ class TestSourceriorClassDesign:
         assert "air" in lower
         assert "fire" in lower
         assert "water" in lower
+
+    def test_avoidance_tank_identity(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "avoidance" in lower and "tank" in lower
+
+    def test_discipline_of_rumblecrush(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "rumblecrush" in lower
+        assert "discipline" in lower or "disc" in lower
+
+    def test_rumblecrush_defensive_disc_duration(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "defensive" in lower and ("discipline" in lower or "disc" in lower)
+        assert "180" in text or "same duration" in lower or "same as" in lower
+
+    def test_rumblecrush_pets_gain_defensive(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "pet" in lower and "defensive" in lower
+        assert "damage reduction" in lower or "mitigation" in lower or "dr" in lower
+
+    def test_rumblecrush_procs_cost_mana(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "proc" in lower and "mana" in lower
+
+    def test_beastlord_synergy(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "beastlord" in lower
+        assert "mana" in lower
+
+    def test_lord_of_the_maelstrom(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "lord of the maelstrom" in lower
+        assert "plane of sky" in lower
+
+    def test_lord_of_maelstrom_raid_drop(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "raid" in lower and ("drop" in lower or "dropped" in lower)
+
+    def test_single_element_rule(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "single-element" in lower or "one type of elemental" in lower or "one element" in lower
+
+    def test_earth_procs_root_and_rune(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "earth" in lower
+        assert "root" in lower
+        assert "rune" in lower or "absorption" in lower
+
+    def test_fire_procs_ac_damage_shield(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "fire" in lower
+        assert "damage shield" in lower or "ds" in lower
+        assert "ac" in lower
+
+    def test_eligible_races_int_casters(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "dark elf" in lower
+        assert "erudite" in lower
+        assert "human" in lower
+        assert "high elf" in lower
+        assert "gnome" in lower
+
+    def test_slow_weapon_proc_modifier(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "proc modifier" in lower or "proc modifiers" in lower
+        assert "slow" in lower
+
+    def test_bard_proc_line(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "bard" in lower and "proc" in lower and "line" in lower
+
+    def test_weapon_1h_slashing(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "1h slashing" in lower or "1h slash" in lower
+
+    def test_weapon_1h_piercing(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "1h piercing" in lower or "piercing" in lower
+
+    def test_no_1h_blunt(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "no 1h blunt" in lower or "cannot" in lower and "1h blunt" in lower or "no" in lower and "blunt" in lower
 
 
 # ===========================================================================
