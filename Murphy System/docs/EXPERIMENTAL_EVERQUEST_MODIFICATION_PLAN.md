@@ -1,7 +1,7 @@
 # Experimental EverQuest Modification Plan
 
 **Murphy System — Experimental Game Integration Plan**
-**Version:** 2.0.0
+**Version:** 3.0.0
 **Date:** 2026-03-01
 **Status:** Experimental / Draft
 **Codename:** Project Sourcerior
@@ -37,6 +37,7 @@ The agent soul system follows the **OpenClaw Molty soul.md** pattern (see `OPENC
 | **Raid Leader Admin** | Murphy-powered raid leader moderation tools | Voice chat system, governance kernel |
 | **Progression Server** | Planes of Power era cap with controlled progression | EQEmu server configuration |
 | **Remake System** | 1% stat/skill cap increase per cycle for all classes | Character DB, AA system, progression tracker |
+| **Race Cultural Identity** | Cultural values per race, orc playable race, agent personality biases | Soul engine, persona_injector.py, EQEmu race tables |
 
 ### 2.2 Reference Documents
 
@@ -44,6 +45,7 @@ The agent soul system follows the **OpenClaw Molty soul.md** pattern (see `OPENC
 |---|---|
 | `OPENCLAW_MOLTY_SOUL_CONCEPT.md` | Agent soul / memory / archive / recall architecture |
 | `SOURCERIOR_CLASS_DESIGN.md` | Full Sourcerior class ability and scaling design |
+| `RACE_CULTURAL_IDENTITY_DESIGN.md` | Race cultural identities, orc playable race, agent cultural personality |
 | `inference_gate_engine.py` | Existing multi-Rosetta soul pattern implementation |
 | `ROSETTA_STATE_MANAGEMENT_SYSTEM.md` | State management architecture reference |
 
@@ -294,9 +296,57 @@ The Sourcerior scales between monk and mage power curves:
 
 ---
 
-## 7. Voice Chat Integration
+## 7. Race Cultural Identity System
 
-### 7.1 Architecture
+> Full design specification: `RACE_CULTURAL_IDENTITY_DESIGN.md`
+
+### 7.1 Overview
+
+Every playable race is assigned a **cultural identity** inspired by a real-world civilization. These cultural mappings shape AI agent personality, faction behavior, quest themes, and social dynamics. Cultural identities are layered on top of existing EQ faction alignments — they provide motivation for existing relationships, not replacements.
+
+### 7.2 Race–Culture Summary
+
+| Race | Cultural Inspiration | Key Values |
+|---|---|---|
+| **Gnome** | Spartan (Ancient Greece) | Military discipline, communal duty, honor in combat |
+| **Dark Elf** | German | Precision, order, hierarchical authority, methodical conquest |
+| **High Elf** | Chinese | Scholarly tradition, celestial harmony, bureaucratic governance |
+| **Wood Elf** | Japanese | Nature harmony, bushido-like code, ancestral reverence |
+| **Barbarian** | American Indian | Land connection, tribal council, spirit kinship, honor through deeds |
+| **Vah Shir** | Irish | Fierce independence, clan loyalty, storytelling, spirited defiance |
+| **Halfling** | Muslim Persian | Trade networks, sacred hospitality, poetic philosophy, garden culture |
+| **Human (Qeynos)** | British | Constitutional governance, naval tradition, institutional loyalty |
+| **Human (Freeport)** | American | Entrepreneurial ambition, individual liberty, frontier spirit |
+| **Dwarf** | Mongol | Nomadic warrior heritage, clan confederation, trade route mastery |
+| **Ogre** | Dictatorship with Rebellion | Authoritarian rule vs. underground resistance, internal dissent |
+| **Troll** | Hawaiian | Island community, ocean/fire reverence, warrior-dancer culture |
+| **Erudite** | Phoenician | Maritime trade empire, knowledge innovation, merchant-explorer ambition |
+| **Iksar** | Nordic Viking | Imperial conquest, runic mysticism, saga tradition, honor-bound code |
+| **Orc** *(new playable)* | Barbarian-equivalent | Tribal honor, strength-tested leadership, Crushbone starting zone |
+| **Half Elf** | Byzantine | Diplomatic bridge-builders, dual heritage, adaptive pragmatism |
+
+### 7.3 Orc — New Playable Race
+
+Orcs are introduced as a **new playable race** starting in Crushbone:
+- **Class availability**: Same as Barbarian (Warrior, Rogue, Shaman, Beastlord)
+- **Starting zone**: Crushbone redesigned as a full orc starting city
+- **Faction start**: Allied with Crushbone Orcs (reformed), hostile to Wood Elf and High Elf cities
+- **Cultural identity**: Tribal honor culture — earn respect through deeds, strength-tested leadership
+
+### 7.4 Cultural Personality in AI Agents
+
+Cultural values are injected into Murphy agent soul documents via `persona_injector.py`, affecting:
+- How quickly agents challenge to duels (aggression threshold)
+- How readily they form positive faction with players (friendship build rate)
+- How long they hold grudges (grudge decay rate)
+- How they prioritize targets in faction warfare (honor sensitivity)
+- How they respond to trade offers and assistance (trade openness)
+
+---
+
+## 8. Voice Chat Integration
+
+### 8.1 Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -324,7 +374,7 @@ The Sourcerior scales between monk and mage power curves:
 └──────────────────────────────────────────────────────────────┘
 ```
 
-### 7.2 Toggle System
+### 8.2 Toggle System
 
 | Toggle | Scope | Default |
 |---|---|---|
@@ -334,7 +384,7 @@ The Sourcerior scales between monk and mage power curves:
 | `voice_broadcast` | Raid leader → all | Raid leader only |
 | `murphy_moderation` | Murphy admin controls | ON for raid leader |
 
-### 7.3 Murphy Raid Leader Admin
+### 8.3 Murphy Raid Leader Admin
 
 The raid leader gains Murphy-powered moderation tools:
 
@@ -346,9 +396,9 @@ The raid leader gains Murphy-powered moderation tools:
 
 ---
 
-## 8. Duel and Loot System
+## 9. Duel and Loot System
 
-### 8.1 Duel Mechanics
+### 9.1 Duel Mechanics
 
 - Agents can **challenge any player** to a 1v1 duel
 - Players can **accept or decline** — no forced combat
@@ -356,7 +406,7 @@ The raid leader gains Murphy-powered moderation tools:
 - Standard EverQuest combat rules apply within the duel
 - **Stakes**: Winner loots **one item** from the loser
 
-### 8.2 Loot Stakes
+### 9.2 Loot Stakes
 
 | Outcome | Winner Action |
 |---|---|
@@ -364,7 +414,7 @@ The raid leader gains Murphy-powered moderation tools:
 | **Agent wins** | Agent loots one item from the player's inventory |
 | **Decline** | No penalty, agent may challenge again after cooldown |
 
-### 8.3 Inspect Asymmetry
+### 9.3 Inspect Asymmetry
 
 - **Players can inspect agents** — see agent gear, stats, faction
 - **Agents cannot inspect players** — unless the agent has **previously possessed** the specific item
@@ -373,9 +423,9 @@ The raid leader gains Murphy-powered moderation tools:
 
 ---
 
-## 9. Streaming Pipeline
+## 10. Streaming Pipeline
 
-### 9.1 Stream-Ready Features
+### 10.1 Stream-Ready Features
 
 | Feature | Purpose |
 |---|---|
@@ -386,7 +436,7 @@ The raid leader gains Murphy-powered moderation tools:
 | **Voice chat integration** | Stream audio from raid/group voice channels |
 | **Murphy dashboard** | Real-time Murphy System metrics and agent state |
 
-### 9.2 OBS Integration
+### 10.2 OBS Integration
 
 - Custom OBS plugin for Murphy event overlays
 - Scene switching triggers on major events (faction war, duel, raid boss)
@@ -395,9 +445,9 @@ The raid leader gains Murphy-powered moderation tools:
 
 ---
 
-## 10. Technical Requirements
+## 11. Technical Requirements
 
-### 10.1 Server Infrastructure
+### 11.1 Server Infrastructure
 
 | Component | Specification |
 |---|---|
@@ -408,7 +458,7 @@ The raid leader gains Murphy-powered moderation tools:
 | **Vector Store** | RAG vector integration for memory recall |
 | **Stream Server** | RTMP ingest for OBS, HLS distribution |
 
-### 10.2 Client Modifications
+### 11.2 Client Modifications
 
 | Modification | Description |
 |---|---|
@@ -417,7 +467,7 @@ The raid leader gains Murphy-powered moderation tools:
 | **Duel UI** | Challenge dialog, stake selection, outcome display |
 | **Agent indicators** | Visual markers for Murphy agents vs regular NPCs |
 
-### 10.3 Murphy System Extensions
+### 11.3 Murphy System Extensions
 
 | Extension | Module | Description |
 |---|---|---|
@@ -430,9 +480,9 @@ The raid leader gains Murphy-powered moderation tools:
 
 ---
 
-## 11. Data Models
+## 12. Data Models
 
-### 11.1 Soul Document Schema
+### 12.1 Soul Document Schema
 
 ```python
 {
@@ -479,7 +529,7 @@ The raid leader gains Murphy-powered moderation tools:
 }
 ```
 
-### 11.2 Faction Schema
+### 12.2 Faction Schema
 
 ```python
 {
@@ -494,7 +544,7 @@ The raid leader gains Murphy-powered moderation tools:
 }
 ```
 
-### 11.3 Duel Record Schema
+### 12.3 Duel Record Schema
 
 ```python
 {
@@ -512,7 +562,7 @@ The raid leader gains Murphy-powered moderation tools:
 
 ---
 
-## 12. Implementation Phases
+## 13. Implementation Phases
 
 ### Phase 1: Foundation (Weeks 1–4)
 
@@ -521,6 +571,7 @@ The raid leader gains Murphy-powered moderation tools:
 - [ ] Create Sourcerior class in spell/ability tables
 - [ ] Implement AI agent class archetypes (pure melee, int caster, cleric)
 - [ ] Basic agent spawning with soul documents
+- [ ] Define race cultural identity templates for persona injector
 
 ### Phase 2: Combat & Class (Weeks 5–8)
 
@@ -547,6 +598,7 @@ The raid leader gains Murphy-powered moderation tools:
 - [ ] Connect sentiment classifier for voice moderation
 - [ ] Implement governance kernel logging for all admin actions
 - [ ] Connect Rosetta state management for soul persistence
+- [ ] Integrate cultural personality templates into persona_injector.py
 
 ### Phase 5: Progression & Remake (Weeks 17–20)
 
@@ -555,7 +607,16 @@ The raid leader gains Murphy-powered moderation tools:
 - [ ] Implement agent remake cycle (automatic, retains soul document)
 - [ ] Build remake counter UI and inspect integration
 
-### Phase 6: Stream & Polish (Weeks 21–24)
+### Phase 6: Race & Culture (Weeks 21–24)
+
+- [ ] Implement orc as new playable race (race table, starting stats, character model)
+- [ ] Redesign Crushbone as orc starting city (NPCs, merchants, quest givers)
+- [ ] Implement cultural behavioral biases in agent soul documents
+- [ ] Create race-specific quest content reflecting cultural values
+- [ ] Implement cultural faction alignment motivation layer
+- [ ] Test agent cultural personality across all race templates
+
+### Phase 7: Stream & Polish (Weeks 25–28)
 
 - [ ] Build OBS overlay plugin for Murphy events
 - [ ] Implement agent thought bubble visualization
@@ -565,9 +626,9 @@ The raid leader gains Murphy-powered moderation tools:
 
 ---
 
-## 13. Information Requirements
+## 14. Information Requirements
 
-### 13.1 What Is Needed to Begin
+### 14.1 What Is Needed to Begin
 
 | Category | Required Information |
 |---|---|
@@ -582,7 +643,7 @@ The raid leader gains Murphy-powered moderation tools:
 | **Hardware Budget** | Server specs for game + Murphy + voice + stream |
 | **Content Policy** | Rules for agent behavior, language, duel stakes limits |
 
-### 13.2 Dependencies on Existing Murphy Modules
+### 14.2 Dependencies on Existing Murphy Modules
 
 | Module | Usage |
 |---|---|
@@ -596,7 +657,7 @@ The raid leader gains Murphy-powered moderation tools:
 
 ---
 
-## 14. Risk Assessment
+## 15. Risk Assessment
 
 | Risk | Impact | Mitigation |
 |---|---|---|
