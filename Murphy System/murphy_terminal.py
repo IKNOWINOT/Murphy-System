@@ -64,8 +64,82 @@ MODULE_COMMAND_MAP: dict[str, list[str]] = {
     "sales_automation": ["sales report"],
     "system_librarian": ["librarian", "knowledge base"],
     "integration_engine": ["integrations", "show integrations"],
+    "api_setup": ["api keys", "get api keys"],
     "command_system": ["help", "commands", "show modules"],
     "conversation_handler": ["chat (natural language)"],
+}
+
+# ---------------------------------------------------------------------------
+# API Provider Links — direct signup URLs for third-party services
+# ---------------------------------------------------------------------------
+
+API_PROVIDER_LINKS: dict[str, dict[str, str]] = {
+    "groq": {
+        "name": "Groq",
+        "url": "https://console.groq.com/keys",
+        "env_var": "GROQ_API_KEY",
+        "description": "LLM provider (fast inference for Llama, Mixtral, Gemma)",
+    },
+    "openai": {
+        "name": "OpenAI",
+        "url": "https://platform.openai.com/api-keys",
+        "env_var": "OPENAI_API_KEY",
+        "description": "LLM provider (GPT-4, GPT-3.5)",
+    },
+    "github": {
+        "name": "GitHub",
+        "url": "https://github.com/settings/tokens",
+        "env_var": "GITHUB_TOKEN",
+        "description": "Repository integration, CI/CD, issue tracking",
+    },
+    "slack": {
+        "name": "Slack",
+        "url": "https://api.slack.com/apps",
+        "env_var": "SLACK_BOT_TOKEN",
+        "description": "Team messaging and notifications",
+    },
+    "stripe": {
+        "name": "Stripe",
+        "url": "https://dashboard.stripe.com/apikeys",
+        "env_var": "STRIPE_API_KEY",
+        "description": "Payment processing and billing",
+    },
+    "sendgrid": {
+        "name": "SendGrid",
+        "url": "https://app.sendgrid.com/settings/api_keys",
+        "env_var": "SENDGRID_API_KEY",
+        "description": "Email delivery and marketing",
+    },
+    "twilio": {
+        "name": "Twilio",
+        "url": "https://www.twilio.com/console",
+        "env_var": "TWILIO_AUTH_TOKEN",
+        "description": "SMS, voice, and phone integrations",
+    },
+    "hubspot": {
+        "name": "HubSpot",
+        "url": "https://developers.hubspot.com/get-started",
+        "env_var": "HUBSPOT_API_KEY",
+        "description": "CRM, marketing, sales automation",
+    },
+    "salesforce": {
+        "name": "Salesforce",
+        "url": "https://developer.salesforce.com/signup",
+        "env_var": "SALESFORCE_TOKEN",
+        "description": "CRM and enterprise sales platform",
+    },
+    "shopify": {
+        "name": "Shopify",
+        "url": "https://partners.shopify.com/signup",
+        "env_var": "SHOPIFY_API_KEY",
+        "description": "E-commerce platform and store management",
+    },
+    "google": {
+        "name": "Google Cloud / Workspace",
+        "url": "https://console.cloud.google.com/apis/credentials",
+        "env_var": "GOOGLE_API_KEY",
+        "description": "Google Sheets, Gmail, Calendar, Cloud services",
+    },
 }
 
 # ---------------------------------------------------------------------------
@@ -315,12 +389,64 @@ class DialogContext:
         return "Already at the beginning."
 
     def _complete_message(self) -> str:
-        return (
+        msg = (
             "[bold green]✓ Interview complete![/bold green]\n"
             f"Here's what I collected:\n{self.summary()}\n\n"
-            "Type [green]confirm[/green] to proceed, [green]edit[/green] to change answers, "
-            "or [green]restart[/green] to start over."
         )
+        # Infer and show recommended integrations from answers
+        recs = self._infer_integrations()
+        if recs:
+            msg += "[bold cyan]Recommended integrations based on your answers:[/bold cyan]\n"
+            for svc_key, info in recs.items():
+                msg += (
+                    f"  • [bold]{info['name']}[/bold] — {info['description']}\n"
+                    f"    Get your key: [link={info['url']}]{info['url']}[/link]\n"
+                    f"    Set: [green]{info['env_var']}[/green]\n"
+                )
+            msg += "\n"
+        msg += (
+            "Type [green]confirm[/green] to proceed, [green]edit[/green] to change answers, "
+            "or [green]restart[/green] to start over.\n"
+            "Type [green]api keys[/green] to see all available API signup links."
+        )
+        return msg
+
+    def _infer_integrations(self) -> dict[str, dict[str, str]]:
+        """Analyze collected answers and return matching API_PROVIDER_LINKS entries."""
+        combined = " ".join(str(v) for v in self.collected.values()).lower()
+        keyword_map = {
+            "email": ["sendgrid", "google"],
+            "gmail": ["google"],
+            "crm": ["hubspot", "salesforce"],
+            "hubspot": ["hubspot"],
+            "salesforce": ["salesforce"],
+            "slack": ["slack"],
+            "sms": ["twilio"],
+            "phone": ["twilio"],
+            "github": ["github"],
+            "payment": ["stripe"],
+            "stripe": ["stripe"],
+            "shopify": ["shopify"],
+            "e-commerce": ["shopify", "stripe"],
+            "ecommerce": ["shopify", "stripe"],
+            "sell": ["stripe", "shopify"],
+            "sales": ["hubspot"],
+            "marketing": ["sendgrid", "hubspot"],
+            "google": ["google"],
+            "sheets": ["google"],
+        }
+        matched: dict[str, dict[str, str]] = {}
+        for keyword, provider_keys in keyword_map.items():
+            if keyword in combined:
+                for pk in provider_keys:
+                    if pk not in matched and pk in API_PROVIDER_LINKS:
+                        matched[pk] = API_PROVIDER_LINKS[pk]
+        # Always recommend LLM if not configured
+        if "groq" not in matched:
+            llm_provider = os.environ.get("MURPHY_LLM_PROVIDER", "").strip()
+            if not llm_provider:
+                matched["groq"] = API_PROVIDER_LINKS["groq"]
+        return matched
 
     @staticmethod
     def _infer_value(key: str, text: str, original: str = "") -> str:
@@ -353,6 +479,7 @@ INTENT_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"\b(health|alive|ping)\b", re.I), "intent_health"),
     (re.compile(r"^llm[_ ]?status\b", re.I), "intent_llm_status"),
     (re.compile(r"^librarian[_ ]?status\b", re.I), "intent_librarian_status"),
+    (re.compile(r"^(api[_ ]?keys?|get[_ ]?api[_ ]?keys?)\b", re.I), "intent_api_keys"),
     (re.compile(r"\b(status|state|dashboard)\b", re.I), "intent_status"),
     (re.compile(r"\b(info|about|version)\b", re.I), "intent_info"),
     (re.compile(r"\b(help|commands|what can)\b", re.I), "intent_help"),
@@ -532,6 +659,7 @@ class MurphyTerminalApp(App):
                     "[dim]start interview[/dim]\n"
                     "[dim]show modules[/dim]\n"
                     "[dim]librarian[/dim]\n"
+                    "[dim]api keys[/dim]\n"
                     "[dim]billing[/dim]\n"
                     "[dim]links[/dim]\n"
                     "[dim]plan[/dim]\n"
@@ -714,6 +842,7 @@ class MurphyTerminalApp(App):
                 "[dim]start interview[/dim]\n"
                 "[dim]show modules[/dim]\n"
                 "[dim]librarian[/dim]\n"
+                "[dim]api keys[/dim]\n"
                 "[dim]billing[/dim]\n"
                 "[dim]links[/dim]\n"
                 "[dim]plan[/dim]\n"
@@ -744,7 +873,8 @@ class MurphyTerminalApp(App):
             if intent in ("intent_help", "intent_exit", "intent_health",
                           "intent_status", "intent_set_api", "intent_test_api",
                           "intent_reconnect", "intent_links", "intent_modules",
-                          "intent_llm_status", "intent_librarian_status"):
+                          "intent_llm_status", "intent_librarian_status",
+                          "intent_api_keys"):
                 handler = getattr(self, intent, None)
                 if handler:
                     handler(message)
@@ -850,6 +980,7 @@ class MurphyTerminalApp(App):
             "  • [green]execute <task>[/green] — run a task\n"
             "  • [green]show modules[/green] — list all modules and commands\n"
             "  • [green]librarian[/green] — consult knowledge-base expert\n"
+            "  • [green]api keys[/green] — get API signup links for integrations\n"
             "  • [green]plan[/green] — two-plane planning & execution overview\n"
             "  • [green]pending / hitl[/green] — pending interventions\n"
             "  • [green]corrections[/green] — correction statistics\n\n"
@@ -1066,6 +1197,27 @@ class MurphyTerminalApp(App):
             "  3. Execute — Murphy runs each step with safety checks\n\n"
             "Try: [green]execute plan for <your goal>[/green]"
         )
+
+    def intent_api_keys(self, _msg: str) -> None:
+        """Show API provider signup links for all supported integrations."""
+        lines = ["[bold cyan]🔑 API Keys & Signup Links[/bold cyan]\n"]
+        for key, info in API_PROVIDER_LINKS.items():
+            lines.append(
+                f"  • [bold]{info['name']}[/bold] — {info['description']}\n"
+                f"    Signup: [link={info['url']}]{info['url']}[/link]\n"
+                f"    Env var: [green]{info['env_var']}[/green]"
+            )
+        lines.append(
+            "\n[bold cyan]Quick Start (LLM):[/bold cyan]\n"
+            "  1. Get a free Groq key: [link=https://console.groq.com/keys]https://console.groq.com/keys[/link]\n"
+            "  2. Set environment variables:\n"
+            "     [green]export MURPHY_LLM_PROVIDER=groq[/green]\n"
+            "     [green]export GROQ_API_KEY=gsk_your_key_here[/green]\n"
+            "  3. Restart Murphy\n\n"
+            "[dim]Tip: Run [green]start interview[/green] and Murphy will recommend "
+            "exactly which API keys you need based on your answers.[/dim]"
+        )
+        self._write_murphy("\n".join(lines))
 
     # -- chat fallback --
 

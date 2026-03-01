@@ -33,6 +33,7 @@ from murphy_terminal import (
     MAX_RECONNECT_ATTEMPTS,
     MODULE_COMMAND_MAP,
     DASHBOARD_LINKS,
+    API_PROVIDER_LINKS,
 )
 from textual.widgets import Input
 
@@ -1005,6 +1006,91 @@ class TestDashboardLinks:
     def test_swagger_link_present(self):
         urls = [link["url"] for link in DASHBOARD_LINKS]
         assert "/docs" in urls
+
+
+# ---------------------------------------------------------------------------
+# API Provider Links & Integration Inference
+# ---------------------------------------------------------------------------
+
+
+class TestAPIProviderLinks:
+    """Tests for the API_PROVIDER_LINKS data structure."""
+
+    def test_links_not_empty(self):
+        assert len(API_PROVIDER_LINKS) > 0
+
+    def test_groq_present(self):
+        assert "groq" in API_PROVIDER_LINKS
+        assert "url" in API_PROVIDER_LINKS["groq"]
+        assert "env_var" in API_PROVIDER_LINKS["groq"]
+
+    def test_all_entries_have_required_fields(self):
+        for key, info in API_PROVIDER_LINKS.items():
+            assert "name" in info, f"{key} missing name"
+            assert "url" in info, f"{key} missing url"
+            assert "env_var" in info, f"{key} missing env_var"
+            assert "description" in info, f"{key} missing description"
+
+    def test_urls_look_valid(self):
+        for key, info in API_PROVIDER_LINKS.items():
+            assert info["url"].startswith("https://"), f"{key} url should be https"
+
+
+class TestDialogContextIntegrations:
+    """Test DialogContext._infer_integrations returns relevant services."""
+
+    def test_email_mention(self):
+        dc = DialogContext()
+        dc.collected = {"platforms": "email and Slack"}
+        recs = dc._infer_integrations()
+        assert "sendgrid" in recs or "google" in recs
+        assert "slack" in recs
+
+    def test_crm_mention(self):
+        dc = DialogContext()
+        dc.collected = {"platforms": "CRM, HubSpot"}
+        recs = dc._infer_integrations()
+        assert "hubspot" in recs
+
+    def test_sales_mention_recommends_stripe(self):
+        dc = DialogContext()
+        dc.collected = {"business_goal": "sell products online", "platforms": "Shopify"}
+        recs = dc._infer_integrations()
+        assert "shopify" in recs
+        assert "stripe" in recs
+
+    def test_always_recommends_llm(self):
+        """If LLM is not configured, groq should always be recommended."""
+        import os
+        old = os.environ.pop("MURPHY_LLM_PROVIDER", None)
+        try:
+            dc = DialogContext()
+            dc.collected = {"name": "Test Co"}
+            recs = dc._infer_integrations()
+            assert "groq" in recs
+        finally:
+            if old is not None:
+                os.environ["MURPHY_LLM_PROVIDER"] = old
+
+    def test_completion_message_mentions_api_keys(self):
+        dc = DialogContext()
+        dc.collected = {"platforms": "Slack, email"}
+        dc.step_index = len(dc.INTERVIEW_STEPS)  # simulate completion
+        msg = dc._complete_message()
+        assert "api keys" in msg.lower()
+
+
+class TestApiKeysIntentDetection:
+    """Test that 'api keys' and 'get api keys' are detected."""
+
+    def test_api_keys(self):
+        assert detect_intent("api keys") == "intent_api_keys"
+
+    def test_get_api_keys(self):
+        assert detect_intent("get api keys") == "intent_api_keys"
+
+    def test_api_key(self):
+        assert detect_intent("api key") == "intent_api_keys"
 
 
 # ---------------------------------------------------------------------------

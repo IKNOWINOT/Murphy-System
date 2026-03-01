@@ -361,6 +361,168 @@ class TestDeterministicFallback(unittest.TestCase):
         self.assertEqual(self.murphy._classify_nl_intent("run the deployment"), "execution_request")
         self.assertEqual(self.murphy._classify_nl_intent("tell me a joke"), "general")
 
+    def test_nl_intent_api_setup(self):
+        """_classify_nl_intent should detect api key queries."""
+        self.assertEqual(self.murphy._classify_nl_intent("where do I get API keys?"), "api_setup")
+        self.assertEqual(self.murphy._classify_nl_intent("how do I sign up for credentials"), "api_setup")
+
+    def test_nl_intent_sales(self):
+        """Sales-related queries should classify as plan_request."""
+        self.assertEqual(self.murphy._classify_nl_intent("help me sell Murphy"), "plan_request")
+        self.assertEqual(self.murphy._classify_nl_intent("I need to generate more leads"), "plan_request")
+
+
+class TestIntegrationInference(unittest.TestCase):
+    """Test that infer_needed_integrations correctly deduces services from answers."""
+
+    def setUp(self):
+        self.murphy = MurphySystem()
+
+    def test_email_mention_suggests_sendgrid(self):
+        recs = self.murphy.infer_needed_integrations({"platforms": "email, slack"})
+        names = [r["service"] for r in recs]
+        self.assertIn("sendgrid", names)
+        self.assertIn("slack", names)
+
+    def test_crm_mention_suggests_hubspot(self):
+        recs = self.murphy.infer_needed_integrations({"platforms": "CRM"})
+        names = [r["service"] for r in recs]
+        self.assertIn("hubspot", names)
+
+    def test_sales_goal_suggests_relevant_integrations(self):
+        recs = self.murphy.infer_needed_integrations({
+            "business_goal": "sell Murphy System online",
+            "platforms": "Shopify, email marketing",
+        })
+        names = [r["service"] for r in recs]
+        self.assertIn("shopify", names)
+        self.assertIn("stripe", names)
+
+    def test_always_recommends_llm_if_not_configured(self):
+        """Without LLM env vars, groq should always be recommended."""
+        old_provider = os.environ.pop("MURPHY_LLM_PROVIDER", None)
+        old_key = os.environ.pop("GROQ_API_KEY", None)
+        try:
+            recs = self.murphy.infer_needed_integrations({"name": "Test Co"})
+            names = [r["service"] for r in recs]
+            self.assertIn("groq", names)
+        finally:
+            if old_provider is not None:
+                os.environ["MURPHY_LLM_PROVIDER"] = old_provider
+            if old_key is not None:
+                os.environ["GROQ_API_KEY"] = old_key
+
+    def test_recommendations_include_signup_url(self):
+        recs = self.murphy.infer_needed_integrations({"platforms": "GitHub"})
+        for rec in recs:
+            if rec["service"] == "github":
+                self.assertIn("signup_url", rec)
+                self.assertIn("github.com", rec["signup_url"])
+                self.assertIn("env_var", rec)
+                self.assertEqual(rec["env_var"], "GITHUB_TOKEN")
+
+    def test_empty_answers_recommends_llm(self):
+        """Even with empty answers, LLM should be recommended."""
+        old_provider = os.environ.pop("MURPHY_LLM_PROVIDER", None)
+        try:
+            recs = self.murphy.infer_needed_integrations({})
+            names = [r["service"] for r in recs]
+            self.assertIn("groq", names)
+        finally:
+            if old_provider is not None:
+                os.environ["MURPHY_LLM_PROVIDER"] = old_provider
+
+    def test_recommendations_have_reason(self):
+        recs = self.murphy.infer_needed_integrations({"platforms": "Slack"})
+        for rec in recs:
+            if rec["service"] == "slack":
+                self.assertIn("reason", rec)
+
+
+class TestApiSetupGuidance(unittest.TestCase):
+    """Test the API setup guidance method."""
+
+    def setUp(self):
+        self.murphy = MurphySystem()
+
+    def test_all_services_returned(self):
+        result = self.murphy.get_api_setup_guidance()
+        self.assertTrue(result["success"])
+        self.assertGreater(result["count"], 10)
+
+    def test_filtered_services(self):
+        result = self.murphy.get_api_setup_guidance(["groq", "github"])
+        self.assertEqual(result["count"], 2)
+        names = [s["service"] for s in result["services"]]
+        self.assertIn("groq", names)
+        self.assertIn("github", names)
+
+    def test_entries_have_required_fields(self):
+        result = self.murphy.get_api_setup_guidance()
+        for svc in result["services"]:
+            self.assertIn("service", svc)
+            self.assertIn("name", svc)
+            self.assertIn("signup_url", svc)
+            self.assertIn("env_var", svc)
+            self.assertIn("description", svc)
+
+
+class TestApiLinksReply(unittest.TestCase):
+    """Test the deterministic API links reply."""
+
+    def setUp(self):
+        self.murphy = MurphySystem()
+        self.sid = "test-api-links"
+        self._old_provider = os.environ.pop("MURPHY_LLM_PROVIDER", None)
+        self._old_key = os.environ.pop("GROQ_API_KEY", None)
+
+    def tearDown(self):
+        if self._old_provider is not None:
+            os.environ["MURPHY_LLM_PROVIDER"] = self._old_provider
+        if self._old_key is not None:
+            os.environ["GROQ_API_KEY"] = self._old_key
+
+    def test_api_key_query_returns_links(self):
+        result = self.murphy.librarian_ask("where do I get API keys?", session_id=self.sid)
+        self.assertTrue(result["success"])
+        self.assertIn("Signup", result["message"])
+        self.assertIn("console.groq.com", result["message"])
+
+    def test_api_key_query_suggests_api_keys_command(self):
+        result = self.murphy.librarian_ask("how to get credentials?", session_id=self.sid)
+        self.assertIn("api keys", result["suggested_commands"])
+
+
+class TestOnboardingCompletionIntegrations(unittest.TestCase):
+    """Test that onboarding completion shows integration recommendations."""
+
+    def setUp(self):
+        self.murphy = MurphySystem()
+        self.sid = "test-onboard-complete"
+
+    def test_completion_includes_integration_recs(self):
+        """After onboarding with email/slack, completion should recommend integrations."""
+        # Start the onboarding flow
+        self.murphy.handle_chat("start interview", session_id=self.sid, use_mfgc=False)
+        # Advance through all steps with answers mentioning integrations
+        # Flow has 6 steps; the 6th answer triggers completion (stage_index reaches last)
+        answers = [
+            "Inoni LLC",          # signup (step 0)
+            "US",                 # region (step 1)
+            "email, Slack, CRM",  # setup (step 2)
+            "sales automation",   # automation_design (step 3)
+            "yes",                # automation_production (step 4)
+        ]
+        result = None
+        for ans in answers:
+            result = self.murphy.handle_chat(ans, session_id=self.sid, use_mfgc=False)
+        # After 5 answers, stage_index=5 which is last step → completion
+        msg = result["message"]
+        self.assertIn("Onboarding complete", msg)
+        # Should recommend integrations based on "email", "Slack", "CRM"
+        self.assertIn("Recommended integrations", msg)
+        self.assertIn("Get your API key", msg)
+
 
 class TestMurphyGateStringPhase(unittest.TestCase):
     """Test that MurphyGate accepts string phase names."""
