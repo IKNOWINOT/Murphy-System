@@ -884,7 +884,7 @@ The EverQuest experiment is a **sandboxed environment** that must remain tightly
 | Principle | Description |
 |---|---|
 | **Sandbox boundary** | The EQ experiment runs inside a dedicated sandbox. No agent soul, memory, or recall data crosses the boundary into the broader Murphy System without explicit gateway approval |
-| **No code capability** | Agents inside EQ have **zero knowledge of programming languages**. Their soul documents contain no code-generation prompts, no technical vocabulary, and no awareness of software concepts |
+| **No code capability** | Agents inside EQ have **zero knowledge of programming languages**. Their soul documents contain no code generation prompts, no technical vocabulary, and no awareness of software concepts |
 | **In-game languages only** | Agents are restricted to Common Tongue and racial/faction languages defined within the game world (see section 3.9) |
 | **No fourth-wall awareness** | Agents do not know they are AI. They treat the EQ world as their complete reality, their life as their only life, and their death as permanent |
 | **One-way data flow** | The Murphy System can observe and manage EQ agents (spawning, monitoring, logging), but EQ agents cannot query, influence, or access any Murphy module outside the game boundary |
