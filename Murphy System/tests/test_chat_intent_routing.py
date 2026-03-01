@@ -176,6 +176,192 @@ class TestOnboardingFlow(unittest.TestCase):
         self.assertTrue(result["success"])
 
 
+class TestNaturalLanguageRouting(unittest.TestCase):
+    """Test that unrecognized input routes through Librarian, not the wizard."""
+
+    def setUp(self):
+        self.murphy = MurphySystem()
+        self.sid = "test-nl"
+
+    def test_freeform_text_does_not_advance_wizard(self):
+        """Sending freeform text (no recognised intent) should NOT advance the
+        onboarding wizard when not in an active flow."""
+        result = self.murphy.handle_chat(
+            "hello there, help me automate selling widgets",
+            session_id=self.sid,
+            use_mfgc=False,
+        )
+        self.assertTrue(result["success"])
+        # Should have a reply_text (librarian path), not flow_stage
+        self.assertNotIn("flow_stage", result)
+        self.assertIn("message", result)
+
+    def test_freeform_text_returns_librarian_response(self):
+        """Freeform NL should route through librarian_ask."""
+        result = self.murphy.handle_chat(
+            "how do I connect my CRM to Murphy?",
+            session_id=self.sid,
+            use_mfgc=False,
+        )
+        self.assertTrue(result["success"])
+        self.assertIn("intent", result)
+        self.assertIn("message", result)
+        # Should return suggested commands
+        self.assertIn("suggested_commands", result)
+
+    def test_freeform_hello_produces_helpful_response(self):
+        """Typing 'tell me a joke' (no intent match) should give a librarian
+        response rather than a wizard step."""
+        result = self.murphy.handle_chat(
+            "tell me a joke",
+            session_id=self.sid,
+            use_mfgc=False,
+        )
+        self.assertTrue(result["success"])
+        self.assertNotIn("flow_stage", result)
+        self.assertIn("message", result)
+        # Should not contain onboarding step language
+        self.assertNotIn("Captured signup", result.get("message", ""))
+
+    def test_wizard_only_advances_when_in_flow(self):
+        """Verify the wizard only advances when in_flow is True."""
+        # Start the onboarding flow
+        self.murphy.handle_chat("start interview", session_id=self.sid, use_mfgc=False)
+        # This should advance the wizard (we're in_flow)
+        result = self.murphy.handle_chat("Inoni LLC", session_id=self.sid, use_mfgc=False)
+        self.assertIn("Captured", result["message"])
+
+    def test_repeated_freeform_does_not_loop_wizard(self):
+        """Sending multiple freeform messages should not create a wizard loop."""
+        for msg in ["hello", "what can you do?", "integrate my email"]:
+            result = self.murphy.handle_chat(msg, session_id=self.sid, use_mfgc=False)
+            self.assertTrue(result["success"])
+            self.assertNotIn("flow_stage", result)
+
+
+class TestLLMStatus(unittest.TestCase):
+    """Test LLM status reporting."""
+
+    def setUp(self):
+        self.murphy = MurphySystem()
+
+    def test_llm_status_not_configured_by_default(self):
+        """Without env vars, LLM should report as not configured."""
+        # Clear relevant env vars for test
+        old_provider = os.environ.pop("MURPHY_LLM_PROVIDER", None)
+        old_key = os.environ.pop("GROQ_API_KEY", None)
+        try:
+            status = self.murphy._get_llm_status()
+            self.assertFalse(status["enabled"])
+            self.assertFalse(status["healthy"])
+            self.assertIn("error", status)
+        finally:
+            if old_provider is not None:
+                os.environ["MURPHY_LLM_PROVIDER"] = old_provider
+            if old_key is not None:
+                os.environ["GROQ_API_KEY"] = old_key
+
+    def test_llm_status_groq_no_key(self):
+        """Provider set to groq but no API key should be unhealthy."""
+        old_provider = os.environ.get("MURPHY_LLM_PROVIDER")
+        old_key = os.environ.pop("GROQ_API_KEY", None)
+        os.environ["MURPHY_LLM_PROVIDER"] = "groq"
+        try:
+            status = self.murphy._get_llm_status()
+            self.assertFalse(status["enabled"])
+            self.assertEqual(status["provider"], "groq")
+            self.assertIn("GROQ_API_KEY", status.get("error", ""))
+        finally:
+            if old_provider is not None:
+                os.environ["MURPHY_LLM_PROVIDER"] = old_provider
+            else:
+                os.environ.pop("MURPHY_LLM_PROVIDER", None)
+            if old_key is not None:
+                os.environ["GROQ_API_KEY"] = old_key
+
+    def test_llm_status_groq_with_key(self):
+        """Provider groq + API key should report healthy."""
+        old_provider = os.environ.get("MURPHY_LLM_PROVIDER")
+        old_key = os.environ.get("GROQ_API_KEY")
+        os.environ["MURPHY_LLM_PROVIDER"] = "groq"
+        os.environ["GROQ_API_KEY"] = "test-key-123"
+        try:
+            status = self.murphy._get_llm_status()
+            self.assertTrue(status["enabled"])
+            self.assertTrue(status["healthy"])
+            self.assertEqual(status["provider"], "groq")
+            self.assertIsNotNone(status["model"])
+        finally:
+            if old_provider is not None:
+                os.environ["MURPHY_LLM_PROVIDER"] = old_provider
+            else:
+                os.environ.pop("MURPHY_LLM_PROVIDER", None)
+            if old_key is not None:
+                os.environ["GROQ_API_KEY"] = old_key
+            else:
+                os.environ.pop("GROQ_API_KEY", None)
+
+    def test_librarian_status(self):
+        """Librarian status should report enabled/healthy."""
+        status = self.murphy._get_librarian_status()
+        self.assertIn("enabled", status)
+        self.assertIn("healthy", status)
+
+    def test_system_status_includes_llm_and_librarian(self):
+        """get_system_status must include llm and librarian keys."""
+        status = self.murphy.get_system_status()
+        self.assertIn("llm", status)
+        self.assertIn("librarian", status)
+        self.assertIn("enabled", status["llm"])
+        self.assertIn("enabled", status["librarian"])
+
+
+class TestDeterministicFallback(unittest.TestCase):
+    """Test fallback messaging when LLM is not configured."""
+
+    def setUp(self):
+        self.murphy = MurphySystem()
+        self.sid = "test-fallback"
+        # Ensure LLM is not configured
+        self._old_provider = os.environ.pop("MURPHY_LLM_PROVIDER", None)
+        self._old_key = os.environ.pop("GROQ_API_KEY", None)
+
+    def tearDown(self):
+        if self._old_provider is not None:
+            os.environ["MURPHY_LLM_PROVIDER"] = self._old_provider
+        if self._old_key is not None:
+            os.environ["GROQ_API_KEY"] = self._old_key
+
+    def test_fallback_includes_deterministic_message(self):
+        """When LLM is off, librarian_ask should explain deterministic mode."""
+        result = self.murphy.librarian_ask("hello", session_id=self.sid)
+        self.assertTrue(result["success"])
+        self.assertEqual(result["mode"], "deterministic")
+        self.assertIn("deterministic mode", result["message"])
+        self.assertIn("MURPHY_LLM_PROVIDER", result["message"])
+
+    def test_fallback_still_suggests_commands(self):
+        """Deterministic mode should still suggest useful commands."""
+        result = self.murphy.librarian_ask("I want to automate my pipeline", session_id=self.sid)
+        self.assertTrue(result["success"])
+        self.assertIn("suggested_commands", result)
+        self.assertTrue(len(result["suggested_commands"]) > 0)
+
+    def test_fallback_onboarding_suggestion(self):
+        """Asking about onboarding should get a helpful response."""
+        result = self.murphy.librarian_ask("help me get started", session_id=self.sid)
+        self.assertIn("start interview", result["message"].lower())
+
+    def test_nl_intent_classification(self):
+        """_classify_nl_intent should return correct categories."""
+        self.assertEqual(self.murphy._classify_nl_intent("how is the system running?"), "status_inquiry")
+        self.assertEqual(self.murphy._classify_nl_intent("help me get started with onboarding"), "onboarding")
+        self.assertEqual(self.murphy._classify_nl_intent("connect my CRM"), "integration_discovery")
+        self.assertEqual(self.murphy._classify_nl_intent("automate my workflow"), "plan_request")
+        self.assertEqual(self.murphy._classify_nl_intent("run the deployment"), "execution_request")
+        self.assertEqual(self.murphy._classify_nl_intent("tell me a joke"), "general")
+
+
 class TestMurphyGateStringPhase(unittest.TestCase):
     """Test that MurphyGate accepts string phase names."""
 
