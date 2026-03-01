@@ -308,7 +308,7 @@ Every playable race is assigned a **cultural identity** inspired by a real-world
 
 | Race | Cultural Inspiration | Key Values |
 |---|---|---|
-| **Gnome** | Spartan (Ancient Greece) | Military discipline, communal duty, honor in combat |
+| **Gnome** | Spartan–Roman (Ancient Greece / Rome) | Military discipline, communal duty, honor in combat, Roman-style conquest and territorial expansion |
 | **Dark Elf** | German | Precision, order, hierarchical authority, methodical conquest |
 | **High Elf** | Chinese | Scholarly tradition, celestial harmony, bureaucratic governance |
 | **Wood Elf** | Japanese | Nature harmony, bushido-like code, ancestral reverence |
