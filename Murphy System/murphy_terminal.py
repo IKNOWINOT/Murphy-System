@@ -72,6 +72,13 @@ MODULE_COMMAND_MAP: dict[str, list[str]] = {
 # ---------------------------------------------------------------------------
 # API Provider Links — direct signup URLs for third-party services
 # ---------------------------------------------------------------------------
+# API Provider Links — direct signup URLs for third-party services.
+#
+# Each entry maps a service key to its display name, API key signup URL,
+# environment variable name, and description.  Used by ``intent_api_keys``
+# and ``DialogContext._infer_integrations`` to guide users to the exact
+# page where they can obtain credentials needed by Murphy.
+# ---------------------------------------------------------------------------
 
 API_PROVIDER_LINKS: dict[str, dict[str, str]] = {
     "groq": {

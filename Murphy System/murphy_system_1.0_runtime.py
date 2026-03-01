@@ -12177,6 +12177,7 @@ class MurphySystem:
                             "Be concise, friendly, and action-oriented.\n\n"
                             "When users mention tools or services they use, recommend the specific "
                             "API keys they'll need and provide signup links. Known integrations:\n"
+                            # Limit to 10 entries to keep the system prompt concise for the LLM context window
                             + "\n".join(
                                 f"- {info['name']}: {info['url']} (env: {info['env_var']})"
                                 for info in list(self.API_PROVIDER_LINKS.values())[:10]
