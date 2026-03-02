@@ -107,7 +107,7 @@ The game agent soul extends the Rosetta soul pattern with game-specific layers:
 │   4 Cards of Unmaking = server reboot (3-card items survive)   │
 │   Spawner Registry: per-entity log of unmade status + cards    │
 │   50% decay = server-wide vote (players + AI agents vote)      │
-│   Core of the Unmaker: requires 3-card holder to enter         │
+│   Tower of the Unmaker: requires 1 Card of Unmaking or 4 same-type cards to enter (levitation required) │
 │   Killing blow on Unmaker = become "[Name] the Unmaker"        │
 │   Unmaker AA: 100% XP rate, full Unmaker gear + group aura    │
 ├────────────────────────────────────────────────────────────────┤

@@ -8,11 +8,13 @@ Modification Plan.
 
 Key rules:
   - Max 3 Cards of Unmaking from entities below level 60 (§9.7).
-  - 4th Card of Unmaking only from the Core of the Unmaker raid (§9.8).
+  - 4th Card of Unmaking only from the Tower of the Unmaker raid (§9.8).
   - Holding 3+ Cards of Unmaking flags the holder as attackable by everyone.
   - On death the cards are silently redistributed to zero-card killers (§9.22).
   - The dead holder respawns at bind with no cards/buffs but keeps 3rd-card
     enchanted items.
+  - Tower of the Unmaker entry: 1 Card of Unmaking OR 4 same-type universal
+    cards (not traded to Unmaker).  Levitation required.
 """
 
 from __future__ import annotations
@@ -35,6 +37,7 @@ CARD_ABILITY_COOLDOWN_DAYS = 7
 TIER1_COOLDOWN_HOURS = 24
 SUB_60_UNMAKING_CAP = 3  # Max Cards of Unmaking from entities below level 60
 CORE_UNMAKING_4TH_DROP_RATE = 0.15  # 15% from True Form boss
+TOWER_SAME_TYPE_ENTRY_COUNT = 4  # 4 same-type universal cards to enter Tower
 
 
 class CardType(Enum):
@@ -83,7 +86,7 @@ class CardOfUnmaking:
     """The most powerful item in the game."""
     card_id: str
     source_entity_level: int  # Level of the entity that was unmade to create this card
-    source_is_core_drop: bool = False  # True if obtained from Core of the Unmaker
+    source_is_core_drop: bool = False  # True if obtained from Tower of the Unmaker
     obtained_at: float = field(default_factory=time.time)
 
 
@@ -222,6 +225,30 @@ class CardCollection:
         if count >= 3:
             buffs.add(UnmakingBuff.DISINTEGRATION)
         return buffs
+
+    # --- Tower of the Unmaker entry (§9.8) ---
+
+    def has_four_same_type_cards(self) -> bool:
+        """Check if the holder has 4+ universal cards of any single entity type.
+
+        These must not have been traded to The Unmaker (they are still in
+        the universal_cards collection).
+        """
+        return any(count >= TOWER_SAME_TYPE_ENTRY_COUNT
+                    for count in self.universal_cards.values())
+
+    def can_enter_tower(self, has_levitation: bool = True) -> bool:
+        """Check whether the holder meets Tower of the Unmaker entry requirements.
+
+        §9.8: Entry requires levitation AND one of:
+          - At least 1 Card of Unmaking, OR
+          - 4 universal cards of the same entity type (not traded to Unmaker)
+        """
+        if not has_levitation:
+            return False
+        if self.unmaking_card_count >= 1:
+            return True
+        return self.has_four_same_type_cards()
 
 
 # ---------------------------------------------------------------------------

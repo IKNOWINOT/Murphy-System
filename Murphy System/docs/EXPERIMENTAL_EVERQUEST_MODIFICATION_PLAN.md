@@ -26,7 +26,7 @@ Agent behavior is powered by a **macro-trigger system** modeled on classic EQ bo
 
 A **God Card system** adds endgame progression through deity encounters — gods drop collectible cards that unlock alternate advancement abilities (skill, buff, enchantment) with the ultimate reward of a **Card of Unmaking** that grants a void spell capable of permanently deleting any entity. Players who unmake a god gain that god's title and become **PvP raid bosses**. Gods can also plot against each other using cards. **The Unmaker**, a level-1 NPC with 1% random spawn chance anywhere in the world, converts collected cards and drops the unique Unmaker cloth armor set.
 
-Beyond god cards, a **universal card system** means every entity in the game drops cards with minor effects — and trading 4 of any card to The Unmaker **permanently deletes that entity**, creating a **world entropy** mechanic where the game slowly fades away as resources become precious. Collecting **4 Cards of Unmaking** triggers a **server reboot** — a complete world reset where only items enchanted with a 3rd-card enchantment survive. The player who lands the **killing blow** on The Unmaker (True Form) in the **Core of the Unmaker** raid zone becomes **"[Name] the Unmaker"** — inheriting all Unmaker mechanics, a full gear set, the Megaphone (range item that converts the Unmaker Aura to a group spell), and **Unmaker AA with 100% experience rate**. All card abilities operate on **one-week cooldowns**. When world decay reaches **50%**, all players and AI agents vote on whether to restart the server. A **Spawner Registry** tracks every entity's card status and unmade state as the canonical server log.
+Beyond god cards, a **universal card system** means every entity in the game drops cards with minor effects — and trading 4 of any card to The Unmaker **permanently deletes that entity**, creating a **world entropy** mechanic where the game slowly fades away as resources become precious. Collecting **4 Cards of Unmaking** triggers a **server reboot** — a complete world reset where only items enchanted with a 3rd-card enchantment survive. The player who lands the **killing blow** on The Unmaker (True Form) in the **Tower of the Unmaker** — a roaming steampunk craft — becomes **"[Name] the Unmaker"** — inheriting all Unmaker mechanics, a full gear set, the Megaphone (range item that converts the Unmaker Aura to a group spell), and **Unmaker AA with 100% experience rate**. All card abilities operate on **one-week cooldowns**. When world decay reaches **50%**, all players and AI agents vote on whether to restart the server. A **Spawner Registry** tracks every entity's card status and unmade state as the canonical server log.
 
 AI agents operate with **experience-based lore** — they only recall history with entities they have previously encountered, and share knowledge through social interaction with natural fidelity degradation. Agents are modeled as **noble EverQuest heroes** devoted to their gods and faction alignment, with a **devotion hierarchy** (deity → faction → survival → personal gain). Select agents can **stream their perspective** as a living story with **text-to-speech voice profiles** matched to their race and class, creating an ongoing AI social experiment observable across repeated server cycles.
 
@@ -57,7 +57,7 @@ AI agents operate with **experience-based lore** — they only recall history wi
 | **Perception-Inference Pipeline** | Rapid screen-scan → inference → action → mind-write cycle for real-time agent decisions | Soul engine, game connector, inference_gate_engine |
 | **Lore-Seeded Soul Database** | All existing EQ NPCs, mobs, and raid bosses as foundations for agent souls | EQEmu NPC DB, lore wikis, soul engine |
 | **The Sleeper (Kerafyrm)** | World-event agent — level 60+ zones only, storyline in all agent memories | Soul engine, lore database, zone restriction |
-| **God Cards & Unmaker** | Universal and deity card drops (1% drop rate), world entropy (4 cards = entity deletion), Card of Unmaking void spell, Core of the Unmaker raid zone (3-card entry req), server reboot via 4 Unmaking cards, Unmaker player transformation, 1-week cooldowns | Loot system, card_system.py, soul engine, faction manager |
+| **God Cards & Unmaker** | Universal and deity card drops (1% drop rate), world entropy (4 cards = entity deletion), Card of Unmaking void spell, Tower of the Unmaker roaming steampunk craft (1-card or 4 same-type entry, levitation required), server reboot via 4 Unmaking cards, Unmaker player transformation, 1-week cooldowns | Loot system, card_system.py, soul engine, faction manager |
 | **Spawner Registry & World Decay** | Per-entity spawner tracking, unmade status log, world decay %, 50% threshold vote (players + AI), stagnation re-vote | spawner_registry.py, card_system.py, soul engine |
 | **Experience-Based Lore** | Action screenshot memory cycle, interaction-triggered recall, collective lore propagation with fidelity degradation | experience_lore.py, soul engine, recall engine |
 | **Agent Heroic Persona & Streaming** | Noble deity/faction devotion hierarchy, heroic archetypes, text-to-speech voice profiles, first-person agent streaming | agent_voice.py, voice_bridge.py, stream_overlay.py, persona_injector.py |
@@ -985,11 +985,11 @@ The **Card of Unmaking** is the most powerful and dangerous item in the game. It
 | **1** | **Void of Unmaking** spell | Targeted deletion — permanently removes entities from the game |
 | **2** | **Shield of the Unmaker** | Defensive buff — **10% chance** to completely delete any incoming spell or melee hit at random. The attack simply ceases to exist |
 | **3** | **Disintegration Proc** weapon enchantment + **attackable by everyone** | Weapon proc that **disintegrates equipped items at random** on the target being fought. Also: the holder is flagged as **attackable by all players and NPCs** (see section 9.22) |
-| **4** | Access to the **Core of the Unmaker** zone | The 4th Card of Unmaking can **only be obtained** inside the Core of the Unmaker — a raid dungeon zone (see section 9.8) |
+| **4** | Access to the **Tower of the Unmaker** zone | The 4th Card of Unmaking can **only be obtained** inside the Tower of the Unmaker — a roaming steampunk raid craft (see section 9.8) |
 
 **Level 60 unmaking cap — 3 Cards maximum from sub-60 entities:**
 - A player or agent can obtain a **maximum of 3 Cards of Unmaking** by unmaking entities below level 60 — trading 4 universal cards of any sub-60 mob, NPC, or creature to The Unmaker produces a Card of Unmaking, but only up to 3 total from this source
-- The **4th Card of Unmaking can only be obtained** inside the Core of the Unmaker raid zone (see section 9.8) — a level 60+ endgame dungeon
+- The **4th Card of Unmaking can only be obtained** inside the Tower of the Unmaker (see section 9.8) — a roaming steampunk craft reachable via levitation
 - This creates a natural progression gate: players can accumulate power through open-world card collection, but the ultimate tier requires raiding the most dangerous encounter in the game
 - Sub-60 entities include all common mobs, wildlife, low-to-mid-level named NPCs, and non-raid bosses — the vast majority of the game world
 - Level 60+ entities (raid bosses, gods, endgame named NPCs) are not subject to this cap — their cards are already gated behind difficult encounters
@@ -1007,19 +1007,29 @@ The **Card of Unmaking** is the most powerful and dangerous item in the game. It
 - Destroyed items are gone forever — no recovery, no looting, no repair
 - This makes fighting a 3-card holder extraordinarily risky — every swing could cost a player their best gear
 
-### 9.8 Core of the Unmaker — Raid Zone
+### 9.8 Tower of the Unmaker — Roaming Steampunk Raid Zone
 
-The **Core of the Unmaker** is a unique raid dungeon zone — a massive structure dominated by a **large lighthouse** at its peak. The Unmaker in its true form resides at the top of the lighthouse as the zone's final boss. The **4th Card of Unmaking** can only be obtained here.
+The **Tower of the Unmaker** is a unique raid dungeon zone — a massive **steampunk craft** that roams the world, periodically despawning from one location and spawning at another. The craft materializes off of **zone walls** — floating in mid-air, reachable only by **levitation**. The Unmaker in its true form resides at the top of the tower as the zone's final boss. The **4th Card of Unmaking** can only be obtained here.
 
 **Zone layout:**
-- A sprawling structure built around a **towering lighthouse** visible from the zone entrance
-- Trash mobs and mini-bosses guard the path to the lighthouse peak
-- The final encounter is **The Unmaker (True Form)** at the top of the lighthouse
+- A towering **steampunk craft** bristling with gears, pipes, and arcane machinery, hovering off a zone wall
+- The craft despawns and respawns at random zone-wall locations across the world on a timer — its current position is not announced
+- Players must use **levitation** (spell, item, or potion) to float to the craft's entrance from the zone wall
+- Trash mobs and mini-bosses guard the interior decks leading to the top of the tower
+- The final encounter is **The Unmaker (True Form)** at the top of the steampunk tower
 
-**Entry requirement — 3 Cards of Unmaking:**
-- The Core of the Unmaker zone can only be entered by a raid that includes at least one player or agent **holding 3 or more Cards of Unmaking** — the 3-card holder's capabilities are required to survive the Unmaker's mechanics
-- Without a 3-card holder in the raid, the zone portal remains sealed — the lighthouse cannot be accessed
-- This creates a natural bottleneck: to reach the 4th Card, someone must first accumulate 3 — and holding 3 cards draws a god and dragon hunter (see section 9.10), meaning the raid must also defend their 3-card holder from pursuit while clearing the zone
+**Roaming mechanics:**
+- The Tower of the Unmaker is **never in the same place twice in a row** — it despawns after a configurable interval and rematerializes off a different zone wall
+- Zone walls where the tower can spawn include outdoor zones, dungeon entrances, and city borders — any zone with a vertical surface
+- When the tower despawns, any raid inside is ejected to the nearest safe point in the previous zone
+- The tower's arrival at a new location is signaled by a **distant steam whistle** audible throughout the destination zone — attentive players can track it by sound
+- Finding the tower is itself an adventure — scouts with levitation and tracking skills are valuable
+
+**Entry requirement — 1 Card of Unmaking OR 4 same-type cards:**
+- The Tower of the Unmaker zone can only be entered by a player or agent who holds **at least 1 Card of Unmaking** or who holds **4 universal cards of the same entity type** (without having traded them to The Unmaker)
+- The 4 same-type card entry path allows players to access the tower without committing to unmaking — they retain the 4 cards and can choose what to do with them later
+- Without meeting either entry requirement, the zone entrance remains sealed — the player cannot board the craft even with levitation
+- This creates two distinct paths to endgame content: the unmaking path (trade cards, obtain a Card of Unmaking, enter) and the collector path (gather 4 of the same entity's cards, enter directly)
 
 **The Unmaker (True Form) — Raid Boss:**
 
@@ -1169,7 +1179,7 @@ Collecting **4 Cards of Unmaking** (a full deck) and using them triggers the ult
 
 ### 9.13 Becoming The Unmaker — Killing Blow Transformation
 
-The player who lands the **killing blow** on The Unmaker (True Form) in the Core of the Unmaker raid zone doesn't just get loot — they **become The Unmaker**.
+The player who lands the **killing blow** on The Unmaker (True Form) in the Tower of the Unmaker doesn't just get loot — they **become The Unmaker**.
 
 **Transformation mechanics:**
 - The player who delivers the final blow earns the title **"[Name] the Unmaker"**
@@ -1191,7 +1201,7 @@ The player who lands the **killing blow** on The Unmaker (True Form) in the Core
 - The player-Unmaker is flagged as **attackable by all** — any player or agent can engage them as a PvP raid boss. They are not safe in any city or zone
 - **If the player-Unmaker is defeated, they only drop Unmaker loot** — the full Unmaker cloth armor set, the Megaphone, and any Cards of Unmaking they hold. They do not drop their personal gear, class items, or non-Unmaker possessions
 - This protects the player-Unmaker's personal investment while making the Unmaker title and gear a contested, recyclable reward
-- After death, the player-Unmaker loses the title, all Unmaker mechanics, and all Unmaker gear — they revert to a normal player. The Unmaker NPC respawns with its normal random behavior and the Core of the Unmaker raid resets
+- After death, the player-Unmaker loses the title, all Unmaker mechanics, and all Unmaker gear — they revert to a normal player. The Unmaker NPC respawns with its normal random behavior and the Tower of the Unmaker raid resets
 
 **Unmaker AA — 100% experience:**
 - The Unmaker AA track provides unique abilities tied to the Unmaker's nature — void manipulation, entropy control, deletion mastery
@@ -1413,7 +1423,7 @@ The card system, world entropy, and Unmaker mechanics create an interconnected e
 - If decay is too slow: increase card drop rate to 1.5% or add card drop bonuses during world events
 - The 2–3 year cycle allows for deep AI behavioral study across seasons — agents develop complex social networks, factional grudges, and collective lore that makes each cycle's eventual end feel like the close of an era
 
-**Combat balance — Core of the Unmaker:**
+**Combat balance — Tower of the Unmaker:**
 
 | Parameter | Value | Rationale |
 |---|---|---|
@@ -1427,7 +1437,7 @@ The card system, world entropy, and Unmaker mechanics create an interconnected e
 **Counter-play balance:**
 - **Holding vs. trading cards**: Holding cards gives army/immunity power but draws world-level threats. Trading gives personal combat power but forfeits army support. Neither choice is strictly dominant.
 - **Preserving vs. deleting entities**: Deleting entities reduces resources for everyone (including the deleter). The community has natural incentive to protect high-value entities.
-- **3-card Core entry requirement**: Creates a natural gate — someone must accept the risk of holding 3 cards (and attracting a god+dragon) to access endgame content.
+- **Tower entry requirement (1 card or 4 same-type)**: Creates accessible but still meaningful gate — players can enter via unmaking path (1 Card of Unmaking) or collector path (4 same-type universal cards), ensuring multiple routes to endgame content while requiring meaningful progression.
 - **AI voting on server restart**: AI agents vote based on their lived experience, creating unpredictable vote outcomes that reflect the actual state of the world, not just player interests.
 - **Lore fidelity degradation**: Prevents information from becoming a static database — agents must verify their knowledge, creating social dynamics around trust and verification.
 
@@ -1859,7 +1869,7 @@ Every entity in the game has card effects **automatically generated** from an **
         "effect": "destroy_random_equipped_item",
         "targets": ["current_target", "random_nearby_player"]
     },
-    "core_access": "bool",  # True if holder has 4 Cards of Unmaking (from Core of the Unmaker)
+    "core_access": "bool",  # True if holder has 4 Cards of Unmaking (from Tower of the Unmaker)
     "sub_60_cards_obtained": "int",  # Cards of Unmaking obtained from sub-level-60 entities (max 3)
     "attackable_by_all": "bool",  # True when holding 3+ cards — flagged for PvP by everyone
     "death_redistribution": {
@@ -1907,14 +1917,26 @@ Every entity in the game has card effects **automatically generated** from an **
 }
 ```
 
-### 12.7 Core of the Unmaker Zone Schema
+### 12.7 Tower of the Unmaker Zone Schema
 
 ```python
 {
-    "zone_id": "core_of_the_unmaker",
-    "zone_name": "Core of the Unmaker",
+    "zone_id": "tower_of_the_unmaker",
+    "zone_name": "Tower of the Unmaker",
     "zone_type": "raid_dungeon",
-    "landmark": "lighthouse",  # Large lighthouse at peak — The Unmaker True Form at top
+    "zone_style": "steampunk_craft",  # Roaming steampunk craft — despawns and respawns at zone walls
+    "roaming": {
+        "enabled": True,
+        "spawn_type": "zone_wall",  # Materializes off zone walls — requires levitation to reach
+        "despawn_interval_minutes": 120,  # Despawns after 2 hours and relocates
+        "arrival_signal": "steam_whistle",  # Audible cue in destination zone
+        "eligible_zones": "outdoor_and_dungeon_entrances"  # Any zone with a vertical surface
+    },
+    "entry_requirement": {
+        "option_1": {"type": "card_of_unmaking", "min_count": 1},
+        "option_2": {"type": "universal_same_entity", "min_count": 4, "traded_to_unmaker": False},
+        "requires_levitation": True  # Must have levitation buff/item to reach entrance
+    },
     "level_range": {"min": 60, "max": 65},
     "final_boss": {
         "name": "The Unmaker (True Form)",
@@ -2162,10 +2184,10 @@ Every entity in the game has card effects **automatically generated** from an **
 - [x] Implement card restriction rules (dragons/raid bosses excluded, bound-to-collector)
 - [x] Implement Shield of the Unmaker (10% chance to delete incoming spells/hits at 2 Cards of Unmaking)
 - [x] Implement Disintegration Proc weapon enchantment (3 Cards — destroys target and nearby player equipped items)
-- [ ] Build Core of the Unmaker raid zone (lighthouse structure, trash mobs, mini-bosses)
+- [ ] Build Tower of the Unmaker raid zone (steampunk roaming craft, trash mobs, mini-bosses, zone-wall spawning)
 - [ ] Implement The Unmaker True Form raid boss (random raid attacks at 30% proc, item disintegration, void deletion)
 - [ ] Implement Banned by the Unmaker mechanic (~1% proc, 2 real-time day login lockout)
-- [ ] Implement 4th Card of Unmaking as Core of the Unmaker boss drop only
+- [ ] Implement 4th Card of Unmaking as Tower of the Unmaker boss drop only
 - [x] Implement universal card drops for all entities (mobs, NPCs, creatures — minor effects)
 - [x] Implement 4-card entity deletion (trading 4 universal cards to Unmaker deletes that entity permanently)
 - [x] Implement world entropy tracking (deleted entity registry, resource scarcity progression)
@@ -2189,7 +2211,7 @@ Every entity in the game has card effects **automatically generated** from an **
 - [ ] Implement card trade-off system (holding capabilities forfeited when cards traded for Shield/Void/transformation)
 - [x] Implement one-week cooldown timers on all card abilities (7-day real-time cooldown per activation)
 - [x] Implement 1% card drop rate on all entity kills (universal card system)
-- [ ] Implement 3-card holder entry requirement for Core of the Unmaker zone
+- [x] Implement entry requirement for Tower of the Unmaker zone (1 Card of Unmaking OR 4 same-type universal cards, levitation required)
 - [x] Implement Spawner Registry (per-entity tracking of spawner status, cards in circulation, unmade state)
 - [x] Implement world decay percentage calculation and milestone announcements (10%, 25%, 50%, 75%, 90%)
 - [ ] Implement 50% decay server restart vote (all players + AI agents vote; majority triggers reboot countdown)
@@ -2213,7 +2235,7 @@ Every entity in the game has card effects **automatically generated** from an **
 - [x] Implement named creature AI player restriction (only named creatures get full soul documents and autonomous behavior)
 - [ ] Implement soul-bound protector lore propagation (AI players spread word about soul-enslavers via collective lore)
 - [x] Implement card effect level scaling (entity level → spell duration, mitigation %, haste bonus, protector stats)
-- [x] Implement level-60 unmaking cap (max 3 Cards of Unmaking from sub-60 entities, 4th requires Core of the Unmaker)
+- [x] Implement level-60 unmaking cap (max 3 Cards of Unmaking from sub-60 entities, 4th requires Tower of the Unmaker)
 - [x] Implement 3-card attackable-by-all PvP flag (holding 3+ Cards of Unmaking = attackable by everyone)
 - [x] Implement Card of Unmaking death redistribution (silent transfer to zero-card killers only, no announcement)
 - [x] Implement bind-point respawn for killed card holders (no unmaking cards, no unmaking buffs, enchanted items preserved)
@@ -2292,7 +2314,7 @@ Every entity in the game has card effects **automatically generated** from an **
 | **Unmaker spawn abuse** | Camping or exploiting The Unmaker's random spawn | Truly random spawn with 1% chance, level 1 fragility means ambient kills, max 2 drops per kill |
 | **Void spell world damage** | Permanent deletion of critical NPCs or quest givers | Long cooldown, limited charges, player exception rule, server backup/restore for extreme cases |
 | **PvP raid boss imbalance** | Player-turned-god is unkillable or trivial | Stat scaling balanced to require full raid, god abilities on cooldowns, player retains mortality on death |
-| **Banned by the Unmaker abuse** | Players locked out of game for 2 days causes frustration | Very low proc rate (~1%), voluntary encounter (players choose to enter Core of the Unmaker), ban duration tunable |
+| **Banned by the Unmaker abuse** | Players locked out of game for 2 days causes frustration | Very low proc rate (~1%), voluntary encounter (players choose to enter Tower of the Unmaker), ban duration tunable |
 | **Item disintegration grief** | Permanent gear loss discourages raiding the Unmaker | Clear warnings before entering Core zone, risk-reward design (4th Card is ultimate power), gear insurance NPC possible |
 | **Random raid attack chaos** | 30% proc rate of random raid attacks makes fight impossible | Tunable proc rate, raid composition diversity rewarded, survival-based design (not DPS race) |
 | **World entropy too fast** | Critical NPCs deleted early, breaking quest lines and economy | Card drop rates throttled, Unmaker 1% spawn rate limits conversion speed, deletions announced server-wide for social counterplay |
@@ -2307,13 +2329,13 @@ Every entity in the game has card effects **automatically generated** from an **
 | **Lore fidelity spiral** | Gossip distortion makes all shared lore unreliable | Fidelity floor (minimum 50% accuracy after distortion), first-hand memories always 100% accurate, agents can verify by re-encountering entities |
 | **Agent streaming privacy** | Streaming agent perspective reveals other players' strategies | Streaming agents are publicly marked, players can avoid streaming agents, stream delay configurable |
 | **TTS voice quality** | Low-quality TTS breaks immersion for streamed agents | Pre-selected high-quality voice profiles, limited roster ensures quality over quantity, voice profiles tuned per archetype |
-| **3-card Core entry bottleneck** | Too few players reach 3 cards, making Core of the Unmaker inaccessible | Card drop rates tunable, god card encounters are the primary source, multiple gods provide parallel paths to 3 cards |
+| **Tower entry accessibility** | Entry requirement too easy or too hard | Two paths: 1 Card of Unmaking (requires trading 4 cards to Unmaker) or 4 same-type universal cards (no trade required). Both require meaningful progression. Tunable via card drop rates |
 | **Soul-bound protector imbalance** | High-level protectors (e.g., Emperor Crush, Lord Nagafen) are too powerful as permanent companions | Protector level matches entity level (not holder level), protector uses entity's normal combat abilities (no scaling), faction penalty makes cities hostile |
 | **AI player aggression spiral** | All named NPCs attacking soul-binder on sight makes game unplayable for protector holders | Intended design — soul-binding is a high-risk high-reward choice. Holder can release protector to restore faction (with permanent scar). The social cost is the balancing mechanism |
 | **NPC card effect volume** | Thousands of entities need unique 4-tier card effects — manual design impractical | Identity template system auto-generates effects from entity properties (weapon type, level, combat style). Manual curation only for iconic named NPCs like Emperor Crush |
 | **Named creature AI player load** | Giving all named creatures full AI soul documents creates server performance pressure | Named creature AI activates on proximity — distant named NPCs use simplified behavior. Full AI only loads when players or other named NPCs are nearby |
 | **Silent card transfer exploitation** | Groups deliberately farm 3-card holders with zero-card alts to funnel cards | Only actual combat participants eligible for redistribution, minimum damage threshold required, anti-farming detection flags rapid repeated transfers |
-| **3-card attackable griefing** | Players repeatedly killed at 3 cards before they can reach Core of the Unmaker | Origin city/faction zone allies protect the holder, 3-day escalation timer gives planning window, holder can choose to trade cards for Shield/Void instead of holding |
+| **3-card attackable griefing** | Players repeatedly killed at 3 cards before they can reach Tower of the Unmaker | Origin city/faction zone allies protect the holder, 3-day escalation timer gives planning window, holder can choose to trade cards for Shield/Void instead of holding |
 | **Sub-60 level cap feels arbitrary** | Players confused by why sub-60 entities cap at 3 cards | Clear UI messaging when approaching cap, lore explanation ties it to entity soul strength (weaker souls produce limited unmaking power) |
 
 ---

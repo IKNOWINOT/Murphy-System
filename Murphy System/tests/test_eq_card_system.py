@@ -29,6 +29,7 @@ from src.eq.card_system import (
     DeathRedistributionResult,
     GodCard,
     SUB_60_UNMAKING_CAP,
+    TOWER_SAME_TYPE_ENTRY_COUNT,
     UnmakingBuff,
     handle_unmaking_death,
 )
@@ -390,6 +391,65 @@ class TestCardCollection:
         cc = CardCollection(holder_id="p1")
         cc.add_enchanted_item("epic_sword")
         assert "epic_sword" in cc.enchanted_items
+
+    # --- Tower of the Unmaker entry (§9.8) ---
+
+    def test_can_enter_tower_with_1_unmaking_card(self):
+        cc = CardCollection(holder_id="p1")
+        cc.add_unmaking_card(CardOfUnmaking(card_id="c0", source_entity_level=60))
+        assert cc.can_enter_tower(has_levitation=True) is True
+
+    def test_cannot_enter_tower_without_levitation(self):
+        cc = CardCollection(holder_id="p1")
+        cc.add_unmaking_card(CardOfUnmaking(card_id="c0", source_entity_level=60))
+        assert cc.can_enter_tower(has_levitation=False) is False
+
+    def test_can_enter_tower_with_4_same_type_cards(self):
+        cc = CardCollection(holder_id="p1")
+        for _ in range(4):
+            cc.add_universal_card("emperor_crush")
+        assert cc.can_enter_tower(has_levitation=True) is True
+
+    def test_cannot_enter_tower_with_3_same_type_cards(self):
+        cc = CardCollection(holder_id="p1")
+        for _ in range(3):
+            cc.add_universal_card("emperor_crush")
+        assert cc.can_enter_tower(has_levitation=True) is False
+
+    def test_cannot_enter_tower_with_4_different_type_cards(self):
+        cc = CardCollection(holder_id="p1")
+        cc.add_universal_card("orc_pawn")
+        cc.add_universal_card("fire_beetle")
+        cc.add_universal_card("gnoll_scout")
+        cc.add_universal_card("bat")
+        assert cc.can_enter_tower(has_levitation=True) is False
+
+    def test_cannot_enter_tower_empty_collection(self):
+        cc = CardCollection(holder_id="p1")
+        assert cc.can_enter_tower(has_levitation=True) is False
+
+    def test_has_four_same_type_cards_true(self):
+        cc = CardCollection(holder_id="p1")
+        for _ in range(4):
+            cc.add_universal_card("fippy_darkpaw")
+        assert cc.has_four_same_type_cards() is True
+
+    def test_has_four_same_type_cards_false_mixed(self):
+        cc = CardCollection(holder_id="p1")
+        cc.add_universal_card("a")
+        cc.add_universal_card("a")
+        cc.add_universal_card("b")
+        cc.add_universal_card("b")
+        assert cc.has_four_same_type_cards() is False
+
+    def test_tower_same_type_entry_count_is_4(self):
+        assert TOWER_SAME_TYPE_ENTRY_COUNT == 4
+
+    def test_can_enter_tower_4_same_no_levitation_blocked(self):
+        cc = CardCollection(holder_id="p1")
+        for _ in range(4):
+            cc.add_universal_card("emperor_crush")
+        assert cc.can_enter_tower(has_levitation=False) is False
 
 
 class TestDeathRedistribution:
