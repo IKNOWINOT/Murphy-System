@@ -3,7 +3,7 @@ Credential Verification Interface
 Provides unified interface for credential verification across different services.
 """
 
-from typing import Dict, List, Optional, Any, Protocol
+from typing import Dict, List, Optional, Any, Protocol, Tuple
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pydantic import BaseModel, Field
@@ -69,6 +69,7 @@ class VerificationResponse(BaseModel):
     rate_limit_reset_at: Optional[datetime] = None
     error_details: Optional[str] = None
     verified_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    service_provider: Optional[ServiceProvider] = None
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
@@ -453,17 +454,23 @@ class CredentialVerificationInterface:
         # Get appropriate verifier
         verifier = self.factory.get_verifier(service_provider)
         if not verifier:
-            return VerificationResponse(
+            response = VerificationResponse(
                 credential_id=credential.id,
                 is_valid=False,
                 status=CredentialStatus.INVALID,
                 verification_methods_passed=[],
                 verification_methods_failed=verification_methods,
-                error_details=f"No verifier available for {service_provider}"
+                error_details=f"No verifier available for {service_provider}",
+                service_provider=service_provider
             )
+            self.verification_history.append(response)
+            return response
         
         # Perform verification
         response = await verifier.verify(credential, request)
+        
+        # Stamp provider onto the response for downstream filtering
+        response.service_provider = service_provider
         
         # Record in history
         self.verification_history.append(response)
@@ -505,8 +512,7 @@ class CredentialVerificationInterface:
             history = [h for h in history if h.credential_id == credential_id]
         
         if service_provider:
-            # Would need to store provider in response for this filter
-            pass
+            history = [h for h in history if h.service_provider == service_provider]
         
         return history[-limit:]
     
