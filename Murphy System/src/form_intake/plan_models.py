@@ -331,8 +331,8 @@ class Plan(BaseModel):
         predecessors: Dict[str, List[str]] = {t.task_id: [] for t in self.tasks}
         for dep in self.dependencies:
             if dep.dependency_type == DependencyType.FINISH_TO_START:
-                successors.setdefault(dep.from_task_id, []).append(dep.to_task_id)
-                predecessors.setdefault(dep.to_task_id, []).append(dep.from_task_id)
+                successors[dep.from_task_id].append(dep.to_task_id)
+                predecessors[dep.to_task_id].append(dep.from_task_id)
 
         def _duration(tid: str) -> float:
             t = task_map.get(tid)

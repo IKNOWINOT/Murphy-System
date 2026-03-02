@@ -556,7 +556,7 @@ class UnifiedIntegrationEngine:
             )
 
             # Record in workspace so future phases can discover it.
-            swarm.workspace.metadata[f"integration_agent_{agent.get('name', 'unknown')}"] = {
+            swarm.workspace.metadata[f"integration_agent_{instance.id}"] = {
                 'instance_id': instance.id,
                 'profession': profession.value,
                 'capabilities': capabilities,
