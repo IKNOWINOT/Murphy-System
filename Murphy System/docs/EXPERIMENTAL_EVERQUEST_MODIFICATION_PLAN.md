@@ -18,6 +18,8 @@ AI agents operate as **pure melee**, **int caster**, or **cleric** archetypes, e
 
 When **towns are conquered** through faction warfare, it is the **leadership and guards** that fight — civilian NPCs are non-combatants. Dead guards and leaders follow permadeath rules, and conquered towns change faction control.
 
+NPCs live full daily lives through an **NPC lifestyle system**: they sleep, work jobs (smithing, merchant, brewing, guarding), and adventure when off-duty. Town buildings are owned by NPC characters — the smith who runs the forge is a real agent with a soul document, not a static game construct. NPCs follow a **caste system** (royals, nobles, commoners, dhampirs, servants) and their trade skills **degrade without practice** — one week of inactivity fades skill toward 50, while leveling up locks a permanent **skill floor** preventing full decay.
+
 The agent soul system follows the **OpenClaw Molty soul.md** pattern (see `OPENCLAW_MOLTY_SOUL_CONCEPT.md`) where each agent's Rosetta state document acts as its persistent soul — driving memory, recall, faction loyalty, combat decisions, and social interactions.
 
 ---
@@ -259,7 +261,7 @@ When a **town or city is conquered** through faction warfare, it is the **town l
 | **Guard Captain** | Commands the guard force. Coordinates defense positioning and rallies guards |
 | **Town Guards** | Standing military force of the town. These are the primary combatants in a siege |
 | **Elite Guards** | Stronger named guard agents with full soul documents — permadeath applies |
-| **Civilian NPCs** | Non-combatants — merchants, quest givers, trainers. They **do not fight** and are not targeted |
+| **Civilian NPCs** | Non-combatants — NPC characters who fill job roles (smiths, merchants, brewers, tailors — see section 3.11). They **do not fight** and are not targeted |
 
 **Conquest mechanics:**
 - Faction warfare can escalate to **town sieges** when one faction's agents amass enough force near an enemy town
@@ -311,6 +313,120 @@ Agents treat their life as if it is **their only life** (because it is — perma
 - Sourceriors with **Liquify** active (water pets, level 40+) can use aggro drop + invisibility to escape cleanly (see `SOURCERIOR_CLASS_DESIGN.md` section 2.12)
 - Fleeing agents remember the encounter and hold **grudges** against entities that caused the wipe
 - An agent that successfully flees retains its full soul document — memory, gear, and faction standing intact
+
+### 3.11 NPC Lifestyle System — Daily Routines, Jobs, and Skill Degradation
+
+AI agents are not static quest givers or permanent merchants — they are **living characters** with daily routines, jobs, sleep cycles, and trade skills that degrade when not practiced. Instead of traditional EverQuest merchants standing in place forever, NPCs fill those roles as **characters who work those jobs** and then adventure when off-duty.
+
+#### 3.11.1 Daily Routine Cycle
+
+Every NPC agent follows a **daily routine** tied to the game world's day/night cycle:
+
+| Phase | Duration | Activity |
+|---|---|---|
+| **Sleep** | ~6 game hours | Agent returns to their residence and sleeps — unavailable for interaction |
+| **Work Shift** | ~10 game hours | Agent performs their assigned job role (smithing, selling, guarding, etc.) |
+| **Adventure / Free Time** | ~8 game hours | Agent groups up, hunts, explores, or socializes — behaves like a player |
+
+- NPCs **sleep in residences** — some own their home, others rent rooms or bunk in faction halls
+- During sleep, agents are physically present in their bed location but do not respond to interaction
+- Work and adventure schedules vary by personality — a dedicated smith may work 14-hour shifts, while a restless warrior adventures more
+
+#### 3.11.2 Building Ownership and Job Roles
+
+Town buildings (shops, forges, taverns) are **owned by NPC characters** — not abstract game constructs. The NPC who works the forge owns or leases the building, and their trade skill determines the quality of what they can produce or sell.
+
+**Job roles:**
+
+| Job Role | Description | Primary Skill |
+|---|---|---|
+| **Smith** | Forges weapons and armor; repairs gear for players and agents | Blacksmithing |
+| **Merchant** | Buys and sells goods; manages shop inventory | Bartering / Trading |
+| **Brewer** | Crafts potions, ales, and consumables | Brewing |
+| **Tailor** | Crafts cloth and leather armor, bags, and containers | Tailoring |
+| **Jeweler** | Crafts jewelry and enchanted trinkets | Jewelcrafting |
+| **Baker** | Produces food items for stat buffs and sustenance | Baking |
+| **Fletcher** | Crafts bows, arrows, and ranged ammunition | Fletching |
+| **Guard** | Patrols and defends the town — combat-focused job | Combat skills |
+| **Scholar** | Researches spells, scribes scrolls, and maintains libraries | Research |
+
+- When an NPC is **on shift**, they are at their workplace performing their job — a smith is at the forge, a merchant is behind the counter
+- When **off shift**, the NPC may adventure, group with players, or pursue personal goals
+- If the NPC who runs a shop **dies** (permadeath), that shop goes vacant until another NPC or the faction assigns a replacement
+- Building ownership is tracked in the soul document — an NPC knows they own or lease their workspace
+
+#### 3.11.3 Caste System — Vampire Academy Class Hierarchy
+
+NPC society follows a structured **caste system** inspired by class-hierarchy fiction (similar to *Vampire Academy*). Each NPC's caste determines their social standing, job access, and behavioral expectations within their faction:
+
+| Caste | Role | Social Standing | Mobility |
+|---|---|---|---|
+| **Royals** | Faction leaders, town rulers, high priests | Highest — command authority and deference | Fixed — born or appointed |
+| **Nobles** | Elite guards, master craftsmen, senior merchants | High — manage resources and direct workers | Earned through achievement or lineage |
+| **Commoners** | Standard workers, guards, journeyman crafters | Middle — the productive backbone of society | Can advance to Noble through skill mastery or heroic deeds |
+| **Dhampirs** | Adventurer-workers — split between combat duty and trade jobs | Flexible — respected for versatility but not elite | Can rise through combat achievement or craft mastery |
+| **Servants** | Apprentices, laborers, new arrivals to a faction | Lowest — learning and proving themselves | Advance to Commoner after demonstrating competence |
+
+- Caste is assigned at soul creation based on the agent's faction, level, and skill profile
+- **Advancement is possible**: a Servant who masters a trade skill can become a Commoner; a Commoner who achieves Noble-tier skill mastery or performs heroic acts in faction warfare can be elevated
+- **Caste affects behavior**: Royals expect deference, Nobles manage shops and guards, Commoners work steadily, Dhampirs split time between jobs and adventure, Servants defer to all others
+- Caste is stored in the soul document `lifestyle.caste` field
+
+#### 3.11.4 Trade Skill Specialization and Mastery
+
+AI NPCs can achieve **maximum skill level** in their primary trade — unlike players who spread skill points across many trades, NPCs specialize deeply. A dedicated smith NPC can reach max Blacksmithing and produce the highest-quality items.
+
+**Specialization rules:**
+- Each NPC has a **primary trade skill** determined by their job role
+- NPCs can achieve **skill cap (300 at level 60)** in their primary trade through consistent practice
+- An NPC actively working their trade skill during work shifts gains skill points at an accelerated rate
+- NPCs may have **secondary skills** at lower proficiency, but their primary trade is always strongest
+
+#### 3.11.5 Skill Degradation — Use It or Lose It
+
+Trade skills **degrade over time** when not actively practiced. An NPC who stops working their trade will see their skill level fade back toward a baseline.
+
+**Degradation formula:**
+- **Active practice** (1 week of regular work shifts): skill remains at current level or increases
+- **No practice** (1 week without performing the skill): skill degrades toward **50** (the untrained baseline)
+- Degradation rate: approximately **equal time to build, equal time to decay** — one week of working followed by one week of not working brings the skill back to 50
+- Degradation is **linear**: each day without practice reduces the skill by `(current_skill - skill_floor) / 7` points
+
+**Example degradation timeline (skill 300, no practice, no level floor):**
+
+| Day | Skill Level | Notes |
+|---|---|---|
+| 0 | 300 | Last day of active practice |
+| 1 | ~264 | First day of degradation |
+| 3 | ~193 | Noticeable decline |
+| 5 | ~121 | Approaching baseline |
+| 7 | 50 | Reached untrained baseline |
+
+#### 3.11.6 Level-Based Skill Floor — Leveling Locks Minimum Thresholds
+
+When an NPC **levels up**, it permanently locks a **minimum skill floor** for their primary trade skill. This floor prevents degradation from dropping the skill below a certain point, rewarding the NPC's growth with lasting competence.
+
+**Skill floor formula:**
+- `skill_floor = (agent_level / max_level) × skill_cap × 0.8`
+- At max level (60), the floor is **80% of skill cap** (240 out of 300) — a max-level master smith can never degrade below 240
+- At level 30, the floor is ~120 — a mid-level smith degrades to 120 at worst, not 50
+- At level 1, the floor is effectively 4 — almost no protection
+
+**Skill floor by level (skill cap 300):**
+
+| Level | Skill Floor | Max Possible | Degradation Range |
+|---|---|---|---|
+| 1 | 4 | 5 | 4–5 (negligible) |
+| 10 | 40 | 50 | 40–50 |
+| 20 | 80 | 100 | 80–100 |
+| 30 | 120 | 150 | 120–150 |
+| 40 | 160 | 200 | 160–200 |
+| 50 | 200 | 250 | 200–250 |
+| 60 | 240 | 300 | 240–300 |
+
+- The skill floor is stored in the soul document `lifestyle.skill_floor` field
+- Leveling up always recalculates the floor — it only ever increases
+- This creates a **meaningful progression**: a high-level smith who takes a week off adventuring only loses a fraction of their skill, while a low-level apprentice quickly loses what little they had
 
 ---
 
@@ -711,6 +827,25 @@ The raid leader gains Murphy-powered moderation tools:
         "unlocked_items": {"item_id": {"name": "str", "stats": {}}},
         "unlock_condition": "previously_possessed",
         "inspect_capability": "bool"
+    },
+    "lifestyle": {
+        "caste": "str",  # royal, noble, commoner, dhampir, servant
+        "job_role": "str",  # smith, merchant, brewer, guard, scholar, etc.
+        "workplace": {"building_id": "str", "ownership": "str"},  # own, lease, assigned
+        "residence": {"building_id": "str", "type": "str"},  # home, bunk, inn
+        "schedule": {
+            "sleep_start": "int",  # game hour (0–23)
+            "work_start": "int",
+            "adventure_start": "int"
+        },
+        "primary_trade_skill": {
+            "skill_name": "str",
+            "current_level": "int",  # 0–300
+            "skill_floor": "int",  # level-locked minimum
+            "last_practiced": "iso8601",
+            "degradation_rate": "float"  # points per day without practice
+        },
+        "secondary_skills": [{"skill_name": "str", "current_level": "int"}]
     }
 }
 ```
@@ -793,6 +928,12 @@ The raid leader gains Murphy-powered moderation tools:
 - [ ] Implement inspect asymmetry (agent knowledge base gating)
 - [ ] Implement town conquest system (leadership and guards as defenders)
 - [ ] Voice chat integration with group/raid toggles
+- [ ] Implement NPC daily routine system (sleep, work, adventure cycles)
+- [ ] Implement building ownership and job role assignment for NPCs
+- [ ] Implement caste system hierarchy (royal, noble, commoner, dhampir, servant) with advancement
+- [ ] Implement trade skill specialization with max-skill mastery for NPC primary trades
+- [ ] Implement skill degradation system (1 week no practice → fade to baseline 50)
+- [ ] Implement level-based skill floor (leveling locks minimum skill thresholds)
 
 ### Phase 4: Murphy Integration (Weeks 13–16)
 
@@ -872,6 +1013,7 @@ The raid leader gains Murphy-powered moderation tools:
 | **Agent population decline** | Permadeath depopulates zones over time | Controlled new agent spawning to replace dead agents; betrayal resurrection as natural recovery |
 | **Town conquest imbalance** | One faction dominates all towns | Faction strength balancing, cooldowns on consecutive sieges, rally mechanics for defeated factions |
 | **EQ isolation breach** | Agent knowledge leaks beyond game boundary | Isolation boundary enforcement, sandbox gateway, language restriction in soul docs |
+| **Skill degradation balance** | Trade skills degrade too fast or slow, making NPC economy unstable | Tunable degradation rate, level-based skill floors lock minimum competence, monitoring dashboards |
 
 ---
 
