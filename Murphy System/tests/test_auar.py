@@ -1835,10 +1835,10 @@ class TestAUARConfig:
             assert cfg.observability.max_traces == 2000
         finally:
             # Clean up
-            del os.environ["AUAR_LOG_LEVEL"]
-            del os.environ["AUAR_ROUTING_STRATEGY"]
-            del os.environ["AUAR_ML_EPSILON"]
-            del os.environ["AUAR_OBS_MAX_TRACES"]
+            os.environ.pop("AUAR_LOG_LEVEL", None)
+            os.environ.pop("AUAR_ROUTING_STRATEGY", None)
+            os.environ.pop("AUAR_ML_EPSILON", None)
+            os.environ.pop("AUAR_OBS_MAX_TRACES", None)
 
     def test_to_dict(self):
         from auar.config import AUARConfig

@@ -136,7 +136,7 @@ class ProviderAdapter:
         creds = self.config.auth_credentials
         access_token = creds.get("access_token", "")
 
-        if not access_token and hasattr(self, "_token_refresh_fn") and self._token_refresh_fn:
+        if not access_token and self._token_refresh_fn:
             try:
                 new_token = self._token_refresh_fn(creds)
                 if isinstance(new_token, str) and new_token:
