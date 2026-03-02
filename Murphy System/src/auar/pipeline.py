@@ -144,14 +144,44 @@ class AUARPipeline:
             )
             result.trace_id = trace.trace_id
 
+        # Add interpretation span
+        interp_span = None
+        if self._obs and trace:
+            interp_span = self._obs.add_span(
+                trace.trace_id, "signal_interpretation",
+                attributes={
+                    "method": signal.interpretation_method,
+                    "confidence": signal.confidence_score,
+                    "latency_ms": signal.latency_ms,
+                },
+            )
+            self._obs.end_span(interp_span)
+            self._obs.observe("auar.interpretation.latency_ms", signal.latency_ms)
+            self._obs.observe("auar.interpretation.confidence", signal.confidence_score)
+
         # --- Step 5: Routing Decision ---
         decision = self._router.route(signal)
         result.routing_score = decision.score
+
+        # Add routing span
+        if self._obs and trace:
+            routing_span = self._obs.add_span(
+                trace.trace_id, "routing_decision",
+                attributes={
+                    "strategy": decision.strategy_used.value,
+                    "score": decision.score,
+                    "circuit_breaker_triggered": decision.circuit_breaker_triggered,
+                    "latency_ms": decision.latency_ms,
+                },
+            )
+            self._obs.end_span(routing_span)
+            self._obs.observe("auar.routing.latency_ms", decision.latency_ms)
 
         if not decision.selected_provider:
             result.error = "No provider available for capability"
             if self._obs and trace:
                 self._obs.finish_trace(trace.trace_id, success=False)
+                self._obs.increment("auar.requests.no_provider")
             result.total_latency_ms = (time.monotonic() - start) * 1000
             return result
 
@@ -171,10 +201,25 @@ class AUARPipeline:
                 continue
 
             # Step 7: Execute provider call
+            exec_span = None
+            if self._obs and trace:
+                exec_span = self._obs.add_span(
+                    trace.trace_id, "provider_execution",
+                    attributes={"provider_id": pid, "provider_name": candidate.provider_name},
+                )
+
             resp = self._adapters.call_provider(
                 pid, "POST", f"/{result.capability}",
                 body=translation.translated_data,
             )
+
+            if self._obs and exec_span:
+                exec_span.attributes["status_code"] = resp.status_code
+                exec_span.attributes["success"] = resp.success
+                exec_span.attributes["latency_ms"] = resp.latency_ms
+                exec_span.attributes["retries_used"] = resp.retries_used
+                self._obs.end_span(exec_span, status="ok" if resp.success else "error")
+                self._obs.observe("auar.provider.latency_ms", resp.latency_ms)
 
             if resp.success:
                 # Step 8: Translate response
