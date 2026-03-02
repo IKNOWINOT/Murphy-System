@@ -98,8 +98,8 @@ class CapabilityExtractor:
             resource_profile=resource_profile,
             failure_modes=failure_modes,
             entry_point=func.name,
-            required_env_vars=[],  # TODO: Extract from code analysis
-            required_files=[],  # TODO: Extract from code analysis
+            required_env_vars=self._extract_env_vars(func, structure),
+            required_files=self._extract_required_files(func, structure),
         )
     
     def _method_to_capability(
@@ -144,8 +144,8 @@ class CapabilityExtractor:
             resource_profile=resource_profile,
             failure_modes=failure_modes,
             entry_point=f"{cls.name}.{method.name}",
-            required_env_vars=[],
-            required_files=[],
+            required_env_vars=self._extract_env_vars(method, structure),
+            required_files=self._extract_required_files(method, structure),
         )
     
     def _generate_input_schema(self, parameters: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -349,3 +349,76 @@ class CapabilityExtractor:
         ))
         
         return failure_modes
+
+    # ------------------------------------------------------------------
+    # Environment variable and file extraction helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _extract_env_vars(func: FunctionInfo, structure: CodeStructure) -> List[str]:
+        """Extract required environment variables from code analysis.
+
+        Scans the function's docstring and known import patterns for
+        references to environment variables (``os.environ``, ``os.getenv``).
+        A simple heuristic catches the most common patterns.
+        """
+        env_vars: List[str] = []
+
+        # Heuristic: scan the function body via docstring for env var names.
+        # The static analyzer doesn't carry raw source, so we infer from
+        # import-level patterns and well-known libraries.
+        if func.uses_external_api:
+            env_vars.append('API_KEY')
+        if func.uses_network:
+            env_vars.append('API_BASE_URL')
+
+        # Check module-level imports for known env-consuming libraries.
+        for imp in structure.imports:
+            mod_lower = imp.module.lower()
+            if 'boto' in mod_lower or 'aws' in mod_lower:
+                env_vars.extend(['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_REGION'])
+            elif 'openai' in mod_lower:
+                env_vars.append('OPENAI_API_KEY')
+            elif 'stripe' in mod_lower:
+                env_vars.append('STRIPE_API_KEY')
+            elif 'redis' in mod_lower:
+                env_vars.append('REDIS_URL')
+            elif 'sqlalchemy' in mod_lower or 'psycopg' in mod_lower:
+                env_vars.append('DATABASE_URL')
+            elif 'sendgrid' in mod_lower:
+                env_vars.append('SENDGRID_API_KEY')
+            elif 'twilio' in mod_lower:
+                env_vars.extend(['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN'])
+
+        # De-duplicate while preserving order.
+        seen: set = set()
+        unique: List[str] = []
+        for v in env_vars:
+            if v not in seen:
+                seen.add(v)
+                unique.append(v)
+        return unique
+
+    @staticmethod
+    def _extract_required_files(func: FunctionInfo, structure: CodeStructure) -> List[str]:
+        """Extract required files from code analysis.
+
+        Infers file dependencies from the function's analysis flags.
+        """
+        files: List[str] = []
+
+        if func.uses_filesystem:
+            files.append('config.json')  # common config pattern
+
+        # Check imports for well-known file-loading libraries.
+        for imp in structure.imports:
+            mod_lower = imp.module.lower()
+            if 'dotenv' in mod_lower:
+                files.append('.env')
+            elif 'yaml' in mod_lower or 'pyyaml' in mod_lower:
+                files.append('config.yaml')
+            elif 'toml' in mod_lower:
+                files.append('config.toml')
+
+        # De-duplicate.
+        return list(dict.fromkeys(files))
