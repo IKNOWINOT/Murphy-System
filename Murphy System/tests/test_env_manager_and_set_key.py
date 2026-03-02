@@ -298,6 +298,43 @@ class TestSetKeyTUI:
             content = env_file.read_text()
             assert "gsk_abcdefghijklmnopqrstuvwx" in content
 
+    @pytest.mark.asyncio
+    async def test_set_key_writes_murphy_llm_provider(self, tmp_path, monkeypatch):
+        """Setting a groq key should also write MURPHY_LLM_PROVIDER=groq to .env."""
+        env_file = tmp_path / ".env"
+        monkeypatch.setattr("murphy_terminal.get_env_path", lambda: str(env_file))
+        monkeypatch.setenv("GROQ_API_KEY", "gsk_old_key_to_skip_gate_check")
+
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            cmd = "set key groq gsk_abcdefghijklmnopqrstuvwx"
+            for ch in cmd:
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
+            # MURPHY_LLM_PROVIDER should be set in os.environ
+            assert os.environ.get("MURPHY_LLM_PROVIDER") == "groq"
+            # MURPHY_LLM_PROVIDER should be persisted to .env
+            content = env_file.read_text()
+            assert "MURPHY_LLM_PROVIDER=groq" in content
+
+
+# ---------------------------------------------------------------------------
+# MurphyAPIClient — configure_llm
+# ---------------------------------------------------------------------------
+
+
+class TestConfigureLlmClient:
+
+    def test_configure_llm_returns_failure_when_backend_down(self):
+        """configure_llm should return a dict with success=False when backend is unreachable."""
+        from murphy_terminal import MurphyAPIClient
+        client = MurphyAPIClient(base_url="http://localhost:19999")
+        result = client.configure_llm("groq", "gsk_abcdefghijklmnopqrstuvwx")
+        assert result.get("success") is False
+
 
 # ---------------------------------------------------------------------------
 # Placeholder key detection

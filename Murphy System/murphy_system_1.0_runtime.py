@@ -13390,6 +13390,29 @@ def create_app() -> FastAPI:
         """Return LLM provider configuration and health."""
         return JSONResponse(murphy._get_llm_status())
 
+    @app.post("/api/llm/configure")
+    async def llm_configure(request: Request):
+        """Hot-reload LLM configuration from the terminal without restarting."""
+        try:
+            data = await request.json()
+        except (ValueError, KeyError):
+            data = {}
+        provider = (data.get("provider") or "").strip().lower()
+        api_key = (data.get("api_key") or "").strip()
+        if not provider:
+            return JSONResponse({"success": False, "error": "provider is required"}, status_code=400)
+        # Map provider to its env var
+        provider_env_vars = {
+            "groq": "GROQ_API_KEY",
+            "openai": "OPENAI_API_KEY",
+            "anthropic": "ANTHROPIC_API_KEY",
+        }
+        env_var = provider_env_vars.get(provider)
+        if env_var and api_key:
+            os.environ[env_var] = api_key
+        os.environ["MURPHY_LLM_PROVIDER"] = provider
+        return JSONResponse({"success": True, **murphy._get_llm_status()})
+
     @app.get("/api/librarian/api-links")
     async def api_links():
         """Return API provider signup links for all supported services."""
