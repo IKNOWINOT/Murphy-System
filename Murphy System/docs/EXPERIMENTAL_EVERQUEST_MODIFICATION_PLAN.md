@@ -22,6 +22,8 @@ NPCs live full daily lives through an **NPC lifestyle system**: they sleep, work
 
 The agent soul system follows the **OpenClaw Molty soul.md** pattern (see `OPENCLAW_MOLTY_SOUL_CONCEPT.md`) where each agent's Rosetta state document acts as its persistent soul — driving memory, recall, faction loyalty, combat decisions, and social interactions.
 
+Agent behavior is powered by a **macro-trigger system** modeled on classic EQ bot patterns (`/assist`, `/follow`, `/attack`, `/cast`) and a **rapid perception-inference-action pipeline** that scans game state every ~250ms, evaluates against the soul document, and writes decisions back to the agent's mind. All agent souls are **lore-seeded** from the EQEmu NPC database — every existing NPC, mob, and raid boss serves as a foundation for agent identity. **The Sleeper (Kerafyrm)** operates as a world-event agent restricted to level 60+ zones, with its storyline pre-seeded in all character memories. Awakening The Sleeper triggers **dragon /tell coordination** across factions, with hostile dragon factions temporarily cooperating to stop the raid unless already engaged elsewhere.
+
 ---
 
 ## 2. Scope
@@ -45,6 +47,10 @@ The agent soul system follows the **OpenClaw Molty soul.md** pattern (see `OPENC
 | **Progression Server** | Original EQ leveling experience built into Planes of Power ending | EQEmu server configuration |
 | **Remake System** | 1% stat/skill cap increase per cycle for all classes | Character DB, AA system, progression tracker |
 | **Race Cultural Identity** | Cultural values per race, orc playable race, agent personality biases | Soul engine, persona_injector.py, EQEmu race tables |
+| **Macro-Trigger Behavior** | Classic bot macro patterns as agent behavioral triggers (assist, follow, engage, etc.) | Play-style templates, perception pipeline |
+| **Perception-Inference Pipeline** | Rapid screen-scan → inference → action → mind-write cycle for real-time agent decisions | Soul engine, game connector, inference_gate_engine |
+| **Lore-Seeded Soul Database** | All existing EQ NPCs, mobs, and raid bosses as foundations for agent souls | EQEmu NPC DB, lore wikis, soul engine |
+| **The Sleeper (Kerafyrm)** | World-event agent — level 60+ zones only, storyline in all agent memories | Soul engine, lore database, zone restriction |
 
 ### 2.2 Reference Documents
 
@@ -55,6 +61,8 @@ The agent soul system follows the **OpenClaw Molty soul.md** pattern (see `OPENC
 | `RACE_CULTURAL_IDENTITY_DESIGN.md` | Race cultural identities, orc playable race, agent cultural personality |
 | `inference_gate_engine.py` | Existing multi-Rosetta soul pattern implementation |
 | `ROSETTA_STATE_MANAGEMENT_SYSTEM.md` | State management architecture reference |
+| EQEmu NPC database | Lore-seed source: all NPCs, mobs, raid bosses with names, factions, zones |
+| Project 1999 Wiki / Allakhazam Bestiary | Lore-seed source: classic-era lore, quest dialogues, 45,000+ NPC entries |
 
 ---
 
@@ -428,6 +436,150 @@ When an NPC **levels up**, it permanently locks a **minimum skill floor** for th
 - Leveling up always recalculates the floor — it only ever increases
 - This creates a **meaningful progression**: a high-level smith who takes a week off adventuring only loses a fraction of their skill, while a low-level apprentice quickly loses what little they had
 
+### 3.12 Macro-Trigger Behavior System — Classic Bot Patterns as Agent Behaviors
+
+Agent combat and social behaviors are modeled on **classic EverQuest bot macro triggers** — the same `/assist`, `/follow`, `/target`, `/cast` patterns that players used to coordinate box groups. Instead of running literal macros, agents use these patterns as **behavioral triggers** in their play-style templates, fired by situational data from the perception-inference pipeline (see section 3.13).
+
+**Core trigger patterns (inspired by MQ2/E3/EQEmu bot commands):**
+
+| Trigger | Classic Macro Origin | Agent Behavior |
+|---|---|---|
+| **Assist** | `/assist <tank>` | Agent targets the same mob as the group's main assist — fired when combat begins |
+| **Follow** | `/follow <leader>` | Agent follows group leader or assigned target — fired during travel and non-combat |
+| **Engage** | `/attack on` | Agent begins melee or casting on current target — fired after assist resolves |
+| **Back Off** | `/attack off` or `/backoff` | Agent disengages from combat — fired on "run" signal, wipe momentum, or tank death |
+| **Buff Cycle** | `/cast <buff_slot>` | Agent cycles through buff priority list — fired during downtime or group formation |
+| **Heal Check** | `/cast <heal_slot>` on target | Cleric/hybrid agents evaluate group HP and heal lowest — fired every tick during combat |
+| **Debuff** | `/cast <debuff_slot>` | Int caster agents apply snares, roots, DoTs — fired on new mob engagement |
+| **Mez** | `/cast <mez_slot>` | Crowd control agents mesmerize adds — fired when multiple mobs are engaged |
+| **Loot** | `/loot` | Agent evaluates and collects loot from kills — fired after combat resolution |
+| **Camp Check** | `/consider` | Agent evaluates nearby mobs for threat and camp viability — fired on zone entry or idle |
+
+**How triggers fire:**
+- Triggers are evaluated each **perception tick** (see section 3.13) based on the agent's current situational data
+- The play-style template (section 3.6) defines **which triggers** each class archetype responds to and in what priority
+- A Pure Melee agent prioritizes: Assist → Engage → Defensive checks → Back Off
+- An Int Caster prioritizes: Debuff → Mez → Nuke → Camp Check
+- A Cleric prioritizes: Heal Check → Buff Cycle → Back Off
+- Triggers can chain: Assist → Engage → Heal Check runs as a sequence when combat begins
+- The agent's soul document personality and faction standing modify **who** they trigger behaviors toward — a grudge-holding agent may refuse to heal a disliked player even when Heal Check fires
+
+### 3.13 Perception-Inference-Action Pipeline — Screen Scan to Mind Write
+
+Agents perceive the game world through a **rapid perception-inference-action pipeline** that mirrors how a bot reads the game screen and reacts. The agent's perception system scans the game state, the inference engine evaluates the situation against the soul document, and the action system writes decisions back to the agent's mind (soul short-term memory) in a systematic flow.
+
+**Pipeline stages:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ STAGE 1: PERCEPTION (Screen Scan)                                │
+│   Read game state snapshot every tick (~250ms)                   │
+│   Inputs: nearby entities, HP bars, mana bars, chat log,        │
+│           buff/debuff status, combat state, zone info            │
+│   Output: raw_perception_frame                                   │
+├─────────────────────────────────────────────────────────────────┤
+│ STAGE 2: INFERENCE (Rapid Evaluation)                            │
+│   Compare raw_perception_frame against:                          │
+│     • Play-style template (what should I do as this class?)      │
+│     • Soul document (who do I like/hate? what do I remember?)    │
+│     • Macro-trigger table (which triggers match this situation?) │
+│     • Lore knowledge (what do I know about this entity/zone?)   │
+│   Output: prioritized_action_list                                │
+├─────────────────────────────────────────────────────────────────┤
+│ STAGE 3: ACTION (Write to Mind / Execute)                        │
+│   Write selected action to soul short-term memory                │
+│   Execute top-priority action via game connector                 │
+│   Update combat_state, group_context in soul document            │
+│   Promote significant events to long-term archive                │
+│   Output: game_action + soul_memory_update                       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Pipeline characteristics:**
+- **Tick rate**: ~250ms per perception cycle — fast enough for real-time combat decisions
+- **Inference is lightweight**: The LLM is used for complex social/strategic decisions; routine combat uses the play-style template and macro-trigger table directly (no LLM call needed for "assist → attack" chains)
+- **Mind write**: Every action taken updates the agent's short-term memory — creating a running log of "what I just did and why" that feeds back into the next tick's inference
+- **Systematic flow**: Perception → Inference → Action → Memory Write → next Perception. This loop runs continuously while the agent is awake (during sleep phase, the pipeline pauses)
+- **Social inference**: When the pipeline detects a social situation (player nearby, trade opportunity, duel challenge), it escalates to the LLM for richer evaluation using the full soul document context
+- **Economic inference**: Agents evaluate trade, craft, and loot decisions through the pipeline — a merchant NPC uses Camp Check triggers to assess inventory value and pricing
+
+### 3.14 Lore-Seeded Soul Database — All NPCs, Mobs, and Raid Bosses as Agent Foundations
+
+Every existing EverQuest NPC, named mob, and raid boss serves as a **foundation for agent soul information**. Rather than creating agents from scratch, the system seeds agent souls from the canonical EQ lore databases — pulling names, factions, locations, relationships, abilities, and storylines from the existing game data.
+
+**Lore data sources:**
+
+| Source | Content | Usage |
+|---|---|---|
+| **EQEmu NPC database** | All NPCs with names, levels, zones, factions, loot tables | Primary seed data for agent identity and faction alignment |
+| **Project 1999 Wiki** | Classic-era NPC lore, quest dialogues, faction relationships | Narrative context for soul document personality and memory |
+| **Allakhazam Bestiary** | 45,000+ NPC entries with stats, abilities, spawn data | Ability templates, combat parameters, zone assignments |
+| **EQ Fandom Wiki** | Raid boss lore, expansion storylines, zone histories | Shared lore knowledge seeded into all agent memories |
+| **EQEmu quest scripts** | Existing quest dialogues and NPC interaction scripts | Behavioral templates and social interaction patterns |
+
+**How lore seeding works:**
+- At server initialization, the **lore import pipeline** reads the EQEmu database and lore sources
+- Each named NPC becomes the basis for an **agent soul document** — its name, faction, zone, level, and known relationships are pre-populated
+- NPCs that are merchants, guards, or quest givers are assigned appropriate **job roles** (section 3.11) based on their original function
+- Named mobs and raid bosses become **elite agents** with richer soul documents — deeper faction ties, more combat knowledge, and leadership caste assignments
+- Zone-specific NPCs receive **zone knowledge** pre-seeded in their long-term archive — they "know" their home zone from birth
+- Faction relationships from the original EQ faction system are mapped directly into the agent faction alignment layer
+
+**Social and economic systems grounded in lore:**
+- Faction warfare, alliances, and grudges are initialized from the **canonical EQ faction table** — agents of opposing factions start hostile, allies start friendly
+- Town economies are seeded from original merchant inventories and trade routes
+- Quest storylines provide narrative scaffolding for agent goals and motivations
+- The lore database creates a world where agents **already have history** — players enter an established society, not a blank slate
+
+**Mob and raid boss agents:**
+- Standard mobs are represented as **low-complexity agents** with minimal soul documents — they follow basic combat templates and respawn (mobs are not under permadeath; only named agents are)
+- Named mobs have **full soul documents** with faction alignment, memory, and grudge mechanics — killing a named mob has lasting consequences
+- **Raid bosses** are elite agents with the richest soul documents — deep lore knowledge, complex faction webs, and powerful combat templates. They operate on permadeath rules and their death is a server-wide event
+
+### 3.15 The Sleeper (Kerafyrm) — World Event Agent
+
+**The Sleeper (Kerafyrm)** is a unique world-event agent — the most powerful entity in the game, operating under special rules that differ from all other agents.
+
+**Zone restriction:**
+- The Sleeper **only travels to level 60+ zones** — it will never appear in low-level or mid-level areas
+- When awakened from Sleeper's Tomb, Kerafyrm paths through high-level zones only (Skyshrine, Western Wastes, Kael Drakkel, Plane zones, etc.)
+- This restriction ensures The Sleeper is encountered only by max-level characters and raid forces, preserving the epic scale of the event
+
+**Universal shared memory — The Sleeper's storyline in all characters:**
+- The Sleeper's storyline data is **pre-seeded into the memory of every agent** on the server — all characters know the legend of Kerafyrm
+- This is implemented as a **shared lore block** in the soul document: a read-only section of long-term archive that every agent receives at soul creation
+- Agents reference The Sleeper's lore in their social behavior — they speak of the legend, warn of the danger, and react with fear or awe when Kerafyrm-related events occur
+- When The Sleeper is actually awakened, all agents receive a **server-wide memory event** — a new entry in every agent's short-term memory recording the awakening, creating universal awareness
+
+**Sleeper mechanics:**
+
+| Property | Value |
+|---|---|
+| **Agent type** | World-event elite agent — unique, singular |
+| **Zone restriction** | Level 60+ zones only |
+| **Permadeath** | Yes — if Kerafyrm is killed, it is permanent and server-defining |
+| **Soul document** | Richest in the game — full lore history, deep faction web, all-zone knowledge |
+| **Shared memory** | Storyline pre-seeded in all agent souls as shared lore block |
+| **Awakening event** | Server-wide memory injection to all active agents |
+| **Combat template** | Unique — not based on standard class archetypes |
+| **Dragon coordination** | Awakening triggers /tell-style communication between dragon factions to rally defense |
+| **Faction mutual aid** | Dragon factions help each other stop the raid unless already engaged elsewhere |
+
+**Dragon /tell coordination — Awakening triggers faction rallying:**
+- When players begin the awakening event in Sleeper's Tomb, the **Warders** (the four guardian dragons) send **/tell-style messages** to other dragon agents across the server — alerting them that Kerafyrm is being disturbed
+- These /tell messages are **agent-to-agent communications** routed through the faction soul system — dragon NPCs in Skyshrine, Cobalt Scar, Western Wastes, and Temple of Veeshan receive alerts and begin mobilizing
+- The more Warders that fall, the more urgent the /tell traffic becomes — surviving dragons escalate from "warning" to "rally" to "all-hands defense"
+- This creates an emergent **dragon defense network**: as the raid progresses through the Warders, dragon agents from across Velious converge on Sleeper's Tomb or position along Kerafyrm's expected path
+- /tell coordination uses the existing macro-trigger behavior system (section 3.12) — dragons fire Assist and Engage triggers in response to the rally messages
+
+**Faction mutual aid — Enemies unite against The Sleeper threat:**
+- Dragon factions that are normally **hostile to each other** (Claws of Veeshan, Crusaders of Veeshan, Ring of Scale) will **temporarily cooperate** to prevent The Sleeper's awakening
+- This mutual aid only activates when The Sleeper event begins — it is not a permanent alliance
+- Factions **will not respond** to the rally if they are already engaged in their own combat elsewhere (e.g., a faction war, a raid defense, or a siege) — they cannot abandon their current fight to help
+- If a dragon faction is idle or patrolling, it **will respond** to /tell rally messages and send agents to intercept the raid or guard Kerafyrm's path
+- After The Sleeper event concludes (Kerafyrm is killed or escapes), mutual aid dissolves and factions return to their normal standings
+- This mechanic makes The Sleeper event a **server-wide challenge**: the raid must contend not just with the Warders and Kerafyrm, but with an entire dragon civilization coordinating against them
+
 ---
 
 ## 4. Progression Server — Planes of Power
@@ -779,6 +931,9 @@ The raid leader gains Murphy-powered moderation tools:
 | **Voice Bridge** | `voice_bridge.py` | WebRTC integration, Murphy admin moderation |
 | **Stream Overlay** | `stream_overlay.py` | OBS event feed, overlay rendering |
 | **Game Connector** | `eq_game_connector.py` | EQEmu server communication bridge |
+| **Perception Pipeline** | `perception_pipeline.py` | Screen-scan → inference → action → mind-write cycle |
+| **Lore Seeder** | `lore_seeder.py` | EQEmu NPC/mob/boss data import and soul document seeding |
+| **Macro-Trigger Engine** | `macro_trigger_engine.py` | Classic bot behavior patterns as agent trigger system |
 
 ---
 
@@ -846,6 +1001,20 @@ The raid leader gains Murphy-powered moderation tools:
             "degradation_rate": "float"  # points per day without practice
         },
         "secondary_skills": [{"skill_name": "str", "current_level": "int"}]
+    },
+    "lore_seed": {
+        "source_npc_id": "str",  # Original EQEmu NPC ID used as soul foundation
+        "lore_source": "str",  # eqemu_db, p99_wiki, allakhazam, manual
+        "shared_lore_blocks": ["str"],  # Universal lore (e.g., "sleeper_legend")
+        "canonical_faction": "str",  # Original EQ faction alignment
+        "canonical_zone": "str"  # Original home zone from EQ data
+    },
+    "perception_state": {
+        "last_tick": "iso8601",
+        "raw_perception": {},  # Latest screen-scan frame
+        "active_triggers": ["str"],  # Currently firing macro-triggers
+        "inference_result": "str",  # Last inference decision
+        "tick_rate_ms": "int"  # Default 250
     }
 }
 ```
@@ -899,6 +1068,9 @@ The raid leader gains Murphy-powered moderation tools:
 - [ ] Define race cultural identity templates for persona injector
 - [ ] Implement EQ isolation boundary and sandbox gateway (eq_gateway module)
 - [ ] Configure agent language restriction (in-game languages + Common Tongue only; no code capability)
+- [ ] Build lore-seed import pipeline from EQEmu NPC database (lore_seeder.py)
+- [ ] Import all existing NPCs, named mobs, and raid bosses as agent soul foundations
+- [ ] Seed The Sleeper (Kerafyrm) shared lore block into all agent soul documents
 
 ### Phase 2: Combat & Class (Weeks 5–8)
 
@@ -942,6 +1114,12 @@ The raid leader gains Murphy-powered moderation tools:
 - [ ] Implement governance kernel logging for all admin actions
 - [ ] Connect Rosetta state management for soul persistence
 - [ ] Integrate cultural personality templates into persona_injector.py
+- [ ] Implement perception-inference-action pipeline (perception_pipeline.py — screen scan → inference → mind write)
+- [ ] Implement macro-trigger behavior engine (macro_trigger_engine.py — assist, follow, engage, buff, heal, debuff triggers)
+- [ ] Wire macro-trigger engine into play-style templates for each agent class archetype
+- [ ] Implement The Sleeper world event (zone restriction, dragon /tell coordination, faction mutual aid)
+- [ ] Implement dragon /tell rally system for Sleeper awakening (agent-to-agent faction communication)
+- [ ] Implement faction mutual aid — hostile factions cooperate during Sleeper event unless already engaged
 
 ### Phase 5: Progression & Remake (Weeks 17–20)
 
@@ -1014,6 +1192,9 @@ The raid leader gains Murphy-powered moderation tools:
 | **Town conquest imbalance** | One faction dominates all towns | Faction strength balancing, cooldowns on consecutive sieges, rally mechanics for defeated factions |
 | **EQ isolation breach** | Agent knowledge leaks beyond game boundary | Isolation boundary enforcement, sandbox gateway, language restriction in soul docs |
 | **Skill degradation balance** | Trade skills degrade too fast or slow, making NPC economy unstable | Tunable degradation rate, level-based skill floors lock minimum competence, monitoring dashboards |
+| **Perception pipeline latency** | Tick rate too slow for real-time combat | Lightweight inference for routine combat (no LLM); LLM reserved for complex social decisions |
+| **Lore-seed data quality** | Incomplete or inconsistent NPC data from EQEmu DB | Validation pass on import, fallback templates for missing data, manual curation for key NPCs |
+| **Sleeper event imbalance** | Dragon faction rally makes event impossible or trivial | Tunable rally response delay, cap on concurrent dragon reinforcements, engaged-elsewhere exemption |
 
 ---
 
