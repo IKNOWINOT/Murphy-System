@@ -11,7 +11,12 @@ Graph Neural Network architecture for learning:
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_geometric.nn import GraphSAGE, GATConv, global_mean_pool
+try:
+    from torch_geometric.nn import GraphSAGE, GATConv, global_mean_pool
+except ImportError:
+    GraphSAGE = None  # type: ignore[assignment,misc]
+    GATConv = None  # type: ignore[assignment,misc]
+    global_mean_pool = None  # type: ignore[assignment]
 from typing import Tuple, Optional, Dict, Any
 from dataclasses import dataclass
 
