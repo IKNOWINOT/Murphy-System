@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import os
 from typing import Callable, Any, Dict
-from datetime import datetime
+from datetime import datetime, timezone
 from .gpt_oss_runner import GPTOSSRunner  # Injected
 
 from .container_runner import ContainerTask, run_container
@@ -129,14 +129,13 @@ class SchedulerBot:
                 data = json.load(f)
         except FileNotFoundError:
             data = []
-        from datetime import datetime
         record = {
             "task_id": task_id,
             "bot": bot,
             "task_type": task_type,
             "predicted_etcs": [self.predict_time(bot, task_type)],
             "actual_time": actual_time,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         data.append(record)
         with open("logs/task_timing_log.json", "w", encoding="utf-8") as f:

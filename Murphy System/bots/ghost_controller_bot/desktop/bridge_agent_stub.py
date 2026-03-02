@@ -4,7 +4,7 @@ Captures keyboard/mouse/focus events and posts them to a local endpoint.
 Requires: pynput, pygetwindow, requests
 """
 import time, json, threading, requests
-from datetime import datetime
+from datetime import datetime, timezone
 from pynput import keyboard, mouse
 import pygetwindow as gw
 
@@ -12,7 +12,7 @@ ENDPOINT = 'http://127.0.0.1:8765/events'  # your local relay
 
 events = []
 
-def now(): return datetime.utcnow().isoformat()
+def now(): return datetime.now(timezone.utc).isoformat()
 
 def focus_title():
     try:

@@ -6,7 +6,7 @@ Supports priority, feedback, recursion, entropy, and tracking.
 from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 
@@ -23,8 +23,8 @@ class TaskRecord:
 
     # Scheduling & Optimization
     priority: int = 5  # 1 (highest) to 10 (lowest)
-    created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
-    last_updated: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    last_updated: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     estimated_runtime: Optional[float] = None  # seconds
     stage: Optional[int] = None  # 30, 60, 90, 100%
 
@@ -43,15 +43,15 @@ class TaskRecord:
 
     def update_status(self, new_status: str):
         self.status = new_status
-        self.last_updated = datetime.utcnow().isoformat()
+        self.last_updated = datetime.now(timezone.utc).isoformat()
 
     def add_feedback(self, score: float, comment: Optional[str] = None):
         self.feedback_score = score
         if comment:
             self.feedback_comments.append(comment)
-        self.last_updated = datetime.utcnow().isoformat()
+        self.last_updated = datetime.now(timezone.utc).isoformat()
 
     def bump_priority(self):
         if self.priority > 1:
             self.priority -= 1
-        self.last_updated = datetime.utcnow().isoformat()
+        self.last_updated = datetime.now(timezone.utc).isoformat()

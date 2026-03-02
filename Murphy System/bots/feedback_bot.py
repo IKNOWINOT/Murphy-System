@@ -5,7 +5,7 @@ import math
 import json
 from uuid import uuid4
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from .gpt_oss_runner import GPTOSSRunner  # ✅ Injected
 
@@ -26,7 +26,7 @@ class FeedbackBot:
 
     def add_feedback(self, value: float, *, timestamp: Optional[datetime] = None, reinforcement: int = 0) -> None:
         if timestamp is None:
-            timestamp = datetime.utcnow()
+            timestamp = datetime.now(timezone.utc)
         self.feedback.append(FeedbackEntry(timestamp, value, reinforcement))
 
     def reinforce(self, index: int, count: int = 1) -> None:
@@ -40,13 +40,13 @@ class FeedbackBot:
 
     def compute_score(self, now: Optional[datetime] = None) -> float:
         if now is None:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
         return sum(self._decay(entry, now) for entry in self.feedback)
 
     def compute_adaptive_score(self, now: Optional[datetime] = None) -> float:
         """Adaptive forgetting where half-life grows with feedback age."""
         if now is None:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
         score = 0.0
         for entry in self.feedback:
             age = (now - entry.timestamp).total_seconds()
@@ -64,7 +64,7 @@ class FeedbackBot:
                 'task_id': 'feedback_error',
                 'owner': 'FeedbackBot',
                 'bot': 'FeedbackBot',
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'content': message,
                 'tags': ['error'],
                 'context': {'project': 'feedback', 'topic': 'error'},
@@ -131,7 +131,7 @@ FEEDBACK_FILE = "logs/feedback_log.json"
 
 def log_feedback(task_id: str, bot: str, description: str, severity: str = "medium", category: str = "general") -> str:
     """Append a feedback entry to the log file and return its issue ID."""
-    issue_id = f"FB-{datetime.utcnow().strftime('%Y%m%d')}-{str(uuid4())[:6]}"
+    issue_id = f"FB-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid4())[:6]}"
     entry = {
         "issue_id": issue_id,
         "task_id": task_id,
@@ -139,7 +139,7 @@ def log_feedback(task_id: str, bot: str, description: str, severity: str = "medi
         "description": description,
         "severity": severity,
         "category": category,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "status": "open",
     }
     with open(FEEDBACK_FILE, "a", encoding="utf-8") as f:
