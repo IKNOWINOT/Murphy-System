@@ -3,10 +3,13 @@ LLM Integration Layer
 Integrates local LLMs with MFGC system for enhanced reasoning
 """
 
+import logging
 import os
 import json
 from typing import Dict, Any, Optional, List
 from enum import Enum
+
+logger = logging.getLogger(__name__)
 
 
 class LLMProvider(Enum):
@@ -91,7 +94,7 @@ class OllamaLLM:
             import requests
             response = requests.get(f"{self.base_url}/api/tags", timeout=2)
             return response.status_code == 200
-        except:
+        except Exception:
             return False
     
     def generate(self, prompt: str, system_prompt: Optional[str] = None, 
@@ -251,8 +254,8 @@ Format your response as JSON:
             if isinstance(llm_candidates, list):
                 # Merge with existing candidates
                 return existing_candidates + llm_candidates
-        except:
-            pass
+        except (json.JSONDecodeError, TypeError, ValueError) as exc:
+            logger.debug("LLM candidate response not valid JSON, returning existing candidates: %s", exc)
         
         return existing_candidates
     
@@ -290,8 +293,8 @@ Format as JSON:
             risks = json.loads(response)
             if isinstance(risks, list):
                 return risks
-        except:
-            pass
+        except (json.JSONDecodeError, TypeError, ValueError) as exc:
+            logger.debug("LLM risk analysis response not valid JSON, returning empty list: %s", exc)
         
         return []
     
@@ -326,8 +329,8 @@ Format as JSON array of strings:
             gates = json.loads(response)
             if isinstance(gates, list):
                 return [str(g) for g in gates]
-        except:
-            pass
+        except (json.JSONDecodeError, TypeError, ValueError) as exc:
+            logger.debug("LLM gate synthesis response not valid JSON, returning empty list: %s", exc)
         
         return []
     
