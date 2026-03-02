@@ -1531,3 +1531,413 @@ class TestExportCompleteness:
         from auar import PerformanceMetrics
         pm = PerformanceMetrics(avg_latency_ms=100)
         assert pm.avg_latency_ms == 100
+
+    def test_protocol_exported(self):
+        from auar import Protocol
+        assert Protocol.REST.value == "rest"
+        assert Protocol.GRAPHQL.value == "graphql"
+
+    def test_adapter_response_exported(self):
+        from auar import AdapterResponse
+        resp = AdapterResponse(success=True, status_code=200)
+        assert resp.success is True
+
+    def test_config_exported(self):
+        from auar import AUARConfig
+        cfg = AUARConfig.defaults()
+        assert cfg.version == "0.1.0"
+
+
+# ===================================================================
+# OAuth2 Authentication Tests
+# ===================================================================
+
+class TestOAuth2Auth:
+    """Tests for the OAuth2 authentication method in ProviderAdapter."""
+
+    def test_oauth2_with_access_token(self):
+        """OAuth2 with a valid access_token returns Bearer header."""
+        config = AdapterConfig(
+            provider_id="oauth-test",
+            base_url="https://api.provider.com",
+            auth_method=AuthMethod.OAUTH2,
+            auth_credentials={"access_token": "my-oauth-token"},
+        )
+        adapter = ProviderAdapter(config)
+        headers = adapter._build_auth_headers()
+        assert headers == {"Authorization": "Bearer my-oauth-token"}
+
+    def test_oauth2_empty_token_no_refresh(self):
+        """OAuth2 with no access_token and no refresh_fn returns empty."""
+        config = AdapterConfig(
+            provider_id="oauth-test",
+            base_url="https://api.provider.com",
+            auth_method=AuthMethod.OAUTH2,
+            auth_credentials={},
+        )
+        adapter = ProviderAdapter(config)
+        headers = adapter._build_auth_headers()
+        assert headers == {}
+
+    def test_oauth2_token_refresh_callback(self):
+        """OAuth2 with a token_refresh_fn obtains a new token."""
+        config = AdapterConfig(
+            provider_id="oauth-test",
+            base_url="https://api.provider.com",
+            auth_method=AuthMethod.OAUTH2,
+            auth_credentials={"refresh_token": "refresh-123"},
+        )
+
+        def mock_refresh(creds):
+            return "refreshed-token"
+
+        adapter = ProviderAdapter(config, token_refresh_fn=mock_refresh)
+        headers = adapter._build_auth_headers()
+        assert headers == {"Authorization": "Bearer refreshed-token"}
+        # Token should be cached in credentials
+        assert config.auth_credentials["access_token"] == "refreshed-token"
+
+    def test_oauth2_token_refresh_failure(self):
+        """OAuth2 token refresh failure returns empty headers gracefully."""
+        config = AdapterConfig(
+            provider_id="oauth-test",
+            base_url="https://api.provider.com",
+            auth_method=AuthMethod.OAUTH2,
+            auth_credentials={},
+        )
+
+        def failing_refresh(creds):
+            raise RuntimeError("Token endpoint unavailable")
+
+        adapter = ProviderAdapter(config, token_refresh_fn=failing_refresh)
+        headers = adapter._build_auth_headers()
+        assert headers == {}
+
+    def test_oauth2_full_call(self):
+        """OAuth2 adapter executes a full call with auth header."""
+        payloads = []
+        def capture(payload):
+            payloads.append(payload)
+            return {"status_code": 200, "body": {"ok": True}, "headers": {}}
+
+        config = AdapterConfig(
+            provider_id="oauth-test",
+            base_url="https://api.provider.com",
+            auth_method=AuthMethod.OAUTH2,
+            auth_credentials={"access_token": "Bearer-token-123"},
+            max_retries=0,
+        )
+        adapter = ProviderAdapter(config, execute_fn=capture)
+        resp = adapter.call("POST", "/resource")
+        assert resp.success is True
+        assert payloads[0]["headers"]["Authorization"] == "Bearer Bearer-token-123"
+
+
+# ===================================================================
+# HMAC Authentication Tests
+# ===================================================================
+
+class TestHMACAuth:
+    """Tests for the HMAC request-signing authentication method."""
+
+    def test_hmac_headers_present(self):
+        """HMAC auth produces signature, timestamp, and key-id headers."""
+        config = AdapterConfig(
+            provider_id="hmac-test",
+            base_url="https://api.provider.com",
+            auth_method=AuthMethod.HMAC,
+            auth_credentials={"secret_key": "my-secret", "key_id": "key-42"},
+        )
+        adapter = ProviderAdapter(config)
+        headers = adapter._build_auth_headers()
+        assert "X-HMAC-Signature" in headers
+        assert "X-HMAC-Timestamp" in headers
+        assert headers["X-HMAC-Key-Id"] == "key-42"
+
+    def test_hmac_signature_is_hex(self):
+        """HMAC signature should be a valid hex string."""
+        config = AdapterConfig(
+            provider_id="hmac-test",
+            base_url="https://api.provider.com",
+            auth_method=AuthMethod.HMAC,
+            auth_credentials={"secret_key": "secret", "key_id": "kid"},
+        )
+        adapter = ProviderAdapter(config)
+        headers = adapter._build_auth_headers()
+        sig = headers["X-HMAC-Signature"]
+        # SHA-256 hex digest is 64 characters
+        assert len(sig) == 64
+        assert all(c in "0123456789abcdef" for c in sig)
+
+    def test_hmac_signature_deterministic_for_same_timestamp(self):
+        """Two signatures with the same secret, key_id, and timestamp should match."""
+        import hashlib
+        import hmac as hmac_mod
+
+        config = AdapterConfig(
+            provider_id="hmac-test",
+            base_url="https://api.provider.com",
+            auth_method=AuthMethod.HMAC,
+            auth_credentials={"secret_key": "test-secret", "key_id": "k1"},
+        )
+        adapter = ProviderAdapter(config)
+        h1 = adapter._build_auth_headers()
+        ts = h1["X-HMAC-Timestamp"]
+
+        # Manually compute expected signature
+        message = f"{ts}:k1"
+        expected = hmac_mod.new(
+            b"test-secret", message.encode(), hashlib.sha256
+        ).hexdigest()
+        assert h1["X-HMAC-Signature"] == expected
+
+    def test_hmac_full_call(self):
+        """HMAC adapter includes signing headers in downstream request."""
+        payloads = []
+        def capture(payload):
+            payloads.append(payload)
+            return {"status_code": 200, "body": {}, "headers": {}}
+
+        config = AdapterConfig(
+            provider_id="hmac-test",
+            base_url="https://api.provider.com",
+            auth_method=AuthMethod.HMAC,
+            auth_credentials={"secret_key": "s", "key_id": "k"},
+            max_retries=0,
+        )
+        adapter = ProviderAdapter(config, execute_fn=capture)
+        resp = adapter.call("GET", "/signed")
+        assert resp.success is True
+        assert "X-HMAC-Signature" in payloads[0]["headers"]
+
+
+# ===================================================================
+# GraphQL Protocol Support Tests
+# ===================================================================
+
+class TestGraphQLProtocol:
+    """Tests for GraphQL protocol wrapping in ProviderAdapter."""
+
+    def test_graphql_request_wrapping(self):
+        """GraphQL protocol wraps body into {query, variables} envelope."""
+        payloads = []
+        def capture(payload):
+            payloads.append(payload)
+            return {"status_code": 200, "body": {"data": {}}, "headers": {}}
+
+        config = AdapterConfig(
+            provider_id="gql-test",
+            base_url="https://api.provider.com",
+            protocol=Protocol.GRAPHQL,
+            max_retries=0,
+        )
+        adapter = ProviderAdapter(config, execute_fn=capture)
+        resp = adapter.call("POST", "/graphql", body={
+            "query": "mutation { sendEmail(to: $to) { ok } }",
+            "to": "user@test.com",
+        })
+        assert resp.success is True
+        sent_body = payloads[0]["body"]
+        assert "query" in sent_body
+        assert "variables" in sent_body
+        assert sent_body["query"] == "mutation { sendEmail(to: $to) { ok } }"
+        assert sent_body["variables"]["to"] == "user@test.com"
+
+    def test_graphql_forces_post_method(self):
+        """GraphQL requests should always use POST method."""
+        payloads = []
+        def capture(payload):
+            payloads.append(payload)
+            return {"status_code": 200, "body": {}, "headers": {}}
+
+        config = AdapterConfig(
+            provider_id="gql-test",
+            base_url="https://api.provider.com",
+            protocol=Protocol.GRAPHQL,
+            max_retries=0,
+        )
+        adapter = ProviderAdapter(config, execute_fn=capture)
+        adapter.call("GET", "/graphql", body={"query": "{ users { id } }"})
+        assert payloads[0]["method"] == "POST"
+
+    def test_rest_protocol_no_wrapping(self):
+        """REST protocol passes body through unchanged."""
+        payloads = []
+        def capture(payload):
+            payloads.append(payload)
+            return {"status_code": 200, "body": {}, "headers": {}}
+
+        config = AdapterConfig(
+            provider_id="rest-test",
+            base_url="https://api.provider.com",
+            protocol=Protocol.REST,
+            max_retries=0,
+        )
+        adapter = ProviderAdapter(config, execute_fn=capture)
+        adapter.call("POST", "/resource", body={"key": "value"})
+        assert payloads[0]["body"] == {"key": "value"}
+
+
+# ===================================================================
+# Configuration Management Tests
+# ===================================================================
+
+class TestAUARConfig:
+    """Tests for the AUAR configuration management module."""
+
+    def test_defaults(self):
+        from auar.config import AUARConfig
+        cfg = AUARConfig.defaults()
+        assert cfg.version == "0.1.0"
+        assert cfg.codename == "FAPI"
+        assert cfg.routing.strategy == "reliability_first"
+        assert cfg.ml.epsilon == 0.15
+        assert cfg.observability.max_traces == 10_000
+
+    def test_from_dict(self):
+        from auar.config import AUARConfig
+        cfg = AUARConfig.from_dict({
+            "log_level": "DEBUG",
+            "routing": {"strategy": "cost_optimized", "ml_weight": 0.30},
+            "ml": {"epsilon": 0.25},
+            "observability": {"max_traces": 5000},
+            "interpreter": {"llm_confidence_threshold": 0.90},
+        })
+        assert cfg.log_level == "DEBUG"
+        assert cfg.routing.strategy == "cost_optimized"
+        assert cfg.routing.ml_weight == 0.30
+        assert cfg.ml.epsilon == 0.25
+        assert cfg.observability.max_traces == 5000
+        assert cfg.interpreter.llm_confidence_threshold == 0.90
+
+    def test_from_dict_partial(self):
+        from auar.config import AUARConfig
+        cfg = AUARConfig.from_dict({"ml": {"epsilon": 0.50}})
+        # Only ml.epsilon should change
+        assert cfg.ml.epsilon == 0.50
+        # Everything else stays default
+        assert cfg.routing.strategy == "reliability_first"
+        assert cfg.observability.max_traces == 10_000
+
+    def test_from_env(self):
+        from auar.config import AUARConfig
+        import os
+        # Set some env vars
+        os.environ["AUAR_LOG_LEVEL"] = "WARNING"
+        os.environ["AUAR_ROUTING_STRATEGY"] = "latency_optimized"
+        os.environ["AUAR_ML_EPSILON"] = "0.05"
+        os.environ["AUAR_OBS_MAX_TRACES"] = "2000"
+        try:
+            cfg = AUARConfig.from_env()
+            assert cfg.log_level == "WARNING"
+            assert cfg.routing.strategy == "latency_optimized"
+            assert cfg.ml.epsilon == 0.05
+            assert cfg.observability.max_traces == 2000
+        finally:
+            # Clean up
+            del os.environ["AUAR_LOG_LEVEL"]
+            del os.environ["AUAR_ROUTING_STRATEGY"]
+            del os.environ["AUAR_ML_EPSILON"]
+            del os.environ["AUAR_OBS_MAX_TRACES"]
+
+    def test_to_dict(self):
+        from auar.config import AUARConfig
+        cfg = AUARConfig.defaults()
+        d = cfg.to_dict()
+        assert d["version"] == "0.1.0"
+        assert d["routing"]["strategy"] == "reliability_first"
+        assert d["ml"]["epsilon"] == 0.15
+        assert isinstance(d["routing"]["weights"], dict)
+        assert "reliability" in d["routing"]["weights"]
+
+    def test_from_dict_with_weights(self):
+        from auar.config import AUARConfig
+        cfg = AUARConfig.from_dict({
+            "routing": {"weights": {"reliability": 0.50, "cost": 0.50}},
+        })
+        assert cfg.routing.weights["reliability"] == 0.50
+        assert cfg.routing.weights["cost"] == 0.50
+        # Unmodified weights should keep defaults
+        assert cfg.routing.weights["latency"] == 0.25
+
+
+# ===================================================================
+# FastAPI Router Factory Tests
+# ===================================================================
+
+class TestFastAPIRouter:
+    """Tests for the FastAPI router factory in auar_api."""
+
+    def test_create_router_returns_router(self):
+        """create_auar_router should return a FastAPI APIRouter."""
+        from auar_api import create_auar_router, initialize_auar
+        components = initialize_auar()
+        router = create_auar_router(components)
+        # If FastAPI is not installed, router will be None
+        if router is not None:
+            # Verify it has the expected routes
+            route_paths = [r.path for r in router.routes]
+            assert "/route" in route_paths
+            assert "/register" in route_paths
+            assert "/stats" in route_paths
+            assert "/health" in route_paths
+
+    def test_create_router_auto_initializes(self):
+        """create_auar_router with None creates its own components."""
+        from auar_api import create_auar_router
+        router = create_auar_router(None)
+        if router is not None:
+            route_paths = [r.path for r in router.routes]
+            assert "/health" in route_paths
+
+
+# ===================================================================
+# Nested Schema Translation Tests  
+# ===================================================================
+
+class TestNestedSchemaTranslation:
+    """Tests for deep nested field paths in schema translation."""
+
+    def test_deeply_nested_set(self):
+        """_set_nested should create intermediate dicts for deep paths."""
+        from auar.schema_translation import SchemaTranslator
+        data = {}
+        SchemaTranslator._set_nested(data, "a.b.c.d", 42)
+        assert data == {"a": {"b": {"c": {"d": 42}}}}
+
+    def test_deeply_nested_get(self):
+        """_get_nested should traverse deep paths."""
+        from auar.schema_translation import SchemaTranslator
+        data = {"a": {"b": {"c": {"d": "deep"}}}}
+        assert SchemaTranslator._get_nested(data, "a.b.c.d") == "deep"
+
+    def test_nested_get_missing_intermediate(self):
+        """_get_nested returns None when an intermediate key is missing."""
+        from auar.schema_translation import SchemaTranslator
+        data = {"a": {"b": {}}}
+        assert SchemaTranslator._get_nested(data, "a.b.c.d") is None
+
+    def test_nested_translation_end_to_end(self):
+        """Full translation with deeply nested field mappings."""
+        from auar.schema_translation import (
+            SchemaTranslator, SchemaMapping, FieldMapping,
+        )
+        translator = SchemaTranslator()
+        translator.register_mapping(SchemaMapping(
+            capability_name="send_email",
+            provider_id="p1",
+            direction="request",
+            field_mappings=[
+                FieldMapping(source_field="to", target_field="message.recipients.0.email"),
+                FieldMapping(source_field="subject", target_field="message.subject"),
+                FieldMapping(source_field="body", target_field="message.content.0.value"),
+            ],
+        ))
+        result = translator.translate_request(
+            "send_email", "p1",
+            {"to": "a@b.com", "subject": "Hi", "body": "Hello"},
+        )
+        assert result.success is True
+        assert result.translated_data["message"]["recipients"]["0"]["email"] == "a@b.com"
+        assert result.translated_data["message"]["subject"] == "Hi"
+        assert result.translated_data["message"]["content"]["0"]["value"] == "Hello"

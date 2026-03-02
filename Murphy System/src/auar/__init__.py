@@ -48,7 +48,9 @@ from .provider_adapter import (
     ProviderAdapterManager,
     ProviderAdapter,
     AdapterConfig,
+    AdapterResponse,
     AuthMethod,
+    Protocol,
 )
 from .ml_optimization import (
     MLOptimizer,
@@ -64,6 +66,13 @@ from .observability import (
 from .pipeline import (
     AUARPipeline,
     PipelineResult,
+)
+from .config import (
+    AUARConfig,
+    RoutingConfig,
+    MLConfig,
+    ObservabilityConfig,
+    InterpreterConfig,
 )
 
 __all__ = [
@@ -95,7 +104,9 @@ __all__ = [
     "ProviderAdapterManager",
     "ProviderAdapter",
     "AdapterConfig",
+    "AdapterResponse",
     "AuthMethod",
+    "Protocol",
     # ML Optimization
     "MLOptimizer",
     "RoutingFeatures",
@@ -108,4 +119,10 @@ __all__ = [
     # Pipeline
     "AUARPipeline",
     "PipelineResult",
+    # Configuration
+    "AUARConfig",
+    "RoutingConfig",
+    "MLConfig",
+    "ObservabilityConfig",
+    "InterpreterConfig",
 ]
