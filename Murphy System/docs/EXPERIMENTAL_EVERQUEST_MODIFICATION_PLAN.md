@@ -2101,20 +2101,20 @@ Every entity in the game has card effects **automatically generated** from an **
 
 ### Phase 1: Foundation (Weeks 1–4)
 
-- [ ] Set up EQEmu development server with Planes of Power progression config
+- [x] Set up EQEmu development server with Planes of Power progression config
 - [ ] Configure original EQ XP rates and leveling curve (hell levels, death penalty, corpse runs)
 - [ ] Implement soul engine with memory/archive/recall
 - [ ] Create Sourcerior class in spell/ability tables
 - [ ] Configure Sourcerior eligible races (Dark Elf, Erudite, Human, High Elf, Gnome)
 - [ ] Configure Sourcerior armor restrictions (cloth, leather, Fungi Tunic)
-- [ ] Implement AI agent class archetypes (pure melee, int caster, cleric)
-- [ ] Define immutable class play-style templates for each agent archetype
+- [x] Implement AI agent class archetypes (pure melee, int caster, cleric)
+- [x] Define immutable class play-style templates for each agent archetype
 - [ ] Basic agent spawning with soul documents
 - [ ] Define race cultural identity templates for persona injector
-- [ ] Implement EQ isolation boundary and sandbox gateway (eq_gateway module)
-- [ ] Configure agent language restriction (in-game languages + Common Tongue only; no code capability)
-- [ ] Build lore-seed import pipeline from EQEmu NPC database (lore_seeder.py)
-- [ ] Import all existing NPCs, named mobs, and raid bosses as agent soul foundations
+- [x] Implement EQ isolation boundary and sandbox gateway (eq_gateway module)
+- [x] Configure agent language restriction (in-game languages + Common Tongue only; no code capability)
+- [x] Build lore-seed import pipeline from EQEmu NPC database (lore_seeder.py)
+- [x] Import all existing NPCs, named mobs, and raid bosses as agent soul foundations
 - [ ] Seed The Sleeper (Kerafyrm) shared lore block into all agent soul documents
 
 ### Phase 2: Combat & Class (Weeks 5–8)
@@ -2135,9 +2135,9 @@ Every entity in the game has card effects **automatically generated** from an **
 
 ### Phase 3: Social Systems (Weeks 9–12)
 
-- [ ] Implement faction soul functions and agent warfare
-- [ ] Implement individual agent faction with interaction-based reputation
-- [ ] Implement grudge and friendship mechanics in soul documents
+- [x] Implement faction soul functions and agent warfare
+- [x] Implement individual agent faction with interaction-based reputation
+- [x] Implement grudge and friendship mechanics in soul documents
 - [ ] Implement actions-only expression rule (no verbal agent responses)
 - [ ] Implement agent self-preservation and flee behavior (flee on "run" command, healer death, group wipe)
 - [ ] Implement flee exception for hybrid healer sustain (beastlord, druid, Sourcerior pet heals)
@@ -2159,9 +2159,9 @@ Every entity in the game has card effects **automatically generated** from an **
 - [ ] Implement governance kernel logging for all admin actions
 - [ ] Connect Rosetta state management for soul persistence
 - [ ] Integrate cultural personality templates into persona_injector.py
-- [ ] Implement perception-inference-action pipeline (perception_pipeline.py — screen scan → inference → mind write)
-- [ ] Implement macro-trigger behavior engine (macro_trigger_engine.py — assist, follow, engage, buff, heal, debuff triggers)
-- [ ] Wire macro-trigger engine into play-style templates for each agent class archetype
+- [x] Implement perception-inference-action pipeline (perception_pipeline.py — screen scan → inference → mind write)
+- [x] Implement macro-trigger behavior engine (macro_trigger_engine.py — assist, follow, engage, buff, heal, debuff triggers)
+- [x] Wire macro-trigger engine into play-style templates for each agent class archetype
 - [ ] Implement The Sleeper world event (zone restriction, dragon /tell coordination, faction mutual aid)
 - [ ] Implement dragon /tell rally system for Sleeper awakening (agent-to-agent faction communication)
 - [ ] Implement faction mutual aid — hostile factions cooperate during Sleeper event unless already engaged
@@ -2217,14 +2217,14 @@ Every entity in the game has card effects **automatically generated** from an **
 - [ ] Implement 50% decay server restart vote (all players + AI agents vote; majority triggers reboot countdown)
 - [ ] Implement AI agent voting logic (faction-based, self-preservation, deity loyalty considerations)
 - [ ] Implement stagnation re-vote (monthly re-trigger if above 50% decay with no new deletions)
-- [ ] Implement experience-based lore system (action screenshot capture → memory processing → delete cycle)
-- [ ] Implement interaction-triggered recall (agent history only surfaces when re-encountering known entity)
-- [ ] Implement collective lore propagation (agents share knowledge through faction/social communication)
-- [ ] Implement lore fidelity degradation (information distorts with each retelling between agents)
+- [x] Implement experience-based lore system (action screenshot capture → memory processing → delete cycle)
+- [x] Implement interaction-triggered recall (agent history only surfaces when re-encountering known entity)
+- [x] Implement collective lore propagation (agents share knowledge through faction/social communication)
+- [x] Implement lore fidelity degradation (information distorts with each retelling between agents)
 - [ ] Implement agent heroic persona system (noble deity devotion, faction loyalty hierarchy, heroic archetypes)
-- [ ] Implement agent text-to-speech voice profiles (race/class-specific voices for streaming agents)
+- [x] Implement agent text-to-speech voice profiles (race/class-specific voices for streaming agents)
 - [ ] Implement agent streaming capability (first-person perspective capture, live broadcast, overlay integration)
-- [ ] Implement agent voice roster (8+ distinct voice profiles covering major race/class combinations)
+- [x] Implement agent voice roster (8+ distinct voice profiles covering major race/class combinations)
 - [x] Implement NPC card effect generation system (identity template → 4-tier effect progression for every entity)
 - [x] Implement tier 1 combat spell effects (conditional 24-hour cooldown spells themed to NPC weapon/combat style)
 - [x] Implement tier 2 defensive buff effects (damage type mitigation scaled by entity level, 7-day cooldown)
