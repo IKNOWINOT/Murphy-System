@@ -11654,7 +11654,11 @@ class MurphySystem:
         region_input = answers.get("region")
         region_info = self._extract_region_from_context(message, {"answers": answers, "region": region_input})
         region = region_info["region"]
-        return {
+
+        # --- Librarian enrichment: analyse answers so far and add context ---
+        librarian_hint = self._librarian_enrich_flow(current_stage["stage"], answers)
+
+        result = {
             "current_stage": current_stage["stage"],
             "next_stage": next_stage["stage"],
             "prompt": next_stage["prompt"],
@@ -11662,6 +11666,48 @@ class MurphySystem:
             "region": region,
             "region_input": region_input
         }
+        if librarian_hint:
+            result["librarian_hint"] = librarian_hint
+        return result
+
+    def _librarian_enrich_flow(self, stage: str, answers: Dict[str, str]) -> str:
+        """Have the Librarian analyze answers so far and provide enrichment hints.
+
+        During onboarding, after each answer the Librarian reviews what's been
+        collected and infers additional context.  For example, if the user
+        describes a workflow involving email and Slack, the Librarian notes that
+        they'll need API keys for those services — even before the interview
+        finishes.
+
+        Returns a hint string (possibly empty) that gets appended to the next
+        prompt so the user can see what the Librarian has already figured out.
+        """
+        if not answers:
+            return ""
+
+        hints: List[str] = []
+
+        # After 'setup' or 'automation_design', peek at integrations
+        if stage in ("setup", "automation_design"):
+            recs = self.infer_needed_integrations(answers)
+            if recs:
+                svc_names = [r["name"] for r in recs[:5]]
+                hints.append(
+                    f"\n💡 *Librarian note:* Based on what you've told me so far, "
+                    f"you'll likely need: **{', '.join(svc_names)}**. "
+                    "I'll provide direct signup links when we finish."
+                )
+
+        # After 'signup', acknowledge the goal
+        if stage == "signup" and "signup" in answers:
+            goal_text = answers["signup"]
+            if len(goal_text) > 10:
+                hints.append(
+                    f"\n💡 *Librarian note:* Great — I'm already thinking about "
+                    f"what integrations will support your goal."
+                )
+
+        return "\n".join(hints)
 
     def _build_mfgc_payload(self, stage: str, duration: float) -> Dict[str, Any]:
         phase_map = {
@@ -11691,10 +11737,11 @@ class MurphySystem:
             }
         }
 
-    # Intent patterns for chat routing (15 recognised intents)
+    # Intent patterns for chat routing (16 recognised intents)
     # More specific patterns must appear before general ones (e.g. "compliance status" before "status").
     _INTENT_PATTERNS = [
         (r"\b(start interview|onboard me|begin|setup)\b", "onboarding"),
+        (r"\b(api\s*keys?|get\s*api|signup links?)\b", "api_keys"),
         (r"\b(help|commands)\b", "help"),
         (r"\b(show modules|modules)\b", "modules"),
         (r"\b(compliance status)\b", "compliance"),
@@ -11866,6 +11913,26 @@ class MurphySystem:
                 f"**License:** {info.get('license', '?')}",
                 session_id, intent=intent
             )
+        if intent == "api_keys":
+            # Check if session has onboarding answers for tailored recommendations
+            session = self.chat_sessions.get(session_id, {})
+            answers = session.get("answers", {})
+            if answers:
+                recs = self.infer_needed_integrations(answers)
+                if recs:
+                    lines = ["**Recommended API Keys (based on your onboarding):**\n"]
+                    for rec in recs:
+                        lines.append(
+                            f"• **{rec['name']}** — {rec['description']}\n"
+                            f"  Signup: {rec['signup_url']}\n"
+                            f"  Env var: `{rec['env_var']}`"
+                        )
+                    lines.append("\n**All available services:**")
+                    lines.append(self._format_api_links_reply(message))
+                    return self._chat_response("\n".join(lines), session_id, intent=intent)
+            return self._chat_response(
+                self._format_api_links_reply(message), session_id, intent=intent
+            )
         return None
 
     def _chat_response(self, message: str, session_id: str, intent: str = "general") -> Dict[str, Any]:
@@ -12011,12 +12078,19 @@ class MurphySystem:
 
         This is the Librarian's inference step — it reads the collected interview
         data and deduces which services / API keys the user will need.
+
+        The inference works on three levels:
+          1. **Keyword matching** — direct mentions of platforms (e.g. "Slack", "GitHub")
+          2. **Workflow action mapping** — infers APIs from described actions
+             (e.g. "send email" → email provider, "post to channel" → Slack)
+          3. **Business goal mapping** — infers APIs from high-level goals
+             (e.g. "increase sales" → CRM + email marketing)
         """
         recommendations: List[Dict[str, str]] = []
         links = self.API_PROVIDER_LINKS
         combined = " ".join(str(v) for v in answers.values()).lower()
 
-        # Integration keyword → provider mapping
+        # --- Level 1: Direct keyword → provider mapping ---
         keyword_map = {
             "email": ["sendgrid", "mailchimp", "google"],
             "gmail": ["google"],
@@ -12041,28 +12115,130 @@ class MurphySystem:
             "sheets": ["google"],
             "calendar": ["google"],
             "social": ["zapier"],
-            "automation": ["zapier"],
             "zapier": ["zapier"],
             "sell": ["stripe", "shopify", "hubspot"],
             "sales": ["hubspot", "salesforce"],
             "marketing": ["mailchimp", "hubspot", "sendgrid"],
         }
 
+        # --- Level 2: Workflow action → API inference ---
+        # Maps described ACTIONS to the APIs needed to perform them.
+        # This is the key piece that lets the Librarian infer needs from
+        # natural-language workflow descriptions, not just explicit mentions.
+        action_patterns: Dict[str, List[str]] = {
+            # Communication actions
+            "send email": ["sendgrid", "google"],
+            "send notification": ["sendgrid", "slack"],
+            "send message": ["slack", "twilio"],
+            "send sms": ["twilio"],
+            "send text": ["twilio"],
+            "notify team": ["slack", "sendgrid"],
+            "alert team": ["slack", "sendgrid"],
+            "post to channel": ["slack"],
+            "post message": ["slack"],
+            "notify customer": ["sendgrid", "twilio"],
+            "email customer": ["sendgrid"],
+            "email campaign": ["sendgrid", "mailchimp"],
+            "newsletter": ["mailchimp", "sendgrid"],
+            # Repository / DevOps actions
+            "create issue": ["github", "jira"],
+            "open ticket": ["jira", "github"],
+            "create ticket": ["jira"],
+            "pull request": ["github"],
+            "merge request": ["github"],
+            "deploy": ["github"],
+            "ci/cd": ["github"],
+            "code review": ["github"],
+            "commit": ["github"],
+            "repository": ["github"],
+            # Sales & CRM actions
+            "track leads": ["hubspot", "salesforce"],
+            "lead scoring": ["hubspot", "salesforce"],
+            "pipeline": ["hubspot", "salesforce"],
+            "follow up": ["hubspot", "sendgrid"],
+            "customer relationship": ["hubspot", "salesforce"],
+            "deal tracking": ["hubspot", "salesforce"],
+            "contact management": ["hubspot", "salesforce"],
+            # E-commerce actions
+            "process payment": ["stripe"],
+            "charge customer": ["stripe"],
+            "online store": ["shopify", "stripe"],
+            "product listing": ["shopify"],
+            "order fulfillment": ["shopify"],
+            "invoice": ["stripe"],
+            # Data & documentation actions
+            "spreadsheet": ["google"],
+            "google doc": ["google"],
+            "update spreadsheet": ["google"],
+            "schedule meeting": ["google"],
+            "calendar event": ["google"],
+            "document": ["notion", "google"],
+            "wiki": ["notion"],
+            "knowledge base": ["notion"],
+            # Social media & marketing
+            "social media": ["zapier"],
+            "post to social": ["zapier"],
+            "twitter": ["zapier"],
+            "linkedin": ["zapier"],
+            "facebook": ["zapier"],
+            "instagram": ["zapier"],
+            "automate workflow": ["zapier"],
+            "connect apps": ["zapier"],
+        }
+
+        # --- Level 3: Business goal → API inference ---
+        # Maps high-level goals to the typical integrations needed.
+        goal_patterns: Dict[str, List[str]] = {
+            "increase sales": ["hubspot", "sendgrid", "stripe"],
+            "grow revenue": ["hubspot", "sendgrid", "stripe"],
+            "reduce costs": ["zapier", "google"],
+            "improve compliance": ["jira", "notion", "google"],
+            "automate operations": ["zapier", "slack", "github"],
+            "customer support": ["hubspot", "slack", "sendgrid"],
+            "customer service": ["hubspot", "slack", "sendgrid"],
+            "content marketing": ["mailchimp", "sendgrid", "zapier"],
+            "devops": ["github", "slack", "jira"],
+            "software development": ["github", "jira", "slack"],
+            "project tracking": ["jira", "notion", "slack"],
+            "team collaboration": ["slack", "notion", "google"],
+            "data analysis": ["google"],
+            "reporting": ["google", "notion"],
+            "onboard customers": ["hubspot", "sendgrid", "stripe"],
+            "lead generation": ["hubspot", "sendgrid", "mailchimp"],
+        }
+
         seen = set()
+
+        def _add(pk: str, reason: str) -> None:
+            if pk not in seen and pk in links:
+                seen.add(pk)
+                info = links[pk]
+                recommendations.append({
+                    "service": pk,
+                    "name": info["name"],
+                    "signup_url": info["url"],
+                    "env_var": info["env_var"],
+                    "description": info["description"],
+                    "reason": reason,
+                })
+
+        # Apply Level 1 — direct keyword matches
         for keyword, provider_keys in keyword_map.items():
             if keyword in combined:
                 for pk in provider_keys:
-                    if pk not in seen and pk in links:
-                        seen.add(pk)
-                        info = links[pk]
-                        recommendations.append({
-                            "service": pk,
-                            "name": info["name"],
-                            "signup_url": info["url"],
-                            "env_var": info["env_var"],
-                            "description": info["description"],
-                            "reason": f"Detected '{keyword}' in your answers",
-                        })
+                    _add(pk, f"Detected '{keyword}' in your answers")
+
+        # Apply Level 2 — workflow action inference
+        for action, provider_keys in action_patterns.items():
+            if action in combined:
+                for pk in provider_keys:
+                    _add(pk, f"Your workflow includes '{action}'")
+
+        # Apply Level 3 — business goal inference
+        for goal, provider_keys in goal_patterns.items():
+            if goal in combined:
+                for pk in provider_keys:
+                    _add(pk, f"Recommended for goal: '{goal}'")
 
         # Always recommend an LLM provider if not already configured
         llm_status = self._get_llm_status()
@@ -12444,23 +12620,40 @@ class MurphySystem:
             # Infer needed integrations from collected onboarding answers
             answers = session.get("answers", {})
             recs = self.infer_needed_integrations(answers) if answers else []
-            response = f"Captured {current_stage} details. Onboarding complete!\n\n"
+            response = f"Captured {current_stage} details. **Onboarding complete!**\n\n"
             if recs:
                 response += "**Recommended integrations based on your answers:**\n"
-                for rec in recs:
+                for i, rec in enumerate(recs, 1):
                     response += (
-                        f"• **{rec['name']}** — {rec['description']}\n"
-                        f"  Get your API key: {rec['signup_url']}\n"
-                        f"  Set: `{rec['env_var']}`\n"
+                        f"  {i}. **{rec['name']}** — {rec['description']}\n"
+                        f"     Get your API key: {rec['signup_url']}\n"
+                        f"     Set: `{rec['env_var']}`\n"
+                        f"     _{rec.get('reason', '')}_\n"
                     )
-                response += "\nType **api keys** to see this list again, or **help** for all commands."
+                response += "\n**What to do next:**\n"
+                response += "1. Sign up for the API keys listed above (links provided)\n"
+                response += "2. Set each as an environment variable (e.g. `export GROQ_API_KEY=gsk_...`)\n"
+                response += "3. Restart Murphy to pick up the new keys\n"
+                response += "4. Type **status** to verify everything is connected\n"
+                response += "5. Type **execute <your first task>** to start automating!\n\n"
+                response += "Type **api keys** to see this list again, or **help** for all commands."
             else:
-                response += "Type **help** to see available commands."
+                response += (
+                    "**What to do next:**\n"
+                    "1. Type **status** to verify the system is ready\n"
+                    "2. Type **execute <your first task>** to start automating\n"
+                    "3. Type **api keys** if you need integration credentials\n\n"
+                    "Type **help** to see all available commands."
+                )
         else:
+            # Include librarian hints in mid-flow prompts
+            librarian_hint = flow.get("librarian_hint", "")
             response = (
                 f"Captured {current_stage} details. "
                 f"Next step ({next_stage}): {prompt}"
             )
+            if librarian_hint:
+                response += librarian_hint
         duration = time.perf_counter() - start
         self._record_execution(success=True, duration=duration)
         doc = self._ensure_document(message, "conversation", session_id)
