@@ -442,6 +442,9 @@ class PlanDecomposer:
         dependencies = []
         linked_tasks: set = set()
 
+        # Minimum word length for cross-reference matching.
+        _MIN_WORD_LEN = 4
+
         # Pass 1: keyword cross-reference.
         for i, task_a in enumerate(tasks):
             deliverables_lower = [d.lower() for d in task_a.deliverables]
@@ -453,7 +456,7 @@ class PlanDecomposer:
                 for deliv in deliverables_lower:
                     # Check if any significant word from the deliverable
                     # appears in the dependent task.
-                    words = [w for w in deliv.split() if len(w) > 3]
+                    words = [w for w in deliv.split() if len(w) >= _MIN_WORD_LEN]
                     if any(w in desc_lower or w in title_lower for w in words):
                         dep = Dependency(
                             dependency_id=self._generate_dependency_id(),
@@ -468,10 +471,14 @@ class PlanDecomposer:
                         linked_tasks.add(task_b.task_id)
                         break  # one link per pair is enough
 
+        # Build a set for O(1) lookup of existing dependency edges.
+        existing_edges = {(d.from_task_id, d.to_task_id) for d in dependencies}
+
         # Pass 2: sequential chain for unlinked tasks.
         for i in range(len(tasks) - 1):
             if tasks[i].task_id not in linked_tasks or tasks[i + 1].task_id not in linked_tasks:
-                if tasks[i].task_id not in [d.from_task_id for d in dependencies if d.to_task_id == tasks[i+1].task_id]:
+                edge = (tasks[i].task_id, tasks[i + 1].task_id)
+                if edge not in existing_edges:
                     dep = Dependency(
                         dependency_id=self._generate_dependency_id(),
                         from_task_id=tasks[i].task_id,
