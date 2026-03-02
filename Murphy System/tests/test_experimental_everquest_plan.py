@@ -1147,6 +1147,77 @@ class TestExperimentalEverQuestPlan:
         lower = text.lower()
         assert "identity template" in lower and ("generate" in lower or "derived" in lower or "auto" in lower)
 
+    # --- Level 60 Unmaking Cap (§9.7) ---
+
+    def test_level_60_unmaking_cap(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("level 60" in lower or "sub-60" in lower) and ("maximum of 3" in lower or "max 3" in lower or "only 3" in lower or "cap" in lower)
+
+    def test_4th_card_requires_core_raid(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("4th card" in lower) and ("core of the unmaker" in lower) and ("only" in lower)
+
+    # --- 3-Card Attackable by Everyone (§9.10, §9.22) ---
+
+    def test_3_card_attackable_by_all(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("3" in text) and ("attackable by" in lower) and ("everyone" in lower or "all" in lower)
+
+    # --- Card of Unmaking Death & Redistribution (§9.22) ---
+
+    def test_death_redistribution_section_exists(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Silent Redistribution" in text or "Bind Respawn" in text
+
+    def test_silent_card_transfer(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "silent" in lower and ("transfer" in lower or "redistribu" in lower)
+
+    def test_zero_card_holders_only(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("zero" in lower) and ("card" in lower) and ("unmaking" in lower)
+
+    def test_no_announcement_on_redistribution(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("no" in lower) and ("announcement" in lower or "server-wide" in lower) and "silent" in lower
+
+    def test_respawn_at_bind_point(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "bind" in lower and ("respawn" in lower or "point" in lower)
+
+    def test_enchanted_items_preserved_on_death(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("enchant" in lower) and ("preserv" in lower or "keep" in lower or "survive" in lower or "retain" in lower)
+
+    def test_no_unmaking_buffs_after_death(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("no" in lower or "zero" in lower) and ("unmaking" in lower) and ("buff" in lower or "card" in lower) and ("respawn" in lower or "death" in lower)
+
+    # --- NPC Card Effect Auto-Generation (§9.23) ---
+
+    def test_auto_generation_section_exists(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Auto-Generation" in text or "Identity Template System" in text
+
+    def test_auto_generation_example_table(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "fire beetle" in lower and "fippy darkpaw" in lower and "lord nagafen" in lower
+
+    def test_auto_generation_rules(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "auto-generat" in lower and ("rule" in lower or "template" in lower)
+
 
 # ===========================================================================
 # OpenClaw Molty Soul Concept Document
@@ -2158,6 +2229,38 @@ class TestCrossDocumentConsistency:
         soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
         assert "npc_card_effects.py" in plan
         assert "npc_card_effects.py" in soul
+
+    def test_plan_has_level_60_cap_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert ("level-60" in plan or "sub-60" in plan or "level 60" in plan) and ("cap" in plan or "max" in plan)
+
+    def test_plan_has_3_card_attackable_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "attackable" in plan and "3" in plan
+
+    def test_plan_has_death_redistribution_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert ("redistribu" in plan or "silent transfer" in plan) and "death" in plan
+
+    def test_plan_has_auto_generation_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "auto-generat" in plan or "identity template" in plan
+
+    def test_plan_risk_silent_transfer_exploit(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "silent" in plan and ("transfer" in plan or "card") and ("exploit" in plan or "farm" in plan)
+
+    def test_plan_schema_has_sub_60_cards(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "sub_60_cards_obtained" in plan
+
+    def test_plan_schema_has_attackable_by_all(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "attackable_by_all" in plan
+
+    def test_plan_schema_has_death_redistribution(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "death_redistribution" in plan
 
 class TestRaceCulturalIdentityDesign:
     """Validate RACE_CULTURAL_IDENTITY_DESIGN.md structure."""
