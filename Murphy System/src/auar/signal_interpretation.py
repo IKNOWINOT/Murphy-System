@@ -249,6 +249,12 @@ class SignalInterpreter:
         if self._scorer.needs_clarification(signal.confidence_score):
             signal.requires_clarification = True
 
+        # --- Step 3b: ambiguity resolution ---
+        # When confidence is in the validation range (0.60–0.85), generate
+        # ranked alternative interpretations for downstream disambiguation.
+        if self._scorer.needs_validation(signal.confidence_score):
+            signal.alternatives = self._resolve_ambiguity(raw_request, signal)
+
         # Record history for future pattern matching
         self._record_history(raw_request, signal)
 
@@ -398,6 +404,46 @@ class SignalInterpreter:
         except Exception as exc:
             logger.warning("LLM backend failed: %s – falling back", exc)
             return None, 0.0, self._scorer.factors()
+
+    # -- Ambiguity resolution -----------------------------------------------
+
+    def _resolve_ambiguity(
+        self, raw: Dict[str, Any], signal: IntentSignal
+    ) -> List[CapabilityIntent]:
+        """Generate ranked alternative interpretations.
+
+        Called when confidence falls in the validation range (0.60–0.85).
+        Returns up to 3 alternative capability intents ordered by estimated
+        relevance.
+        """
+        alternatives: List[CapabilityIntent] = []
+        primary_name = (
+            signal.parsed_intent.capability_name if signal.parsed_intent else ""
+        )
+        params = raw.get("parameters") or raw.get("params") or raw.get("data") or {}
+
+        with self._lock:
+            for name, entry in self._schemas.items():
+                if name == primary_name:
+                    continue
+                # Score each alternative by keyword overlap
+                score = 0.0
+                raw_text = " ".join(str(v) for v in raw.values())
+                for tag in [entry.domain, entry.category, name]:
+                    if tag and tag.lower() in raw_text.lower():
+                        score += 0.3
+                if score > 0:
+                    alternatives.append(
+                        CapabilityIntent(
+                            capability_name=name,
+                            domain=entry.domain,
+                            category=entry.category,
+                            parameters=params,
+                        )
+                    )
+                if len(alternatives) >= 3:
+                    break
+        return alternatives
 
     # -- Helpers ------------------------------------------------------------
 

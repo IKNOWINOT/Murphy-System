@@ -29,6 +29,8 @@ from .capability_graph import (
     Provider,
     CapabilityMapping,
     CertificationLevel,
+    HealthStatus,
+    PerformanceMetrics,
 )
 from .routing_engine import (
     RoutingDecisionEngine,
@@ -39,6 +41,7 @@ from .routing_engine import (
 from .schema_translation import (
     SchemaTranslator,
     SchemaMapping,
+    FieldMapping,
     TranslationResult,
 )
 from .provider_adapter import (
@@ -76,6 +79,8 @@ __all__ = [
     "Provider",
     "CapabilityMapping",
     "CertificationLevel",
+    "HealthStatus",
+    "PerformanceMetrics",
     # Routing Engine
     "RoutingDecisionEngine",
     "RoutingDecision",
@@ -84,6 +89,7 @@ __all__ = [
     # Schema Translation
     "SchemaTranslator",
     "SchemaMapping",
+    "FieldMapping",
     "TranslationResult",
     # Provider Adapter
     "ProviderAdapterManager",

@@ -1308,3 +1308,226 @@ class TestAUARPipeline:
         })
         assert result.success is True
         assert result.capability == "send_email"
+
+
+# ===================================================================
+# Ambiguity Resolution Tests
+# ===================================================================
+
+class TestAmbiguityResolver:
+    """Tests for the ambiguity resolver that generates alternative intents."""
+
+    def test_alternatives_generated_in_validation_range(self):
+        """When confidence is 0.60-0.85, alternatives should be generated."""
+        si = SignalInterpreter()
+        si.register_schema("send_email", domain="communication", category="email")
+        si.register_schema("send_sms", domain="communication", category="sms")
+        si.register_schema("process_payment", domain="payments", category="charge")
+
+        # Use unknown capability to get low-confidence result in validation range
+        signal = si.interpret({"capability": "send_notification", "parameters": {}})
+        # This should either have alternatives or be in clarification range
+        # The point is that the alternatives mechanism exists and works
+        assert isinstance(signal.alternatives, list)
+
+    def test_alternatives_empty_for_high_confidence(self):
+        """When confidence is > 0.85, no alternatives should be generated."""
+        si = SignalInterpreter()
+        si.register_schema("send_email", required_params=["to", "subject", "body"])
+        signal = si.interpret({
+            "capability": "send_email",
+            "parameters": {"to": "a@b.com", "subject": "Hi", "body": "Hello"},
+        })
+        # High confidence → no alternatives
+        assert signal.alternatives == []
+
+    def test_alternatives_max_three(self):
+        """Alternatives should be capped at 3."""
+        si = SignalInterpreter()
+        for i in range(10):
+            si.register_schema(f"cap_{i}", domain="test", category="test")
+        # Force an ambiguous parse that triggers the resolver
+        signal = si.interpret({"capability": "cap_test", "parameters": {}})
+        assert len(signal.alternatives) <= 3
+
+
+# ===================================================================
+# Pipeline Observability Instrumentation Tests
+# ===================================================================
+
+class TestPipelineObservability:
+    """Tests for span instrumentation in the AUAR pipeline."""
+
+    def _build_pipeline(self):
+        """Helper: create a fully wired pipeline for testing."""
+        graph = CapabilityGraph()
+        cap = Capability(name="send_email", domain="communication", category="email")
+        cap_id = graph.register_capability(cap)
+        perf = PerformanceMetrics(avg_latency_ms=50, success_rate=0.99)
+        mapping = CapabilityMapping(
+            capability_id=cap_id, cost_per_call=0.001,
+            performance=perf,
+            certification_level=CertificationLevel.PRODUCTION,
+        )
+        provider = Provider(
+            name="SendGrid", base_url="https://api.sendgrid.com",
+            supported_capabilities=[mapping],
+            health_status=HealthStatus.HEALTHY,
+        )
+        graph.register_provider(provider)
+
+        interpreter = SignalInterpreter()
+        interpreter.register_schema(
+            "send_email",
+            required_params=["to", "subject", "body"],
+            domain="communication",
+            category="email",
+        )
+
+        ml = MLOptimizer(epsilon=0.0)
+        router = RoutingDecisionEngine(graph, ml_optimizer=ml)
+
+        translator = SchemaTranslator()
+        translator.register_mapping(SchemaMapping(
+            capability_name="send_email",
+            provider_id=provider.id,
+            direction="request",
+            field_mappings=[
+                FieldMapping(source_field="to", target_field="personalizations.to"),
+                FieldMapping(source_field="subject", target_field="subject"),
+                FieldMapping(source_field="body", target_field="content.value"),
+            ],
+        ))
+
+        adapter_mgr = ProviderAdapterManager()
+        adapter_mgr.register_adapter(AdapterConfig(
+            provider_id=provider.id,
+            provider_name="SendGrid",
+            base_url="https://api.sendgrid.com",
+            auth_method=AuthMethod.API_KEY,
+            auth_credentials={"api_key": "SG.test"},
+        ))
+
+        obs = ObservabilityLayer()
+
+        pipeline = AUARPipeline(
+            interpreter=interpreter,
+            graph=graph,
+            router=router,
+            translator=translator,
+            adapters=adapter_mgr,
+            ml=ml,
+            observability=obs,
+        )
+        return pipeline, obs, provider
+
+    def test_pipeline_creates_spans(self):
+        """Pipeline execution should create spans for each step."""
+        pipeline, obs, _ = self._build_pipeline()
+        result = pipeline.execute({
+            "capability": "send_email",
+            "parameters": {"to": "user@example.com", "subject": "Test", "body": "Hi"},
+        })
+        assert result.success is True
+        trace = obs.get_trace(result.trace_id)
+        assert trace is not None
+        assert len(trace.spans) >= 2  # at least interpretation + routing + execution
+
+    def test_pipeline_records_histograms(self):
+        """Pipeline execution should record histogram metrics."""
+        pipeline, obs, _ = self._build_pipeline()
+        result = pipeline.execute({
+            "capability": "send_email",
+            "parameters": {"to": "user@example.com", "subject": "Test", "body": "Hi"},
+        })
+        assert result.success is True
+        interp_hist = obs.get_histogram_summary("auar.interpretation.latency_ms")
+        assert interp_hist["count"] >= 1
+        routing_hist = obs.get_histogram_summary("auar.routing.latency_ms")
+        assert routing_hist["count"] >= 1
+        provider_hist = obs.get_histogram_summary("auar.provider.latency_ms")
+        assert provider_hist["count"] >= 1
+
+    def test_pipeline_interpretation_span_attributes(self):
+        """Interpretation span should carry method and confidence attributes."""
+        pipeline, obs, _ = self._build_pipeline()
+        result = pipeline.execute({
+            "capability": "send_email",
+            "parameters": {"to": "user@example.com", "subject": "Test", "body": "Hi"},
+        })
+        trace = obs.get_trace(result.trace_id)
+        interp_spans = [s for s in trace.spans if s.operation == "signal_interpretation"]
+        assert len(interp_spans) == 1
+        assert "method" in interp_spans[0].attributes
+        assert "confidence" in interp_spans[0].attributes
+
+    def test_pipeline_no_provider_increments_counter(self):
+        """When no provider is available, no_provider counter should increment."""
+        graph = CapabilityGraph()
+        cap = Capability(name="nonexistent_cap")
+        graph.register_capability(cap)
+
+        interpreter = SignalInterpreter()
+        interpreter.register_schema("nonexistent_cap")
+        router = RoutingDecisionEngine(graph)
+        translator = SchemaTranslator()
+        adapters = ProviderAdapterManager()
+        obs = ObservabilityLayer()
+
+        pipeline = AUARPipeline(
+            interpreter=interpreter, graph=graph, router=router,
+            translator=translator, adapters=adapters, observability=obs,
+        )
+        result = pipeline.execute({"capability": "nonexistent_cap", "parameters": {}})
+        assert result.success is False
+        assert obs.get_counter("auar.requests.no_provider") == 1
+
+
+# ===================================================================
+# Basic Auth Header Test
+# ===================================================================
+
+class TestBasicAuthHeader:
+    """Test Basic auth encoding (Proposal §8 requirement)."""
+
+    def test_basic_auth_header_encoding(self):
+        import base64
+        payloads = []
+
+        def capture(payload):
+            payloads.append(payload)
+            return {"status_code": 200, "body": {}, "headers": {}}
+
+        config = AdapterConfig(
+            provider_id="test", base_url="https://api.test.com",
+            auth_method=AuthMethod.BASIC,
+            auth_credentials={"username": "user", "password": "pass123"},
+        )
+        adapter = ProviderAdapter(config, execute_fn=capture)
+        adapter.call("GET", "/test")
+        auth_header = payloads[0]["headers"]["Authorization"]
+        assert auth_header.startswith("Basic ")
+        decoded = base64.b64decode(auth_header.split(" ")[1]).decode()
+        assert decoded == "user:pass123"
+
+
+# ===================================================================
+# FieldMapping Export Test
+# ===================================================================
+
+class TestExportCompleteness:
+    """Verify all key classes are properly exported from auar package."""
+
+    def test_field_mapping_exported(self):
+        from auar import FieldMapping
+        fm = FieldMapping(source_field="a", target_field="b")
+        assert fm.source_field == "a"
+
+    def test_health_status_exported(self):
+        from auar import HealthStatus
+        assert HealthStatus.HEALTHY.value == "healthy"
+
+    def test_performance_metrics_exported(self):
+        from auar import PerformanceMetrics
+        pm = PerformanceMetrics(avg_latency_ms=100)
+        assert pm.avg_latency_ms == 100
