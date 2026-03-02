@@ -168,37 +168,141 @@ class ModelMetadata:
 
 
 class ShadowAgentModel:
-    """Base class for shadow agent models"""
-    
+    """
+    Base class for shadow-agent learning models.
+
+    Provides serialisation (``save`` / ``load``) via :mod:`json` + :mod:`pickle`
+    and default implementations for ``predict_proba`` and ``get_feature_importance``
+    so that subclasses only need to override ``train`` and ``predict``.
+    """
+
     def __init__(self, config: Any, metadata: Optional[ModelMetadata] = None):
         self.config = config
         self.metadata = metadata or ModelMetadata()
         self.model = None
         self.is_trained = False
-    
+
+    # ------------------------------------------------------------------
+    # Training & Prediction — subclasses MUST override train/predict
+    # ------------------------------------------------------------------
+
     def train(self, X_train, y_train, X_val=None, y_val=None):
-        """Train the model"""
-        raise NotImplementedError
-    
+        """Train the model.  Subclasses must override."""
+        raise NotImplementedError("Subclasses must implement train()")
+
     def predict(self, X):
-        """Make predictions"""
-        raise NotImplementedError
-    
+        """Return predictions for *X*.  Subclasses must override."""
+        raise NotImplementedError("Subclasses must implement predict()")
+
     def predict_proba(self, X):
-        """Predict probabilities"""
-        raise NotImplementedError
-    
+        """
+        Return class-probability estimates for *X*.
+
+        Default implementation delegates to the underlying model's
+        ``predict_proba`` when available, otherwise falls back to
+        one-hot encoding of ``predict`` output.
+        """
+        if not self.is_trained:
+            raise ValueError("Model not trained")
+        if self.model is not None and hasattr(self.model, 'predict_proba'):
+            return self.model.predict_proba(X)
+        # Fallback: one-hot from predict
+        import numpy as _np
+        preds = self.predict(X)
+        unique_classes = sorted(set(preds))
+        class_idx = {c: i for i, c in enumerate(unique_classes)}
+        proba = _np.zeros((len(preds), len(unique_classes)))
+        for row, pred in enumerate(preds):
+            proba[row, class_idx[pred]] = 1.0
+        return proba
+
     def get_feature_importance(self) -> Dict[str, float]:
-        """Get feature importance scores"""
-        raise NotImplementedError
-    
+        """
+        Return feature-importance scores from the underlying estimator.
+
+        Default implementation inspects ``model.feature_importances_`` (sklearn
+        convention) or ``model.coef_``, returning an empty dict when neither
+        attribute exists.
+        """
+        if not self.is_trained or self.model is None:
+            return {}
+        if hasattr(self.model, 'feature_importances_'):
+            imp = self.model.feature_importances_
+            return {f"feature_{i}": float(v) for i, v in enumerate(imp)}
+        if hasattr(self.model, 'coef_'):
+            import numpy as _np
+            coef = _np.abs(self.model.coef_).mean(axis=0) if self.model.coef_.ndim > 1 else _np.abs(self.model.coef_)
+            return {f"feature_{i}": float(v) for i, v in enumerate(coef)}
+        return {}
+
+    # ------------------------------------------------------------------
+    # Persistence — JSON metadata + pickle model
+    # ------------------------------------------------------------------
+
     def save(self, path: str):
-        """Save model to disk"""
-        raise NotImplementedError
-    
+        """
+        Persist the trained model and its metadata to *path*.
+
+        Layout::
+
+            <path>/
+                metadata.json   — ModelMetadata as JSON
+                model.pkl       — pickled sklearn / custom estimator
+        """
+        import json
+        import os
+        import pickle
+
+        os.makedirs(path, exist_ok=True)
+
+        # Metadata
+        meta_dict = {
+            'model_type': self.metadata.model_type.value if self.metadata.model_type else None,
+            'train_accuracy': self.metadata.train_accuracy,
+            'validation_accuracy': self.metadata.validation_accuracy,
+            'is_trained': self.is_trained,
+            'feature_importance': self.metadata.feature_importance,
+            'config': {k: v for k, v in vars(self.config).items()} if hasattr(self.config, '__dict__') else {},
+        }
+        with open(os.path.join(path, 'metadata.json'), 'w') as f:
+            json.dump(meta_dict, f, indent=2, default=str)
+
+        # Model binary
+        if self.model is not None:
+            with open(os.path.join(path, 'model.pkl'), 'wb') as f:
+                pickle.dump(self.model, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+        logger.info("Model saved to %s", path)
+
     def load(self, path: str):
-        """Load model from disk"""
-        raise NotImplementedError
+        """
+        Load a previously persisted model from *path*.
+
+        Restores both the model binary and its metadata.
+        """
+        import json
+        import os
+        import pickle
+
+        meta_path = os.path.join(path, 'metadata.json')
+        model_path = os.path.join(path, 'model.pkl')
+
+        if os.path.isfile(meta_path):
+            with open(meta_path, 'r') as f:
+                meta_dict = json.load(f)
+            self.metadata.train_accuracy = meta_dict.get('train_accuracy', 0.0)
+            self.metadata.validation_accuracy = meta_dict.get('validation_accuracy', 0.0)
+            self.metadata.feature_importance = meta_dict.get('feature_importance', {})
+
+        if os.path.isfile(model_path):
+            with open(model_path, 'rb') as f:
+                self.model = pickle.load(f)
+            self.is_trained = True
+        else:
+            logger.warning("No model binary found at %s", model_path)
+            self.is_trained = False
+
+        logger.info("Model loaded from %s (trained=%s)", path, self.is_trained)
 
 
 class DecisionTreeModel(ShadowAgentModel):
