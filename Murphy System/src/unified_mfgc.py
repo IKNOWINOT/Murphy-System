@@ -293,7 +293,7 @@ class UnifiedMFGC:
             return ConfidenceBand.INTRODUCTORY
         
         # Medium complexity or medium confidence = Conversational
-        elif complexity < 0.6 or domain_confidence > 0.3:
+        elif complexity < 0.6 or domain_confidence > 0.25:
             return ConfidenceBand.CONVERSATIONAL
         
         # High complexity or low confidence = Exploratory

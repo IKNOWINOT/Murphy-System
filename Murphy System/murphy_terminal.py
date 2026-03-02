@@ -54,6 +54,11 @@ try:
 except ImportError:
     pyperclip = None
 
+try:
+    import win32clipboard as _win32clipboard  # Optional: Windows clipboard fallback (pywin32)
+except ImportError:
+    _win32clipboard = None
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
@@ -297,6 +302,39 @@ class MurphyAPIClient:
 
     def librarian_status(self) -> dict:
         return self._get("/api/librarian/status")
+
+    def llm_test(self) -> dict:
+        """Ask the backend to make a minimal test call to verify the LLM key."""
+        try:
+            return self._post("/api/llm/test", {})
+        except requests.RequestException:
+            return {"success": False, "error": "backend not reachable"}
+
+    def llm_reload(self) -> dict:
+        """Ask the backend to re-read .env and reinitialise LLM config."""
+        try:
+            return self._post("/api/llm/reload", {})
+        except requests.RequestException:
+            return {"success": False, "error": "backend not reachable"}
+
+    def create_document(self, title: str, content: str, doc_type: str = "general") -> dict:
+        """Create a living document for block-command workflows."""
+        payload: dict = {"title": title, "content": content, "type": doc_type}
+        if self.session_id:
+            payload["session_id"] = self.session_id
+        return self._post("/api/documents", payload)
+
+    def magnify_document(self, doc_id: str, domain: str = "general") -> dict:
+        """Expand domain depth of a living document to increase context coverage."""
+        return self._post(f"/api/documents/{doc_id}/magnify", {"domain": domain})
+
+    def simplify_document(self, doc_id: str) -> dict:
+        """Reduce complexity of a living document to improve clarity."""
+        return self._post(f"/api/documents/{doc_id}/simplify", {})
+
+    def solidify_document(self, doc_id: str) -> dict:
+        """Lock a document and trigger swarm task generation."""
+        return self._post(f"/api/documents/{doc_id}/solidify", {})
 
 
 # ---------------------------------------------------------------------------
@@ -612,6 +650,9 @@ INTENT_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"\b(billing|subscription|tier|pricing)\b", re.I), "intent_billing"),
     (re.compile(r"\b(links|urls|dashboards|open ui)\b", re.I), "intent_links"),
     (re.compile(r"\b(plan|planning|two.?plane|execution plan)\b", re.I), "intent_plan"),
+    (re.compile(r"^magnify\b", re.I), "intent_magnify"),
+    (re.compile(r"^simplify\b", re.I), "intent_simplify"),
+    (re.compile(r"^solidify\b", re.I), "intent_solidify"),
 ]
 
 # Patterns that indicate user frustration or feedback
@@ -755,6 +796,7 @@ class MurphyTerminalApp(App):
         self._reconnect_timer = None
         self._offline_mode = False
         self._awaiting_api_key = False
+        self._current_doc_id: Optional[str] = None  # tracks the last created living document
 
     # -- compose --
 
@@ -1065,7 +1107,8 @@ class MurphyTerminalApp(App):
                           "intent_test_api",
                           "intent_reconnect", "intent_links", "intent_modules",
                           "intent_llm_status", "intent_librarian_status",
-                          "intent_api_keys"):
+                          "intent_api_keys",
+                          "intent_magnify", "intent_simplify", "intent_solidify"):
                 handler = getattr(self, intent, None)
                 if handler:
                     handler(message)
@@ -1176,6 +1219,11 @@ class MurphyTerminalApp(App):
             "  • [green]plan[/green] — two-plane planning & execution overview\n"
             "  • [green]pending / hitl[/green] — pending interventions\n"
             "  • [green]corrections[/green] — correction statistics\n\n"
+            "[bold cyan]Document Block Commands[/bold cyan]\n"
+            "  • [green]magnify <topic>[/green] — create a document from a topic and expand its depth\n"
+            "  • [green]simplify[/green] — reduce complexity of the current document\n"
+            "  • [green]solidify[/green] — lock document and generate execution tasks\n"
+            "  Workflow: [green]magnify <goal>[/green] → [green]simplify[/green] → [green]solidify[/green] → [green]execute plan[/green]\n\n"
             "[bold cyan]Connection[/bold cyan]\n"
             "  • [green]set api <url>[/green] — change backend address\n"
             "  • [green]test connection[/green] — verify backend reachability\n"
@@ -1284,16 +1332,35 @@ class MurphyTerminalApp(App):
         reload_env(env_path)
 
         # Notify the backend to hot-reload its LLM config
-        self.client.configure_llm(provider, key_value)
+        configure_result = self.client.configure_llm(provider, key_value)
+        if not configure_result.get("success", True):
+            self._write_murphy(
+                f"[red]✗ Backend configure failed: {configure_result.get('error', 'unknown error')}[/red]"
+            )
+            return
 
         self._write_murphy(
-            f"[bold green]✓ {provider.capitalize()} API key saved and activated![/bold green]\n"
+            f"[bold green]✓ {provider.capitalize()} API key saved![/bold green]\n"
             f"  Env var : [green]{env_var}[/green]\n"
-            f"  .env    : [dim]{env_path}[/dim]\n\n"
-            "[dim]The key is active immediately — no restart needed.[/dim]"
+            f"  .env    : [dim]{env_path}[/dim]"
         )
 
-        # Refresh the StatusBar to show the new LLM state
+        # Verify the key actually authenticates with the provider
+        test_result = self.client.llm_test()
+        if test_result.get("success"):
+            self._write_murphy(
+                "[bold green]✓ Key verified — LLM is active and responding.[/bold green]\n"
+                "[dim]The key is active immediately — no restart needed.[/dim]"
+            )
+        else:
+            err = test_result.get("error", "unknown error")
+            self._write_murphy(
+                f"[yellow]⚠ Key saved but authentication failed: {err}[/yellow]\n"
+                "[dim]Please verify your key at "
+                "[link=https://console.groq.com/keys]https://console.groq.com/keys[/link][/dim]"
+            )
+
+        # Refresh the StatusBar — only mark LLM On if the test passed
         self._check_llm_status()
 
     # -- clipboard support --
@@ -1325,12 +1392,24 @@ class MurphyTerminalApp(App):
                 if result.returncode == 0:
                     return result.stdout
             elif system == "Windows":
+                # Try PowerShell first
                 result = subprocess.run(
                     ["powershell", "-command", "Get-Clipboard"],
                     capture_output=True, text=True, timeout=2,
                 )
                 if result.returncode == 0:
                     return result.stdout
+                # Fallback: win32clipboard (pywin32)
+                if _win32clipboard is not None:
+                    try:
+                        _win32clipboard.OpenClipboard()
+                        try:
+                            text = _win32clipboard.GetClipboardData(_win32clipboard.CF_UNICODETEXT)
+                            return text
+                        finally:
+                            _win32clipboard.CloseClipboard()
+                    except Exception:
+                        pass
         except Exception:
             pass
 
@@ -1382,6 +1461,11 @@ class MurphyTerminalApp(App):
         self._reconnect_attempts = 0
         self._write_system("Attempting reconnection…")
         self._check_connection()
+        # Re-read .env on the backend so any manual edits take effect
+        reload_result = self.client.llm_reload()
+        if reload_result.get("success"):
+            self._write_system("Backend .env reloaded.")
+        self._check_llm_status()
 
     # -- interview intents --
 
@@ -1543,6 +1627,106 @@ class MurphyTerminalApp(App):
         )
         self._write_murphy("\n".join(lines))
 
+    # -- document block-command intents --
+
+    def _require_doc(self) -> Optional[str]:
+        """Return current doc_id or show a prompt to create one first."""
+        if self._current_doc_id:
+            return self._current_doc_id
+        self._write_murphy(
+            "[yellow]No active document.[/yellow] "
+            "Create one first:\n"
+            "  [green]magnify <topic>[/green] — start from a topic\n"
+            "  [green]magnify my sales automation plan[/green]"
+        )
+        return None
+
+    def intent_magnify(self, msg: str) -> None:
+        """Magnify: expand domain depth of the current document (or create one from the prompt)."""
+        topic = re.sub(r"^magnify\s*", "", msg, flags=re.I).strip()
+        if not topic and self._current_doc_id:
+            # Re-magnify existing document with no domain override
+            topic = "general"
+        if not topic:
+            self._write_murphy(
+                "Usage: [green]magnify <topic or goal>[/green]\n"
+                "Example: [green]magnify automate our customer onboarding workflow[/green]"
+            )
+            return
+        try:
+            if not self._current_doc_id:
+                # Create a new document from the topic, then magnify it
+                doc_data = self.client.create_document(
+                    title=topic[:80],
+                    content=topic,
+                    doc_type="plan",
+                )
+                if not doc_data.get("success"):
+                    self._write_murphy(
+                        f"[red]✗ Could not create document: {doc_data.get('error', 'unknown')}[/red]"
+                    )
+                    return
+                self._current_doc_id = doc_data["doc_id"]
+            result = self.client.magnify_document(self._current_doc_id, domain=topic[:40])
+            conf = result.get("confidence", 0)
+            depth = result.get("domain_depth", 0)
+            self._write_murphy(
+                f"[bold cyan]🔍 Magnified[/bold cyan] — doc [dim]{self._current_doc_id}[/dim]\n"
+                f"  Confidence  : [cyan]{conf:.0%}[/cyan]\n"
+                f"  Domain depth: [cyan]{depth}[/cyan]\n\n"
+                "Run [green]simplify[/green] to reduce complexity, or "
+                "[green]solidify[/green] to lock and generate tasks."
+            )
+        except Exception as exc:
+            self._write_murphy(f"[red]✗ magnify error: {self._friendly_error(exc)}[/red]")
+
+    def intent_simplify(self, msg: str) -> None:
+        """Simplify: reduce complexity of the current document."""
+        doc_id = self._require_doc()
+        if not doc_id:
+            return
+        try:
+            result = self.client.simplify_document(doc_id)
+            conf = result.get("confidence", 0)
+            depth = result.get("domain_depth", 0)
+            self._write_murphy(
+                f"[bold cyan]✂ Simplified[/bold cyan] — doc [dim]{doc_id}[/dim]\n"
+                f"  Confidence  : [cyan]{conf:.0%}[/cyan]\n"
+                f"  Domain depth: [cyan]{depth}[/cyan]\n\n"
+                "Run [green]solidify[/green] to lock and generate tasks, or "
+                "[green]magnify <topic>[/green] to expand again."
+            )
+        except Exception as exc:
+            self._write_murphy(f"[red]✗ simplify error: {self._friendly_error(exc)}[/red]")
+
+    def intent_solidify(self, msg: str) -> None:
+        """Solidify: lock the current document and trigger swarm task generation."""
+        doc_id = self._require_doc()
+        if not doc_id:
+            return
+        try:
+            result = self.client.solidify_document(doc_id)
+            conf = result.get("confidence", 0)
+            state = result.get("state", "SOLIDIFIED")
+            tasks = result.get("generated_tasks", [])
+            tasks_text = ""
+            if tasks:
+                task_lines = "\n".join(
+                    f"  {i+1}. {t.get('description', t)}"
+                    for i, t in enumerate(tasks[:10])
+                )
+                tasks_text = f"\n\n[bold]Generated tasks:[/bold]\n{task_lines}"
+            self._write_murphy(
+                f"[bold green]🔒 Solidified[/bold green] — doc [dim]{doc_id}[/dim] → state=[cyan]{state}[/cyan]\n"
+                f"  Confidence: [cyan]{conf:.0%}[/cyan]"
+                f"{tasks_text}"
+                "\n\n[dim]Document is locked. Run [green]execute plan[/green] to start execution.[/dim]"
+            )
+            # Clear current doc so next magnify starts fresh
+            self._current_doc_id = None
+        except Exception as exc:
+            self._write_murphy(f"[red]✗ solidify error: {self._friendly_error(exc)}[/red]")
+
     # -- chat fallback --
 
     @staticmethod
@@ -1559,8 +1743,17 @@ class MurphyTerminalApp(App):
         """Route a message through the Librarian + LLM endpoint."""
         try:
             data = self.client.librarian_ask(message)
-            text = self._extract_response(data)
             mode = data.get("mode", "unknown")
+            if mode == "llm_error":
+                err_msg = data.get("llm_error", "unknown error")
+                self._write_murphy(
+                    f"[yellow]⚠ LLM call failed: {err_msg}[/yellow]\n"
+                    "[dim]Your API key may be invalid. "
+                    "Get a new key at [link=https://console.groq.com/keys]https://console.groq.com/keys[/link] "
+                    "then run [green]set key groq <your-key>[/green][/dim]"
+                )
+                return
+            text = self._extract_response(data)
             suggested = data.get("suggested_commands", [])
             if suggested:
                 text += "\n\n[dim]Suggested: " + ", ".join(f"[green]{c}[/green]" for c in suggested) + "[/dim]"

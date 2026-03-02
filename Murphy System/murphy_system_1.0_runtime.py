@@ -32,6 +32,10 @@ import re
 import math
 import numbers
 from uuid import uuid4
+try:
+    from dotenv import load_dotenv as _load_dotenv
+except ImportError:
+    _load_dotenv = None
 from threading import Lock
 
 # Add src to path
@@ -12323,20 +12327,23 @@ class MurphySystem:
             return "plan_request"
         return "general"
 
-    def _try_llm_generate(self, prompt: str, context: str = "") -> Optional[str]:
+    def _try_llm_generate(self, prompt: str, context: str = "") -> Tuple[Optional[str], Optional[str]]:
         """Attempt to generate a response via the configured LLM provider.
 
-        Returns the generated text, or ``None`` if LLM is unavailable.
+        Returns a tuple ``(text, error)`` where:
+        - ``(text, None)`` on success
+        - ``(None, None)`` when LLM is not configured (no key set)
+        - ``(None, error_message)`` when LLM was attempted but failed (e.g. 401)
         """
         llm_status = self._get_llm_status()
         if not llm_status.get("enabled") or not llm_status.get("healthy"):
-            return None
+            return None, None
         provider = llm_status["provider"]
         model = llm_status.get("model") or ""
         if provider == "groq":
             api_key = os.environ.get("GROQ_API_KEY", "")
             if not api_key:
-                return None
+                return None, None
             try:
                 import requests as _requests
                 headers = {
@@ -12374,11 +12381,11 @@ class MurphySystem:
                 )
                 resp.raise_for_status()
                 data = resp.json()
-                return data["choices"][0]["message"]["content"]
+                return data["choices"][0]["message"]["content"], None
             except Exception as exc:
                 logger.warning("LLM call failed (%s): %s", provider, exc)
-                return None
-        return None
+                return None, str(exc)
+        return None, None
 
     def librarian_ask(self, message: str, session_id: Optional[str] = None) -> Dict[str, Any]:
         """Route a natural-language message through the Librarian + optional LLM.
@@ -12412,7 +12419,7 @@ class MurphySystem:
                 context_parts.append(f"Recommended integrations: {', '.join(svc_names)}")
 
         # Attempt LLM generation
-        llm_text = self._try_llm_generate(message, " | ".join(context_parts))
+        llm_text, llm_error = self._try_llm_generate(message, " | ".join(context_parts))
         if llm_text:
             result: Dict[str, Any] = {
                 "success": True,
@@ -12428,6 +12435,19 @@ class MurphySystem:
                 if recs:
                     result["recommended_integrations"] = recs
             return result
+
+        # LLM was attempted but failed (e.g. 401 Unauthorized)
+        if llm_error is not None:
+            return {
+                "success": False,
+                "session_id": session_id,
+                "reply_text": "",
+                "message": "",
+                "intent": nl_intent,
+                "mode": "llm_error",
+                "llm_error": llm_error,
+                "suggested_commands": self._suggest_commands(nl_intent),
+            }
 
         # Deterministic fallback
         fallback_reply = self._deterministic_reply(message, nl_intent)
@@ -13411,6 +13431,27 @@ def create_app() -> FastAPI:
         if env_var and api_key:
             os.environ[env_var] = api_key
         os.environ["MURPHY_LLM_PROVIDER"] = provider
+        # Re-read .env so any manually edited values also take effect
+        if _load_dotenv is not None:
+            _load_dotenv(override=True)
+        return JSONResponse({"success": True, **murphy._get_llm_status()})
+
+    @app.post("/api/llm/test")
+    async def llm_test():
+        """Make a minimal test call to the configured LLM provider to verify the key."""
+        llm_status = murphy._get_llm_status()
+        if not llm_status.get("enabled"):
+            return JSONResponse({"success": False, "error": llm_status.get("error", "LLM not configured")})
+        _, err = murphy._try_llm_generate("Say OK", "")
+        if err is not None:
+            return JSONResponse({"success": False, "error": err})
+        return JSONResponse({"success": True, **llm_status})
+
+    @app.post("/api/llm/reload")
+    async def llm_reload():
+        """Re-read .env and reinitialise LLM config — called on terminal reconnect."""
+        if _load_dotenv is not None:
+            _load_dotenv(override=True)
         return JSONResponse({"success": True, **murphy._get_llm_status()})
 
     @app.get("/api/librarian/api-links")
