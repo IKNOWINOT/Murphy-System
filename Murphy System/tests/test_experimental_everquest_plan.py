@@ -1152,12 +1152,12 @@ class TestExperimentalEverQuestPlan:
     def test_level_60_unmaking_cap(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert ("level 60" in lower or "sub-60" in lower) and ("maximum of 3" in lower or "max 3" in lower or "only 3" in lower or "cap" in lower)
+        assert "sub-60" in lower or ("level 60" in lower and "maximum of 3" in lower)
 
     def test_4th_card_requires_core_raid(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert ("4th card" in lower) and ("core of the unmaker" in lower) and ("only" in lower)
+        assert "4th card" in lower and "core of the unmaker" in lower and "can only" in lower
 
     # --- 3-Card Attackable by Everyone (§9.10, §9.22) ---
 
@@ -1180,12 +1180,12 @@ class TestExperimentalEverQuestPlan:
     def test_zero_card_holders_only(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert ("zero" in lower) and ("card" in lower) and ("unmaking" in lower)
+        assert "zero cards of unmaking" in lower or "zero card" in lower
 
     def test_no_announcement_on_redistribution(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert ("no" in lower) and ("announcement" in lower or "server-wide" in lower) and "silent" in lower
+        assert "no server-wide announcement" in lower or ("completely silent" in lower and "no" in lower)
 
     def test_respawn_at_bind_point(self):
         text = _load_doc(self.DOC_NAME)
@@ -1200,7 +1200,7 @@ class TestExperimentalEverQuestPlan:
     def test_no_unmaking_buffs_after_death(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert ("no" in lower or "zero" in lower) and ("unmaking" in lower) and ("buff" in lower or "card" in lower) and ("respawn" in lower or "death" in lower)
+        assert "zero cards of unmaking" in lower and ("respawn" in lower or "death" in lower)
 
     # --- NPC Card Effect Auto-Generation (§9.23) ---
 
@@ -2248,7 +2248,7 @@ class TestCrossDocumentConsistency:
 
     def test_plan_risk_silent_transfer_exploit(self):
         plan = _load_doc(self.PLAN).lower()
-        assert "silent" in plan and ("transfer" in plan or "card") and ("exploit" in plan or "farm" in plan)
+        assert "silent" in plan and ("transfer" in plan or "card" in plan) and ("exploit" in plan or "farm" in plan)
 
     def test_plan_schema_has_sub_60_cards(self):
         plan = _load_doc(self.PLAN).lower()
