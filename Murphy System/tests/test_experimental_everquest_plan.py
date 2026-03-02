@@ -27,6 +27,9 @@ integration.  The plan covers:
   - Agent language restriction (in-game languages + Common Tongue only, no code)
   - Agent self-preservation (flee on "run" command, healer death, hybrid healer exception)
   - Liquify ability (Sourcerior aggro drop + invisibility with water pets, level 40+)
+  - NPC lifestyle system (daily routines, jobs, building ownership, caste hierarchy)
+  - Trade skill specialization with degradation (1 week no practice → fades to 50)
+  - Level-based skill floor (leveling locks minimum skill thresholds)
 
 Each test class validates a planning document's structure and required content.
 
@@ -338,6 +341,72 @@ class TestExperimentalEverQuestPlan:
         lower = text.lower()
         assert "liquify" in lower
 
+    # --- NPC Lifestyle System ---
+
+    def test_has_npc_lifestyle_system_section(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "NPC Lifestyle System" in text or "Lifestyle System" in text
+
+    def test_npc_daily_routine_sleep_work_adventure(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "sleep" in lower
+        assert "work" in lower and "shift" in lower
+        assert "adventure" in lower
+
+    def test_npc_building_ownership(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "building" in lower and "own" in lower
+
+    def test_npc_job_roles_defined(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "smith" in lower
+        assert "merchant" in lower
+        assert "brewer" in lower or "brewing" in lower
+
+    def test_npc_caste_system(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "caste" in lower
+        assert "royal" in lower
+        assert "noble" in lower
+        assert "commoner" in lower
+        assert "dhampir" in lower
+        assert "servant" in lower
+
+    def test_npc_trade_skill_specialization(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "trade skill" in lower or "primary trade" in lower
+        assert "max" in lower or "skill cap" in lower
+
+    def test_npc_skill_degradation(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "degrad" in lower
+        assert "50" in text
+        assert "week" in lower or "7" in text
+
+    def test_npc_level_based_skill_floor(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "skill floor" in lower or "skill_floor" in lower
+        assert "level" in lower
+
+    def test_npc_lifestyle_in_soul_schema(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "lifestyle" in text.lower()
+        assert "caste" in text
+        assert "job_role" in text or "job role" in text.lower()
+
+    def test_npc_lifestyle_implementation_tasks(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "daily routine" in lower and ("implement" in lower or "[ ]" in lower)
+        assert "skill degradation" in lower and ("implement" in lower or "[ ]" in lower)
+
 
 # ===========================================================================
 # OpenClaw Molty Soul Concept Document
@@ -486,6 +555,38 @@ class TestOpenClawMoltySoulConcept:
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
         assert "liquify" in lower
+
+    # --- Lifestyle Layer in Soul ---
+
+    def test_has_lifestyle_layer_in_soul(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "lifestyle" in lower and "layer" in lower
+
+    def test_soul_lifestyle_caste(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "caste" in lower
+
+    def test_soul_lifestyle_job_role(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "job" in lower and "role" in lower
+
+    def test_soul_lifestyle_daily_routine(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "daily" in lower or "routine" in lower or "sleep" in lower
+
+    def test_soul_lifestyle_skill_degradation(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "degrad" in lower
+
+    def test_soul_lifestyle_skill_floor(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "skill floor" in lower or "floor" in lower
 
 
 # ===========================================================================
@@ -916,6 +1017,36 @@ class TestCrossDocumentConsistency:
     def test_plan_has_liquify_implementation_task(self):
         plan = _load_doc(self.PLAN).lower()
         assert "liquify" in plan and ("implement" in plan or "[ ]" in plan)
+
+    # --- NPC Lifestyle cross-document consistency ---
+
+    def test_plan_and_soul_mention_lifestyle(self):
+        plan = _load_doc(self.PLAN).lower()
+        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
+        assert "lifestyle" in plan
+        assert "lifestyle" in soul
+
+    def test_plan_and_soul_mention_caste(self):
+        plan = _load_doc(self.PLAN).lower()
+        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
+        assert "caste" in plan
+        assert "caste" in soul
+
+    def test_plan_and_soul_mention_skill_degradation(self):
+        plan = _load_doc(self.PLAN).lower()
+        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
+        assert "degrad" in plan
+        assert "degrad" in soul
+
+    def test_plan_and_soul_mention_skill_floor(self):
+        plan = _load_doc(self.PLAN).lower()
+        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
+        assert "skill floor" in plan or "skill_floor" in plan
+        assert "skill floor" in soul or "skill_floor" in soul
+
+    def test_plan_has_lifestyle_implementation_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "daily routine" in plan and ("implement" in plan or "[ ]" in plan)
 
 class TestRaceCulturalIdentityDesign:
     """Validate RACE_CULTURAL_IDENTITY_DESIGN.md structure."""

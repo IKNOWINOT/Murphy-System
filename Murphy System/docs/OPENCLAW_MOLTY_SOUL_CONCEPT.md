@@ -71,6 +71,15 @@ The game agent soul extends the Rosetta soul pattern with game-specific layers:
 │   Agents treat their life as their only life (permadeath real)  │
 │   Sourceriors use Liquify (water pets, level 40+) to escape     │
 ├────────────────────────────────────────────────────────────────┤
+│ LIFESTYLE LAYER                                                 │
+│   Caste: royal / noble / commoner / dhampir / servant           │
+│   Job role: smith, merchant, guard, brewer, scholar, etc.       │
+│   Daily routine: sleep → work shift → adventure/free time       │
+│   Building ownership: workplace and residence tracking          │
+│   Trade skill: primary skill with mastery, degradation, floor   │
+│   Skill degrades without practice (1 week → fades to 50)       │
+│   Level-based skill floor prevents full degradation             │
+├────────────────────────────────────────────────────────────────┤
 │ DEATH STATE                                                     │
 │   Alive/dead status, death cause, killer identity               │
 │   Betrayal flag — sole exception to permadeath                  │
@@ -416,6 +425,7 @@ The **sole exception** to permadeath is **betrayal**. If an agent was killed thr
 | Knowledge | `librarian/` | Item/entity knowledge stored and indexed |
 | Death state | `state_manager.py` | Permadeath tracking and betrayal resurrection |
 | Behavior | `avatar/behavioral_scoring_engine.py` | Behavior scoring and adjustment loops |
+| Lifestyle | `state_manager.py` + `eq_game_connector.py` | Daily routines, job roles, trade skill tracking, skill degradation |
 
 ### 8.2 Persistence Strategy
 
