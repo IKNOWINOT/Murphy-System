@@ -30,6 +30,11 @@ integration.  The plan covers:
   - NPC lifestyle system (daily routines, jobs, building ownership, caste hierarchy)
   - Trade skill specialization with degradation (1 week no practice → fades to 50)
   - Level-based skill floor (leveling locks minimum skill thresholds)
+  - Macro-trigger behavior system (classic EQ bot patterns as agent behavioral triggers)
+  - Perception-inference-action pipeline (rapid screen-scan → inference → mind-write cycle)
+  - Lore-seeded soul database (all EQ NPCs, mobs, raid bosses as agent foundations)
+  - The Sleeper (Kerafyrm) world event (level 60+ zones, shared memory, dragon /tell coordination)
+  - Dragon faction mutual aid (hostile factions cooperate during Sleeper event unless engaged)
 
 Each test class validates a planning document's structure and required content.
 
@@ -407,6 +412,126 @@ class TestExperimentalEverQuestPlan:
         assert "daily routine" in lower and ("implement" in lower or "[ ]" in lower)
         assert "skill degradation" in lower and ("implement" in lower or "[ ]" in lower)
 
+    # --- Macro-Trigger Behavior System ---
+
+    def test_has_macro_trigger_behavior_section(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Macro-Trigger" in text or "macro-trigger" in text.lower()
+
+    def test_macro_trigger_assist_pattern(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "assist" in lower and ("trigger" in lower or "macro" in lower)
+
+    def test_macro_trigger_follow_pattern(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "follow" in lower and ("trigger" in lower or "macro" in lower)
+
+    def test_macro_trigger_engage_pattern(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "engage" in lower
+
+    def test_macro_trigger_heal_check(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "heal check" in lower or "heal_check" in lower
+
+    # --- Perception-Inference-Action Pipeline ---
+
+    def test_has_perception_inference_pipeline_section(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Perception-Inference" in text or "perception-inference" in text.lower()
+
+    def test_pipeline_screen_scan(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "scan" in lower and ("perception" in lower or "screen" in lower)
+
+    def test_pipeline_tick_rate(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "250ms" in text or "250" in text
+
+    def test_pipeline_mind_write(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "mind" in lower and "write" in lower or "short-term memory" in lower
+
+    def test_pipeline_three_stages(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "perception" in lower
+        assert "inference" in lower
+        assert "action" in lower
+
+    # --- Lore-Seeded Soul Database ---
+
+    def test_has_lore_seeded_section(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Lore-Seeded" in text or "lore-seeded" in text.lower() or "Lore Seeded" in text
+
+    def test_lore_seed_eqemu_database(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "eqemu" in lower and ("database" in lower or "npc" in lower)
+
+    def test_lore_seed_all_npcs_mobs_bosses(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "mob" in lower and "raid boss" in lower
+
+    def test_lore_seed_project1999_allakhazam(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "project 1999" in lower or "allakhazam" in lower
+
+    def test_lore_seed_shared_lore_blocks(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "shared lore" in lower
+
+    def test_lore_seed_canonical_faction_table(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "canonical" in lower and "faction" in lower
+
+    # --- The Sleeper (Kerafyrm) ---
+
+    def test_has_sleeper_section(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Sleeper" in text and "Kerafyrm" in text
+
+    def test_sleeper_level_60_zone_restriction(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "level 60" in lower and "zone" in lower
+
+    def test_sleeper_storyline_in_all_characters(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "all" in lower and ("agent" in lower or "character" in lower) and "memory" in lower or "shared lore block" in lower
+
+    def test_sleeper_permadeath(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "kerafyrm" in lower and "permadeath" in lower
+
+    def test_sleeper_dragon_tell_coordination(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "dragon" in lower and "/tell" in lower or "tell" in lower and "dragon" in lower
+
+    def test_sleeper_faction_mutual_aid(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "mutual aid" in lower or "cooperate" in lower and "dragon" in lower
+
+    def test_sleeper_factions_not_respond_if_engaged(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "engaged" in lower and ("elsewhere" in lower or "already" in lower)
+
 
 # ===========================================================================
 # OpenClaw Molty Soul Concept Document
@@ -587,6 +712,45 @@ class TestOpenClawMoltySoulConcept:
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
         assert "skill floor" in lower or "floor" in lower
+
+    # --- Perception-Inference Layer in Soul ---
+
+    def test_has_perception_inference_layer_in_soul(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "perception" in lower and "inference" in lower
+
+    def test_soul_perception_pipeline_flow(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "perception" in lower and "action" in lower
+
+    def test_soul_macro_trigger_in_perception(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "macro" in lower or "trigger" in lower and "assist" in lower
+
+    # --- Lore-Seed Layer in Soul ---
+
+    def test_has_lore_seed_layer_in_soul(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "lore" in lower and ("seed" in lower or "seeded" in lower)
+
+    def test_soul_lore_shared_lore_blocks(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "shared lore" in lower
+
+    def test_soul_lore_sleeper_reference(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "sleeper" in lower
+
+    def test_soul_lore_eqemu_npc_data(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "eqemu" in lower or "npc" in lower and "data" in lower
 
 
 # ===========================================================================
@@ -1047,6 +1211,48 @@ class TestCrossDocumentConsistency:
     def test_plan_has_lifestyle_implementation_task(self):
         plan = _load_doc(self.PLAN).lower()
         assert "daily routine" in plan and ("implement" in plan or "[ ]" in plan)
+
+    # --- Macro-Trigger, Perception, Lore, Sleeper cross-doc consistency ---
+
+    def test_plan_and_soul_mention_perception_inference(self):
+        plan = _load_doc(self.PLAN).lower()
+        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
+        assert "perception" in plan and "inference" in plan
+        assert "perception" in soul and "inference" in soul
+
+    def test_plan_and_soul_mention_lore_seed(self):
+        plan = _load_doc(self.PLAN).lower()
+        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
+        assert "lore" in plan and "seed" in plan
+        assert "lore" in soul and "seed" in soul
+
+    def test_plan_and_soul_mention_macro_trigger(self):
+        plan = _load_doc(self.PLAN).lower()
+        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
+        assert "macro" in plan and "trigger" in plan
+        assert "macro" in soul or "trigger" in soul and "assist" in soul
+
+    def test_plan_and_soul_mention_shared_lore_blocks(self):
+        plan = _load_doc(self.PLAN).lower()
+        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
+        assert "shared lore" in plan
+        assert "shared lore" in soul
+
+    def test_plan_has_perception_pipeline_implementation_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "perception" in plan and ("implement" in plan or "[ ]" in plan)
+
+    def test_plan_has_lore_seed_implementation_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "lore" in plan and "import" in plan and ("implement" in plan or "[ ]" in plan)
+
+    def test_plan_has_sleeper_implementation_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "sleeper" in plan and ("implement" in plan or "[ ]" in plan)
+
+    def test_plan_has_dragon_tell_implementation_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "dragon" in plan and "/tell" in plan or "tell" in plan and "rally" in plan
 
 class TestRaceCulturalIdentityDesign:
     """Validate RACE_CULTURAL_IDENTITY_DESIGN.md structure."""

@@ -80,6 +80,18 @@ The game agent soul extends the Rosetta soul pattern with game-specific layers:
 │   Skill degrades without practice (1 week → fades to 50)       │
 │   Level-based skill floor prevents full degradation             │
 ├────────────────────────────────────────────────────────────────┤
+│ PERCEPTION-INFERENCE LAYER                                      │
+│   Screen scan every ~250ms: entities, HP, mana, buffs, zone    │
+│   Inference: compare perception against template + soul + lore │
+│   Action: write decision to mind, execute via game connector   │
+│   Macro-trigger patterns: assist, follow, engage, heal, debuff │
+├────────────────────────────────────────────────────────────────┤
+│ LORE-SEED LAYER                                                 │
+│   Pre-populated from EQEmu NPC database and lore wikis         │
+│   All NPCs, mobs, raid bosses seed agent identity and faction  │
+│   Shared lore blocks: The Sleeper storyline in all agents      │
+│   Social/economic systems grounded in canonical EQ lore        │
+├────────────────────────────────────────────────────────────────┤
 │ DEATH STATE                                                     │
 │   Alive/dead status, death cause, killer identity               │
 │   Betrayal flag — sole exception to permadeath                  │
@@ -174,6 +186,28 @@ The recall engine is the mechanism by which archived memories become **active co
 - Reinforced memories (repeated encounters) gain confidence
 - Very old, unreinforced memories may fail to recall (returns `null`)
 - Critical memories (major combat, faction changes) have slower decay
+
+### 3.4 Perception-Inference-Action Pipeline
+
+The recall engine feeds into a **rapid perception-inference-action pipeline** that drives real-time agent decision-making. This pipeline mirrors classic EQ bot macro patterns — reading game state, evaluating against the soul document, and executing actions.
+
+**Pipeline flow:**
+1. **Perception** (~250ms tick): scan game state — nearby entities, HP/mana bars, buffs, combat state, zone context
+2. **Inference**: compare perception frame against play-style template, soul document (who do I know? who do I like?), macro-trigger table (which behavior pattern matches?), and lore knowledge
+3. **Action**: write the selected action to short-term memory, execute via game connector, promote significant events to long-term archive
+
+**Macro-trigger patterns** modeled on classic bot commands (`/assist`, `/follow`, `/attack`, `/cast`, `/backoff`) determine the agent's routine combat behavior — the LLM is only invoked for complex social or strategic decisions, keeping the pipeline fast enough for real-time combat.
+
+### 3.5 Lore-Seeded Memory
+
+Agent soul documents are **pre-populated from EQ canonical lore** at creation time. Every existing EverQuest NPC, named mob, and raid boss in the EQEmu database serves as a foundation for agent identity, faction alignment, zone knowledge, and relationships.
+
+**Lore seeding includes:**
+- **Identity**: name, faction, zone, level, and relationships pulled from EQEmu NPC data
+- **Zone knowledge**: agents "know" their home zone from birth — pre-seeded in long-term archive
+- **Faction relationships**: initialized from the canonical EQ faction table
+- **Shared lore blocks**: universal story knowledge (e.g., The Sleeper's legend) injected into every agent's archive as a read-only section — all agents know the shared history of Norrath
+- **Mob and raid boss data**: named mobs and raid bosses receive richer soul documents with deeper faction webs, combat knowledge, and leadership caste assignments
 
 ---
 
@@ -426,6 +460,9 @@ The **sole exception** to permadeath is **betrayal**. If an agent was killed thr
 | Death state | `state_manager.py` | Permadeath tracking and betrayal resurrection |
 | Behavior | `avatar/behavioral_scoring_engine.py` | Behavior scoring and adjustment loops |
 | Lifestyle | `state_manager.py` + `eq_game_connector.py` | Daily routines, job roles, trade skill tracking, skill degradation |
+| Perception-Inference | `perception_pipeline.py` | Screen-scan → inference → action → mind-write cycle |
+| Macro-Trigger | `macro_trigger_engine.py` | Classic bot behavior patterns (assist, follow, engage, heal, debuff) |
+| Lore-Seed | `lore_seeder.py` | EQEmu NPC/mob/boss data import and soul document pre-population |
 
 ### 8.2 Persistence Strategy
 
