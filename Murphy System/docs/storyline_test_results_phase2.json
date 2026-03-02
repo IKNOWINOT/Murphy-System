@@ -1,57 +1,13 @@
 [
   {
-    "chapter": "Chapter 16",
-    "scenario": "PerformanceTracker records and reports",
+    "chapter": "Chapter 22",
+    "scenario": "Shadow agent lifecycle (create)",
     "expected": true,
     "actual": true,
     "passed": true,
-    "cause": "record_metric() stores; get_statistics() computes mean/count/stddev",
-    "effect": "Every execution feeds the learning loop with performance data",
-    "lesson": "Statistics are computed per metric name \u2014 supports arbitrary KPIs.",
-    "timestamp": "2026-03-02T18:02:05.660754+00:00"
-  },
-  {
-    "chapter": "Inference",
-    "scenario": "Form starts with missing fields",
-    "expected": true,
-    "actual": true,
-    "passed": true,
-    "cause": "No data provided \u2192 all required fields are missing",
-    "effect": "System knows what to ask the user next",
-    "lesson": "Form-as-schema means the system never operates on incomplete data \u2014 it asks for what it needs.",
-    "timestamp": "2026-03-02T18:02:05.672817+00:00"
-  },
-  {
-    "chapter": "Inference",
-    "scenario": "Form completes with answers",
-    "expected": true,
-    "actual": true,
-    "passed": true,
-    "cause": "submit_answer() fills each required field",
-    "effect": "Form is_complete \u2192 agent can proceed with its action",
-    "lesson": "The form loop: ask \u2192 answer \u2192 check \u2192 ask next \u2192 until complete. This is the generative fill pattern: LLM fills, human confirms.",
-    "timestamp": "2026-03-02T18:02:05.674342+00:00"
-  },
-  {
-    "chapter": "Inference",
-    "scenario": "Existing data pre-fills form",
-    "expected": true,
-    "actual": true,
-    "passed": true,
-    "cause": "existing_data dict passed to infer() \u2192 fields pre-filled",
-    "effect": "Fewer questions asked \u2014 only truly missing data requested",
-    "lesson": "Pre-fill from Rosetta state means returning users skip questions. This is the multi-Rosetta soul: agent remembers what it knows.",
-    "timestamp": "2026-03-02T18:02:05.675744+00:00"
-  },
-  {
-    "chapter": "MSS",
-    "scenario": "Action items are the form loop questions",
-    "expected": true,
-    "actual": true,
-    "passed": true,
-    "cause": "Missing fields \u2192 action items with questions for LLM/human to fill",
-    "effect": "The LLM's job: fill these generatively from chronological events. The form loop: ask \u2192 fill \u2192 gate \u2192 verify \u2192 until complete.",
-    "lesson": "Action items drive the generative fill. Each is a sensor target. When all items are answered, the dataset moves from simplified \u2192 solidified.",
-    "timestamp": "2026-03-02T18:02:05.677280+00:00"
+    "cause": "create_account() + create_shadow_agent() spawn shadow for role",
+    "effect": "Shadow learns from role's execution patterns, proposes automations",
+    "lesson": "Shadows are passive observers \u2014 they learn but cannot execute without explicit gate satisfaction and human approval.",
+    "timestamp": "2026-03-02T18:06:42.775746+00:00"
   }
 ]
