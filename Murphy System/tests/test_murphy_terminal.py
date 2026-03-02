@@ -1138,7 +1138,7 @@ class TestWorkflowActionInferenceTerminal:
         dc.step_index = len(dc.INTERVIEW_STEPS)
         msg = dc._complete_message()
         assert "What to do next" in msg
-        assert "Restart Murphy" in msg
+        assert "set key groq" in msg
 
     def test_completion_message_numbers_integrations(self):
         dc = DialogContext()

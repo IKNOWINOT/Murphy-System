@@ -458,10 +458,24 @@ class LLMController:
             return await self._query_fallback(request)
     
     async def _query_local_small(self, request: LLMRequest) -> LLMResponse:
-        """Query local small model (placeholder)"""
-        # This would integrate with a local model like Phi-2
-        # For now, return a structured response
-        
+        """Query local small model — tries Ollama first, then placeholder."""
+        try:
+            from src.local_llm_fallback import _check_ollama_available, _query_ollama
+            if _check_ollama_available():
+                result = _query_ollama(request.prompt, model="phi3", max_tokens=request.max_tokens)
+                if result:
+                    return LLMResponse(
+                        content=result,
+                        model_used=LLMModel.LOCAL_SMALL,
+                        confidence=0.0,
+                        tokens_used=len(result.split()),
+                        cost=0.0,
+                        latency=0.0,
+                        metadata={"provider": "ollama", "model": "phi3"}
+                    )
+        except Exception:
+            pass
+
         content = f"[Local Small Model] I understand you need help with: {request.prompt[:100]}..."
         if request.context:
             content += f" Context length: {len(request.context)} chars"
@@ -477,8 +491,25 @@ class LLMController:
         )
     
     async def _query_local_medium(self, request: LLMRequest) -> LLMResponse:
-        """Query local medium model (placeholder)"""
-        # This would integrate with a local medium model
+        """Query local medium model — tries Ollama first, then placeholder."""
+        try:
+            from src.local_llm_fallback import _check_ollama_available, _query_ollama
+            if _check_ollama_available():
+                for model in ["llama3", "mistral"]:
+                    result = _query_ollama(request.prompt, model=model, max_tokens=request.max_tokens)
+                    if result:
+                        return LLMResponse(
+                            content=result,
+                            model_used=LLMModel.LOCAL_MEDIUM,
+                            confidence=0.0,
+                            tokens_used=len(result.split()),
+                            cost=0.0,
+                            latency=0.0,
+                            metadata={"provider": "ollama", "model": model}
+                        )
+        except Exception:
+            pass
+
         content = f"[Local Medium Model] Analyzing request: {request.prompt[:100]}..."
         
         return LLMResponse(
