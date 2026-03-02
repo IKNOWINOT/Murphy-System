@@ -2154,10 +2154,10 @@ Every entity in the game has card effects **automatically generated** from an **
 
 ### Phase 4: Murphy Integration (Weeks 13–16)
 
-- [ ] Wire Murphy raid leader admin moderation
-- [ ] Connect sentiment classifier for voice moderation
-- [ ] Implement governance kernel logging for all admin actions
-- [ ] Connect Rosetta state management for soul persistence
+- [x] Wire Murphy raid leader admin moderation
+- [x] Connect sentiment classifier for voice moderation
+- [x] Implement governance kernel logging for all admin actions
+- [x] Connect Rosetta state management for soul persistence
 - [x] Integrate cultural personality templates into persona_injector.py
 - [x] Implement perception-inference-action pipeline (perception_pipeline.py — screen scan → inference → mind write)
 - [x] Implement macro-trigger behavior engine (macro_trigger_engine.py — assist, follow, engage, buff, heal, debuff triggers)
@@ -2254,11 +2254,11 @@ Every entity in the game has card effects **automatically generated** from an **
 
 ### Phase 7: Stream & Polish (Weeks 25–28)
 
-- [ ] Build OBS overlay plugin for Murphy events
-- [ ] Implement agent thought bubble visualization
-- [ ] Build faction war map overlay
-- [ ] Duel highlight auto-capture
-- [ ] End-to-end stream testing
+- [x] Build OBS overlay plugin for Murphy events
+- [x] Implement agent thought bubble visualization
+- [x] Build faction war map overlay
+- [x] Duel highlight auto-capture
+- [x] End-to-end stream testing
 
 ---
 
