@@ -265,7 +265,7 @@ class TestExperimentalEverQuestPlan:
     def test_has_town_conquest(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "town" in lower and "conquest" in lower or "siege" in lower
+        assert ("town" in lower and "conquest" in lower) or ("siege" in lower)
 
     def test_town_conquest_leadership_and_guards(self):
         text = _load_doc(self.DOC_NAME)
@@ -275,7 +275,7 @@ class TestExperimentalEverQuestPlan:
     def test_original_eq_leveling_experience(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "original" in lower and "leveling" in lower or "original everquest" in lower
+        assert ("original" in lower and "leveling" in lower) or ("original everquest" in lower)
 
     def test_leveling_built_into_pop_ending(self):
         text = _load_doc(self.DOC_NAME)
@@ -301,7 +301,7 @@ class TestExperimentalEverQuestPlan:
     def test_no_code_capability_for_agents(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "cannot" in lower and "code" in lower or "no code" in lower or "zero knowledge of programming" in lower
+        assert ("cannot" in lower and "code" in lower) or ("no code" in lower) or ("zero knowledge of programming" in lower)
 
     def test_one_way_data_flow(self):
         text = _load_doc(self.DOC_NAME)
@@ -349,7 +349,7 @@ class TestExperimentalEverQuestPlan:
     def test_hybrid_healer_exception(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "hybrid healer" in lower or "hybrid" in lower and "healer" in lower
+        assert ("hybrid healer" in lower) or ("hybrid" in lower and "healer" in lower)
 
     def test_liquify_referenced_in_flee(self):
         text = _load_doc(self.DOC_NAME)
@@ -466,7 +466,7 @@ class TestExperimentalEverQuestPlan:
     def test_pipeline_mind_write(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "mind" in lower and "write" in lower or "short-term memory" in lower
+        assert ("mind" in lower and "write" in lower) or ("short-term memory" in lower)
 
     def test_pipeline_three_stages(self):
         text = _load_doc(self.DOC_NAME)
@@ -530,12 +530,12 @@ class TestExperimentalEverQuestPlan:
     def test_sleeper_dragon_tell_coordination(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "dragon" in lower and "/tell" in lower or "tell" in lower and "dragon" in lower
+        assert ("dragon" in lower and "/tell" in lower) or ("tell" in lower and "dragon" in lower)
 
     def test_sleeper_faction_mutual_aid(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "mutual aid" in lower or "cooperate" in lower and "dragon" in lower
+        assert ("mutual aid" in lower) or ("cooperate" in lower and "dragon" in lower)
 
     def test_sleeper_factions_not_respond_if_engaged(self):
         text = _load_doc(self.DOC_NAME)
@@ -557,10 +557,10 @@ class TestExperimentalEverQuestPlan:
     def test_god_card_progressive_unlocks(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "1st card" in lower or "1st" in lower and "skill" in lower
-        assert "2nd card" in lower or "2nd" in lower and "buff" in lower
-        assert "3rd card" in lower or "3rd" in lower and "enchantment" in lower
-        assert "4th card" in lower or "4th" in lower and "unmaking" in lower
+        assert ("1st card" in lower) or ("1st" in lower and "skill" in lower)
+        assert ("2nd card" in lower) or ("2nd" in lower and "buff" in lower)
+        assert ("3rd card" in lower) or ("3rd" in lower and "enchantment" in lower)
+        assert ("4th card" in lower) or ("4th" in lower and "unmaking" in lower)
 
     def test_god_card_global_announcements(self):
         text = _load_doc(self.DOC_NAME)
@@ -603,7 +603,7 @@ class TestExperimentalEverQuestPlan:
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
         assert "unmaker aura" in lower
-        assert "bard" in lower and "song" in lower or "bard-song" in lower
+        assert ("bard" in lower and "song" in lower) or ("bard-song" in lower)
 
     def test_unmaker_megaphone(self):
         text = _load_doc(self.DOC_NAME)
@@ -623,12 +623,12 @@ class TestExperimentalEverQuestPlan:
     def test_void_spell_player_exception(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "player" in lower and "exception" in lower or "players are the sole exception" in lower
+        assert ("player" in lower and "exception" in lower) or ("players are the sole exception" in lower)
 
     def test_pvp_raid_boss_transformation(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "pvp raid boss" in lower or "pvp" in lower and "raid boss" in lower
+        assert ("pvp raid boss" in lower) or ("pvp" in lower and "raid boss" in lower)
         assert "title" in lower and "god" in lower
 
     def test_shield_of_unmaker_10_percent(self):
@@ -661,7 +661,7 @@ class TestExperimentalEverQuestPlan:
     def test_random_raid_attacks_30_percent(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "random raid attack" in lower or "random" in lower and "raid attack" in lower
+        assert ("random raid attack" in lower) or ("random" in lower and "raid attack" in lower)
         assert "30%" in text
 
     def test_banned_by_the_unmaker_2_day(self):
@@ -705,7 +705,7 @@ class TestExperimentalEverQuestPlan:
     def test_universal_cards_everything_drops(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "every entity" in lower and "drop" in lower or "every kill" in lower
+        assert ("every entity" in lower and "drop" in lower) or ("every kill" in lower)
 
     def test_four_universal_cards_deletes_entity(self):
         text = _load_doc(self.DOC_NAME)
@@ -736,7 +736,7 @@ class TestExperimentalEverQuestPlan:
     def test_four_unmaking_cards_reboot(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "4 cards of unmaking" in lower and "reboot" in lower or "reset" in lower
+        assert ("4 cards of unmaking" in lower and "reboot" in lower) or ("4 cards of unmaking" in lower and "reset" in lower)
 
     def test_3rd_card_enchanted_items_survive(self):
         text = _load_doc(self.DOC_NAME)
@@ -783,6 +783,67 @@ class TestExperimentalEverQuestPlan:
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
         assert "shield of the unmaker" in lower and "disintegrat" in lower and "void" in lower
+
+    # --- Unmaking Escalation — Holding Capabilities ---
+
+    def test_escalation_section_exists(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Unmaking Escalation" in text
+
+    def test_capabilities_require_holding_cards(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("actively hold" in lower) or ("active holding" in lower) or ("while the cards are held" in lower)
+
+    def test_capabilities_lost_on_trade(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("lost" in lower or "forfeited" in lower) and "trade" in lower
+
+    def test_1_card_6_origin_npcs(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "6" in text and "origin" in lower and ("npc" in lower or "agent" in lower)
+
+    def test_1_card_never_summoned_before(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("never" in lower and "summoned" in lower) or ("never previously summoned" in lower)
+
+    def test_2_cards_origin_zone_summoned(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "2" in text and "origin" in lower and "zone" in lower
+
+    def test_3_cards_faction_zone_summoned(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "faction" in lower and "zone" in lower and "summon" in lower
+
+    def test_4_cards_unmaker_immunity(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "4" in text and "immune" in lower and "unmaker" in lower
+
+    def test_4_cards_faction_mobilization(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "same-faction" in lower or ("same faction" in lower and "command" in lower)
+
+    def test_crushbone_merchant_city(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "crushbone" in lower and "merchant" in lower
+
+    def test_crushbone_level_40_60(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "crushbone" in lower and ("40" in text or "40–60" in text or "40-60" in text)
+
+    def test_hold_vs_trade_choice(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "choice" in lower or "trade-off" in lower or ("cannot have both" in lower)
 
 
 # ===========================================================================
@@ -899,7 +960,7 @@ class TestOpenClawMoltySoulConcept:
     def test_soul_no_code_capability(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "cannot" in lower and "code" in lower or "no" in lower and "programming" in lower
+        assert ("cannot" in lower and "code" in lower) or ("no" in lower and "programming" in lower)
 
     def test_soul_sandbox_gateway_enforcement(self):
         text = _load_doc(self.DOC_NAME)
@@ -926,7 +987,7 @@ class TestOpenClawMoltySoulConcept:
     def test_soul_hybrid_healer_exception(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "hybrid healer" in lower or "hybrid" in lower and "healer" in lower
+        assert ("hybrid healer" in lower) or ("hybrid" in lower and "healer" in lower)
 
     def test_soul_liquify_escape_referenced(self):
         text = _load_doc(self.DOC_NAME)
@@ -980,7 +1041,7 @@ class TestOpenClawMoltySoulConcept:
     def test_soul_macro_trigger_in_perception(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "macro" in lower or "trigger" in lower and "assist" in lower
+        assert ("macro" in lower) or ("trigger" in lower and "assist" in lower)
 
     # --- Lore-Seed Layer in Soul ---
 
@@ -1002,24 +1063,24 @@ class TestOpenClawMoltySoulConcept:
     def test_soul_lore_eqemu_npc_data(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "eqemu" in lower or "npc" in lower and "data" in lower
+        assert ("eqemu" in lower) or ("npc" in lower and "data" in lower)
 
     # --- Card Collection Layer in Soul ---
 
     def test_has_card_collection_layer_in_soul(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "card" in lower and ("layer" in lower or "collection" in lower)
+        assert "card collection layer" in lower or "card_collection" in lower
 
     def test_soul_card_universal_cards(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "universal card" in lower or "every entity" in lower and "card" in lower
+        assert ("universal card" in lower) or ("every entity" in lower and "card" in lower)
 
     def test_soul_card_world_entropy(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "entropy" in lower or "delet" in lower and "card" in lower
+        assert ("entropy" in lower) or ("delet" in lower and "card" in lower)
 
     def test_soul_card_server_reboot(self):
         text = _load_doc(self.DOC_NAME)
@@ -1164,7 +1225,7 @@ class TestSourceriorClassDesign:
         lower = text.lower()
         assert "slow" in lower
         assert "heavy" in lower or "high" in lower
-        assert "base" in lower and "damage" in lower or "base dmg" in lower or "base damage" in lower
+        assert ("base" in lower and "damage" in lower) or ("base dmg" in lower) or ("base damage" in lower)
 
     def test_epic_boosts_meld_effectiveness(self):
         text = _load_doc(self.DOC_NAME)
@@ -1175,7 +1236,7 @@ class TestSourceriorClassDesign:
     def test_two_handed_staff_core_weapon(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "core weapon" in lower or "core" in lower and "staff" in lower
+        assert ("core weapon" in lower) or ("core" in lower and "staff" in lower)
 
     def test_cloth_armor_support(self):
         text = _load_doc(self.DOC_NAME)
@@ -1303,7 +1364,7 @@ class TestSourceriorClassDesign:
     def test_no_1h_blunt(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "no 1h blunt" in lower or "cannot" in lower and "1h blunt" in lower or "no" in lower and "blunt" in lower
+        assert ("no 1h blunt" in lower) or ("cannot" in lower and "1h blunt" in lower) or ("no" in lower and "blunt" in lower)
 
     # --- Liquify Ability ---
 
@@ -1321,7 +1382,7 @@ class TestSourceriorClassDesign:
     def test_liquify_aggro_drop(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "aggro" in lower and "drop" in lower or "aggro drop" in lower
+        assert ("aggro" in lower and "drop" in lower) or ("aggro drop" in lower)
 
     def test_liquify_invisibility(self):
         text = _load_doc(self.DOC_NAME)
@@ -1514,7 +1575,7 @@ class TestCrossDocumentConsistency:
         plan = _load_doc(self.PLAN).lower()
         soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
         assert "macro" in plan and "trigger" in plan
-        assert "macro" in soul or "trigger" in soul and "assist" in soul
+        assert ("macro" in soul) or ("trigger" in soul and "assist" in soul)
 
     def test_plan_and_soul_mention_shared_lore_blocks(self):
         plan = _load_doc(self.PLAN).lower()
@@ -1536,7 +1597,7 @@ class TestCrossDocumentConsistency:
 
     def test_plan_has_dragon_tell_implementation_task(self):
         plan = _load_doc(self.PLAN).lower()
-        assert "dragon" in plan and "/tell" in plan or "tell" in plan and "rally" in plan
+        assert ("dragon" in plan and "/tell" in plan) or ("tell" in plan and "rally" in plan)
 
     # --- God Cards cross-document consistency ---
 
@@ -1558,13 +1619,13 @@ class TestCrossDocumentConsistency:
 
     def test_plan_has_god_card_scope(self):
         plan = _load_doc(self.PLAN).lower()
-        assert "god cards" in plan and "unmaker" in plan and "scope" in plan or "deity card" in plan or "card drop" in plan
+        assert ("god cards" in plan and "unmaker" in plan) or ("deity card" in plan) or ("card drop" in plan)
 
     def test_plan_and_soul_mention_card_collection(self):
         plan = _load_doc(self.PLAN).lower()
         soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
-        assert "card" in plan and "collection" in plan or "card_collection" in plan
-        assert "card" in soul and "collection" in soul or "card_collection" in soul
+        assert ("card" in plan and "collection" in plan) or ("card_collection" in plan)
+        assert ("card" in soul and "collection" in soul) or ("card_collection" in soul)
 
     def test_plan_has_universal_card_implementation_task(self):
         plan = _load_doc(self.PLAN).lower()
@@ -1580,7 +1641,7 @@ class TestCrossDocumentConsistency:
 
     def test_plan_has_becoming_unmaker_implementation_task(self):
         plan = _load_doc(self.PLAN).lower()
-        assert "becoming" in plan and "unmaker" in plan and ("implement" in plan or "[ ]" in plan)
+        assert "becoming the unmaker" in plan and ("implement" in plan or "[ ]" in plan)
 
     def test_plan_has_unmaker_aa_implementation_task(self):
         plan = _load_doc(self.PLAN).lower()

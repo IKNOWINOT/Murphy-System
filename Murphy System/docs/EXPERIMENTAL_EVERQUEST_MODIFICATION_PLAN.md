@@ -887,7 +887,7 @@ The raid leader gains Murphy-powered moderation tools:
 **Universal cards (non-god entities):**
 - Any mob, NPC, or creature has a chance to drop a card bearing its name (e.g., "Card of the Fire Beetle", "Card of Fippy Darkpaw")
 - Universal cards grant **minor effects** when collected — small stat bonuses, minor resistances, trivial cosmetics
-- **Trading 4 of the same universal card to The Unmaker deletes that entity from the game permanently** — that mob, NPC, or creature no longer spawns anywhere in the world (see section 9.10)
+- **Trading 4 of the same universal card to The Unmaker deletes that entity from the game permanently** — that mob, NPC, or creature no longer spawns anywhere in the world (see section 9.11)
 - This makes every resource in the game **precious** — over time, as players and agents collect and trade cards, the world slowly empties. Camp spots dry up, quest givers vanish, and entire ecosystems of creatures disappear
 
 **God cards (deity encounters):**
@@ -978,7 +978,7 @@ The **Card of Unmaking** is the most powerful and dangerous item in the game. It
 | **1** | **Void of Unmaking** spell | Targeted deletion — permanently removes entities from the game |
 | **2** | **Shield of the Unmaker** | Defensive buff — **10% chance** to completely delete any incoming spell or melee hit at random. The attack simply ceases to exist |
 | **3** | **Disintegration Proc** weapon enchantment | Weapon proc that **disintegrates equipped items at random** on the target being fought — a tank's armor, weapons, or shields can be destroyed mid-combat. Also randomly procs on **other players in the fight**, destroying one of their equipped items |
-| **4** | Access to the **Core of the Unmaker** zone | The 4th Card of Unmaking can **only be obtained** inside the Core of the Unmaker — a raid dungeon zone (see section 9.9) |
+| **4** | Access to the **Core of the Unmaker** zone | The 4th Card of Unmaking can **only be obtained** inside the Core of the Unmaker — a raid dungeon zone (see section 9.8) |
 
 **Shield of the Unmaker details:**
 - A persistent defensive buff active while the holder has 2+ Cards of Unmaking
@@ -1047,14 +1047,69 @@ The Unmaker in its true form is the most dangerous raid boss in the game — a c
 - The void spell has a **long cooldown** and **limited charges** — it cannot be spammed
 - Server-wide announcements at 3 and 4 cards create social awareness and counterplay opportunities
 
-### 9.10 World Entropy — The Fading Game
+### 9.10 Unmaking Escalation — World Response to Cards of Unmaking
+
+Obtaining a Card of Unmaking is a **world-altering event** that draws immediate global attention. The more Cards of Unmaking a player or agent **actively holds**, the more powerful their summoning capabilities become — but these abilities are **only active while the cards are held**. Trading cards away for the Shield of the Unmaker, Void spell, or Unmaker transformation (see section 9.7, 9.13) forfeits all holding benefits immediately.
+
+**Global soul-trade announcement:**
+- When anyone trades 4 cards to The Unmaker and receives a Card of Unmaking, a **server-wide message** announces: *"[Name] has traded the soul of [Entity] for a Card of Unmaking! [Name] now holds [N] Card(s) of Unmaking!"*
+- This announcement is unavoidable — every player and every agent on the server sees it
+- The announcement names the entity whose soul was consumed, making the cost of unmaking publicly visible
+
+**Escalating capabilities by cards held — active holding required:**
+
+| Cards Held | Holder Capability | World Threat Response |
+|---|---|---|
+| **1** | **6 origin NPCs summoned** — 6 random NPC agents from your origin city (never previously summoned by anyone) come to your aid as a personal group | Hostile city kings mobilize armies against you (except home city) |
+| **2** | **One origin zone summoned** — an entire zone's worth of NPCs from your origin city rallies to your location | A major dragon (Nagafen/Vox-tier) dispatched toward you — **3-day timer** |
+| **3** | **Origin city zone + faction zone** — every AI character within a zone of your origin city aids you, AND one random zone of cities in the same faction as your origin is summoned | A god AND a dragon dispatched — **3-day timer** |
+| **4** | **Immune to Unmaker attacks + full faction mobilization** — immune to all Unmaker-type attacks (disintegration, void, ban), every same-faction city commanded to send forces to aid you | All previous threats plus server-wide awareness |
+
+**1 Card — Personal origin group:**
+- Holding 1 Card of Unmaking summons **6 NPC agents from your origin city** to your side as a personal combat group
+- These 6 NPCs are chosen **at random** from your origin's population and must be **NPCs that have never been summoned by anyone** before — each is a unique first-time call to arms
+- The NPCs fight alongside you, follow you between zones, and obey basic group commands
+- **All loot from kills made by the summoned group belongs to the card holder**
+- Hostile city kings (every city except your origin) mobilize armies against you — the 6 NPCs are your first line of defense
+- If you trade the card away, the 6 NPCs return to their origin city and the army mobilization stops
+
+**2 Cards — Origin zone rallied:**
+- Holding 2 Cards of Unmaking rallies **one entire zone's worth of NPCs** from your origin city to your current location
+- This is a massive force — guards, merchants, crafters, adventurers — everyone in one zone of your origin answers the call
+- A **major dragon** (comparable to Lord Nagafen or Lady Vox) is dispatched toward the holder — **3-day timer** to decide: keep holding for power, or trade cards for the Shield/Void abilities
+- If the holder does not trade within 3 days, the dragon arrives — a full raid-tier encounter that tracks, ambushes, and pursues
+
+**3 Cards — Origin city and faction zone:**
+- Holding 3 Cards of Unmaking sends **every AI character within a zone of your origin city** to your aid
+- Additionally, **one random zone of cities in the same faction as your origin** is summoned to reinforce you
+- A **god-level encounter AND a dragon** are dispatched simultaneously — **3-day timer**
+- This makes holding 3 cards a massive strategic gamble: enormous allied forces vs. the most dangerous hunters in the game
+
+**4 Cards — Unmaker immunity and full faction command:**
+- Holding all 4 Cards of Unmaking grants **immunity to all Unmaker-type attacks** — disintegration procs, void spells, Banned by the Unmaker, and item destruction have no effect on the holder
+- **Every city in the same faction as your origin** is commanded to send their full military forces to your aid
+- This is the ultimate defensive position — an entire faction's military at your command, immune to the most dangerous attacks in the game
+- However, holding 4 cards also means you can trigger a **server reboot** (see section 9.12) — a choice between ultimate power and ultimate destruction
+
+**Crushbone — Merchant city homeland (level 40–60):**
+- With the universal card system and army mobilization, **Crushbone is redesigned as a merchant city homeland** — no longer a low-level dungeon, it becomes a proper origin city for orcs
+- Crushbone is repositioned as a **level 40–60 zone** with merchant infrastructure, making it a viable endgame staging point
+- Orc players who choose Crushbone as their origin benefit from its merchant economy and strategic location when holding Cards of Unmaking
+
+**Loss of holding capabilities — the trade-off:**
+- **All holding capabilities are immediately lost** when the holder trades Cards of Unmaking for other abilities (Shield of the Unmaker, Void spell, Disintegration Proc)
+- The Shield/Void/Disintegration abilities require **turning in cards to The Unmaker** — the NPC that spawns randomly everywhere
+- This creates a fundamental choice: hold cards for army/immunity power, or trade them for personal combat abilities
+- The holder cannot have both — the card system forces a strategic decision between collective military power and individual destructive capability
+
+### 9.11 World Entropy — The Fading Game
 
 The universal card system creates a mechanic where **the game world slowly fades away** over time. As players and agents collect cards and trade sets of 4 to The Unmaker, entities are permanently deleted from the world.
 
 **How deletion works:**
 - Trading **4 cards of any entity type** (e.g., 4 Cards of the Fire Beetle) to The Unmaker permanently removes that entity from the game — it stops spawning everywhere
 - This applies to **every entity in the game**: mobs, named NPCs, merchants, guards, quest givers, ambient creatures, even faction leaders
-- Once deleted, that entity **never returns** (unless the server is rebooted — see section 9.11)
+- Once deleted, that entity **never returns** (unless the server is rebooted — see section 9.12)
 - As entities are deleted, **resources become precious** — camp spots that once had abundant spawns thin out, crafting materials become scarce, quest lines break as NPCs vanish
 
 **Consequences of world entropy:**
@@ -1070,7 +1125,7 @@ The universal card system creates a mechanic where **the game world slowly fades
 - Late game becomes increasingly dramatic — faction leaders vanish, raid bosses disappear, entire zones empty out
 - Eventually, the world reaches a critical state where enough has been deleted that a server reboot becomes the logical conclusion
 
-### 9.11 Server Reboot — 4 Cards of Unmaking Reset the World
+### 9.12 Server Reboot — 4 Cards of Unmaking Reset the World
 
 Collecting **4 Cards of Unmaking** (a full deck) and using them triggers the ultimate event: a **complete server reboot**. Everything in the game world resets — all deleted entities return, all zones repopulate, all faction standings reset to default.
 
@@ -1091,7 +1146,7 @@ Collecting **4 Cards of Unmaking** (a full deck) and using them triggers the ult
 - Each reboot is a **fresh start with consequences** — the world is new again, but some players carry enchanted relics from the previous era
 - Guilds may coordinate to ensure their best items are enchanted before a reboot, creating pre-reboot scrambles
 
-### 9.12 Becoming The Unmaker — Killing Blow Transformation
+### 9.13 Becoming The Unmaker — Killing Blow Transformation
 
 The player who lands the **killing blow** on The Unmaker (True Form) in the Core of the Unmaker raid zone doesn't just get loot — they **become The Unmaker**.
 
@@ -1528,6 +1583,17 @@ The player who lands the **killing blow** on The Unmaker (True Form) in the Core
 - [ ] Implement Becoming The Unmaker (killing blow transformation, full Unmaker gear, group aura, title)
 - [ ] Implement Unmaker Megaphone as range item (converts Unmaker Aura from personal to group spell)
 - [ ] Implement Unmaker AA track with 100% XP rate bonus
+- [ ] Implement Unmaking Escalation system (global soul-trade announcement, escalating world response)
+- [ ] Implement card-holding capability system (abilities active only while cards are held, lost on trade)
+- [ ] Implement 1-card origin NPC summon (6 random never-summoned NPCs from origin city as personal group)
+- [ ] Implement 2-card origin zone rally (entire zone of origin NPCs rallied to holder's location)
+- [ ] Implement 3-card origin city + faction zone summon (origin zone AI + random same-faction zone)
+- [ ] Implement 4-card Unmaker immunity + full faction mobilization (immune to all Unmaker attacks, all same-faction cities commanded)
+- [ ] Implement hostile city army mobilization against card holder (all cities except origin)
+- [ ] Implement dragon dispatch at 2 Cards (3-day timer, Nagafen/Vox-tier tracking dragon)
+- [ ] Implement god + dragon dispatch at 3 Cards (3-day timer, deity + dragon hunting party)
+- [ ] Redesign Crushbone as merchant city homeland (level 40–60 zone, merchant infrastructure)
+- [ ] Implement card trade-off system (holding capabilities forfeited when cards traded for Shield/Void/transformation)
 
 ### Phase 6: Race & Culture (Weeks 21–24)
 
@@ -1606,6 +1672,9 @@ The player who lands the **killing blow** on The Unmaker (True Form) in the Core
 | **World entropy too fast** | Critical NPCs deleted early, breaking quest lines and economy | Card drop rates throttled, Unmaker 1% spawn rate limits conversion speed, deletions announced server-wide for social counterplay |
 | **Server reboot grief** | Player collects 4 Unmaking cards and reboots against community wishes | Server-wide countdown with warning, 3rd-card enchanted items survive to soften impact, reboot creates fresh start with carry-forward relics |
 | **Unmaker player imbalance** | Player-Unmaker with 100% AA XP and full gear dominates server | Player-Unmaker is a high-value target (huntable), death removes title, title must be re-earned via Core raid |
+| **Unmaking escalation overwhelm** | Army/dragon/god response makes holding Cards of Unmaking impossible | 3-day timer gives holder time to trade cards, origin NPC summons provide defense, hold-vs-trade choice creates strategic depth |
+| **Origin summon depopulation** | Summoning origin NPCs strips home city of defenders and merchants | Never-summoned-before rule limits pool, NPCs return when cards traded, zone repopulation on summon expiry |
+| **Crushbone level 40–60 rebalance** | Redesigned Crushbone disrupts orc leveling path | Maintain separate low-level tutorial zone, Crushbone merchant city is endgame destination, not starter area |
 
 ---
 
