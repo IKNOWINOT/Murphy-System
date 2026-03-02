@@ -5,7 +5,7 @@ import json
 import os
 import psutil
 from typing import Dict
-from datetime import datetime
+from datetime import datetime, timezone
 from .gpt_oss_runner import GPTOSSRunner  # Injected
 
 from .key_manager_bot import KeyManagerBot
@@ -34,7 +34,7 @@ class ScalingBot:
     def _log_event(self, action: str, bot_type: str, key_id: str) -> None:
         os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
         entry = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "action": action,
             "bot_type": bot_type,
             "key_id": key_id,

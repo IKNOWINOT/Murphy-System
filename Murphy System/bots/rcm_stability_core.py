@@ -1,5 +1,5 @@
 import math
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import os
 
@@ -40,7 +40,7 @@ class RecursiveStabilityEngine:
             action = 'halt'
 
         result = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'score': S,
             'action': action,
             'context': context

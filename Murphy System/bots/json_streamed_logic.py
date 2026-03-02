@@ -9,7 +9,7 @@ import os
 import json
 import uuid
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from .plugin_loader import load_plugin
@@ -55,7 +55,7 @@ class JSONStreamedLogicIngestor:
             f.write(function_code)
 
         log_entry = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "function_name": function_name,
             "plugin_id": plugin_id,
             "plugin_path": str(plugin_path),

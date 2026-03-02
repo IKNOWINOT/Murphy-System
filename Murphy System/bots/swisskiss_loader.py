@@ -10,7 +10,7 @@ except ModuleNotFoundError:  # Python <3.11 fallback
     except ModuleNotFoundError:
         tomllib = None
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List
 
 REGISTRY_FILE = "module_registry.yaml"
@@ -208,7 +208,7 @@ class SwissKissLoader:
 
     def write_audit(self, repo_path: Path, audit: dict) -> Path:
         audit_path = repo_path / "audit.json"
-        audit["timestamp"] = datetime.utcnow().isoformat() + "Z"
+        audit["timestamp"] = datetime.now(timezone.utc).isoformat() + "Z"
         audit_path.write_text(json.dumps(audit, indent=2))
         return audit_path
 

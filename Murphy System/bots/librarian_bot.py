@@ -93,7 +93,7 @@ class LibrarianBot:
         return data
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 LIBRARY_INDEX = Path("library/library_index.json")
@@ -108,7 +108,7 @@ def index_data(key: str, tags: list[str], source_bot: str, task_id: str, filepat
         "tags": tags,
         "source_bot": source_bot,
         "task_id": task_id,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "filepath": filepath,
         "usage_count": 0,
     }
