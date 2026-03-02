@@ -33,15 +33,16 @@ MURPHY_VERSION=1.0.0
 MURPHY_ENV=development
 MURPHY_PORT=8000
 
-# API Keys (add your own)
-GROQ_API_KEY=your_groq_key_here
-OPENAI_API_KEY=your_openai_key_here
+# API Keys — set your keys using:  set key groq gsk_yourKeyHere  (in the Murphy terminal)
+# Or uncomment and fill in below:
+# GROQ_API_KEY=
+# OPENAI_API_KEY=
 
 # Optional: Database (not required for basic operation)
 # DATABASE_URL=postgresql://user:pass@localhost:5432/murphy
 # REDIS_URL=redis://localhost:6379
 EOF
-    echo "✅ Created .env file (edit with your API keys if needed)"
+    echo "✅ Created .env file (use 'set key groq <key>' in Murphy terminal to add API keys)"
 fi
 
 # Install dependencies if needed

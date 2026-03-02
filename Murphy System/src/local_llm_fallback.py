@@ -2,22 +2,78 @@
 Local LLM Fallback System
 Provides intelligent responses without internet connection
 Uses pattern matching and templates for offline operation
+Integrates with Ollama for local model inference when available
 """
 
 import re
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple, Optional
 import random
+
+try:
+    import urllib.request
+    import json as _json
+    _HAS_URLLIB = True
+except ImportError:
+    _HAS_URLLIB = False
+
+
+def _check_ollama_available(base_url: str = "http://localhost:11434") -> bool:
+    """Check if an Ollama instance is reachable."""
+    if not _HAS_URLLIB:
+        return False
+    try:
+        req = urllib.request.Request(f"{base_url}/api/tags", method="GET")
+        with urllib.request.urlopen(req, timeout=2) as resp:
+            return resp.status == 200
+    except Exception:
+        return False
+
+
+def _query_ollama(
+    prompt: str,
+    model: str = "llama3",
+    base_url: str = "http://localhost:11434",
+    max_tokens: int = 500,
+) -> Optional[str]:
+    """Query a local Ollama model. Returns the response text or None on failure."""
+    if not _HAS_URLLIB:
+        return None
+    try:
+        payload = _json.dumps({
+            "model": model,
+            "prompt": prompt,
+            "stream": False,
+            "options": {"num_predict": max_tokens},
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            f"{base_url}/api/generate",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = _json.loads(resp.read().decode("utf-8"))
+            return data.get("response", "")
+    except Exception:
+        return None
+
+
+# Preferred Ollama models in priority order
+_OLLAMA_MODELS = ["llama3", "mistral", "phi3", "phi"]
 
 
 class LocalLLMFallback:
     """
     Lightweight fallback LLM for offline operation
-    Uses intelligent pattern matching and response templates
+    Uses intelligent pattern matching and response templates.
+    When Ollama is available locally, routes queries to a real local model.
     """
     
     def __init__(self):
         self.knowledge_base = self._build_knowledge_base()
         self.patterns = self._build_patterns()
+        self._ollama_available: Optional[bool] = None
+        self._ollama_model: Optional[str] = None
     
     def _build_knowledge_base(self) -> Dict[str, str]:
         """Build a knowledge base of common topics"""
@@ -41,6 +97,12 @@ class LocalLLMFallback:
             "security": """Cybersecurity protects systems, networks, and data from digital attacks. Key practices include encryption (protecting data in transit and at rest), authentication (verifying user identity), authorization (controlling access), input validation (preventing injection attacks), and regular security updates. Common threats include SQL injection, cross-site scripting (XSS), and denial-of-service (DoS) attacks.""",
             
             "git": """Git is a distributed version control system for tracking changes in source code. Key concepts include repositories (project storage), commits (snapshots of changes), branches (parallel development lines), and merging (combining changes). Common workflows involve cloning repositories, creating feature branches, committing changes, and pushing to remote repositories like GitHub or GitLab.""",
+
+            "murphy": """Murphy System is an AI-powered automation assistant that helps teams automate operations, onboard new users, manage integrations, and run end-to-end workflows. Key commands include: 'start interview' for guided onboarding, 'help' for command list, 'show modules' for system modules, 'status' for system health, 'execute <task>' to run workflows, 'set key <provider> <key>' to configure API keys, and 'api keys' for integration setup links.""",
+
+            "murphy_setup": """To set up Murphy System: 1) Run the startup script (start_murphy_1.0.sh). 2) Set your Groq API key using 'set key groq gsk_yourKeyHere' in the terminal. 3) Type 'start interview' for guided onboarding. 4) Use 'status' to verify connectivity. 5) Use 'execute <task>' to start automating. For API keys, type 'api keys' to see all available integrations.""",
+
+            "murphy_troubleshooting": """Common Murphy troubleshooting: If LLM is not working, check 'llm status' and ensure your API key is set with 'set key groq <key>'. If the backend is unreachable, try 'reconnect' or 'set api <url>'. If you're stuck, type 'help' for available commands. For API key issues, use 'set key <provider> <key>' to set keys inline without restarting.""",
         }
     
     def _build_patterns(self) -> List[Tuple[str, str]]:
@@ -56,11 +118,37 @@ class LocalLLMFallback:
             (r"(best|good|recommend) (.+)", "recommendation"),
         ]
     
+    @property
+    def ollama_available(self) -> bool:
+        """Check (and cache) whether Ollama is reachable."""
+        if self._ollama_available is None:
+            self._ollama_available = _check_ollama_available()
+            if self._ollama_available:
+                # Detect which model is available
+                for model in _OLLAMA_MODELS:
+                    result = _query_ollama("hi", model=model, max_tokens=5)
+                    if result is not None:
+                        self._ollama_model = model
+                        break
+                else:
+                    self._ollama_available = False
+        return self._ollama_available
+
     def generate(self, prompt: str, max_tokens: int = 500) -> str:
         """
-        Generate a response based on the prompt
-        Uses pattern matching and knowledge base
+        Generate a response based on the prompt.
+        Tries Ollama first, then falls back to pattern matching.
         """
+        # Try Ollama if available
+        if self.ollama_available and self._ollama_model:
+            result = _query_ollama(prompt, model=self._ollama_model, max_tokens=max_tokens)
+            if result:
+                return result
+
+        return self._generate_offline(prompt, max_tokens)
+
+    def _generate_offline(self, prompt: str, max_tokens: int = 500) -> str:
+        """Generate a response using the built-in pattern matcher."""
         prompt_lower = prompt.lower()
         
         # Check knowledge base for direct matches
@@ -178,32 +266,27 @@ Note: I'm in offline mode. For current recommendations and comparisons, please c
         """Generate a default intelligent response"""
         return f"""I understand you're asking about: "{prompt}"
 
-**Current Status**: I'm operating in offline mode with limited knowledge base access.
+**Current Status**: Using built-in knowledge base — no real LLM available.
 
 **What I Can Help With**:
 - General concepts and principles
+- Murphy System commands and setup help
 - Structured approaches to problems
 - Best practice frameworks
-- Logical reasoning and analysis
 
 **For Your Question**:
 To provide the most accurate and helpful response, I would need:
 1. More specific context about your situation
 2. What you're trying to achieve
 3. Any constraints or requirements you have
-4. Your current level of understanding
 
-**Recommendation**:
-When internet connectivity is available, I can provide:
-- Detailed, up-to-date information
-- Specific examples and code
-- Current best practices
-- Links to relevant resources
+**💡 Tip**: Try `set key groq <your-key>` to add an API key for full AI capabilities.
+Get a free key at: https://console.groq.com/keys
 
 Would you like to:
 - Rephrase your question with more context?
 - Ask about a related topic I might have in my offline knowledge base?
-- Wait until online mode for a comprehensive answer?"""
+- Type `help` to see available Murphy commands?"""
 
 
 # Singleton instance
