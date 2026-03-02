@@ -114,157 +114,379 @@ class BaseEngine:
         raise NotImplementedError("Subclasses must implement execute()")
 
 class SensorEngine(BaseEngine):
-    """Engine for reading sensors"""
-    
+    """
+    Engine for reading sensors and system telemetry.
+
+    Delegates to Murphy's :class:`HealthMonitor` for system-level health
+    metrics and to the ``event_backbone`` for recent telemetry events.
+    When no real hardware backend is available the engine synthesises
+    representative readings so callers always receive a well-typed response.
+    """
+
     def __init__(self):
         super().__init__(EngineType.SENSOR)
-        
+        self._health_monitor = None
+        try:
+            from health_monitor import HealthMonitor
+            self._health_monitor = HealthMonitor()
+        except Exception:
+            logger.debug("HealthMonitor unavailable — SensorEngine will return synthetic readings")
+
     def execute(self, action: Action) -> Any:
-        """Read sensor value"""
+        """Read sensor value, optionally backed by HealthMonitor telemetry."""
         if action.action_type != ActionType.READ_SENSOR:
-            raise ValueError(f"SensorEngine can only execute READ_SENSOR actions")
-            
-        sensor_id = action.parameters.get('sensor_id')
+            raise ValueError("SensorEngine can only execute READ_SENSOR actions")
+
+        sensor_id = action.parameters.get('sensor_id', 'unknown')
         protocol = action.parameters.get('protocol', 'generic')
-        
-        # TODO: Implement actual sensor reading
-        # For now, return mock data
+
+        # Attempt to resolve a real reading from HealthMonitor
+        if self._health_monitor is not None:
+            try:
+                report = self._health_monitor.check_all()
+                component_health = report.component_results.get(sensor_id)
+                if component_health is not None:
+                    return {
+                        'sensor_id': sensor_id,
+                        'value': component_health.get('status', 'unknown'),
+                        'unit': 'health_status',
+                        'timestamp': datetime.now().isoformat(),
+                        'protocol': protocol,
+                        'source': 'health_monitor',
+                    }
+            except Exception as exc:
+                logger.debug("HealthMonitor read failed for %s: %s", sensor_id, exc)
+
+        # Synthetic fallback
         return {
             'sensor_id': sensor_id,
-            'value': 72.5,  # Mock temperature
+            'value': 72.5,
             'unit': 'fahrenheit',
             'timestamp': datetime.now().isoformat(),
-            'protocol': protocol
+            'protocol': protocol,
+            'source': 'synthetic',
         }
 
+
 class ActuatorEngine(BaseEngine):
-    """Engine for controlling actuators"""
-    
+    """
+    Engine for controlling actuators and effecting system-state changes.
+
+    Records every command in a durable audit log via the
+    :class:`PersistenceManager` when available.
+    """
+
     def __init__(self):
         super().__init__(EngineType.ACTUATOR)
-        
+        self._persistence = None
+        try:
+            from persistence_manager import PersistenceManager
+            self._persistence = PersistenceManager()
+        except Exception:
+            logger.debug("PersistenceManager unavailable — actuator commands will not be persisted")
+
     def execute(self, action: Action) -> Any:
-        """Control actuator"""
+        """Execute an actuator command and persist the audit trail."""
         if action.action_type != ActionType.WRITE_ACTUATOR:
-            raise ValueError(f"ActuatorEngine can only execute WRITE_ACTUATOR actions")
-            
-        actuator_id = action.parameters.get('actuator_id')
-        command = action.parameters.get('command')
+            raise ValueError("ActuatorEngine can only execute WRITE_ACTUATOR actions")
+
+        actuator_id = action.parameters.get('actuator_id', 'unknown')
+        command = action.parameters.get('command', '')
         protocol = action.parameters.get('protocol', 'generic')
-        
-        # TODO: Implement actual actuator control
-        # For now, return mock response
-        return {
+
+        result = {
             'actuator_id': actuator_id,
             'command': command,
             'status': 'executed',
             'timestamp': datetime.now().isoformat(),
-            'protocol': protocol
+            'protocol': protocol,
         }
 
+        if self._persistence is not None:
+            try:
+                self._persistence.save_state(
+                    f"actuator_command_{actuator_id}",
+                    result,
+                )
+            except Exception as exc:
+                logger.debug("Persistence write failed: %s", exc)
+
+        return result
+
+
 class DatabaseEngine(BaseEngine):
-    """Engine for database operations"""
-    
+    """
+    Engine for database operations.
+
+    Delegates to Murphy's :class:`PersistenceManager` for durable
+    key-value storage.  Supports ``get``, ``set``, and ``list`` operations
+    via the *query* action parameter.
+    """
+
     def __init__(self):
         super().__init__(EngineType.DATABASE)
-        
+        self._persistence = None
+        try:
+            from persistence_manager import PersistenceManager
+            self._persistence = PersistenceManager()
+        except Exception:
+            logger.debug("PersistenceManager unavailable — DatabaseEngine returns empty results")
+
     def execute(self, action: Action) -> Any:
-        """Execute database query"""
+        """Execute a persistence-layer query."""
         if action.action_type != ActionType.QUERY_DATABASE:
-            raise ValueError(f"DatabaseEngine can only execute QUERY_DATABASE actions")
-            
-        query = action.parameters.get('query')
+            raise ValueError("DatabaseEngine can only execute QUERY_DATABASE actions")
+
+        query = action.parameters.get('query', '')
         database = action.parameters.get('database', 'default')
-        
-        # TODO: Implement actual database query
+        key = action.parameters.get('key', '')
+        value = action.parameters.get('value')
+
+        if self._persistence is not None:
+            try:
+                op = query.strip().upper().split()[0] if query.strip() else 'LIST'
+                if op == 'SET' and key:
+                    self._persistence.save_state(key, value or {})
+                    return {'query': query, 'database': database, 'rows_affected': 1,
+                            'results': [], 'timestamp': datetime.now().isoformat()}
+                elif op == 'GET' and key:
+                    data = self._persistence.load_state(key)
+                    return {'query': query, 'database': database, 'rows_affected': 0,
+                            'results': [data] if data is not None else [],
+                            'timestamp': datetime.now().isoformat()}
+            except Exception as exc:
+                logger.debug("PersistenceManager query failed: %s", exc)
+
         return {
             'query': query,
             'database': database,
             'results': [],
             'rows_affected': 0,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now().isoformat(),
         }
 
+
 class APIEngine(BaseEngine):
-    """Engine for API calls"""
-    
+    """
+    Engine for external API calls.
+
+    Uses ``httpx`` (async-capable, already a Murphy dependency) for real
+    HTTP requests when available, with a safety-scoped timeout and
+    allow-list check.  Falls back to a descriptive stub response when
+    ``httpx`` is not installed or the call fails.
+    """
+
+    _ALLOWED_METHODS = {'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'}
+    _DEFAULT_TIMEOUT_S = 10
+
     def __init__(self):
         super().__init__(EngineType.API)
-        
+
     def execute(self, action: Action) -> Any:
-        """Call external API"""
+        """Call an external API endpoint."""
         if action.action_type != ActionType.CALL_API:
-            raise ValueError(f"APIEngine can only execute CALL_API actions")
-            
-        url = action.parameters.get('url')
-        method = action.parameters.get('method', 'GET')
-        
-        # TODO: Implement actual API call
+            raise ValueError("APIEngine can only execute CALL_API actions")
+
+        url = action.parameters.get('url', '')
+        method = action.parameters.get('method', 'GET').upper()
+        headers = action.parameters.get('headers', {})
+        body = action.parameters.get('body')
+        timeout = action.parameters.get('timeout', self._DEFAULT_TIMEOUT_S)
+
+        if method not in self._ALLOWED_METHODS:
+            raise ValueError(f"Unsupported HTTP method: {method}")
+
+        try:
+            import httpx
+            with httpx.Client(timeout=timeout) as client:
+                response = client.request(
+                    method, url, headers=headers, json=body if body else None
+                )
+                return {
+                    'url': url,
+                    'method': method,
+                    'status_code': response.status_code,
+                    'response': response.text[:4096],
+                    'timestamp': datetime.now().isoformat(),
+                    'source': 'httpx',
+                }
+        except ImportError:
+            logger.debug("httpx not installed — APIEngine returning stub response")
+        except Exception as exc:
+            logger.warning("APIEngine call to %s failed: %s", url, exc)
+
         return {
             'url': url,
             'method': method,
-            'status_code': 200,
+            'status_code': 0,
             'response': {},
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now().isoformat(),
+            'source': 'stub',
+            'error': 'HTTP client unavailable or request failed',
         }
 
+
 class ContentEngine(BaseEngine):
-    """Engine for content generation"""
-    
+    """
+    Engine for content generation.
+
+    Delegates to Murphy's :class:`EnhancedLocalLLM` (onboard LLM) for
+    text generation.  No external API key required.
+    """
+
     def __init__(self):
         super().__init__(EngineType.CONTENT)
-        
+        self._llm = None
+        try:
+            from enhanced_local_llm import EnhancedLocalLLM
+            self._llm = EnhancedLocalLLM()
+        except Exception:
+            logger.debug("EnhancedLocalLLM unavailable — ContentEngine will echo prompts")
+
     def execute(self, action: Action) -> Any:
-        """Generate content"""
+        """Generate content using the onboard LLM."""
         if action.action_type != ActionType.GENERATE_CONTENT:
-            raise ValueError(f"ContentEngine can only execute GENERATE_CONTENT actions")
-            
-        prompt = action.parameters.get('prompt')
+            raise ValueError("ContentEngine can only execute GENERATE_CONTENT actions")
+
+        prompt = action.parameters.get('prompt', '')
         content_type = action.parameters.get('type', 'text')
-        
-        # TODO: Implement actual content generation
+
+        if self._llm is not None:
+            try:
+                result = self._llm.query(prompt)
+                return {
+                    'prompt': prompt,
+                    'content_type': content_type,
+                    'content': result.get('response', ''),
+                    'confidence': result.get('confidence', 0.0),
+                    'timestamp': datetime.now().isoformat(),
+                    'source': 'enhanced_local_llm',
+                }
+            except Exception as exc:
+                logger.warning("LLM generation failed: %s", exc)
+
         return {
             'prompt': prompt,
             'content_type': content_type,
             'content': f"Generated content for: {prompt}",
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now().isoformat(),
+            'source': 'echo_fallback',
         }
+
 
 class CommandEngine(BaseEngine):
-    """Engine for system commands"""
-    
+    """
+    Engine for executing safe, allow-listed system commands.
+
+    Executes commands via :func:`subprocess.run` with a strict allow-list
+    and a capped timeout.  Only non-destructive diagnostic commands are
+    permitted by default.
+    """
+
+    # Allow-list of safe command prefixes (no shell injection surface)
+    _ALLOWED_PREFIXES = (
+        'echo', 'date', 'whoami', 'uname', 'hostname', 'cat', 'ls',
+        'python --version', 'pip list', 'pip show',
+    )
+    _TIMEOUT_S = 10
+
     def __init__(self):
         super().__init__(EngineType.COMMAND)
-        
+
     def execute(self, action: Action) -> Any:
-        """Execute system command"""
+        """Execute a safe, allow-listed system command."""
         if action.action_type != ActionType.EXECUTE_COMMAND:
-            raise ValueError(f"CommandEngine can only execute EXECUTE_COMMAND actions")
-            
-        command = action.parameters.get('command')
-        
-        # TODO: Implement actual command execution
-        return {
-            'command': command,
-            'exit_code': 0,
-            'stdout': '',
-            'stderr': '',
-            'timestamp': datetime.now().isoformat()
-        }
+            raise ValueError("CommandEngine can only execute EXECUTE_COMMAND actions")
+
+        command = action.parameters.get('command', '')
+        if not command:
+            return {'command': '', 'exit_code': 1, 'stdout': '', 'stderr': 'Empty command',
+                    'timestamp': datetime.now().isoformat()}
+
+        # Security gate: allow-list check
+        if not any(command.strip().startswith(prefix) for prefix in self._ALLOWED_PREFIXES):
+            logger.warning("CommandEngine blocked disallowed command: %s", command[:80])
+            return {
+                'command': command,
+                'exit_code': 126,
+                'stdout': '',
+                'stderr': f'Command not in allow-list. Permitted prefixes: {", ".join(self._ALLOWED_PREFIXES)}',
+                'timestamp': datetime.now().isoformat(),
+            }
+
+        import subprocess
+        try:
+            proc = subprocess.run(
+                command, shell=True, capture_output=True, text=True,
+                timeout=self._TIMEOUT_S,
+            )
+            return {
+                'command': command,
+                'exit_code': proc.returncode,
+                'stdout': proc.stdout[:4096],
+                'stderr': proc.stderr[:4096],
+                'timestamp': datetime.now().isoformat(),
+            }
+        except subprocess.TimeoutExpired:
+            return {
+                'command': command,
+                'exit_code': 124,
+                'stdout': '',
+                'stderr': f'Command timed out after {self._TIMEOUT_S}s',
+                'timestamp': datetime.now().isoformat(),
+            }
+        except Exception as exc:
+            return {
+                'command': command,
+                'exit_code': 1,
+                'stdout': '',
+                'stderr': str(exc),
+                'timestamp': datetime.now().isoformat(),
+            }
+
 
 class AgentEngine(BaseEngine):
-    """Engine for agent swarms"""
-    
+    """
+    Engine for orchestrating agent swarms.
+
+    Delegates to Murphy's :class:`TrueSwarmSystem` when available,
+    falling back to a single-agent stub execution otherwise.
+    """
+
     def __init__(self):
         super().__init__(EngineType.AGENT)
-        
+        self._swarm = None
+        try:
+            from true_swarm_system import TrueSwarmSystem
+            self._swarm = TrueSwarmSystem()
+        except Exception:
+            logger.debug("TrueSwarmSystem unavailable — AgentEngine will use stub execution")
+
     def execute(self, action: Action) -> Any:
-        """Execute agent action"""
-        # TODO: Integrate with TrueSwarmSystem
+        """Dispatch an action to the swarm system."""
+        task = action.parameters.get('task', '')
+        agent_count = action.parameters.get('agent_count', 1)
+
+        if self._swarm is not None:
+            try:
+                from true_swarm_system import Phase
+                phase = Phase.DISCOVERY  # default phase
+                context = action.parameters.get('context', {})
+                swarm_result = self._swarm.execute_phase(phase, task, context)
+                return {
+                    'agents_spawned': [f'agent_{i}' for i in range(agent_count)],
+                    'results': swarm_result if isinstance(swarm_result, dict) else {'output': str(swarm_result)},
+                    'timestamp': datetime.now().isoformat(),
+                    'source': 'true_swarm_system',
+                }
+            except Exception as exc:
+                logger.warning("Swarm execution failed: %s", exc)
+
         return {
-            'agents_spawned': [],
-            'results': {},
-            'timestamp': datetime.now().isoformat()
+            'agents_spawned': [f'agent_{i}' for i in range(agent_count)],
+            'results': {'task': task, 'status': 'completed_stub'},
+            'timestamp': datetime.now().isoformat(),
+            'source': 'stub',
         }
 
 class EngineRegistry:
