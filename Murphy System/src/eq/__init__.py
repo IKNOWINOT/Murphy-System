@@ -32,4 +32,5 @@ Modules:
     town_systems          — Inspect asymmetry, town conquest, governance logging
     streaming_overlay     — OBS overlay, thought bubbles, faction war map, duel highlights
     murphy_integration    — Voice chat, sentiment classifier, raid moderation, Rosetta persistence
+    eqemu_asset_manager   — EQEmu upstream asset discovery, download tracking, and validation
 """
