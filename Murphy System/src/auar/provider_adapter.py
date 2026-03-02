@@ -83,9 +83,15 @@ class ProviderAdapter:
     callback for easy testing and offline operation.
     """
 
-    def __init__(self, config: AdapterConfig, execute_fn: Optional[Callable] = None):
+    def __init__(
+        self,
+        config: AdapterConfig,
+        execute_fn: Optional[Callable] = None,
+        token_refresh_fn: Optional[Callable] = None,
+    ):
         self.config = config
         self._execute_fn = execute_fn or self._default_execute
+        self._token_refresh_fn = token_refresh_fn
         self._lock = threading.Lock()
         self._stats = {"calls": 0, "successes": 0, "failures": 0, "retries": 0}
 
@@ -105,7 +111,91 @@ class ProviderAdapter:
             pair = f"{creds.get('username', '')}:{creds.get('password', '')}"
             encoded = base64.b64encode(pair.encode()).decode()
             return {"Authorization": f"Basic {encoded}"}
+        if method == AuthMethod.OAUTH2:
+            return self._build_oauth2_headers()
+        if method == AuthMethod.HMAC:
+            return self._build_hmac_headers()
         return {}
+
+    def _build_oauth2_headers(self) -> Dict[str, str]:
+        """Build OAuth2 Authorization header with token refresh support.
+
+        Expected credentials keys:
+            access_token  — current Bearer token
+            refresh_token — used to obtain a new access_token (optional)
+            token_url     — endpoint for token refresh (optional)
+            client_id     — OAuth2 client identifier (optional)
+            client_secret — OAuth2 client secret (optional)
+
+        When *access_token* is present it is used directly.  If a
+        ``token_refresh_fn`` callable has been provided at construction
+        time it will be invoked when the token is empty, enabling the
+        adapter to participate in a real OAuth2 token-refresh flow
+        without hard-coding HTTP calls.
+        """
+        creds = self.config.auth_credentials
+        access_token = creds.get("access_token", "")
+
+        if not access_token and hasattr(self, "_token_refresh_fn") and self._token_refresh_fn:
+            try:
+                new_token = self._token_refresh_fn(creds)
+                if isinstance(new_token, str) and new_token:
+                    creds["access_token"] = new_token
+                    access_token = new_token
+            except Exception as exc:
+                logger.warning("OAuth2 token refresh failed: %s", exc)
+
+        if access_token:
+            return {"Authorization": f"Bearer {access_token}"}
+        return {}
+
+    def _build_hmac_headers(self) -> Dict[str, str]:
+        """Build HMAC request-signing headers.
+
+        Expected credentials keys:
+            secret_key  — shared secret used for HMAC-SHA256 signing
+            key_id      — identifier sent in the ``X-HMAC-Key-Id`` header
+
+        The signature is computed over a deterministic string composed
+        of the current Unix timestamp and the key-id so that the
+        downstream provider can verify authenticity.
+        """
+        import hashlib
+        import hmac as hmac_mod
+
+        creds = self.config.auth_credentials
+        secret = creds.get("secret_key", "")
+        key_id = creds.get("key_id", "")
+
+        timestamp = str(int(time.time()))
+        message = f"{timestamp}:{key_id}"
+        signature = hmac_mod.new(
+            secret.encode(), message.encode(), hashlib.sha256
+        ).hexdigest()
+
+        return {
+            "X-HMAC-Signature": signature,
+            "X-HMAC-Timestamp": timestamp,
+            "X-HMAC-Key-Id": key_id,
+        }
+
+    # -- Protocol-aware request preparation ---------------------------------
+
+    def _prepare_request(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Adapt *payload* based on the configured protocol.
+
+        For REST requests the payload is returned unchanged.  For
+        GRAPHQL the body is wrapped in the standard ``{"query": …,
+        "variables": …}`` envelope.
+        """
+        protocol = self.config.protocol
+        if protocol == Protocol.GRAPHQL:
+            body = payload.get("body", {})
+            query = body.pop("query", "")
+            wrapped_body = {"query": query, "variables": body}
+            return {**payload, "body": wrapped_body, "method": "POST"}
+        # REST (and stubs for gRPC/SOAP) — pass through
+        return payload
 
     # -- Execution ----------------------------------------------------------
 
@@ -129,6 +219,9 @@ class ProviderAdapter:
             "query_params": query_params or {},
             "protocol": self.config.protocol.value,
         }
+
+        # Apply protocol-specific transformations
+        request_payload = self._prepare_request(request_payload)
 
         response = self._execute_with_retries(request_payload)
         response.latency_ms = (time.monotonic() - start) * 1000
@@ -195,8 +288,13 @@ class ProviderAdapterManager:
         self._adapters: Dict[str, ProviderAdapter] = {}
         self._lock = threading.Lock()
 
-    def register_adapter(self, config: AdapterConfig, execute_fn: Optional[Callable] = None) -> str:
-        adapter = ProviderAdapter(config, execute_fn)
+    def register_adapter(
+        self,
+        config: AdapterConfig,
+        execute_fn: Optional[Callable] = None,
+        token_refresh_fn: Optional[Callable] = None,
+    ) -> str:
+        adapter = ProviderAdapter(config, execute_fn, token_refresh_fn)
         with self._lock:
             self._adapters[config.provider_id] = adapter
         logger.info("Registered adapter: %s (%s)", config.provider_name, config.provider_id)

@@ -258,3 +258,60 @@ def handle_health(components: AUARComponents) -> Dict[str, Any]:
         "ml_observations": components.ml.get_stats()["total_observations"],
         "active_traces": components.observability.get_stats()["traces"],
     }
+
+
+# ---------------------------------------------------------------------------
+# FastAPI router factory
+# ---------------------------------------------------------------------------
+
+def create_auar_router(components: Optional[AUARComponents] = None):
+    """Create a FastAPI ``APIRouter`` with AUAR endpoints.
+
+    If *components* is ``None`` a fresh set is initialised via
+    ``initialize_auar()``.
+
+    Returns ``None`` gracefully if FastAPI is not installed, so callers
+    that only need the handler functions are not forced to depend on
+    FastAPI.
+    """
+    try:
+        from fastapi import APIRouter, Request
+        from fastapi.responses import JSONResponse
+    except ImportError:
+        logger.warning(
+            "FastAPI not installed — AUAR REST endpoints unavailable.  "
+            "Install with: pip install fastapi"
+        )
+        return None
+
+    if components is None:
+        components = initialize_auar()
+
+    router = APIRouter(prefix="/api/auar", tags=["auar"])
+
+    @router.post("/route")
+    async def route_request(request: Request) -> JSONResponse:
+        """Execute a full AUAR pipeline request."""
+        body = await request.json()
+        result = handle_route(components, body)
+        status = 200 if result.get("success") else 422
+        return JSONResponse(content=result, status_code=status)
+
+    @router.post("/register")
+    async def register_capability(request: Request) -> JSONResponse:
+        """Register a capability and/or provider."""
+        body = await request.json()
+        result = handle_register(components, body)
+        return JSONResponse(content=result, status_code=201)
+
+    @router.get("/stats")
+    async def get_stats() -> JSONResponse:
+        """Return AUAR system statistics."""
+        return JSONResponse(content=handle_stats(components))
+
+    @router.get("/health")
+    async def health_check() -> JSONResponse:
+        """AUAR subsystem health check."""
+        return JSONResponse(content=handle_health(components))
+
+    return router
