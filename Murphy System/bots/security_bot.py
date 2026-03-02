@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import os
 import time
@@ -73,7 +73,7 @@ def check_permission(role: str, command: str) -> bool:
 
 def log_activity(key_id: str, command: str, task_id: str, status: str, latency: int) -> None:
     entry = {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "key_id": key_id,
         "command": command,
         "task_id": task_id,
@@ -87,7 +87,7 @@ def log_activity(key_id: str, command: str, task_id: str, status: str, latency: 
 
 def log_security_event(event_type: str, detail: str, action: str | None = None) -> None:
     entry = {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "event_type": event_type,
         "detail": detail,
         "action": action or "none",

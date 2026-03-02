@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict
 
@@ -31,13 +31,13 @@ def get_cache(key: str) -> Any | None:
     try:
         expiry = datetime.fromisoformat(entry["validated_at"]) + timedelta(seconds=entry["ttl_seconds"])
     except Exception:
-        expiry = datetime.utcnow()
-    if datetime.utcnow() > expiry:
+        expiry = datetime.now(timezone.utc)
+    if datetime.now(timezone.utc) > expiry:
         cache.pop(key, None)
         _save(cache)
         return None
     entry["hits"] += 1
-    entry["last_accessed"] = datetime.utcnow().isoformat()
+    entry["last_accessed"] = datetime.now(timezone.utc).isoformat()
     _save(cache)
     return entry["value"]
 
@@ -48,8 +48,8 @@ def set_cache(key: str, value: Any, ttl_seconds: int = 300) -> None:
         "value": value,
         "ttl_seconds": ttl_seconds,
         "hits": 0,
-        "validated_at": datetime.utcnow().isoformat(),
-        "last_accessed": datetime.utcnow().isoformat(),
+        "validated_at": datetime.now(timezone.utc).isoformat(),
+        "last_accessed": datetime.now(timezone.utc).isoformat(),
     }
     _save(cache)
 
@@ -72,7 +72,7 @@ def cache_stats() -> Dict[str, Any]:
 
 def cleanup_cache() -> int:
     cache = _load()
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     removed = 0
     for key in list(cache.keys()):
         entry = cache[key]

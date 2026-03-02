@@ -5,7 +5,7 @@ import json
 import os
 import re
 from typing import Any, Dict
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from .gpt_oss_runner import GPTOSSRunner
 
@@ -61,7 +61,7 @@ Output a valid {filetype} format file content only.
 
         prompt = self.generate_model_prompt(scope, filetype)
         cad_code = self.runner.chat(prompt)
-        filename = f"cad_model_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.{filetype}"
+        filename = f"cad_model_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.{filetype}"
         path = OUTPUT_DIR / filename
 
         with open(path, "w", encoding="utf-8") as f:
@@ -69,7 +69,7 @@ Output a valid {filetype} format file content only.
 
         task_record = {
             "request": request,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "cad_file": str(path),
             "format": filetype,
             "task_scope": scope,
@@ -137,7 +137,7 @@ Return SVG markup only.
         return {
             "layers": layer_count,
             "extrusion_total": round(extrusion_volume, 3),
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
     def print_gcode(self, gcode: str, printer_name: str = "SimPrinter") -> dict:
@@ -170,7 +170,7 @@ Return the modified version only.
         return {"status": "modified", "file": filepath, "instruction": instruction}
 
     def save_robot_package(self, data: dict) -> None:
-        pkg_file = OUTPUT_DIR / f"robot_package_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
+        pkg_file = OUTPUT_DIR / f"robot_package_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
         with open(pkg_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
 
