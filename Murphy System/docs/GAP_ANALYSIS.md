@@ -57,7 +57,7 @@ Each row compares what **should** happen (per the plans) against what **actually
 | Content generation (copy, threads, press releases) | Onboard LLM + automation engine | ✅ Yes | Onboard LLM operational; Inoni engine active |
 | Email sequences | Onboard LLM + automation engine | ✅ Yes | Same |
 | Workflow creation (20 templates) | Workflow DAG Engine + LLM | ✅ Yes | DAG engine + onboard LLM both active |
-| Logo generation | Image generation API | ❌ No | No image generation capability found |
+| Logo generation | Image generation API | ✅ Yes | ImageGenerationEngine active with 10 styles (Pillow backend) |
 | Demo video script | Onboard LLM | ✅ Yes | Plan and content generation via onboard LLM |
 | Social media scheduling | Automation engine + platform connectors | ✅ Yes | Inoni engine active |
 | Discord setup | External integration | ✅ Yes | Integration engine active |
