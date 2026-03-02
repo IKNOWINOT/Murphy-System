@@ -116,15 +116,30 @@ def reload_env(path: Optional[str] = None) -> Dict[str, str]:
     return env_vars
 
 
+def strip_key_wrapping(key: str) -> str:
+    """Remove surrounding angle brackets, quotes, backticks, and whitespace."""
+    key = key.strip()
+    if len(key) >= 2:
+        if key[0] == key[-1] and key[0] in ('"', "'", "`"):
+            key = key[1:-1]
+        elif key.startswith("<") and key.endswith(">"):
+            key = key[1:-1]
+    return key.strip()
+
+
 def validate_api_key(provider: str, key: str) -> Tuple[bool, str]:
     """Validate an API key's format for a given provider.
 
     Returns ``(True, message)`` on success or ``(False, message)`` on failure.
+    Automatically strips surrounding angle brackets, quotes, backticks,
+    and whitespace before checking the format.
     """
     provider = provider.lower()
     if provider not in API_KEY_FORMATS:
         supported = ", ".join(sorted(API_KEY_FORMATS.keys()))
         return False, f"Unknown provider '{provider}'. Supported: {supported}"
+
+    key = strip_key_wrapping(key)
 
     fmt = API_KEY_FORMATS[provider]
     if not re.match(fmt["pattern"], key):
