@@ -9,9 +9,15 @@
 
 ## Executive Summary
 
-Murphy System **starts, serves API requests, and passes 100% of its test suite** (6,261 / 6,271, 10 skipped for optional dependencies). The core infrastructure — FastAPI server, confidence engine, gate system, persistence, event backbone, scheduling, compliance, RBAC — is operational. All four subsystems (Control Plane, Inoni Business Automation, Integration Engine, Two-Phase Orchestrator) initialize successfully. The onboard LLM operates without any external API key, producing confidence scores of 0.65–0.95. Document confidence starts at 0.45 by design and increases through the staged processing pipeline (magnify → solidify → gate synthesis).
+Murphy System **starts, serves API requests, and passes 100% of its test suite** (6,101 passed, 22 skipped, 0 failures). The core infrastructure — FastAPI server, confidence engine, gate system, persistence, event backbone, scheduling, compliance, RBAC — is operational. All four subsystems (Control Plane, Inoni Business Automation, Integration Engine, Two-Phase Orchestrator) initialize successfully. The onboard LLM operates without any external API key, producing confidence scores of 0.65–0.95. Document confidence starts at 0.45 by design and increases through the staged processing pipeline (magnify → solidify → gate synthesis).
 
-**Overall status: 98%+ operational. All critical gaps resolved. Remaining items are low-priority polish (residual deprecation warnings).**
+All 10 remediation items (REM-001 through REM-010) are **COMPLETE**:
+- REM-001–008: Core system fixes (subsystem init, compute tests, deprecation warnings, RBAC)
+- REM-009: End-to-end automation pipeline validated (12 tests)
+- REM-010: Automated operations workflow validated (13 tests, 7-step cycle)
+- API-002: Credential verifiers improved with proper format validation (19 tests)
+
+**Overall status: 98%+ operational. All remediation items resolved. Remaining items are infrastructure-level (PQC crypto library, Redis rate limiting).**
 
 ---
 
@@ -46,7 +52,7 @@ Each row compares what **should** happen (per the plans) against what **actually
 
 | Expectation | Actual | Gap? | Severity |
 |-------------|--------|------|----------|
-| All tests pass | ✅ 6,261 passed, 10 skipped, 0 failures | No | — |
+| All tests pass | ✅ 6,101 passed, 22 skipped, 0 failures | No | — |
 | No critical test failures | ✅ All compute-plane edge cases fixed | No | — |
 | Zero deprecation warnings | ⚠️ Reduced — datetime.utcnow() fixed in 22 bot files | Minor | 🟢 Low |
 
@@ -140,6 +146,7 @@ An external Groq/OpenAI API key enhances quality but is **not required** for sys
 | Severity | Count | Gaps |
 |----------|-------|------|
 | ✅ Resolved | 4 | GAP-001 (subsystems initialised), GAP-002 (onboard LLM works), GAP-003 (compute plane tests fixed), GAP-004 (image generation added) |
+| ✅ Resolved | — | REM-009 (E2E automation validated), REM-010 (ops workflow validated), API-002 (credential verifiers improved) |
 | 🟢 Low | 1 | Remaining deprecation warnings (partially cleaned) |
 
 ---

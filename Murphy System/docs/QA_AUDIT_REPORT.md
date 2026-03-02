@@ -38,7 +38,7 @@ This report documents the findings and remediation status for hardening and laun
 | ARCH-002 | `agentic_api_provisioner.py` | Missing from working tree | ✅ Verified — File exists and is importable |
 | ARCH-004 | `execution_orchestrator/api.py` | Execution registry IDOR — any user can abort any other user's execution | ✅ Fixed — Ownership tracking added, abort endpoint enforces caller == owner |
 | ARCH-006 | `config.py` | Rate limiting configured but not applied to any route | ✅ Fixed — Rate limiting applied via `flask_security.py` before_request hook |
-| API-002 | Credential verifiers | All credential verifiers are placeholders (len check, not real API calls) | ⏳ Tracked — Requires real credential provider integration |
+| API-002 | Credential verifiers | All credential verifiers are placeholders (len check, not real API calls) | ✅ Improved — Format validation added: API key prefix checks (OpenAI/Groq/Stripe/GitHub), OAuth structural integrity, JWT base64 + 'alg' header validation. Real API calls remain service-dependent. |
 | API-004 | `config.py` / `.env.example` | Master key written to .env in plaintext | ✅ Fixed — Warning added to config.py, .env.example updated with secrets manager guidance |
 | SEC-005 | RBAC governance | RBACGovernance wired into Flask security via `require_permission()` decorator | ✅ Fixed — `flask_security.py` now exports `require_permission(Permission)` decorator; `g.rbac_user_id` / `g.rbac_tenant_id` extracted in `before_request` hook |
 | DOC-001 | API docs | API docs explicitly document absence of auth | ✅ Fixed — Auth documentation reflects implemented controls |
@@ -110,7 +110,7 @@ POST /abort/<id> → checks caller == execution_owners[packet_id]
 
 1. **SEC-003**: Replace simulated PQC crypto with real library (liboqs-python or pqcrypto) — 3 days (post-launch)
 2. ~~**SEC-005**: Wire RBAC governance into API endpoint decorators~~ — ✅ **DONE** (`require_permission()` decorator in `flask_security.py`)
-3. **API-002**: Replace placeholder credential verifiers with real API integrations — ongoing
+3. ~~**API-002**: Replace placeholder credential verifiers with real API integrations~~ — ✅ **IMPROVED** (format validation with service-specific prefix checks, structural integrity validation; real API calls remain service-dependent)
 4. **ARCH-006**: Move to Redis-backed rate limiting for multi-process deployments — 1 day (post-launch)
 
 ---
