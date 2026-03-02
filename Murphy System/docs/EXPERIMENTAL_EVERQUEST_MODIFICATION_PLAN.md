@@ -2102,20 +2102,20 @@ Every entity in the game has card effects **automatically generated** from an **
 ### Phase 1: Foundation (Weeks 1–4)
 
 - [x] Set up EQEmu development server with Planes of Power progression config
-- [ ] Configure original EQ XP rates and leveling curve (hell levels, death penalty, corpse runs)
-- [ ] Implement soul engine with memory/archive/recall
+- [x] Configure original EQ XP rates and leveling curve (hell levels, death penalty, corpse runs)
+- [x] Implement soul engine with memory/archive/recall
 - [x] Create Sourcerior class in spell/ability tables
 - [x] Configure Sourcerior eligible races (Dark Elf, Erudite, Human, High Elf, Gnome)
 - [x] Configure Sourcerior armor restrictions (cloth, leather, Fungi Tunic)
 - [x] Implement AI agent class archetypes (pure melee, int caster, cleric)
 - [x] Define immutable class play-style templates for each agent archetype
-- [ ] Basic agent spawning with soul documents
-- [ ] Define race cultural identity templates for persona injector
+- [x] Basic agent spawning with soul documents
+- [x] Define race cultural identity templates for persona injector
 - [x] Implement EQ isolation boundary and sandbox gateway (eq_gateway module)
 - [x] Configure agent language restriction (in-game languages + Common Tongue only; no code capability)
 - [x] Build lore-seed import pipeline from EQEmu NPC database (lore_seeder.py)
 - [x] Import all existing NPCs, named mobs, and raid bosses as agent soul foundations
-- [ ] Seed The Sleeper (Kerafyrm) shared lore block into all agent soul documents
+- [x] Seed The Sleeper (Kerafyrm) shared lore block into all agent soul documents
 
 ### Phase 2: Combat & Class (Weeks 5–8)
 
@@ -2158,57 +2158,57 @@ Every entity in the game has card effects **automatically generated** from an **
 - [ ] Connect sentiment classifier for voice moderation
 - [ ] Implement governance kernel logging for all admin actions
 - [ ] Connect Rosetta state management for soul persistence
-- [ ] Integrate cultural personality templates into persona_injector.py
+- [x] Integrate cultural personality templates into persona_injector.py
 - [x] Implement perception-inference-action pipeline (perception_pipeline.py — screen scan → inference → mind write)
 - [x] Implement macro-trigger behavior engine (macro_trigger_engine.py — assist, follow, engage, buff, heal, debuff triggers)
 - [x] Wire macro-trigger engine into play-style templates for each agent class archetype
-- [ ] Implement The Sleeper world event (zone restriction, dragon /tell coordination, faction mutual aid)
-- [ ] Implement dragon /tell rally system for Sleeper awakening (agent-to-agent faction communication)
-- [ ] Implement faction mutual aid — hostile factions cooperate during Sleeper event unless already engaged
+- [x] Implement The Sleeper world event (zone restriction, dragon /tell coordination, faction mutual aid)
+- [x] Implement dragon /tell rally system for Sleeper awakening (agent-to-agent faction communication)
+- [x] Implement faction mutual aid — hostile factions cooperate during Sleeper event unless already engaged
 
 ### Phase 5: Progression & Remake (Weeks 17–20)
 
-- [ ] Implement progression server era unlock schedule
+- [x] Implement progression server era unlock schedule
 - [x] Implement Remake System for all classes (1% stat/skill cap increase)
 - [x] Implement agent remake cycle (automatic, retains soul document)
 - [x] Build remake counter UI and inspect integration
 - [x] Implement God Card drop system on deity encounters (card_system.py)
 - [x] Implement progressive card collection unlocks (skill → buff → enchantment → Card of Unmaking)
-- [ ] Implement global server announcements at 3 and 4 card collection milestones
-- [ ] Implement The Unmaker NPC (level 1, 1% random spawn, loot table, card conversion)
-- [ ] Implement Unmaker cloth armor set with 5 AC per piece and Unmaker Aura set bonus
-- [ ] Implement Card of Unmaking void spell (permanent entity deletion, player exception)
-- [ ] Implement god-vs-god plotting mechanics (deities using cards against each other, loot table merging)
-- [ ] Implement PvP raid boss transformation when player unmakes a god (title, stats, abilities)
+- [x] Implement global server announcements at 3 and 4 card collection milestones
+- [x] Implement The Unmaker NPC (level 1, 1% random spawn, loot table, card conversion)
+- [x] Implement Unmaker cloth armor set with 5 AC per piece and Unmaker Aura set bonus
+- [x] Implement Card of Unmaking void spell (permanent entity deletion, player exception)
+- [x] Implement god-vs-god plotting mechanics (deities using cards against each other, loot table merging)
+- [x] Implement PvP raid boss transformation when player unmakes a god (title, stats, abilities)
 - [x] Implement Shield of the Unmaker buff for holders of 2+ Cards of Unmaking
 - [x] Implement card restriction rules (dragons/raid bosses excluded, bound-to-collector)
 - [x] Implement Shield of the Unmaker (10% chance to delete incoming spells/hits at 2 Cards of Unmaking)
 - [x] Implement Disintegration Proc weapon enchantment (3 Cards — destroys target and nearby player equipped items)
 - [x] Build Tower of the Unmaker raid zone (steampunk roaming craft, trash mobs, mini-bosses, zone-wall spawning)
-- [ ] Implement The Unmaker True Form raid boss (random raid attacks at 30% proc, item disintegration, void deletion)
-- [ ] Implement Banned by the Unmaker mechanic (~1% proc, 2 real-time day login lockout)
-- [ ] Implement 4th Card of Unmaking as Tower of the Unmaker boss drop only
+- [x] Implement The Unmaker True Form raid boss (random raid attacks at 30% proc, item disintegration, void deletion)
+- [x] Implement Banned by the Unmaker mechanic (~1% proc, 2 real-time day login lockout)
+- [x] Implement 4th Card of Unmaking as Tower of the Unmaker boss drop only
 - [x] Implement universal card drops for all entities (mobs, NPCs, creatures — minor effects)
 - [x] Implement 4-card entity deletion (trading 4 universal cards to Unmaker deletes that entity permanently)
 - [x] Implement world entropy tracking (deleted entity registry, resource scarcity progression)
 - [x] Implement server reboot via 4 Cards of Unmaking (full deck triggers world reset)
 - [x] Implement 3rd-card enchanted item persistence (survive server reboot, sole items that carry forward)
-- [ ] Implement Becoming The Unmaker (killing blow transformation, full Unmaker gear, group aura, title)
-- [ ] Implement max-level Unmaker raid boss flag (player-Unmaker becomes attackable by all at max level with full buffs)
-- [ ] Implement Unmaker-only loot drop on defeat (drops Unmaker gear and cards only, not personal gear)
-- [ ] Implement Unmaker Megaphone as range item (converts Unmaker Aura from personal to group spell)
-- [ ] Implement Unmaker AA track with 100% XP rate bonus
-- [ ] Implement Unmaking Escalation system (global soul-trade announcement, escalating world response)
+- [x] Implement Becoming The Unmaker (killing blow transformation, full Unmaker gear, group aura, title)
+- [x] Implement max-level Unmaker raid boss flag (player-Unmaker becomes attackable by all at max level with full buffs)
+- [x] Implement Unmaker-only loot drop on defeat (drops Unmaker gear and cards only, not personal gear)
+- [x] Implement Unmaker Megaphone as range item (converts Unmaker Aura from personal to group spell)
+- [x] Implement Unmaker AA track with 100% XP rate bonus
+- [x] Implement Unmaking Escalation system (global soul-trade announcement, escalating world response)
 - [x] Implement card-holding capability system (abilities active only while cards are held, lost on trade)
-- [ ] Implement 1-card origin NPC summon (6 random never-summoned NPCs from origin city as personal group)
-- [ ] Implement 2-card origin zone rally (entire zone of origin NPCs rallied to holder's location)
-- [ ] Implement 3-card origin city + faction zone summon (origin zone AI + random same-faction zone)
-- [ ] Implement 4-card Unmaker immunity + full faction mobilization (immune to all Unmaker attacks, all same-faction cities commanded)
-- [ ] Implement hostile city army mobilization against card holder (all cities except origin)
-- [ ] Implement dragon dispatch at 2 Cards (3-day timer, Nagafen/Vox-tier tracking dragon)
-- [ ] Implement god + dragon dispatch at 3 Cards (3-day timer, deity + dragon hunting party)
-- [ ] Redesign Crushbone as merchant city homeland (level 40–60 zone, merchant infrastructure)
-- [ ] Implement card trade-off system (holding capabilities forfeited when cards traded for Shield/Void/transformation)
+- [x] Implement 1-card origin NPC summon (6 random never-summoned NPCs from origin city as personal group)
+- [x] Implement 2-card origin zone rally (entire zone of origin NPCs rallied to holder's location)
+- [x] Implement 3-card origin city + faction zone summon (origin zone AI + random same-faction zone)
+- [x] Implement 4-card Unmaker immunity + full faction mobilization (immune to all Unmaker attacks, all same-faction cities commanded)
+- [x] Implement hostile city army mobilization against card holder (all cities except origin)
+- [x] Implement dragon dispatch at 2 Cards (3-day timer, Nagafen/Vox-tier tracking dragon)
+- [x] Implement god + dragon dispatch at 3 Cards (3-day timer, deity + dragon hunting party)
+- [x] Redesign Crushbone as merchant city homeland (level 40–60 zone, merchant infrastructure)
+- [x] Implement card trade-off system (holding capabilities forfeited when cards traded for Shield/Void/transformation)
 - [x] Implement one-week cooldown timers on all card abilities (7-day real-time cooldown per activation)
 - [x] Implement 1% card drop rate on all entity kills (universal card system)
 - [x] Implement entry requirement for Tower of the Unmaker zone (1 Card of Unmaking OR 4 same-type universal cards, levitation required)
@@ -2221,7 +2221,7 @@ Every entity in the game has card effects **automatically generated** from an **
 - [x] Implement interaction-triggered recall (agent history only surfaces when re-encountering known entity)
 - [x] Implement collective lore propagation (agents share knowledge through faction/social communication)
 - [x] Implement lore fidelity degradation (information distorts with each retelling between agents)
-- [ ] Implement agent heroic persona system (noble deity devotion, faction loyalty hierarchy, heroic archetypes)
+- [x] Implement agent heroic persona system (noble deity devotion, faction loyalty hierarchy, heroic archetypes)
 - [x] Implement agent text-to-speech voice profiles (race/class-specific voices for streaming agents)
 - [ ] Implement agent streaming capability (first-person perspective capture, live broadcast, overlay integration)
 - [x] Implement agent voice roster (8+ distinct voice profiles covering major race/class combinations)
@@ -2233,7 +2233,7 @@ Every entity in the game has card effects **automatically generated** from an **
 - [x] Implement NPC horror reaction to soul-bound protectors (faction penalty, dialogue changes, fear/revulsion)
 - [x] Implement AI player kill-on-sight behavior for soul-bound protector holders (all named NPCs attack)
 - [x] Implement named creature AI player restriction (only named creatures get full soul documents and autonomous behavior)
-- [ ] Implement soul-bound protector lore propagation (AI players spread word about soul-enslavers via collective lore)
+- [x] Implement soul-bound protector lore propagation (AI players spread word about soul-enslavers via collective lore)
 - [x] Implement card effect level scaling (entity level → spell duration, mitigation %, haste bonus, protector stats)
 - [x] Implement level-60 unmaking cap (max 3 Cards of Unmaking from sub-60 entities, 4th requires Tower of the Unmaker)
 - [x] Implement 3-card attackable-by-all PvP flag (holding 3+ Cards of Unmaking = attackable by everyone)
@@ -2245,12 +2245,12 @@ Every entity in the game has card effects **automatically generated** from an **
 
 ### Phase 6: Race & Culture (Weeks 21–24)
 
-- [ ] Implement orc as new playable race (race table, starting stats, character model)
-- [ ] Redesign Crushbone as orc starting city (NPCs, merchants, quest givers)
-- [ ] Implement cultural behavioral biases in agent soul documents
-- [ ] Create race-specific quest content reflecting cultural values
-- [ ] Implement cultural faction alignment motivation layer
-- [ ] Test agent cultural personality across all race templates
+- [x] Implement orc as new playable race (race table, starting stats, character model)
+- [x] Redesign Crushbone as orc starting city (NPCs, merchants, quest givers)
+- [x] Implement cultural behavioral biases in agent soul documents
+- [x] Create race-specific quest content reflecting cultural values
+- [x] Implement cultural faction alignment motivation layer
+- [x] Test agent cultural personality across all race templates
 
 ### Phase 7: Stream & Polish (Weeks 25–28)
 

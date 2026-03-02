@@ -22,4 +22,9 @@ Modules:
     tower_zone            — Tower of the Unmaker roaming zone mechanics
     remake_system         — Character remake bonuses and history tracking
     server_reboot         — Decay vote and server reboot / item survival logic
+    escalation_system     — Unmaking escalation: card-holder capabilities and world threats
+    sleeper_event         — The Sleeper (Kerafyrm) world event, warder kills, dragon rallies
+    unmaker_npc           — The Unmaker NPC, armor set, boss config, banned mechanic
+    progression_server    — Era progression (Classic→PoP), XP rates, hell levels
+    cultural_identity     — Race cultural templates, orc race, personality biases
 """
