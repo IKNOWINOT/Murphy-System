@@ -253,15 +253,32 @@ async def get_submission_status(submission_id: str) -> JSONResponse:
     - results: Results if complete
     """
     try:
-        # TODO: Implement submission status tracking
-        # This will query the execution engine for status
-        
+        # Query the in-memory submission store for status.
+        # The store is populated by form handlers on submission and
+        # updated by the execution engine as tasks progress.
+        from .handlers import _submission_store  # lightweight in-process store
+
+        record = _submission_store.get(submission_id)
+        if record is None:
+            return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content={
+                    'submission_id': submission_id,
+                    'status': 'not_found',
+                    'message': f'No submission found with ID: {submission_id}'
+                }
+            )
+
         return JSONResponse(
             status_code=status.HTTP_200_OK,
             content={
                 'submission_id': submission_id,
-                'status': 'not_implemented',
-                'message': 'Status tracking will be implemented in execution engine'
+                'status': record.get('status', 'pending'),
+                'form_type': record.get('form_type'),
+                'progress': record.get('progress', {}),
+                'results': record.get('results'),
+                'submitted_at': record.get('submitted_at'),
+                'updated_at': record.get('updated_at'),
             }
         )
         
