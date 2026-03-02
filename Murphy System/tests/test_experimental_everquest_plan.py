@@ -925,7 +925,7 @@ class TestExperimentalEverQuestPlan:
     def test_four_card_combo_unmade_field(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "four_card_combo_unmade" in lower or "4 cards" in lower and "unmade" in lower
+        assert ("four_card_combo_unmade" in lower) or ("4 cards" in lower and "unmade" in lower)
 
     def test_spawner_registry_as_server_log(self):
         text = _load_doc(self.DOC_NAME)
