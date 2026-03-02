@@ -497,12 +497,19 @@ class GenerativeSetupOrchestrator:
 # ============================================================================
 
 class ProductionExecutionOrchestrator:
-    """
-    Phase 2: Orchestrates production execution
+    """Phase 2: Orchestrates production execution.
+
+    Attributes:
+        configurations: Saved automation configurations keyed by automation_id.
+        execution_history: List of deliverable dicts per automation_id.
+        learned_patterns: Per-automation learning state.  Each entry is a dict
+            with keys ``total_runs``, ``success_count``, ``failure_count``,
+            ``failed_agents`` (agent_type → failure count), ``avg_steps``
+            (running average of steps per execution), and ``last_status``.
     """
     def __init__(self):
-        self.configurations = {}
-        self.execution_history = {}
+        self.configurations: Dict[str, Dict[str, Any]] = {}
+        self.execution_history: Dict[str, List[Dict[str, Any]]] = {}
         self.learned_patterns: Dict[str, Dict[str, Any]] = {}
         
     def save_configuration(self, config: Dict[str, Any]):

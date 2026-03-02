@@ -134,9 +134,11 @@ class SensorEngine(BaseEngine):
         protocol = action.parameters.get('protocol', 'generic')
 
         # Deterministic simulated reading keyed on sensor_id.
+        # NOTE: MD5 is used here purely for deterministic hashing to generate
+        # consistent simulated values — NOT for cryptographic purposes.
         if sensor_id not in self._readings:
             import hashlib
-            seed = int(hashlib.md5(sensor_id.encode()).hexdigest()[:8], 16)
+            seed = int(hashlib.md5(sensor_id.encode()).hexdigest()[:8], 16)  # noqa: S324
             self._readings[sensor_id] = 60.0 + (seed % 4000) / 100.0  # 60–100 range
 
         value = self._readings[sensor_id]
