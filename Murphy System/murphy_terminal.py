@@ -37,6 +37,15 @@ from textual.widgets import (
     RichLog,
 )
 
+from src.env_manager import (
+    read_env,
+    write_env_key,
+    reload_env,
+    validate_api_key,
+    get_env_path,
+    API_KEY_FORMATS,
+)
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
@@ -64,7 +73,7 @@ MODULE_COMMAND_MAP: dict[str, list[str]] = {
     "sales_automation": ["sales report"],
     "system_librarian": ["librarian", "knowledge base"],
     "integration_engine": ["integrations", "show integrations"],
-    "api_setup": ["api keys", "get api keys"],
+    "api_setup": ["api keys", "get api keys", "set key <provider> <key>"],
     "command_system": ["help", "commands", "show modules"],
     "conversation_handler": ["chat (natural language)"],
 }
@@ -413,10 +422,9 @@ class DialogContext:
             msg += (
                 "\n[bold cyan]What to do next:[/bold cyan]\n"
                 "  1. Sign up for the API keys listed above (links provided)\n"
-                "  2. Set each as an environment variable (e.g. [green]export GROQ_API_KEY=gsk_...[/green])\n"
-                "  3. Restart Murphy to pick up the new keys\n"
-                "  4. Type [green]status[/green] to verify everything is connected\n"
-                "  5. Type [green]execute <your first task>[/green] to start automating!\n\n"
+                "  2. Set keys right here: [green]set key groq gsk_...[/green] (no restart needed)\n"
+                "  3. Type [green]status[/green] to verify everything is connected\n"
+                "  4. Type [green]execute <your first task>[/green] to start automating!\n\n"
             )
         else:
             msg += (
@@ -567,6 +575,7 @@ INTENT_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"\b(corrections?|correction stats)\b", re.I), "intent_corrections"),
     (re.compile(r"\b(pending|interventions?|hitl)\b", re.I), "intent_hitl"),
     (re.compile(r"\b(execute|run task|launch)\b", re.I), "intent_execute"),
+    (re.compile(r"^set[_ ]?key\b", re.I), "intent_set_key"),
     (re.compile(r"^set[_ ]?api\b", re.I), "intent_set_api"),
     (re.compile(r"^test[_ ]?api\b|^test[_ ]?connection\b", re.I), "intent_test_api"),
     (re.compile(r"^reconnect\b", re.I), "intent_reconnect"),
@@ -719,6 +728,8 @@ class MurphyTerminalApp(App):
         self.dialog = DialogContext()
         self._reconnect_attempts = 0
         self._reconnect_timer = None
+        self._offline_mode = False
+        self._awaiting_api_key = False
 
     # -- compose --
 
@@ -740,6 +751,7 @@ class MurphyTerminalApp(App):
                     "[dim]show modules[/dim]\n"
                     "[dim]librarian[/dim]\n"
                     "[dim]api keys[/dim]\n"
+                    "[dim]set key <provider> <key>[/dim]\n"
                     "[dim]billing[/dim]\n"
                     "[dim]links[/dim]\n"
                     "[dim]plan[/dim]\n"
@@ -762,6 +774,7 @@ class MurphyTerminalApp(App):
         chat.write(WELCOME_TEXT)
         self._update_status_url()
         self._check_connection()
+        self._check_api_key_on_startup()
 
     # -- connection --
 
@@ -856,6 +869,62 @@ class MurphyTerminalApp(App):
         except Exception:
             status_bar.llm_enabled = False
 
+    def _check_api_key_on_startup(self) -> None:
+        """First-run gate: prompt for Groq API key if not configured."""
+        # Check environment first, then .env file
+        env_path = get_env_path()
+        env_vars = read_env(env_path)
+        has_key = bool(
+            os.environ.get("GROQ_API_KEY")
+            or env_vars.get("GROQ_API_KEY")
+        )
+        if has_key:
+            return  # Key exists — skip the gate
+
+        self._awaiting_api_key = True
+        self._write_murphy(
+            "[bold yellow]⚠ No Groq API key detected[/bold yellow]\n\n"
+            "Murphy needs at least a Groq API key for full AI features.\n\n"
+            "[bold cyan]Get your free key:[/bold cyan]\n"
+            "  → [link=https://console.groq.com/keys]https://console.groq.com/keys[/link]\n\n"
+            "Then paste it here, or type:\n"
+            "  [green]set key groq gsk_yourKeyHere[/green]\n"
+            "  [green]skip[/green] — continue in offline mode (limited functionality)\n"
+        )
+
+    def _handle_startup_key_input(self, message: str) -> None:
+        """Handle user input during the first-run API key prompt."""
+        stripped = message.strip()
+        lower = stripped.lower()
+
+        if lower == "skip":
+            self._awaiting_api_key = False
+            self._offline_mode = True
+            self._write_murphy(
+                "[yellow]Continuing in offline mode.[/yellow]\n"
+                "[dim]AI features will be limited. "
+                "Type [green]set key groq <your-key>[/green] at any time to activate full capabilities.[/dim]"
+            )
+            return
+
+        # Check if it looks like a bare key (starts with gsk_)
+        if stripped.startswith("gsk_"):
+            self._awaiting_api_key = False
+            self._apply_api_key("groq", stripped)
+            return
+
+        # Check if it's a 'set key' command
+        m = re.match(r"^set[_ ]?key\s+(\w+)\s+(\S+)", stripped, re.I)
+        if m:
+            self._awaiting_api_key = False
+            self._apply_api_key(m.group(1).lower(), m.group(2))
+            return
+
+        # For any other input, dismiss the gate and process normally
+        self._awaiting_api_key = False
+        self._offline_mode = True
+        self._process_message(message)
+
     # -- helpers --
 
     @staticmethod
@@ -923,6 +992,7 @@ class MurphyTerminalApp(App):
                 "[dim]show modules[/dim]\n"
                 "[dim]librarian[/dim]\n"
                 "[dim]api keys[/dim]\n"
+                "[dim]set key <provider> <key>[/dim]\n"
                 "[dim]billing[/dim]\n"
                 "[dim]links[/dim]\n"
                 "[dim]plan[/dim]\n"
@@ -946,12 +1016,18 @@ class MurphyTerminalApp(App):
         self._process_message(message)
 
     def _process_message(self, message: str) -> None:
+        # Handle first-run API key prompt
+        if self._awaiting_api_key:
+            self._handle_startup_key_input(message)
+            return
+
         # If an interview is active, route most input through dialog context
         if self.dialog.active:
             # Allow certain intents even during interview
             intent = detect_intent(message)
             if intent in ("intent_help", "intent_exit", "intent_health",
-                          "intent_status", "intent_set_api", "intent_test_api",
+                          "intent_status", "intent_set_api", "intent_set_key",
+                          "intent_test_api",
                           "intent_reconnect", "intent_links", "intent_modules",
                           "intent_llm_status", "intent_librarian_status",
                           "intent_api_keys"):
@@ -1061,6 +1137,7 @@ class MurphyTerminalApp(App):
             "  • [green]show modules[/green] — list all modules and commands\n"
             "  • [green]librarian[/green] — consult knowledge-base expert\n"
             "  • [green]api keys[/green] — get API signup links for integrations\n"
+            "  • [green]set key <provider> <key>[/green] — set an API key inline (e.g. [green]set key groq gsk_...[/green])\n"
             "  • [green]plan[/green] — two-plane planning & execution overview\n"
             "  • [green]pending / hitl[/green] — pending interventions\n"
             "  • [green]corrections[/green] — correction statistics\n\n"
@@ -1104,6 +1181,71 @@ class MurphyTerminalApp(App):
             self._write_murphy("Task result:\n" + self._format_json(data))
         except Exception as exc:
             self._write_murphy(f"[red]Execution failed: {self._friendly_error(exc)}[/red]")
+
+    # -- API key management --
+
+    def intent_set_key(self, msg: str) -> None:
+        """Handle ``set key <provider> [<value>]`` command."""
+        rest = re.sub(r"^set[_ ]?key\s*", "", msg, flags=re.I).strip()
+        parts = rest.split(None, 1)
+
+        if not parts:
+            supported = ", ".join(sorted(API_KEY_FORMATS.keys()))
+            self._write_murphy(
+                "[bold cyan]🔑 Set API Key[/bold cyan]\n\n"
+                f"Usage: [green]set key <provider> <key>[/green]\n"
+                f"Supported providers: [green]{supported}[/green]\n\n"
+                "Examples:\n"
+                "  [green]set key groq gsk_abc123...[/green]\n"
+                "  [green]set key openai sk-abc123...[/green]\n"
+                "  [green]set key anthropic sk-ant-abc123...[/green]"
+            )
+            return
+
+        provider = parts[0].lower()
+        key_value = parts[1] if len(parts) > 1 else None
+
+        if provider not in API_KEY_FORMATS:
+            supported = ", ".join(sorted(API_KEY_FORMATS.keys()))
+            self._write_murphy(
+                f"[red]Unknown provider '{provider}'.[/red]\n"
+                f"Supported: [green]{supported}[/green]"
+            )
+            return
+
+        if not key_value:
+            self._write_murphy(
+                f"Please provide your {provider} API key.\n"
+                f"Usage: [green]set key {provider} <your-key>[/green]"
+            )
+            return
+
+        self._apply_api_key(provider, key_value)
+
+    def _apply_api_key(self, provider: str, key_value: str) -> None:
+        """Validate, persist, and hot-reload an API key."""
+        valid, message = validate_api_key(provider, key_value)
+        if not valid:
+            self._write_murphy(f"[red]✗ {message}[/red]")
+            return
+
+        fmt = API_KEY_FORMATS[provider]
+        env_var = fmt["env_var"]
+
+        # Persist to .env
+        env_path = get_env_path()
+        write_env_key(env_path, env_var, key_value)
+
+        # Hot-reload into current process
+        os.environ[env_var] = key_value
+        reload_env(env_path)
+
+        self._write_murphy(
+            f"[bold green]✓ {provider.capitalize()} API key saved and activated![/bold green]\n"
+            f"  Env var : [green]{env_var}[/green]\n"
+            f"  .env    : [dim]{env_path}[/dim]\n\n"
+            "[dim]The key is active immediately — no restart needed.[/dim]"
+        )
 
     # -- connectivity intents --
 
@@ -1290,10 +1432,9 @@ class MurphyTerminalApp(App):
         lines.append(
             "\n[bold cyan]Quick Start (LLM):[/bold cyan]\n"
             "  1. Get a free Groq key: [link=https://console.groq.com/keys]https://console.groq.com/keys[/link]\n"
-            "  2. Set environment variables:\n"
-            "     [green]export MURPHY_LLM_PROVIDER=groq[/green]\n"
-            "     [green]export GROQ_API_KEY=gsk_your_key_here[/green]\n"
-            "  3. Restart Murphy\n\n"
+            "  2. Set it right here in the terminal:\n"
+            "     [green]set key groq gsk_your_key_here[/green]\n"
+            "  That's it! No restart needed.\n\n"
             "[dim]Tip: Run [green]start interview[/green] and Murphy will recommend "
             "exactly which API keys you need based on your answers.[/dim]"
         )
