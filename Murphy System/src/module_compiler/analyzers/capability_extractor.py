@@ -364,9 +364,8 @@ class CapabilityExtractor:
         """
         env_vars: List[str] = []
 
-        # Heuristic: scan the function body via docstring for env var names.
-        # The static analyzer doesn't carry raw source, so we infer from
-        # import-level patterns and well-known libraries.
+        # Infer environment variables from function analysis flags and
+        # well-known import patterns.
         if func.uses_external_api:
             env_vars.append('API_KEY')
         if func.uses_network:
@@ -391,13 +390,7 @@ class CapabilityExtractor:
                 env_vars.extend(['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN'])
 
         # De-duplicate while preserving order.
-        seen: set = set()
-        unique: List[str] = []
-        for v in env_vars:
-            if v not in seen:
-                seen.add(v)
-                unique.append(v)
-        return unique
+        return list(dict.fromkeys(env_vars))
 
     @staticmethod
     def _extract_required_files(func: FunctionInfo, structure: CodeStructure) -> List[str]:
