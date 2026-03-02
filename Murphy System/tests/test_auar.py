@@ -1030,7 +1030,7 @@ class TestDeregistration:
         graph.add_similarity_edge("send_email", "send_notification")
         graph.deregister_capability("send_email")
         similar = graph.similar_capabilities("send_notification")
-        assert len(similar) == 0  # back-reference cleaned
+        assert len(similar) == 0  # similarity edges referencing deleted capability removed
 
 
 # ===================================================================

@@ -344,7 +344,7 @@ class SignalInterpreter:
     def _parse_graphql(self, query: str) -> Optional[str]:
         """Extract capability name from a GraphQL query/mutation string."""
         import re
-        # Match: mutation sendEmail(...) or query sendEmail(...)
+        # Match named operations: mutation sendEmail(...) or query sendEmail(...)
         m = re.search(r'(?:mutation|query)\s+(\w+)', query)
         if m:
             cap = m.group(1)
@@ -353,10 +353,21 @@ class SignalInterpreter:
             with self._lock:
                 if cap in self._schemas:
                     return cap
-        # Fallback: look for any registered capability name in the query
+        # Fallback for anonymous operations: match field names inside braces
+        # e.g., query { listUsers { id } } → extract "listUsers"
+        brace_match = re.search(r'\{\s*(\w+)', query)
+        if brace_match:
+            cap = brace_match.group(1)
+            cap = re.sub(r'(?<!^)(?=[A-Z])', '_', cap).lower()
+            with self._lock:
+                if cap in self._schemas:
+                    return cap
+        # Final fallback: word-boundary match for registered capability names
         with self._lock:
             for name in self._schemas:
-                if name in query or name.replace("_", "") in query.lower():
+                # Use word boundary to avoid partial substring matches
+                pattern = r'\b' + re.escape(name.replace("_", "")) + r'\b'
+                if re.search(pattern, query, re.IGNORECASE):
                     return name
         return None
 
