@@ -11,6 +11,8 @@ from typing import Dict, List, Any, Optional
 from uuid import UUID, uuid4
 import logging
 
+import numpy as np
+
 logger = logging.getLogger(__name__)
 
 
@@ -400,12 +402,10 @@ class _SimpleNeuralNetwork:
     # ---- activation helpers ----
     @staticmethod
     def _sigmoid(z):
-        import numpy as np
         return 1.0 / (1.0 + np.exp(-np.clip(z, -500, 500)))
 
     # ---- public API ----
     def fit(self, X, y):
-        import numpy as np
         X = np.asarray(X, dtype=float)
         y = np.asarray(y, dtype=float).reshape(-1, 1)
 
@@ -439,7 +439,6 @@ class _SimpleNeuralNetwork:
 
     def predict_proba(self, X):
         """Return P(class=1) for each sample."""
-        import numpy as np
         X = np.asarray(X, dtype=float)
         z1 = X @ self._W1 + self._b1
         a1 = self._sigmoid(z1)
@@ -473,7 +472,6 @@ class HybridModel(ShadowAgentModel):
 
     def train(self, X_train, y_train, X_val=None, y_val=None):
         """Train both tree and neural-network components."""
-        import numpy as np
 
         logger.info("Training hybrid model...")
 
@@ -484,8 +482,13 @@ class HybridModel(ShadowAgentModel):
         # 2. Train lightweight neural network
         logger.info("Training neural network component...")
         nn_cfg = self.config.nn_config
+        hidden_size = (
+            nn_cfg.hidden_layers[0]
+            if nn_cfg.hidden_layers and len(nn_cfg.hidden_layers) > 0
+            else 32
+        )
         self.nn_model = _SimpleNeuralNetwork(
-            hidden_size=nn_cfg.hidden_layers[0] if nn_cfg.hidden_layers else 32,
+            hidden_size=hidden_size,
             learning_rate=nn_cfg.learning_rate,
             epochs=nn_cfg.epochs,
         )
@@ -513,7 +516,6 @@ class HybridModel(ShadowAgentModel):
             raise ValueError("Model not trained")
 
         proba = self.predict_proba(X)
-        import numpy as np
         # For binary classification, take class with highest probability
         return (proba[:, 1] >= 0.5).astype(int)
 
@@ -522,7 +524,6 @@ class HybridModel(ShadowAgentModel):
         if not self.is_trained:
             raise ValueError("Model not trained")
 
-        import numpy as np
         tree_proba = self.tree_model.predict_proba(X)  # (n, n_classes)
 
         if self.nn_model is not None:

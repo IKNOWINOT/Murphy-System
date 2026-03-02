@@ -303,10 +303,18 @@ class AWSCredentialVerifier(BaseCredentialVerifier):
     
     @staticmethod
     def _validate_aws_key_format(value: str) -> bool:
-        """Basic format validation for AWS access key IDs."""
-        # AWS access keys are 20-char alphanumeric starting with AKIA/ASIA
+        """Basic format validation for AWS access key IDs.
+
+        AWS access-key IDs are 20-character alphanumeric strings that
+        start with ``AKIA`` (long-term) or ``ASIA`` (temporary/STS).
+        Secret access keys are 40 characters.  We accept either form
+        via a minimum-length check plus an optional prefix test.
+        """
         if not value:
             return False
+        # Accept AKIA*/ASIA* keys or any sufficiently long credential value
+        if value.startswith(("AKIA", "ASIA")):
+            return len(value) >= 20
         return len(value) >= 16
 
 
