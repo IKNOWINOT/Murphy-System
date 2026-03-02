@@ -119,10 +119,11 @@ def reload_env(path: Optional[str] = None) -> Dict[str, str]:
 def strip_key_wrapping(key: str) -> str:
     """Remove surrounding angle brackets, quotes, backticks, and whitespace."""
     key = key.strip()
-    if len(key) >= 2 and key[0] == key[-1] and key[0] in ("<", '"', "'", "`"):
-        key = key[1:-1]
-    elif key.startswith("<") and key.endswith(">"):
-        key = key[1:-1]
+    if len(key) >= 2:
+        if key[0] == key[-1] and key[0] in ('"', "'", "`"):
+            key = key[1:-1]
+        elif key.startswith("<") and key.endswith(">"):
+            key = key[1:-1]
     return key.strip()
 
 
