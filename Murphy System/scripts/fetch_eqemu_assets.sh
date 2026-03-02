@@ -118,12 +118,15 @@ shallow_clone() {
 
     if [[ -d "${dest}/.git" ]]; then
         warn "Already cloned: ${dest} — pulling latest"
-        git -C "${dest}" pull --ff-only 2>/dev/null || true
+        if ! git -C "${dest}" pull --ff-only 2>&1; then
+            warn "git pull failed for ${dest} — continuing with existing checkout"
+        fi
         return 0
     fi
 
     # Remove non-git contents if directory exists but is not a repo
     if [[ -d "${dest}" ]]; then
+        warn "Directory ${dest} exists but is not a git repo — replacing"
         rm -rf "${dest}"
     fi
 
