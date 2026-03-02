@@ -263,6 +263,12 @@ class SignalInterpreter:
         capability = raw.get("capability") or raw.get("action") or raw.get("intent")
         params = raw.get("parameters") or raw.get("params") or raw.get("data") or {}
 
+        # GraphQL support: extract capability from query field
+        if not capability and "query" in raw:
+            capability = self._parse_graphql(raw["query"])
+            if not params and "variables" in raw:
+                params = raw["variables"]
+
         if not capability:
             # Attempt path-based matching for REST-style requests
             path = raw.get("path", "")
@@ -333,6 +339,25 @@ class SignalInterpreter:
         with self._lock:
             if cap in self._schemas:
                 return cap
+        return None
+
+    def _parse_graphql(self, query: str) -> Optional[str]:
+        """Extract capability name from a GraphQL query/mutation string."""
+        import re
+        # Match: mutation sendEmail(...) or query sendEmail(...)
+        m = re.search(r'(?:mutation|query)\s+(\w+)', query)
+        if m:
+            cap = m.group(1)
+            # Convert camelCase to snake_case
+            cap = re.sub(r'(?<!^)(?=[A-Z])', '_', cap).lower()
+            with self._lock:
+                if cap in self._schemas:
+                    return cap
+        # Fallback: look for any registered capability name in the query
+        with self._lock:
+            for name in self._schemas:
+                if name in query or name.replace("_", "") in query.lower():
+                    return name
         return None
 
     # -- LLM fallback -------------------------------------------------------

@@ -58,6 +58,10 @@ from .observability import (
     CostAttribution,
     RequestTrace,
 )
+from .pipeline import (
+    AUARPipeline,
+    PipelineResult,
+)
 
 __all__ = [
     # Signal Interpretation
@@ -95,4 +99,7 @@ __all__ = [
     "AuditEntry",
     "CostAttribution",
     "RequestTrace",
+    # Pipeline
+    "AUARPipeline",
+    "PipelineResult",
 ]

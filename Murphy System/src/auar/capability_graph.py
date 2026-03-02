@@ -243,6 +243,49 @@ class CapabilityGraph:
                 return True
         return False
 
+    # -- Semantic tag search ------------------------------------------------
+
+    def search_by_tags(self, tags: List[str]) -> List[Capability]:
+        """Return capabilities whose semantic_tags overlap with *tags*."""
+        tag_set = set(t.lower() for t in tags)
+        with self._lock:
+            results = []
+            for cap in self._capabilities.values():
+                cap_tags = set(t.lower() for t in cap.semantic_tags)
+                if cap_tags & tag_set:
+                    results.append(cap)
+        return results
+
+    # -- Deregistration -----------------------------------------------------
+
+    def deregister_provider(self, provider_id: str) -> bool:
+        """Remove a provider from the graph."""
+        with self._lock:
+            if provider_id not in self._providers:
+                return False
+            del self._providers[provider_id]
+            self._edges_supports.pop(provider_id, None)
+        logger.info("Deregistered provider: %s", provider_id)
+        return True
+
+    def deregister_capability(self, capability_name: str) -> bool:
+        """Remove a capability and its edges from the graph."""
+        with self._lock:
+            cap_id = self._cap_by_name.pop(capability_name, None)
+            if not cap_id:
+                return False
+            self._capabilities.pop(cap_id, None)
+            self._edges_similar.pop(cap_id, None)
+            self._edges_parent.pop(cap_id, None)
+            # Clean similarity back-references
+            for sim_set in self._edges_similar.values():
+                sim_set.discard(cap_id)
+            # Clean parent back-references
+            for child_set in self._edges_parent.values():
+                child_set.discard(cap_id)
+        logger.info("Deregistered capability: %s", capability_name)
+        return True
+
     def get_stats(self) -> Dict[str, Any]:
         with self._lock:
             return {
