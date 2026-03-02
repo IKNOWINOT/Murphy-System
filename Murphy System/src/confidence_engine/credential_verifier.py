@@ -252,24 +252,108 @@ class CredentialVerifier:
             return len(credential.credential_value) > 0
     
     async def _verify_api_key(self, credential: Credential) -> bool:
-        """Verify API key."""
-        # Placeholder - implement actual API key verification
-        return len(credential.credential_value) >= 20
-    
-    async def _verify_oauth_token(self, credential: Credential) -> bool:
-        """Verify OAuth token."""
-        # Placeholder - implement actual OAuth token verification
-        return len(credential.credential_value) >= 40
-    
-    async def _verify_jwt_token(self, credential: Credential) -> bool:
-        """Verify JWT token."""
-        # Placeholder - implement actual JWT verification
-        try:
-            # In production, use PyJWT to decode and verify
-            parts = credential.credential_value.split('.')
-            return len(parts) == 3
-        except:
+        """Verify API key format and basic structural integrity.
+
+        Validates:
+        - Minimum length (20 characters for security)
+        - Only contains URL-safe characters (alphanumeric, hyphens, underscores)
+        - Does not contain whitespace or control characters
+        - Passes service-specific prefix checks if applicable
+        """
+        value = credential.credential_value
+        if not value or len(value) < 20:
             return False
+
+        import re
+        # API keys should be URL-safe alphanumeric strings
+        if not re.match(r'^[A-Za-z0-9_\-]+$', value):
+            return False
+
+        # Service-specific prefix validation (common patterns)
+        service = credential.service_name.lower()
+        prefix_map = {
+            "groq": "gsk_",
+            "openai": "sk-",
+            "stripe": ("sk_live_", "sk_test_", "pk_live_", "pk_test_"),
+            "github": ("ghp_", "gho_", "ghs_", "ghu_"),
+            "sendgrid": "SG.",
+        }
+        expected_prefix = prefix_map.get(service)
+        if expected_prefix:
+            if isinstance(expected_prefix, tuple):
+                if not any(value.startswith(p) for p in expected_prefix):
+                    return False
+            elif not value.startswith(expected_prefix):
+                return False
+
+        return True
+
+    async def _verify_oauth_token(self, credential: Credential) -> bool:
+        """Verify OAuth token format and basic structural integrity.
+
+        Validates:
+        - Minimum length (40 characters for security)
+        - Only contains printable ASCII characters
+        - Does not contain control characters or newlines
+        - Token is not obviously invalid (all zeros, all same char)
+        """
+        value = credential.credential_value
+        if not value or len(value) < 40:
+            return False
+
+        # Must be printable ASCII without whitespace
+        if not all(32 < ord(c) < 127 for c in value):
+            return False
+
+        # Reject trivially invalid tokens (all same character)
+        if len(set(value)) < 4:
+            return False
+
+        return True
+
+    async def _verify_jwt_token(self, credential: Credential) -> bool:
+        """Verify JWT token structure.
+
+        Validates:
+        - Three dot-separated parts (header.payload.signature)
+        - Each part is valid base64url encoding
+        - Header decodes to valid JSON with 'alg' field
+        """
+        import base64
+        import json as _json
+
+        value = credential.credential_value
+        if not value:
+            return False
+
+        parts = value.split('.')
+        if len(parts) != 3:
+            return False
+
+        # All parts must be non-empty
+        if not all(parts):
+            return False
+
+        # Validate base64url encoding of header and payload
+        for part in parts[:2]:
+            try:
+                # Add padding if needed
+                padded = part + '=' * (4 - len(part) % 4)
+                decoded = base64.urlsafe_b64decode(padded)
+                _json.loads(decoded)
+            except Exception:
+                return False
+
+        # Validate header contains 'alg' field
+        try:
+            header_padded = parts[0] + '=' * (4 - len(parts[0]) % 4)
+            header = _json.loads(base64.urlsafe_b64decode(header_padded))
+            if 'alg' not in header:
+                return False
+        except Exception:
+            return False
+
+        return True
     
     def _update_credential_status(self, credential_id: str, status: CredentialStatus):
         """Update credential status."""
