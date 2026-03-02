@@ -111,6 +111,8 @@ class RoutingDecisionEngine:
         weights: Optional[Dict[str, float]] = None,
         circuit_failure_threshold: int = 5,
         circuit_recovery_s: float = 30.0,
+        ml_optimizer=None,
+        ml_weight: float = 0.20,
     ):
         self._graph = capability_graph
         self._strategy = strategy
@@ -118,22 +120,77 @@ class RoutingDecisionEngine:
         self._circuit_breakers: Dict[str, _CircuitBreaker] = {}
         self._cb_failure_threshold = circuit_failure_threshold
         self._cb_recovery_s = circuit_recovery_s
+        self._ml_optimizer = ml_optimizer
+        self._ml_weight = ml_weight
         self._round_robin_idx: Dict[str, int] = {}
+        self._tenant_configs: Dict[str, Dict[str, Any]] = {}
         self._lock = threading.Lock()
-        self._stats = {"decisions": 0, "circuit_trips": 0, "fallbacks": 0}
+        self._stats = {"decisions": 0, "circuit_trips": 0, "fallbacks": 0, "ml_influenced": 0}
+
+    # -- Per-tenant configuration -------------------------------------------
+
+    def set_tenant_config(
+        self,
+        tenant_id: str,
+        strategy: Optional[RoutingStrategy] = None,
+        weights: Optional[Dict[str, float]] = None,
+    ) -> None:
+        """Set per-tenant routing strategy and/or weights."""
+        with self._lock:
+            cfg = self._tenant_configs.setdefault(tenant_id, {})
+            if strategy is not None:
+                cfg["strategy"] = strategy
+            if weights is not None:
+                cfg["weights"] = weights
+
+    def get_tenant_config(self, tenant_id: str) -> Dict[str, Any]:
+        with self._lock:
+            return dict(self._tenant_configs.get(tenant_id, {}))
 
     # -- Core routing -------------------------------------------------------
 
     def route(self, signal: IntentSignal) -> RoutingDecision:
-        """Pick the best provider for *signal* and return a ``RoutingDecision``."""
+        """Pick the best provider for *signal* and return a ``RoutingDecision``.
+
+        If an ``ml_optimizer`` was provided at construction time, its
+        recommendation is blended into the scoring as an additional factor.
+        Per-tenant strategy/weight overrides are applied when the signal
+        carries a ``context.tenant_id``.
+        """
         start = time.monotonic()
-        decision = RoutingDecision(intent_signal_id=signal.request_id, strategy_used=self._strategy)
+
+        # Resolve per-tenant overrides
+        tenant_id = signal.context.tenant_id if signal.context else ""
+        strategy = self._strategy
+        weights = self._weights
+        with self._lock:
+            tcfg = self._tenant_configs.get(tenant_id, {})
+        if tcfg:
+            strategy = tcfg.get("strategy", strategy)
+            weights = tcfg.get("weights", weights)
+
+        decision = RoutingDecision(intent_signal_id=signal.request_id, strategy_used=strategy)
 
         if not signal.parsed_intent:
             decision.latency_ms = (time.monotonic() - start) * 1000
             return decision
 
-        candidates = self._score_candidates(signal)
+        candidates = self._score_candidates(signal, weights, strategy)
+
+        # Blend ML recommendation when available
+        if self._ml_optimizer and candidates and signal.parsed_intent:
+            candidate_ids = [c.provider_id for c in candidates]
+            ml_rec = self._ml_optimizer.recommend(
+                signal.parsed_intent.capability_name, candidate_ids,
+            )
+            if ml_rec.recommended_provider_id:
+                for c in candidates:
+                    if c.provider_id == ml_rec.recommended_provider_id:
+                        c.score = (1.0 - self._ml_weight) * c.score + self._ml_weight * max(0, ml_rec.confidence)
+                candidates.sort(key=lambda c: c.score, reverse=True)
+                with self._lock:
+                    self._stats["ml_influenced"] += 1
+
         if not candidates:
             decision.latency_ms = (time.monotonic() - start) * 1000
             return decision
@@ -162,7 +219,14 @@ class RoutingDecisionEngine:
 
     # -- Scoring ------------------------------------------------------------
 
-    def _score_candidates(self, signal: IntentSignal) -> List[ProviderCandidate]:
+    def _score_candidates(
+        self,
+        signal: IntentSignal,
+        weights: Optional[Dict[str, float]] = None,
+        strategy: Optional[RoutingStrategy] = None,
+    ) -> List[ProviderCandidate]:
+        w = weights or self._weights
+        strat = strategy or self._strategy
         cap_name = signal.parsed_intent.capability_name  # type: ignore[union-attr]
         pairs = self._graph.providers_for_capability(cap_name)
 
@@ -170,17 +234,17 @@ class RoutingDecisionEngine:
         for provider, mapping in pairs:
             if provider.health_status == HealthStatus.UNHEALTHY:
                 continue
-            score = self._compute_score(provider, mapping)
+            score = self._compute_score(provider, mapping, w)
             candidates.append(ProviderCandidate(
                 provider_id=provider.id,
                 provider_name=provider.name,
                 capability_mapping=mapping,
                 score=score,
-                reason=self._strategy.value,
+                reason=strat.value,
             ))
 
         # Strategy-specific ordering
-        if self._strategy == RoutingStrategy.ROUND_ROBIN and candidates:
+        if strat == RoutingStrategy.ROUND_ROBIN and candidates:
             idx_key = cap_name
             with self._lock:
                 idx = self._round_robin_idx.get(idx_key, 0)
@@ -192,8 +256,13 @@ class RoutingDecisionEngine:
 
         return candidates
 
-    def _compute_score(self, provider: Provider, mapping: CapabilityMapping) -> float:
-        w = self._weights
+    def _compute_score(
+        self,
+        provider: Provider,
+        mapping: CapabilityMapping,
+        weights: Optional[Dict[str, float]] = None,
+    ) -> float:
+        w = weights or self._weights
 
         # Reliability (success rate)
         reliability = mapping.performance.success_rate  # 0-1

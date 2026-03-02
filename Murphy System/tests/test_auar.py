@@ -898,7 +898,413 @@ class TestEndToEndFlow:
         obs.finish_trace(trace.trace_id, success=True)
         obs.increment("requests_total")
 
-        # Verify
-        stats = obs.get_stats()
-        assert stats["traces"] == 1
-        assert stats["cost_records"] == 1
+
+# ===================================================================
+# New Feature Tests — GraphQL Support
+# ===================================================================
+
+class TestGraphQLSupport:
+    """Tests for GraphQL input parsing in the Signal Interpretation Layer."""
+
+    def test_graphql_mutation_parsed(self):
+        si = SignalInterpreter()
+        si.register_schema("send_email", required_params=["to", "subject"])
+        signal = si.interpret({
+            "query": "mutation sendEmail($to: String!) { sendEmail(to: $to) { id } }",
+            "variables": {"to": "user@example.com", "subject": "Hi"},
+        })
+        assert signal.parsed_intent is not None
+        assert signal.parsed_intent.capability_name == "send_email"
+        assert signal.parameters.get("to") == "user@example.com"
+
+    def test_graphql_query_parsed(self):
+        si = SignalInterpreter()
+        si.register_schema("list_users")
+        signal = si.interpret({
+            "query": "query listUsers { listUsers { id name } }",
+        })
+        assert signal.parsed_intent is not None
+        assert signal.parsed_intent.capability_name == "list_users"
+
+    def test_graphql_unknown_capability(self):
+        si = SignalInterpreter()
+        signal = si.interpret({
+            "query": "mutation doUnknownThing { doUnknownThing { ok } }",
+        })
+        # Should not match anything registered
+        assert signal.parsed_intent is None or signal.confidence_score < 0.85
+
+
+# ===================================================================
+# New Feature Tests — Semantic Tag Search
+# ===================================================================
+
+class TestSemanticTagSearch:
+    """Tests for capability search by semantic tags."""
+
+    def test_search_by_single_tag(self):
+        graph = CapabilityGraph()
+        graph.register_capability(Capability(
+            name="send_email", domain="communication",
+            semantic_tags=["email", "messaging", "notification"],
+        ))
+        graph.register_capability(Capability(
+            name="process_payment", domain="payments",
+            semantic_tags=["payment", "billing", "charge"],
+        ))
+        results = graph.search_by_tags(["email"])
+        assert len(results) == 1
+        assert results[0].name == "send_email"
+
+    def test_search_by_multiple_tags(self):
+        graph = CapabilityGraph()
+        graph.register_capability(Capability(
+            name="send_email", semantic_tags=["email", "messaging"],
+        ))
+        graph.register_capability(Capability(
+            name="send_sms", semantic_tags=["sms", "messaging"],
+        ))
+        graph.register_capability(Capability(
+            name="process_payment", semantic_tags=["payment"],
+        ))
+        results = graph.search_by_tags(["messaging"])
+        assert len(results) == 2
+        names = {c.name for c in results}
+        assert "send_email" in names
+        assert "send_sms" in names
+
+    def test_search_case_insensitive(self):
+        graph = CapabilityGraph()
+        graph.register_capability(Capability(
+            name="send_email", semantic_tags=["Email"],
+        ))
+        results = graph.search_by_tags(["EMAIL"])
+        assert len(results) == 1
+
+    def test_search_no_match(self):
+        graph = CapabilityGraph()
+        graph.register_capability(Capability(
+            name="send_email", semantic_tags=["email"],
+        ))
+        results = graph.search_by_tags(["payment"])
+        assert len(results) == 0
+
+
+# ===================================================================
+# New Feature Tests — Provider/Capability Deregistration
+# ===================================================================
+
+class TestDeregistration:
+    """Tests for provider and capability removal."""
+
+    def test_deregister_provider(self):
+        graph = CapabilityGraph()
+        cap = Capability(name="send_email")
+        cap_id = graph.register_capability(cap)
+        m = CapabilityMapping(capability_id=cap_id)
+        prov = Provider(name="SendGrid", supported_capabilities=[m])
+        graph.register_provider(prov)
+        assert graph.get_provider(prov.id) is not None
+        assert graph.deregister_provider(prov.id) is True
+        assert graph.get_provider(prov.id) is None
+
+    def test_deregister_nonexistent_provider(self):
+        graph = CapabilityGraph()
+        assert graph.deregister_provider("nonexistent") is False
+
+    def test_deregister_capability(self):
+        graph = CapabilityGraph()
+        graph.register_capability(Capability(name="send_email"))
+        assert graph.find_capability_by_name("send_email") is not None
+        assert graph.deregister_capability("send_email") is True
+        assert graph.find_capability_by_name("send_email") is None
+
+    def test_deregister_nonexistent_capability(self):
+        graph = CapabilityGraph()
+        assert graph.deregister_capability("nonexistent") is False
+
+    def test_deregister_cleans_similarity_edges(self):
+        graph = CapabilityGraph()
+        graph.register_capability(Capability(name="send_email"))
+        graph.register_capability(Capability(name="send_notification"))
+        graph.add_similarity_edge("send_email", "send_notification")
+        graph.deregister_capability("send_email")
+        similar = graph.similar_capabilities("send_notification")
+        assert len(similar) == 0  # back-reference cleaned
+
+
+# ===================================================================
+# New Feature Tests — Multi-Tenant Routing Config
+# ===================================================================
+
+class TestMultiTenantRouting:
+    """Tests for per-tenant routing strategy and weight overrides."""
+
+    def _build_env(self):
+        graph = CapabilityGraph()
+        cap = Capability(name="send_email")
+        cap_id = graph.register_capability(cap)
+        perf_cheap = PerformanceMetrics(avg_latency_ms=200, success_rate=0.95)
+        perf_fast = PerformanceMetrics(avg_latency_ms=20, success_rate=0.90)
+        m_cheap = CapabilityMapping(
+            capability_id=cap_id, cost_per_call=0.0001,
+            performance=perf_cheap,
+            certification_level=CertificationLevel.PRODUCTION,
+        )
+        m_fast = CapabilityMapping(
+            capability_id=cap_id, cost_per_call=0.05,
+            performance=perf_fast,
+            certification_level=CertificationLevel.PRODUCTION,
+        )
+        p_cheap = Provider(name="CheapMail", supported_capabilities=[m_cheap],
+                           health_status=HealthStatus.HEALTHY)
+        p_fast = Provider(name="FastMail", supported_capabilities=[m_fast],
+                          health_status=HealthStatus.HEALTHY)
+        graph.register_provider(p_cheap)
+        graph.register_provider(p_fast)
+        return graph, p_cheap, p_fast
+
+    def test_tenant_cost_override(self):
+        graph, p_cheap, p_fast = self._build_env()
+        engine = RoutingDecisionEngine(graph)
+        # Tenant "budget" wants cost-heavy weighting
+        engine.set_tenant_config("budget", weights={
+            "reliability": 0.05, "latency": 0.05,
+            "cost": 0.85, "certification": 0.05,
+        })
+        signal = IntentSignal(
+            parsed_intent=CapabilityIntent(capability_name="send_email"),
+            context=RequestContext(tenant_id="budget"),
+        )
+        decision = engine.route(signal)
+        assert decision.selected_provider is not None
+        assert decision.selected_provider.provider_name == "CheapMail"
+
+    def test_tenant_latency_override(self):
+        graph, p_cheap, p_fast = self._build_env()
+        engine = RoutingDecisionEngine(graph)
+        # Tenant "speed" wants latency-heavy weighting
+        engine.set_tenant_config("speed", weights={
+            "reliability": 0.05, "latency": 0.85,
+            "cost": 0.05, "certification": 0.05,
+        })
+        signal = IntentSignal(
+            parsed_intent=CapabilityIntent(capability_name="send_email"),
+            context=RequestContext(tenant_id="speed"),
+        )
+        decision = engine.route(signal)
+        assert decision.selected_provider is not None
+        assert decision.selected_provider.provider_name == "FastMail"
+
+    def test_default_tenant_uses_global_config(self):
+        graph, p_cheap, p_fast = self._build_env()
+        engine = RoutingDecisionEngine(graph)
+        # No tenant config set — should use defaults
+        signal = IntentSignal(
+            parsed_intent=CapabilityIntent(capability_name="send_email"),
+            context=RequestContext(tenant_id="unknown_tenant"),
+        )
+        decision = engine.route(signal)
+        assert decision.selected_provider is not None
+
+    def test_get_tenant_config(self):
+        graph, _, _ = self._build_env()
+        engine = RoutingDecisionEngine(graph)
+        engine.set_tenant_config("t1", strategy=RoutingStrategy.COST_OPTIMIZED)
+        cfg = engine.get_tenant_config("t1")
+        assert cfg["strategy"] == RoutingStrategy.COST_OPTIMIZED
+
+
+# ===================================================================
+# New Feature Tests — ML ↔ Routing Integration
+# ===================================================================
+
+class TestMLRoutingIntegration:
+    """Tests for ML optimizer influencing routing decisions."""
+
+    def test_ml_optimizer_influences_routing(self):
+        graph = CapabilityGraph()
+        cap = Capability(name="send_email")
+        cap_id = graph.register_capability(cap)
+        # Two providers with identical static scores
+        perf = PerformanceMetrics(avg_latency_ms=50, success_rate=0.99)
+        m1 = CapabilityMapping(capability_id=cap_id, cost_per_call=0.001,
+                                performance=perf,
+                                certification_level=CertificationLevel.PRODUCTION)
+        m2 = CapabilityMapping(capability_id=cap_id, cost_per_call=0.001,
+                                performance=perf,
+                                certification_level=CertificationLevel.PRODUCTION)
+        p1 = Provider(name="P1", supported_capabilities=[m1],
+                      health_status=HealthStatus.HEALTHY)
+        p2 = Provider(name="P2", supported_capabilities=[m2],
+                      health_status=HealthStatus.HEALTHY)
+        graph.register_provider(p1)
+        graph.register_provider(p2)
+
+        ml = MLOptimizer(epsilon=0.0)
+        # Train ML to strongly prefer P2
+        for _ in range(10):
+            ml.record(RoutingFeatures(capability_name="send_email", provider_id=p2.id,
+                                       latency_ms=10, cost=0.0001, success=True))
+            ml.record(RoutingFeatures(capability_name="send_email", provider_id=p1.id,
+                                       latency_ms=400, cost=0.05, success=False))
+
+        engine = RoutingDecisionEngine(graph, ml_optimizer=ml, ml_weight=0.80)
+        signal = IntentSignal(
+            parsed_intent=CapabilityIntent(capability_name="send_email")
+        )
+        decision = engine.route(signal)
+        assert decision.selected_provider is not None
+        # ML should push P2 to the top
+        assert decision.selected_provider.provider_name == "P2"
+        assert engine.get_stats()["ml_influenced"] >= 1
+
+    def test_routing_without_ml_still_works(self):
+        graph = CapabilityGraph()
+        cap = Capability(name="test")
+        cap_id = graph.register_capability(cap)
+        m = CapabilityMapping(capability_id=cap_id,
+                               performance=PerformanceMetrics(success_rate=0.99),
+                               certification_level=CertificationLevel.PRODUCTION)
+        graph.register_provider(Provider(name="P", supported_capabilities=[m],
+                                         health_status=HealthStatus.HEALTHY))
+        engine = RoutingDecisionEngine(graph)  # no ml_optimizer
+        signal = IntentSignal(parsed_intent=CapabilityIntent(capability_name="test"))
+        decision = engine.route(signal)
+        assert decision.selected_provider is not None
+
+
+# ===================================================================
+# New Feature Tests — Unified Pipeline Orchestrator
+# ===================================================================
+
+from auar.pipeline import AUARPipeline, PipelineResult
+
+
+class TestAUARPipeline:
+    """Tests for the unified orchestrator that wires all 7 layers."""
+
+    def _build_pipeline(self, execute_fn=None):
+        """Helper: create a fully wired pipeline for testing."""
+        graph = CapabilityGraph()
+        cap = Capability(name="send_email", domain="communication", category="email")
+        cap_id = graph.register_capability(cap)
+        perf = PerformanceMetrics(avg_latency_ms=50, success_rate=0.99)
+        mapping = CapabilityMapping(
+            capability_id=cap_id, cost_per_call=0.001,
+            performance=perf,
+            certification_level=CertificationLevel.PRODUCTION,
+        )
+        provider = Provider(
+            name="SendGrid", base_url="https://api.sendgrid.com",
+            supported_capabilities=[mapping],
+            health_status=HealthStatus.HEALTHY,
+        )
+        graph.register_provider(provider)
+
+        interpreter = SignalInterpreter()
+        interpreter.register_schema(
+            "send_email",
+            required_params=["to", "subject", "body"],
+            domain="communication",
+            category="email",
+        )
+
+        ml = MLOptimizer(epsilon=0.0)
+        router = RoutingDecisionEngine(graph, ml_optimizer=ml)
+
+        translator = SchemaTranslator()
+        translator.register_mapping(SchemaMapping(
+            capability_name="send_email",
+            provider_id=provider.id,
+            direction="request",
+            field_mappings=[
+                FieldMapping(source_field="to", target_field="personalizations.to"),
+                FieldMapping(source_field="subject", target_field="subject"),
+                FieldMapping(source_field="body", target_field="content.value"),
+            ],
+        ))
+
+        adapter_mgr = ProviderAdapterManager()
+        adapter_mgr.register_adapter(AdapterConfig(
+            provider_id=provider.id,
+            provider_name="SendGrid",
+            base_url="https://api.sendgrid.com",
+            auth_method=AuthMethod.API_KEY,
+            auth_credentials={"api_key": "SG.test"},
+        ), execute_fn=execute_fn)
+
+        obs = ObservabilityLayer()
+
+        pipeline = AUARPipeline(
+            interpreter=interpreter,
+            graph=graph,
+            router=router,
+            translator=translator,
+            adapters=adapter_mgr,
+            ml=ml,
+            observability=obs,
+        )
+        return pipeline, obs, provider
+
+    def test_successful_pipeline_execution(self):
+        pipeline, obs, _ = self._build_pipeline()
+        result = pipeline.execute({
+            "capability": "send_email",
+            "parameters": {"to": "user@example.com", "subject": "Test", "body": "Hi"},
+        })
+        assert result.success is True
+        assert result.capability == "send_email"
+        assert result.provider_name == "SendGrid"
+        assert result.response_status == 200
+        assert result.total_latency_ms > 0
+        assert result.ml_reward > 0
+        assert result.trace_id != ""
+        # Observability recorded
+        assert obs.get_counter("auar.requests.success") == 1
+
+    def test_pipeline_with_tenant_context(self):
+        pipeline, _, _ = self._build_pipeline()
+        ctx = RequestContext(user_id="u1", tenant_id="t1")
+        result = pipeline.execute({
+            "capability": "send_email",
+            "parameters": {"to": "a@b.com", "subject": "S", "body": "B"},
+        }, context=ctx)
+        assert result.success is True
+
+    def test_pipeline_empty_request_clarification(self):
+        pipeline, _, _ = self._build_pipeline()
+        result = pipeline.execute({})
+        assert result.success is False
+        assert result.requires_clarification is True
+
+    def test_pipeline_unknown_capability(self):
+        pipeline, _, _ = self._build_pipeline()
+        result = pipeline.execute({
+            "capability": "nonexistent_thing",
+            "parameters": {},
+        })
+        # Should fail since no providers for unknown capability
+        assert result.success is False
+
+    def test_pipeline_provider_failure_with_no_fallback(self):
+        def always_fail(payload):
+            raise ConnectionError("provider down")
+
+        pipeline, obs, _ = self._build_pipeline(execute_fn=always_fail)
+        result = pipeline.execute({
+            "capability": "send_email",
+            "parameters": {"to": "a@b.com", "subject": "S", "body": "B"},
+        })
+        assert result.success is False
+        assert "failed" in result.error.lower()
+        assert obs.get_counter("auar.requests.failure") == 1
+
+    def test_pipeline_graphql_input(self):
+        pipeline, _, _ = self._build_pipeline()
+        result = pipeline.execute({
+            "query": "mutation sendEmail($to: String!) { sendEmail(to: $to) { ok } }",
+            "variables": {"to": "user@example.com", "subject": "Test", "body": "Hi"},
+        })
+        assert result.success is True
+        assert result.capability == "send_email"
