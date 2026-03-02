@@ -13,7 +13,7 @@ import os
 
 # Add murphy_runtime_analysis to path for imports
 
-from .models import (
+from .plan_models import (
     Plan,
     Task,
     Dependency,
@@ -196,23 +196,75 @@ class PlanDecomposer:
         return plan
     
     def _extract_plan_content(self, plan_document_path: str) -> str:
-        """Extract text content from plan document"""
-        # TODO: Implement document extraction using document_processor.py
-        # For now, return placeholder
-        logger.warning("Document extraction not yet implemented, using placeholder")
-        return "Plan content placeholder"
+        """Extract text content from plan document.
+
+        Supports plain-text (``.txt``), Markdown (``.md``), and JSON
+        (``.json``) files.  For unsupported formats the raw bytes are
+        decoded as UTF-8 with a fallback to Latin-1.
+        """
+        if not os.path.isfile(plan_document_path):
+            logger.warning("Plan document not found: %s", plan_document_path)
+            return ""
+
+        try:
+            with open(plan_document_path, 'r', encoding='utf-8') as fh:
+                content = fh.read()
+        except UnicodeDecodeError:
+            with open(plan_document_path, 'r', encoding='latin-1') as fh:
+                content = fh.read()
+
+        # For JSON documents, extract a readable summary.
+        if plan_document_path.endswith('.json'):
+            try:
+                import json as _json
+                data = _json.loads(content)
+                if isinstance(data, dict):
+                    parts = []
+                    for key, val in data.items():
+                        parts.append(f"{key}: {val}")
+                    content = "\n".join(parts)
+            except Exception:
+                pass  # keep raw content
+
+        return content.strip()
     
     def _parse_plan_structure(self, plan_content: str, context: str) -> Dict[str, Any]:
-        """Parse plan structure from content"""
-        # TODO: Implement plan parsing using NLP
-        # For now, return basic structure
+        """Parse plan structure from content using lightweight heuristics.
+
+        Scans for Markdown headings (``#``), numbered lists, and common
+        section names to build a structured representation.
+        """
+        lines = plan_content.split('\n') if plan_content else []
+        title = context
+        sections: List[Dict[str, Any]] = []
+        current_section: Optional[Dict[str, Any]] = None
+
+        for line in lines:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            # Detect Markdown headings.
+            if stripped.startswith('#'):
+                heading = stripped.lstrip('#').strip()
+                if not title or title == context:
+                    title = heading
+                current_section = {'heading': heading, 'items': []}
+                sections.append(current_section)
+            elif stripped[0:1].isdigit() or stripped.startswith('-') or stripped.startswith('*'):
+                item = stripped.lstrip('0123456789.-*) ').strip()
+                if current_section is not None:
+                    current_section['items'].append(item)
+                else:
+                    current_section = {'heading': 'General', 'items': [item]}
+                    sections.append(current_section)
+
         return {
-            'title': 'Parsed Plan',
+            'title': title or 'Parsed Plan',
             'description': context,
             'goal': context,
             'domain': 'custom',
             'timeline': 'TBD',
-            'sections': []
+            'sections': sections,
         }
     
     def _generate_tasks_from_structure(
@@ -220,44 +272,99 @@ class PlanDecomposer:
         plan_structure: Dict[str, Any],
         expansion_level: str
     ) -> List[Task]:
-        """Generate tasks from plan structure"""
+        """Generate tasks from plan structure.
+
+        If the parsed plan contains sections with items, each item becomes
+        a task.  Otherwise, falls back to generating a number of placeholder
+        tasks determined by the *expansion_level*.
+        """
         tasks = []
-        
-        # Expansion level determines task granularity
-        granularity = {
-            'minimal': 5,      # 5 high-level tasks
-            'moderate': 15,    # 15 medium-level tasks
-            'comprehensive': 30  # 30 detailed tasks
-        }
-        
-        num_tasks = granularity.get(expansion_level, 15)
-        
-        # Generate placeholder tasks
-        # TODO: Implement actual task generation from plan structure
-        for i in range(num_tasks):
-            task = Task(
-                task_id=self._generate_task_id(),
-                title=f"Task {i+1}",
-                description=f"Description for task {i+1}",
-                priority=TaskPriority.MEDIUM,
-                status=TaskStatus.PENDING,
-                estimated_hours=8.0,
-                deliverables=[f"Deliverable for task {i+1}"]
-            )
-            tasks.append(task)
-        
+
+        sections = plan_structure.get('sections', [])
+        # When sections have meaningful items, derive tasks from them.
+        if sections:
+            for section in sections:
+                heading = section.get('heading', 'General')
+                items = section.get('items', [])
+                if not items:
+                    # Section with no items becomes a single task.
+                    items = [heading]
+                for item in items:
+                    priority = TaskPriority.HIGH if 'critical' in item.lower() or 'urgent' in item.lower() else TaskPriority.MEDIUM
+                    task = Task(
+                        task_id=self._generate_task_id(),
+                        title=item[:120],
+                        description=f"{heading}: {item}",
+                        priority=priority,
+                        status=TaskStatus.PENDING,
+                        estimated_hours=8.0,
+                        deliverables=[f"Completed: {item[:80]}"]
+                    )
+                    tasks.append(task)
+
+        # Fallback: expansion-level based generation.
+        if not tasks:
+            granularity = {
+                'minimal': 5,
+                'moderate': 15,
+                'comprehensive': 30,
+            }
+            num_tasks = granularity.get(expansion_level, 15)
+            for i in range(num_tasks):
+                task = Task(
+                    task_id=self._generate_task_id(),
+                    title=f"Task {i+1}",
+                    description=f"Description for task {i+1}",
+                    priority=TaskPriority.MEDIUM,
+                    status=TaskStatus.PENDING,
+                    estimated_hours=8.0,
+                    deliverables=[f"Deliverable for task {i+1}"]
+                )
+                tasks.append(task)
+
         return tasks
     
     def _analyze_goal(self, goal: str, domain: str) -> Dict[str, Any]:
-        """Analyze goal and extract key information"""
-        # TODO: Implement goal analysis using reasoning_engine.py
-        # For now, return basic analysis
+        """Analyze goal and extract key information using keyword heuristics.
+
+        Scans the *goal* text for action verbs and domain-relevant nouns
+        to build a structured analysis including key objectives, success
+        factors, and anticipated challenges.
+        """
+        goal_lower = goal.lower()
+
+        # Extract objectives from action phrases.
+        action_verbs = [
+            'build', 'create', 'design', 'develop', 'deploy', 'implement',
+            'improve', 'increase', 'launch', 'migrate', 'optimize',
+            'reduce', 'automate', 'integrate', 'scale', 'monitor',
+        ]
+        objectives = [v for v in action_verbs if v in goal_lower]
+
+        # Success factors based on domain.
+        domain_factors: Dict[str, List[str]] = {
+            'software_development': ['Code quality', 'Test coverage', 'Documentation'],
+            'business_strategy': ['Market alignment', 'Revenue growth', 'Stakeholder buy-in'],
+            'marketing_campaign': ['Audience reach', 'Conversion rate', 'Brand awareness'],
+        }
+        factors = domain_factors.get(domain, ['Timely delivery', 'Budget adherence', 'Quality'])
+
+        # Challenges heuristic.
+        challenges = []
+        if 'migrate' in goal_lower or 'legacy' in goal_lower:
+            challenges.append('Legacy system compatibility')
+        if 'scale' in goal_lower or 'performance' in goal_lower:
+            challenges.append('Performance at scale')
+        if not challenges:
+            challenges.append('Scope creep')
+            challenges.append('Resource constraints')
+
         return {
-            'title': 'Goal-Based Plan',
+            'title': f"{domain.replace('_', ' ').title()} Plan",
             'description': goal,
-            'key_objectives': [],
-            'success_factors': [],
-            'challenges': []
+            'key_objectives': objectives or ['Deliver project successfully'],
+            'success_factors': factors,
+            'challenges': challenges,
         }
     
     def _generate_tasks_from_goal(
@@ -324,24 +431,58 @@ class PlanDecomposer:
         return tasks
     
     def _identify_dependencies(self, tasks: List[Task]) -> List[Dependency]:
-        """Identify dependencies between tasks"""
+        """Identify dependencies between tasks.
+
+        Uses a two-pass approach:
+        1. **Keyword cross-referencing** — if a task's title or description
+           references another task's deliverable, a dependency is created.
+        2. **Sequential fallback** — for tasks that have no detected
+           cross-references, a simple sequential chain is established.
+        """
         dependencies = []
-        
-        # Simple sequential dependencies for now
-        # TODO: Implement intelligent dependency detection
+        linked_tasks: set = set()
+
+        # Pass 1: keyword cross-reference.
+        for i, task_a in enumerate(tasks):
+            deliverables_lower = [d.lower() for d in task_a.deliverables]
+            for j, task_b in enumerate(tasks):
+                if j <= i:
+                    continue
+                desc_lower = task_b.description.lower()
+                title_lower = task_b.title.lower()
+                for deliv in deliverables_lower:
+                    # Check if any significant word from the deliverable
+                    # appears in the dependent task.
+                    words = [w for w in deliv.split() if len(w) > 3]
+                    if any(w in desc_lower or w in title_lower for w in words):
+                        dep = Dependency(
+                            dependency_id=self._generate_dependency_id(),
+                            from_task_id=task_a.task_id,
+                            to_task_id=task_b.task_id,
+                            dependency_type=DependencyType.FINISH_TO_START,
+                            lag_days=0,
+                        )
+                        dependencies.append(dep)
+                        task_b.dependencies.append(task_a.task_id)
+                        linked_tasks.add(task_a.task_id)
+                        linked_tasks.add(task_b.task_id)
+                        break  # one link per pair is enough
+
+        # Pass 2: sequential chain for unlinked tasks.
         for i in range(len(tasks) - 1):
-            dep = Dependency(
-                dependency_id=self._generate_dependency_id(),
-                from_task_id=tasks[i].task_id,
-                to_task_id=tasks[i + 1].task_id,
-                dependency_type=DependencyType.FINISH_TO_START,
-                lag_days=0
-            )
-            dependencies.append(dep)
-            
-            # Update task dependencies
-            tasks[i + 1].dependencies.append(tasks[i].task_id)
-        
+            if tasks[i].task_id not in linked_tasks or tasks[i + 1].task_id not in linked_tasks:
+                if tasks[i].task_id not in [d.from_task_id for d in dependencies if d.to_task_id == tasks[i+1].task_id]:
+                    dep = Dependency(
+                        dependency_id=self._generate_dependency_id(),
+                        from_task_id=tasks[i].task_id,
+                        to_task_id=tasks[i + 1].task_id,
+                        dependency_type=DependencyType.FINISH_TO_START,
+                        lag_days=0,
+                    )
+                    dependencies.append(dep)
+                    if tasks[i].task_id not in tasks[i + 1].dependencies:
+                        tasks[i + 1].dependencies.append(tasks[i].task_id)
+
         return dependencies
     
     def _add_validation_criteria(
@@ -403,27 +544,62 @@ class PlanDecomposer:
         goal_analysis: Dict[str, Any],
         tasks: List[Task]
     ) -> List[str]:
-        """Identify plan-level assumptions"""
-        # TODO: Implement assumption identification
-        return [
+        """Identify plan-level assumptions based on goal analysis and task set.
+
+        Combines generic project assumptions with signals from the goal
+        analysis (e.g. if the goal mentions *migration* we assume the
+        legacy system will remain available during the transition).
+        """
+        base_assumptions = [
             'Resources are available as planned',
             'No major external blockers',
-            'Team has necessary skills'
+            'Team has necessary skills',
         ]
-    
+
+        # Goal-derived assumptions.
+        challenges = goal_analysis.get('challenges', [])
+        for challenge in challenges:
+            ch_lower = challenge.lower()
+            if 'legacy' in ch_lower or 'compatibility' in ch_lower:
+                base_assumptions.append('Legacy systems remain accessible during migration')
+            if 'scale' in ch_lower or 'performance' in ch_lower:
+                base_assumptions.append('Infrastructure can be scaled as needed')
+
+        # Task-count assumption.
+        if len(tasks) > 20:
+            base_assumptions.append('Sufficient bandwidth to manage a large number of parallel tasks')
+
+        return base_assumptions
+
     def _identify_risks(
         self,
         goal_analysis: Dict[str, Any],
         tasks: List[Task],
         risk_tolerance: str
     ) -> List[str]:
-        """Identify plan-level risks"""
-        # TODO: Implement risk identification
-        return [
+        """Identify plan-level risks using goal analysis and risk tolerance.
+
+        Low risk-tolerance generates more granular risk entries; high
+        tolerance keeps only the top-level items.
+        """
+        base_risks = [
             'Timeline may slip due to unforeseen challenges',
             'Budget may be exceeded',
-            'Quality may be compromised under time pressure'
+            'Quality may be compromised under time pressure',
         ]
+
+        challenges = goal_analysis.get('challenges', [])
+        for challenge in challenges:
+            base_risks.append(f"Challenge identified: {challenge}")
+
+        if risk_tolerance == 'low':
+            base_risks.append('Integration failures between dependent tasks')
+            base_risks.append('Key personnel unavailability')
+
+        if len(tasks) > 15:
+            base_risks.append('Coordination overhead due to large task count')
+
+        return base_risks
     
     def _generate_plan_id(self) -> str:
         """Generate unique plan ID"""
