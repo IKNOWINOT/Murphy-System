@@ -93,7 +93,14 @@ The game agent soul extends the Rosetta soul pattern with game-specific layers:
 │   Social/economic systems grounded in canonical EQ lore        │
 ├────────────────────────────────────────────────────────────────┤
 │ CARD COLLECTION LAYER                                           │
-│   Universal cards: every entity drops cards (1% rate), minor fx │
+│   Universal cards: every entity drops cards (1% rate)           │
+│   NPC cards: 4-tier progressive effects per entity              │
+│     Tier 1: conditional combat spell (24-hour cooldown)         │
+│     Tier 2: defensive buff (7-day cooldown)                     │
+│     Tier 3: weapon/class specialization (7-day cooldown)        │
+│     Tier 4: soul-bound protector (permanent companion)          │
+│   Soul-bound protectors disturb all NPCs, AI players kill holder│
+│   Only named creatures can be AI players (full soul documents)  │
 │   God cards: deity cards unlock skill, buff, enchantment, void │
 │   All card abilities: 1-week real-time cooldown                │
 │   4 universal cards = entity deleted from game (world entropy) │
@@ -491,6 +498,7 @@ The **sole exception** to permadeath is **betrayal**. If an agent was killed thr
 | Card Collection | `card_system.py` | Universal/god card tracking, world entropy, Unmaker conversion, server reboot |
 | Spawner Registry | `spawner_registry.py` | Per-entity spawn tracking, unmade status, world decay %, 50% vote trigger |
 | Experience Lore | `experience_lore.py` | Action screenshot memory cycle, interaction recall, collective lore propagation |
+| NPC Card Effects | `npc_card_effects.py` | 4-tier card effect generation, soul-bound protector spawning, NPC horror reactions, AI player kill-on-sight |
 | Agent Voice | `agent_voice.py` | Text-to-speech voice profiles per race/class, streaming agent voice output |
 | Heroic Persona | `persona_injector.py` | Noble deity devotion, faction loyalty hierarchy, heroic archetypes |
 
