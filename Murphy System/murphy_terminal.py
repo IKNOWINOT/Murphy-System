@@ -50,6 +50,13 @@ from src.env_manager import (
 # Configuration
 # ---------------------------------------------------------------------------
 
+# Placeholder strings that appear in template .env files but are not real keys.
+_PLACEHOLDER_KEY_VALUES = frozenset({
+    "your_groq_key_here", "your_openai_key_here",
+    "your_key_here", "your-key-here", "change_me",
+    "changeme", "xxx", "none",
+})
+
 DEFAULT_API_URL = "http://localhost:8000"
 API_URL = os.environ.get("MURPHY_API_URL", DEFAULT_API_URL)
 RECONNECT_INTERVAL = 15  # seconds between auto-reconnect attempts
@@ -875,10 +882,7 @@ class MurphyTerminalApp(App):
         """Return True if *value* looks like a real API key (not a placeholder)."""
         if not value:
             return False
-        placeholders = {"", "your_groq_key_here", "your_openai_key_here",
-                        "your_key_here", "your-key-here", "change_me",
-                        "changeme", "xxx", "none"}
-        return value.strip().lower() not in placeholders
+        return value.strip().lower() not in _PLACEHOLDER_KEY_VALUES
 
     def _check_api_key_on_startup(self) -> None:
         """First-run gate: prompt for Groq API key if not configured."""
