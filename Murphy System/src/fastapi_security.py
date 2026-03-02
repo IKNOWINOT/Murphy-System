@@ -255,3 +255,73 @@ def configure_secure_fastapi(app: FastAPI, service_name: str = "murphy-api") -> 
         f"[{service_name}] Security hardening applied: auth, CORS, rate limiting, security headers"
     )
     return app
+
+
+# ── RBAC Enforcement ─────────────────────────────────────────────────
+
+# Singleton holder — set via ``register_rbac_governance()``
+_rbac_instance = None
+
+
+def register_rbac_governance(rbac) -> None:
+    """
+    Register the live ``RBACGovernance`` instance so that
+    ``require_permission`` can enforce endpoint-level scopes.
+
+    Call once at startup after MurphySystem creates the RBAC module:
+        ``register_rbac_governance(murphy.rbac_governance)``
+    """
+    global _rbac_instance
+    _rbac_instance = rbac
+    logger.info("RBAC governance registered for FastAPI endpoint enforcement")
+
+
+def require_permission(permission_name: str):
+    """
+    FastAPI dependency that enforces RBAC at the API layer.
+
+    Usage::
+
+        from src.fastapi_security import require_permission
+
+        @app.post("/api/execute")
+        async def execute_task(
+            request: Request,
+            _auth=Depends(require_permission("execute_task")),
+        ):
+            ...
+
+    Behaviour:
+    - If no RBAC instance is registered, the check is **permissive** (allows
+      the request) so that development/testing workflows are not blocked.
+    - If RBAC is registered, the middleware reads ``X-User-ID`` from the
+      request headers and calls ``RBACGovernance.check_permission``.
+    - Returns HTTP 403 when the permission check fails.
+    """
+    async def _dependency(request: Request):
+        if _rbac_instance is None:
+            return  # permissive when RBAC not wired
+
+        user_id = request.headers.get("X-User-ID", "")
+        if not user_id:
+            murphy_env = os.environ.get("MURPHY_ENV", "development")
+            if murphy_env == "development":
+                return  # anonymous OK in dev
+            raise HTTPException(status_code=401, detail="X-User-ID header required")
+
+        try:
+            # Dynamically resolve the Permission enum member
+            from src.rbac_governance import Permission as RBACPermission
+            perm = RBACPermission(permission_name)
+        except (ImportError, ValueError):
+            logger.warning("Unknown RBAC permission '%s' — allowing request", permission_name)
+            return
+
+        allowed, reason = _rbac_instance.check_permission(user_id, perm)
+        if not allowed:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Permission denied: {permission_name} ({reason})",
+            )
+
+    return _dependency
