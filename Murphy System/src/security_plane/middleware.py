@@ -269,7 +269,7 @@ class EncryptionMiddleware:
         """Return the ``(classical_kp, pqc_kp)`` tuple for the active key."""
         if self.key_manager is None or self._signing_key is None:
             return None, None
-        return self.key_manager._keypairs.get(self._signing_key.key_id, (None, None))
+        return self.key_manager.get_keypairs(self._signing_key.key_id)
 
     # ------------------------------------------------------------------
     # Encrypt / Decrypt
