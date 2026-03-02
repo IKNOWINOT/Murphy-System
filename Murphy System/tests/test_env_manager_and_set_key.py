@@ -154,6 +154,26 @@ class TestValidateApiKey:
         ok, msg = validate_api_key("groq", "gsk_short")
         assert ok is False
 
+    def test_angle_bracket_groq_key(self):
+        ok, msg = validate_api_key("groq", "<gsk_abcdefghijklmnopqrstuvwx>")
+        assert ok is True
+
+    def test_quoted_groq_key(self):
+        ok, msg = validate_api_key("groq", '"gsk_abcdefghijklmnopqrstuvwx"')
+        assert ok is True
+
+    def test_angle_bracket_openai_key(self):
+        ok, msg = validate_api_key("openai", "<sk-abcdefghijklmnopqrstuvwx>")
+        assert ok is True
+
+    def test_backtick_wrapped_key(self):
+        ok, msg = validate_api_key("groq", "`gsk_abcdefghijklmnopqrstuvwx`")
+        assert ok is True
+
+    def test_single_quote_wrapped_key(self):
+        ok, msg = validate_api_key("anthropic", "'sk-ant-abcdefghijklmnopqrstuvwx'")
+        assert ok is True
+
 
 # ---------------------------------------------------------------------------
 # Intent detection — set key

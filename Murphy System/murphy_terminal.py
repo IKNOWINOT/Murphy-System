@@ -21,6 +21,8 @@ import sys
 import uuid
 import json
 import re
+import subprocess
+import platform
 from datetime import datetime
 from typing import Optional
 
@@ -42,9 +44,15 @@ from src.env_manager import (
     write_env_key,
     reload_env,
     validate_api_key,
+    strip_key_wrapping,
     get_env_path,
     API_KEY_FORMATS,
 )
+
+try:
+    import pyperclip  # Optional clipboard support
+except ImportError:
+    pyperclip = None
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -704,9 +712,10 @@ class MurphyTerminalApp(App):
         padding: 0 1;
     }
     #sidebar {
-        width: 30;
+        width: 44;
         border: solid $accent;
         padding: 1;
+        overflow-y: auto;
     }
     #input-area {
         dock: bottom;
@@ -727,6 +736,7 @@ class MurphyTerminalApp(App):
         Binding("ctrl+q", "quit", "Quit", show=True),
         Binding("ctrl+h", "show_help", "Help", show=True),
         Binding("ctrl+s", "show_status", "Status", show=True),
+        Binding("ctrl+v", "paste_clipboard", "Paste", show=False),
     ]
 
     def __init__(self, api_url: str = API_URL, **kwargs):
@@ -751,7 +761,8 @@ class MurphyTerminalApp(App):
                     "[bold cyan]Navigation[/bold cyan]\n\n"
                     "[dim]Ctrl+H[/dim] Help\n"
                     "[dim]Ctrl+S[/dim] Status\n"
-                    "[dim]Ctrl+Q[/dim] Quit\n\n"
+                    "[dim]Ctrl+Q[/dim] Quit\n"
+                    "[dim]Ctrl+V[/dim] Paste\n\n"
                     "[bold cyan]Quick Commands[/bold cyan]\n\n"
                     "[dim]health[/dim]\n"
                     "[dim]status[/dim]\n"
@@ -759,7 +770,7 @@ class MurphyTerminalApp(App):
                     "[dim]show modules[/dim]\n"
                     "[dim]librarian[/dim]\n"
                     "[dim]api keys[/dim]\n"
-                    "[dim]set key <provider> <key>[/dim]\n"
+                    "[dim]set key <prov> <key>[/dim]\n"
                     "[dim]billing[/dim]\n"
                     "[dim]links[/dim]\n"
                     "[dim]plan[/dim]\n"
@@ -923,9 +934,10 @@ class MurphyTerminalApp(App):
             return
 
         # Check if it looks like a bare key (starts with gsk_)
-        if stripped.startswith("gsk_"):
+        bare = strip_key_wrapping(stripped)
+        if bare.startswith("gsk_"):
             self._awaiting_api_key = False
-            self._apply_api_key("groq", stripped)
+            self._apply_api_key("groq", bare)
             return
 
         # Check if it's a 'set key' command
@@ -999,7 +1011,8 @@ class MurphyTerminalApp(App):
                 "[bold cyan]Navigation[/bold cyan]\n\n"
                 "[dim]Ctrl+H[/dim] Help\n"
                 "[dim]Ctrl+S[/dim] Status\n"
-                "[dim]Ctrl+Q[/dim] Quit\n\n"
+                "[dim]Ctrl+Q[/dim] Quit\n"
+                "[dim]Ctrl+V[/dim] Paste\n\n"
                 "[bold cyan]Quick Commands[/bold cyan]\n\n"
                 "[dim]health[/dim]\n"
                 "[dim]status[/dim]\n"
@@ -1007,7 +1020,7 @@ class MurphyTerminalApp(App):
                 "[dim]show modules[/dim]\n"
                 "[dim]librarian[/dim]\n"
                 "[dim]api keys[/dim]\n"
-                "[dim]set key <provider> <key>[/dim]\n"
+                "[dim]set key <prov> <key>[/dim]\n"
                 "[dim]billing[/dim]\n"
                 "[dim]links[/dim]\n"
                 "[dim]plan[/dim]\n"
@@ -1160,6 +1173,11 @@ class MurphyTerminalApp(App):
             "  • [green]set api <url>[/green] — change backend address\n"
             "  • [green]test connection[/green] — verify backend reachability\n"
             "  • [green]reconnect[/green] — retry backend connection\n\n"
+            "[bold cyan]Clipboard[/bold cyan]\n"
+            "  • [green]Ctrl+V[/green] — paste clipboard into input\n"
+            "  • [green]Shift+Insert[/green] — paste (terminal fallback)\n"
+            "  • Right-click paste may also work depending on your terminal\n"
+            "  • For long API keys, you can also edit the [green].env[/green] file directly\n\n"
             "Or type any natural language message — Murphy will respond conversationally.\n"
             "  • [green]exit[/green] — quit the terminal"
         )
@@ -1235,10 +1253,11 @@ class MurphyTerminalApp(App):
             )
             return
 
-        self._apply_api_key(provider, key_value)
+        self._apply_api_key(provider, strip_key_wrapping(key_value))
 
     def _apply_api_key(self, provider: str, key_value: str) -> None:
         """Validate, persist, and hot-reload an API key."""
+        key_value = strip_key_wrapping(key_value)
         valid, message = validate_api_key(provider, key_value)
         if not valid:
             self._write_murphy(f"[red]✗ {message}[/red]")
@@ -1261,6 +1280,61 @@ class MurphyTerminalApp(App):
             f"  .env    : [dim]{env_path}[/dim]\n\n"
             "[dim]The key is active immediately — no restart needed.[/dim]"
         )
+
+    # -- clipboard support --
+
+    @staticmethod
+    def _read_clipboard() -> Optional[str]:
+        """Try to read text from the system clipboard."""
+        # Try pyperclip first
+        if pyperclip is not None:
+            try:
+                return pyperclip.paste()
+            except Exception:
+                pass
+
+        # Platform-specific fallbacks
+        system = platform.system()
+        try:
+            if system == "Linux":
+                result = subprocess.run(
+                    ["xclip", "-selection", "clipboard", "-o"],
+                    capture_output=True, text=True, timeout=2,
+                )
+                if result.returncode == 0:
+                    return result.stdout
+            elif system == "Darwin":
+                result = subprocess.run(
+                    ["pbpaste"], capture_output=True, text=True, timeout=2,
+                )
+                if result.returncode == 0:
+                    return result.stdout
+            elif system == "Windows":
+                result = subprocess.run(
+                    ["powershell", "-command", "Get-Clipboard"],
+                    capture_output=True, text=True, timeout=2,
+                )
+                if result.returncode == 0:
+                    return result.stdout
+        except Exception:
+            pass
+
+        return None
+
+    def action_paste_clipboard(self) -> None:
+        """Paste clipboard contents into the focused Input widget."""
+        text = self._read_clipboard()
+        if text:
+            try:
+                input_widget = self.query_one("#user-input", Input)
+                input_widget.insert_text_at_cursor(text.strip())
+            except Exception:
+                pass
+        else:
+            self._write_system(
+                "Paste not available. Try: Shift+Insert, or right-click in your "
+                "terminal. You can also set keys via .env file directly."
+            )
 
     # -- connectivity intents --
 
