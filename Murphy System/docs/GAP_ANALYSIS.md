@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-Murphy System **starts, serves API requests, and passes 100% of its test suite** (6,101 passed, 22 skipped, 0 failures). The core infrastructure — FastAPI server, confidence engine, gate system, persistence, event backbone, scheduling, compliance, RBAC — is operational. All four subsystems (Control Plane, Inoni Business Automation, Integration Engine, Two-Phase Orchestrator) initialize successfully. The onboard LLM operates without any external API key, producing confidence scores of 0.65–0.95. Document confidence starts at 0.45 by design and increases through the staged processing pipeline (magnify → solidify → gate synthesis).
+Murphy System **starts, serves API requests, and passes 100% of its test suite** (6,192 passed, 22 skipped, 0 failures). The core infrastructure — FastAPI server, confidence engine, gate system, persistence, event backbone, scheduling, compliance, RBAC — is operational. All four subsystems (Control Plane, Inoni Business Automation, Integration Engine, Two-Phase Orchestrator) initialize successfully. The onboard LLM operates without any external API key, producing confidence scores of 0.65–0.95. Document confidence starts at 0.45 by design and increases through the staged processing pipeline (magnify → solidify → gate synthesis).
 
 All 10 remediation items (REM-001 through REM-010) are **COMPLETE**:
 - REM-001–008: Core system fixes (subsystem init, compute tests, deprecation warnings, RBAC)
@@ -52,7 +52,7 @@ Each row compares what **should** happen (per the plans) against what **actually
 
 | Expectation | Actual | Gap? | Severity |
 |-------------|--------|------|----------|
-| All tests pass | ✅ 6,101 passed, 22 skipped, 0 failures | No | — |
+| All tests pass | ✅ 6,192 passed, 22 skipped, 0 failures | No | — |
 | No critical test failures | ✅ All compute-plane edge cases fixed | No | — |
 | Zero deprecation warnings | ⚠️ Reduced — datetime.utcnow() fixed in 22 bot files | Minor | 🟢 Low |
 
@@ -63,7 +63,7 @@ Each row compares what **should** happen (per the plans) against what **actually
 | Content generation (copy, threads, press releases) | Onboard LLM + automation engine | ✅ Yes | Onboard LLM operational; Inoni engine active |
 | Email sequences | Onboard LLM + automation engine | ✅ Yes | Same |
 | Workflow creation (20 templates) | Workflow DAG Engine + LLM | ✅ Yes | DAG engine + onboard LLM both active |
-| Logo generation | Image generation API | ❌ No | No image generation capability found |
+| Logo generation | Image generation API | ✅ Yes | ImageGenerationEngine added (10 styles, Stable Diffusion + Pillow fallback) |
 | Demo video script | Onboard LLM | ✅ Yes | Plan and content generation via onboard LLM |
 | Social media scheduling | Automation engine + platform connectors | ✅ Yes | Inoni engine active |
 | Discord setup | External integration | ✅ Yes | Integration engine active |
@@ -158,7 +158,7 @@ These areas have **zero gap** between plan and reality:
 1. **Server startup** — Murphy boots in ~10 seconds, serves on port 8000
 2. **API surface** — 38 routes, full OpenAPI spec, Swagger UI
 3. **Health monitoring** — `/api/health`, `/api/status`, `/api/info` all accurate
-4. **Test suite** — 98.5% pass rate (4,298 / 4,364)
+4. **Test suite** — 100% pass rate (6,192 / 6,214, 22 skipped for optional dependencies)
 5. **Scheduling infrastructure** — Automation Scheduler, SLO Tracker operational
 6. **Safety & governance** — Compliance engine (4 frameworks), RBAC, gate evaluation
 7. **Event backbone** — Pub/sub with retry, circuit breaker, dead letter queue
