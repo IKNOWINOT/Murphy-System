@@ -4,11 +4,13 @@ EverQuest Experimental Modification — Core Systems
 This package implements the full Murphy System EverQuest modification as
 described in the Experimental EverQuest Modification Plan.
 
+All 25 modules are complete (140/140 implementation tasks done).
+
 Modules:
-    npc_card_effects      — NPC identity template → 4-tier card effect auto-generation
     card_system           — Card collection, universal/god cards, Card of Unmaking, Tower entry
-    spawner_registry      — Entity tracking, unmade status, world decay percentage
+    npc_card_effects      — NPC identity template → 4-tier card effect auto-generation
     soul_engine           — Agent soul document management with card collection
+    spawner_registry      — Entity tracking, unmade status, world decay percentage
     eq_game_connector     — EQEmu server communication bridge (database, NPCs, zones, factions)
     lore_seeder           — EQEmu NPC/mob/boss data import and soul document pre-population
     faction_manager       — Faction standings, war declarations, diplomacy, army mobilization
@@ -27,4 +29,7 @@ Modules:
     unmaker_npc           — The Unmaker NPC, armor set, boss config, banned mechanic
     progression_server    — Era progression (Classic→PoP), XP rates, hell levels
     cultural_identity     — Race cultural templates, orc race, personality biases
+    town_systems          — Inspect asymmetry, town conquest, governance logging
+    streaming_overlay     — OBS overlay, thought bubbles, faction war map, duel highlights
+    murphy_integration    — Voice chat, sentiment classifier, raid moderation, Rosetta persistence
 """
