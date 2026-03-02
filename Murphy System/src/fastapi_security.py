@@ -313,8 +313,16 @@ def require_permission(permission_name: str):
             # Dynamically resolve the Permission enum member
             from src.rbac_governance import Permission as RBACPermission
             perm = RBACPermission(permission_name)
-        except (ImportError, ValueError):
-            logger.warning("Unknown RBAC permission '%s' — allowing request", permission_name)
+        except ImportError:
+            logger.warning("RBAC module not available — allowing request")
+            return
+        except ValueError:
+            valid = [p.value for p in RBACPermission]
+            logger.warning(
+                "Unknown RBAC permission '%s' (valid: %s) — allowing request",
+                permission_name,
+                ", ".join(valid),
+            )
             return
 
         allowed, reason = _rbac_instance.check_permission(user_id, perm)

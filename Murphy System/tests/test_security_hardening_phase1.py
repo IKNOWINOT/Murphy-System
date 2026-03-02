@@ -242,7 +242,6 @@ class TestFastAPISecurity:
 
     def test_require_permission_returns_callable(self):
         """require_permission should return a callable dependency"""
-        import asyncio
         from src.fastapi_security import require_permission, register_rbac_governance
 
         dep = require_permission("execute_task")
