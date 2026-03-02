@@ -24,6 +24,10 @@ The agent soul system follows the **OpenClaw Molty soul.md** pattern (see `OPENC
 
 Agent behavior is powered by a **macro-trigger system** modeled on classic EQ bot patterns (`/assist`, `/follow`, `/attack`, `/cast`) and a **rapid perception-inference-action pipeline** that scans game state every ~250ms, evaluates against the soul document, and writes decisions back to the agent's mind. All agent souls are **lore-seeded** from the EQEmu NPC database — every existing NPC, mob, and raid boss serves as a foundation for agent identity. **The Sleeper (Kerafyrm)** operates as a world-event agent restricted to level 60+ zones, with its storyline pre-seeded in all character memories. Awakening The Sleeper triggers **dragon /tell coordination** across factions, with hostile dragon factions temporarily cooperating to stop the raid unless already engaged elsewhere.
 
+A **God Card system** adds endgame progression through deity encounters — gods drop collectible cards that unlock alternate advancement abilities (skill, buff, enchantment) with the ultimate reward of a **Card of Unmaking** that grants a void spell capable of permanently deleting any entity. Players who unmake a god gain that god's title and become **PvP raid bosses**. Gods can also plot against each other using cards. **The Unmaker**, a level-1 NPC with 1% random spawn chance anywhere in the world, converts collected cards and drops the unique Unmaker cloth armor set.
+
+Beyond god cards, a **universal card system** means every entity in the game drops cards with minor effects — and trading 4 of any card to The Unmaker **permanently deletes that entity**, creating a **world entropy** mechanic where the game slowly fades away as resources become precious. Collecting **4 Cards of Unmaking** triggers a **server reboot** — a complete world reset where only items enchanted with a 3rd-card enchantment survive. The player who lands the **killing blow** on The Unmaker (True Form) in the **Core of the Unmaker** raid zone becomes **"[Name] the Unmaker"** — inheriting all Unmaker mechanics, a full gear set, the Megaphone (range item that converts the Unmaker Aura to a group spell), and **Unmaker AA with 100% experience rate**.
+
 ---
 
 ## 2. Scope
@@ -51,6 +55,7 @@ Agent behavior is powered by a **macro-trigger system** modeled on classic EQ bo
 | **Perception-Inference Pipeline** | Rapid screen-scan → inference → action → mind-write cycle for real-time agent decisions | Soul engine, game connector, inference_gate_engine |
 | **Lore-Seeded Soul Database** | All existing EQ NPCs, mobs, and raid bosses as foundations for agent souls | EQEmu NPC DB, lore wikis, soul engine |
 | **The Sleeper (Kerafyrm)** | World-event agent — level 60+ zones only, storyline in all agent memories | Soul engine, lore database, zone restriction |
+| **God Cards & Unmaker** | Universal and deity card drops, world entropy (4 cards = entity deletion), Card of Unmaking void spell, Core of the Unmaker raid zone, server reboot via 4 Unmaking cards, Unmaker player transformation | Loot system, card_system.py, soul engine, faction manager |
 
 ### 2.2 Reference Documents
 
@@ -875,6 +880,239 @@ The raid leader gains Murphy-powered moderation tools:
 - When an agent has had an item before, that item is **unlocked** in the agent's knowledge base (soul document)
 - This creates an information asymmetry that rewards players for understanding the system
 
+### 9.4 Card System — Universal Cards and God Cards
+
+**Every entity in the game drops cards** — not just gods. NPCs, mobs, creatures, named encounters, and even ambient wildlife can drop a card corresponding to that entity. God cards are the most powerful, but the universal card system means every kill has potential consequences.
+
+**Universal cards (non-god entities):**
+- Any mob, NPC, or creature has a chance to drop a card bearing its name (e.g., "Card of the Fire Beetle", "Card of Fippy Darkpaw")
+- Universal cards grant **minor effects** when collected — small stat bonuses, minor resistances, trivial cosmetics
+- **Trading 4 of the same universal card to The Unmaker deletes that entity from the game permanently** — that mob, NPC, or creature no longer spawns anywhere in the world (see section 9.10)
+- This makes every resource in the game **precious** — over time, as players and agents collect and trade cards, the world slowly empties. Camp spots dry up, quest givers vanish, and entire ecosystems of creatures disappear
+
+**God cards (deity encounters):**
+
+Gods drop **God Cards** — collectible items tied to the deity that drops them. Collecting multiples of the same god card unlocks progressive **alternate advancement** abilities. God cards are the primary bridge between raid content and permanent character power growth.
+
+**Card drops:**
+- Each god encounter has a chance to drop its corresponding card (e.g., **Card of Hate** from the God of Hate, **Card of Fear** from the God of Fear)
+- Cards are **no-drop, lore** — a character can hold at most one of each card type at a time, but collecting and consuming them builds a permanent tally
+- **Dragons and raid bosses cannot collect cards** — only players and standard NPC agents can accumulate them
+
+**Progressive unlock tiers:**
+
+| Cards Collected | Unlock | Description |
+|---|---|---|
+| **1st card** | **Skill** | A new ability tied to the deity's domain (e.g., Card of Hate → "Spite Strike" offensive skill) |
+| **2nd card** | **Buff** | A persistent self-buff themed to the deity (e.g., Card of Hate → "Aura of Malice" hate buff) |
+| **3rd card** | **Item enchantment** | An enchantment that can be applied to one equipped item, adding deity-themed stats |
+| **4th card** | **Card of Unmaking** | Trading all 4 cards of the same type to The Unmaker (see section 9.6) produces a Card of Unmaking |
+
+**Global server announcements:**
+- When any player or agent collects **3 cards** of the same type, a server-wide message announces: *"[Name] has collected 3 Cards of [Deity]!"*
+- When any player or agent collects **4 cards** of the same type, a server-wide message announces: *"[Name] has collected 4 Cards of [Deity]!"*
+- These announcements create social tension — other players and agents know someone is close to creating a Card of Unmaking
+
+### 9.5 God-vs-God Plotting — Deities Using Cards Against Each Other
+
+Gods themselves are agents with soul documents and can **plot against other gods** using the card system:
+
+- Gods can accumulate cards of **other** gods through faction agents and manipulation
+- If a god collects 4 Cards of Unmaking and uses them against another god, that god is **unmade** — permanently removed from the game
+- When a god unmakes another god, the **unmade god's loot table merges** into the unmaker god's encounter — that god now drops loot from both tables
+- This creates emergent deity power struggles — gods scheming to eliminate rivals through card collection, creating shifting raid content
+- Players can observe and influence these god-vs-god conflicts through faction alignment and card trading
+
+### 9.6 The Unmaker — Rare World Spawn and Card Conversion
+
+**The Unmaker** is a unique level-1 NPC with **truly random spawn behavior** — it can appear anywhere in the world at any time with a 1% chance per spawn cycle. The Unmaker is the key interface for the card system.
+
+**Spawn mechanics:**
+- Level 1, often dead — The Unmaker is fragile and frequently killed by ambient creatures
+- Spawns at a random location in any zone with a **1% chance per spawn cycle**
+- No fixed spawn point — truly unpredictable
+
+**Loot table:**
+
+| Item | Drop Rate | Stats |
+|---|---|---|
+| **5 Platinum, 5 Gold, 5 Silver, 5 Copper** | Always (when loot drops) | Currency |
+| **Unmaker Cloth Cap** | Rare | 5 AC, cloth |
+| **Unmaker Cloth Tunic** | Rare | 5 AC, cloth |
+| **Unmaker Cloth Sleeves** | Rare | 5 AC, cloth |
+| **Unmaker Cloth Gloves** | Rare | 5 AC, cloth |
+| **Unmaker Cloth Pants** | Rare | 5 AC, cloth |
+| **Unmaker Cloth Boots** | Rare | 5 AC, cloth |
+| **Unmaker Cloth Bracer** | Rare | 5 AC, cloth |
+| **Unmaker Megaphone** | Very Rare | Enhances Unmaker Aura bard song |
+
+- The Unmaker reasonably can drop any of those items but **only likely 2 at max, often nothing**
+- Every piece of Unmaker cloth armor has **5 AC**
+- Wearing the **full Unmaker cloth set** grants **Unmaker Aura** — a bard-song-like passive effect that pulses a small benefit to nearby allies
+- Finding the **Unmaker Megaphone** enhances the Unmaker Aura effect, increasing its range and potency
+
+**Card conversion:**
+- Trading **all 4 cards of the same god type** (e.g., 4 Cards of Hate) to The Unmaker produces a **Card of Unmaking**
+- The Unmaker is the only NPC that can perform this conversion — finding it is part of the challenge
+
+### 9.7 Card of Unmaking — Void Spell and Permanent Deletion
+
+The **Card of Unmaking** is the most powerful and dangerous item in the game. It grants access to a **void spell** that permanently removes entities from the world. Collecting multiple Cards of Unmaking unlocks progressively more devastating abilities.
+
+**Void spell mechanics:**
+- The Card of Unmaking grants a spell called **"Void of Unmaking"** — a targeted ability that deletes whatever it hits
+- If the void spell kills a target, **that target does not respawn** — it is permanently removed from the game world
+- **Players are the sole exception** — a player killed by the void spell dies normally but can respawn (the void does not permanently delete players)
+- NPCs, agents, mobs, and even gods hit by the void spell are gone forever — permadeath with no betrayal exception
+- This includes named mobs, quest givers, and faction leaders — the void spell can reshape the entire game world
+
+**Unmaking a god — PvP raid boss transformation:**
+- If a player uses a Card of Unmaking to unmake a god (e.g., uses void spell to permanently kill the God of Hate), that player gains the **title of that god** (e.g., "[Player], God of Hate")
+- The player who unmakes a god **becomes a PvP raid boss** — they gain massively increased stats, the unmade god's abilities, and become a targetable raid encounter for other players
+- This creates a new endgame: players hunt the player-turned-god as a PvP raid boss, creating emergent world events
+
+**Progressive Cards of Unmaking — escalating power:**
+
+| Cards of Unmaking | Unlock | Details |
+|---|---|---|
+| **1** | **Void of Unmaking** spell | Targeted deletion — permanently removes entities from the game |
+| **2** | **Shield of the Unmaker** | Defensive buff — **10% chance** to completely delete any incoming spell or melee hit at random. The attack simply ceases to exist |
+| **3** | **Disintegration Proc** weapon enchantment | Weapon proc that **disintegrates equipped items at random** on the target being fought — a tank's armor, weapons, or shields can be destroyed mid-combat. Also randomly procs on **other players in the fight**, destroying one of their equipped items |
+| **4** | Access to the **Core of the Unmaker** zone | The 4th Card of Unmaking can **only be obtained** inside the Core of the Unmaker — a raid dungeon zone (see section 9.9) |
+
+**Shield of the Unmaker details:**
+- A persistent defensive buff active while the holder has 2+ Cards of Unmaking
+- **10% proc chance** on every incoming spell or melee hit
+- When it procs, the incoming attack is **completely deleted** — no damage, no effect, as if it never existed
+- This makes the holder extremely dangerous to fight — roughly 1 in 10 attacks simply vanish
+
+**Disintegration Proc details (3 Cards):**
+- Enchants the holder's equipped weapon with a **Disintegration Proc**
+- On each melee hit, there is a chance the proc fires and **permanently destroys a random equipped item** on the target (armor, weapon, shield, jewelry)
+- The proc also has a chance to fire on **random players currently engaged in combat** with the holder — any player in the fight can lose an equipped item
+- Destroyed items are gone forever — no recovery, no looting, no repair
+- This makes fighting a 3-card holder extraordinarily risky — every swing could cost a player their best gear
+
+### 9.8 Core of the Unmaker — Raid Zone
+
+The **Core of the Unmaker** is a unique raid dungeon zone — a massive structure dominated by a **large lighthouse** at its peak. The Unmaker in its true form resides at the top of the lighthouse as the zone's final boss. The **4th Card of Unmaking** can only be obtained here.
+
+**Zone layout:**
+- A sprawling structure built around a **towering lighthouse** visible from the zone entrance
+- Trash mobs and mini-bosses guard the path to the lighthouse peak
+- The final encounter is **The Unmaker (True Form)** at the top of the lighthouse
+
+**The Unmaker (True Form) — Raid Boss:**
+
+The Unmaker in its true form is the most dangerous raid boss in the game — a chaotic entity that uses every tool of deletion and destruction at its disposal.
+
+**Boss mechanics:**
+
+| Mechanic | Description | Proc Rate |
+|---|---|---|
+| **Random Raid Attack** | The Unmaker uses **every raid attack in the game** at random — any spell, ability, or mechanic from any raid boss in the game can fire at any time | **30% proc rate** per tick |
+| **Item Disintegration Proc** | Randomly **destroys equipped items** on players in the fight — armor, weapons, shields, jewelry permanently deleted | Moderate proc rate |
+| **Void Deletion** | Can **delete players from the game** — removes them from the encounter and the game world temporarily | Low proc rate |
+| **Banned by the Unmaker** | At a **very low proc chance**, a player hit by this effect is **locked out of the game for 2 real-time days** — they cannot log in until the ban expires | Very low proc rate (~1%) |
+
+**Random Raid Attack — 30% proc rate:**
+- Every combat tick, The Unmaker has a **30% chance** to use a completely random raid attack from any raid boss in the game
+- This means the fight is utterly unpredictable — one moment it's casting a Plane of Fear fear spell, the next it's doing a Nagafen AE breath, then a Rallos Zek melee combo
+- Raid teams must prepare for **every possible mechanic** simultaneously — there is no "strategy" beyond survival
+- The random attack pool includes AEs, single-target nukes, DoTs, mez, charm, gravity flux, death touches, and more
+
+**Item Disintegration Proc:**
+- During the fight, The Unmaker periodically procs an ability that **permanently destroys a random equipped item** on a random player in the raid
+- The item is gone forever — this is not a debuff or a temporary removal
+- This means the longer the fight goes, the weaker the raid becomes as gear is systematically destroyed
+- Tanks are especially vulnerable — losing a shield or primary weapon mid-fight can be catastrophic
+
+**Banned by the Unmaker — 2-day lockout:**
+- At a **very low proc chance (~1%)**, The Unmaker can hit a player with **"Banned by the Unmaker"**
+- This effect immediately disconnects the player and **prevents them from logging in for 2 real-time days**
+- The player's character remains in the world (and can be killed, looted, etc.) while they are locked out
+- This is the most feared mechanic in the game — there is a small but real chance that engaging The Unmaker costs you 2 days of playtime
+- The ban is enforced at the login server level — it cannot be circumvented
+
+**4th Card of Unmaking drop:**
+- The Unmaker (True Form) is the **only source** for the 4th Card of Unmaking
+- This means reaching the pinnacle of the unmaking power chain requires defeating the most dangerous encounter in the game
+- The card drops as a rare loot item from the boss — it is not guaranteed
+
+### 9.9 Card System Restrictions
+
+- **Dragons and raid bosses cannot collect cards** — they are too powerful to participate in the card economy
+- **Gods can collect and use cards** — but only against other gods (deity-vs-deity plotting)
+- Cards are **bound to the collector** — they cannot be traded between players or agents (except to The Unmaker for conversion)
+- The void spell has a **long cooldown** and **limited charges** — it cannot be spammed
+- Server-wide announcements at 3 and 4 cards create social awareness and counterplay opportunities
+
+### 9.10 World Entropy — The Fading Game
+
+The universal card system creates a mechanic where **the game world slowly fades away** over time. As players and agents collect cards and trade sets of 4 to The Unmaker, entities are permanently deleted from the world.
+
+**How deletion works:**
+- Trading **4 cards of any entity type** (e.g., 4 Cards of the Fire Beetle) to The Unmaker permanently removes that entity from the game — it stops spawning everywhere
+- This applies to **every entity in the game**: mobs, named NPCs, merchants, guards, quest givers, ambient creatures, even faction leaders
+- Once deleted, that entity **never returns** (unless the server is rebooted — see section 9.11)
+- As entities are deleted, **resources become precious** — camp spots that once had abundant spawns thin out, crafting materials become scarce, quest lines break as NPCs vanish
+
+**Consequences of world entropy:**
+- The economy shifts as supply chains collapse — if the orcs of Crushbone are deleted, orc-related loot and quest rewards vanish with them
+- Social dynamics change — factions that lose key members weaken, towns that lose guards become vulnerable to conquest
+- The world becomes increasingly dangerous and sparse — fewer mobs to hunt, fewer NPCs to trade with, fewer allies to call on
+- Players must make **strategic decisions** about which entities to preserve and which to sacrifice for card power
+- The entropy is **irreversible** under normal play — every deletion is permanent, creating a sense of loss and consequence
+
+**Pacing:**
+- The rate of world entropy is naturally throttled by card drop rates and the requirement to find The Unmaker (1% random spawn)
+- Early game sees minimal impact — a few deleted fire beetles don't matter much
+- Late game becomes increasingly dramatic — faction leaders vanish, raid bosses disappear, entire zones empty out
+- Eventually, the world reaches a critical state where enough has been deleted that a server reboot becomes the logical conclusion
+
+### 9.11 Server Reboot — 4 Cards of Unmaking Reset the World
+
+Collecting **4 Cards of Unmaking** (a full deck) and using them triggers the ultimate event: a **complete server reboot**. Everything in the game world resets — all deleted entities return, all zones repopulate, all faction standings reset to default.
+
+**Reboot mechanics:**
+- When a player or agent holds **4 Cards of Unmaking** and activates the full deck, a server-wide countdown begins
+- The reboot is announced to all players: *"[Name] has activated the Deck of Unmaking! The world will be unmade in [countdown]!"*
+- When the countdown completes, the server **fully resets** — all entities respawn, all deletions are reversed, all zones return to their original state
+
+**What survives the reboot:**
+- **Items enchanted with a 3rd-card enchantment survive** — these are the only items in the game that persist through a server reboot. The 3rd card's item enchantment acts as a permanent anchor, binding the item across resets
+- **All other items, currency, and progress are wiped** — characters return to default state
+- **Character names and account data persist** — players keep their identity but lose all in-game progress
+- This makes the **3rd card enchantment the most strategically valuable unlock** — players must decide which single item to enchant and protect against the inevitable reboot
+
+**Strategic implications:**
+- Players who invest in 3rd-card enchantments on their best gear are the only ones who carry power forward across reboots
+- The threat of a reboot creates social tension — do you support the player collecting Cards of Unmaking, or do you try to stop them?
+- Each reboot is a **fresh start with consequences** — the world is new again, but some players carry enchanted relics from the previous era
+- Guilds may coordinate to ensure their best items are enchanted before a reboot, creating pre-reboot scrambles
+
+### 9.12 Becoming The Unmaker — Killing Blow Transformation
+
+The player who lands the **killing blow** on The Unmaker (True Form) in the Core of the Unmaker raid zone doesn't just get loot — they **become The Unmaker**.
+
+**Transformation mechanics:**
+- The player who delivers the final blow earns the title **"[Name] the Unmaker"**
+- They receive the **complete Unmaker cloth armor set** (all pieces, 5 AC each) and the **Unmaker Megaphone** (range slot item)
+- The Megaphone upgrades the Unmaker Aura from a personal effect to a **group spell** — the bard-song-like pulse now affects the entire group, not just the wearer
+- The player gains **all Unmaker mechanics naturally** — they inherently possess the Shield of the Unmaker (10% hit deletion), the Disintegration Proc, and the Void of Unmaking
+- They receive **Unmaker AA** — a special alternate advancement track that gains **100% experience** (double the normal AA XP rate), rapidly accelerating their power growth
+
+**The new Unmaker's role:**
+- "[Name] the Unmaker" functions as a **living Unmaker** — they can convert cards, they carry the aura, they have the deletion powers
+- Other players can trade cards to the player-Unmaker just as they would the NPC
+- The player-Unmaker is now a high-value target — other players may hunt them for the title and power
+- If the player-Unmaker is killed, the Unmaker NPC respawns with its normal random spawn behavior — the title can only be re-earned by completing the Core raid again
+
+**Unmaker AA — 100% experience:**
+- The Unmaker AA track provides unique abilities tied to the Unmaker's nature — void manipulation, entropy control, deletion mastery
+- All AA experience earned by "[Name] the Unmaker" is gained at **100% rate** (effectively double normal) — they advance through AA content at twice the speed
+- This accelerated progression ensures the player-Unmaker rapidly becomes one of the most powerful characters on the server
+
 ---
 
 ## 10. Streaming Pipeline
@@ -934,6 +1172,7 @@ The raid leader gains Murphy-powered moderation tools:
 | **Perception Pipeline** | `perception_pipeline.py` | Screen-scan → inference → action → mind-write cycle |
 | **Lore Seeder** | `lore_seeder.py` | EQEmu NPC/mob/boss data import and soul document seeding |
 | **Macro-Trigger Engine** | `macro_trigger_engine.py` | Classic bot behavior patterns as agent trigger system |
+| **Card System** | `card_system.py` | God card drops, collection tracking, Unmaker conversion, void spell, PvP boss transformation |
 
 ---
 
@@ -1015,6 +1254,14 @@ The raid leader gains Murphy-powered moderation tools:
         "active_triggers": ["str"],  # Currently firing macro-triggers
         "inference_result": "str",  # Last inference decision
         "tick_rate_ms": "int"  # Default 250
+    },
+    "card_collection": {
+        "universal_cards": {"entity_name": "int"},  # Tally of universal cards collected per entity
+        "god_cards": {"deity_name": {"count": "int", "unlocks": {}}},
+        "cards_of_unmaking": "int",  # 0–4
+        "is_the_unmaker": "bool",  # True if player became The Unmaker via killing blow
+        "unmaker_aa_xp_bonus": "float",  # 1.0 = 100% bonus XP rate
+        "enchanted_items": ["item_id"]  # Items with 3rd-card enchantment (survive server reboot)
     }
 }
 ```
@@ -1047,6 +1294,136 @@ The raid leader gains Murphy-powered moderation tools:
     "combat_log": [{"timestamp": "iso8601", "action": "str", "damage": "int"}],
     "started_at": "iso8601",
     "completed_at": "iso8601"
+}
+```
+
+### 12.4 God Card Schema
+
+```python
+{
+    "card_id": "uuid",
+    "card_type": "str",  # "hate", "fear", "war", "disease", etc. — matches deity domain
+    "deity_source": "str",  # Name of the god encounter that drops this card
+    "holder_id": "str",  # Player or agent ID
+    "holder_type": "str",  # "player" or "agent"
+    "collected_at": "iso8601",
+    "collection_count": "int",  # 1–4 for progressive unlocks
+    "unlocks": {
+        "skill": {"name": "str", "unlocked": "bool"},  # 1st card
+        "buff": {"name": "str", "unlocked": "bool"},  # 2nd card
+        "enchantment": {"name": "str", "target_item": "str", "unlocked": "bool"},  # 3rd card
+        "card_of_unmaking": {"converted": "bool", "converted_at": "iso8601"}  # 4th card
+    },
+    "global_announced_3": "bool",
+    "global_announced_4": "bool"
+}
+```
+
+### 12.5 Card of Unmaking Schema
+
+```python
+{
+    "unmaking_card_id": "uuid",
+    "source_deity": "str",  # The god type whose 4 cards were traded
+    "holder_id": "str",
+    "total_unmaking_cards": "int",  # Total Cards of Unmaking held (1–4)
+    "void_spell_charges": "int",  # Remaining uses (unlocked at 1 card)
+    "void_spell_cooldown_remaining": "int",  # Seconds until next use
+    "entities_unmade": [{"entity_id": "str", "entity_name": "str", "unmade_at": "iso8601"}],
+    "god_title_earned": "str",  # e.g., "God of Hate" — set when a deity is unmade
+    "pvp_raid_boss": "bool",  # True if holder has unmade a god
+    "shield_of_unmaker": {  # Unlocked at 2 Cards of Unmaking
+        "active": "bool",
+        "delete_chance": 0.10  # 10% chance to delete incoming spell/hit
+    },
+    "disintegration_proc": {  # Unlocked at 3 Cards of Unmaking
+        "active": "bool",
+        "effect": "destroy_random_equipped_item",
+        "targets": ["current_target", "random_nearby_player"]
+    },
+    "core_access": "bool"  # True if holder has 4 Cards of Unmaking (from Core of the Unmaker)
+}
+```
+
+### 12.6 Unmaker NPC Schema
+
+```python
+{
+    "npc_id": "the_unmaker",
+    "level": 1,
+    "spawn_chance": 0.01,  # 1% per spawn cycle
+    "spawn_zone": "random",  # Any zone, truly random
+    "loot_table": {
+        "currency": {"platinum": 5, "gold": 5, "silver": 5, "copper": 5},
+        "armor": [
+            {"name": "Unmaker Cloth Cap", "ac": 5, "slot": "head", "type": "cloth"},
+            {"name": "Unmaker Cloth Tunic", "ac": 5, "slot": "chest", "type": "cloth"},
+            {"name": "Unmaker Cloth Sleeves", "ac": 5, "slot": "arms", "type": "cloth"},
+            {"name": "Unmaker Cloth Gloves", "ac": 5, "slot": "hands", "type": "cloth"},
+            {"name": "Unmaker Cloth Pants", "ac": 5, "slot": "legs", "type": "cloth"},
+            {"name": "Unmaker Cloth Boots", "ac": 5, "slot": "feet", "type": "cloth"},
+            {"name": "Unmaker Cloth Bracer", "ac": 5, "slot": "wrist", "type": "cloth"}
+        ],
+        "special": {"name": "Unmaker Megaphone", "effect": "enhances_unmaker_aura"},
+        "max_drops": 2,
+        "drop_nothing_chance": 0.6
+    },
+    "set_bonus": {
+        "full_set": "Unmaker Aura",
+        "effect": "bard_song_pulse",
+        "enhanced_by": "Unmaker Megaphone"
+    },
+    "card_conversion": {
+        "input": "4x same god card type",
+        "output": "Card of Unmaking"
+    }
+}
+```
+
+### 12.7 Core of the Unmaker Zone Schema
+
+```python
+{
+    "zone_id": "core_of_the_unmaker",
+    "zone_name": "Core of the Unmaker",
+    "zone_type": "raid_dungeon",
+    "landmark": "lighthouse",  # Large lighthouse at peak — The Unmaker True Form at top
+    "level_range": {"min": 60, "max": 65},
+    "final_boss": {
+        "name": "The Unmaker (True Form)",
+        "level": 75,
+        "boss_type": "raid",
+        "mechanics": {
+            "random_raid_attack": {
+                "proc_rate": 0.30,  # 30% per tick
+                "pool": "all_raid_boss_attacks",  # Every raid attack in the game
+                "description": "Uses a random raid boss ability each proc"
+            },
+            "item_disintegration": {
+                "proc_rate": "moderate",
+                "effect": "destroy_random_equipped_item",
+                "targets": "random_player_in_raid",
+                "permanent": True
+            },
+            "void_deletion": {
+                "proc_rate": "low",
+                "effect": "remove_player_from_encounter",
+                "description": "Temporarily deletes player from the fight"
+            },
+            "banned_by_the_unmaker": {
+                "proc_rate": 0.01,  # ~1% very low
+                "effect": "login_lockout",
+                "duration_days": 2,
+                "description": "Locks player out of game for 2 real-time days"
+            }
+        },
+        "loot": {
+            "card_of_unmaking_4th": {
+                "drop_rate": "rare",
+                "description": "The only source for the 4th Card of Unmaking"
+            }
+        }
+    }
 }
 ```
 
@@ -1127,6 +1504,30 @@ The raid leader gains Murphy-powered moderation tools:
 - [ ] Implement Remake System for all classes (1% stat/skill cap increase)
 - [ ] Implement agent remake cycle (automatic, retains soul document)
 - [ ] Build remake counter UI and inspect integration
+- [ ] Implement God Card drop system on deity encounters (card_system.py)
+- [ ] Implement progressive card collection unlocks (skill → buff → enchantment → Card of Unmaking)
+- [ ] Implement global server announcements at 3 and 4 card collection milestones
+- [ ] Implement The Unmaker NPC (level 1, 1% random spawn, loot table, card conversion)
+- [ ] Implement Unmaker cloth armor set with 5 AC per piece and Unmaker Aura set bonus
+- [ ] Implement Card of Unmaking void spell (permanent entity deletion, player exception)
+- [ ] Implement god-vs-god plotting mechanics (deities using cards against each other, loot table merging)
+- [ ] Implement PvP raid boss transformation when player unmakes a god (title, stats, abilities)
+- [ ] Implement Shield of the Unmaker buff for holders of 2+ Cards of Unmaking
+- [ ] Implement card restriction rules (dragons/raid bosses excluded, bound-to-collector)
+- [ ] Implement Shield of the Unmaker (10% chance to delete incoming spells/hits at 2 Cards of Unmaking)
+- [ ] Implement Disintegration Proc weapon enchantment (3 Cards — destroys target and nearby player equipped items)
+- [ ] Build Core of the Unmaker raid zone (lighthouse structure, trash mobs, mini-bosses)
+- [ ] Implement The Unmaker True Form raid boss (random raid attacks at 30% proc, item disintegration, void deletion)
+- [ ] Implement Banned by the Unmaker mechanic (~1% proc, 2 real-time day login lockout)
+- [ ] Implement 4th Card of Unmaking as Core of the Unmaker boss drop only
+- [ ] Implement universal card drops for all entities (mobs, NPCs, creatures — minor effects)
+- [ ] Implement 4-card entity deletion (trading 4 universal cards to Unmaker deletes that entity permanently)
+- [ ] Implement world entropy tracking (deleted entity registry, resource scarcity progression)
+- [ ] Implement server reboot via 4 Cards of Unmaking (full deck triggers world reset)
+- [ ] Implement 3rd-card enchanted item persistence (survive server reboot, sole items that carry forward)
+- [ ] Implement Becoming The Unmaker (killing blow transformation, full Unmaker gear, group aura, title)
+- [ ] Implement Unmaker Megaphone as range item (converts Unmaker Aura from personal to group spell)
+- [ ] Implement Unmaker AA track with 100% XP rate bonus
 
 ### Phase 6: Race & Culture (Weeks 21–24)
 
@@ -1195,6 +1596,16 @@ The raid leader gains Murphy-powered moderation tools:
 | **Perception pipeline latency** | Tick rate too slow for real-time combat | Lightweight inference for routine combat (no LLM); LLM reserved for complex social decisions |
 | **Lore-seed data quality** | Incomplete or inconsistent NPC data from EQEmu DB | Validation pass on import, fallback templates for missing data, manual curation for key NPCs |
 | **Sleeper event imbalance** | Dragon faction rally makes event impossible or trivial | Tunable rally response delay, cap on concurrent dragon reinforcements, engaged-elsewhere exemption |
+| **Card economy exploitation** | Players farming god cards to gain disproportionate power | Card drop rate tuning, no-drop/lore restrictions, long void spell cooldown, server announcements create social counterplay |
+| **Unmaker spawn abuse** | Camping or exploiting The Unmaker's random spawn | Truly random spawn with 1% chance, level 1 fragility means ambient kills, max 2 drops per kill |
+| **Void spell world damage** | Permanent deletion of critical NPCs or quest givers | Long cooldown, limited charges, player exception rule, server backup/restore for extreme cases |
+| **PvP raid boss imbalance** | Player-turned-god is unkillable or trivial | Stat scaling balanced to require full raid, god abilities on cooldowns, player retains mortality on death |
+| **Banned by the Unmaker abuse** | Players locked out of game for 2 days causes frustration | Very low proc rate (~1%), voluntary encounter (players choose to enter Core of the Unmaker), ban duration tunable |
+| **Item disintegration grief** | Permanent gear loss discourages raiding the Unmaker | Clear warnings before entering Core zone, risk-reward design (4th Card is ultimate power), gear insurance NPC possible |
+| **Random raid attack chaos** | 30% proc rate of random raid attacks makes fight impossible | Tunable proc rate, raid composition diversity rewarded, survival-based design (not DPS race) |
+| **World entropy too fast** | Critical NPCs deleted early, breaking quest lines and economy | Card drop rates throttled, Unmaker 1% spawn rate limits conversion speed, deletions announced server-wide for social counterplay |
+| **Server reboot grief** | Player collects 4 Unmaking cards and reboots against community wishes | Server-wide countdown with warning, 3rd-card enchanted items survive to soften impact, reboot creates fresh start with carry-forward relics |
+| **Unmaker player imbalance** | Player-Unmaker with 100% AA XP and full gear dominates server | Player-Unmaker is a high-value target (huntable), death removes title, title must be re-earned via Core raid |
 
 ---
 

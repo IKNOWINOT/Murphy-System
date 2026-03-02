@@ -92,6 +92,14 @@ The game agent soul extends the Rosetta soul pattern with game-specific layers:
 │   Shared lore blocks: The Sleeper storyline in all agents      │
 │   Social/economic systems grounded in canonical EQ lore        │
 ├────────────────────────────────────────────────────────────────┤
+│ CARD COLLECTION LAYER                                           │
+│   Universal cards: every entity drops cards with minor effects  │
+│   God cards: deity cards unlock skill, buff, enchantment, void │
+│   4 universal cards = entity deleted from game (world entropy) │
+│   4 Cards of Unmaking = server reboot (3-card items survive)   │
+│   Killing blow on Unmaker = become "[Name] the Unmaker"        │
+│   Unmaker AA: 100% XP rate, full Unmaker gear + group aura    │
+├────────────────────────────────────────────────────────────────┤
 │ DEATH STATE                                                     │
 │   Alive/dead status, death cause, killer identity               │
 │   Betrayal flag — sole exception to permadeath                  │
@@ -463,6 +471,7 @@ The **sole exception** to permadeath is **betrayal**. If an agent was killed thr
 | Perception-Inference | `perception_pipeline.py` | Screen-scan → inference → action → mind-write cycle |
 | Macro-Trigger | `macro_trigger_engine.py` | Classic bot behavior patterns (assist, follow, engage, heal, debuff) |
 | Lore-Seed | `lore_seeder.py` | EQEmu NPC/mob/boss data import and soul document pre-population |
+| Card Collection | `card_system.py` | Universal/god card tracking, world entropy, Unmaker conversion, server reboot |
 
 ### 8.2 Persistence Strategy
 

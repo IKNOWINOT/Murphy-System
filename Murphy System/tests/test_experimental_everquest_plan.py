@@ -35,6 +35,16 @@ integration.  The plan covers:
   - Lore-seeded soul database (all EQ NPCs, mobs, raid bosses as agent foundations)
   - The Sleeper (Kerafyrm) world event (level 60+ zones, shared memory, dragon /tell coordination)
   - Dragon faction mutual aid (hostile factions cooperate during Sleeper event unless engaged)
+  - God Cards system (deity card drops, progressive AA unlocks, Card of Unmaking void spell)
+  - The Unmaker NPC (level 1 random spawn, cloth armor set, card conversion)
+  - Core of the Unmaker raid zone (lighthouse, Unmaker True Form boss, 30% random raid attacks)
+  - Shield of the Unmaker (10% delete incoming hits), Disintegration Proc (destroy equipped items)
+  - Banned by the Unmaker (~1% proc, 2-day login lockout)
+  - PvP raid boss transformation (unmake a god, gain title and become targetable)
+  - Universal card system (every entity drops cards, minor effects, 4 cards = entity deletion)
+  - World entropy (game slowly fades as entities are deleted, resources become precious)
+  - Server reboot (4 Cards of Unmaking reset everything, 3rd-card enchanted items survive)
+  - Becoming The Unmaker (killing blow = title + full gear + group aura + 100% AA XP)
 
 Each test class validates a planning document's structure and required content.
 
@@ -532,6 +542,248 @@ class TestExperimentalEverQuestPlan:
         lower = text.lower()
         assert "engaged" in lower and ("elsewhere" in lower or "already" in lower)
 
+    # --- God Cards and Unmaker System ---
+
+    def test_has_god_cards_section(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "God Cards" in text or "God Card" in text
+
+    def test_god_card_drops_from_deity_encounters(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "card of hate" in lower
+        assert "god" in lower and "drop" in lower
+
+    def test_god_card_progressive_unlocks(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "1st card" in lower or "1st" in lower and "skill" in lower
+        assert "2nd card" in lower or "2nd" in lower and "buff" in lower
+        assert "3rd card" in lower or "3rd" in lower and "enchantment" in lower
+        assert "4th card" in lower or "4th" in lower and "unmaking" in lower
+
+    def test_god_card_global_announcements(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "global" in lower or "server-wide" in lower
+        assert "3 cards" in lower
+        assert "4 cards" in lower
+
+    def test_god_card_dragons_excluded(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "dragon" in lower and "cannot" in lower and "card" in lower
+
+    def test_god_vs_god_plotting(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "god" in lower and "plot" in lower
+
+    def test_unmaker_npc_exists(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Unmaker" in text or "unmaker" in text
+
+    def test_unmaker_level_1_random_spawn(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "level 1" in lower
+        assert "1%" in text and "random" in lower
+
+    def test_unmaker_loot_currency(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "5 Platinum" in text or "5 platinum" in text.lower()
+
+    def test_unmaker_cloth_armor_5ac(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "unmaker cloth" in lower
+        assert "5 ac" in lower
+
+    def test_unmaker_aura_set_bonus(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "unmaker aura" in lower
+        assert "bard" in lower and "song" in lower or "bard-song" in lower
+
+    def test_unmaker_megaphone(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Unmaker Megaphone" in text
+
+    def test_card_of_unmaking_void_spell(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "card of unmaking" in lower
+        assert "void" in lower and ("spell" in lower or "unmaking" in lower)
+
+    def test_void_spell_permanent_deletion(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "permanent" in lower and ("delet" in lower or "remov" in lower)
+
+    def test_void_spell_player_exception(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "player" in lower and "exception" in lower or "players are the sole exception" in lower
+
+    def test_pvp_raid_boss_transformation(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "pvp raid boss" in lower or "pvp" in lower and "raid boss" in lower
+        assert "title" in lower and "god" in lower
+
+    def test_shield_of_unmaker_10_percent(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "shield of the unmaker" in lower
+        assert "10%" in text
+
+    def test_disintegration_proc_3_cards(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "disintegrat" in lower and "proc" in lower
+        assert "equipped item" in lower or "random equipped" in lower
+
+    def test_core_of_the_unmaker_zone(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Core of the Unmaker" in text
+
+    def test_core_lighthouse_structure(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "lighthouse" in lower
+
+    def test_unmaker_true_form_raid_boss(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "unmaker" in lower and "true form" in lower
+        assert "raid" in lower and "boss" in lower
+
+    def test_random_raid_attacks_30_percent(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "random raid attack" in lower or "random" in lower and "raid attack" in lower
+        assert "30%" in text
+
+    def test_banned_by_the_unmaker_2_day(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "banned by the unmaker" in lower
+        assert "2" in text and "day" in lower
+
+    def test_4th_card_from_core_only(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "4th card of unmaking" in lower
+        assert "core of the unmaker" in lower or "only" in lower
+
+    def test_god_card_schema_exists(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "God Card Schema" in text
+
+    def test_unmaker_zone_schema_exists(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Core of the Unmaker Zone Schema" in text or "core_of_the_unmaker" in text
+
+    def test_god_card_implementation_tasks(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "god card" in lower and ("implement" in lower or "[ ]" in lower)
+        assert "card of unmaking" in lower and ("implement" in lower or "[ ]" in lower)
+
+    # --- Universal Cards and World Entropy ---
+
+    def test_universal_cards_exist(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "universal card" in lower
+
+    def test_universal_cards_minor_effects(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "minor effect" in lower
+
+    def test_universal_cards_everything_drops(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "every entity" in lower and "drop" in lower or "every kill" in lower
+
+    def test_four_universal_cards_deletes_entity(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "trading 4" in lower or "4 of the same" in lower
+        assert "delet" in lower and ("entity" in lower or "permanently" in lower)
+
+    def test_world_entropy_section(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "World Entropy" in text
+
+    def test_world_entropy_fading(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "fad" in lower and ("game" in lower or "world" in lower)
+
+    def test_resources_precious(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "precious" in lower or "scarce" in lower
+
+    # --- Server Reboot ---
+
+    def test_server_reboot_section(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Server Reboot" in text
+
+    def test_four_unmaking_cards_reboot(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "4 cards of unmaking" in lower and "reboot" in lower or "reset" in lower
+
+    def test_3rd_card_enchanted_items_survive(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "3rd" in lower and "enchant" in lower and "survive" in lower
+
+    def test_reboot_server_wide_announcement(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "deck of unmaking" in lower or "countdown" in lower
+
+    # --- Becoming The Unmaker ---
+
+    def test_becoming_the_unmaker_section(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Becoming The Unmaker" in text
+
+    def test_killing_blow_transformation(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "killing blow" in lower and "unmaker" in lower
+
+    def test_unmaker_title_name_the_unmaker(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "the unmaker" in lower and "title" in lower
+
+    def test_unmaker_gets_full_gear_set(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "full" in lower and "unmaker" in lower and ("cloth" in lower or "set" in lower or "gear" in lower)
+
+    def test_megaphone_range_item_group_spell(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "megaphone" in lower and ("range" in lower or "group" in lower)
+
+    def test_unmaker_aa_100_percent_xp(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "100%" in text and ("experience" in lower or "xp" in lower)
+
+    def test_unmaker_inherits_all_mechanics(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "shield of the unmaker" in lower and "disintegrat" in lower and "void" in lower
+
 
 # ===========================================================================
 # OpenClaw Molty Soul Concept Document
@@ -751,6 +1003,38 @@ class TestOpenClawMoltySoulConcept:
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
         assert "eqemu" in lower or "npc" in lower and "data" in lower
+
+    # --- Card Collection Layer in Soul ---
+
+    def test_has_card_collection_layer_in_soul(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "card" in lower and ("layer" in lower or "collection" in lower)
+
+    def test_soul_card_universal_cards(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "universal card" in lower or "every entity" in lower and "card" in lower
+
+    def test_soul_card_world_entropy(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "entropy" in lower or "delet" in lower and "card" in lower
+
+    def test_soul_card_server_reboot(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "reboot" in lower or "reset" in lower
+
+    def test_soul_card_unmaker_transformation(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "unmaker" in lower
+
+    def test_soul_card_system_module_mapping(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "card_system.py" in lower
 
 
 # ===========================================================================
@@ -1253,6 +1537,54 @@ class TestCrossDocumentConsistency:
     def test_plan_has_dragon_tell_implementation_task(self):
         plan = _load_doc(self.PLAN).lower()
         assert "dragon" in plan and "/tell" in plan or "tell" in plan and "rally" in plan
+
+    # --- God Cards cross-document consistency ---
+
+    def test_plan_has_god_card_implementation_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "god card" in plan and ("implement" in plan or "[ ]" in plan)
+
+    def test_plan_has_core_of_unmaker_implementation_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "core of the unmaker" in plan and ("implement" in plan or "[ ]" in plan)
+
+    def test_plan_has_banned_by_unmaker_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "banned by the unmaker" in plan and ("implement" in plan or "[ ]" in plan)
+
+    def test_plan_has_card_system_extension(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "card_system.py" in plan
+
+    def test_plan_has_god_card_scope(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "god cards" in plan and "unmaker" in plan and "scope" in plan or "deity card" in plan or "card drop" in plan
+
+    def test_plan_and_soul_mention_card_collection(self):
+        plan = _load_doc(self.PLAN).lower()
+        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
+        assert "card" in plan and "collection" in plan or "card_collection" in plan
+        assert "card" in soul and "collection" in soul or "card_collection" in soul
+
+    def test_plan_has_universal_card_implementation_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "universal card" in plan and ("implement" in plan or "[ ]" in plan)
+
+    def test_plan_has_world_entropy_implementation_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "world entropy" in plan and ("implement" in plan or "[ ]" in plan)
+
+    def test_plan_has_server_reboot_implementation_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "server reboot" in plan and ("implement" in plan or "[ ]" in plan)
+
+    def test_plan_has_becoming_unmaker_implementation_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "becoming" in plan and "unmaker" in plan and ("implement" in plan or "[ ]" in plan)
+
+    def test_plan_has_unmaker_aa_implementation_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "unmaker aa" in plan and "100%" in plan
 
 class TestRaceCulturalIdentityDesign:
     """Validate RACE_CULTURAL_IDENTITY_DESIGN.md structure."""
