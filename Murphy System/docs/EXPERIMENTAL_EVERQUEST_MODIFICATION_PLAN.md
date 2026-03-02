@@ -984,8 +984,15 @@ The **Card of Unmaking** is the most powerful and dangerous item in the game. It
 |---|---|---|
 | **1** | **Void of Unmaking** spell | Targeted deletion — permanently removes entities from the game |
 | **2** | **Shield of the Unmaker** | Defensive buff — **10% chance** to completely delete any incoming spell or melee hit at random. The attack simply ceases to exist |
-| **3** | **Disintegration Proc** weapon enchantment | Weapon proc that **disintegrates equipped items at random** on the target being fought — a tank's armor, weapons, or shields can be destroyed mid-combat. Also randomly procs on **other players in the fight**, destroying one of their equipped items |
+| **3** | **Disintegration Proc** weapon enchantment + **attackable by everyone** | Weapon proc that **disintegrates equipped items at random** on the target being fought. Also: the holder is flagged as **attackable by all players and NPCs** (see section 9.22) |
 | **4** | Access to the **Core of the Unmaker** zone | The 4th Card of Unmaking can **only be obtained** inside the Core of the Unmaker — a raid dungeon zone (see section 9.8) |
+
+**Level 60 unmaking cap — 3 Cards maximum from sub-60 entities:**
+- A player or agent can obtain a **maximum of 3 Cards of Unmaking** by unmaking entities below level 60 — trading 4 universal cards of any sub-60 mob, NPC, or creature to The Unmaker produces a Card of Unmaking, but only up to 3 total from this source
+- The **4th Card of Unmaking can only be obtained** inside the Core of the Unmaker raid zone (see section 9.8) — a level 60+ endgame dungeon
+- This creates a natural progression gate: players can accumulate power through open-world card collection, but the ultimate tier requires raiding the most dangerous encounter in the game
+- Sub-60 entities include all common mobs, wildlife, low-to-mid-level named NPCs, and non-raid bosses — the vast majority of the game world
+- Level 60+ entities (raid bosses, gods, endgame named NPCs) are not subject to this cap — their cards are already gated behind difficult encounters
 
 **Shield of the Unmaker details:**
 - A persistent defensive buff active while the holder has 2+ Cards of Unmaking
@@ -1075,7 +1082,7 @@ Obtaining a Card of Unmaking is a **world-altering event** that draws immediate 
 |---|---|---|
 | **1** | **6 origin NPCs summoned** — 6 random NPC agents from your origin city (never previously summoned by anyone) come to your aid as a personal group | Hostile city kings mobilize armies against you (except home city) |
 | **2** | **One origin zone summoned** — an entire zone's worth of NPCs from your origin city rallies to your location | A major dragon (Nagafen/Vox-tier) dispatched toward you — **3-day timer** |
-| **3** | **Origin city zone + faction zone** — every AI character within a zone of your origin city aids you, AND one random zone of cities in the same faction as your origin is summoned | A god AND a dragon dispatched — **3-day timer** |
+| **3** | **Origin city zone + faction zone** — every AI character within a zone of your origin city aids you, AND one random zone of cities in the same faction as your origin is summoned. **Attackable by everyone** (see section 9.22) | A god AND a dragon dispatched — **3-day timer**. All players and NPCs can attack you |
 | **4** | **Immune to Unmaker attacks + full faction mobilization** — immune to all Unmaker-type attacks (disintegration, void, ban), every same-faction city commanded to send forces to aid you | All previous threats plus server-wide awareness |
 
 **1 Card — Personal origin group:**
@@ -1092,11 +1099,12 @@ Obtaining a Card of Unmaking is a **world-altering event** that draws immediate 
 - A **major dragon** (comparable to Lord Nagafen or Lady Vox) is dispatched toward the holder — **3-day timer** to decide: keep holding for power, or trade cards for the Shield/Void abilities
 - If the holder does not trade within 3 days, the dragon arrives — a full raid-tier encounter that tracks, ambushes, and pursues
 
-**3 Cards — Origin city and faction zone:**
+**3 Cards — Origin city and faction zone + attackable by everyone:**
 - Holding 3 Cards of Unmaking sends **every AI character within a zone of your origin city** to your aid
 - Additionally, **one random zone of cities in the same faction as your origin** is summoned to reinforce you
 - A **god-level encounter AND a dragon** are dispatched simultaneously — **3-day timer**
-- This makes holding 3 cards a massive strategic gamble: enormous allied forces vs. the most dangerous hunters in the game
+- **The holder is flagged as attackable by all** — every player, every NPC, every AI agent in the game can attack the 3-card holder without restriction. There are no safe zones, no city guards to protect you, no faction immunity
+- This makes holding 3 cards the ultimate strategic gamble: enormous allied forces surround you, but the entire world is your enemy and if you die your cards are silently redistributed (see section 9.22)
 
 **4 Cards — Unmaker immunity and full faction command:**
 - Holding all 4 Cards of Unmaking grants **immunity to all Unmaker-type attacks** — disintegration procs, void spells, Banned by the Unmaker, and item destruction have no effect on the holder
@@ -1509,6 +1517,93 @@ The sight of a soul-bound protector is **deeply disturbing** to all AI NPCs in t
 - Neither choice is reversible — once traded, the entity is gone; once soul-bound, the NPC reputation damage is permanent
 - This creates emergent social dynamics: players who soul-bind protectors become outcasts from NPC society but gain combat power; players who trade to The Unmaker advance world decay but maintain social standing
 
+### 9.22 Card of Unmaking Death — Silent Redistribution and Bind Respawn
+
+When a player or agent holding **3 or more Cards of Unmaking** is killed, the cards do not simply vanish — they are **silently redistributed** to the victors. This is the only way in the game to receive a Card of Unmaking without a server-wide announcement.
+
+**3-card holder death mechanics:**
+
+| Event | Mechanic |
+|---|---|
+| **Holder dies** | All Cards of Unmaking are removed from the dead holder immediately |
+| **Card redistribution** | Cards are randomly distributed among players/agents who participated in the kill — but **only to those who currently hold zero Cards of Unmaking** |
+| **Silent transfer** | The card transfer is **completely silent** — no server-wide announcement, no zone message, no combat log entry visible to others. This is the only way to receive a Card of Unmaking without the world knowing |
+| **No eligible recipients** | If no participating killer has zero Cards of Unmaking, the cards are destroyed — they cease to exist, reducing the total Cards of Unmaking in the world |
+| **Holder respawn** | The dead holder respawns at their **bind point** with no Cards of Unmaking and no unmaking buffs (Shield, Disintegration Proc, Void spell — all removed) |
+| **Enchanted items preserved** | The holder **keeps any items enchanted with a 3rd card of any type** (god card or NPC card 3rd-tier enchantments). These enchanted items are never lost, even on death |
+
+**Why only zero-card holders receive cards:**
+- This prevents card hoarding — a player who already holds Cards of Unmaking cannot accumulate more by hunting other holders
+- It spreads the power of unmaking across the population, preventing any single player or group from monopolizing the world's most dangerous items
+- It creates a natural churn: cards cycle through the population as holders die and new holders emerge
+- Players who have never held a Card of Unmaking are the most likely beneficiaries — creating unexpected power shifts
+
+**The silent transfer — strategic implications:**
+- Because the transfer is silent, **no one else on the server knows who received the cards** — not even the dead holder
+- The new card holder can choose to reveal themselves or remain hidden — at least until they accumulate enough cards to trigger escalation mechanics
+- This is the **only covert acquisition method** in the entire card system — every other card transaction is announced server-wide
+- Smart players may deliberately join raids against 3-card holders while holding zero cards, hoping to receive a silent transfer
+- This creates a secondary metagame: who is secretly holding cards? Who just received them? The information asymmetry drives social dynamics
+
+**Respawn state after death:**
+- The dead holder respawns at their **bind point** (the last location where they bound their soul — a standard EverQuest mechanic)
+- They respawn with **zero Cards of Unmaking** — all unmaking power is gone
+- All unmaking-granted abilities are removed: Void of Unmaking spell, Shield of the Unmaker, Disintegration Proc
+- All escalation benefits are removed: summoned origin NPCs, rallied zone forces, faction mobilization — all dismissed
+- The holder is no longer flagged as attackable-by-all — they return to normal PvP rules
+- **Items enchanted with any 3rd-card enchantment survive** — whether from god cards (deity-themed enchantment) or NPC cards (tier 3 weapon/class specialization), these enchanted items are permanently protected and never lost on death
+- The holder retains their normal class abilities, gear (minus any Unmaker-specific items), and character progression — only unmaking power is stripped
+
+### 9.23 NPC Card Effect Auto-Generation — Identity Template System
+
+Every entity in the game has card effects **automatically generated** from an **identity template** — a structured set of properties derived from the creature's stats, combat behavior, zone, and lore. This system ensures that all entities, from the lowliest fire beetle to Emperor Crush, have coherent, themed card effects without requiring manual design for each of the thousands of entities in the game.
+
+**Identity template fields:**
+
+| Field | Source | Effect Influence |
+|---|---|---|
+| **entity_level** | NPC database | Scales all effect magnitudes (duration, mitigation %, haste bonus) |
+| **primary_damage_type** | Weapon/spell data | Determines tier 1 spell condition and tier 2 resistance type (blunt, slash, pierce, fire, cold, magic, etc.) |
+| **combat_archetype** | AI behavior flags | Determines tier 3 specialization type: melee → weapon conversion; caster → spell enhancement; hybrid → dual benefit |
+| **zone_origin** | Spawn zone | Adds thematic flavor and faction context to effect names and descriptions |
+| **faction_alignment** | Faction standings | Influences which NPCs react most strongly to soul-binding this entity |
+| **is_named** | Named flag | Named = full AI protector at tier 4; generic = simple pet AI protector |
+| **special_abilities** | Ability list | Rare abilities (stun, root, fear, charm) may grant bonus effects at tiers 1–3 |
+
+**Auto-generation rules:**
+
+**Tier 1 — Combat Spell (24-hour cooldown):**
+- Spell effect = **double damage** with the entity's primary damage type for a duration scaled by level
+- Condition = must be using a weapon that matches the entity's primary damage type (blunt for blunt NPCs, slash for slash NPCs, etc.)
+- Duration: level 1–10 → 30 seconds; level 11–30 → 45 seconds; level 31–50 → 1 minute; level 51+ → 1 minute
+- Stacks with all other damage modifiers
+
+**Tier 2 — Defensive Buff (7-day cooldown):**
+- Mitigation type = **half damage** from the entity's primary damage type
+- Mitigation percent: level 1–10 → 10%; level 11–30 → 25%; level 31–50 → 40%; level 51+ → 50%
+- Duration: until death or logout, then 7-day cooldown to reactivate
+
+**Tier 3 — Weapon/Class Specialization (7-day cooldown):**
+- **Melee NPCs**: convert 2H version of the NPC's weapon type to 1H (e.g., 2HB → 1HB, 2HS → 1HS), plus haste bonus (level 1–10 → 1%; level 11–30 → 3%; level 31–50 → 5%; level 51+ → 5% + secondary stat bonus)
+- **Caster NPCs**: increase spell damage of the NPC's primary spell school by 10–25% (scaled by level)
+- **Hybrid NPCs**: minor weapon conversion OR minor spell boost (smaller bonus to both)
+
+**Tier 4 — Soul-Bound Protector (permanent):**
+- Named entity = full AI companion with soul document, personality, combat intelligence
+- Generic entity = simple pet-level follower with basic attack/follow AI
+- Protector level = entity level (not holder level)
+- Universal NPC horror reaction + AI player kill-on-sight (see section 9.21)
+
+**Example auto-generated effects:**
+
+| Entity | Level | Type | Tier 1 | Tier 2 | Tier 3 | Tier 4 |
+|---|---|---|---|---|---|---|
+| **Fire Beetle** | 1 | Melee/Fire | Double fire damage 30s (req: fire weapon) | 10% fire resist | 1% haste on 1H weapons | Simple pet beetle follower |
+| **Fippy Darkpaw** | 5 | Melee/Slash | Double slash damage 30s (req: slash weapon) | 10% slash resist | 1% haste + slash to 1H | Full AI gnoll protector |
+| **Orc Centurion** | 25 | Melee/Blunt | Double blunt damage 45s (req: blunt weapon) | 25% blunt resist | 3% haste + 2HB→1HB | Simple pet orc follower |
+| **Emperor Crush** | 45 | Melee/Blunt | Double blunt damage 1m (req: blunt weapon) | 40% blunt resist | 5% haste + 2HB→1HB | Full AI orc protector |
+| **Lord Nagafen** | 55 | Caster/Fire | Double fire damage 1m (req: fire spell) | 50% fire resist | 15% fire spell damage boost | Full AI dragon protector |
+
 ---
 
 ## 10. Streaming Pipeline
@@ -1764,7 +1859,16 @@ The sight of a soul-bound protector is **deeply disturbing** to all AI NPCs in t
         "effect": "destroy_random_equipped_item",
         "targets": ["current_target", "random_nearby_player"]
     },
-    "core_access": "bool"  # True if holder has 4 Cards of Unmaking (from Core of the Unmaker)
+    "core_access": "bool",  # True if holder has 4 Cards of Unmaking (from Core of the Unmaker)
+    "sub_60_cards_obtained": "int",  # Cards of Unmaking obtained from sub-level-60 entities (max 3)
+    "attackable_by_all": "bool",  # True when holding 3+ cards — flagged for PvP by everyone
+    "death_redistribution": {
+        "cards_redistributed_on_death": "bool",  # True — cards go to zero-card killers silently
+        "silent_transfer": "bool",  # True — no server announcement on redistribution
+        "eligible_recipients": "zero_card_holders_only",  # Only killers with 0 Cards of Unmaking
+        "respawn_at_bind": "bool",  # True — holder respawns at bind point
+        "retains_3rd_card_enchanted_items": "bool"  # True — enchanted items always survive
+    }
 }
 ```
 
@@ -2109,6 +2213,13 @@ The sight of a soul-bound protector is **deeply disturbing** to all AI NPCs in t
 - [ ] Implement named creature AI player restriction (only named creatures get full soul documents and autonomous behavior)
 - [ ] Implement soul-bound protector lore propagation (AI players spread word about soul-enslavers via collective lore)
 - [ ] Implement card effect level scaling (entity level → spell duration, mitigation %, haste bonus, protector stats)
+- [ ] Implement level-60 unmaking cap (max 3 Cards of Unmaking from sub-60 entities, 4th requires Core of the Unmaker)
+- [ ] Implement 3-card attackable-by-all PvP flag (holding 3+ Cards of Unmaking = attackable by everyone)
+- [ ] Implement Card of Unmaking death redistribution (silent transfer to zero-card killers only, no announcement)
+- [ ] Implement bind-point respawn for killed card holders (no unmaking cards, no unmaking buffs, enchanted items preserved)
+- [ ] Implement NPC card effect identity template auto-generation system (entity stats → 4-tier effects)
+- [ ] Implement auto-generation rules (primary damage type → tier 1 condition, combat archetype → tier 3 type)
+- [ ] Build NPC card effect database from EQEmu entity data (auto-generate effects for all entities on server start)
 
 ### Phase 6: Race & Culture (Weeks 21–24)
 
@@ -2201,6 +2312,9 @@ The sight of a soul-bound protector is **deeply disturbing** to all AI NPCs in t
 | **AI player aggression spiral** | All named NPCs attacking soul-binder on sight makes game unplayable for protector holders | Intended design — soul-binding is a high-risk high-reward choice. Holder can release protector to restore faction (with permanent scar). The social cost is the balancing mechanism |
 | **NPC card effect volume** | Thousands of entities need unique 4-tier card effects — manual design impractical | Identity template system auto-generates effects from entity properties (weapon type, level, combat style). Manual curation only for iconic named NPCs like Emperor Crush |
 | **Named creature AI player load** | Giving all named creatures full AI soul documents creates server performance pressure | Named creature AI activates on proximity — distant named NPCs use simplified behavior. Full AI only loads when players or other named NPCs are nearby |
+| **Silent card transfer exploitation** | Groups deliberately farm 3-card holders with zero-card alts to funnel cards | Only actual combat participants eligible for redistribution, minimum damage threshold required, anti-farming detection flags rapid repeated transfers |
+| **3-card attackable griefing** | Players repeatedly killed at 3 cards before they can reach Core of the Unmaker | Origin city/faction zone allies protect the holder, 3-day escalation timer gives planning window, holder can choose to trade cards for Shield/Void instead of holding |
+| **Sub-60 level cap feels arbitrary** | Players confused by why sub-60 entities cap at 3 cards | Clear UI messaging when approaching cap, lore explanation ties it to entity soul strength (weaker souls produce limited unmaking power) |
 
 ---
 
