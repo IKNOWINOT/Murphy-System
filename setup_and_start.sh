@@ -134,6 +134,9 @@ MURPHY_VERSION=1.0.0
 MURPHY_ENV=development
 MURPHY_PORT=${MURPHY_PORT}
 
+# LLM provider — set to 'groq', 'openai', or 'anthropic' once you add a key below
+MURPHY_LLM_PROVIDER=
+
 # The onboard LLM works without any API key.
 # Add an external key below for enhanced quality (optional).
 # GROQ_API_KEY=gsk_your_key_here
