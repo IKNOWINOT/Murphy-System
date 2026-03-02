@@ -388,7 +388,8 @@ class FullAutomationController:
            added (empty ``tenant_id``) are visible to every query so
            they remain actionable.
         """
-        # Legacy / untagged gaps are globally visible
+        # Legacy / untagged gaps (tenant_id is empty string or None) are
+        # globally visible so they remain actionable after schema migration.
         if not gap.tenant_id:
             return True
 

@@ -9,6 +9,9 @@ from datetime import datetime
 from enum import Enum
 from pydantic import BaseModel, ConfigDict, Field
 
+# Floating-point comparison tolerance for CPM zero-float detection
+_FLOAT_TOLERANCE = 1e-9
+
 
 class TaskStatus(str, Enum):
     """Task execution status"""
@@ -394,7 +397,7 @@ class Plan(BaseModel):
         # --- Collect zero-float (critical) tasks in topological order ---
         critical_path = [
             tid for tid in topo_order
-            if abs(lf[tid] - ef[tid]) < 1e-9
+            if abs(lf[tid] - ef[tid]) < _FLOAT_TOLERANCE
         ]
         return critical_path
     

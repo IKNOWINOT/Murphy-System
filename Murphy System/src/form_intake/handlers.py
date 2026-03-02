@@ -37,14 +37,15 @@ _SUBMISSION_LEDGER: Dict[str, Dict[str, Any]] = {}
 def _record_submission(submission_id: str, form_type: str, initial_status: str,
                        data: Optional[Dict[str, Any]] = None) -> None:
     """Record a new submission in the ledger."""
+    now = datetime.now().isoformat()
     with _LEDGER_LOCK:
         _SUBMISSION_LEDGER[submission_id] = {
             'submission_id': submission_id,
             'form_type': form_type,
             'status': initial_status,
             'progress_pct': 0.0,
-            'created_at': datetime.now().isoformat(),
-            'updated_at': datetime.now().isoformat(),
+            'created_at': now,
+            'updated_at': now,
             'phases_completed': [],
             'current_phase': initial_status,
             'data': data or {},
