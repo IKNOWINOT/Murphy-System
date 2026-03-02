@@ -17,4 +17,9 @@ Modules:
     experience_lore       — Action capture, interaction recall, collective lore propagation
     perception_pipeline   — Screen-scan → inference → action → mind-write cycle (~250ms)
     agent_voice           — TTS voice profiles per race/class for streaming agents
+    sourcerior_class      — Sourcerior monk/mage hybrid class, elemental pets, proc lines
+    duel_controller       — Duel challenge lifecycle, loot stakes, and history
+    tower_zone            — Tower of the Unmaker roaming zone mechanics
+    remake_system         — Character remake bonuses and history tracking
+    server_reboot         — Decay vote and server reboot / item survival logic
 """
