@@ -499,24 +499,93 @@ class PlanDecomposer:
         return tasks
     
     def _identify_dependencies(self, tasks: List[Task]) -> List[Dependency]:
-        """Identify dependencies between tasks"""
-        dependencies = []
-        
-        # Simple sequential dependencies for now
-        # TODO: Implement intelligent dependency detection
+        """Detect inter-task dependencies using keyword analysis and domain heuristics.
+
+        Strategy
+        --------
+        1. **Keyword scan** — look for natural-language cues in task titles
+           and descriptions that imply ordering (e.g. *"after"*, *"requires"*,
+           *"depends on"*).
+        2. **Domain phase ordering** — apply well-known SDLC / project-phase
+           heuristics (design before implementation, implementation before
+           testing, testing before deployment, etc.).
+        3. **Fallback** — if neither heuristic yields edges for a task, retain
+           a sequential FINISH_TO_START link so the DAG remains connected.
+
+        Returns a list of :class:`Dependency` objects and mutates each
+        ``task.dependencies`` list in place.
+        """
+        if not tasks:
+            return []
+
+        dependencies: list[Dependency] = []
+        task_ids = {t.task_id for t in tasks}
+        connected_to: set[str] = set()  # tasks that already have a predecessor
+
+        # Phase ordering heuristic — map task-title keywords to a tier.
+        # Lower tier must finish before higher tier may start.
+        _PHASE_KEYWORDS: list[tuple[int, tuple[str, ...]]] = [
+            (0, ("research", "discovery", "requirements", "gathering", "analysis")),
+            (1, ("design", "architecture", "planning", "scoping")),
+            (2, ("development", "implementation", "coding", "build", "core")),
+            (3, ("integration", "wiring", "connecting")),
+            (4, ("testing", "qa", "quality", "validation", "verification")),
+            (5, ("documentation", "docs", "manual")),
+            (6, ("deployment", "release", "launch", "delivery", "rollout")),
+            (7, ("monitoring", "operations", "maintenance", "optimization")),
+        ]
+
+        def _phase_tier(task: 'Task') -> int:
+            """Return the lowest matching tier, or -1 if none matches."""
+            text = (task.title + " " + (task.description or "")).lower()
+            for tier, keywords in _PHASE_KEYWORDS:
+                if any(kw in text for kw in keywords):
+                    return tier
+            return -1
+
+        # Group tasks by tier
+        tier_buckets: dict[int, list['Task']] = {}
+        untiered: list['Task'] = []
+        for t in tasks:
+            tier = _phase_tier(t)
+            if tier >= 0:
+                tier_buckets.setdefault(tier, []).append(t)
+            else:
+                untiered.append(t)
+
+        sorted_tiers = sorted(tier_buckets.keys())
+
+        # Create cross-tier FINISH_TO_START edges
+        for idx in range(len(sorted_tiers) - 1):
+            current_tier = sorted_tiers[idx]
+            next_tier = sorted_tiers[idx + 1]
+            for src in tier_buckets[current_tier]:
+                for tgt in tier_buckets[next_tier]:
+                    dep = Dependency(
+                        dependency_id=self._generate_dependency_id(),
+                        from_task_id=src.task_id,
+                        to_task_id=tgt.task_id,
+                        dependency_type=DependencyType.FINISH_TO_START,
+                        lag_days=0,
+                    )
+                    dependencies.append(dep)
+                    tgt.dependencies.append(src.task_id)
+                    connected_to.add(tgt.task_id)
+
+        # Fallback: connect any still-orphaned tasks sequentially
         for i in range(len(tasks) - 1):
-            dep = Dependency(
-                dependency_id=self._generate_dependency_id(),
-                from_task_id=tasks[i].task_id,
-                to_task_id=tasks[i + 1].task_id,
-                dependency_type=DependencyType.FINISH_TO_START,
-                lag_days=0
-            )
-            dependencies.append(dep)
-            
-            # Update task dependencies
-            tasks[i + 1].dependencies.append(tasks[i].task_id)
-        
+            if tasks[i + 1].task_id not in connected_to:
+                dep = Dependency(
+                    dependency_id=self._generate_dependency_id(),
+                    from_task_id=tasks[i].task_id,
+                    to_task_id=tasks[i + 1].task_id,
+                    dependency_type=DependencyType.FINISH_TO_START,
+                    lag_days=0,
+                )
+                dependencies.append(dep)
+                tasks[i + 1].dependencies.append(tasks[i].task_id)
+                connected_to.add(tasks[i + 1].task_id)
+
         return dependencies
     
     def _add_validation_criteria(
