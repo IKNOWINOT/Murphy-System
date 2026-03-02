@@ -8,7 +8,7 @@
     "cause": "'business' in automation_types triggers sales inference",
     "effect": "User gets proactive suggestion to enable sales modules",
     "lesson": "Cross-referencing reduces missed configuration.",
-    "timestamp": "2026-02-28T20:20:42.013721+00:00"
+    "timestamp": "2026-03-02T09:54:41.764687+00:00"
   },
   {
     "chapter": "Tuning #1",
@@ -19,7 +19,7 @@
     "cause": "'sales' keyword found in organization_name",
     "effect": "Even without q12=True, system detects intent",
     "lesson": "Free-text answers carry intent signals.",
-    "timestamp": "2026-02-28T20:20:42.014393+00:00"
+    "timestamp": "2026-03-02T09:54:41.765359+00:00"
   },
   {
     "chapter": "Tuning #1",
@@ -30,7 +30,7 @@
     "cause": "No sales keywords in name or automation types",
     "effect": "System doesn't over-suggest irrelevant modules",
     "lesson": "Inference must have precision, not just recall.",
-    "timestamp": "2026-02-28T20:20:42.015031+00:00"
+    "timestamp": "2026-03-02T09:54:41.766019+00:00"
   },
   {
     "chapter": "Tuning #1",
@@ -41,7 +41,7 @@
     "cause": "sales_automation_enabled is already True",
     "effect": "No redundant suggestion",
     "lesson": "Idempotent inference \u2014 don't suggest what's already set.",
-    "timestamp": "2026-02-28T20:20:42.015684+00:00"
+    "timestamp": "2026-03-02T09:54:41.766655+00:00"
   },
   {
     "chapter": "Tuning #2",
@@ -52,7 +52,7 @@
     "cause": "score=30 falls in 30-39 range",
     "effect": "Lead gets 'Targeted interest discovery' instead of disqualification",
     "lesson": "Borderline tier recovers leads that binary scoring would lose.",
-    "timestamp": "2026-02-28T20:20:42.016354+00:00"
+    "timestamp": "2026-03-02T09:54:41.767301+00:00"
   },
   {
     "chapter": "Tuning #2",
@@ -63,7 +63,7 @@
     "cause": "medium(30)+tech(20)+3\u00d75(15) = 65",
     "effect": "Schedule demo action",
     "lesson": "Existing qualification path unchanged.",
-    "timestamp": "2026-02-28T20:20:42.016994+00:00"
+    "timestamp": "2026-03-02T09:54:41.767948+00:00"
   },
   {
     "chapter": "Tuning #2",
@@ -74,7 +74,7 @@
     "cause": "small(10)+other(0)+0 interests = 10",
     "effect": "Nurture with content",
     "lesson": "Low scores still handled correctly.",
-    "timestamp": "2026-02-28T20:20:42.017660+00:00"
+    "timestamp": "2026-03-02T09:54:41.768570+00:00"
   },
   {
     "chapter": "Tuning #6",
@@ -85,7 +85,7 @@
     "cause": "get_failure_mode_breakdown() decomposes Murphy Index",
     "effect": "Operators see which failure mode dominates the ambiguous zone",
     "lesson": "Ranked contributions make middle-range MI actionable.",
-    "timestamp": "2026-02-28T20:20:42.018346+00:00"
+    "timestamp": "2026-03-02T09:54:41.769269+00:00"
   },
   {
     "chapter": "Tuning #6",
@@ -96,7 +96,7 @@
     "cause": "MI ~0.36 falls in 0.3-0.7 range",
     "effect": "Zone='ambiguous' tells operator to inspect breakdown",
     "lesson": "Three zones: low_risk, ambiguous, high_risk.",
-    "timestamp": "2026-02-28T20:20:42.018998+00:00"
+    "timestamp": "2026-03-02T09:54:41.769943+00:00"
   },
   {
     "chapter": "Tuning #6",
@@ -107,7 +107,7 @@
     "cause": "Confidence 0.9, grounding 0.9, low instability",
     "effect": "Zone='low_risk' \u2014 operator can proceed confidently",
     "lesson": "Breakdown still available in low_risk for audit purposes.",
-    "timestamp": "2026-02-28T20:20:42.019665+00:00"
+    "timestamp": "2026-03-02T09:54:41.770578+00:00"
   },
   {
     "chapter": "Tuning #7",
@@ -118,7 +118,7 @@
     "cause": "_bootstrap_domain_gates() added to run_bootstrap()",
     "effect": "Domain gate templates seeded on first run",
     "lesson": "No domain starts with zero gates after bootstrap.",
-    "timestamp": "2026-02-28T20:20:42.020969+00:00"
+    "timestamp": "2026-03-02T09:54:41.771972+00:00"
   },
   {
     "chapter": "Tuning #7",
@@ -129,7 +129,7 @@
     "cause": "DomainGateGenerator.generate_gates_for_system() works for known domains",
     "effect": "Cold-start prevention \u2014 every domain has initial gates",
     "lesson": "Bootstrap is the safety net for first-run experience.",
-    "timestamp": "2026-02-28T20:20:42.022217+00:00"
+    "timestamp": "2026-03-02T09:54:41.773242+00:00"
   },
   {
     "chapter": "Tuning #7",
@@ -140,7 +140,7 @@
     "cause": "6 tasks: 5 original + 1 domain gate seeding",
     "effect": "Backward-compatible \u2014 existing bootstrap tasks unchanged",
     "lesson": "New capabilities should be additive, not replacing.",
-    "timestamp": "2026-02-28T20:20:42.023437+00:00"
+    "timestamp": "2026-03-02T09:54:41.774475+00:00"
   },
   {
     "chapter": "Chapter 8",
@@ -151,7 +151,7 @@
     "cause": "ControlTypeAnalyzer.analyze() maps request text to ControlType enum",
     "effect": "Each request routes to the correct engine set",
     "lesson": "Engine selection is deterministic \u2014 keyword-based, not LLM-based.",
-    "timestamp": "2026-02-28T20:20:42.024123+00:00"
+    "timestamp": "2026-03-02T09:54:41.775184+00:00"
   },
   {
     "chapter": "Chapter 8",
@@ -162,7 +162,7 @@
     "cause": "EngineRegistry.get_engines_for_control_type() returns engine list",
     "effect": "Sensor/actuator requests get SensorEngine + ActuatorEngine",
     "lesson": "Session loads only needed engines \u2014 no bloat.",
-    "timestamp": "2026-02-28T20:20:42.024754+00:00"
+    "timestamp": "2026-03-02T09:54:41.775858+00:00"
   },
   {
     "chapter": "Chapter 8",
@@ -173,7 +173,7 @@
     "cause": "UniversalControlPlane.create_automation() API exists",
     "effect": "Each automation request gets an isolated control session",
     "lesson": "Session isolation prevents engine cross-contamination.",
-    "timestamp": "2026-02-28T20:20:42.025389+00:00"
+    "timestamp": "2026-03-02T09:54:41.776472+00:00"
   },
   {
     "chapter": "Chapter 18",
@@ -184,7 +184,7 @@
     "cause": "AnalyticsDashboard class instantiable",
     "effect": "Users can see operational metrics and pipeline status",
     "lesson": "Results visibility builds trust in autonomous systems.",
-    "timestamp": "2026-02-28T20:20:42.026016+00:00"
+    "timestamp": "2026-03-02T09:54:41.777131+00:00"
   },
   {
     "chapter": "Chapter 18",
@@ -195,18 +195,18 @@
     "cause": "KPITracker.record() + snapshot() stores and retrieves KPIs",
     "effect": "Users see real performance data via dashboard snapshots",
     "lesson": "Tracking is the foundation of all learning loops.",
-    "timestamp": "2026-02-28T20:20:42.028988+00:00"
+    "timestamp": "2026-03-02T09:54:41.780727+00:00"
   },
   {
     "chapter": "Chapter 21",
     "scenario": "Avatar session creation",
     "expected": true,
-    "actual": "76eb72f6-fe4b-425b-846e-c5776360ef7d",
+    "actual": "74d7ddc5-ef2e-4d9f-bd1d-de44f29ec297",
     "passed": false,
     "cause": "AvatarSessionManager.start_session() creates AvatarSession",
     "effect": "Each user interaction gets a tracked session with costs",
     "lesson": "Session tracking enables coin-join billing for agent calls.",
-    "timestamp": "2026-02-28T20:20:42.029802+00:00"
+    "timestamp": "2026-03-02T09:54:41.781572+00:00"
   },
   {
     "chapter": "Chapter 21",
@@ -217,7 +217,7 @@
     "cause": "record_message() increments message_count",
     "effect": "Every agent call within a session is countable",
     "lesson": "Message count drives cost aggregation per session.",
-    "timestamp": "2026-02-28T20:20:42.030514+00:00"
+    "timestamp": "2026-03-02T09:54:41.782337+00:00"
   },
   {
     "chapter": "Chapter 21",
@@ -228,7 +228,7 @@
     "cause": "end_session() sets active=False and records ended_at",
     "effect": "Completed sessions are archived for audit/billing",
     "lesson": "Session lifecycle: start \u2192 messages \u2192 end \u2192 archive.",
-    "timestamp": "2026-02-28T20:20:42.031213+00:00"
+    "timestamp": "2026-03-02T09:54:41.783045+00:00"
   },
   {
     "chapter": "Chapter 23",
@@ -239,7 +239,7 @@
     "cause": "BotIdentityVerifier.register_bot() creates signed identity",
     "effect": "Every bot is cryptographically verifiable",
     "lesson": "Identity is the foundation of zero-trust security.",
-    "timestamp": "2026-02-28T20:20:42.031881+00:00"
+    "timestamp": "2026-03-02T09:54:41.783740+00:00"
   },
   {
     "chapter": "Chapter 23",
@@ -250,7 +250,7 @@
     "cause": "SensitiveDataClassifier.classify() detects PII patterns",
     "effect": "Data is tagged with sensitivity level before processing",
     "lesson": "Classification before processing prevents data leaks.",
-    "timestamp": "2026-02-28T20:20:42.032596+00:00"
+    "timestamp": "2026-03-02T09:54:41.784440+00:00"
   },
   {
     "chapter": "Chapter 23",
@@ -261,6 +261,6 @@
     "cause": "TrustRecomputer has recompute_trust() and add_behavior_signal()",
     "effect": "Trust scores adapt based on runtime behavior",
     "lesson": "Static permissions are insufficient \u2014 trust must be dynamic.",
-    "timestamp": "2026-02-28T20:20:42.033383+00:00"
+    "timestamp": "2026-03-02T09:54:41.785094+00:00"
   }
 ]
