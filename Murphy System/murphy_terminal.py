@@ -636,6 +636,7 @@ and run end-to-end workflows with minimal manual effort.
 [bold cyan]📡 Quick Commands[/bold cyan]
   • [green]health[/green] / [green]status[/green]  — check system health
   • [green]execute <task>[/green]   — run a task or workflow
+  • [green]set key groq <key>[/green] — configure your API key (no restart needed)
   • [green]librarian[/green]       — consult the knowledge base expert
   • [green]billing[/green]         — view billing and subscription info
   • [green]links[/green]           — show dashboard and UI links
@@ -864,19 +865,29 @@ class MurphyTerminalApp(App):
                 self._write_system(
                     f"[yellow]LLM not configured ({error})[/yellow] — "
                     "running in deterministic mode. "
-                    "Set MURPHY_LLM_PROVIDER and API keys to enable."
+                    "Type [green]set key groq <your-key>[/green] to enable."
                 )
         except Exception:
             status_bar.llm_enabled = False
+
+    @staticmethod
+    def _is_real_key(value: Optional[str]) -> bool:
+        """Return True if *value* looks like a real API key (not a placeholder)."""
+        if not value:
+            return False
+        placeholders = {"", "your_groq_key_here", "your_openai_key_here",
+                        "your_key_here", "your-key-here", "change_me",
+                        "changeme", "xxx", "none"}
+        return value.strip().lower() not in placeholders
 
     def _check_api_key_on_startup(self) -> None:
         """First-run gate: prompt for Groq API key if not configured."""
         # Check environment first, then .env file
         env_path = get_env_path()
         env_vars = read_env(env_path)
-        has_key = bool(
-            os.environ.get("GROQ_API_KEY")
-            or env_vars.get("GROQ_API_KEY")
+        has_key = (
+            self._is_real_key(os.environ.get("GROQ_API_KEY"))
+            or self._is_real_key(env_vars.get("GROQ_API_KEY"))
         )
         if has_key:
             return  # Key exists — skip the gate
@@ -1357,10 +1368,9 @@ class MurphyTerminalApp(App):
                 self._write_murphy(
                     f"[bold yellow]🤖 LLM Status — Not Configured[/bold yellow]\n\n"
                     f"  Error: {error}\n\n"
-                    "To enable LLM, set these environment variables:\n"
-                    "  [green]MURPHY_LLM_PROVIDER[/green] = groq\n"
-                    "  [green]GROQ_API_KEY[/green] = <your key>\n"
-                    "  [green]MURPHY_LLM_MODEL[/green] = llama3-8b-8192  (optional)"
+                    "To enable LLM, set your API key right here:\n"
+                    "  [green]set key groq gsk_your_key_here[/green]\n\n"
+                    "Get a free key: [link=https://console.groq.com/keys]https://console.groq.com/keys[/link]"
                 )
         except Exception as exc:
             self._write_murphy(f"[red]Could not fetch LLM status: {self._friendly_error(exc)}[/red]")
@@ -1462,7 +1472,7 @@ class MurphyTerminalApp(App):
             if suggested:
                 text += "\n\n[dim]Suggested: " + ", ".join(f"[green]{c}[/green]" for c in suggested) + "[/dim]"
             if mode == "deterministic":
-                text += "\n[dim](deterministic mode — set MURPHY_LLM_PROVIDER to enable LLM)[/dim]"
+                text += "\n[dim](deterministic mode — type [green]set key groq <your-key>[/green] to enable LLM)[/dim]"
             self._write_murphy(text)
         except Exception:
             # Fall back to /api/chat if /api/librarian/ask is unavailable
