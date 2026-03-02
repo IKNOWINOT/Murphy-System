@@ -94,7 +94,8 @@ class OllamaLLM:
             import requests
             response = requests.get(f"{self.base_url}/api/tags", timeout=2)
             return response.status_code == 200
-        except Exception:
+        except Exception as exc:
+            logger.debug("Ollama connectivity check failed: %s", exc)
             return False
     
     def generate(self, prompt: str, system_prompt: Optional[str] = None, 

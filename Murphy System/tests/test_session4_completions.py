@@ -30,16 +30,25 @@ class TestLLMIntegrationErrorHandling:
     typed exception handlers in llm_integration.py."""
 
     def test_no_bare_except_in_source(self):
-        """[UNIT] llm_integration.py must not contain bare ``except:`` blocks."""
+        """[UNIT] llm_integration.py must not contain bare ``except:`` blocks.
+
+        Uses the Python AST to detect actual bare-except handlers so that
+        occurrences in comments, docstrings, or string literals don't produce
+        false positives.
+        """
+        import ast
+
         llm_path = os.path.join(_base, 'src', 'llm_integration.py')
         with open(llm_path) as fh:
-            lines = fh.readlines()
+            source = fh.read()
 
-        bare_except_lines = [
-            (i + 1, line.rstrip())
-            for i, line in enumerate(lines)
-            if line.strip().startswith('except:')
-        ]
+        tree = ast.parse(source, filename=llm_path)
+
+        bare_except_lines = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ExceptHandler) and node.type is None:
+                bare_except_lines.append(node.lineno)
+
         assert bare_except_lines == [], (
             f"Bare except blocks found at lines: {bare_except_lines}"
         )
