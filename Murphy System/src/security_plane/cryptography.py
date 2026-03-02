@@ -424,6 +424,10 @@ class KeyManager:
     def get_key(self, key_id: str) -> Optional[CryptographicKey]:
         """Get key by ID."""
         return self._keys.get(key_id)
+
+    def get_keypairs(self, key_id: str) -> Tuple[Optional[KeyPair], Optional[KeyPair]]:
+        """Return the ``(classical_kp, pqc_kp)`` tuple for *key_id*."""
+        return self._keypairs.get(key_id, (None, None))
     
     def rotate_key(self, key_id: str) -> CryptographicKey:
         """

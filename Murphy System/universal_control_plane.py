@@ -300,7 +300,7 @@ class APIEngine(BaseEngine):
             import httpx
             with httpx.Client(timeout=timeout) as client:
                 response = client.request(
-                    method, url, headers=headers, json=body if body else None
+                    method, url, headers=headers, json=body if body is not None else None
                 )
                 return {
                     'url': url,
@@ -403,6 +403,18 @@ class CommandEngine(BaseEngine):
             return {'command': '', 'exit_code': 1, 'stdout': '', 'stderr': 'Empty command',
                     'timestamp': datetime.now().isoformat()}
 
+        # Reject shell metacharacters to prevent injection
+        import re
+        if re.search(r'[;&|`$(){}]', command):
+            logger.warning("CommandEngine blocked shell metacharacters in: %s", command[:80])
+            return {
+                'command': command,
+                'exit_code': 126,
+                'stdout': '',
+                'stderr': 'Shell metacharacters are not permitted',
+                'timestamp': datetime.now().isoformat(),
+            }
+
         # Security gate: allow-list check
         if not any(command.strip().startswith(prefix) for prefix in self._ALLOWED_PREFIXES):
             logger.warning("CommandEngine blocked disallowed command: %s", command[:80])
@@ -414,10 +426,12 @@ class CommandEngine(BaseEngine):
                 'timestamp': datetime.now().isoformat(),
             }
 
+        import shlex
         import subprocess
         try:
+            args = shlex.split(command)
             proc = subprocess.run(
-                command, shell=True, capture_output=True, text=True,
+                args, capture_output=True, text=True,
                 timeout=self._TIMEOUT_S,
             )
             return {
