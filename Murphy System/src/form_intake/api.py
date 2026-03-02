@@ -253,16 +253,23 @@ async def get_submission_status(submission_id: str) -> JSONResponse:
     - results: Results if complete
     """
     try:
-        # TODO: Implement submission status tracking
-        # This will query the execution engine for status
-        
+        # Query the in-memory submission ledger maintained by handlers
+        from .handlers import get_submission_status as _get_status
+
+        entry = _get_status(submission_id)
+        if entry is None:
+            return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content={
+                    'submission_id': submission_id,
+                    'status': 'not_found',
+                    'message': f'No submission found for ID: {submission_id}',
+                },
+            )
+
         return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content={
-                'submission_id': submission_id,
-                'status': 'not_implemented',
-                'message': 'Status tracking will be implemented in execution engine'
-            }
+            content=entry,
         )
         
     except Exception as e:

@@ -294,14 +294,43 @@ class FormDrivenExecutor:
         task: Any,
         context: ExecutionContext
     ) -> Dict[str, Any]:
-        """Execute phase using existing phase controller"""
-        # TODO: Integrate with actual phase controller
-        # For now, return placeholder
-        return {
+        """Execute a phase using the PhaseController for gated transitions.
+
+        Delegates the phase-specific work to ``_execute_phase_simple`` and
+        then consults the :class:`PhaseController` to decide whether the
+        confidence threshold for a transition has been met.  Returns the
+        phase result augmented with controller metadata (progress, next-phase
+        eligibility, and transition history).
+        """
+        # 1. Run the actual phase logic
+        phase_result = self._execute_phase_simple(phase, task, context)
+
+        # 2. Construct a lightweight ConfidenceState for the controller
+        from src.confidence_engine.models import ConfidenceState
+        confidence_value = context.metadata.get('confidence', 0.5)
+        confidence_state = ConfidenceState(
+            confidence=confidence_value,
+            phase=phase,
+        )
+
+        # 3. Ask the controller whether a transition is allowed
+        next_phase, transitioned, reason = self.phase_controller.check_phase_transition(
+            phase, confidence_state,
+        )
+
+        # 4. Gather progress telemetry
+        progress = self.phase_controller.get_phase_progress(phase)
+
+        phase_result.update({
             'phase': phase.value,
-            'result': f"Phase {phase.value} executed",
-            'assumptions': []
-        }
+            'controller': {
+                'transitioned': transitioned,
+                'next_phase': next_phase.value,
+                'reason': reason,
+                'progress': progress,
+            },
+        })
+        return phase_result
     
     def _execute_phase_simple(
         self,

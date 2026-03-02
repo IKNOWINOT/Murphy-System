@@ -314,11 +314,89 @@ class Plan(BaseModel):
         return ready_tasks
     
     def get_critical_path(self) -> List[str]:
-        """Get critical path (longest path through dependencies)"""
-        # TODO: Implement critical path calculation
-        # This is a simplified version - full implementation would use
-        # proper critical path method (CPM) algorithm
-        return []
+        """Compute the critical path using the Critical Path Method (CPM).
+
+        Performs a forward-pass / backward-pass over the task dependency
+        DAG to determine the longest (duration-weighted) path from source
+        to sink.  Returns an ordered list of ``task_id`` values on that
+        path.  An empty list is returned when the plan has no tasks or
+        when a dependency cycle is detected.
+
+        Algorithm
+        ---------
+        1. Build adjacency list and in-degree map.
+        2. Topological sort via Kahn's algorithm.
+        3. Forward pass — compute *earliest start* (ES) and
+           *earliest finish* (EF) for every task.
+        4. Backward pass — compute *latest start* (LS) and
+           *latest finish* (LF) for every task.
+        5. Critical tasks have zero total float (LF − EF == 0).
+        6. Walk the zero-float chain in topological order to
+           reconstruct the critical path.
+        """
+        if not self.tasks:
+            return []
+
+        task_map = {t.task_id: t for t in self.tasks}
+        duration = {t.task_id: (t.estimated_hours or 0.0) for t in self.tasks}
+
+        # Adjacency list: from_task → [to_task, ...]
+        successors: dict[str, list[str]] = {tid: [] for tid in task_map}
+        predecessors: dict[str, list[str]] = {tid: [] for tid in task_map}
+        in_degree: dict[str, int] = {tid: 0 for tid in task_map}
+
+        for dep in self.dependencies:
+            if dep.from_task_id in task_map and dep.to_task_id in task_map:
+                successors[dep.from_task_id].append(dep.to_task_id)
+                predecessors[dep.to_task_id].append(dep.from_task_id)
+                in_degree[dep.to_task_id] += 1
+
+        # --- Kahn's topological sort ---
+        from collections import deque
+        queue: deque[str] = deque(
+            tid for tid, deg in in_degree.items() if deg == 0
+        )
+        topo_order: list[str] = []
+        while queue:
+            tid = queue.popleft()
+            topo_order.append(tid)
+            for succ in successors[tid]:
+                in_degree[succ] -= 1
+                if in_degree[succ] == 0:
+                    queue.append(succ)
+
+        if len(topo_order) != len(task_map):
+            # Cycle detected — CPM is undefined
+            return []
+
+        # --- Forward pass: earliest start / earliest finish ---
+        es: dict[str, float] = {}
+        ef: dict[str, float] = {}
+        for tid in topo_order:
+            es[tid] = max(
+                (ef[p] for p in predecessors[tid]),
+                default=0.0,
+            )
+            ef[tid] = es[tid] + duration[tid]
+
+        project_end = max(ef.values()) if ef else 0.0
+
+        # --- Backward pass: latest finish / latest start ---
+        lf: dict[str, float] = {}
+        ls: dict[str, float] = {}
+        for tid in reversed(topo_order):
+            lf[tid] = min(
+                (ls[s] for s in successors[tid]),
+                default=project_end,
+            )
+            ls[tid] = lf[tid] - duration[tid]
+
+        # --- Collect zero-float (critical) tasks in topological order ---
+        critical_path = [
+            tid for tid in topo_order
+            if abs(lf[tid] - ef[tid]) < 1e-9
+        ]
+        return critical_path
     
     def get_completion_percentage(self) -> float:
         """Get plan completion percentage"""
