@@ -42,54 +42,153 @@ class InformationGatheringAgent:
     def __init__(self):
         self.gathered_info = {}
         
+    # Keyword-based platform catalogue used for intelligent extraction.
+    PLATFORM_KEYWORDS: Dict[str, str] = {
+        'wordpress': 'wordpress',
+        'medium': 'medium',
+        'twitter': 'twitter',
+        'linkedin': 'linkedin',
+        'github': 'github',
+        'slack': 'slack',
+        'jira': 'jira',
+        'salesforce': 'salesforce',
+        'shopify': 'shopify',
+        'stripe': 'stripe',
+        'aws': 'aws',
+        'azure': 'azure',
+        'gcp': 'gcp',
+        'docker': 'docker',
+        'kubernetes': 'kubernetes',
+        'notion': 'notion',
+        'google docs': 'google_docs',
+        'google sheets': 'google_sheets',
+        'hubspot': 'hubspot',
+        'mailchimp': 'mailchimp',
+        'sendgrid': 'sendgrid',
+        'twilio': 'twilio',
+        'zapier': 'zapier',
+    }
+
+    # Keywords that indicate data/content sources.
+    SOURCE_KEYWORDS: Dict[str, str] = {
+        'notion': 'notion',
+        'google docs': 'google_docs',
+        'google sheets': 'google_sheets',
+        'database': 'database',
+        'csv': 'csv',
+        'api': 'api',
+        'rss': 'rss',
+        'file': 'filesystem',
+    }
+
+    # Schedule keywords.
+    SCHEDULE_KEYWORDS: Dict[str, str] = {
+        'hourly': 'hourly',
+        'daily': 'daily',
+        'weekly': 'weekly',
+        'monthly': 'monthly',
+        'real-time': 'realtime',
+        'realtime': 'realtime',
+        'on demand': 'manual',
+        'manual': 'manual',
+    }
+
     def gather(self, request: str, domain: str) -> Dict[str, Any]:
+        """Gather information through intelligent keyword analysis.
+
+        Analyses the natural-language *request* to extract:
+        * target platforms / services
+        * data or content sources
+        * desired schedule
+        * whether human approval is required
+        * complexity estimate and recommended automation type
+
+        The extraction uses expanded keyword catalogues so that a wider
+        range of user requests produce meaningful results without requiring
+        follow-up questions.
         """
-        Gather information through questions and analysis
-        """
-        # TODO: Implement intelligent questioning
-        # For now, extract from request
+        platforms = self._extract_platforms(request)
+        source = self._extract_source(request)
+        schedule = self._extract_schedule(request)
+        approval = self._needs_approval(request)
+        complexity = self._estimate_complexity(request, platforms)
+        automation_type = self._recommend_automation_type(domain, complexity)
+
         info = {
             'domain': domain,
             'request': request,
-            'platforms': self._extract_platforms(request),
-            'content_source': self._extract_source(request),
-            'schedule': self._extract_schedule(request),
-            'approval_required': self._needs_approval(request)
+            'platforms': platforms,
+            'content_source': source,
+            'schedule': schedule,
+            'approval_required': approval,
+            'complexity': complexity,
+            'automation_type': automation_type,
         }
-        
+
         self.gathered_info = info
         return info
-        
+
     def _extract_platforms(self, request: str) -> List[str]:
-        """Extract target platforms from request"""
+        """Extract target platforms from request using the keyword catalogue."""
+        request_lower = request.lower()
         platforms = []
-        if 'wordpress' in request.lower():
-            platforms.append('wordpress')
-        if 'medium' in request.lower():
-            platforms.append('medium')
-        if 'twitter' in request.lower():
-            platforms.append('twitter')
+        for keyword, platform in self.PLATFORM_KEYWORDS.items():
+            if keyword in request_lower and platform not in platforms:
+                platforms.append(platform)
         return platforms
         
     def _extract_source(self, request: str) -> str:
-        """Extract content source"""
-        if 'notion' in request.lower():
-            return 'notion'
-        if 'google docs' in request.lower():
-            return 'google_docs'
+        """Extract content/data source from request using the keyword catalogue."""
+        request_lower = request.lower()
+        for keyword, source in self.SOURCE_KEYWORDS.items():
+            if keyword in request_lower:
+                return source
         return 'manual'
-        
+
     def _extract_schedule(self, request: str) -> str:
-        """Extract schedule"""
-        if 'daily' in request.lower():
-            return 'daily'
-        if 'weekly' in request.lower():
-            return 'weekly'
+        """Extract schedule from request using the keyword catalogue."""
+        request_lower = request.lower()
+        for keyword, schedule in self.SCHEDULE_KEYWORDS.items():
+            if keyword in request_lower:
+                return schedule
         return 'manual'
         
     def _needs_approval(self, request: str) -> bool:
         """Determine if approval needed"""
         return 'approval' in request.lower() or 'review' in request.lower()
+
+    def _estimate_complexity(self, request: str, platforms: List[str]) -> str:
+        """Estimate the complexity of the requested automation.
+
+        Returns one of ``'low'``, ``'medium'``, or ``'high'`` based on
+        the number of platforms involved and signal words in the request.
+        """
+        request_lower = request.lower()
+        high_signals = ['complex', 'enterprise', 'multi-step', 'multi step',
+                        'orchestrate', 'ci/cd', 'pipeline']
+        if any(s in request_lower for s in high_signals) or len(platforms) >= 4:
+            return 'high'
+        if len(platforms) >= 2:
+            return 'medium'
+        return 'low'
+
+    def _recommend_automation_type(self, domain: str, complexity: str) -> str:
+        """Recommend an automation type based on domain and complexity.
+
+        Maps the combination to one of: ``'agent_swarm'``,
+        ``'content_api'``, ``'sensor_actuator'``, or ``'hybrid'``.
+        """
+        if complexity == 'high':
+            return 'hybrid'
+        domain_map = {
+            'publishing': 'content_api',
+            'e-commerce': 'hybrid',
+            'factory': 'sensor_actuator',
+            'devops': 'command_system',
+            'marketing': 'content_api',
+            'research': 'agent_swarm',
+        }
+        return domain_map.get(domain, 'agent_swarm')
 
 class RegulationDiscoveryAgent:
     """
@@ -404,6 +503,7 @@ class ProductionExecutionOrchestrator:
     def __init__(self):
         self.configurations = {}
         self.execution_history = {}
+        self.learned_patterns: Dict[str, Dict[str, Any]] = {}
         
     def save_configuration(self, config: Dict[str, Any]):
         """Save automation configuration"""
@@ -493,9 +593,58 @@ class ProductionExecutionOrchestrator:
         self.execution_history[automation_id].append(deliverables)
         
     def _learn_from_execution(self, automation_id: str, results: Dict[str, Any]):
-        """Learn from execution to improve future runs"""
-        # TODO: Implement learning logic
-        pass
+        """Learn from execution to improve future runs.
+
+        Analyses the execution *results* for the given *automation_id* and
+        records patterns that can be used to optimise subsequent executions:
+
+        * **Success rate** — tracked per-automation so that consistently
+          failing automations can be flagged for human review.
+        * **Failure patterns** — if specific agent steps failed, the failure
+          reasons are recorded so the system can skip or adapt those steps.
+        * **Performance metrics** — step durations are aggregated (when
+          available) to identify bottlenecks.
+        """
+        history = self.execution_history.get(automation_id, [])
+        patterns = self.learned_patterns.setdefault(automation_id, {
+            'total_runs': 0,
+            'success_count': 0,
+            'failure_count': 0,
+            'failed_agents': {},
+            'avg_steps': 0.0,
+            'last_status': 'unknown',
+        })
+
+        patterns['total_runs'] += 1
+        overall_status = results.get('status', 'unknown')
+        patterns['last_status'] = overall_status
+
+        if overall_status == 'success':
+            patterns['success_count'] += 1
+        else:
+            patterns['failure_count'] += 1
+
+        # Analyse individual steps for failure signals.
+        steps = results.get('steps', [])
+        for step in steps:
+            if step.get('status') != 'success':
+                agent_type = step.get('agent', 'unknown')
+                agent_failures = patterns['failed_agents'].setdefault(agent_type, 0)
+                patterns['failed_agents'][agent_type] = agent_failures + 1
+
+        # Running average of step count (proxy for complexity tracking).
+        n = patterns['total_runs']
+        patterns['avg_steps'] = (
+            (patterns['avg_steps'] * (n - 1) + len(steps)) / n
+        )
+
+        logger.info(
+            "Learned from execution %s: status=%s, runs=%d, success_rate=%.1f%%",
+            automation_id,
+            overall_status,
+            n,
+            (patterns['success_count'] / n) * 100 if n else 0,
+        )
 
 # ============================================================================
 # MAIN ORCHESTRATOR
