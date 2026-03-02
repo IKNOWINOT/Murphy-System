@@ -285,7 +285,7 @@ class UnifiedIntegrationEngine:
                 
                 # Register agent if generated
                 if agent:
-                    # TODO: Integrate with TrueSwarmSystem
+                    self._register_agent_with_swarm(agent, capabilities)
                     print(f"✓ Agent registered: {agent['name']}")
                 
                 # Move to committed integrations
@@ -373,7 +373,7 @@ class UnifiedIntegrationEngine:
         # Register agent if generated
         if agent:
             print(f"🤖 Registering agent: {agent['name']}")
-            # TODO: Integrate with TrueSwarmSystem
+            self._register_agent_with_swarm(agent, capabilities)
         
         # Move to committed integrations
         self.committed_integrations[module['name']] = self.pending_integrations.pop(request_id)
@@ -431,7 +431,7 @@ class UnifiedIntegrationEngine:
         approval_request.rejection_reason = reason
         
         # Clean up (remove generated files, etc.)
-        # TODO: Implement cleanup
+        self._cleanup_rejected_integration(module)
         
         # Remove from pending
         self.pending_integrations.pop(request_id)
@@ -511,6 +511,90 @@ class UnifiedIntegrationEngine:
             }
         
         return None
+
+    # ------------------------------------------------------------------
+    # TrueSwarmSystem integration helpers
+    # ------------------------------------------------------------------
+
+    def _register_agent_with_swarm(self, agent: Dict[str, Any], capabilities: List[str]) -> None:
+        """Register a generated agent with the TrueSwarmSystem.
+
+        Creates an ``AgentInstance`` in the workspace so the swarm
+        orchestrator can include the new agent in future phase executions.
+        Falls back gracefully when the swarm system is unavailable.
+        """
+        try:
+            from src.true_swarm_system import (
+                TrueSwarmSystem,
+                AgentInstance,
+                ProfessionAtom,
+                Phase as SwarmPhase,
+            )
+
+            swarm = TrueSwarmSystem()
+
+            # Map agent capabilities to the closest ProfessionAtom.
+            profession = ProfessionAtom.SOFTWARE_ENGINEER  # sensible default
+            cap_lower = ' '.join(capabilities).lower()
+            if 'security' in cap_lower or 'auth' in cap_lower:
+                profession = ProfessionAtom.SECURITY_ANALYST
+            elif 'data' in cap_lower or 'analytics' in cap_lower:
+                profession = ProfessionAtom.DATA_SCIENTIST
+            elif 'compliance' in cap_lower or 'regulation' in cap_lower:
+                profession = ProfessionAtom.COMPLIANCE_OFFICER
+            elif 'risk' in cap_lower:
+                profession = ProfessionAtom.RISK_MANAGER
+
+            instance = AgentInstance(
+                profession=profession,
+                specialization=agent.get('name', 'integration_agent'),
+                context={
+                    'source': 'unified_integration_engine',
+                    'capabilities': capabilities,
+                    'agent_name': agent.get('name'),
+                },
+            )
+
+            # Record in workspace so future phases can discover it.
+            swarm.workspace.metadata[f"integration_agent_{instance.id}"] = {
+                'instance_id': instance.id,
+                'profession': profession.value,
+                'capabilities': capabilities,
+                'registered_at': datetime.now(timezone.utc).isoformat(),
+            }
+
+            print(f"   ✓ Agent registered with TrueSwarmSystem as {profession.value}")
+        except Exception as e:
+            print(f"   ⚠ Could not register agent with TrueSwarmSystem: {e}")
+
+    def _cleanup_rejected_integration(self, module: Dict[str, Any]) -> None:
+        """Remove generated files for a rejected integration.
+
+        Deletes the module file and any associated agent file that were
+        generated during the integration analysis step.
+        """
+        import shutil
+
+        paths_to_clean = []
+        module_path = module.get('module_path', '')
+        if module_path:
+            paths_to_clean.append(module_path)
+
+        agent_path = module.get('agent_path', '')
+        if agent_path:
+            paths_to_clean.append(agent_path)
+
+        for p in paths_to_clean:
+            target = Path(p)
+            try:
+                if target.is_file():
+                    target.unlink()
+                    print(f"   ✓ Removed generated file: {target.name}")
+                elif target.is_dir():
+                    shutil.rmtree(target)
+                    print(f"   ✓ Removed generated directory: {target.name}")
+            except OSError as e:
+                print(f"   ⚠ Could not remove {target}: {e}")
 
 
 # Convenience function

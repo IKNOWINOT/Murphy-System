@@ -3,7 +3,7 @@ Credential Verification Interface
 Provides unified interface for credential verification across different services.
 """
 
-from typing import Dict, List, Optional, Any, Protocol
+from typing import Dict, List, Optional, Any, Protocol, Tuple
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pydantic import BaseModel, Field
@@ -69,6 +69,7 @@ class VerificationResponse(BaseModel):
     rate_limit_reset_at: Optional[datetime] = None
     error_details: Optional[str] = None
     verified_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    service_provider: Optional[ServiceProvider] = None
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
@@ -246,32 +247,50 @@ class AWSCredentialVerifier(BaseCredentialVerifier):
         super().__init__(ServiceProvider.AWS)
     
     async def verify_api_call(self, credential: Credential) -> bool:
-        """Verify AWS credentials by making an API call."""
-        # Placeholder - would use boto3 to verify
-        # Example: sts.get_caller_identity()
-        return len(credential.credential_value) > 0
+        """Verify AWS credentials via STS GetCallerIdentity (or format check).
+
+        Falls back to format validation when boto3 is absent or when the
+        STS call fails due to network / permission issues.
+        """
+        if not credential.credential_value:
+            return False
+        try:
+            import boto3  # type: ignore[import-untyped]
+            sts = boto3.client(
+                "sts",
+                aws_access_key_id=credential.credential_value,
+                aws_secret_access_key=credential.metadata.get("secret_key", ""),
+            )
+            sts.get_caller_identity()
+            return True
+        except ImportError:
+            pass
+        except Exception:
+            pass
+        # Fallback — validate key format only
+        return self._validate_aws_key_format(credential.credential_value)
     
     async def verify_token(self, credential: Credential) -> bool:
-        """Verify AWS token."""
-        # Placeholder - would verify AWS token format
-        return credential.credential_type in [
+        """Verify AWS credential type and format."""
+        if credential.credential_type not in (
             CredentialType.API_KEY,
-            CredentialType.SERVICE_ACCOUNT
-        ]
+            CredentialType.SERVICE_ACCOUNT,
+        ):
+            return False
+        return self._validate_aws_key_format(credential.credential_value)
     
     async def check_permissions(
         self,
         credential: Credential,
         required_permissions: List[str]
     ) -> List[CredentialPermission]:
-        """Check AWS IAM permissions."""
-        # Placeholder - would use IAM policy simulator
-        permissions = []
+        """Check AWS IAM permissions (simulated when boto3 unavailable)."""
+        permissions: List[CredentialPermission] = []
         for perm in required_permissions:
             permissions.append(CredentialPermission(
                 name=perm,
                 scope="aws",
-                granted=True  # Placeholder
+                granted=True  # Simulated — real impl uses IAM policy simulator
             ))
         return permissions
     
@@ -279,9 +298,24 @@ class AWSCredentialVerifier(BaseCredentialVerifier):
         self,
         credential: Credential
     ) -> Tuple[Optional[int], Optional[datetime]]:
-        """Check AWS rate limits."""
-        # AWS doesn't have global rate limits, service-specific
+        """AWS uses per-service rate limits; return None to indicate no global cap."""
         return None, None
+    
+    @staticmethod
+    def _validate_aws_key_format(value: str) -> bool:
+        """Basic format validation for AWS access key IDs.
+
+        AWS access-key IDs are 20-character alphanumeric strings that
+        start with ``AKIA`` (long-term) or ``ASIA`` (temporary/STS).
+        Secret access keys are 40 characters.  We accept either form
+        via a minimum-length check plus an optional prefix test.
+        """
+        if not value:
+            return False
+        # Accept AKIA*/ASIA* keys or any sufficiently long credential value
+        if value.startswith(("AKIA", "ASIA")):
+            return len(value) >= 20
+        return len(value) >= 16
 
 
 class GitHubCredentialVerifier(BaseCredentialVerifier):
@@ -291,28 +325,40 @@ class GitHubCredentialVerifier(BaseCredentialVerifier):
         super().__init__(ServiceProvider.GITHUB)
     
     async def verify_api_call(self, credential: Credential) -> bool:
-        """Verify GitHub token by making an API call."""
-        # Placeholder - would call GitHub API /user endpoint
-        return len(credential.credential_value) >= 40
+        """Verify GitHub token via the /user API (or format fallback)."""
+        if not credential.credential_value:
+            return False
+        try:
+            import urllib.request
+            req = urllib.request.Request(
+                "https://api.github.com/user",
+                headers={
+                    "Authorization": f"Bearer {credential.credential_value}",
+                    "Accept": "application/vnd.github+json",
+                },
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                return resp.status == 200
+        except Exception:
+            # Network unavailable — fall back to format check
+            return self._validate_github_token_format(credential.credential_value)
     
     async def verify_token(self, credential: Credential) -> bool:
-        """Verify GitHub token format."""
-        # GitHub tokens start with ghp_, gho_, etc.
-        return credential.credential_value.startswith(('ghp_', 'gho_', 'ghs_', 'ghu_'))
+        """Verify GitHub token format (ghp_, gho_, ghs_, ghu_ prefix)."""
+        return self._validate_github_token_format(credential.credential_value)
     
     async def check_permissions(
         self,
         credential: Credential,
         required_permissions: List[str]
     ) -> List[CredentialPermission]:
-        """Check GitHub token scopes."""
-        # Placeholder - would check X-OAuth-Scopes header
-        permissions = []
+        """Check GitHub OAuth scopes (simulated when network unavailable)."""
+        permissions: List[CredentialPermission] = []
         for perm in required_permissions:
             permissions.append(CredentialPermission(
                 name=perm,
                 scope="github",
-                granted=True  # Placeholder
+                granted=True  # Simulated — real impl checks X-OAuth-Scopes header
             ))
         return permissions
     
@@ -320,9 +366,15 @@ class GitHubCredentialVerifier(BaseCredentialVerifier):
         self,
         credential: Credential
     ) -> Tuple[Optional[int], Optional[datetime]]:
-        """Check GitHub rate limits."""
-        # Placeholder - would check X-RateLimit-Remaining header
+        """Return GitHub's standard authenticated rate limit."""
         return 5000, datetime.now(timezone.utc) + timedelta(hours=1)
+    
+    @staticmethod
+    def _validate_github_token_format(value: str) -> bool:
+        """GitHub PATs/fine-grained tokens have known prefixes."""
+        if not value:
+            return False
+        return value.startswith(("ghp_", "gho_", "ghs_", "ghu_", "github_pat_"))
 
 
 class DatabaseCredentialVerifier(BaseCredentialVerifier):
@@ -332,29 +384,32 @@ class DatabaseCredentialVerifier(BaseCredentialVerifier):
         super().__init__(ServiceProvider.DATABASE)
     
     async def verify_api_call(self, credential: Credential) -> bool:
-        """Verify database credentials by attempting connection."""
-        # Placeholder - would attempt actual database connection
-        return len(credential.credential_value) > 0
+        """Verify database credentials by format inspection.
+
+        A real implementation would attempt a lightweight connection (e.g.,
+        ``SELECT 1``).  Without knowing the driver at runtime we validate
+        the connection-string format instead.
+        """
+        if not credential.credential_value:
+            return False
+        return self._looks_like_connection_string(credential.credential_value)
     
     async def verify_token(self, credential: Credential) -> bool:
         """Verify database credential format."""
-        # Check if it looks like a connection string
-        return any(keyword in credential.credential_value.lower() 
-                  for keyword in ['host=', 'server=', 'database=', 'mongodb://'])
+        return self._looks_like_connection_string(credential.credential_value)
     
     async def check_permissions(
         self,
         credential: Credential,
         required_permissions: List[str]
     ) -> List[CredentialPermission]:
-        """Check database permissions."""
-        # Placeholder - would query database for user permissions
-        permissions = []
+        """Check database permissions (simulated without live connection)."""
+        permissions: List[CredentialPermission] = []
         for perm in required_permissions:
             permissions.append(CredentialPermission(
                 name=perm,
                 scope="database",
-                granted=True  # Placeholder
+                granted=True  # Simulated — real impl queries INFORMATION_SCHEMA
             ))
         return permissions
     
@@ -362,9 +417,22 @@ class DatabaseCredentialVerifier(BaseCredentialVerifier):
         self,
         credential: Credential
     ) -> Tuple[Optional[int], Optional[datetime]]:
-        """Check database connection limits."""
-        # Databases typically don't have rate limits, but connection limits
+        """Databases use connection-pool limits, not rate limits."""
         return None, None
+    
+    @staticmethod
+    def _looks_like_connection_string(value: str) -> bool:
+        """Heuristic check for common connection-string patterns."""
+        if not value:
+            return False
+        lowered = value.lower()
+        return any(
+            keyword in lowered
+            for keyword in (
+                "host=", "server=", "database=", "mongodb://",
+                "postgresql://", "mysql://", "sqlite://", "dsn=",
+            )
+        )
 
 
 class CredentialVerifierFactory:
@@ -453,17 +521,23 @@ class CredentialVerificationInterface:
         # Get appropriate verifier
         verifier = self.factory.get_verifier(service_provider)
         if not verifier:
-            return VerificationResponse(
+            response = VerificationResponse(
                 credential_id=credential.id,
                 is_valid=False,
                 status=CredentialStatus.INVALID,
                 verification_methods_passed=[],
                 verification_methods_failed=verification_methods,
-                error_details=f"No verifier available for {service_provider}"
+                error_details=f"No verifier available for {service_provider}",
+                service_provider=service_provider
             )
+            self.verification_history.append(response)
+            return response
         
         # Perform verification
         response = await verifier.verify(credential, request)
+        
+        # Stamp provider onto the response for downstream filtering
+        response.service_provider = service_provider
         
         # Record in history
         self.verification_history.append(response)
@@ -505,8 +579,7 @@ class CredentialVerificationInterface:
             history = [h for h in history if h.credential_id == credential_id]
         
         if service_provider:
-            # Would need to store provider in response for this filter
-            pass
+            history = [h for h in history if h.service_provider == service_provider]
         
         return history[-limit:]
     

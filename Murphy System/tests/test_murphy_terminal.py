@@ -33,6 +33,7 @@ from murphy_terminal import (
     MAX_RECONNECT_ATTEMPTS,
     MODULE_COMMAND_MAP,
     DASHBOARD_LINKS,
+    API_PROVIDER_LINKS,
 )
 from textual.widgets import Input
 
@@ -92,6 +93,22 @@ class TestIntentDetection:
         assert detect_intent("HEALTH") == "intent_health"
         assert detect_intent("Status") == "intent_status"
         assert detect_intent("EXIT") == "intent_exit"
+
+    def test_llm_status_intent(self):
+        assert detect_intent("llm status") == "intent_llm_status"
+        assert detect_intent("llm_status") == "intent_llm_status"
+
+    def test_librarian_status_intent(self):
+        assert detect_intent("librarian status") == "intent_librarian_status"
+        assert detect_intent("librarian_status") == "intent_librarian_status"
+
+    def test_llm_status_before_general_status(self):
+        """'llm status' should match llm_status, not general status."""
+        assert detect_intent("llm status") == "intent_llm_status"
+
+    def test_librarian_status_before_librarian(self):
+        """'librarian status' should match librarian_status, not librarian."""
+        assert detect_intent("librarian status") == "intent_librarian_status"
 
 
 # ---------------------------------------------------------------------------
@@ -282,6 +299,70 @@ class TestMurphyAPIClient:
         client = self._make_client()
         with pytest.raises(requests.ConnectionError):
             client.health()
+
+    @patch("murphy_terminal.requests.post")
+    def test_librarian_ask(self, mock_post):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {
+            "success": True,
+            "reply_text": "I can help with that!",
+            "intent": "general",
+            "mode": "deterministic",
+            "suggested_commands": ["help"],
+        }
+        mock_resp.raise_for_status = MagicMock()
+        mock_post.return_value = mock_resp
+
+        client = self._make_client()
+        client.session_id = "s-1"
+        result = client.librarian_ask("hello")
+
+        assert result["success"] is True
+        assert result["reply_text"] == "I can help with that!"
+        mock_post.assert_called_once_with(
+            "http://localhost:8000/api/librarian/ask",
+            json={"message": "hello", "session_id": "s-1"},
+            timeout=5,
+        )
+
+    @patch("murphy_terminal.requests.get")
+    def test_llm_status(self, mock_get):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {
+            "enabled": True,
+            "provider": "groq",
+            "model": "llama3-8b-8192",
+            "healthy": True,
+        }
+        mock_resp.raise_for_status = MagicMock()
+        mock_get.return_value = mock_resp
+
+        client = self._make_client()
+        result = client.llm_status()
+
+        assert result["enabled"] is True
+        assert result["provider"] == "groq"
+        mock_get.assert_called_once_with(
+            "http://localhost:8000/api/llm/status", timeout=5
+        )
+
+    @patch("murphy_terminal.requests.get")
+    def test_librarian_status(self, mock_get):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {
+            "enabled": True,
+            "healthy": True,
+        }
+        mock_resp.raise_for_status = MagicMock()
+        mock_get.return_value = mock_resp
+
+        client = self._make_client()
+        result = client.librarian_status()
+
+        assert result["enabled"] is True
+        mock_get.assert_called_once_with(
+            "http://localhost:8000/api/librarian/status", timeout=5
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -925,6 +1006,147 @@ class TestDashboardLinks:
     def test_swagger_link_present(self):
         urls = [link["url"] for link in DASHBOARD_LINKS]
         assert "/docs" in urls
+
+
+# ---------------------------------------------------------------------------
+# API Provider Links & Integration Inference
+# ---------------------------------------------------------------------------
+
+
+class TestAPIProviderLinks:
+    """Tests for the API_PROVIDER_LINKS data structure."""
+
+    def test_links_not_empty(self):
+        assert len(API_PROVIDER_LINKS) > 0
+
+    def test_groq_present(self):
+        assert "groq" in API_PROVIDER_LINKS
+        assert "url" in API_PROVIDER_LINKS["groq"]
+        assert "env_var" in API_PROVIDER_LINKS["groq"]
+
+    def test_all_entries_have_required_fields(self):
+        for key, info in API_PROVIDER_LINKS.items():
+            assert "name" in info, f"{key} missing name"
+            assert "url" in info, f"{key} missing url"
+            assert "env_var" in info, f"{key} missing env_var"
+            assert "description" in info, f"{key} missing description"
+
+    def test_urls_look_valid(self):
+        for key, info in API_PROVIDER_LINKS.items():
+            assert info["url"].startswith("https://"), f"{key} url should be https"
+
+
+class TestDialogContextIntegrations:
+    """Test DialogContext._infer_integrations returns relevant services."""
+
+    def test_email_mention(self):
+        dc = DialogContext()
+        dc.collected = {"platforms": "email and Slack"}
+        recs = dc._infer_integrations()
+        assert "sendgrid" in recs or "google" in recs
+        assert "slack" in recs
+
+    def test_crm_mention(self):
+        dc = DialogContext()
+        dc.collected = {"platforms": "CRM, HubSpot"}
+        recs = dc._infer_integrations()
+        assert "hubspot" in recs
+
+    def test_sales_mention_recommends_stripe(self):
+        dc = DialogContext()
+        dc.collected = {"business_goal": "sell products online", "platforms": "Shopify"}
+        recs = dc._infer_integrations()
+        assert "shopify" in recs
+        assert "stripe" in recs
+
+    def test_always_recommends_llm(self):
+        """If LLM is not configured, groq should always be recommended."""
+        import os
+        old = os.environ.pop("MURPHY_LLM_PROVIDER", None)
+        try:
+            dc = DialogContext()
+            dc.collected = {"name": "Test Co"}
+            recs = dc._infer_integrations()
+            assert "groq" in recs
+        finally:
+            if old is not None:
+                os.environ["MURPHY_LLM_PROVIDER"] = old
+
+    def test_completion_message_mentions_api_keys(self):
+        dc = DialogContext()
+        dc.collected = {"platforms": "Slack, email"}
+        dc.step_index = len(dc.INTERVIEW_STEPS)  # simulate completion
+        msg = dc._complete_message()
+        assert "api keys" in msg.lower()
+
+
+class TestApiKeysIntentDetection:
+    """Test that 'api keys' and 'get api keys' are detected."""
+
+    def test_api_keys(self):
+        assert detect_intent("api keys") == "intent_api_keys"
+
+    def test_get_api_keys(self):
+        assert detect_intent("get api keys") == "intent_api_keys"
+
+    def test_api_key(self):
+        assert detect_intent("api key") == "intent_api_keys"
+
+
+# ---------------------------------------------------------------------------
+# Workflow-aware integration inference
+# ---------------------------------------------------------------------------
+
+
+class TestWorkflowActionInferenceTerminal:
+    """Test that workflow ACTIONS trigger integration inference in terminal."""
+
+    def test_send_email_action_infers_sendgrid(self):
+        dc = DialogContext()
+        dc.collected = {"business_goal": "send email campaigns to customers"}
+        recs = dc._infer_integrations()
+        assert "sendgrid" in recs or "google" in recs
+
+    def test_post_to_channel_infers_slack(self):
+        dc = DialogContext()
+        dc.collected = {"use_case": "post to channel when builds complete"}
+        recs = dc._infer_integrations()
+        assert "slack" in recs
+
+    def test_create_issue_infers_jira_or_github(self):
+        dc = DialogContext()
+        dc.collected = {"use_case": "create issue when bug detected"}
+        recs = dc._infer_integrations()
+        assert "jira" in recs or "github" in recs
+
+    def test_goal_increase_sales_infers_crm(self):
+        dc = DialogContext()
+        dc.collected = {"business_goal": "increase sales by 30%"}
+        recs = dc._infer_integrations()
+        assert "hubspot" in recs
+
+    def test_goal_devops_infers_github(self):
+        dc = DialogContext()
+        dc.collected = {"business_goal": "devops automation"}
+        recs = dc._infer_integrations()
+        assert "github" in recs
+        assert "slack" in recs
+
+    def test_completion_message_has_next_steps(self):
+        dc = DialogContext()
+        dc.collected = {"platforms": "Slack, email", "business_goal": "automate operations"}
+        dc.step_index = len(dc.INTERVIEW_STEPS)
+        msg = dc._complete_message()
+        assert "What to do next" in msg
+        assert "Restart Murphy" in msg
+
+    def test_completion_message_numbers_integrations(self):
+        dc = DialogContext()
+        dc.collected = {"platforms": "email, Slack"}
+        dc.step_index = len(dc.INTERVIEW_STEPS)
+        msg = dc._complete_message()
+        # Should have numbered list (1., 2., etc)
+        assert "1." in msg
 
 
 # ---------------------------------------------------------------------------
