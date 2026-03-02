@@ -22,6 +22,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from confidence_engine.murphy_validator import MurphyValidator
 from confidence_engine.murphy_models import Phase
+from confidence_engine.models import (
+    ConfidenceState,
+    Phase as ControllerPhase,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -302,11 +306,6 @@ class FormDrivenExecutor:
         still handled by :meth:`_execute_phase_simple`; this method adds
         the phase-controller governance wrapper around it.
         """
-        from confidence_engine.models import (
-            ConfidenceState,
-            Phase as ControllerPhase,
-        )
-
         # Map the murphy_models.Phase (str enum) to the models.Phase used
         # by the PhaseController (which carries confidence_threshold).
         controller_phase = ControllerPhase(phase.value)

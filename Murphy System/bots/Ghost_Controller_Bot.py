@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 from datetime import datetime
 from typing import Any, Dict
@@ -9,6 +10,14 @@ from threading import Thread
 from pynput import keyboard, mouse
 import pygetwindow as gw
 from .gpt_oss_runner import GPTOSSRunner
+
+# Optional Google Docs API dependency
+try:
+    from googleapiclient.discovery import build as _build_google_service
+    from google.oauth2.credentials import Credentials as _GoogleCredentials
+    _HAS_GOOGLE_API = True
+except ImportError:
+    _HAS_GOOGLE_API = False
 
 
 class GhostControllerBot:
@@ -92,22 +101,23 @@ class GhostControllerBot:
             - ``google-api-python-client``, ``google-auth-oauthlib``
             - OAuth2 credentials stored at ``~/.murphy/google_credentials.json``
         """
-        try:
-            import os
-            from googleapiclient.discovery import build
-            from google.oauth2.credentials import Credentials
+        if not _HAS_GOOGLE_API:
+            self._fallback_log(task_profile,
+                               reason="google-api-python-client not installed")
+            return
 
+        try:
             creds_path = os.path.expanduser("~/.murphy/google_credentials.json")
             if not os.path.exists(creds_path):
                 self._fallback_log(task_profile,
                                    reason="Credentials file not found at " + creds_path)
                 return
 
-            creds = Credentials.from_authorized_user_file(
+            creds = _GoogleCredentials.from_authorized_user_file(
                 creds_path,
                 scopes=["https://www.googleapis.com/auth/documents"],
             )
-            service = build("docs", "v1", credentials=creds)
+            service = _build_google_service("docs", "v1", credentials=creds)
 
             body_text = json.dumps(task_profile, indent=2)
             requests = [
@@ -123,9 +133,6 @@ class GhostControllerBot:
             ).execute()
             print("[Google Logging] Task logged to Google Doc ID:", self.google_doc_id)
 
-        except ImportError:
-            self._fallback_log(task_profile,
-                               reason="google-api-python-client not installed")
         except Exception as exc:
             self._fallback_log(task_profile, reason=str(exc))
 
@@ -134,7 +141,6 @@ class GhostControllerBot:
     def _fallback_log(self, task_profile: dict, *, reason: str) -> None:
         """Write the task profile to a local JSON file when Google Docs
         integration is unavailable."""
-        import os
         fallback_dir = os.path.expanduser("~/.murphy/logs")
         os.makedirs(fallback_dir, exist_ok=True)
         fallback_path = os.path.join(fallback_dir, "google_doc_fallback.jsonl")

@@ -165,8 +165,6 @@ class TestGhostControllerBotLogging:
         """[UNIT] _fallback_log writes a JSONL entry to disk."""
         # We can't import GhostControllerBot directly (depends on pynput etc.)
         # so we test the fallback logic by importing the method pattern directly
-        import json
-        import os
 
         fallback_dir = tempfile.mkdtemp()
         fallback_path = os.path.join(fallback_dir, "google_doc_fallback.jsonl")
