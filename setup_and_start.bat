@@ -115,6 +115,9 @@ if not exist "%MURPHY_DIR%\.env" (
         echo MURPHY_ENV=development
         echo MURPHY_PORT=%MURPHY_PORT%
         echo.
+        echo # LLM provider - set to groq, openai, or anthropic once you add a key below
+        echo MURPHY_LLM_PROVIDER=
+        echo.
         echo # The onboard LLM works without any API key.
         echo # Add an external key below for enhanced quality ^(optional^).
         echo # GROQ_API_KEY=gsk_your_key_here
