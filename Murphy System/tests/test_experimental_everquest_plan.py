@@ -37,7 +37,7 @@ integration.  The plan covers:
   - Dragon faction mutual aid (hostile factions cooperate during Sleeper event unless engaged)
   - God Cards system (deity card drops, progressive AA unlocks, Card of Unmaking void spell)
   - The Unmaker NPC (level 1 random spawn, cloth armor set, card conversion)
-  - Core of the Unmaker raid zone (lighthouse, Unmaker True Form boss, 30% random raid attacks)
+  - Tower of the Unmaker raid zone (steampunk roaming craft, Unmaker True Form boss, 30% random raid attacks)
   - Shield of the Unmaker (10% delete incoming hits), Disintegration Proc (destroy equipped items)
   - Banned by the Unmaker (~1% proc, 2-day login lockout)
   - PvP raid boss transformation (unmake a god, gain title and become targetable)
@@ -645,12 +645,17 @@ class TestExperimentalEverQuestPlan:
 
     def test_core_of_the_unmaker_zone(self):
         text = _load_doc(self.DOC_NAME)
-        assert "Core of the Unmaker" in text
+        assert "Tower of the Unmaker" in text
 
-    def test_core_lighthouse_structure(self):
+    def test_core_steampunk_craft(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "lighthouse" in lower
+        assert "steampunk" in lower and ("craft" in lower or "tower" in lower)
+
+    def test_core_roaming_zone(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "roaming" in lower or "despawn" in lower or "respawn" in lower
 
     def test_unmaker_true_form_raid_boss(self):
         text = _load_doc(self.DOC_NAME)
@@ -682,7 +687,7 @@ class TestExperimentalEverQuestPlan:
 
     def test_unmaker_zone_schema_exists(self):
         text = _load_doc(self.DOC_NAME)
-        assert "Core of the Unmaker Zone Schema" in text or "core_of_the_unmaker" in text
+        assert "Tower of the Unmaker Zone Schema" in text or "tower_of_the_unmaker" in text
 
     def test_god_card_implementation_tasks(self):
         text = _load_doc(self.DOC_NAME)
@@ -1062,10 +1067,10 @@ class TestExperimentalEverQuestPlan:
         lower = text.lower()
         assert "1%" in text and ("drop" in lower) and ("card" in lower)
 
-    def test_core_3_card_entry_requirement(self):
+    def test_tower_entry_requirement(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "3" in text and ("card" in lower) and ("entry" in lower or "enter" in lower) and "core" in lower
+        assert ("1 card" in lower or "1-card" in lower) and ("entry" in lower or "enter" in lower) and "tower" in lower
 
     # --- NPC Progressive Card Effects (§9.21) ---
 
@@ -1154,10 +1159,10 @@ class TestExperimentalEverQuestPlan:
         lower = text.lower()
         assert "sub-60" in lower or ("level 60" in lower and "maximum of 3" in lower)
 
-    def test_4th_card_requires_core_raid(self):
+    def test_4th_card_requires_tower_raid(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "4th card" in lower and "core of the unmaker" in lower and "can only" in lower
+        assert "4th card" in lower and "tower of the unmaker" in lower and "can only" in lower
 
     # --- 3-Card Attackable by Everyone (§9.10, §9.22) ---
 
@@ -1512,10 +1517,10 @@ class TestOpenClawMoltySoulConcept:
         lower = text.lower()
         assert "cooldown" in lower or "1-week" in lower
 
-    def test_soul_has_3_card_core_entry(self):
+    def test_soul_has_tower_entry_requirement(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert ("3-card" in lower or "3 card" in lower) and ("enter" in lower or "require" in lower)
+        assert ("1 card" in lower or "4 same-type" in lower) and ("enter" in lower or "require" in lower)
 
     def test_soul_has_streaming_reference(self):
         text = _load_doc(self.DOC_NAME)
@@ -2052,9 +2057,9 @@ class TestCrossDocumentConsistency:
         plan = _load_doc(self.PLAN).lower()
         assert "god card" in plan and ("implement" in plan or "[ ]" in plan)
 
-    def test_plan_has_core_of_unmaker_implementation_task(self):
+    def test_plan_has_tower_of_unmaker_implementation_task(self):
         plan = _load_doc(self.PLAN).lower()
-        assert "core of the unmaker" in plan and ("implement" in plan or "[ ]" in plan)
+        assert "tower of the unmaker" in plan and ("implement" in plan or "[ ]" in plan)
 
     def test_plan_has_banned_by_unmaker_task(self):
         plan = _load_doc(self.PLAN).lower()
