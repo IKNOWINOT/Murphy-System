@@ -288,6 +288,13 @@ class MurphyAPIClient:
     def llm_status(self) -> dict:
         return self._get("/api/llm/status")
 
+    def configure_llm(self, provider: str, api_key: str) -> dict:
+        """Notify the backend to hot-reload LLM config with the new provider/key."""
+        try:
+            return self._post("/api/llm/configure", {"provider": provider, "api_key": api_key})
+        except requests.RequestException:
+            return {"success": False, "error": "backend not reachable"}
+
     def librarian_status(self) -> dict:
         return self._get("/api/librarian/status")
 
@@ -1266,13 +1273,18 @@ class MurphyTerminalApp(App):
         fmt = API_KEY_FORMATS[provider]
         env_var = fmt["env_var"]
 
-        # Persist to .env
+        # Persist to .env (both the API key and the provider selection)
         env_path = get_env_path()
         write_env_key(env_path, env_var, key_value)
+        write_env_key(env_path, "MURPHY_LLM_PROVIDER", provider)
 
         # Hot-reload into current process
         os.environ[env_var] = key_value
+        os.environ["MURPHY_LLM_PROVIDER"] = provider
         reload_env(env_path)
+
+        # Notify the backend to hot-reload its LLM config
+        self.client.configure_llm(provider, key_value)
 
         self._write_murphy(
             f"[bold green]✓ {provider.capitalize()} API key saved and activated![/bold green]\n"
@@ -1280,6 +1292,9 @@ class MurphyTerminalApp(App):
             f"  .env    : [dim]{env_path}[/dim]\n\n"
             "[dim]The key is active immediately — no restart needed.[/dim]"
         )
+
+        # Refresh the StatusBar to show the new LLM state
+        self._check_llm_status()
 
     # -- clipboard support --
 
