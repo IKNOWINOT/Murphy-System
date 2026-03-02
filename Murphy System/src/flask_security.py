@@ -8,8 +8,9 @@ Provides centralized security controls for all Flask API servers:
 - Input sanitization
 - Security response headers
 - Audit logging
+- RBAC permission enforcement via ``require_permission`` decorator
 
-Addresses: SEC-001, SEC-002, SEC-004, ARCH-001, ARCH-006
+Addresses: SEC-001, SEC-002, SEC-004, SEC-005, ARCH-001, ARCH-006
 
 Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
@@ -22,14 +23,39 @@ from typing import List, Optional, Dict, Any, Callable
 from datetime import datetime
 
 try:
-    from flask import Flask, request, jsonify, Response
+    from flask import Flask, request, jsonify, Response, g
     from flask_cors import CORS
     _HAS_FLASK = True
 except ImportError:
     Flask = None  # type: ignore[misc,assignment]
     _HAS_FLASK = False
 
+try:
+    from rbac_governance import RBACGovernance, Permission, Role  # type: ignore[import-untyped]
+except ImportError:
+    try:
+        from .rbac_governance import RBACGovernance, Permission, Role
+    except ImportError:
+        from src.rbac_governance import RBACGovernance, Permission, Role
+
 logger = logging.getLogger(__name__)
+
+# Global RBAC instance shared across all secured Flask apps.
+_rbac: Optional[RBACGovernance] = None
+
+
+def get_rbac() -> RBACGovernance:
+    """Return the global RBAC governance instance, creating one if needed."""
+    global _rbac
+    if _rbac is None:
+        _rbac = RBACGovernance()
+    return _rbac
+
+
+def set_rbac(rbac: RBACGovernance) -> None:
+    """Set the global RBAC governance instance (useful for testing)."""
+    global _rbac
+    _rbac = rbac
 
 
 # ── Environment Utilities ────────────────────────────────────────────
@@ -206,6 +232,56 @@ def _check_injection(data: Any) -> bool:
     return False
 
 
+# ── RBAC Permission Decorator ────────────────────────────────────────
+
+def require_permission(*permissions: Permission) -> Callable:
+    """Flask route decorator that enforces RBAC permissions (SEC-005).
+
+    Usage::
+
+        @app.route("/api/admin/config", methods=["POST"])
+        @require_permission(Permission.CONFIGURE_SYSTEM)
+        def admin_config():
+            ...
+
+    The decorator reads ``g.rbac_user_id`` (set by ``configure_secure_app``'s
+    before-request hook) and checks that the user holds **all** listed
+    permissions via the global :class:`RBACGovernance` instance.
+
+    In development mode (``MURPHY_ENV=development``) the check is skipped so
+    unauthenticated local testing continues to work.
+    """
+
+    def decorator(fn: Callable) -> Callable:
+        @functools.wraps(fn)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            # Skip enforcement in development mode
+            if is_debug_mode():
+                return fn(*args, **kwargs)
+
+            rbac = get_rbac()
+            user_id = getattr(g, "rbac_user_id", None)
+            if user_id is None:
+                return jsonify({"error": "User identity not provided"}), 403
+
+            for perm in permissions:
+                allowed, reason = rbac.check_permission(user_id, perm)
+                if not allowed:
+                    logger.warning(
+                        "RBAC denied %s for user %s: %s", perm.value, user_id, reason
+                    )
+                    return jsonify({
+                        "error": "Forbidden",
+                        "detail": f"Missing permission: {perm.value}",
+                    }), 403
+
+            return fn(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
 # ── Main Integration Function ────────────────────────────────────────
 
 def configure_secure_app(app: Flask, service_name: str = "murphy-api") -> Flask:
@@ -215,6 +291,7 @@ def configure_secure_app(app: Flask, service_name: str = "murphy-api") -> Flask:
     This wires in:
     - CORS with origin allowlist (SEC-002)
     - API key authentication on all routes (SEC-001, SEC-004)
+    - RBAC user/tenant context extraction (SEC-005)
     - Rate limiting per client IP (ARCH-006)
     - Input sanitization (ARCH-001)
     - Security response headers
@@ -233,7 +310,7 @@ def configure_secure_app(app: Flask, service_name: str = "murphy-api") -> Flask:
         app,
         origins=origins,
         supports_credentials=True,
-        allow_headers=["Content-Type", "Authorization", "X-Tenant-ID", "X-API-Key"],
+        allow_headers=["Content-Type", "Authorization", "X-Tenant-ID", "X-User-ID", "X-API-Key"],
         methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
     )
     logger.info(f"[{service_name}] CORS configured with allowed origins: {origins}")
@@ -273,6 +350,11 @@ def configure_secure_app(app: Flask, service_name: str = "murphy-api") -> Flask:
             logger.warning(f"[{service_name}] Invalid API key from {client_ip}")
             return jsonify({"error": "Invalid API key"}), 401
         
+        # Store RBAC context for downstream @require_permission checks (SEC-005).
+        # Headers: X-User-ID identifies the caller, X-Tenant-ID scopes the tenant.
+        g.rbac_user_id = request.headers.get("X-User-ID")
+        g.rbac_tenant_id = request.headers.get("X-Tenant-ID")
+        
         # Input sanitization for JSON requests
         if request.is_json and request.data:
             try:
@@ -292,5 +374,5 @@ def configure_secure_app(app: Flask, service_name: str = "murphy-api") -> Flask:
             response.headers.setdefault(header, value)
         return response
     
-    logger.info(f"[{service_name}] Security hardening applied: auth, CORS, rate limiting, input sanitization, security headers")
+    logger.info(f"[{service_name}] Security hardening applied: auth, CORS, RBAC, rate limiting, input sanitization, security headers")
     return app
