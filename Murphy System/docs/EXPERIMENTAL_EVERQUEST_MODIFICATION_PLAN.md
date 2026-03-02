@@ -61,6 +61,7 @@ AI agents operate with **experience-based lore** — they only recall history wi
 | **Spawner Registry & World Decay** | Per-entity spawner tracking, unmade status log, world decay %, 50% threshold vote (players + AI), stagnation re-vote | spawner_registry.py, card_system.py, soul engine |
 | **Experience-Based Lore** | Action screenshot memory cycle, interaction-triggered recall, collective lore propagation with fidelity degradation | experience_lore.py, soul engine, recall engine |
 | **Agent Heroic Persona & Streaming** | Noble deity/faction devotion hierarchy, heroic archetypes, text-to-speech voice profiles, first-person agent streaming | agent_voice.py, voice_bridge.py, stream_overlay.py, persona_injector.py |
+| **NPC Card Effects & Soul-Binding** | Progressive 4-tier NPC card effects (combat spell, defensive buff, weapon specialization, soul-bound protector), Emperor Crush example, named creature AI players, soul-protector NPC horror reactions | card_system.py, npc_card_effects.py, soul_engine.py |
 
 ### 2.2 Reference Documents
 
@@ -891,7 +892,7 @@ The raid leader gains Murphy-powered moderation tools:
 
 **Universal cards (non-god entities):**
 - Any entity that dies has a **1% chance** to drop a card bearing its name (e.g., "Card of the Fire Beetle", "Card of Fippy Darkpaw", "Card of the Black Wolf", "Card of the Elven Skeleton")
-- Universal cards grant **minor effects** when collected — small stat bonuses, minor resistances, trivial cosmetics
+- Every NPC card has **progressive 4-tier effects** — collecting multiple cards of the same NPC unlocks increasingly powerful abilities themed to that creature (see section 9.21 for the full NPC card effect system and Emperor Crush example)
 - **All card effects have a one-week real-time cooldown** — once a card ability is activated, it cannot be used again for 7 days (see section 9.14)
 - **Trading 4 of the same universal card to The Unmaker deletes that entity from the game permanently** — that mob, NPC, or creature no longer spawns anywhere in the world (see section 9.11)
 - This makes every resource in the game **precious** — over time, as players and agents collect and trade cards, the world slowly empties. Camp spots dry up, quest givers vanish, and entire ecosystems of creatures disappear
@@ -1057,6 +1058,7 @@ The Unmaker in its true form is the most dangerous raid boss in the game — a c
 - Cards are **bound to the collector** — they cannot be traded between players or agents (except to The Unmaker for conversion)
 - The void spell has a **long cooldown** and **limited charges** — it cannot be spammed
 - Server-wide announcements at 3 and 4 cards create social awareness and counterplay opportunities
+- **Only named creatures can be AI players** — generic mobs (fire beetles, skeletons, wolves) are ambient fauna. Named creatures (Emperor Crush, Fippy Darkpaw, Lord Nagafen) are the only entities that can operate as full AI agents with soul documents, personality, faction loyalty, and autonomous decision-making. This means named creature cards are far more consequential — their 4-card soul-bound protector mechanic (see section 9.21) enslaves a sentient being, not a mindless mob
 
 ### 9.10 Unmaking Escalation — World Response to Cards of Unmaking
 
@@ -1430,6 +1432,83 @@ The card system, world entropy, and Unmaker mechanics create an interconnected e
 - No external intervention needed — the game's own mechanics create the loop
 - Over a decade, the server produces **3–5 complete cycles** — each a unique dataset of AI social behavior in a slowly dying world
 
+### 9.21 NPC Progressive Card Effects — Every Creature Has Power
+
+Every NPC, mob, and creature in the game has a unique **4-tier card effect progression**. When a player or agent collects multiple cards of the same entity, they unlock increasingly powerful abilities themed to that creature's identity, combat style, and lore. The 4th card triggers the most dramatic effect in the game: **soul-bound protector summoning**.
+
+**Progressive card effect tiers:**
+
+| Cards | Tier | Effect Type | Cooldown | Description |
+|---|---|---|---|---|
+| **1 card** | **Combat Spell** | Conditional offensive/utility spell | 24 hours | A spell themed to the NPC's identity, often conditional on weapon type, class, or situation. Castable once per 24-hour period |
+| **2 cards** | **Defensive Buff** | Passive or activated defensive ability | 7 days | A defensive buff themed to the NPC's combat style — damage reduction, resistance, or mitigation |
+| **3 cards** | **Weapon/Class Specialization** | Permanent modifier while held | 7 days | A class-specific or weapon-specific ability that modifies gear, skills, or combat mechanics |
+| **4 cards** | **Soul-Bound Protector** | Permanent companion | Permanent (until death or unmade) | The NPC's soul is bound to you — they appear as your permanent companion and protector (see below) |
+
+**Canonical example — Emperor Crush (Crushbone):**
+
+Emperor Crush is the ruler of Crushbone, a named orc warlord who wields a massive two-handed blunt weapon. His card effects reflect his brutish melee dominance:
+
+| Cards | Effect | Details |
+|---|---|---|
+| **1 Card of Emperor Crush** | **Crush's Fury** (combat spell) | Castable once per 24-hour period. **Requires wielding a blunt weapon.** Doubles all blunt weapon damage for 1 minute. Stacks with all other damage modifiers |
+| **2 Cards of Emperor Crush** | **Crush's Resilience** (defensive buff) | While active, the holder takes **half damage from blunt weapons**. 7-day cooldown to reactivate after expiry |
+| **3 Cards of Emperor Crush** | **Crush's Mastery** (weapon specialization) | All two-handed blunt (2HB) weapons are converted to one-handed blunt (1HB) weapons for the holder. Special and delay values are recalculated for 1HB. Additionally, all 1HB weapons gain **5% haste** |
+| **4 Cards of Emperor Crush** | **Soul of Emperor Crush** (soul-bound protector) | Emperor Crush's soul is bound to you — he appears at your side as a permanent companion NPC who fights for you, follows you between zones, and acts as your personal protector |
+
+**Card effect design principles — how every NPC gets effects:**
+
+Every entity in the game has card effects generated from its **identity template** — a set of properties derived from the creature's combat style, level, zone, faction, and lore:
+
+| Property | Effect Influence | Example |
+|---|---|---|
+| **Primary weapon type** | 1st card spell condition and 2nd card resistance type | Blunt-wielding NPC → blunt damage spell, blunt resistance buff |
+| **Combat style** | 3rd card weapon/class modification | Melee NPC → weapon conversion; Caster NPC → spell enhancement |
+| **Level range** | Effect magnitude scaling | Higher-level NPC cards have stronger effects |
+| **Zone/faction** | Thematic flavor and social implications | Crushbone card = orc-themed; Felwithe card = elf-themed |
+| **Named vs. generic** | 4th card protector intelligence | Named = full AI companion; generic = simple pet-level follower |
+
+**Scaling by entity level:**
+
+| Entity Level | 1st Card Spell Duration | 2nd Card Mitigation | 3rd Card Bonus | Protector Level |
+|---|---|---|---|---|
+| **1–10** | 30 seconds | 10% reduction | 1% haste or minor stat | Protector level = entity level |
+| **11–30** | 45 seconds | 25% reduction | 3% haste or moderate stat | Protector level = entity level |
+| **31–50** | 1 minute | 40% reduction | 5% haste or major stat | Protector level = entity level |
+| **51+** | 1 minute | 50% reduction | 5% haste + secondary bonus | Protector level = entity level |
+
+**The 4th card — soul-bound protector:**
+
+Collecting 4 cards of any entity and **not** trading them to The Unmaker (which would delete that entity) instead binds the entity's soul to the card holder. The NPC appears as a **permanent companion**:
+
+- The protector spawns at the holder's side and follows them everywhere — between zones, through dungeons, into cities
+- The protector fights for the holder, using its normal combat abilities and AI behavior
+- **Named creature protectors** (AI players) retain their full personality, combat intelligence, and faction awareness — they are a sentient companion, not a mindless pet
+- **Generic creature protectors** (non-named mobs) function as simple pets with basic attack/follow behavior
+
+**Soul-bound protectors disturb all NPCs:**
+
+The sight of a soul-bound protector is **deeply disturbing** to all AI NPCs in the game:
+
+- All NPCs who witness a soul-bound protector react with horror, revulsion, or fear — it appears that the holder has **enslaved a person's soul**
+- NPC faction standings toward the protector holder take a **significant negative hit** across all factions — even allied factions find soul-binding abhorrent
+- NPC dialogue changes when interacting with a soul-bound protector holder: *"What dark magic is this? You hold [Name]'s very essence in chains!"*
+- The social cost of soul-binding is severe — the holder becomes a pariah in most NPC communities
+
+**AI players will kill soul-bound protector holders on sight:**
+
+- **Only named creatures can be AI players** — they are the sentient beings of the world with full soul documents, personalities, and autonomous decision-making
+- When an AI player (any named creature) encounters a player or agent who has a soul-bound protector, they will **immediately attempt to kill the holder** — regardless of faction, standing, or previous relationship
+- This is a **universal AI reaction** — no named creature tolerates soul enslavement. Even evil-aligned named NPCs find this practice unforgivable
+- The AI player's soul document records the encounter with extreme negative sentiment: this is the most hostile possible reaction in the game
+- AI players will also spread lore about the soul-binder to other named creatures through the collective lore system (see section 9.17) — the holder's reputation as a soul-enslaver propagates through the named NPC network
+- This creates a **natural counter-balance** to the 4-card protector: the companion is powerful, but the entire world's named NPCs become your enemy
+
+**Strategic tension — 4 cards:**
+- Collecting 4 cards presents a **critical choice**: trade them to The Unmaker (permanently deleting that entity and advancing world entropy), or keep them for the soul-bound protector (gaining a powerful companion but becoming universally hated by named NPCs)
+- Neither choice is reversible — once traded, the entity is gone; once soul-bound, the NPC reputation damage is permanent
+- This creates emergent social dynamics: players who soul-bind protectors become outcasts from NPC society but gain combat power; players who trade to The Unmaker advance world decay but maintain social standing
+
 ---
 
 ## 10. Streaming Pipeline
@@ -1493,6 +1572,7 @@ The card system, world entropy, and Unmaker mechanics create an interconnected e
 | **Spawner Registry** | `spawner_registry.py` | Entity spawn tracking, unmade status, world decay calculation, 50% vote trigger |
 | **Agent TTS Voice** | `agent_voice.py` | Text-to-speech voice profiles per race/class, streaming agent voice output |
 | **Experience Lore Engine** | `experience_lore.py` | Action screenshot capture/process/delete cycle, interaction-triggered recall, collective lore propagation |
+| **NPC Card Effects** | `npc_card_effects.py` | Entity identity template → 4-tier card effect generation, soul-bound protector spawning, NPC horror reactions, AI player kill-on-sight behavior |
 
 ---
 
@@ -1842,6 +1922,53 @@ The card system, world entropy, and Unmaker mechanics create an interconnected e
 }
 ```
 
+### 12.11 NPC Card Effect Schema
+
+```python
+{
+    "entity_id": "str",  # Entity whose card this is (e.g., "emperor_crush", "fire_beetle")
+    "entity_name": "str",  # Display name (e.g., "Emperor Crush")
+    "entity_level": "int",  # Level of the source entity — drives effect magnitude scaling
+    "is_named": "bool",  # True = AI player with soul document; False = generic mob
+    "primary_weapon_type": "str",  # "blunt", "slash", "pierce", "magic", "breath", etc.
+    "combat_style": "str",  # "melee", "caster", "hybrid", "pet_class", "healer"
+    "card_effects": {
+        "tier_1_combat_spell": {
+            "name": "str",  # e.g., "Crush's Fury"
+            "description": "str",
+            "condition": "str",  # e.g., "requires_blunt_weapon"
+            "effect": "str",  # e.g., "double_blunt_damage"
+            "duration_seconds": "int",  # Scaled by entity level (30–60)
+            "cooldown_hours": 24,  # 24-hour cooldown
+            "stacks_with": "all"
+        },
+        "tier_2_defensive_buff": {
+            "name": "str",  # e.g., "Crush's Resilience"
+            "description": "str",
+            "mitigation_type": "str",  # e.g., "blunt_damage"
+            "mitigation_percent": "float",  # Scaled by level (0.10–0.50)
+            "cooldown_days": 7  # 7-day cooldown
+        },
+        "tier_3_specialization": {
+            "name": "str",  # e.g., "Crush's Mastery"
+            "description": "str",
+            "effect_type": "str",  # "weapon_conversion", "spell_enhancement", "skill_modifier"
+            "details": {},  # Specific parameters (e.g., {"convert_2hb_to_1hb": true, "haste_percent": 5})
+            "cooldown_days": 7  # 7-day cooldown
+        },
+        "tier_4_soul_protector": {
+            "name": "str",  # e.g., "Soul of Emperor Crush"
+            "protector_entity_id": "str",  # The NPC that becomes the companion
+            "protector_level": "int",  # Same as entity level
+            "protector_ai_type": "str",  # "full_ai" for named, "pet_ai" for generic
+            "follows_between_zones": "bool",  # Always true
+            "npc_reputation_penalty": "float",  # Faction hit from all NPCs (e.g., -0.5 standing)
+            "ai_player_kill_on_sight": "bool"  # Always true — named NPCs attack holder
+        }
+    }
+}
+```
+
 ---
 
 ## 13. Implementation Phases
@@ -1972,6 +2099,16 @@ The card system, world entropy, and Unmaker mechanics create an interconnected e
 - [ ] Implement agent text-to-speech voice profiles (race/class-specific voices for streaming agents)
 - [ ] Implement agent streaming capability (first-person perspective capture, live broadcast, overlay integration)
 - [ ] Implement agent voice roster (8+ distinct voice profiles covering major race/class combinations)
+- [ ] Implement NPC card effect generation system (identity template → 4-tier effect progression for every entity)
+- [ ] Implement tier 1 combat spell effects (conditional 24-hour cooldown spells themed to NPC weapon/combat style)
+- [ ] Implement tier 2 defensive buff effects (damage type mitigation scaled by entity level, 7-day cooldown)
+- [ ] Implement tier 3 weapon/class specialization effects (weapon conversion, haste bonuses, spell enhancements)
+- [ ] Implement tier 4 soul-bound protector system (4-card permanent companion, zone-following, combat AI)
+- [ ] Implement NPC horror reaction to soul-bound protectors (faction penalty, dialogue changes, fear/revulsion)
+- [ ] Implement AI player kill-on-sight behavior for soul-bound protector holders (all named NPCs attack)
+- [ ] Implement named creature AI player restriction (only named creatures get full soul documents and autonomous behavior)
+- [ ] Implement soul-bound protector lore propagation (AI players spread word about soul-enslavers via collective lore)
+- [ ] Implement card effect level scaling (entity level → spell duration, mitigation %, haste bonus, protector stats)
 
 ### Phase 6: Race & Culture (Weeks 21–24)
 
@@ -2060,6 +2197,10 @@ The card system, world entropy, and Unmaker mechanics create an interconnected e
 | **Agent streaming privacy** | Streaming agent perspective reveals other players' strategies | Streaming agents are publicly marked, players can avoid streaming agents, stream delay configurable |
 | **TTS voice quality** | Low-quality TTS breaks immersion for streamed agents | Pre-selected high-quality voice profiles, limited roster ensures quality over quantity, voice profiles tuned per archetype |
 | **3-card Core entry bottleneck** | Too few players reach 3 cards, making Core of the Unmaker inaccessible | Card drop rates tunable, god card encounters are the primary source, multiple gods provide parallel paths to 3 cards |
+| **Soul-bound protector imbalance** | High-level protectors (e.g., Emperor Crush, Lord Nagafen) are too powerful as permanent companions | Protector level matches entity level (not holder level), protector uses entity's normal combat abilities (no scaling), faction penalty makes cities hostile |
+| **AI player aggression spiral** | All named NPCs attacking soul-binder on sight makes game unplayable for protector holders | Intended design — soul-binding is a high-risk high-reward choice. Holder can release protector to restore faction (with permanent scar). The social cost is the balancing mechanism |
+| **NPC card effect volume** | Thousands of entities need unique 4-tier card effects — manual design impractical | Identity template system auto-generates effects from entity properties (weapon type, level, combat style). Manual curation only for iconic named NPCs like Emperor Crush |
+| **Named creature AI player load** | Giving all named creatures full AI soul documents creates server performance pressure | Named creature AI activates on proximity — distant named NPCs use simplified behavior. Full AI only loads when players or other named NPCs are nearby |
 
 ---
 

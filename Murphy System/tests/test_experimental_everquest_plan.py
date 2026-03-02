@@ -1067,6 +1067,86 @@ class TestExperimentalEverQuestPlan:
         lower = text.lower()
         assert "3" in text and ("card" in lower) and ("entry" in lower or "enter" in lower) and "core" in lower
 
+    # --- NPC Progressive Card Effects (§9.21) ---
+
+    def test_npc_card_effects_section_exists(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "NPC Progressive Card Effects" in text
+
+    def test_npc_card_4_tier_progression(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "combat spell" in lower and "defensive buff" in lower and "specialization" in lower and "soul-bound protector" in lower
+
+    def test_emperor_crush_example(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Emperor Crush" in text
+
+    def test_emperor_crush_1_card_blunt_spell(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "blunt" in lower and ("double" in lower or "doubles" in lower) and "damage" in lower
+
+    def test_emperor_crush_2_card_blunt_resistance(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "half damage" in lower and "blunt" in lower
+
+    def test_emperor_crush_3_card_weapon_conversion(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("2hb" in lower or "two-handed blunt" in lower) and ("1hb" in lower or "one-handed blunt" in lower) and "5%" in text and "haste" in lower
+
+    def test_emperor_crush_4_card_protector(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "soul" in lower and ("protector" in lower or "companion" in lower) and "emperor crush" in lower
+
+    def test_tier1_24_hour_cooldown(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "24" in text and ("hour" in lower) and ("cooldown" in lower or "period" in lower)
+
+    def test_soul_protector_disturbs_npcs(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("disturb" in lower or "horror" in lower or "revulsion" in lower) and "npc" in lower
+
+    def test_ai_players_kill_soul_binder(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "ai player" in lower and ("kill" in lower) and ("soul" in lower)
+
+    def test_only_named_creatures_ai_players(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "only named creature" in lower and "ai player" in lower
+
+    def test_card_effect_level_scaling(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "level" in lower and ("scaling" in lower or "scaled" in lower)
+
+    def test_4_card_strategic_choice(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("choice" in lower or "tension" in lower) and "4 card" in lower
+
+    def test_npc_card_effect_schema(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "npc card effect schema" in lower
+
+    def test_npc_card_effect_schema_tiers(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "tier_1_combat_spell" in lower and "tier_4_soul_protector" in lower
+
+    def test_identity_template_effect_generation(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "identity template" in lower and ("generate" in lower or "derived" in lower or "auto" in lower)
+
 
 # ===========================================================================
 # OpenClaw Molty Soul Concept Document
@@ -1370,6 +1450,28 @@ class TestOpenClawMoltySoulConcept:
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
         assert "streaming" in lower and ("agent" in lower or "first-person" in lower)
+
+    # --- NPC Card Effects in soul concept ---
+
+    def test_soul_has_npc_card_effects(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "4-tier" in lower or ("tier 1" in lower and "tier 4" in lower) or "npc_card_effects" in lower
+
+    def test_soul_has_soul_bound_protector(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "soul-bound protector" in lower or "soul protector" in lower
+
+    def test_soul_has_named_creature_ai_player(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "named creature" in lower and "ai player" in lower
+
+    def test_soul_has_npc_card_effects_module(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "npc_card_effects.py" in lower
 
 
 # ===========================================================================
@@ -2020,6 +2122,42 @@ class TestCrossDocumentConsistency:
     def test_plan_risk_tts_quality(self):
         plan = _load_doc(self.PLAN).lower()
         assert "tts" in plan or ("voice" in plan and "quality" in plan)
+
+    # --- NPC Card Effects cross-doc tests ---
+
+    def test_plan_has_npc_card_effects_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "npc card effect" in plan and ("implement" in plan or "[ ]" in plan)
+
+    def test_plan_has_soul_protector_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "soul-bound protector" in plan and ("implement" in plan or "[ ]" in plan)
+
+    def test_plan_has_npc_card_effects_extension(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "npc_card_effects.py" in plan
+
+    def test_plan_has_npc_card_effect_schema(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "npc card effect schema" in plan or "tier_1_combat_spell" in plan
+
+    def test_plan_scope_has_npc_card_effects(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "npc card effects" in plan and "soul-binding" in plan
+
+    def test_plan_risk_soul_protector_imbalance(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "soul-bound protector" in plan and ("imbalance" in plan or "risk" in plan)
+
+    def test_plan_risk_ai_player_aggression(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "ai player" in plan and ("aggression" in plan or "kill" in plan)
+
+    def test_plan_and_soul_both_have_npc_card_effects(self):
+        plan = _load_doc(self.PLAN).lower()
+        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
+        assert "npc_card_effects.py" in plan
+        assert "npc_card_effects.py" in soul
 
 class TestRaceCulturalIdentityDesign:
     """Validate RACE_CULTURAL_IDENTITY_DESIGN.md structure."""
