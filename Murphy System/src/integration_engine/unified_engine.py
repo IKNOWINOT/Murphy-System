@@ -524,18 +524,16 @@ class UnifiedIntegrationEngine:
         try:
             from src.true_swarm_system import TrueSwarmSystem
 
-            if not hasattr(self, '_swarm_system') or self._swarm_system is None:
+            if getattr(self, '_swarm_system', None) is None:
                 self._swarm_system = TrueSwarmSystem()
 
             # Store agent metadata in the workspace for later phase execution
             self._swarm_system.workspace.write_artifact(
-                type(
-                    'Artifact', (), {
-                        'artifact_type': 'agent_registration',
-                        'content': agent,
-                        'phase': None,
-                    }
-                )()
+                {
+                    'artifact_type': 'agent_registration',
+                    'content': agent,
+                    'phase': None,
+                }
             )
             print(f"✓ Agent '{agent['name']}' registered with TrueSwarmSystem")
         except Exception as exc:
