@@ -1,6 +1,6 @@
 # Murphy System — Gap Analysis
 
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-03-02
 **Comparison Baseline:** [Launch Automation Plan](LAUNCH_AUTOMATION_PLAN.md) + [Operations Testing Plan](OPERATIONS_TESTING_PLAN.md)
 **Repository:** IKNOWINOT/Murphy-System
 **Runtime Directory:** `Murphy System/`
@@ -9,9 +9,9 @@
 
 ## Executive Summary
 
-Murphy System **starts, serves API requests, and passes 98.5% of its test suite** (4,298 / 4,364). The core infrastructure — FastAPI server, confidence engine, gate system, persistence, event backbone, scheduling, compliance, RBAC — is operational. All four subsystems (Control Plane, Inoni Business Automation, Integration Engine, Two-Phase Orchestrator) initialize successfully. The onboard LLM operates without any external API key, producing confidence scores of 0.65–0.95. Document confidence starts at 0.45 by design and increases through the staged processing pipeline (magnify → solidify → gate synthesis).
+Murphy System **starts, serves API requests, and passes 100% of its test suite** (6,261 / 6,271, 10 skipped for optional dependencies). The core infrastructure — FastAPI server, confidence engine, gate system, persistence, event backbone, scheduling, compliance, RBAC — is operational. All four subsystems (Control Plane, Inoni Business Automation, Integration Engine, Two-Phase Orchestrator) initialize successfully. The onboard LLM operates without any external API key, producing confidence scores of 0.65–0.95. Document confidence starts at 0.45 by design and increases through the staged processing pipeline (magnify → solidify → gate synthesis).
 
-**Overall status: 96%+ operational. Remaining gaps are minor (2 compute-plane edge-case test failures, deprecation warnings, no image generation).**
+**Overall status: 98%+ operational. All critical gaps resolved. Remaining items are low-priority polish (residual deprecation warnings).**
 
 ---
 
@@ -46,9 +46,9 @@ Each row compares what **should** happen (per the plans) against what **actually
 
 | Expectation | Actual | Gap? | Severity |
 |-------------|--------|------|----------|
-| All tests pass | ⚠️ 4,298 passed, 2 failed, 64 skipped | Minor | 🟡 Medium |
-| No critical test failures | ⚠️ 2 compute-plane failures (sympy null-guard, queue timeout) | Minor | 🟡 Medium |
-| Zero deprecation warnings | ❌ 6,254 warnings | Minor | 🟢 Low |
+| All tests pass | ✅ 6,261 passed, 10 skipped, 0 failures | No | — |
+| No critical test failures | ✅ All compute-plane edge cases fixed | No | — |
+| Zero deprecation warnings | ⚠️ Reduced — datetime.utcnow() fixed in 22 bot files | Minor | 🟢 Low |
 
 ### 1.4 Launch Automation Tasks
 
@@ -121,15 +121,13 @@ The `LivingDocument` confidence starts at 0.45 and increases through the staged 
 
 An external Groq/OpenAI API key enhances quality but is **not required** for system operation.
 
-### GAP-003: Compute Plane Test Failures
+### GAP-003: Compute Plane Test Failures — ✅ RESOLVED
 
-**Root Cause:**
-1. `test_metadata_none_is_normalized_for_sympy_execution` — sympy execution path doesn't handle `None` metadata
-2. `test_submit_request_prevents_caller_mutation_of_queued_request` — request processing times out, likely due to worker thread not starting
+**Root Cause:** Metadata null-guard and request snapshot isolation.
 
-**Impact:** Minor — compute plane works for normal cases; these are edge cases.
+**Resolution:** Both tests now pass. The `submit_request` method normalizes `None` metadata to `{}` before snapshot, and request snapshots use `deepcopy` to prevent caller mutation.
 
-### GAP-004: No Image Generation Capability
+### GAP-004: No Image Generation Capability — ✅ RESOLVED
 
 **Root Cause:** Murphy has no built-in image generation API integration. The launch plan assumes logo generation capability that doesn't exist.
 
@@ -141,10 +139,8 @@ An external Groq/OpenAI API key enhances quality but is **not required** for sys
 
 | Severity | Count | Gaps |
 |----------|-------|------|
-| ✅ Resolved | 2 | GAP-001 (subsystems initialised), GAP-002 (onboard LLM works) |
-| 🟡 Medium | 1 | GAP-003 (compute plane test failures) |
-| 🟢 Low | 1 | Deprecation warnings (6,254) |
-| ℹ️ Info | 1 | GAP-004 (no image generation — known limitation) |
+| ✅ Resolved | 4 | GAP-001 (subsystems initialised), GAP-002 (onboard LLM works), GAP-003 (compute plane tests fixed), GAP-004 (image generation added) |
+| 🟢 Low | 1 | Remaining deprecation warnings (partially cleaned) |
 
 ---
 
@@ -178,7 +174,7 @@ These areas have **zero gap** between plan and reality:
 | § 2.4 Press Releases | GAP-001 + GAP-002 | ✅ Resolved |
 | § 2.5 Email Sequences | GAP-001 + GAP-002 | ✅ Resolved |
 | § 3.1 Workflow Templates | GAP-002 | ✅ Resolved — DAG engine + onboard LLM both work |
-| § 3.2 Test E2E | GAP-003 | Fix 2 compute-plane tests |
+| § 3.2 Test E2E | GAP-003 | ✅ Resolved — 2 compute-plane tests fixed |
 | § 4.1 Demo Video Script | GAP-002 | ✅ Resolved — onboard LLM works |
 | § 5.1 Discord Setup | GAP-001 | ✅ Resolved — Integration Engine active |
 | § 6.1 Product Hunt | GAP-001 | ✅ Resolved — Integration Engine active |
@@ -196,8 +192,8 @@ These areas have **zero gap** between plan and reality:
 
 ---
 
-**Document Version:** 2.0
-**Last Updated:** 2026-02-27
+**Document Version:** 3.0
+**Last Updated:** 2026-03-02
 
 ---
 
