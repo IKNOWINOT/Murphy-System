@@ -224,6 +224,16 @@ class TestFirstRunGate:
             assert app._offline_mode is True
 
     @pytest.mark.asyncio
+    async def test_gate_activates_with_placeholder_key(self, monkeypatch):
+        """When GROQ_API_KEY is a placeholder like 'your_groq_key_here', gate should still activate."""
+        monkeypatch.setenv("GROQ_API_KEY", "your_groq_key_here")
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            assert app._awaiting_api_key is True
+
+    @pytest.mark.asyncio
     async def test_regular_command_dismisses_gate(self, monkeypatch):
         """Typing a regular command like 'help' should dismiss the gate."""
         monkeypatch.delenv("GROQ_API_KEY", raising=False)
@@ -267,3 +277,47 @@ class TestSetKeyTUI:
             # Key should be persisted in .env
             content = env_file.read_text()
             assert "gsk_abcdefghijklmnopqrstuvwx" in content
+
+
+# ---------------------------------------------------------------------------
+# Placeholder key detection
+# ---------------------------------------------------------------------------
+
+
+class TestIsRealKey:
+
+    def test_none_is_not_real(self):
+        assert MurphyTerminalApp._is_real_key(None) is False
+
+    def test_empty_is_not_real(self):
+        assert MurphyTerminalApp._is_real_key("") is False
+
+    def test_placeholder_is_not_real(self):
+        assert MurphyTerminalApp._is_real_key("your_groq_key_here") is False
+
+    def test_another_placeholder_is_not_real(self):
+        assert MurphyTerminalApp._is_real_key("your_openai_key_here") is False
+
+    def test_changeme_is_not_real(self):
+        assert MurphyTerminalApp._is_real_key("CHANGE_ME") is False
+
+    def test_xxx_is_not_real(self):
+        assert MurphyTerminalApp._is_real_key("xxx") is False
+
+    def test_real_groq_key(self):
+        assert MurphyTerminalApp._is_real_key("gsk_abcdefghijklmnopqrstuvwx") is True
+
+    def test_real_openai_key(self):
+        assert MurphyTerminalApp._is_real_key("sk-abcdefghijklmnopqrstuvwx") is True
+
+
+# ---------------------------------------------------------------------------
+# Updated WELCOME_TEXT
+# ---------------------------------------------------------------------------
+
+
+class TestWelcomeTextSetKey:
+
+    def test_welcome_text_mentions_set_key(self):
+        from murphy_terminal import WELCOME_TEXT
+        assert "set key" in WELCOME_TEXT
