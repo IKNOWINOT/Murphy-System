@@ -51,7 +51,7 @@ from src.eq.soul_engine import (
 class TestNPCCardEffectGeneration:
     """Test the identity-template → 4-tier effect auto-generation engine."""
 
-    def _emperor_crush(self) -> IdentityTemplate:
+    def _create_emperor_crush_template(self) -> IdentityTemplate:
         return IdentityTemplate(
             entity_id="emperor_crush",
             entity_name="Emperor Crush",
@@ -63,11 +63,11 @@ class TestNPCCardEffectGeneration:
         )
 
     def test_generate_returns_npc_card_effects(self):
-        fx = generate_card_effects(self._emperor_crush())
+        fx = generate_card_effects(self._create_emperor_crush_template())
         assert isinstance(fx, NPCCardEffects)
 
     def test_entity_metadata_preserved(self):
-        fx = generate_card_effects(self._emperor_crush())
+        fx = generate_card_effects(self._create_emperor_crush_template())
         assert fx.entity_id == "emperor_crush"
         assert fx.entity_name == "Emperor Crush"
         assert fx.entity_level == 45
@@ -78,23 +78,23 @@ class TestNPCCardEffectGeneration:
     # --- Tier 1: Combat Spell ---
 
     def test_tier1_name_contains_entity_name(self):
-        fx = generate_card_effects(self._emperor_crush())
+        fx = generate_card_effects(self._create_emperor_crush_template())
         assert "Emperor Crush" in fx.tier_1.name
 
     def test_tier1_condition_matches_damage_type(self):
-        fx = generate_card_effects(self._emperor_crush())
+        fx = generate_card_effects(self._create_emperor_crush_template())
         assert fx.tier_1.condition == "requires_blunt_weapon"
 
     def test_tier1_effect_doubles_damage_type(self):
-        fx = generate_card_effects(self._emperor_crush())
+        fx = generate_card_effects(self._create_emperor_crush_template())
         assert fx.tier_1.effect == "double_blunt_damage"
 
     def test_tier1_cooldown_is_24_hours(self):
-        fx = generate_card_effects(self._emperor_crush())
+        fx = generate_card_effects(self._create_emperor_crush_template())
         assert fx.tier_1.cooldown_hours == 24
 
     def test_tier1_stacks_with_all(self):
-        fx = generate_card_effects(self._emperor_crush())
+        fx = generate_card_effects(self._create_emperor_crush_template())
         assert fx.tier_1.stacks_with == "all"
 
     # --- Tier 1: Level scaling ---
@@ -116,7 +116,7 @@ class TestNPCCardEffectGeneration:
     # --- Tier 2: Defensive Buff ---
 
     def test_tier2_mitigation_type_matches_damage(self):
-        fx = generate_card_effects(self._emperor_crush())
+        fx = generate_card_effects(self._create_emperor_crush_template())
         assert fx.tier_2.mitigation_type == "blunt_damage"
 
     @pytest.mark.parametrize("level,expected_pct", [
@@ -133,13 +133,13 @@ class TestNPCCardEffectGeneration:
         assert fx.tier_2.mitigation_percent == expected_pct
 
     def test_tier2_cooldown_is_7_days(self):
-        fx = generate_card_effects(self._emperor_crush())
+        fx = generate_card_effects(self._create_emperor_crush_template())
         assert fx.tier_2.cooldown_days == 7
 
     # --- Tier 3: Weapon/Class Specialization ---
 
     def test_tier3_melee_gets_weapon_conversion(self):
-        fx = generate_card_effects(self._emperor_crush())
+        fx = generate_card_effects(self._create_emperor_crush_template())
         assert fx.tier_3.effect_type == "weapon_conversion"
         assert fx.tier_3.details.get("convert_2hb_to_1hb") is True
         assert fx.tier_3.details.get("haste_percent") == 5
@@ -206,7 +206,7 @@ class TestNPCCardEffectGeneration:
     # --- Tier 4: Soul-Bound Protector ---
 
     def test_tier4_named_gets_full_ai(self):
-        fx = generate_card_effects(self._emperor_crush())
+        fx = generate_card_effects(self._create_emperor_crush_template())
         assert fx.tier_4.protector_ai_type == ProtectorAIType.FULL_AI
 
     def test_tier4_generic_gets_pet_ai(self):
@@ -218,26 +218,26 @@ class TestNPCCardEffectGeneration:
         assert fx.tier_4.protector_ai_type == ProtectorAIType.PET_AI
 
     def test_tier4_protector_level_matches_entity_level(self):
-        fx = generate_card_effects(self._emperor_crush())
+        fx = generate_card_effects(self._create_emperor_crush_template())
         assert fx.tier_4.protector_level == 45
 
     def test_tier4_follows_between_zones(self):
-        fx = generate_card_effects(self._emperor_crush())
+        fx = generate_card_effects(self._create_emperor_crush_template())
         assert fx.tier_4.follows_between_zones is True
 
     def test_tier4_npc_reputation_penalty(self):
-        fx = generate_card_effects(self._emperor_crush())
+        fx = generate_card_effects(self._create_emperor_crush_template())
         assert fx.tier_4.npc_reputation_penalty < 0
 
     def test_tier4_ai_player_kill_on_sight(self):
-        fx = generate_card_effects(self._emperor_crush())
+        fx = generate_card_effects(self._create_emperor_crush_template())
         assert fx.tier_4.ai_player_kill_on_sight is True
 
     # --- Batch generation ---
 
     def test_batch_generate_all(self):
         templates = [
-            self._emperor_crush(),
+            self._create_emperor_crush_template(),
             IdentityTemplate(entity_id="beetle", entity_name="Fire Beetle", entity_level=1),
             IdentityTemplate(entity_id="nagafen", entity_name="Lord Nagafen", entity_level=55,
                              primary_damage_type=DamageType.FIRE,
@@ -395,7 +395,7 @@ class TestCardCollection:
 class TestDeathRedistribution:
     """Test §9.22: silent card redistribution on death."""
 
-    def _holder_with_cards(self, count: int) -> CardCollection:
+    def _create_collection_with_cards(self, count: int) -> CardCollection:
         cc = CardCollection(holder_id="holder")
         for i in range(count):
             cc.add_unmaking_card(CardOfUnmaking(card_id=f"h{i}", source_entity_level=60))
@@ -403,32 +403,32 @@ class TestDeathRedistribution:
         return cc
 
     def test_cards_removed_from_dead_holder(self):
-        holder = self._holder_with_cards(3)
+        holder = self._create_collection_with_cards(3)
         killers = [CardCollection(holder_id="k1")]
         handle_unmaking_death(holder, killers)
         assert holder.unmaking_card_count == 0
 
     def test_dead_holder_not_attackable_after_death(self):
-        holder = self._holder_with_cards(3)
+        holder = self._create_collection_with_cards(3)
         killers = [CardCollection(holder_id="k1")]
         handle_unmaking_death(holder, killers)
         assert holder.attackable_by_all is False
 
     def test_enchanted_items_preserved_on_death(self):
-        holder = self._holder_with_cards(3)
+        holder = self._create_collection_with_cards(3)
         killers = [CardCollection(holder_id="k1")]
         handle_unmaking_death(holder, killers)
         assert "enchanted_armor" in holder.enchanted_items
 
     def test_cards_go_to_zero_card_killers(self):
-        holder = self._holder_with_cards(3)
+        holder = self._create_collection_with_cards(3)
         zero_killer = CardCollection(holder_id="k_zero")
         result = handle_unmaking_death(holder, [zero_killer])
         assert result.cards_redistributed > 0
         assert zero_killer.unmaking_card_count > 0
 
     def test_killers_with_cards_excluded(self):
-        holder = self._holder_with_cards(3)
+        holder = self._create_collection_with_cards(3)
         has_cards = CardCollection(holder_id="k_has")
         has_cards.add_unmaking_card(CardOfUnmaking(card_id="x", source_entity_level=60))
         result = handle_unmaking_death(holder, [has_cards])
@@ -436,12 +436,12 @@ class TestDeathRedistribution:
         assert result.cards_destroyed == 3
 
     def test_silent_flag_always_true(self):
-        holder = self._holder_with_cards(3)
+        holder = self._create_collection_with_cards(3)
         result = handle_unmaking_death(holder, [CardCollection(holder_id="k1")])
         assert result.silent is True
 
     def test_no_eligible_killers_destroys_cards(self):
-        holder = self._holder_with_cards(3)
+        holder = self._create_collection_with_cards(3)
         # All killers already have cards
         k1 = CardCollection(holder_id="k1")
         k1.add_unmaking_card(CardOfUnmaking(card_id="x1", source_entity_level=60))
@@ -460,7 +460,7 @@ class TestDeathRedistribution:
 class TestSpawnerRegistry:
     """Test entity tracking, unmaking, and world decay."""
 
-    def _populated_registry(self) -> SpawnerRegistry:
+    def _create_registry_with_entities(self) -> SpawnerRegistry:
         reg = SpawnerRegistry()
         for i in range(10):
             reg.register_entity(SpawnerEntry(
@@ -472,15 +472,15 @@ class TestSpawnerRegistry:
         return reg
 
     def test_register_entities(self):
-        reg = self._populated_registry()
+        reg = self._create_registry_with_entities()
         assert reg.entity_count == 10
 
     def test_initial_decay_is_zero(self):
-        reg = self._populated_registry()
+        reg = self._create_registry_with_entities()
         assert reg.decay_state.decay_percentage == 0.0
 
     def test_unmake_entity(self):
-        reg = self._populated_registry()
+        reg = self._create_registry_with_entities()
         ok = reg.unmake_entity("mob_0", "player1")
         assert ok is True
         entry = reg.get_entry("mob_0")
@@ -488,18 +488,18 @@ class TestSpawnerRegistry:
         assert entry.spawner_unlocked is False
 
     def test_decay_percentage_increases(self):
-        reg = self._populated_registry()
+        reg = self._create_registry_with_entities()
         reg.unmake_entity("mob_0", "player1")
         assert reg.decay_state.decay_percentage == 10.0
 
     def test_cannot_unmake_twice(self):
-        reg = self._populated_registry()
+        reg = self._create_registry_with_entities()
         reg.unmake_entity("mob_0", "player1")
         ok = reg.unmake_entity("mob_0", "player2")
         assert ok is False
 
     def test_endangered_entities(self):
-        reg = self._populated_registry()
+        reg = self._create_registry_with_entities()
         entry = reg.get_entry("mob_3")
         entry.cards_in_circulation = 3
         entry.endangered = True
@@ -507,7 +507,7 @@ class TestSpawnerRegistry:
         assert any(e.entity_id == "mob_3" for e in endangered)
 
     def test_decay_milestone_announcement(self):
-        reg = self._populated_registry()
+        reg = self._create_registry_with_entities()
         for i in range(5):  # Unmake 5 of 10 = 50%
             reg.unmake_entity(f"mob_{i}", "player1")
         assert any("50%" in a for a in reg.announcements)
