@@ -565,7 +565,7 @@ class TestExperimentalEverQuestPlan:
     def test_god_card_global_announcements(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
-        assert "global" in lower or "server-wide" in lower
+        assert ("server-wide" in lower or "global" in lower) and "announce" in lower
         assert "3 cards" in lower
         assert "4 cards" in lower
 
@@ -668,7 +668,7 @@ class TestExperimentalEverQuestPlan:
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
         assert "banned by the unmaker" in lower
-        assert "2" in text and "day" in lower
+        assert "2 days" in lower or "2-day" in lower or "2 real-time days" in lower
 
     def test_4th_card_from_core_only(self):
         text = _load_doc(self.DOC_NAME)

@@ -946,7 +946,7 @@ Gods themselves are agents with soul documents and can **plot against other gods
 | **Unmaker Cloth Bracer** | Rare | 5 AC, cloth |
 | **Unmaker Megaphone** | Very Rare | Enhances Unmaker Aura bard song |
 
-- The Unmaker reasonably can drop any of those items but **only likely 2 at max, often nothing**
+- The Unmaker drops a **maximum of 2 items per kill** from the loot table above, and **often drops nothing** (~60% chance of no loot)
 - Every piece of Unmaker cloth armor has **5 AC**
 - Wearing the **full Unmaker cloth set** grants **Unmaker Aura** — a bard-song-like passive effect that pulses a small benefit to nearby allies
 - Finding the **Unmaker Megaphone** enhances the Unmaker Aura effect, increasing its range and potency
