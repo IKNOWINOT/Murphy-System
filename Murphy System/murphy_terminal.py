@@ -64,8 +64,89 @@ MODULE_COMMAND_MAP: dict[str, list[str]] = {
     "sales_automation": ["sales report"],
     "system_librarian": ["librarian", "knowledge base"],
     "integration_engine": ["integrations", "show integrations"],
+    "api_setup": ["api keys", "get api keys"],
     "command_system": ["help", "commands", "show modules"],
     "conversation_handler": ["chat (natural language)"],
+}
+
+# ---------------------------------------------------------------------------
+# API Provider Links — direct signup URLs for third-party services
+# ---------------------------------------------------------------------------
+# API Provider Links — direct signup URLs for third-party services.
+#
+# Each entry maps a service key to its display name, API key signup URL,
+# environment variable name, and description.  Used by ``intent_api_keys``
+# and ``DialogContext._infer_integrations`` to guide users to the exact
+# page where they can obtain credentials needed by Murphy.
+# ---------------------------------------------------------------------------
+
+API_PROVIDER_LINKS: dict[str, dict[str, str]] = {
+    "groq": {
+        "name": "Groq",
+        "url": "https://console.groq.com/keys",
+        "env_var": "GROQ_API_KEY",
+        "description": "LLM provider (fast inference for Llama, Mixtral, Gemma)",
+    },
+    "openai": {
+        "name": "OpenAI",
+        "url": "https://platform.openai.com/api-keys",
+        "env_var": "OPENAI_API_KEY",
+        "description": "LLM provider (GPT-4, GPT-3.5)",
+    },
+    "github": {
+        "name": "GitHub",
+        "url": "https://github.com/settings/tokens",
+        "env_var": "GITHUB_TOKEN",
+        "description": "Repository integration, CI/CD, issue tracking",
+    },
+    "slack": {
+        "name": "Slack",
+        "url": "https://api.slack.com/apps",
+        "env_var": "SLACK_BOT_TOKEN",
+        "description": "Team messaging and notifications",
+    },
+    "stripe": {
+        "name": "Stripe",
+        "url": "https://dashboard.stripe.com/apikeys",
+        "env_var": "STRIPE_API_KEY",
+        "description": "Payment processing and billing",
+    },
+    "sendgrid": {
+        "name": "SendGrid",
+        "url": "https://app.sendgrid.com/settings/api_keys",
+        "env_var": "SENDGRID_API_KEY",
+        "description": "Email delivery and marketing",
+    },
+    "twilio": {
+        "name": "Twilio",
+        "url": "https://www.twilio.com/console",
+        "env_var": "TWILIO_AUTH_TOKEN",
+        "description": "SMS, voice, and phone integrations",
+    },
+    "hubspot": {
+        "name": "HubSpot",
+        "url": "https://developers.hubspot.com/get-started",
+        "env_var": "HUBSPOT_API_KEY",
+        "description": "CRM, marketing, sales automation",
+    },
+    "salesforce": {
+        "name": "Salesforce",
+        "url": "https://developer.salesforce.com/signup",
+        "env_var": "SALESFORCE_TOKEN",
+        "description": "CRM and enterprise sales platform",
+    },
+    "shopify": {
+        "name": "Shopify",
+        "url": "https://partners.shopify.com/signup",
+        "env_var": "SHOPIFY_API_KEY",
+        "description": "E-commerce platform and store management",
+    },
+    "google": {
+        "name": "Google Cloud / Workspace",
+        "url": "https://console.cloud.google.com/apis/credentials",
+        "env_var": "GOOGLE_API_KEY",
+        "description": "Google Sheets, Gmail, Calendar, Cloud services",
+    },
 }
 
 # ---------------------------------------------------------------------------
@@ -173,6 +254,18 @@ class MurphyAPIClient:
 
     def hitl_stats(self) -> dict:
         return self._get("/api/hitl/statistics")
+
+    def librarian_ask(self, message: str) -> dict:
+        payload: dict = {"message": message}
+        if self.session_id:
+            payload["session_id"] = self.session_id
+        return self._post("/api/librarian/ask", payload)
+
+    def llm_status(self) -> dict:
+        return self._get("/api/llm/status")
+
+    def librarian_status(self) -> dict:
+        return self._get("/api/librarian/status")
 
 
 # ---------------------------------------------------------------------------
@@ -303,12 +396,137 @@ class DialogContext:
         return "Already at the beginning."
 
     def _complete_message(self) -> str:
-        return (
+        msg = (
             "[bold green]✓ Interview complete![/bold green]\n"
             f"Here's what I collected:\n{self.summary()}\n\n"
-            "Type [green]confirm[/green] to proceed, [green]edit[/green] to change answers, "
-            "or [green]restart[/green] to start over."
         )
+        # Infer and show recommended integrations from answers
+        recs = self._infer_integrations()
+        if recs:
+            msg += "[bold cyan]Recommended integrations based on your answers:[/bold cyan]\n"
+            for i, (svc_key, info) in enumerate(recs.items(), 1):
+                msg += (
+                    f"  {i}. [bold]{info['name']}[/bold] — {info['description']}\n"
+                    f"     Get your key: [link={info['url']}]{info['url']}[/link]\n"
+                    f"     Set: [green]{info['env_var']}[/green]\n"
+                )
+            msg += (
+                "\n[bold cyan]What to do next:[/bold cyan]\n"
+                "  1. Sign up for the API keys listed above (links provided)\n"
+                "  2. Set each as an environment variable (e.g. [green]export GROQ_API_KEY=gsk_...[/green])\n"
+                "  3. Restart Murphy to pick up the new keys\n"
+                "  4. Type [green]status[/green] to verify everything is connected\n"
+                "  5. Type [green]execute <your first task>[/green] to start automating!\n\n"
+            )
+        else:
+            msg += (
+                "[bold cyan]What to do next:[/bold cyan]\n"
+                "  1. Type [green]status[/green] to verify the system is ready\n"
+                "  2. Type [green]execute <your first task>[/green] to start automating\n"
+                "  3. Type [green]api keys[/green] if you need integration credentials\n\n"
+            )
+        msg += (
+            "Type [green]confirm[/green] to proceed, [green]edit[/green] to change answers, "
+            "or [green]restart[/green] to start over.\n"
+            "Type [green]api keys[/green] to see all available API signup links."
+        )
+        return msg
+
+    def _infer_integrations(self) -> dict[str, dict[str, str]]:
+        """Analyze collected answers and return matching API_PROVIDER_LINKS entries.
+
+        Uses three inference levels:
+          1. **Keyword matching** — direct mentions of platforms
+          2. **Workflow action mapping** — infers APIs from described actions
+          3. **Business goal mapping** — infers APIs from high-level goals
+        """
+        combined = " ".join(str(v) for v in self.collected.values()).lower()
+
+        # Level 1: Direct keyword matching
+        keyword_map = {
+            "email": ["sendgrid", "google"],
+            "gmail": ["google"],
+            "crm": ["hubspot", "salesforce"],
+            "hubspot": ["hubspot"],
+            "salesforce": ["salesforce"],
+            "slack": ["slack"],
+            "sms": ["twilio"],
+            "phone": ["twilio"],
+            "github": ["github"],
+            "payment": ["stripe"],
+            "stripe": ["stripe"],
+            "shopify": ["shopify"],
+            "e-commerce": ["shopify", "stripe"],
+            "ecommerce": ["shopify", "stripe"],
+            "sell": ["stripe", "shopify"],
+            "sales": ["hubspot"],
+            "marketing": ["sendgrid", "hubspot"],
+            "google": ["google"],
+            "sheets": ["google"],
+            "jira": ["jira"],
+            "notion": ["notion"],
+        }
+
+        # Level 2: Workflow action → API inference
+        action_map = {
+            "send email": ["sendgrid", "google"],
+            "send notification": ["sendgrid", "slack"],
+            "send message": ["slack", "twilio"],
+            "notify team": ["slack", "sendgrid"],
+            "post to channel": ["slack"],
+            "create issue": ["github", "jira"],
+            "open ticket": ["jira", "github"],
+            "pull request": ["github"],
+            "deploy": ["github"],
+            "track leads": ["hubspot", "salesforce"],
+            "lead scoring": ["hubspot", "salesforce"],
+            "process payment": ["stripe"],
+            "online store": ["shopify", "stripe"],
+            "schedule meeting": ["google"],
+            "social media": ["zapier"],
+            "automate workflow": ["zapier"],
+        }
+
+        # Level 3: Business goal → API inference
+        goal_map = {
+            "increase sales": ["hubspot", "sendgrid", "stripe"],
+            "grow revenue": ["hubspot", "sendgrid", "stripe"],
+            "reduce costs": ["zapier", "google"],
+            "automate operations": ["zapier", "slack", "github"],
+            "customer support": ["hubspot", "slack", "sendgrid"],
+            "devops": ["github", "slack", "jira"],
+            "software development": ["github", "jira", "slack"],
+            "team collaboration": ["slack", "notion", "google"],
+            "lead generation": ["hubspot", "sendgrid"],
+        }
+
+        matched: dict[str, dict[str, str]] = {}
+
+        def _add(pk: str) -> None:
+            if pk not in matched and pk in API_PROVIDER_LINKS:
+                matched[pk] = API_PROVIDER_LINKS[pk]
+
+        for keyword, provider_keys in keyword_map.items():
+            if keyword in combined:
+                for pk in provider_keys:
+                    _add(pk)
+
+        for action, provider_keys in action_map.items():
+            if action in combined:
+                for pk in provider_keys:
+                    _add(pk)
+
+        for goal, provider_keys in goal_map.items():
+            if goal in combined:
+                for pk in provider_keys:
+                    _add(pk)
+
+        # Always recommend LLM if not configured
+        if "groq" not in matched:
+            llm_provider = os.environ.get("MURPHY_LLM_PROVIDER", "").strip()
+            if not llm_provider:
+                matched["groq"] = API_PROVIDER_LINKS["groq"]
+        return matched
 
     @staticmethod
     def _infer_value(key: str, text: str, original: str = "") -> str:
@@ -339,6 +557,9 @@ class DialogContext:
 # Mapping of intent keywords → handler method names on the app.
 INTENT_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"\b(health|alive|ping)\b", re.I), "intent_health"),
+    (re.compile(r"^llm[_ ]?status\b", re.I), "intent_llm_status"),
+    (re.compile(r"^librarian[_ ]?status\b", re.I), "intent_librarian_status"),
+    (re.compile(r"^(api[_ ]?keys?|get[_ ]?api[_ ]?keys?)\b", re.I), "intent_api_keys"),
     (re.compile(r"\b(status|state|dashboard)\b", re.I), "intent_status"),
     (re.compile(r"\b(info|about|version)\b", re.I), "intent_info"),
     (re.compile(r"\b(help|commands|what can)\b", re.I), "intent_help"),
@@ -433,11 +654,13 @@ class StatusBar(Static):
 
     connected = reactive(False)
     api_url = reactive("")
+    llm_enabled = reactive(False)
 
     def render(self) -> str:
+        llm = "[green]LLM: On[/green]" if self.llm_enabled else "[yellow]LLM: Off[/yellow]"
         if self.connected:
-            return "[bold green]● Connected[/bold green]"
-        return "[bold red]● Disconnected[/bold red]"
+            return f"[bold green]● Connected[/bold green]  {llm}"
+        return f"[bold red]● Disconnected[/bold red]  {llm}"
 
 
 # ---------------------------------------------------------------------------
@@ -516,9 +739,12 @@ class MurphyTerminalApp(App):
                     "[dim]start interview[/dim]\n"
                     "[dim]show modules[/dim]\n"
                     "[dim]librarian[/dim]\n"
+                    "[dim]api keys[/dim]\n"
                     "[dim]billing[/dim]\n"
                     "[dim]links[/dim]\n"
                     "[dim]plan[/dim]\n"
+                    "[dim]llm status[/dim]\n"
+                    "[dim]librarian status[/dim]\n"
                     "[dim]set api <url>[/dim]\n"
                     "[dim]test connection[/dim]\n"
                     "[dim]reconnect[/dim]\n"
@@ -553,6 +779,7 @@ class MurphyTerminalApp(App):
             self._cancel_reconnect_timer()
             self._write_system(f"Connected to Murphy backend. ({detail})")
             self._ensure_session()
+            self._check_llm_status()
         else:
             status_bar.connected = False
             self._write_system(
@@ -607,6 +834,27 @@ class MurphyTerminalApp(App):
             self._write_system(f"Session created: [cyan]{sid}[/cyan]")
         except Exception:
             pass
+
+    def _check_llm_status(self) -> None:
+        """Query backend LLM status and update the status bar."""
+        status_bar = self.query_one(StatusBar)
+        try:
+            data = self.client.llm_status()
+            enabled = data.get("enabled", False)
+            status_bar.llm_enabled = enabled
+            provider = data.get("provider") or "none"
+            if enabled:
+                model = data.get("model") or "default"
+                self._write_system(f"LLM enabled — provider=[cyan]{provider}[/cyan] model=[cyan]{model}[/cyan]")
+            else:
+                error = data.get("error", "not configured")
+                self._write_system(
+                    f"[yellow]LLM not configured ({error})[/yellow] — "
+                    "running in deterministic mode. "
+                    "Set MURPHY_LLM_PROVIDER and API keys to enable."
+                )
+        except Exception:
+            status_bar.llm_enabled = False
 
     # -- helpers --
 
@@ -674,9 +922,12 @@ class MurphyTerminalApp(App):
                 "[dim]start interview[/dim]\n"
                 "[dim]show modules[/dim]\n"
                 "[dim]librarian[/dim]\n"
+                "[dim]api keys[/dim]\n"
                 "[dim]billing[/dim]\n"
                 "[dim]links[/dim]\n"
                 "[dim]plan[/dim]\n"
+                "[dim]llm status[/dim]\n"
+                "[dim]librarian status[/dim]\n"
                 "[dim]set api <url>[/dim]\n"
                 "[dim]test connection[/dim]\n"
                 "[dim]reconnect[/dim]\n"
@@ -701,7 +952,9 @@ class MurphyTerminalApp(App):
             intent = detect_intent(message)
             if intent in ("intent_help", "intent_exit", "intent_health",
                           "intent_status", "intent_set_api", "intent_test_api",
-                          "intent_reconnect", "intent_links", "intent_modules"):
+                          "intent_reconnect", "intent_links", "intent_modules",
+                          "intent_llm_status", "intent_librarian_status",
+                          "intent_api_keys"):
                 handler = getattr(self, intent, None)
                 if handler:
                     handler(message)
@@ -730,8 +983,8 @@ class MurphyTerminalApp(App):
             if handler:
                 handler(message)
                 return
-        # Default: send as chat to backend
-        self._send_chat(message)
+        # Default: route through Librarian + LLM
+        self._send_librarian(message)
 
     # -- feedback handling --
 
@@ -797,7 +1050,9 @@ class MurphyTerminalApp(App):
             "  • [green]health[/green] — check backend health\n"
             "  • [green]status[/green] — view system status\n"
             "  • [green]info[/green] — system version & information\n"
-            "  • [green]links[/green] — show dashboard and UI URLs\n\n"
+            "  • [green]links[/green] — show dashboard and UI URLs\n"
+            "  • [green]llm status[/green] — check LLM provider configuration\n"
+            "  • [green]librarian status[/green] — check librarian health\n\n"
             "[bold cyan]Onboarding & Interview[/bold cyan]\n"
             "  • [green]start interview[/green] — guided onboarding dialog\n"
             "  • [green]billing[/green] — view billing tiers & subscription\n\n"
@@ -805,6 +1060,7 @@ class MurphyTerminalApp(App):
             "  • [green]execute <task>[/green] — run a task\n"
             "  • [green]show modules[/green] — list all modules and commands\n"
             "  • [green]librarian[/green] — consult knowledge-base expert\n"
+            "  • [green]api keys[/green] — get API signup links for integrations\n"
             "  • [green]plan[/green] — two-plane planning & execution overview\n"
             "  • [green]pending / hitl[/green] — pending interventions\n"
             "  • [green]corrections[/green] — correction statistics\n\n"
@@ -812,7 +1068,7 @@ class MurphyTerminalApp(App):
             "  • [green]set api <url>[/green] — change backend address\n"
             "  • [green]test connection[/green] — verify backend reachability\n"
             "  • [green]reconnect[/green] — retry backend connection\n\n"
-            "Or type any natural language message for chat\n"
+            "Or type any natural language message — Murphy will respond conversationally.\n"
             "  • [green]exit[/green] — quit the terminal"
         )
 
@@ -933,16 +1189,52 @@ class MurphyTerminalApp(App):
 
     # -- module exposure intents --
 
-    def intent_librarian(self, _msg: str) -> None:
-        self._write_murphy(
-            "[bold cyan]📚 Murphy Librarian[/bold cyan]\n\n"
-            "The Librarian is Murphy's knowledge-base expert. It can:\n"
-            "  • Search system documentation and transcripts\n"
-            "  • Generate execution plans from your requirements\n"
-            "  • Review and synthesize automation workflows\n"
-            "  • Provide module-level guidance and API references\n\n"
-            "Try: [green]execute librarian review[/green] or ask a question about any module."
-        )
+    def intent_librarian(self, msg: str) -> None:
+        # Strip the trigger word to extract the actual question
+        question = re.sub(r"^(librarian|library|knowledge base)\s*", "", msg, flags=re.I).strip()
+        if not question:
+            question = "What can you help me with?"
+        self._send_librarian(question)
+
+    def intent_llm_status(self, _msg: str) -> None:
+        try:
+            data = self.client.llm_status()
+            enabled = data.get("enabled", False)
+            provider = data.get("provider") or "none"
+            model = data.get("model") or "n/a"
+            healthy = data.get("healthy", False)
+            error = data.get("error", "")
+            if enabled:
+                self._write_murphy(
+                    f"[bold cyan]🤖 LLM Status[/bold cyan]\n\n"
+                    f"  Provider : [green]{provider}[/green]\n"
+                    f"  Model    : [green]{model}[/green]\n"
+                    f"  Healthy  : {'[green]yes[/green]' if healthy else '[red]no[/red]'}"
+                )
+            else:
+                self._write_murphy(
+                    f"[bold yellow]🤖 LLM Status — Not Configured[/bold yellow]\n\n"
+                    f"  Error: {error}\n\n"
+                    "To enable LLM, set these environment variables:\n"
+                    "  [green]MURPHY_LLM_PROVIDER[/green] = groq\n"
+                    "  [green]GROQ_API_KEY[/green] = <your key>\n"
+                    "  [green]MURPHY_LLM_MODEL[/green] = llama3-8b-8192  (optional)"
+                )
+        except Exception as exc:
+            self._write_murphy(f"[red]Could not fetch LLM status: {self._friendly_error(exc)}[/red]")
+
+    def intent_librarian_status(self, _msg: str) -> None:
+        try:
+            data = self.client.librarian_status()
+            enabled = data.get("enabled", False)
+            healthy = data.get("healthy", False)
+            self._write_murphy(
+                f"[bold cyan]📚 Librarian Status[/bold cyan]\n\n"
+                f"  Enabled : {'[green]yes[/green]' if enabled else '[yellow]no[/yellow]'}\n"
+                f"  Healthy : {'[green]yes[/green]' if healthy else '[yellow]no[/yellow]'}"
+            )
+        except Exception as exc:
+            self._write_murphy(f"[red]Could not fetch librarian status: {self._friendly_error(exc)}[/red]")
 
     def intent_modules(self, _msg: str) -> None:
         lines = ["[bold cyan]📦 Murphy System — Module ↔ Command Map[/bold cyan]\n"]
@@ -986,13 +1278,59 @@ class MurphyTerminalApp(App):
             "Try: [green]execute plan for <your goal>[/green]"
         )
 
+    def intent_api_keys(self, _msg: str) -> None:
+        """Show API provider signup links for all supported integrations."""
+        lines = ["[bold cyan]🔑 API Keys & Signup Links[/bold cyan]\n"]
+        for key, info in API_PROVIDER_LINKS.items():
+            lines.append(
+                f"  • [bold]{info['name']}[/bold] — {info['description']}\n"
+                f"    Signup: [link={info['url']}]{info['url']}[/link]\n"
+                f"    Env var: [green]{info['env_var']}[/green]"
+            )
+        lines.append(
+            "\n[bold cyan]Quick Start (LLM):[/bold cyan]\n"
+            "  1. Get a free Groq key: [link=https://console.groq.com/keys]https://console.groq.com/keys[/link]\n"
+            "  2. Set environment variables:\n"
+            "     [green]export MURPHY_LLM_PROVIDER=groq[/green]\n"
+            "     [green]export GROQ_API_KEY=gsk_your_key_here[/green]\n"
+            "  3. Restart Murphy\n\n"
+            "[dim]Tip: Run [green]start interview[/green] and Murphy will recommend "
+            "exactly which API keys you need based on your answers.[/dim]"
+        )
+        self._write_murphy("\n".join(lines))
+
     # -- chat fallback --
+
+    @staticmethod
+    def _extract_response(data: dict) -> str:
+        """Extract the display-ready response text from an API result."""
+        return str(
+            data.get("reply_text")
+            or data.get("response")
+            or data.get("message")
+            or json.dumps(data, indent=2, default=str)
+        )
+
+    def _send_librarian(self, message: str) -> None:
+        """Route a message through the Librarian + LLM endpoint."""
+        try:
+            data = self.client.librarian_ask(message)
+            text = self._extract_response(data)
+            mode = data.get("mode", "unknown")
+            suggested = data.get("suggested_commands", [])
+            if suggested:
+                text += "\n\n[dim]Suggested: " + ", ".join(f"[green]{c}[/green]" for c in suggested) + "[/dim]"
+            if mode == "deterministic":
+                text += "\n[dim](deterministic mode — set MURPHY_LLM_PROVIDER to enable LLM)[/dim]"
+            self._write_murphy(text)
+        except Exception:
+            # Fall back to /api/chat if /api/librarian/ask is unavailable
+            self._send_chat(message)
 
     def _send_chat(self, message: str) -> None:
         try:
             data = self.client.chat(message)
-            response = data.get("response") or data.get("message") or self._format_json(data)
-            self._write_murphy(str(response))
+            self._write_murphy(self._extract_response(data))
         except Exception as exc:
             self._write_murphy(
                 f"[red]Chat error: {self._friendly_error(exc)}[/red]\n"

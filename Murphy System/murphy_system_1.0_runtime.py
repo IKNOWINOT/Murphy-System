@@ -11654,7 +11654,11 @@ class MurphySystem:
         region_input = answers.get("region")
         region_info = self._extract_region_from_context(message, {"answers": answers, "region": region_input})
         region = region_info["region"]
-        return {
+
+        # --- Librarian enrichment: analyse answers so far and add context ---
+        librarian_hint = self._librarian_enrich_flow(current_stage["stage"], answers)
+
+        result = {
             "current_stage": current_stage["stage"],
             "next_stage": next_stage["stage"],
             "prompt": next_stage["prompt"],
@@ -11662,6 +11666,48 @@ class MurphySystem:
             "region": region,
             "region_input": region_input
         }
+        if librarian_hint:
+            result["librarian_hint"] = librarian_hint
+        return result
+
+    def _librarian_enrich_flow(self, stage: str, answers: Dict[str, str]) -> str:
+        """Have the Librarian analyze answers so far and provide enrichment hints.
+
+        During onboarding, after each answer the Librarian reviews what's been
+        collected and infers additional context.  For example, if the user
+        describes a workflow involving email and Slack, the Librarian notes that
+        they'll need API keys for those services — even before the interview
+        finishes.
+
+        Returns a hint string (possibly empty) that gets appended to the next
+        prompt so the user can see what the Librarian has already figured out.
+        """
+        if not answers:
+            return ""
+
+        hints: List[str] = []
+
+        # After 'setup' or 'automation_design', peek at integrations
+        if stage in ("setup", "automation_design"):
+            recs = self.infer_needed_integrations(answers)
+            if recs:
+                svc_names = [r["name"] for r in recs[:5]]
+                hints.append(
+                    f"\n💡 *Librarian note:* Based on what you've told me so far, "
+                    f"you'll likely need: **{', '.join(svc_names)}**. "
+                    "I'll provide direct signup links when we finish."
+                )
+
+        # After 'signup', acknowledge the goal
+        if stage == "signup" and "signup" in answers:
+            goal_text = answers["signup"]
+            if len(goal_text) > 10:
+                hints.append(
+                    f"\n💡 *Librarian note:* Great — I'm already thinking about "
+                    f"what integrations will support your goal."
+                )
+
+        return "\n".join(hints)
 
     def _build_mfgc_payload(self, stage: str, duration: float) -> Dict[str, Any]:
         phase_map = {
@@ -11691,10 +11737,11 @@ class MurphySystem:
             }
         }
 
-    # Intent patterns for chat routing (15 recognised intents)
+    # Intent patterns for chat routing (16 recognised intents)
     # More specific patterns must appear before general ones (e.g. "compliance status" before "status").
     _INTENT_PATTERNS = [
         (r"\b(start interview|onboard me|begin|setup)\b", "onboarding"),
+        (r"\b(api\s*keys?|get\s*api|signup links?)\b", "api_keys"),
         (r"\b(help|commands)\b", "help"),
         (r"\b(show modules|modules)\b", "modules"),
         (r"\b(compliance status)\b", "compliance"),
@@ -11732,20 +11779,23 @@ class MurphySystem:
         if intent == "help":
             lines = [
                 "**Murphy System — Available Commands**\n",
-                "• **start interview** — Begin the 7-step onboarding interview",
+                "• **start interview** — Begin the guided onboarding interview",
                 "• **show modules** — List all loaded modules",
                 "• **status** / **dashboard** — View system status",
                 "• **health** — Check system health",
                 "• **sales report** — View sales automation summary",
                 "• **billing** — View billing and subscription tiers",
                 "• **compliance status** — Check compliance posture",
-                "• **librarian** — Access the knowledge base",
+                "• **librarian** — Ask the knowledge-base expert anything",
+                "• **api keys** — Get API signup links for integrations",
                 "• **corrections** — View correction statistics",
                 "• **hitl** — View pending human-in-the-loop interventions",
                 "• **plan** — View the execution plan model",
                 "• **integrations** — View registered integrations",
                 "• **info** — Show system information",
                 "• **reset** / **start over** — Reset the onboarding flow",
+                "",
+                "Or type any natural language question — Murphy will respond conversationally.",
             ]
             return self._chat_response("\n".join(lines), session_id, intent=intent)
         if intent == "modules":
@@ -11814,14 +11864,7 @@ class MurphySystem:
                 )
             return self._chat_response("Compliance engine is not configured.", session_id, intent=intent)
         if intent == "librarian":
-            return self._chat_response(
-                "**Librarian — Knowledge Base**\n\n"
-                "The librarian stores domain knowledge, transcripts, and verified facts.\n"
-                "Use the onboarding wizard or API to add knowledge.\n\n"
-                "• POST /api/librarian/search — Search the knowledge base\n"
-                "• Every action is logged as a TranscriptEntry for full audit trail.",
-                session_id, intent=intent
-            )
+            return self.librarian_ask(message, session_id)
         if intent == "corrections":
             stats = self.get_correction_statistics()
             s = stats.get("statistics", {})
@@ -11870,6 +11913,26 @@ class MurphySystem:
                 f"**License:** {info.get('license', '?')}",
                 session_id, intent=intent
             )
+        if intent == "api_keys":
+            # Check if session has onboarding answers for tailored recommendations
+            session = self.chat_sessions.get(session_id, {})
+            answers = session.get("answers", {})
+            if answers:
+                recs = self.infer_needed_integrations(answers)
+                if recs:
+                    lines = ["**Recommended API Keys (based on your onboarding):**\n"]
+                    for rec in recs:
+                        lines.append(
+                            f"• **{rec['name']}** — {rec['description']}\n"
+                            f"  Signup: {rec['signup_url']}\n"
+                            f"  Env var: `{rec['env_var']}`"
+                        )
+                    lines.append("\n**All available services:**")
+                    lines.append(self._format_api_links_reply(message))
+                    return self._chat_response("\n".join(lines), session_id, intent=intent)
+            return self._chat_response(
+                self._format_api_links_reply(message), session_id, intent=intent
+            )
         return None
 
     def _chat_response(self, message: str, session_id: str, intent: str = "general") -> Dict[str, Any]:
@@ -11880,6 +11943,611 @@ class MurphySystem:
             "message": message,
             "intent": intent,
         }
+
+    # -- API provider links (signup URLs for third-party keys) ----------------
+
+    API_PROVIDER_LINKS: Dict[str, Dict[str, str]] = {
+        "groq": {
+            "name": "Groq",
+            "url": "https://console.groq.com/keys",
+            "env_var": "GROQ_API_KEY",
+            "description": "LLM provider (fast inference for Llama, Mixtral, Gemma)",
+        },
+        "openai": {
+            "name": "OpenAI",
+            "url": "https://platform.openai.com/api-keys",
+            "env_var": "OPENAI_API_KEY",
+            "description": "LLM provider (GPT-4, GPT-3.5)",
+        },
+        "github": {
+            "name": "GitHub",
+            "url": "https://github.com/settings/tokens",
+            "env_var": "GITHUB_TOKEN",
+            "description": "Repository integration, CI/CD, issue tracking",
+        },
+        "slack": {
+            "name": "Slack",
+            "url": "https://api.slack.com/apps",
+            "env_var": "SLACK_BOT_TOKEN",
+            "description": "Team messaging and notifications",
+        },
+        "stripe": {
+            "name": "Stripe",
+            "url": "https://dashboard.stripe.com/apikeys",
+            "env_var": "STRIPE_API_KEY",
+            "description": "Payment processing and billing",
+        },
+        "sendgrid": {
+            "name": "SendGrid",
+            "url": "https://app.sendgrid.com/settings/api_keys",
+            "env_var": "SENDGRID_API_KEY",
+            "description": "Email delivery and marketing",
+        },
+        "twilio": {
+            "name": "Twilio",
+            "url": "https://www.twilio.com/console",
+            "env_var": "TWILIO_AUTH_TOKEN",
+            "description": "SMS, voice, and phone integrations",
+        },
+        "hubspot": {
+            "name": "HubSpot",
+            "url": "https://developers.hubspot.com/get-started",
+            "env_var": "HUBSPOT_API_KEY",
+            "description": "CRM, marketing, sales automation",
+        },
+        "salesforce": {
+            "name": "Salesforce",
+            "url": "https://developer.salesforce.com/signup",
+            "env_var": "SALESFORCE_TOKEN",
+            "description": "CRM and enterprise sales platform",
+        },
+        "shopify": {
+            "name": "Shopify",
+            "url": "https://partners.shopify.com/signup",
+            "env_var": "SHOPIFY_API_KEY",
+            "description": "E-commerce platform and store management",
+        },
+        "mailchimp": {
+            "name": "Mailchimp",
+            "url": "https://mailchimp.com/developer/",
+            "env_var": "MAILCHIMP_API_KEY",
+            "description": "Email marketing and audience management",
+        },
+        "jira": {
+            "name": "Jira / Atlassian",
+            "url": "https://id.atlassian.com/manage-profile/security/api-tokens",
+            "env_var": "JIRA_API_TOKEN",
+            "description": "Project management and issue tracking",
+        },
+        "notion": {
+            "name": "Notion",
+            "url": "https://www.notion.so/my-integrations",
+            "env_var": "NOTION_API_KEY",
+            "description": "Knowledge base and project documentation",
+        },
+        "google": {
+            "name": "Google Cloud / Workspace",
+            "url": "https://console.cloud.google.com/apis/credentials",
+            "env_var": "GOOGLE_API_KEY",
+            "description": "Google Sheets, Gmail, Calendar, Cloud services",
+        },
+        "zapier": {
+            "name": "Zapier",
+            "url": "https://zapier.com/developer/",
+            "env_var": "ZAPIER_API_KEY",
+            "description": "Workflow automation and app connectors",
+        },
+    }
+
+    def get_api_setup_guidance(self, services: Optional[List[str]] = None) -> Dict[str, Any]:
+        """Return API setup links for the requested services, or all if none specified."""
+        links = self.API_PROVIDER_LINKS
+        if services:
+            # Fuzzy-match requested services to known providers
+            matched = {}
+            for svc in services:
+                svc_lower = svc.lower().strip()
+                for key, info in links.items():
+                    if svc_lower in key or svc_lower in info["name"].lower():
+                        matched[key] = info
+            result_links = matched if matched else links
+        else:
+            result_links = links
+
+        entries = []
+        for key, info in result_links.items():
+            entries.append({
+                "service": key,
+                "name": info["name"],
+                "signup_url": info["url"],
+                "env_var": info["env_var"],
+                "description": info["description"],
+            })
+        return {
+            "success": True,
+            "services": entries,
+            "count": len(entries),
+            "instructions": (
+                "Set each API key as an environment variable before starting Murphy. "
+                "Example:  export GROQ_API_KEY=gsk_..."
+            ),
+        }
+
+    def infer_needed_integrations(self, answers: Dict[str, str]) -> List[Dict[str, str]]:
+        """Analyze onboarding answers and recommend integrations with API signup links.
+
+        This is the Librarian's inference step — it reads the collected interview
+        data and deduces which services / API keys the user will need.
+
+        The inference works on three levels:
+          1. **Keyword matching** — direct mentions of platforms (e.g. "Slack", "GitHub")
+          2. **Workflow action mapping** — infers APIs from described actions
+             (e.g. "send email" → email provider, "post to channel" → Slack)
+          3. **Business goal mapping** — infers APIs from high-level goals
+             (e.g. "increase sales" → CRM + email marketing)
+        """
+        recommendations: List[Dict[str, str]] = []
+        links = self.API_PROVIDER_LINKS
+        combined = " ".join(str(v) for v in answers.values()).lower()
+
+        # --- Level 1: Direct keyword → provider mapping ---
+        keyword_map = {
+            "email": ["sendgrid", "mailchimp", "google"],
+            "gmail": ["google"],
+            "crm": ["hubspot", "salesforce"],
+            "hubspot": ["hubspot"],
+            "salesforce": ["salesforce"],
+            "slack": ["slack"],
+            "sms": ["twilio"],
+            "phone": ["twilio"],
+            "twilio": ["twilio"],
+            "github": ["github"],
+            "payment": ["stripe"],
+            "stripe": ["stripe"],
+            "billing": ["stripe"],
+            "shopify": ["shopify"],
+            "e-commerce": ["shopify", "stripe"],
+            "ecommerce": ["shopify", "stripe"],
+            "jira": ["jira"],
+            "project management": ["jira", "notion"],
+            "notion": ["notion"],
+            "google": ["google"],
+            "sheets": ["google"],
+            "calendar": ["google"],
+            "social": ["zapier"],
+            "zapier": ["zapier"],
+            "sell": ["stripe", "shopify", "hubspot"],
+            "sales": ["hubspot", "salesforce"],
+            "marketing": ["mailchimp", "hubspot", "sendgrid"],
+        }
+
+        # --- Level 2: Workflow action → API inference ---
+        # Maps described ACTIONS to the APIs needed to perform them.
+        # This is the key piece that lets the Librarian infer needs from
+        # natural-language workflow descriptions, not just explicit mentions.
+        action_patterns: Dict[str, List[str]] = {
+            # Communication actions
+            "send email": ["sendgrid", "google"],
+            "send notification": ["sendgrid", "slack"],
+            "send message": ["slack", "twilio"],
+            "send sms": ["twilio"],
+            "send text": ["twilio"],
+            "notify team": ["slack", "sendgrid"],
+            "alert team": ["slack", "sendgrid"],
+            "post to channel": ["slack"],
+            "post message": ["slack"],
+            "notify customer": ["sendgrid", "twilio"],
+            "email customer": ["sendgrid"],
+            "email campaign": ["sendgrid", "mailchimp"],
+            "newsletter": ["mailchimp", "sendgrid"],
+            # Repository / DevOps actions
+            "create issue": ["github", "jira"],
+            "open ticket": ["jira", "github"],
+            "create ticket": ["jira"],
+            "pull request": ["github"],
+            "merge request": ["github"],
+            "deploy": ["github"],
+            "ci/cd": ["github"],
+            "code review": ["github"],
+            "commit": ["github"],
+            "repository": ["github"],
+            # Sales & CRM actions
+            "track leads": ["hubspot", "salesforce"],
+            "lead scoring": ["hubspot", "salesforce"],
+            "pipeline": ["hubspot", "salesforce"],
+            "follow up": ["hubspot", "sendgrid"],
+            "customer relationship": ["hubspot", "salesforce"],
+            "deal tracking": ["hubspot", "salesforce"],
+            "contact management": ["hubspot", "salesforce"],
+            # E-commerce actions
+            "process payment": ["stripe"],
+            "charge customer": ["stripe"],
+            "online store": ["shopify", "stripe"],
+            "product listing": ["shopify"],
+            "order fulfillment": ["shopify"],
+            "invoice": ["stripe"],
+            # Data & documentation actions
+            "spreadsheet": ["google"],
+            "google doc": ["google"],
+            "update spreadsheet": ["google"],
+            "schedule meeting": ["google"],
+            "calendar event": ["google"],
+            "document": ["notion", "google"],
+            "wiki": ["notion"],
+            "knowledge base": ["notion"],
+            # Social media & marketing
+            "social media": ["zapier"],
+            "post to social": ["zapier"],
+            "twitter": ["zapier"],
+            "linkedin": ["zapier"],
+            "facebook": ["zapier"],
+            "instagram": ["zapier"],
+            "automate workflow": ["zapier"],
+            "connect apps": ["zapier"],
+        }
+
+        # --- Level 3: Business goal → API inference ---
+        # Maps high-level goals to the typical integrations needed.
+        goal_patterns: Dict[str, List[str]] = {
+            "increase sales": ["hubspot", "sendgrid", "stripe"],
+            "grow revenue": ["hubspot", "sendgrid", "stripe"],
+            "reduce costs": ["zapier", "google"],
+            "improve compliance": ["jira", "notion", "google"],
+            "automate operations": ["zapier", "slack", "github"],
+            "customer support": ["hubspot", "slack", "sendgrid"],
+            "customer service": ["hubspot", "slack", "sendgrid"],
+            "content marketing": ["mailchimp", "sendgrid", "zapier"],
+            "devops": ["github", "slack", "jira"],
+            "software development": ["github", "jira", "slack"],
+            "project tracking": ["jira", "notion", "slack"],
+            "team collaboration": ["slack", "notion", "google"],
+            "data analysis": ["google"],
+            "reporting": ["google", "notion"],
+            "onboard customers": ["hubspot", "sendgrid", "stripe"],
+            "lead generation": ["hubspot", "sendgrid", "mailchimp"],
+        }
+
+        seen = set()
+
+        def _add(pk: str, reason: str) -> None:
+            if pk not in seen and pk in links:
+                seen.add(pk)
+                info = links[pk]
+                recommendations.append({
+                    "service": pk,
+                    "name": info["name"],
+                    "signup_url": info["url"],
+                    "env_var": info["env_var"],
+                    "description": info["description"],
+                    "reason": reason,
+                })
+
+        # Apply Level 1 — direct keyword matches
+        for keyword, provider_keys in keyword_map.items():
+            if keyword in combined:
+                for pk in provider_keys:
+                    _add(pk, f"Detected '{keyword}' in your answers")
+
+        # Apply Level 2 — workflow action inference
+        for action, provider_keys in action_patterns.items():
+            if action in combined:
+                for pk in provider_keys:
+                    _add(pk, f"Your workflow includes '{action}'")
+
+        # Apply Level 3 — business goal inference
+        for goal, provider_keys in goal_patterns.items():
+            if goal in combined:
+                for pk in provider_keys:
+                    _add(pk, f"Recommended for goal: '{goal}'")
+
+        # Always recommend an LLM provider if not already configured
+        llm_status = self._get_llm_status()
+        if not llm_status.get("enabled") and "groq" not in seen:
+            info = links["groq"]
+            recommendations.append({
+                "service": "groq",
+                "name": info["name"],
+                "signup_url": info["url"],
+                "env_var": info["env_var"],
+                "description": info["description"],
+                "reason": "LLM provider needed for natural-language features",
+            })
+
+        return recommendations
+
+    # -- LLM status ----------------------------------------------------------
+
+    def _get_llm_status(self) -> Dict[str, Any]:
+        """Return current LLM provider configuration and health."""
+        provider = os.environ.get("MURPHY_LLM_PROVIDER", "").strip().lower()
+        model = os.environ.get("MURPHY_LLM_MODEL", "").strip()
+        if not provider:
+            return {
+                "enabled": False,
+                "provider": None,
+                "model": None,
+                "healthy": False,
+                "error": "MURPHY_LLM_PROVIDER not set",
+            }
+        # Validate provider-specific keys
+        if provider == "groq":
+            api_key = os.environ.get("GROQ_API_KEY", "").strip()
+            if not api_key:
+                return {
+                    "enabled": False,
+                    "provider": provider,
+                    "model": model or None,
+                    "healthy": False,
+                    "error": "GROQ_API_KEY not set",
+                }
+            return {
+                "enabled": True,
+                "provider": provider,
+                "model": model or "llama3-8b-8192",
+                "healthy": True,
+            }
+        # Generic provider — enabled but health unknown
+        return {
+            "enabled": True,
+            "provider": provider,
+            "model": model or None,
+            "healthy": True,
+        }
+
+    def _get_librarian_status(self) -> Dict[str, Any]:
+        """Return librarian subsystem health."""
+        librarian = getattr(self, "librarian", None)
+        return {
+            "enabled": librarian is not None,
+            "healthy": librarian is not None,
+        }
+
+    # -- Librarian ask --------------------------------------------------------
+
+    def _classify_nl_intent(self, message: str) -> str:
+        """Lightweight NL intent classification (keyword heuristic)."""
+        lower = message.lower()
+        if any(w in lower for w in ("api key", "api keys", "credentials", "get api", "signup", "sign up", "where do i get")):
+            return "api_setup"
+        if any(w in lower for w in ("status", "how is", "running", "health")):
+            return "status_inquiry"
+        if any(w in lower for w in ("onboard", "start", "setup", "begin", "getting started")):
+            return "onboarding"
+        if any(w in lower for w in ("integrate", "connect", "plugin", "service")):
+            return "integration_discovery"
+        if any(w in lower for w in ("plan", "automate", "workflow", "strategy")):
+            return "plan_request"
+        if any(w in lower for w in ("execute", "run", "deploy", "launch")):
+            return "execution_request"
+        if any(w in lower for w in ("sell", "sales", "revenue", "leads", "pipeline")):
+            return "plan_request"
+        return "general"
+
+    def _try_llm_generate(self, prompt: str, context: str = "") -> Optional[str]:
+        """Attempt to generate a response via the configured LLM provider.
+
+        Returns the generated text, or ``None`` if LLM is unavailable.
+        """
+        llm_status = self._get_llm_status()
+        if not llm_status.get("enabled") or not llm_status.get("healthy"):
+            return None
+        provider = llm_status["provider"]
+        model = llm_status.get("model") or ""
+        if provider == "groq":
+            api_key = os.environ.get("GROQ_API_KEY", "")
+            if not api_key:
+                return None
+            try:
+                import requests as _requests
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                }
+                body = {
+                    "model": model or "llama3-8b-8192",
+                    "messages": [
+                        {"role": "system", "content": (
+                            "You are Murphy, a professional automation assistant created by Inoni LLC. "
+                            "You help teams automate operations, onboard users, "
+                            "manage integrations, and run end-to-end workflows. "
+                            "Be concise, friendly, and action-oriented.\n\n"
+                            "When users mention tools or services they use, recommend the specific "
+                            "API keys they'll need and provide signup links. Known integrations:\n"
+                            # Limit to 10 entries to keep the system prompt concise for the LLM context window
+                            + "\n".join(
+                                f"- {info['name']}: {info['url']} (env: {info['env_var']})"
+                                for info in list(self.API_PROVIDER_LINKS.values())[:10]
+                            )
+                            + "\n\nGuide users through onboarding by asking about their business, "
+                            "then recommend integrations. Use 'start interview' to begin structured onboarding."
+                        )},
+                    ],
+                }
+                if context:
+                    body["messages"].append({"role": "system", "content": f"Context: {context}"})
+                body["messages"].append({"role": "user", "content": prompt})
+                resp = _requests.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers=headers,
+                    json=body,
+                    timeout=15,
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                return data["choices"][0]["message"]["content"]
+            except Exception as exc:
+                logger.warning("LLM call failed (%s): %s", provider, exc)
+                return None
+        return None
+
+    def librarian_ask(self, message: str, session_id: Optional[str] = None) -> Dict[str, Any]:
+        """Route a natural-language message through the Librarian + optional LLM.
+
+        1. Classify the intent
+        2. Gather session / onboarding context for richer answers
+        3. Try LLM-backed response generation
+        4. Fall back to deterministic guidance if LLM is unavailable
+        """
+        session_id = session_id or "default"
+        nl_intent = self._classify_nl_intent(message)
+
+        # Gather librarian context
+        librarian = getattr(self, "librarian", None)
+        context_parts = []
+        if librarian and hasattr(librarian, "knowledge_base"):
+            kb = librarian.knowledge_base
+            topics = list(kb.keys())[:10] if isinstance(kb, dict) else []
+            if topics:
+                context_parts.append(f"Knowledge-base topics: {', '.join(topics)}")
+
+        # Include onboarding context from session if available
+        session = self.chat_sessions.get(session_id, {})
+        answers = session.get("answers", {})
+        if answers:
+            context_parts.append(f"Onboarding answers: {json.dumps(answers)}")
+            # Infer integrations from answers
+            recs = self.infer_needed_integrations(answers)
+            if recs:
+                svc_names = [r["name"] for r in recs[:5]]
+                context_parts.append(f"Recommended integrations: {', '.join(svc_names)}")
+
+        # Attempt LLM generation
+        llm_text = self._try_llm_generate(message, " | ".join(context_parts))
+        if llm_text:
+            result: Dict[str, Any] = {
+                "success": True,
+                "session_id": session_id,
+                "reply_text": llm_text,
+                "message": llm_text,
+                "intent": nl_intent,
+                "mode": "llm",
+                "suggested_commands": self._suggest_commands(nl_intent),
+            }
+            if answers:
+                recs = self.infer_needed_integrations(answers)
+                if recs:
+                    result["recommended_integrations"] = recs
+            return result
+
+        # Deterministic fallback
+        fallback_reply = self._deterministic_reply(message, nl_intent)
+        llm_status = self._get_llm_status()
+        # Show LLM-not-configured notice once per session
+        if not llm_status.get("enabled") and not session.get("_llm_notice_shown"):
+            fallback_reply += (
+                "\n\n_LLM is not configured; running in deterministic mode. "
+                "To enable: set MURPHY_LLM_PROVIDER and the appropriate API key "
+                "(e.g. GROQ_API_KEY). Get a free key at https://console.groq.com/keys_"
+            )
+            session["_llm_notice_shown"] = True
+        result = {
+            "success": True,
+            "session_id": session_id,
+            "reply_text": fallback_reply,
+            "message": fallback_reply,
+            "intent": nl_intent,
+            "mode": "deterministic",
+            "suggested_commands": self._suggest_commands(nl_intent),
+        }
+        if answers:
+            recs = self.infer_needed_integrations(answers)
+            if recs:
+                result["recommended_integrations"] = recs
+        return result
+
+    def _suggest_commands(self, nl_intent: str) -> List[str]:
+        """Return suggested commands for a given NL intent."""
+        mapping: Dict[str, List[str]] = {
+            "status_inquiry": ["status", "health"],
+            "onboarding": ["start interview"],
+            "integration_discovery": ["integrations", "show modules", "api keys"],
+            "plan_request": ["plan", "start interview", "execute plan for <goal>"],
+            "execution_request": ["execute <task>"],
+            "api_setup": ["api keys", "integrations", "llm status"],
+            "general": ["help", "start interview", "status"],
+        }
+        return mapping.get(nl_intent, mapping["general"])
+
+    def _deterministic_reply(self, message: str, nl_intent: str) -> str:
+        """Generate a helpful deterministic reply when LLM is unavailable."""
+        if nl_intent == "status_inquiry":
+            st = self.get_system_status()
+            return (
+                f"**System Status:** {st.get('status', 'unknown')} | "
+                f"**Version:** {st.get('version', '?')}\n\n"
+                "For full details, type **status**."
+            )
+        if nl_intent == "onboarding":
+            return (
+                "It sounds like you'd like to get started! Type **start interview** "
+                "to begin the guided onboarding — I'll learn about your business needs "
+                "and recommend the best setup.\n\n"
+                "During onboarding I'll ask about your tools and goals, then recommend "
+                "exactly which integrations and API keys you'll need — with direct "
+                "signup links for each."
+            )
+        if nl_intent == "api_setup":
+            return self._format_api_links_reply(message)
+        if nl_intent == "integration_discovery":
+            reply = (
+                "I can help you explore integrations. Type **integrations** to see "
+                "available services, or **show modules** to browse the full module catalogue.\n\n"
+                "Type **api keys** to see direct signup links for supported services."
+            )
+            return reply
+        if nl_intent == "plan_request":
+            return (
+                "I can help you build an automation plan! Here's how to get started:\n\n"
+                "1. Type **start interview** so I can learn about your business\n"
+                "2. I'll recommend integrations and the API keys you'll need\n"
+                "3. Then we'll build an execution plan together\n\n"
+                "Or type **plan** for an overview of the two-plane execution model."
+            )
+        if nl_intent == "execution_request":
+            return (
+                "Tell me what you'd like to run! Use **execute <task description>** "
+                "and I'll route it through the execution pipeline."
+            )
+        # General / catch-all
+        return (
+            "I'm Murphy — your professional automation assistant. "
+            "I can help with onboarding, integrations, execution plans, and more.\n\n"
+            "Try:\n"
+            "• **start interview** — guided onboarding (I'll learn your needs)\n"
+            "• **help** — see all commands\n"
+            "• **status** — system health\n"
+            "• **plan** — execution plan overview\n"
+            "• **api keys** — see API signup links for integrations\n\n"
+            "Or just describe what you'd like to accomplish and I'll guide you."
+        )
+
+    def _format_api_links_reply(self, message: str) -> str:
+        """Format an API-links response, optionally filtered by message content."""
+        lower = message.lower()
+        # Try to extract specific services from the message
+        requested = []
+        for key in self.API_PROVIDER_LINKS:
+            if key in lower or self.API_PROVIDER_LINKS[key]["name"].lower() in lower:
+                requested.append(key)
+
+        if requested:
+            guidance = self.get_api_setup_guidance(requested)
+        else:
+            guidance = self.get_api_setup_guidance()
+
+        lines = ["**API Keys & Signup Links**\n"]
+        for svc in guidance["services"]:
+            lines.append(
+                f"• **{svc['name']}** — {svc['description']}\n"
+                f"  Signup: {svc['signup_url']}\n"
+                f"  Env var: `{svc['env_var']}`"
+            )
+        lines.append(
+            "\n**Quick start:** Get a free Groq key (link above), then:\n"
+            "```\nexport MURPHY_LLM_PROVIDER=groq\n"
+            "export GROQ_API_KEY=gsk_your_key_here\n```"
+        )
+        return "\n".join(lines)
 
     def handle_chat(self, message: str, session_id: Optional[str], use_mfgc: bool) -> Dict[str, Any]:
         session_id = session_id or "default"
@@ -11917,7 +12585,14 @@ class MurphySystem:
                 self._record_execution(success=True, duration=duration)
                 return resp
 
-        # --- Onboarding flow advancement (only when in_flow or no intent detected) ---
+        # --- Natural-language routing (not in onboarding flow, no recognised intent) ---
+        if not in_flow and not intent:
+            result = self.librarian_ask(message, session_id)
+            duration = time.perf_counter() - start
+            self._record_execution(success=True, duration=duration)
+            return result
+
+        # --- Onboarding flow advancement (only when in_flow) ---
         flow = self._advance_flow(session, message)
         default_values = {
             "current_stage": "unknown",
@@ -11942,15 +12617,43 @@ class MurphySystem:
         stage_index = session.get("stage_index", 0)
         if stage_index >= len(self.flow_steps) - 1:
             session["in_flow"] = False
-            response = (
-                f"Captured {current_stage} details. "
-                f"Onboarding complete! Type 'help' to see available commands."
-            )
+            # Infer needed integrations from collected onboarding answers
+            answers = session.get("answers", {})
+            recs = self.infer_needed_integrations(answers) if answers else []
+            response = f"Captured {current_stage} details. **Onboarding complete!**\n\n"
+            if recs:
+                response += "**Recommended integrations based on your answers:**\n"
+                for i, rec in enumerate(recs, 1):
+                    response += (
+                        f"  {i}. **{rec['name']}** — {rec['description']}\n"
+                        f"     Get your API key: {rec['signup_url']}\n"
+                        f"     Set: `{rec['env_var']}`\n"
+                        f"     _{rec.get('reason', '')}_\n"
+                    )
+                response += "\n**What to do next:**\n"
+                response += "1. Sign up for the API keys listed above (links provided)\n"
+                response += "2. Set each as an environment variable (e.g. `export GROQ_API_KEY=gsk_...`)\n"
+                response += "3. Restart Murphy to pick up the new keys\n"
+                response += "4. Type **status** to verify everything is connected\n"
+                response += "5. Type **execute <your first task>** to start automating!\n\n"
+                response += "Type **api keys** to see this list again, or **help** for all commands."
+            else:
+                response += (
+                    "**What to do next:**\n"
+                    "1. Type **status** to verify the system is ready\n"
+                    "2. Type **execute <your first task>** to start automating\n"
+                    "3. Type **api keys** if you need integration credentials\n\n"
+                    "Type **help** to see all available commands."
+                )
         else:
+            # Include librarian hints in mid-flow prompts
+            librarian_hint = flow.get("librarian_hint", "")
             response = (
                 f"Captured {current_stage} details. "
                 f"Next step ({next_stage}): {prompt}"
             )
+            if librarian_hint:
+                response += librarian_hint
         duration = time.perf_counter() - start
         self._record_execution(success=True, duration=duration)
         doc = self._ensure_document(message, "conversation", session_id)
@@ -12263,6 +12966,8 @@ class MurphySystem:
             'status': 'running',
             'uptime_seconds': uptime,
             'start_time': self.start_time.isoformat(),
+            'llm': self._get_llm_status(),
+            'librarian': self._get_librarian_status(),
             'components': {
                 'control_plane': self._component_status(self.control_plane),
                 'inoni_automation': self._component_status(self.inoni_automation),
@@ -12662,6 +13367,45 @@ def create_app() -> FastAPI:
     async def health_check():
         """Health check"""
         return JSONResponse({'status': 'healthy', 'version': murphy.version})
+
+    # ==================== LIBRARIAN ENDPOINTS ====================
+
+    @app.post("/api/librarian/ask")
+    async def librarian_ask(request: Request):
+        """Route a natural-language message through the Librarian + optional LLM."""
+        data = await request.json()
+        result = murphy.librarian_ask(
+            message=data.get("message", ""),
+            session_id=data.get("session_id"),
+        )
+        return JSONResponse(result)
+
+    @app.get("/api/librarian/status")
+    async def librarian_status():
+        """Return librarian health status."""
+        return JSONResponse(murphy._get_librarian_status())
+
+    @app.get("/api/llm/status")
+    async def llm_status():
+        """Return LLM provider configuration and health."""
+        return JSONResponse(murphy._get_llm_status())
+
+    @app.get("/api/librarian/api-links")
+    async def api_links():
+        """Return API provider signup links for all supported services."""
+        return JSONResponse(murphy.get_api_setup_guidance())
+
+    @app.post("/api/librarian/integrations")
+    async def librarian_integrations(request: Request):
+        """Infer needed integrations from onboarding answers and return with API links."""
+        data = await request.json()
+        answers = data.get("answers", {})
+        recs = murphy.infer_needed_integrations(answers)
+        return JSONResponse({
+            "success": True,
+            "recommendations": recs,
+            "count": len(recs),
+        })
 
     # ==================== SESSION ENDPOINTS ====================
 

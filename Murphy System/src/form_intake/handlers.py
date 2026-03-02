@@ -22,6 +22,25 @@ from .schemas import (
 
 logger = logging.getLogger(__name__)
 
+# In-process submission status store.  Keyed by submission_id, each value
+# is a dict with at least: status, form_type, submitted_at, updated_at.
+# The execution engine updates entries as tasks progress.
+_submission_store: Dict[str, Dict[str, Any]] = {}
+
+
+def _record_submission(submission_id: str, form_type: str, extra: Optional[Dict[str, Any]] = None) -> None:
+    """Record a new submission in the in-process store."""
+    now = datetime.now().isoformat()
+    _submission_store[submission_id] = {
+        'status': 'queued',
+        'form_type': form_type,
+        'submitted_at': now,
+        'updated_at': now,
+        'progress': {},
+        'results': None,
+        **(extra or {}),
+    }
+
 
 class FormSubmissionResult:
     """Result of form submission"""
@@ -92,6 +111,7 @@ class PlanUploadFormHandler:
                 'next_step': 'plan_decomposition'
             }
             
+            _record_submission(submission_id, self.form_type.value)
             return FormSubmissionResult(
                 success=True,
                 submission_id=submission_id,
@@ -155,6 +175,7 @@ class PlanGenerationFormHandler:
                 'next_step': 'plan_generation'
             }
             
+            _record_submission(submission_id, self.form_type.value)
             return FormSubmissionResult(
                 success=True,
                 submission_id=submission_id,
@@ -220,6 +241,7 @@ class TaskExecutionFormHandler:
                 'next_step': 'task_execution'
             }
             
+            _record_submission(submission_id, self.form_type.value)
             return FormSubmissionResult(
                 success=True,
                 submission_id=submission_id,
@@ -290,6 +312,7 @@ class ValidationFormHandler:
             if form.corrections:
                 result_data['next_step'] = 'correction_capture'
             
+            _record_submission(submission_id, self.form_type.value)
             return FormSubmissionResult(
                 success=True,
                 submission_id=submission_id,
@@ -355,6 +378,7 @@ class CorrectionFormHandler:
                 'next_step': 'create_training_example'
             }
             
+            _record_submission(submission_id, self.form_type.value)
             return FormSubmissionResult(
                 success=True,
                 submission_id=submission_id,

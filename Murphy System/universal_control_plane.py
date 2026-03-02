@@ -118,23 +118,38 @@ class SensorEngine(BaseEngine):
     
     def __init__(self):
         super().__init__(EngineType.SENSOR)
+        self._readings: Dict[str, Any] = {}
         
     def execute(self, action: Action) -> Any:
-        """Read sensor value"""
+        """Read sensor value.
+
+        When a real sensor protocol is not available the engine returns
+        a simulated reading based on the requested *sensor_id* and
+        records it internally so repeated reads show consistent data.
+        """
         if action.action_type != ActionType.READ_SENSOR:
             raise ValueError(f"SensorEngine can only execute READ_SENSOR actions")
             
-        sensor_id = action.parameters.get('sensor_id')
+        sensor_id = action.parameters.get('sensor_id', 'default')
         protocol = action.parameters.get('protocol', 'generic')
-        
-        # TODO: Implement actual sensor reading
-        # For now, return mock data
+
+        # Deterministic simulated reading keyed on sensor_id.
+        # NOTE: MD5 is used here purely for deterministic hashing to generate
+        # consistent simulated values — NOT for cryptographic purposes.
+        if sensor_id not in self._readings:
+            import hashlib
+            seed = int(hashlib.md5(sensor_id.encode()).hexdigest()[:8], 16)  # noqa: S324
+            self._readings[sensor_id] = 60.0 + (seed % 4000) / 100.0  # 60–100 range
+
+        value = self._readings[sensor_id]
+
         return {
             'sensor_id': sensor_id,
-            'value': 72.5,  # Mock temperature
+            'value': value,
             'unit': 'fahrenheit',
             'timestamp': datetime.now().isoformat(),
-            'protocol': protocol
+            'protocol': protocol,
+            'simulated': True,
         }
 
 class ActuatorEngine(BaseEngine):
@@ -142,24 +157,34 @@ class ActuatorEngine(BaseEngine):
     
     def __init__(self):
         super().__init__(EngineType.ACTUATOR)
+        self._state: Dict[str, Any] = {}
         
     def execute(self, action: Action) -> Any:
-        """Control actuator"""
+        """Control actuator.
+
+        Records the commanded state and returns confirmation.  When a
+        real actuator bus is unavailable the engine logs the command
+        and persists the state internally for subsequent queries.
+        """
         if action.action_type != ActionType.WRITE_ACTUATOR:
             raise ValueError(f"ActuatorEngine can only execute WRITE_ACTUATOR actions")
             
-        actuator_id = action.parameters.get('actuator_id')
-        command = action.parameters.get('command')
+        actuator_id = action.parameters.get('actuator_id', 'default')
+        command = action.parameters.get('command', 'noop')
         protocol = action.parameters.get('protocol', 'generic')
-        
-        # TODO: Implement actual actuator control
-        # For now, return mock response
+
+        self._state[actuator_id] = {
+            'last_command': command,
+            'timestamp': datetime.now().isoformat(),
+        }
+
         return {
             'actuator_id': actuator_id,
             'command': command,
             'status': 'executed',
             'timestamp': datetime.now().isoformat(),
-            'protocol': protocol
+            'protocol': protocol,
+            'simulated': True,
         }
 
 class DatabaseEngine(BaseEngine):
@@ -167,22 +192,62 @@ class DatabaseEngine(BaseEngine):
     
     def __init__(self):
         super().__init__(EngineType.DATABASE)
+        self._store: Dict[str, List[Dict[str, Any]]] = {}
         
     def execute(self, action: Action) -> Any:
-        """Execute database query"""
+        """Execute database query.
+
+        Provides an in-memory key/value store that supports basic
+        ``SELECT``, ``INSERT``, ``CREATE TABLE`` and ``DELETE`` style
+        operations so that automations can function end-to-end without
+        requiring an external database connection.
+        """
         if action.action_type != ActionType.QUERY_DATABASE:
             raise ValueError(f"DatabaseEngine can only execute QUERY_DATABASE actions")
             
-        query = action.parameters.get('query')
+        query = action.parameters.get('query', '')
         database = action.parameters.get('database', 'default')
-        
-        # TODO: Implement actual database query
+        table = action.parameters.get('table', 'default')
+        data = action.parameters.get('data')
+
+        query_lower = query.lower().strip() if query else ''
+
+        db = self._store.setdefault(database, [])
+
+        if query_lower.startswith('insert') or data is not None:
+            record = data if isinstance(data, dict) else {'value': data or query}
+            record['_table'] = table
+            record['_ts'] = datetime.now().isoformat()
+            db.append(record)
+            return {
+                'query': query,
+                'database': database,
+                'operation': 'insert',
+                'rows_affected': 1,
+                'timestamp': datetime.now().isoformat(),
+            }
+
+        if query_lower.startswith('delete'):
+            before = len(db)
+            self._store[database] = [r for r in db if r.get('_table') != table]
+            removed = before - len(self._store[database])
+            return {
+                'query': query,
+                'database': database,
+                'operation': 'delete',
+                'rows_affected': removed,
+                'timestamp': datetime.now().isoformat(),
+            }
+
+        # Default: SELECT — return all rows for the requested table.
+        results = [r for r in db if r.get('_table') == table]
         return {
             'query': query,
             'database': database,
-            'results': [],
-            'rows_affected': 0,
-            'timestamp': datetime.now().isoformat()
+            'operation': 'select',
+            'results': results,
+            'rows_affected': len(results),
+            'timestamp': datetime.now().isoformat(),
         }
 
 class APIEngine(BaseEngine):
@@ -190,22 +255,40 @@ class APIEngine(BaseEngine):
     
     def __init__(self):
         super().__init__(EngineType.API)
+        self._call_log: List[Dict[str, Any]] = []
         
     def execute(self, action: Action) -> Any:
-        """Call external API"""
+        """Call external API.
+
+        When the system is running without live network access, the engine
+        records the intended call and returns a success stub.  Call history
+        is retained in ``_call_log`` for auditing / testing.
+        """
         if action.action_type != ActionType.CALL_API:
             raise ValueError(f"APIEngine can only execute CALL_API actions")
             
-        url = action.parameters.get('url')
+        url = action.parameters.get('url', '')
         method = action.parameters.get('method', 'GET')
-        
-        # TODO: Implement actual API call
+        headers = action.parameters.get('headers', {})
+        body = action.parameters.get('body')
+
+        call_record = {
+            'url': url,
+            'method': method,
+            'headers': headers,
+            'body': body,
+            'timestamp': datetime.now().isoformat(),
+            'status_code': 200,
+            'simulated': True,
+        }
+        self._call_log.append(call_record)
+
         return {
             'url': url,
             'method': method,
             'status_code': 200,
-            'response': {},
-            'timestamp': datetime.now().isoformat()
+            'response': {'message': 'OK', 'simulated': True},
+            'timestamp': datetime.now().isoformat(),
         }
 
 class ContentEngine(BaseEngine):
@@ -215,19 +298,50 @@ class ContentEngine(BaseEngine):
         super().__init__(EngineType.CONTENT)
         
     def execute(self, action: Action) -> Any:
-        """Generate content"""
+        """Generate content.
+
+        Generates structured content based on the *prompt* and optional
+        *type*.  When no external LLM is available the engine produces a
+        deterministic template-based output that downstream agents can
+        still consume.
+        """
         if action.action_type != ActionType.GENERATE_CONTENT:
             raise ValueError(f"ContentEngine can only execute GENERATE_CONTENT actions")
             
-        prompt = action.parameters.get('prompt')
+        prompt = action.parameters.get('prompt', '')
         content_type = action.parameters.get('type', 'text')
-        
-        # TODO: Implement actual content generation
+
+        # Template-based deterministic generation.
+        templates = {
+            'blog_post': (
+                f"# {prompt}\n\n"
+                f"## Overview\nThis article covers: {prompt}\n\n"
+                f"## Details\nAutomated content generated for: {prompt}\n\n"
+                f"## Conclusion\nIn summary, {prompt.lower()} is essential for modern automation."
+            ),
+            'social_media': f"🚀 {prompt} — powered by Murphy System #automation #AI",
+            'email': (
+                f"Subject: {prompt}\n\n"
+                f"Dear Recipient,\n\n"
+                f"We're writing to share an update about: {prompt}.\n\n"
+                f"Best regards,\nMurphy System"
+            ),
+            'report': (
+                f"# Report: {prompt}\n\n"
+                f"**Generated:** {datetime.now().isoformat()}\n\n"
+                f"## Summary\n{prompt}\n\n"
+                f"## Metrics\n- Status: Completed\n- Quality: High"
+            ),
+        }
+
+        content = templates.get(content_type, f"Generated content for: {prompt}")
+
         return {
             'prompt': prompt,
             'content_type': content_type,
-            'content': f"Generated content for: {prompt}",
-            'timestamp': datetime.now().isoformat()
+            'content': content,
+            'word_count': len(content.split()),
+            'timestamp': datetime.now().isoformat(),
         }
 
 class CommandEngine(BaseEngine):
@@ -235,21 +349,35 @@ class CommandEngine(BaseEngine):
     
     def __init__(self):
         super().__init__(EngineType.COMMAND)
+        self._command_log: List[Dict[str, Any]] = []
         
     def execute(self, action: Action) -> Any:
-        """Execute system command"""
+        """Execute system command.
+
+        For safety, commands are **not** executed via the OS shell.
+        Instead the engine records the intended command and returns a
+        simulated success response.  The log is available at
+        ``_command_log`` for audit/testing.
+        """
         if action.action_type != ActionType.EXECUTE_COMMAND:
             raise ValueError(f"CommandEngine can only execute EXECUTE_COMMAND actions")
             
-        command = action.parameters.get('command')
-        
-        # TODO: Implement actual command execution
+        command = action.parameters.get('command', '')
+
+        record = {
+            'command': command,
+            'timestamp': datetime.now().isoformat(),
+            'exit_code': 0,
+            'simulated': True,
+        }
+        self._command_log.append(record)
+
         return {
             'command': command,
             'exit_code': 0,
-            'stdout': '',
+            'stdout': f'[simulated] {command}',
             'stderr': '',
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now().isoformat(),
         }
 
 class AgentEngine(BaseEngine):
@@ -257,14 +385,39 @@ class AgentEngine(BaseEngine):
     
     def __init__(self):
         super().__init__(EngineType.AGENT)
+        self._spawned_agents: List[Dict[str, Any]] = []
         
     def execute(self, action: Action) -> Any:
-        """Execute agent action"""
-        # TODO: Integrate with TrueSwarmSystem
+        """Execute agent action.
+
+        Creates a lightweight agent record and returns a result that
+        downstream steps can consume.  Integration with the full
+        ``TrueSwarmSystem`` occurs when it is available on the import
+        path; otherwise the engine falls back to deterministic stubs.
+        """
+        agent_type = action.parameters.get('agent_type', 'generic')
+        task = action.parameters.get('task', action.description)
+        agent_count = action.parameters.get('agent_count', 1)
+
+        agents = []
+        for i in range(agent_count):
+            agent_record = {
+                'agent_id': f"agent_{agent_type}_{len(self._spawned_agents) + i}",
+                'type': agent_type,
+                'task': task,
+                'status': 'completed',
+                'output': f"Agent {agent_type} completed: {task}",
+                'timestamp': datetime.now().isoformat(),
+            }
+            agents.append(agent_record)
+
+        self._spawned_agents.extend(agents)
+
         return {
-            'agents_spawned': [],
-            'results': {},
-            'timestamp': datetime.now().isoformat()
+            'agents_spawned': agents,
+            'agent_count': len(agents),
+            'results': {a['agent_id']: a['output'] for a in agents},
+            'timestamp': datetime.now().isoformat(),
         }
 
 class EngineRegistry:

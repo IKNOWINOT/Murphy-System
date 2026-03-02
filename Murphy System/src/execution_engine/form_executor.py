@@ -22,6 +22,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from confidence_engine.murphy_validator import MurphyValidator
 from confidence_engine.murphy_models import Phase
+from confidence_engine.models import (
+    ConfidenceState,
+    Phase as ControllerPhase,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +49,7 @@ class FormDrivenExecutor:
         
         # Try to import existing phase controller
         try:
-            from src.confidence_engine.phase_controller import PhaseController
+            from confidence_engine.phase_controller import PhaseController
             self.phase_controller = PhaseController()
             self.has_phase_controller = True
             logger.info("Loaded existing phase controller")
@@ -294,14 +298,53 @@ class FormDrivenExecutor:
         task: Any,
         context: ExecutionContext
     ) -> Dict[str, Any]:
-        """Execute phase using existing phase controller"""
-        # TODO: Integrate with actual phase controller
-        # For now, return placeholder
-        return {
-            'phase': phase.value,
-            'result': f"Phase {phase.value} executed",
-            'assumptions': []
+        """Execute phase using existing phase controller.
+
+        Delegates phase-gate logic to :class:`PhaseController` so that
+        confidence-based transition rules (threshold check, no-skip,
+        no-reverse) are enforced consistently.  The actual phase work is
+        still handled by :meth:`_execute_phase_simple`; this method adds
+        the phase-controller governance wrapper around it.
+        """
+        # Map the murphy_models.Phase (str enum) to the models.Phase used
+        # by the PhaseController (which carries confidence_threshold).
+        controller_phase = ControllerPhase(phase.value)
+
+        # Build a ConfidenceState from what the validator already computed.
+        current_confidence = context.confidence or 0.5
+        confidence_state = ConfidenceState(
+            confidence=current_confidence,
+            generative_score=current_confidence * 0.6,
+            deterministic_score=current_confidence * 0.4,
+            epistemic_instability=max(0.0, 1.0 - current_confidence),
+            phase=controller_phase,
+        )
+
+        # Ask the phase controller whether the transition is allowed.
+        new_phase, transitioned, reason = (
+            self.phase_controller.check_phase_transition(
+                controller_phase, confidence_state
+            )
+        )
+
+        # Record progress metadata in the execution context.
+        progress = self.phase_controller.get_phase_progress(controller_phase)
+
+        # Execute the concrete phase logic via the simple handler.
+        phase_output = self._execute_phase_simple(phase, task, context)
+
+        # Augment the output with controller metadata.
+        phase_output['phase_controller'] = {
+            'transitioned': transitioned,
+            'reason': reason,
+            'progress': progress,
+            'confidence_state': {
+                'confidence': confidence_state.confidence,
+                'threshold': controller_phase.confidence_threshold,
+            },
         }
+
+        return phase_output
     
     def _execute_phase_simple(
         self,
