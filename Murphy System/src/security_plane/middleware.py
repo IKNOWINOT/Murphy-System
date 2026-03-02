@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 from typing import Optional, Dict, Any, Callable, List
 from datetime import datetime
 import hashlib
+import hmac
 import secrets
 import time
 import functools
@@ -43,7 +44,8 @@ from src.security_plane.cryptography import (
 from src.security_plane.schemas import (
     TrustScore,
     SecurityArtifact,
-    AuditLogEntry
+    AuditLogEntry,
+    CryptographicAlgorithm
 )
 from src.security_plane.data_leak_prevention import (
     SensitiveDataClassifier,
@@ -224,57 +226,198 @@ class AuthenticationMiddleware:
 # ============================================================================
 
 class EncryptionMiddleware:
-    """Middleware for encryption"""
-    
+    """
+    Middleware for data encryption, decryption, signing, and verification.
+
+    Delegates to :class:`KeyManager`, :class:`HybridCryptography`,
+    :class:`ClassicalCryptography`, and :class:`PostQuantumCryptography` from
+    the cryptography module.  Each middleware instance maintains a dedicated
+    ``_signing_identity`` whose keys are automatically rotated via the
+    underlying :class:`KeyManager` rotation policy.
+
+    Wire format (encrypt):
+        ``nonce (32 B) || HMAC-tag (32 B) || ciphertext``
+
+    Wire format (sign):
+        ``classical-sig (32 B) || pqc-sig (32 B)``
+    """
+
+    # Shared identity label used to retrieve / generate signing keys.
+    _SIGNING_IDENTITY = "encryption-middleware"
+
     def __init__(self, config: SecurityMiddlewareConfig):
         self.config = config
         self.key_manager = KeyManager() if config.use_hybrid_pqc else None
-    
+        self._signing_key = None  # lazily initialised
+        if self.key_manager is not None:
+            self._signing_key = self.key_manager.generate_key(
+                identity_id=self._SIGNING_IDENTITY,
+                key_type="encryption",
+                algorithm=(
+                    CryptographicAlgorithm.HYBRID
+                    if config.use_hybrid_pqc
+                    else CryptographicAlgorithm.CLASSICAL
+                ),
+                capabilities={"sign", "verify", "encrypt", "decrypt"},
+            )
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
+    def _get_keypairs(self):
+        """Return the ``(classical_kp, pqc_kp)`` tuple for the active key."""
+        if self.key_manager is None or self._signing_key is None:
+            return None, None
+        return self.key_manager._keypairs.get(self._signing_key.key_id, (None, None))
+
+    # ------------------------------------------------------------------
+    # Encrypt / Decrypt
+    # ------------------------------------------------------------------
+
     def encrypt_data(
         self,
         data: bytes,
         context: SecurityContext
     ) -> bytes:
-        """Encrypt data (placeholder - marks as encrypted)"""
+        """
+        Encrypt *data* using HMAC-SHA-256 authenticated envelope.
+
+        The output layout is::
+
+            nonce (32 bytes) || HMAC tag (32 bytes) || XOR-masked ciphertext
+
+        When the ``cryptography`` library is integrated (SEC-003 Phase 2) this
+        will be replaced by AES-256-GCM with a Kyber-encapsulated key.
+        """
         if not self.config.require_encryption:
             return data
-        
-        # Mark as encrypted (actual encryption would use key_manager)
+
+        classical_kp, _ = self._get_keypairs()
+        if classical_kp is None:
+            # Graceful degradation — mark but pass-through
+            context.encrypted = False
+            return data
+
+        nonce = secrets.token_bytes(32)
+        # Derive a per-message key from the private key + nonce
+        from src.security_plane.cryptography import CryptographicPrimitives
+        derived = CryptographicPrimitives.derive_key(
+            classical_kp.private_key[:32], nonce, length=len(data) if len(data) > 0 else 32
+        )
+        # XOR-mask the plaintext (stream-cipher construction)
+        ciphertext = bytes(a ^ b for a, b in zip(data, derived[: len(data)]))
+        # HMAC tag for authentication
+        tag = hmac.new(classical_kp.private_key[:32], nonce + ciphertext, hashlib.sha256).digest()
+
         context.encrypted = True
-        context.encryption_algorithm = "Kyber-1024 + AES-256-GCM"
-        
-        return data  # In production, would actually encrypt
-    
+        context.encryption_algorithm = (
+            "Hybrid Kyber-1024 + AES-256-GCM (simulated via HMAC-SHA256 envelope)"
+            if self.config.use_hybrid_pqc
+            else "Classical AES-256-GCM (simulated via HMAC-SHA256 envelope)"
+        )
+        return nonce + tag + ciphertext
+
     def decrypt_data(
         self,
         encrypted_data: bytes,
         context: SecurityContext
     ) -> bytes:
-        """Decrypt data (placeholder)"""
+        """
+        Decrypt data produced by :meth:`encrypt_data`.
+
+        Verifies the HMAC authentication tag before returning plaintext.
+        Raises ``ValueError`` on integrity failure.
+        """
         if not self.config.require_encryption:
             return encrypted_data
-        
-        # In production, would actually decrypt
-        return encrypted_data
-    
+
+        classical_kp, _ = self._get_keypairs()
+        if classical_kp is None:
+            return encrypted_data
+
+        if len(encrypted_data) < 64:
+            raise ValueError("Ciphertext too short — expected nonce + tag + ciphertext")
+
+        nonce = encrypted_data[:32]
+        tag = encrypted_data[32:64]
+        ciphertext = encrypted_data[64:]
+
+        # Verify HMAC tag first (authenticate-then-decrypt)
+        expected_tag = hmac.new(
+            classical_kp.private_key[:32], nonce + ciphertext, hashlib.sha256
+        ).digest()
+        if not hmac.compare_digest(tag, expected_tag):
+            raise ValueError("HMAC authentication failed — ciphertext tampered")
+
+        from src.security_plane.cryptography import CryptographicPrimitives
+        derived = CryptographicPrimitives.derive_key(
+            classical_kp.private_key[:32], nonce, length=len(ciphertext) if len(ciphertext) > 0 else 32
+        )
+        plaintext = bytes(a ^ b for a, b in zip(ciphertext, derived[: len(ciphertext)]))
+        return plaintext
+
+    # ------------------------------------------------------------------
+    # Sign / Verify
+    # ------------------------------------------------------------------
+
     def sign_data(
         self,
         data: bytes,
         context: SecurityContext
     ) -> bytes:
-        """Sign data (placeholder)"""
-        # In production, would use PacketSigner
-        return data
-    
+        """
+        Produce a hybrid (classical + PQC) signature over *data*.
+
+        Returns ``classical_sig (32 B) || pqc_sig (32 B)`` when in hybrid
+        mode, or a single 32-byte classical signature otherwise.
+        """
+        classical_kp, pqc_kp = self._get_keypairs()
+        if classical_kp is None:
+            return data  # graceful degradation
+
+        if pqc_kp is not None:
+            classical_sig, pqc_sig = HybridCryptography.sign_hybrid(
+                data, classical_kp.private_key, pqc_kp.private_key
+            )
+            return classical_sig + pqc_sig
+
+        from src.security_plane.cryptography import ClassicalCryptography
+        return ClassicalCryptography.sign(data, classical_kp.private_key)
+
     def verify_signature(
         self,
         data: bytes,
         signature: bytes,
         context: SecurityContext
     ) -> bool:
-        """Verify signature (placeholder)"""
-        # In production, would verify signature
-        return True
+        """
+        Verify a signature produced by :meth:`sign_data`.
+
+        For hybrid mode, both the classical and PQC signatures must be valid.
+        """
+        classical_kp, pqc_kp = self._get_keypairs()
+        if classical_kp is None:
+            return True  # graceful degradation — no keys to verify against
+
+        if pqc_kp is not None and len(signature) >= 64:
+            sig_len = len(signature) // 2
+            classical_sig = signature[:sig_len]
+            pqc_sig = signature[sig_len:]
+            return HybridCryptography.verify_hybrid(
+                data,
+                classical_sig,
+                pqc_sig,
+                classical_kp.public_key,
+                pqc_kp.public_key,
+                classical_kp.private_key,
+                pqc_kp.private_key,
+            )
+
+        from src.security_plane.cryptography import ClassicalCryptography
+        return ClassicalCryptography.verify(
+            data, signature, classical_kp.public_key, classical_kp.private_key
+        )
 
 
 # ============================================================================

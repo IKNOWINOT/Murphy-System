@@ -7,6 +7,7 @@ components with Murphy System components.
 
 import pytest
 from datetime import datetime
+import secrets
 import time
 from typing import Dict, Any
 
@@ -160,9 +161,15 @@ def test_encryption_middleware_enabled():
     data = b"test data"
     
     encrypted = encryption.encrypt_data(data, context)
-    # Note: Simplified middleware marks as encrypted but doesn't actually encrypt
     assert context.encrypted is True
-    assert context.encryption_algorithm == "Kyber-1024 + AES-256-GCM"
+    assert "Kyber-1024" in context.encryption_algorithm
+    # Ciphertext must differ from plaintext (nonce + tag + XOR-masked payload)
+    assert encrypted != data
+    assert len(encrypted) == 32 + 32 + len(data)  # nonce + HMAC tag + ciphertext
+
+    # Round-trip: decrypt must recover original plaintext
+    decrypted = encryption.decrypt_data(encrypted, context)
+    assert decrypted == data
 
 
 # ============================================================================
@@ -561,6 +568,76 @@ def test_security_middleware_error_handling():
     # Verify failure was logged
     logs = middleware.audit.get_audit_logs()
     assert any(not log.success for log in logs)
+
+
+# ============================================================================
+# ENCRYPTION MIDDLEWARE — ROUND-TRIP AND INTEGRITY TESTS
+# ============================================================================
+
+def test_encrypt_decrypt_round_trip_various_sizes():
+    """Encrypt → decrypt round-trip must preserve plaintext for payloads of varying size."""
+    config = SecurityMiddlewareConfig(require_encryption=True, use_hybrid_pqc=True)
+    enc = EncryptionMiddleware(config)
+    ctx = SecurityContext(request_id="rt", timestamp=datetime.now())
+
+    for size in (0, 1, 16, 255, 1024):
+        plaintext = secrets.token_bytes(size)
+        ciphertext = enc.encrypt_data(plaintext, ctx)
+        recovered = enc.decrypt_data(ciphertext, ctx)
+        assert recovered == plaintext, f"Round-trip failed for payload size {size}"
+
+
+def test_encrypt_tamper_detection():
+    """Flipping a single ciphertext byte must cause HMAC verification failure."""
+    config = SecurityMiddlewareConfig(require_encryption=True, use_hybrid_pqc=True)
+    enc = EncryptionMiddleware(config)
+    ctx = SecurityContext(request_id="tamper", timestamp=datetime.now())
+
+    plaintext = b"sensitive-payload"
+    ciphertext = enc.encrypt_data(plaintext, ctx)
+
+    # Flip last byte
+    tampered = ciphertext[:-1] + bytes([ciphertext[-1] ^ 0xFF])
+    with pytest.raises(ValueError, match="HMAC authentication failed"):
+        enc.decrypt_data(tampered, ctx)
+
+
+def test_sign_verify_round_trip():
+    """Signature produced by sign_data must be accepted by verify_signature."""
+    config = SecurityMiddlewareConfig(require_encryption=True, use_hybrid_pqc=True)
+    enc = EncryptionMiddleware(config)
+    ctx = SecurityContext(request_id="sig", timestamp=datetime.now())
+
+    payload = b"data-to-sign"
+    signature = enc.sign_data(payload, ctx)
+    assert isinstance(signature, bytes)
+    assert len(signature) > 0
+
+    assert enc.verify_signature(payload, signature, ctx) is True
+
+
+def test_sign_verify_detects_forgery():
+    """Modified data must fail signature verification."""
+    config = SecurityMiddlewareConfig(require_encryption=True, use_hybrid_pqc=True)
+    enc = EncryptionMiddleware(config)
+    ctx = SecurityContext(request_id="forge", timestamp=datetime.now())
+
+    payload = b"original-data"
+    signature = enc.sign_data(payload, ctx)
+
+    forged_payload = b"modified-data"
+    assert enc.verify_signature(forged_payload, signature, ctx) is False
+
+
+def test_encryption_disabled_passthrough():
+    """When encryption is disabled, data must pass through unchanged."""
+    config = SecurityMiddlewareConfig(require_encryption=False)
+    enc = EncryptionMiddleware(config)
+    ctx = SecurityContext(request_id="noop", timestamp=datetime.now())
+
+    plaintext = b"plaintext"
+    assert enc.encrypt_data(plaintext, ctx) == plaintext
+    assert enc.decrypt_data(plaintext, ctx) == plaintext
 
 
 if __name__ == '__main__':
