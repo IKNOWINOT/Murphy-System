@@ -7,7 +7,7 @@ as well as validating API keys for supported providers.
 
 import os
 import re
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 
 # Supported providers and their key format patterns
@@ -75,7 +75,7 @@ def write_env_key(path: Optional[str], key: str, value: str) -> None:
     if path is None:
         path = get_env_path()
 
-    lines: list[str] = []
+    lines: List[str] = []
     found = False
 
     if os.path.isfile(path):

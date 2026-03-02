@@ -16,6 +16,8 @@ import pytest
 # Ensure parent directory is on the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+pytest.importorskip("textual", reason="textual not installed — skipping terminal UI tests")
+
 from src.env_manager import (
     read_env,
     write_env_key,
@@ -24,8 +26,6 @@ from src.env_manager import (
     API_KEY_FORMATS,
 )
 from murphy_terminal import detect_intent, MurphyTerminalApp, StatusBar
-
-pytest.importorskip("textual", reason="textual not installed — skipping terminal UI tests")
 from textual.widgets import Input
 
 
