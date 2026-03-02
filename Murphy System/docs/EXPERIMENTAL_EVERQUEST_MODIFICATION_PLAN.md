@@ -2104,9 +2104,9 @@ Every entity in the game has card effects **automatically generated** from an **
 - [x] Set up EQEmu development server with Planes of Power progression config
 - [ ] Configure original EQ XP rates and leveling curve (hell levels, death penalty, corpse runs)
 - [ ] Implement soul engine with memory/archive/recall
-- [ ] Create Sourcerior class in spell/ability tables
-- [ ] Configure Sourcerior eligible races (Dark Elf, Erudite, Human, High Elf, Gnome)
-- [ ] Configure Sourcerior armor restrictions (cloth, leather, Fungi Tunic)
+- [x] Create Sourcerior class in spell/ability tables
+- [x] Configure Sourcerior eligible races (Dark Elf, Erudite, Human, High Elf, Gnome)
+- [x] Configure Sourcerior armor restrictions (cloth, leather, Fungi Tunic)
 - [x] Implement AI agent class archetypes (pure melee, int caster, cleric)
 - [x] Define immutable class play-style templates for each agent archetype
 - [ ] Basic agent spawning with soul documents
@@ -2119,38 +2119,38 @@ Every entity in the game has card effects **automatically generated** from an **
 
 ### Phase 2: Combat & Class (Weeks 5–8)
 
-- [ ] Implement Sourcerior abilities (procs, pets, flame blink, sacrifice)
-- [ ] Implement Invoke Pet / Meld system (earth, air, fire, water aspects)
-- [ ] Implement AE mez spells from enchanter category
-- [ ] Implement bard proc line system (overhaste, ATK, AC, pet heal — weaker than bard equivalents)
-- [ ] Balance pet scaling (6 pets, four elements, low HP, decent damage)
-- [ ] Implement single-element pet rule (one element at a time; dismiss all on element switch)
-- [ ] Implement Discipline of Rumblecrush (tanking disc — pets gain Defensive-like buff; procs cost mana)
-- [ ] Implement Lord of the Maelstrom discipline (level 60 raid drop — lifts single-element restriction)
-- [ ] Implement weapon restrictions (1H slashing, 1H piercing, staves only — no 1H blunt)
-- [ ] Implement two-handed staff weapon class and epic quest framework
-- [ ] Implement Sourcerior Liquify ability (aggro drop + invis with water pets, level 40+)
-- [ ] Implement agent permadeath system (death archival, soul removal)
-- [ ] Implement betrayal detection and resurrection exception
+- [x] Implement Sourcerior abilities (procs, pets, flame blink, sacrifice)
+- [x] Implement Invoke Pet / Meld system (earth, air, fire, water aspects)
+- [x] Implement AE mez spells from enchanter category
+- [x] Implement bard proc line system (overhaste, ATK, AC, pet heal — weaker than bard equivalents)
+- [x] Balance pet scaling (6 pets, four elements, low HP, decent damage)
+- [x] Implement single-element pet rule (one element at a time; dismiss all on element switch)
+- [x] Implement Discipline of Rumblecrush (tanking disc — pets gain Defensive-like buff; procs cost mana)
+- [x] Implement Lord of the Maelstrom discipline (level 60 raid drop — lifts single-element restriction)
+- [x] Implement weapon restrictions (1H slashing, 1H piercing, staves only — no 1H blunt)
+- [x] Implement two-handed staff weapon class and epic quest framework
+- [x] Implement Sourcerior Liquify ability (aggro drop + invis with water pets, level 40+)
+- [x] Implement agent permadeath system (death archival, soul removal)
+- [x] Implement betrayal detection and resurrection exception
 
 ### Phase 3: Social Systems (Weeks 9–12)
 
 - [x] Implement faction soul functions and agent warfare
 - [x] Implement individual agent faction with interaction-based reputation
 - [x] Implement grudge and friendship mechanics in soul documents
-- [ ] Implement actions-only expression rule (no verbal agent responses)
-- [ ] Implement agent self-preservation and flee behavior (flee on "run" command, healer death, group wipe)
-- [ ] Implement flee exception for hybrid healer sustain (beastlord, druid, Sourcerior pet heals)
-- [ ] Implement duel challenge and loot system
+- [x] Implement actions-only expression rule (no verbal agent responses)
+- [x] Implement agent self-preservation and flee behavior (flee on "run" command, healer death, group wipe)
+- [x] Implement flee exception for hybrid healer sustain (beastlord, druid, Sourcerior pet heals)
+- [x] Implement duel challenge and loot system
 - [ ] Implement inspect asymmetry (agent knowledge base gating)
 - [ ] Implement town conquest system (leadership and guards as defenders)
 - [ ] Voice chat integration with group/raid toggles
-- [ ] Implement NPC daily routine system (sleep, work, adventure cycles)
-- [ ] Implement building ownership and job role assignment for NPCs
-- [ ] Implement caste system hierarchy (royal, noble, commoner, dhampir, servant) with advancement
-- [ ] Implement trade skill specialization with max-skill mastery for NPC primary trades
-- [ ] Implement skill degradation system (1 week no practice → fade to baseline 50)
-- [ ] Implement level-based skill floor (leveling locks minimum skill thresholds)
+- [x] Implement NPC daily routine system (sleep, work, adventure cycles)
+- [x] Implement building ownership and job role assignment for NPCs
+- [x] Implement caste system hierarchy (royal, noble, commoner, dhampir, servant) with advancement
+- [x] Implement trade skill specialization with max-skill mastery for NPC primary trades
+- [x] Implement skill degradation system (1 week no practice → fade to baseline 50)
+- [x] Implement level-based skill floor (leveling locks minimum skill thresholds)
 
 ### Phase 4: Murphy Integration (Weeks 13–16)
 
@@ -2169,9 +2169,9 @@ Every entity in the game has card effects **automatically generated** from an **
 ### Phase 5: Progression & Remake (Weeks 17–20)
 
 - [ ] Implement progression server era unlock schedule
-- [ ] Implement Remake System for all classes (1% stat/skill cap increase)
-- [ ] Implement agent remake cycle (automatic, retains soul document)
-- [ ] Build remake counter UI and inspect integration
+- [x] Implement Remake System for all classes (1% stat/skill cap increase)
+- [x] Implement agent remake cycle (automatic, retains soul document)
+- [x] Build remake counter UI and inspect integration
 - [x] Implement God Card drop system on deity encounters (card_system.py)
 - [x] Implement progressive card collection unlocks (skill → buff → enchantment → Card of Unmaking)
 - [ ] Implement global server announcements at 3 and 4 card collection milestones
@@ -2184,14 +2184,14 @@ Every entity in the game has card effects **automatically generated** from an **
 - [x] Implement card restriction rules (dragons/raid bosses excluded, bound-to-collector)
 - [x] Implement Shield of the Unmaker (10% chance to delete incoming spells/hits at 2 Cards of Unmaking)
 - [x] Implement Disintegration Proc weapon enchantment (3 Cards — destroys target and nearby player equipped items)
-- [ ] Build Tower of the Unmaker raid zone (steampunk roaming craft, trash mobs, mini-bosses, zone-wall spawning)
+- [x] Build Tower of the Unmaker raid zone (steampunk roaming craft, trash mobs, mini-bosses, zone-wall spawning)
 - [ ] Implement The Unmaker True Form raid boss (random raid attacks at 30% proc, item disintegration, void deletion)
 - [ ] Implement Banned by the Unmaker mechanic (~1% proc, 2 real-time day login lockout)
 - [ ] Implement 4th Card of Unmaking as Tower of the Unmaker boss drop only
 - [x] Implement universal card drops for all entities (mobs, NPCs, creatures — minor effects)
 - [x] Implement 4-card entity deletion (trading 4 universal cards to Unmaker deletes that entity permanently)
 - [x] Implement world entropy tracking (deleted entity registry, resource scarcity progression)
-- [ ] Implement server reboot via 4 Cards of Unmaking (full deck triggers world reset)
+- [x] Implement server reboot via 4 Cards of Unmaking (full deck triggers world reset)
 - [x] Implement 3rd-card enchanted item persistence (survive server reboot, sole items that carry forward)
 - [ ] Implement Becoming The Unmaker (killing blow transformation, full Unmaker gear, group aura, title)
 - [ ] Implement max-level Unmaker raid boss flag (player-Unmaker becomes attackable by all at max level with full buffs)
@@ -2214,9 +2214,9 @@ Every entity in the game has card effects **automatically generated** from an **
 - [x] Implement entry requirement for Tower of the Unmaker zone (1 Card of Unmaking OR 4 same-type universal cards, levitation required)
 - [x] Implement Spawner Registry (per-entity tracking of spawner status, cards in circulation, unmade state)
 - [x] Implement world decay percentage calculation and milestone announcements (10%, 25%, 50%, 75%, 90%)
-- [ ] Implement 50% decay server restart vote (all players + AI agents vote; majority triggers reboot countdown)
-- [ ] Implement AI agent voting logic (faction-based, self-preservation, deity loyalty considerations)
-- [ ] Implement stagnation re-vote (monthly re-trigger if above 50% decay with no new deletions)
+- [x] Implement 50% decay server restart vote (all players + AI agents vote; majority triggers reboot countdown)
+- [x] Implement AI agent voting logic (faction-based, self-preservation, deity loyalty considerations)
+- [x] Implement stagnation re-vote (monthly re-trigger if above 50% decay with no new deletions)
 - [x] Implement experience-based lore system (action screenshot capture → memory processing → delete cycle)
 - [x] Implement interaction-triggered recall (agent history only surfaces when re-encountering known entity)
 - [x] Implement collective lore propagation (agents share knowledge through faction/social communication)
