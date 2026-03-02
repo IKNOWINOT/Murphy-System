@@ -784,6 +784,21 @@ class TestExperimentalEverQuestPlan:
         lower = text.lower()
         assert "shield of the unmaker" in lower and "disintegrat" in lower and "void" in lower
 
+    def test_player_unmaker_attackable_at_max_level(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "max level" in lower and "attackable" in lower
+
+    def test_player_unmaker_drops_only_unmaker_loot(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("only drop unmaker loot" in lower) or ("only drop" in lower and "unmaker" in lower)
+
+    def test_player_unmaker_no_personal_gear_drop(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("do not drop their personal gear" in lower) or ("not drop" in lower and "personal" in lower)
+
     # --- Unmaking Escalation — Holding Capabilities ---
 
     def test_escalation_section_exists(self):
@@ -844,6 +859,213 @@ class TestExperimentalEverQuestPlan:
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
         assert "choice" in lower or "trade-off" in lower or ("cannot have both" in lower)
+
+    # --- Card Effect Cooldowns (§9.14) ---
+
+    def test_card_cooldown_section_exists(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Card Effect Cooldowns" in text
+
+    def test_card_cooldown_one_week(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("one-week" in lower or "7 days" in lower or "one week" in lower) and "cooldown" in lower
+
+    def test_card_cooldown_void_spell(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "void" in lower and ("7 day" in lower or "one-week" in lower or "weekly" in lower)
+
+    def test_card_cooldown_passive_exempt(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("always active" in lower or "passive" in lower) and "shield" in lower
+
+    # --- World Decay Threshold (§9.15) ---
+
+    def test_world_decay_section_exists(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "World Decay Threshold" in text or "50% Deletion" in text
+
+    def test_world_decay_50_percent(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "50%" in text
+
+    def test_world_decay_vote(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "vote" in lower and ("restart" in lower or "reboot" in lower)
+
+    def test_ai_agents_vote(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "ai agent" in lower and "vote" in lower
+
+    def test_vote_simple_majority(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "majority" in lower
+
+    def test_stagnation_revote(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "stagnation" in lower or "stagnate" in lower
+
+    # --- Spawner Registry (§9.16) ---
+
+    def test_spawner_registry_section_exists(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Spawner" in text and "Registry" in text
+
+    def test_spawner_unlocked_field(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "spawner_unlocked" in lower or "spawner unlocked" in lower
+
+    def test_four_card_combo_unmade_field(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "four_card_combo_unmade" in lower or "4 cards" in lower and "unmade" in lower
+
+    def test_spawner_registry_as_server_log(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "server log" in lower or "canonical log" in lower
+
+    # --- Experience-Based Lore (§9.17) ---
+
+    def test_experience_lore_section_exists(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Experience-Based Lore" in text
+
+    def test_action_screenshot_memory(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("screenshot" in lower or "snapshot" in lower) and "memory" in lower
+
+    def test_capture_process_delete_cycle(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "capture" in lower and "process" in lower and "delete" in lower
+
+    def test_interaction_triggered_recall(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("interaction" in lower or "encounter" in lower) and "recall" in lower
+
+    def test_collective_lore_propagation(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "collective lore" in lower or ("lore" in lower and "share" in lower)
+
+    def test_lore_fidelity_degradation(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("fidelity" in lower and "degrad" in lower) or "distortion" in lower
+
+    # --- Agent Heroic Persona (§9.18) ---
+
+    def test_heroic_persona_section_exists(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Heroic Persona" in text or "Noble EverQuest Heroes" in text
+
+    def test_noble_to_gods_and_faction(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "noble" in lower and ("god" in lower or "deity" in lower) and "faction" in lower
+
+    def test_devotion_hierarchy(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("deity" in lower or "god" in lower) and "faction" in lower and "survival" in lower
+
+    def test_heroic_archetypes(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("selfless cleric" in lower or "cunning rogue" in lower or "stalwart warrior" in lower)
+
+    def test_best_everquest_heroes(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("best" in lower or "beloved" in lower or "celebrated" in lower) and "everquest" in lower and "hero" in lower
+
+    # --- Agent Streaming (§9.19) ---
+
+    def test_agent_streaming_section_exists(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Agent Streaming" in text
+
+    def test_agent_stream_first_person(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "first-person" in lower or "first person" in lower
+
+    def test_text_to_speech_voice(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("text-to-speech" in lower or "text to speech" in lower or "tts" in lower) and "voice" in lower
+
+    def test_voice_profiles_per_race_class(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "voice profile" in lower and ("race" in lower or "class" in lower)
+
+    def test_stream_as_ai_story(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "story" in lower and "ai" in lower
+
+    def test_dark_elf_voice_profile(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "dark elf" in lower and ("voice" in lower or "cold" in lower or "measured" in lower)
+
+    def test_dwarf_voice_profile(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "dwarf" in lower and ("gruff" in lower or "booming" in lower)
+
+    # --- Balance Recommendations (§9.20) ---
+
+    def test_balance_section_exists(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "Balance Recommendations" in text
+
+    def test_balance_1_percent_drop_rate(self):
+        text = _load_doc(self.DOC_NAME)
+        assert "1%" in text and "drop" in text.lower()
+
+    def test_balance_void_cooldown_7_days(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "void" in lower and "7" in text and "day" in lower
+
+    def test_balance_server_cycle_target(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("2" in text or "3" in text) and "year" in lower and "cycle" in lower
+
+    def test_balance_counterplay(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "counter-play" in lower or "counterplay" in lower or "counter play" in lower
+
+    def test_balance_never_ending_cycle(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("never-ending" in lower or "never ending" in lower or "self-sustaining" in lower) and "cycle" in lower
+
+    # --- Updated sections ---
+
+    def test_1_percent_card_drop_rate_explicit(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "1%" in text and ("drop" in lower) and ("card" in lower)
+
+    def test_core_3_card_entry_requirement(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "3" in text and ("card" in lower) and ("entry" in lower or "enter" in lower) and "core" in lower
 
 
 # ===========================================================================
@@ -1096,6 +1318,58 @@ class TestOpenClawMoltySoulConcept:
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
         assert "card_system.py" in lower
+
+    # --- New system layers in soul concept ---
+
+    def test_soul_has_experience_lore_layer(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("experience" in lower and "lore" in lower) or "interaction-triggered" in lower
+
+    def test_soul_has_heroic_persona_layer(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("heroic persona" in lower) or ("noble" in lower and "devotion" in lower)
+
+    def test_soul_has_voice_layer(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("voice" in lower and "profile" in lower) or "text-to-speech" in lower
+
+    def test_soul_has_spawner_registry_module(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "spawner_registry.py" in lower
+
+    def test_soul_has_experience_lore_module(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "experience_lore.py" in lower
+
+    def test_soul_has_agent_voice_module(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "agent_voice.py" in lower
+
+    def test_soul_has_50_percent_vote(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "50%" in text and "vote" in lower
+
+    def test_soul_has_cooldown_reference(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "cooldown" in lower or "1-week" in lower
+
+    def test_soul_has_3_card_core_entry(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert ("3-card" in lower or "3 card" in lower) and ("enter" in lower or "require" in lower)
+
+    def test_soul_has_streaming_reference(self):
+        text = _load_doc(self.DOC_NAME)
+        lower = text.lower()
+        assert "streaming" in lower and ("agent" in lower or "first-person" in lower)
 
 
 # ===========================================================================
@@ -1646,6 +1920,106 @@ class TestCrossDocumentConsistency:
     def test_plan_has_unmaker_aa_implementation_task(self):
         plan = _load_doc(self.PLAN).lower()
         assert "unmaker aa" in plan and "100%" in plan
+
+    # --- New system cross-doc tests ---
+
+    def test_plan_has_cooldown_implementation_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "cooldown" in plan and ("implement" in plan or "[ ]" in plan)
+
+    def test_plan_has_spawner_registry_implementation_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "spawner registry" in plan and ("implement" in plan or "[ ]" in plan)
+
+    def test_plan_has_world_decay_vote_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "50%" in plan and "vote" in plan and ("implement" in plan or "[ ]" in plan)
+
+    def test_plan_has_experience_lore_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "experience" in plan and "lore" in plan and ("implement" in plan or "[ ]" in plan)
+
+    def test_plan_has_heroic_persona_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "heroic persona" in plan and ("implement" in plan or "[ ]" in plan)
+
+    def test_plan_has_tts_voice_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert ("text-to-speech" in plan or "voice profile" in plan) and ("implement" in plan or "[ ]" in plan)
+
+    def test_plan_has_agent_streaming_task(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "streaming" in plan and "agent" in plan and ("implement" in plan or "[ ]" in plan)
+
+    def test_plan_has_spawner_registry_schema(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "spawner registry schema" in plan or "spawner_unlocked" in plan
+
+    def test_plan_has_world_decay_schema(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "world decay state schema" in plan or "decay_percentage" in plan
+
+    def test_plan_has_streaming_profile_schema(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "streaming profile schema" in plan or "is_streaming_agent" in plan
+
+    def test_plan_has_spawner_registry_extension(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "spawner_registry.py" in plan
+
+    def test_plan_has_experience_lore_extension(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "experience_lore.py" in plan
+
+    def test_plan_has_agent_voice_extension(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "agent_voice.py" in plan
+
+    def test_plan_and_soul_both_have_cooldowns(self):
+        plan = _load_doc(self.PLAN).lower()
+        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
+        assert "cooldown" in plan
+        assert "cooldown" in soul or "1-week" in soul
+
+    def test_plan_and_soul_both_have_experience_lore(self):
+        plan = _load_doc(self.PLAN).lower()
+        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
+        assert "experience" in plan and "lore" in plan
+        assert ("experience" in soul and "lore" in soul) or "interaction" in soul
+
+    def test_plan_and_soul_both_have_voice(self):
+        plan = _load_doc(self.PLAN).lower()
+        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
+        assert "voice profile" in plan or "text-to-speech" in plan
+        assert "voice" in soul
+
+    def test_plan_scope_has_spawner_registry(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "spawner registry" in plan and ("scope" in plan or "spawner_registry.py" in plan)
+
+    def test_plan_scope_has_experience_lore(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "experience-based lore" in plan or "experience_lore.py" in plan
+
+    def test_plan_scope_has_agent_streaming(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "agent" in plan and "streaming" in plan
+
+    def test_plan_risk_card_cooldown(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "cooldown" in plan and ("risk" in plan or "too long" in plan or "too short" in plan)
+
+    def test_plan_risk_vote_manipulation(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "vote" in plan and ("manipulation" in plan or "manipulate" in plan)
+
+    def test_plan_risk_lore_fidelity(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "fidelity" in plan and ("spiral" in plan or "degrad" in plan)
+
+    def test_plan_risk_tts_quality(self):
+        plan = _load_doc(self.PLAN).lower()
+        assert "tts" in plan or ("voice" in plan and "quality" in plan)
 
 class TestRaceCulturalIdentityDesign:
     """Validate RACE_CULTURAL_IDENTITY_DESIGN.md structure."""

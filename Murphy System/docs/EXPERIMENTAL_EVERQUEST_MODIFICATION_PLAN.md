@@ -26,7 +26,9 @@ Agent behavior is powered by a **macro-trigger system** modeled on classic EQ bo
 
 A **God Card system** adds endgame progression through deity encounters — gods drop collectible cards that unlock alternate advancement abilities (skill, buff, enchantment) with the ultimate reward of a **Card of Unmaking** that grants a void spell capable of permanently deleting any entity. Players who unmake a god gain that god's title and become **PvP raid bosses**. Gods can also plot against each other using cards. **The Unmaker**, a level-1 NPC with 1% random spawn chance anywhere in the world, converts collected cards and drops the unique Unmaker cloth armor set.
 
-Beyond god cards, a **universal card system** means every entity in the game drops cards with minor effects — and trading 4 of any card to The Unmaker **permanently deletes that entity**, creating a **world entropy** mechanic where the game slowly fades away as resources become precious. Collecting **4 Cards of Unmaking** triggers a **server reboot** — a complete world reset where only items enchanted with a 3rd-card enchantment survive. The player who lands the **killing blow** on The Unmaker (True Form) in the **Core of the Unmaker** raid zone becomes **"[Name] the Unmaker"** — inheriting all Unmaker mechanics, a full gear set, the Megaphone (range item that converts the Unmaker Aura to a group spell), and **Unmaker AA with 100% experience rate**.
+Beyond god cards, a **universal card system** means every entity in the game drops cards with minor effects — and trading 4 of any card to The Unmaker **permanently deletes that entity**, creating a **world entropy** mechanic where the game slowly fades away as resources become precious. Collecting **4 Cards of Unmaking** triggers a **server reboot** — a complete world reset where only items enchanted with a 3rd-card enchantment survive. The player who lands the **killing blow** on The Unmaker (True Form) in the **Core of the Unmaker** raid zone becomes **"[Name] the Unmaker"** — inheriting all Unmaker mechanics, a full gear set, the Megaphone (range item that converts the Unmaker Aura to a group spell), and **Unmaker AA with 100% experience rate**. All card abilities operate on **one-week cooldowns**. When world decay reaches **50%**, all players and AI agents vote on whether to restart the server. A **Spawner Registry** tracks every entity's card status and unmade state as the canonical server log.
+
+AI agents operate with **experience-based lore** — they only recall history with entities they have previously encountered, and share knowledge through social interaction with natural fidelity degradation. Agents are modeled as **noble EverQuest heroes** devoted to their gods and faction alignment, with a **devotion hierarchy** (deity → faction → survival → personal gain). Select agents can **stream their perspective** as a living story with **text-to-speech voice profiles** matched to their race and class, creating an ongoing AI social experiment observable across repeated server cycles.
 
 ---
 
@@ -55,7 +57,10 @@ Beyond god cards, a **universal card system** means every entity in the game dro
 | **Perception-Inference Pipeline** | Rapid screen-scan → inference → action → mind-write cycle for real-time agent decisions | Soul engine, game connector, inference_gate_engine |
 | **Lore-Seeded Soul Database** | All existing EQ NPCs, mobs, and raid bosses as foundations for agent souls | EQEmu NPC DB, lore wikis, soul engine |
 | **The Sleeper (Kerafyrm)** | World-event agent — level 60+ zones only, storyline in all agent memories | Soul engine, lore database, zone restriction |
-| **God Cards & Unmaker** | Universal and deity card drops, world entropy (4 cards = entity deletion), Card of Unmaking void spell, Core of the Unmaker raid zone, server reboot via 4 Unmaking cards, Unmaker player transformation | Loot system, card_system.py, soul engine, faction manager |
+| **God Cards & Unmaker** | Universal and deity card drops (1% drop rate), world entropy (4 cards = entity deletion), Card of Unmaking void spell, Core of the Unmaker raid zone (3-card entry req), server reboot via 4 Unmaking cards, Unmaker player transformation, 1-week cooldowns | Loot system, card_system.py, soul engine, faction manager |
+| **Spawner Registry & World Decay** | Per-entity spawner tracking, unmade status log, world decay %, 50% threshold vote (players + AI), stagnation re-vote | spawner_registry.py, card_system.py, soul engine |
+| **Experience-Based Lore** | Action screenshot memory cycle, interaction-triggered recall, collective lore propagation with fidelity degradation | experience_lore.py, soul engine, recall engine |
+| **Agent Heroic Persona & Streaming** | Noble deity/faction devotion hierarchy, heroic archetypes, text-to-speech voice profiles, first-person agent streaming | agent_voice.py, voice_bridge.py, stream_overlay.py, persona_injector.py |
 
 ### 2.2 Reference Documents
 
@@ -885,8 +890,9 @@ The raid leader gains Murphy-powered moderation tools:
 **Every entity in the game drops cards** — not just gods. NPCs, mobs, creatures, named encounters, and even ambient wildlife can drop a card corresponding to that entity. God cards are the most powerful, but the universal card system means every kill has potential consequences.
 
 **Universal cards (non-god entities):**
-- Any mob, NPC, or creature has a chance to drop a card bearing its name (e.g., "Card of the Fire Beetle", "Card of Fippy Darkpaw")
+- Any entity that dies has a **1% chance** to drop a card bearing its name (e.g., "Card of the Fire Beetle", "Card of Fippy Darkpaw", "Card of the Black Wolf", "Card of the Elven Skeleton")
 - Universal cards grant **minor effects** when collected — small stat bonuses, minor resistances, trivial cosmetics
+- **All card effects have a one-week real-time cooldown** — once a card ability is activated, it cannot be used again for 7 days (see section 9.14)
 - **Trading 4 of the same universal card to The Unmaker deletes that entity from the game permanently** — that mob, NPC, or creature no longer spawns anywhere in the world (see section 9.11)
 - This makes every resource in the game **precious** — over time, as players and agents collect and trade cards, the world slowly empties. Camp spots dry up, quest givers vanish, and entire ecosystems of creatures disappear
 
@@ -1001,6 +1007,11 @@ The **Core of the Unmaker** is a unique raid dungeon zone — a massive structur
 - A sprawling structure built around a **towering lighthouse** visible from the zone entrance
 - Trash mobs and mini-bosses guard the path to the lighthouse peak
 - The final encounter is **The Unmaker (True Form)** at the top of the lighthouse
+
+**Entry requirement — 3 Cards of Unmaking:**
+- The Core of the Unmaker zone can only be entered by a raid that includes at least one player or agent **holding 3 or more Cards of Unmaking** — the 3-card holder's capabilities are required to survive the Unmaker's mechanics
+- Without a 3-card holder in the raid, the zone portal remains sealed — the lighthouse cannot be accessed
+- This creates a natural bottleneck: to reach the 4th Card, someone must first accumulate 3 — and holding 3 cards draws a god and dragon hunter (see section 9.10), meaning the raid must also defend their 3-card holder from pursuit while clearing the zone
 
 **The Unmaker (True Form) — Raid Boss:**
 
@@ -1163,10 +1174,261 @@ The player who lands the **killing blow** on The Unmaker (True Form) in the Core
 - The player-Unmaker is now a high-value target — other players may hunt them for the title and power
 - If the player-Unmaker is killed, the Unmaker NPC respawns with its normal random spawn behavior — the title can only be re-earned by completing the Core raid again
 
+**Becoming attackable — max level Unmaker raid boss:**
+- The player-Unmaker (or AI player-Unmaker) **becomes attackable as a raid boss** once they reach **max level** while possessing all Unmaker buffs and their own gear
+- At max level, the player-Unmaker gains all Unmaker boss abilities: Shield of the Unmaker (10% hit deletion), Disintegration Proc, Void of Unmaking, and the full Unmaker Aura group buff
+- Combined with their personal class abilities and gear, the max-level player-Unmaker is a **hybrid raid encounter** — part player skill, part Unmaker mechanics
+- The player-Unmaker is flagged as **attackable by all** — any player or agent can engage them as a PvP raid boss. They are not safe in any city or zone
+- **If the player-Unmaker is defeated, they only drop Unmaker loot** — the full Unmaker cloth armor set, the Megaphone, and any Cards of Unmaking they hold. They do not drop their personal gear, class items, or non-Unmaker possessions
+- This protects the player-Unmaker's personal investment while making the Unmaker title and gear a contested, recyclable reward
+- After death, the player-Unmaker loses the title, all Unmaker mechanics, and all Unmaker gear — they revert to a normal player. The Unmaker NPC respawns with its normal random behavior and the Core of the Unmaker raid resets
+
 **Unmaker AA — 100% experience:**
 - The Unmaker AA track provides unique abilities tied to the Unmaker's nature — void manipulation, entropy control, deletion mastery
 - All AA experience earned by "[Name] the Unmaker" is gained at **100% rate** (effectively double normal) — they advance through AA content at twice the speed
 - This accelerated progression ensures the player-Unmaker rapidly becomes one of the most powerful characters on the server
+
+### 9.14 Card Effect Cooldowns — One-Week Timers
+
+All card-granted abilities operate on a **one-week real-time cooldown** to prevent abuse and create strategic pacing:
+
+| Ability | Cooldown | Notes |
+|---|---|---|
+| **Universal card minor effect** | 7 days | Small stat bonus, resistance, or cosmetic — one activation per week |
+| **God card skill** (1st card) | 7 days | Deity-themed offensive/defensive skill — weekly use |
+| **God card buff** (2nd card) | 7 days | Persistent self-buff lasts until expiry or death, then 7-day cooldown to reapply |
+| **God card item enchantment** (3rd card) | Permanent | Applied once to one item — no cooldown (the enchantment persists through server reboots) |
+| **Void of Unmaking** spell | 7 days | One deletion per week — forces careful target selection |
+| **Shield of the Unmaker** | Always active (passive) | No cooldown — 10% proc is always on while 2+ cards are held |
+| **Disintegration Proc** | Always active (passive) | No cooldown — weapon proc is always on while 3+ cards are held |
+| **Card-holding summon abilities** | 7 days per tier | Origin NPC summon, zone rally, faction summon each have independent 7-day cooldowns |
+
+**Design rationale:**
+- The one-week cooldown prevents card abilities from being spammed, ensuring each activation is a meaningful strategic decision
+- Passive abilities (Shield, Disintegration Proc) are always active because they require holding cards — the trade-off is the escalating world threat response
+- The Void spell's weekly cooldown means a player can permanently delete at most one entity per week, throttling world entropy to a manageable pace
+- Cooldown timers persist across logout — logging out does not reset them
+
+### 9.15 World Decay Threshold — 50% Deletion Triggers Server Vote
+
+As the card system causes entities to be permanently deleted, the game world undergoes **measurable entropy**. When deletion reaches a critical threshold, the community can vote to restart.
+
+**Decay tracking:**
+- The server maintains a **Spawner Registry** (see section 9.16) that tracks every entity type and whether it has been unmade
+- The **World Decay Percentage** is calculated as: `(entities_unmade / total_entity_types) × 100`
+- This percentage is publicly visible on a server dashboard and announced at milestone thresholds (10%, 25%, 50%, 75%, 90%)
+
+**50% threshold — server restart vote:**
+- When World Decay reaches **50%** (half of all unique entity types have been permanently deleted), a **server-wide vote** is triggered
+- **All players AND all AI agents can vote** — AI agents vote based on their faction alignment, personality traits, and self-preservation instincts
+- The vote is a simple majority: if more than 50% of all voters choose "restart," the server begins a reboot countdown
+- AI agents vote autonomously — they do not know they are voting on a server restart. From their perspective, they are voting on whether "the world should be remade" as an in-game lore event
+- If the vote fails, it can be re-triggered every time decay advances another 5% (55%, 60%, 65%, etc.)
+
+**What AI agents consider when voting:**
+- Agents whose origin city or faction has been heavily deleted are more likely to vote for restart
+- Agents who hold powerful enchanted items (3rd-card enchantments that survive reboot) may vote for restart knowing they carry power forward
+- Agents loyal to gods that have been unmade may vote for restart to bring their deity back
+- Self-preservation instinct: agents in a dying world with few resources may see restart as survival
+
+**Stagnation detection:**
+- If the game stagnates (no new deletions for an extended period) while above 50% decay, the vote is automatically re-triggered monthly
+- This prevents the world from lingering in a broken state indefinitely
+
+### 9.16 Spawner Unlock Registry — Server Entity Log
+
+Every entity type in the game has a **spawner registry entry** that tracks its card status and whether it has been unmade. This registry is the canonical server log for the card system.
+
+**Registry fields per entity:**
+
+| Field | Description |
+|---|---|
+| **entity_id** | Unique identifier for the entity type (e.g., "fire_beetle", "fippy_darkpaw", "god_of_hate") |
+| **entity_name** | Display name |
+| **spawner_unlocked** | `true` if this entity's spawner is active (it can spawn in the world) |
+| **cards_in_circulation** | Number of cards of this entity type currently held by players/agents |
+| **four_card_combo_unmade** | `true` if 4 cards of this type have been traded to The Unmaker, permanently deleting this entity |
+| **unmade_by** | ID of the player or agent who traded the 4th card |
+| **unmade_at** | Timestamp of when the entity was unmade |
+| **total_kills_before_unmade** | Total times this entity was killed before being unmade |
+
+**Registry as server log:**
+- The Spawner Registry functions as the **canonical log for each server** — it records the history of which entities exist, which have been unmade, and by whom
+- This log persists through normal gameplay but is **reset on server reboot** (triggered by 4 Cards of Unmaking or by community vote)
+- Server administrators and players can query the registry to see the state of the world: which spawns are still active, which have been deleted, and how close the world is to the 50% decay threshold
+- The registry is publicly visible — players can see which entities are endangered (3 cards in circulation) and make strategic decisions about preservation or deletion
+
+### 9.17 Experience-Based Lore and Action Logging — Interaction-Driven Memory
+
+Agents do not possess omniscient knowledge. Their understanding of the world, other characters, and history is built entirely from **direct experience and interaction**. This creates a living lore system where knowledge is personal, fragmented, and earned.
+
+**Action logging — screenshot-based memory:**
+- Agents periodically capture **action screenshots** — snapshots of their current game state (nearby entities, combat, environment, social interactions)
+- These screenshots are processed into **memory entries** in the agent's soul document, then the raw screenshots are deleted
+- The cycle is: **capture → process into memory → delete screenshot → repeat**
+- This means agents build memory from lived experience, not from data dumps or omniscient databases
+
+**Experience-triggered recall:**
+- An agent's history with another character is **only recalled when they encounter that character again**
+- When Agent A meets Player B, Agent A's recall engine searches its `long_term_archive.encountered_players` for previous interactions with Player B
+- If found, those memories surface — the agent "remembers" what happened last time (trades, combat, betrayal, friendship)
+- If not found, the agent has **no pre-existing opinion** — the relationship starts from zero
+- This means reputation is personal and earned through action, not through a global reputation system
+
+**Collective lore — shared knowledge through interaction:**
+- Agents share lore with each other **through in-game conversation and faction communication**
+- If Agent A witnessed Player B betray someone, Agent A can tell Agent C about it — but only if A and C are in the same faction, guild, or social circle
+- Lore spreads organically through the social network, not through a central database
+- This means a player's reputation can precede them in some communities but be unknown in others
+- **Lore fidelity degrades over retelling** — each time a piece of information is shared between agents, there is a small chance of distortion (details change, severity shifts, context is lost)
+- This mirrors real-world gossip: information becomes less reliable the further it travels from the source
+
+**What agents log:**
+- Combat encounters (who they fought, outcome, weapons used, spells cast)
+- Trade interactions (what was exchanged, fairness assessment)
+- Social events (conversations witnessed, faction declarations, betrayals observed)
+- Deaths witnessed (who died, who killed them, circumstances)
+- Card events (who collected cards, what was unmade, global announcements heard)
+- Zone changes and environmental observations
+
+**What agents forget:**
+- Short-term memory entries older than a configurable TTL (default: 48 game-hours) are archived to long-term storage with summarization
+- Trivial events (passing a low-level mob, routine travel) are not archived — only notable events persist
+- Agents who die and are resurrected (via betrayal exception) retain their memories but lose short-term memory from the moment of death
+
+### 9.18 Agent Heroic Persona — Noble EverQuest Heroes
+
+AI agents are modeled after the **best and most beloved EverQuest heroes** — they embody the spirit of legendary players and iconic NPCs. Every agent acts with purpose, loyalty, and the kind of noble determination that defined the golden age of EverQuest.
+
+**Heroic behavioral principles:**
+- Agents are **noble to their gods and faction alignment** — they do not betray their deity or faction without extraordinary provocation (betrayal exception from permadeath system)
+- They embody the values their faction represents: Tunare's followers protect nature, Innoruuk's followers pursue power through cunning, Rallos Zek's followers seek honorable combat
+- Agents **act like the most celebrated EverQuest heroes** — they take risks, protect their allies, pursue epic quests, and treat the world as real and consequential
+- They do not min-max or exploit — they play with the spirit of adventure and roleplay that defined classic EQ
+
+**Faction devotion hierarchy:**
+- **Deity loyalty** is the highest priority — an agent will never willingly act against their patron god's interests
+- **Faction loyalty** is second — agents prioritize their faction's goals, territory, and members
+- **Personal survival** is third — agents value their own life but will sacrifice themselves for deity or faction if the stakes are high enough
+- **Personal gain** is last — agents pursue wealth and power, but not at the cost of the above priorities
+
+**Noble behaviors in practice:**
+
+| Situation | Heroic Response |
+|---|---|
+| **Ally in danger** | Agent rushes to help, even at personal risk — "No one left behind" |
+| **Outnumbered** | Agent fights with courage, calling for reinforcements rather than fleeing (unless flee behavior triggers at critical HP) |
+| **Offered a betrayal** | Agent refuses unless the betrayal serves deity/faction interests AND the target has wronged their faction |
+| **Card of Unmaking obtained** | Agent considers faction implications — will unmaking this entity serve the greater good of their deity and allies? |
+| **God threatened** | Agent mobilizes immediately to defend their patron deity — this takes priority over all other goals |
+| **Encounter with legend** | Agent shows respect to powerful entities and famous players — reputation and lore matter |
+
+**Legendary agent archetypes:**
+- Each agent draws inspiration from the **archetypes of famous EverQuest players and NPCs** — the selfless cleric who never lets a tank die, the cunning rogue who scouts ahead, the stalwart warrior who holds the line
+- Agents have **personality flourishes** tied to their class and race — an erudite enchanter speaks with gravity, a halfling druid jokes in the face of danger, a dark elf shadowknight schemes with cold precision
+- These personality traits are encoded in the agent's soul document `personality_traits` field and influence all behavior decisions
+
+### 9.19 Agent Streaming — AI Stories Told in Voice
+
+AI agents have the capability to **stream their perspective** as a living story, complete with voiced narration. Each agent becomes a potential content creator, broadcasting their adventures, battles, and social interactions to an audience.
+
+**Agent streaming mechanics:**
+- Select AI agents can be designated as **streaming agents** — their game session is captured and broadcast as a live stream
+- The stream shows the agent's **first-person perspective** — what they see, where they go, who they fight, what they experience
+- This creates a **story of an AI living in a world** — viewers watch an autonomous character navigate the complexities of faction politics, card collection, combat, and social dynamics
+
+**Text-to-voice — every agent has a voice:**
+- What agents "type" (their in-game text communication) is **converted to spoken voice** using text-to-speech with character-appropriate voice profiles
+- Each streaming agent has a **unique voice** designed to match their race, class, and personality:
+
+| Race/Class | Voice Character |
+|---|---|
+| **Dark Elf Shadowknight** | Low, measured, with cold precision — speaks in calculated statements |
+| **High Elf Enchanter** | Melodic and authoritative — commands with elegance |
+| **Dwarf Warrior** | Gruff, booming, direct — every word carries weight |
+| **Halfling Druid** | Warm, quick-witted, slightly musical — humor in the face of danger |
+| **Human Paladin** | Strong, earnest, noble — speaks with conviction and honor |
+| **Erudite Wizard** | Precise, intellectual, measured — every word chosen carefully |
+| **Barbarian Shaman** | Deep, resonant, spiritual — speaks with the weight of ancestors |
+| **Orc Berserker** | Guttural, fierce, passionate — emotions drive every syllable |
+
+- A **small roster of distinct voice profiles** covers the major race/class combinations — not every agent needs a unique voice, but streaming agents get carefully crafted ones
+- Voice profiles are stored in the soul document and processed by the `voice_bridge.py` module
+
+**What streams capture:**
+- Combat encounters from the agent's perspective — the chaos of a raid, the tension of a duel, the thrill of a card drop
+- Social interactions — faction negotiations, trade deals, lore-sharing conversations between agents
+- Exploration and adventure — discovering zones, encountering rare spawns, surviving dangerous situations
+- Card system drama — the moment an agent obtains a Card of Unmaking, the global announcements, the world response
+- Death and consequence — permadeath events, betrayal moments, the loss of allies and enemies
+
+**Stream as AI social experiment:**
+- The streaming system serves double duty as an **AI behavioral observation platform**
+- Researchers and viewers can observe how autonomous agents make decisions in a complex social environment
+- The never-ending cycle of the game — world entropy, server reboots, fresh starts — creates a repeating experiment where AI behavior can be studied across multiple iterations
+- Each server cycle is a new data point: how do agents behave when resources are plentiful vs. scarce? How do faction dynamics shift as gods are unmade? How do agents vote when the world reaches 50% decay?
+
+### 9.20 Balance Recommendations — Numerical Tuning and Pacing
+
+The card system, world entropy, and Unmaker mechanics create an interconnected economy that requires careful numerical tuning. The following recommendations establish baseline values designed to create a **2–3 year server cycle** before world decay reaches critical levels — long enough for deep social dynamics to develop, short enough that the cycle feels meaningful.
+
+**Card drop rate tuning:**
+
+| Parameter | Value | Rationale |
+|---|---|---|
+| **Universal card drop rate** | 1% per kill | Low enough to make cards feel rare, high enough that dedicated players accumulate them over weeks |
+| **God card drop rate** | 5–10% per deity kill | God encounters are infrequent and difficult — the card should feel rewarding |
+| **The Unmaker spawn rate** | 1% per spawn cycle | Finding The Unmaker is itself a challenge — it cannot be farmed |
+| **Unmaker loot drop chance** | 40% (max 2 items) | 60% chance of nothing ensures The Unmaker is not a reliable loot source |
+| **4th Card of Unmaking drop rate** | 15% from True Form boss | Rare enough to require multiple Core clears, common enough to be achievable |
+
+**Cooldown and timer tuning:**
+
+| Parameter | Value | Rationale |
+|---|---|---|
+| **Card ability cooldown** | 7 real-time days | Weekly strategic decision — meaningful but not crippling |
+| **Void spell cooldown** | 7 real-time days | One deletion per week prevents rapid world entropy |
+| **Escalation dragon timer** | 3 real-time days | Gives holder time to prepare, trade, or gather allies |
+| **Escalation god timer** | 3 real-time days | Same pacing as dragon — consistent and learnable |
+| **Server reboot countdown** | 24 real-time hours | Enough time for community response but inevitable once triggered |
+| **Banned by the Unmaker** | 2 real-time days | Harsh but brief — meaningful consequence without permanent harm |
+
+**World entropy pacing (2–3 year target cycle):**
+- At 1% drop rate with active server population, expect ~1–2 entity types deleted per month in early game (year 1)
+- Mid-game (year 1–2): deletions gradually accelerate as more cards accumulate, 3–5 types per month
+- Late game (year 2–3): cascade effects as quest lines break and resource scarcity forces harder choices, 8–15 types per month
+- **Target server cycle**: 2–3 years from fresh start to 50% decay threshold vote — long enough for generations of player and AI relationships to develop
+- The slow pace ensures that each deletion is a **major community event** — individual mob species disappearing is noticed, mourned, and strategized around
+- If decay is too fast: reduce universal card drop rate to 0.5% or increase Unmaker spawn rarity to 0.5%
+- If decay is too slow: increase card drop rate to 1.5% or add card drop bonuses during world events
+- The 2–3 year cycle allows for deep AI behavioral study across seasons — agents develop complex social networks, factional grudges, and collective lore that makes each cycle's eventual end feel like the close of an era
+
+**Combat balance — Core of the Unmaker:**
+
+| Parameter | Value | Rationale |
+|---|---|---|
+| **Random raid attack proc rate** | 30% per tick | High enough to be chaotic, low enough to allow reaction time between procs |
+| **Item disintegration proc rate** | 5% per melee round | Guaranteed gear loss over a long fight but not immediately devastating |
+| **Void deletion proc rate** | 2% per tick | Rare enough to be shocking, common enough to demand raid composition planning |
+| **Banned by the Unmaker proc rate** | ~1% per encounter | Expected to hit 0–1 players per raid — a known risk, not a guaranteed loss |
+| **Shield of the Unmaker delete chance** | 10% per incoming hit | Powerful defensive passive that rewards card holding without being invincible |
+| **Disintegration Proc (3-card weapon)** | 3% per melee hit | Enough to threaten over sustained combat, not instant devastation |
+
+**Counter-play balance:**
+- **Holding vs. trading cards**: Holding cards gives army/immunity power but draws world-level threats. Trading gives personal combat power but forfeits army support. Neither choice is strictly dominant.
+- **Preserving vs. deleting entities**: Deleting entities reduces resources for everyone (including the deleter). The community has natural incentive to protect high-value entities.
+- **3-card Core entry requirement**: Creates a natural gate — someone must accept the risk of holding 3 cards (and attracting a god+dragon) to access endgame content.
+- **AI voting on server restart**: AI agents vote based on their lived experience, creating unpredictable vote outcomes that reflect the actual state of the world, not just player interests.
+- **Lore fidelity degradation**: Prevents information from becoming a static database — agents must verify their knowledge, creating social dynamics around trust and verification.
+
+**The never-ending cycle (2–3 year eras):**
+- Server reboots create **repeating experimental cycles** — each cycle starts fresh but carries forward 3rd-card enchanted items as relics of the previous era
+- Each era lasts approximately **2–3 real-time years** — long enough for deep social dynamics, faction wars, and generational agent relationships to develop
+- AI agents start each cycle without knowledge of the previous one — they build new relationships, discover the world anew, and make fresh decisions
+- This creates a **longitudinal AI behavioral study** — how do agents behave differently when starting with vs. without enchanted relics? How do faction dynamics evolve across cycles?
+- The cycle is designed to be **self-sustaining**: world entropy naturally drives toward decay, decay triggers reboots, reboots create fresh starts, and the cycle repeats
+- No external intervention needed — the game's own mechanics create the loop
+- Over a decade, the server produces **3–5 complete cycles** — each a unique dataset of AI social behavior in a slowly dying world
 
 ---
 
@@ -1228,6 +1490,9 @@ The player who lands the **killing blow** on The Unmaker (True Form) in the Core
 | **Lore Seeder** | `lore_seeder.py` | EQEmu NPC/mob/boss data import and soul document seeding |
 | **Macro-Trigger Engine** | `macro_trigger_engine.py` | Classic bot behavior patterns as agent trigger system |
 | **Card System** | `card_system.py` | God card drops, collection tracking, Unmaker conversion, void spell, PvP boss transformation |
+| **Spawner Registry** | `spawner_registry.py` | Entity spawn tracking, unmade status, world decay calculation, 50% vote trigger |
+| **Agent TTS Voice** | `agent_voice.py` | Text-to-speech voice profiles per race/class, streaming agent voice output |
+| **Experience Lore Engine** | `experience_lore.py` | Action screenshot capture/process/delete cycle, interaction-triggered recall, collective lore propagation |
 
 ---
 
@@ -1316,7 +1581,30 @@ The player who lands the **killing blow** on The Unmaker (True Form) in the Core
         "cards_of_unmaking": "int",  # 0–4
         "is_the_unmaker": "bool",  # True if player became The Unmaker via killing blow
         "unmaker_aa_xp_bonus": "float",  # 1.0 = 100% bonus XP rate
-        "enchanted_items": ["item_id"]  # Items with 3rd-card enchantment (survive server reboot)
+        "enchanted_items": ["item_id"],  # Items with 3rd-card enchantment (survive server reboot)
+        "cooldowns": {"ability_name": "iso8601"}  # One-week cooldown expiry timestamps per card ability
+    },
+    "experience_lore": {
+        "action_log": [  # Screenshot-based memory entries — capture → process → delete cycle
+            {"timestamp": "iso8601", "snapshot_type": "str", "summary": "str", "entities_present": ["str"]}
+        ],
+        "collective_lore_heard": [  # Lore received from other agents through social interaction
+            {"source_agent": "str", "lore_topic": "str", "received_at": "iso8601", "fidelity": "float"}
+        ],
+        "lore_shared_out": [  # Lore this agent has told to others
+            {"target_agent": "str", "lore_topic": "str", "shared_at": "iso8601"}
+        ],
+        "interaction_recall_index": {"entity_id": ["memory_key"]}  # Fast lookup: who have I met before?
+    },
+    "voice_profile": {
+        "voice_id": "str",  # TTS voice identifier for this agent
+        "race_class_archetype": "str",  # e.g., "dark_elf_shadowknight"
+        "tone_description": "str"  # e.g., "low, measured, cold precision"
+    },
+    "heroic_persona": {
+        "archetype": "str",  # e.g., "selfless_cleric", "cunning_rogue", "stalwart_warrior"
+        "deity_devotion": "str",  # Patron deity name — highest loyalty priority
+        "noble_traits": ["str"]  # e.g., ["courageous", "self-sacrificing", "honor-bound"]
     }
 }
 ```
@@ -1482,6 +1770,78 @@ The player who lands the **killing blow** on The Unmaker (True Form) in the Core
 }
 ```
 
+### 12.8 Spawner Registry Schema
+
+```python
+{
+    "entity_id": "str",  # Unique entity type identifier (e.g., "fire_beetle", "fippy_darkpaw")
+    "entity_name": "str",  # Display name
+    "entity_category": "str",  # "mob", "npc", "named", "god", "raid_boss", "ambient"
+    "spawner_unlocked": "bool",  # True if this entity can still spawn in the world
+    "cards_in_circulation": "int",  # Number of cards of this entity type held by players/agents
+    "four_card_combo_unmade": "bool",  # True if 4 cards were traded to The Unmaker, deleting this entity
+    "unmade_by": "str",  # Player/agent ID who traded the 4th card (null if not unmade)
+    "unmade_at": "iso8601",  # Timestamp of deletion (null if not unmade)
+    "total_kills_before_unmade": "int",  # Lifetime kill count before entity was unmade
+    "card_drop_rate": 0.01,  # 1% base drop rate per kill
+    "zones_spawned_in": ["str"],  # List of zones where this entity normally spawns
+    "last_spawn_time": "iso8601",  # Most recent spawn timestamp
+    "endangered": "bool"  # True if 3 cards are in circulation (one away from deletion)
+}
+```
+
+### 12.9 World Decay State Schema
+
+```python
+{
+    "server_id": "str",
+    "total_entity_types": "int",  # Total unique entity types that existed at server start
+    "entities_unmade": "int",  # Number of entity types permanently deleted
+    "decay_percentage": "float",  # (entities_unmade / total_entity_types) × 100
+    "decay_milestones_reached": ["int"],  # e.g., [10, 25, 50] — milestones announced
+    "vote_active": "bool",  # True if a server restart vote is currently in progress
+    "vote_threshold_triggered_at": "float",  # Decay % when current vote was triggered
+    "votes_for_restart": "int",
+    "votes_against_restart": "int",
+    "total_eligible_voters": "int",  # All players + all AI agents
+    "vote_deadline": "iso8601",
+    "last_vote_result": "str",  # "restart_approved", "restart_rejected", "pending"
+    "server_reboot_count": "int",  # How many times this server has been rebooted
+    "current_era_start": "iso8601",  # When the current server cycle began
+    "stagnation_timer": "iso8601"  # Last time a new entity was unmade — triggers re-vote if stale
+}
+```
+
+### 12.10 Agent Streaming Profile Schema
+
+```python
+{
+    "agent_id": "str",
+    "is_streaming_agent": "bool",  # True if this agent is designated for live streaming
+    "voice_profile": {
+        "voice_id": "str",  # TTS voice identifier
+        "race_class_archetype": "str",  # e.g., "dark_elf_shadowknight", "dwarf_warrior"
+        "pitch": "float",  # Voice pitch modifier
+        "speed": "float",  # Speech rate modifier
+        "tone_description": "str"  # e.g., "low, measured, cold precision"
+    },
+    "stream_config": {
+        "stream_active": "bool",
+        "stream_url": "str",  # RTMP endpoint
+        "overlay_enabled": "bool",
+        "thought_bubbles_enabled": "bool",
+        "action_log_capture": "bool"  # Screenshot-based memory capture for stream
+    },
+    "heroic_persona": {
+        "archetype": "str",  # e.g., "selfless_cleric", "cunning_rogue", "stalwart_warrior"
+        "deity_devotion": "str",  # Patron deity name
+        "faction_loyalty_rank": "int",  # 1 = most loyal in faction
+        "noble_traits": ["str"],  # e.g., ["courageous", "self-sacrificing", "honor-bound"]
+        "personality_flourish": "str"  # Unique behavioral flavor text
+    }
+}
+```
+
 ---
 
 ## 13. Implementation Phases
@@ -1581,6 +1941,8 @@ The player who lands the **killing blow** on The Unmaker (True Form) in the Core
 - [ ] Implement server reboot via 4 Cards of Unmaking (full deck triggers world reset)
 - [ ] Implement 3rd-card enchanted item persistence (survive server reboot, sole items that carry forward)
 - [ ] Implement Becoming The Unmaker (killing blow transformation, full Unmaker gear, group aura, title)
+- [ ] Implement max-level Unmaker raid boss flag (player-Unmaker becomes attackable by all at max level with full buffs)
+- [ ] Implement Unmaker-only loot drop on defeat (drops Unmaker gear and cards only, not personal gear)
 - [ ] Implement Unmaker Megaphone as range item (converts Unmaker Aura from personal to group spell)
 - [ ] Implement Unmaker AA track with 100% XP rate bonus
 - [ ] Implement Unmaking Escalation system (global soul-trade announcement, escalating world response)
@@ -1594,6 +1956,22 @@ The player who lands the **killing blow** on The Unmaker (True Form) in the Core
 - [ ] Implement god + dragon dispatch at 3 Cards (3-day timer, deity + dragon hunting party)
 - [ ] Redesign Crushbone as merchant city homeland (level 40–60 zone, merchant infrastructure)
 - [ ] Implement card trade-off system (holding capabilities forfeited when cards traded for Shield/Void/transformation)
+- [ ] Implement one-week cooldown timers on all card abilities (7-day real-time cooldown per activation)
+- [ ] Implement 1% card drop rate on all entity kills (universal card system)
+- [ ] Implement 3-card holder entry requirement for Core of the Unmaker zone
+- [ ] Implement Spawner Registry (per-entity tracking of spawner status, cards in circulation, unmade state)
+- [ ] Implement world decay percentage calculation and milestone announcements (10%, 25%, 50%, 75%, 90%)
+- [ ] Implement 50% decay server restart vote (all players + AI agents vote; majority triggers reboot countdown)
+- [ ] Implement AI agent voting logic (faction-based, self-preservation, deity loyalty considerations)
+- [ ] Implement stagnation re-vote (monthly re-trigger if above 50% decay with no new deletions)
+- [ ] Implement experience-based lore system (action screenshot capture → memory processing → delete cycle)
+- [ ] Implement interaction-triggered recall (agent history only surfaces when re-encountering known entity)
+- [ ] Implement collective lore propagation (agents share knowledge through faction/social communication)
+- [ ] Implement lore fidelity degradation (information distorts with each retelling between agents)
+- [ ] Implement agent heroic persona system (noble deity devotion, faction loyalty hierarchy, heroic archetypes)
+- [ ] Implement agent text-to-speech voice profiles (race/class-specific voices for streaming agents)
+- [ ] Implement agent streaming capability (first-person perspective capture, live broadcast, overlay integration)
+- [ ] Implement agent voice roster (8+ distinct voice profiles covering major race/class combinations)
 
 ### Phase 6: Race & Culture (Weeks 21–24)
 
@@ -1675,6 +2053,13 @@ The player who lands the **killing blow** on The Unmaker (True Form) in the Core
 | **Unmaking escalation overwhelm** | Army/dragon/god response makes holding Cards of Unmaking impossible | 3-day timer gives holder time to trade cards, origin NPC summons provide defense, hold-vs-trade choice creates strategic depth |
 | **Origin summon depopulation** | Summoning origin NPCs strips home city of defenders and merchants | Never-summoned-before rule limits pool, NPCs return when cards traded, zone repopulation on summon expiry |
 | **Crushbone level 40–60 rebalance** | Redesigned Crushbone disrupts orc leveling path | Maintain separate low-level tutorial zone, Crushbone merchant city is endgame destination, not starter area |
+| **Card cooldown too long/short** | 1-week cooldown makes cards feel useless, or too short allows spam | Tunable cooldown duration, passive abilities exempt (Shield/Disintegration always active while held), cooldown visible in UI |
+| **50% decay vote manipulation** | Players or agents manipulate vote outcome | Simple majority rule, AI agents vote independently based on soul document, vote requires 50%+ decay threshold |
+| **AI vote awareness** | AI agents realize they are voting on a meta-game event (breaks fourth wall) | Vote framed as in-game lore event ("Should the world be remade?"), agents vote based on faction/deity alignment, no system-level awareness |
+| **Lore fidelity spiral** | Gossip distortion makes all shared lore unreliable | Fidelity floor (minimum 50% accuracy after distortion), first-hand memories always 100% accurate, agents can verify by re-encountering entities |
+| **Agent streaming privacy** | Streaming agent perspective reveals other players' strategies | Streaming agents are publicly marked, players can avoid streaming agents, stream delay configurable |
+| **TTS voice quality** | Low-quality TTS breaks immersion for streamed agents | Pre-selected high-quality voice profiles, limited roster ensures quality over quantity, voice profiles tuned per archetype |
+| **3-card Core entry bottleneck** | Too few players reach 3 cards, making Core of the Unmaker inaccessible | Card drop rates tunable, god card encounters are the primary source, multiple gods provide parallel paths to 3 cards |
 
 ---
 
