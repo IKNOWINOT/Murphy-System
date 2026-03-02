@@ -2142,9 +2142,9 @@ Every entity in the game has card effects **automatically generated** from an **
 - [x] Implement agent self-preservation and flee behavior (flee on "run" command, healer death, group wipe)
 - [x] Implement flee exception for hybrid healer sustain (beastlord, druid, Sourcerior pet heals)
 - [x] Implement duel challenge and loot system
-- [ ] Implement inspect asymmetry (agent knowledge base gating)
-- [ ] Implement town conquest system (leadership and guards as defenders)
-- [ ] Voice chat integration with group/raid toggles
+- [x] Implement inspect asymmetry (agent knowledge base gating)
+- [x] Implement town conquest system (leadership and guards as defenders)
+- [x] Voice chat integration with group/raid toggles
 - [x] Implement NPC daily routine system (sleep, work, adventure cycles)
 - [x] Implement building ownership and job role assignment for NPCs
 - [x] Implement caste system hierarchy (royal, noble, commoner, dhampir, servant) with advancement
@@ -2223,7 +2223,7 @@ Every entity in the game has card effects **automatically generated** from an **
 - [x] Implement lore fidelity degradation (information distorts with each retelling between agents)
 - [x] Implement agent heroic persona system (noble deity devotion, faction loyalty hierarchy, heroic archetypes)
 - [x] Implement agent text-to-speech voice profiles (race/class-specific voices for streaming agents)
-- [ ] Implement agent streaming capability (first-person perspective capture, live broadcast, overlay integration)
+- [x] Implement agent streaming capability (first-person perspective capture, live broadcast, overlay integration)
 - [x] Implement agent voice roster (8+ distinct voice profiles covering major race/class combinations)
 - [x] Implement NPC card effect generation system (identity template → 4-tier effect progression for every entity)
 - [x] Implement tier 1 combat spell effects (conditional 24-hour cooldown spells themed to NPC weapon/combat style)
