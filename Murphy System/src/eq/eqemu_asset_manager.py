@@ -155,6 +155,12 @@ _RELEASE_URL_TEMPLATE = (
     "https://github.com/{owner}/{repo}/releases/download/{tag}/{asset}"
 )
 
+# Platform-specific release asset filenames
+PLATFORM_RELEASE_ASSETS = {
+    "linux-x64": "eqemu-server-linux-x64.zip",
+    "windows-x64": "eqemu-server-windows-x64.zip",
+}
+
 
 # ---------------------------------------------------------------------------
 # Manager
@@ -305,7 +311,11 @@ class EQEmuAssetManager:
             url = self.get_release_url(component)
             if url is None:
                 return f"echo 'No release URL available for {component.value}'"
-            return f"curl -fSL -o {dest}.zip {url} && unzip -qo {dest}.zip -d {dest}"
+            return (
+                f"curl -fSL -o {dest}.zip {url} "
+                f"&& unzip -qo {dest}.zip -d {dest} "
+                f"&& rm -f {dest}.zip"
+            )
 
         if method is DownloadMethod.DOCKER_COMPOSE:
             return (
@@ -315,19 +325,30 @@ class EQEmuAssetManager:
 
         return f"echo 'Unsupported method for {component.value}'"
 
-    def get_release_url(self, component: EQEmuComponent) -> Optional[str]:
+    def get_release_url(
+        self,
+        component: EQEmuComponent,
+        platform: str = "linux-x64",
+    ) -> Optional[str]:
         """Return the GitHub release download URL for *component*, if any.
 
         Only components with a ``release_tag`` on their ``AssetSource``
         produce a URL.  Currently this applies to ``SERVER_BINARY``.
+
+        *platform* selects the binary variant (``linux-x64`` or
+        ``windows-x64``).
         """
         source = EQEMU_ASSET_SOURCES[component]
         if source.release_tag is None:
             return None
 
+        asset_name = PLATFORM_RELEASE_ASSETS.get(
+            platform,
+            PLATFORM_RELEASE_ASSETS["linux-x64"],
+        )
         return _RELEASE_URL_TEMPLATE.format(
             owner=source.repo_owner,
             repo=source.repo_name,
             tag=source.release_tag,
-            asset="eqemu-server-linux-x64.zip",
+            asset=asset_name,
         )
