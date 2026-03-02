@@ -404,13 +404,27 @@ class DialogContext:
         recs = self._infer_integrations()
         if recs:
             msg += "[bold cyan]Recommended integrations based on your answers:[/bold cyan]\n"
-            for svc_key, info in recs.items():
+            for i, (svc_key, info) in enumerate(recs.items(), 1):
                 msg += (
-                    f"  • [bold]{info['name']}[/bold] — {info['description']}\n"
-                    f"    Get your key: [link={info['url']}]{info['url']}[/link]\n"
-                    f"    Set: [green]{info['env_var']}[/green]\n"
+                    f"  {i}. [bold]{info['name']}[/bold] — {info['description']}\n"
+                    f"     Get your key: [link={info['url']}]{info['url']}[/link]\n"
+                    f"     Set: [green]{info['env_var']}[/green]\n"
                 )
-            msg += "\n"
+            msg += (
+                "\n[bold cyan]What to do next:[/bold cyan]\n"
+                "  1. Sign up for the API keys listed above (links provided)\n"
+                "  2. Set each as an environment variable (e.g. [green]export GROQ_API_KEY=gsk_...[/green])\n"
+                "  3. Restart Murphy to pick up the new keys\n"
+                "  4. Type [green]status[/green] to verify everything is connected\n"
+                "  5. Type [green]execute <your first task>[/green] to start automating!\n\n"
+            )
+        else:
+            msg += (
+                "[bold cyan]What to do next:[/bold cyan]\n"
+                "  1. Type [green]status[/green] to verify the system is ready\n"
+                "  2. Type [green]execute <your first task>[/green] to start automating\n"
+                "  3. Type [green]api keys[/green] if you need integration credentials\n\n"
+            )
         msg += (
             "Type [green]confirm[/green] to proceed, [green]edit[/green] to change answers, "
             "or [green]restart[/green] to start over.\n"
@@ -419,8 +433,16 @@ class DialogContext:
         return msg
 
     def _infer_integrations(self) -> dict[str, dict[str, str]]:
-        """Analyze collected answers and return matching API_PROVIDER_LINKS entries."""
+        """Analyze collected answers and return matching API_PROVIDER_LINKS entries.
+
+        Uses three inference levels:
+          1. **Keyword matching** — direct mentions of platforms
+          2. **Workflow action mapping** — infers APIs from described actions
+          3. **Business goal mapping** — infers APIs from high-level goals
+        """
         combined = " ".join(str(v) for v in self.collected.values()).lower()
+
+        # Level 1: Direct keyword matching
         keyword_map = {
             "email": ["sendgrid", "google"],
             "gmail": ["google"],
@@ -441,13 +463,64 @@ class DialogContext:
             "marketing": ["sendgrid", "hubspot"],
             "google": ["google"],
             "sheets": ["google"],
+            "jira": ["jira"],
+            "notion": ["notion"],
         }
+
+        # Level 2: Workflow action → API inference
+        action_map = {
+            "send email": ["sendgrid", "google"],
+            "send notification": ["sendgrid", "slack"],
+            "send message": ["slack", "twilio"],
+            "notify team": ["slack", "sendgrid"],
+            "post to channel": ["slack"],
+            "create issue": ["github", "jira"],
+            "open ticket": ["jira", "github"],
+            "pull request": ["github"],
+            "deploy": ["github"],
+            "track leads": ["hubspot", "salesforce"],
+            "lead scoring": ["hubspot", "salesforce"],
+            "process payment": ["stripe"],
+            "online store": ["shopify", "stripe"],
+            "schedule meeting": ["google"],
+            "social media": ["zapier"],
+            "automate workflow": ["zapier"],
+        }
+
+        # Level 3: Business goal → API inference
+        goal_map = {
+            "increase sales": ["hubspot", "sendgrid", "stripe"],
+            "grow revenue": ["hubspot", "sendgrid", "stripe"],
+            "reduce costs": ["zapier", "google"],
+            "automate operations": ["zapier", "slack", "github"],
+            "customer support": ["hubspot", "slack", "sendgrid"],
+            "devops": ["github", "slack", "jira"],
+            "software development": ["github", "jira", "slack"],
+            "team collaboration": ["slack", "notion", "google"],
+            "lead generation": ["hubspot", "sendgrid"],
+        }
+
         matched: dict[str, dict[str, str]] = {}
+
+        def _add(pk: str) -> None:
+            if pk not in matched and pk in API_PROVIDER_LINKS:
+                matched[pk] = API_PROVIDER_LINKS[pk]
+
         for keyword, provider_keys in keyword_map.items():
             if keyword in combined:
                 for pk in provider_keys:
-                    if pk not in matched and pk in API_PROVIDER_LINKS:
-                        matched[pk] = API_PROVIDER_LINKS[pk]
+                    _add(pk)
+
+        for action, provider_keys in action_map.items():
+            if action in combined:
+                for pk in provider_keys:
+                    _add(pk)
+
+        for goal, provider_keys in goal_map.items():
+            if goal in combined:
+                for pk in provider_keys:
+                    _add(pk)
+
         # Always recommend LLM if not configured
         if "groq" not in matched:
             llm_provider = os.environ.get("MURPHY_LLM_PROVIDER", "").strip()

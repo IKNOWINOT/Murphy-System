@@ -1094,6 +1094,62 @@ class TestApiKeysIntentDetection:
 
 
 # ---------------------------------------------------------------------------
+# Workflow-aware integration inference
+# ---------------------------------------------------------------------------
+
+
+class TestWorkflowActionInferenceTerminal:
+    """Test that workflow ACTIONS trigger integration inference in terminal."""
+
+    def test_send_email_action_infers_sendgrid(self):
+        dc = DialogContext()
+        dc.collected = {"business_goal": "send email campaigns to customers"}
+        recs = dc._infer_integrations()
+        assert "sendgrid" in recs or "google" in recs
+
+    def test_post_to_channel_infers_slack(self):
+        dc = DialogContext()
+        dc.collected = {"use_case": "post to channel when builds complete"}
+        recs = dc._infer_integrations()
+        assert "slack" in recs
+
+    def test_create_issue_infers_jira_or_github(self):
+        dc = DialogContext()
+        dc.collected = {"use_case": "create issue when bug detected"}
+        recs = dc._infer_integrations()
+        assert "jira" in recs or "github" in recs
+
+    def test_goal_increase_sales_infers_crm(self):
+        dc = DialogContext()
+        dc.collected = {"business_goal": "increase sales by 30%"}
+        recs = dc._infer_integrations()
+        assert "hubspot" in recs
+
+    def test_goal_devops_infers_github(self):
+        dc = DialogContext()
+        dc.collected = {"business_goal": "devops automation"}
+        recs = dc._infer_integrations()
+        assert "github" in recs
+        assert "slack" in recs
+
+    def test_completion_message_has_next_steps(self):
+        dc = DialogContext()
+        dc.collected = {"platforms": "Slack, email", "business_goal": "automate operations"}
+        dc.step_index = len(dc.INTERVIEW_STEPS)
+        msg = dc._complete_message()
+        assert "What to do next" in msg
+        assert "Restart Murphy" in msg
+
+    def test_completion_message_numbers_integrations(self):
+        dc = DialogContext()
+        dc.collected = {"platforms": "email, Slack"}
+        dc.step_index = len(dc.INTERVIEW_STEPS)
+        msg = dc._complete_message()
+        # Should have numbered list (1., 2., etc)
+        assert "1." in msg
+
+
+# ---------------------------------------------------------------------------
 # Enhanced interview steps
 # ---------------------------------------------------------------------------
 

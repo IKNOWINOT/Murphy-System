@@ -565,5 +565,161 @@ class TestMurphyGateStringPhase(unittest.TestCase):
         self.assertTrue(result.allowed)
 
 
+class TestApiKeysIntentRouting(unittest.TestCase):
+    """Test that 'api keys' is a recognised intent in the runtime."""
+
+    def setUp(self):
+        self.murphy = MurphySystem()
+        self.sid = "test-api-keys-intent"
+
+    def test_api_keys_intent_detected(self):
+        """'api keys' should be detected as the 'api_keys' intent."""
+        intent = self.murphy._detect_intent("api keys")
+        self.assertEqual(intent, "api_keys")
+
+    def test_api_key_singular_detected(self):
+        intent = self.murphy._detect_intent("api key")
+        self.assertEqual(intent, "api_keys")
+
+    def test_get_api_detected(self):
+        intent = self.murphy._detect_intent("get api")
+        self.assertEqual(intent, "api_keys")
+
+    def test_signup_links_detected(self):
+        intent = self.murphy._detect_intent("signup links")
+        self.assertEqual(intent, "api_keys")
+
+    def test_api_keys_returns_response(self):
+        """Typing 'api keys' should return a response with signup links."""
+        result = self.murphy.handle_chat("api keys", session_id=self.sid, use_mfgc=False)
+        self.assertTrue(result["success"])
+        self.assertIn("Signup", result["message"])
+        self.assertIn("Groq", result["message"])
+
+    def test_api_keys_after_onboarding_shows_tailored_recs(self):
+        """After onboarding with context, 'api keys' should show tailored recs."""
+        # Run onboarding
+        self.murphy.handle_chat("start interview", session_id=self.sid, use_mfgc=False)
+        self.murphy.handle_chat("Acme Corp, email marketing", session_id=self.sid, use_mfgc=False)
+        self.murphy.handle_chat("US", session_id=self.sid, use_mfgc=False)
+        self.murphy.handle_chat("email, Slack", session_id=self.sid, use_mfgc=False)
+        self.murphy.handle_chat("send email campaigns", session_id=self.sid, use_mfgc=False)
+        result = self.murphy.handle_chat("yes", session_id=self.sid, use_mfgc=False)
+        # Now ask for api keys
+        result = self.murphy.handle_chat("api keys", session_id=self.sid, use_mfgc=False)
+        self.assertTrue(result["success"])
+        # Should include tailored recs based on "email" and "Slack"
+        self.assertIn("Recommended", result["message"])
+
+
+class TestWorkflowAwareInference(unittest.TestCase):
+    """Test that inference picks up workflow ACTIONS, not just keyword mentions."""
+
+    def setUp(self):
+        self.murphy = MurphySystem()
+
+    def test_send_email_action_infers_sendgrid(self):
+        """'send email' workflow action should trigger SendGrid recommendation."""
+        recs = self.murphy.infer_needed_integrations({
+            "automation_design": "When a new lead comes in, send email to the sales team"
+        })
+        services = [r["service"] for r in recs]
+        self.assertIn("sendgrid", services)
+
+    def test_post_to_channel_infers_slack(self):
+        """'post to channel' action should trigger Slack recommendation."""
+        recs = self.murphy.infer_needed_integrations({
+            "automation_design": "Post to channel when build fails"
+        })
+        services = [r["service"] for r in recs]
+        self.assertIn("slack", services)
+
+    def test_create_issue_infers_github_or_jira(self):
+        """'create issue' action should trigger GitHub/Jira recommendation."""
+        recs = self.murphy.infer_needed_integrations({
+            "automation_design": "Create issue when a critical bug is detected"
+        })
+        services = [r["service"] for r in recs]
+        self.assertTrue("github" in services or "jira" in services)
+
+    def test_process_payment_infers_stripe(self):
+        recs = self.murphy.infer_needed_integrations({
+            "automation_design": "Process payment when order confirmed"
+        })
+        services = [r["service"] for r in recs]
+        self.assertIn("stripe", services)
+
+    def test_goal_increase_sales_infers_crm(self):
+        """Business goal 'increase sales' should trigger CRM/email recs."""
+        recs = self.murphy.infer_needed_integrations({
+            "signup": "We want to increase sales by 30%"
+        })
+        services = [r["service"] for r in recs]
+        self.assertIn("hubspot", services)
+        self.assertIn("sendgrid", services)
+
+    def test_goal_devops_infers_github_slack(self):
+        """Business goal 'devops' should trigger GitHub/Slack recs."""
+        recs = self.murphy.infer_needed_integrations({
+            "signup": "We need a devops automation solution"
+        })
+        services = [r["service"] for r in recs]
+        self.assertIn("github", services)
+        self.assertIn("slack", services)
+
+    def test_recommendations_have_reason_field(self):
+        """Every recommendation should explain WHY it was recommended."""
+        recs = self.murphy.infer_needed_integrations({
+            "automation_design": "Send email to notify team when build completes"
+        })
+        for rec in recs:
+            self.assertIn("reason", rec)
+            self.assertTrue(len(rec["reason"]) > 0)
+
+
+class TestLibrarianFlowEnrichment(unittest.TestCase):
+    """Test that the Librarian provides enrichment hints during onboarding."""
+
+    def setUp(self):
+        self.murphy = MurphySystem()
+        self.sid = "test-librarian-enrich"
+
+    def test_setup_stage_triggers_librarian_hint(self):
+        """After providing setup info mentioning services, librarian should hint."""
+        self.murphy.handle_chat("start interview", session_id=self.sid, use_mfgc=False)
+        self.murphy.handle_chat("Acme Corp, email@acme.com, increase sales", session_id=self.sid, use_mfgc=False)
+        self.murphy.handle_chat("US", session_id=self.sid, use_mfgc=False)
+        result = self.murphy.handle_chat("email, Slack, GitHub", session_id=self.sid, use_mfgc=False)
+        # After setup stage, librarian should provide a hint
+        msg = result["message"]
+        self.assertIn("Librarian note", msg)
+
+    def test_onboarding_completion_has_next_steps(self):
+        """Onboarding completion should include numbered next steps."""
+        self.murphy.handle_chat("start interview", session_id=self.sid, use_mfgc=False)
+        self.murphy.handle_chat("Acme Corp", session_id=self.sid, use_mfgc=False)
+        self.murphy.handle_chat("US", session_id=self.sid, use_mfgc=False)
+        self.murphy.handle_chat("email, Slack", session_id=self.sid, use_mfgc=False)
+        self.murphy.handle_chat("send notifications", session_id=self.sid, use_mfgc=False)
+        result = self.murphy.handle_chat("yes", session_id=self.sid, use_mfgc=False)
+        msg = result["message"]
+        self.assertIn("What to do next", msg)
+        self.assertIn("Restart Murphy", msg)
+
+    def test_onboarding_completion_has_integration_recommendations(self):
+        """Completion with email/Slack mentions should recommend those APIs."""
+        self.murphy.handle_chat("start interview", session_id=self.sid, use_mfgc=False)
+        self.murphy.handle_chat("Company with email marketing", session_id=self.sid, use_mfgc=False)
+        self.murphy.handle_chat("US", session_id=self.sid, use_mfgc=False)
+        self.murphy.handle_chat("email, GitHub", session_id=self.sid, use_mfgc=False)
+        self.murphy.handle_chat("automate deployments", session_id=self.sid, use_mfgc=False)
+        result = self.murphy.handle_chat("yes", session_id=self.sid, use_mfgc=False)
+        msg = result["message"]
+        self.assertIn("Onboarding complete", msg)
+        # Should recommend email and GitHub services
+        self.assertTrue("SendGrid" in msg or "Google" in msg)
+        self.assertIn("GitHub", msg)
+
+
 if __name__ == "__main__":
     unittest.main()
