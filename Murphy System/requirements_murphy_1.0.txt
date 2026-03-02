@@ -97,6 +97,7 @@ rich>=13.7.0
 textual>=1.0.0
 pyfiglet>=1.0.0
 tqdm>=4.66.0
+pyperclip>=1.8.0  # Optional: clipboard paste support in terminal UI
 
 # Date & Time
 python-dateutil>=2.8.2
