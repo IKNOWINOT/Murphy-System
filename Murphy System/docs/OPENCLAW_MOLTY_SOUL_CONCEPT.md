@@ -93,12 +93,29 @@ The game agent soul extends the Rosetta soul pattern with game-specific layers:
 │   Social/economic systems grounded in canonical EQ lore        │
 ├────────────────────────────────────────────────────────────────┤
 │ CARD COLLECTION LAYER                                           │
-│   Universal cards: every entity drops cards with minor effects  │
+│   Universal cards: every entity drops cards (1% rate), minor fx │
 │   God cards: deity cards unlock skill, buff, enchantment, void │
+│   All card abilities: 1-week real-time cooldown                │
 │   4 universal cards = entity deleted from game (world entropy) │
 │   4 Cards of Unmaking = server reboot (3-card items survive)   │
+│   Spawner Registry: per-entity log of unmade status + cards    │
+│   50% decay = server-wide vote (players + AI agents vote)      │
+│   Core of the Unmaker: requires 3-card holder to enter         │
 │   Killing blow on Unmaker = become "[Name] the Unmaker"        │
 │   Unmaker AA: 100% XP rate, full Unmaker gear + group aura    │
+├────────────────────────────────────────────────────────────────┤
+│ EXPERIENCE-BASED LORE LAYER                                     │
+│   Action screenshots: capture → process to memory → delete     │
+│   Interaction-triggered recall: history only on re-encounter   │
+│   Collective lore: shared through social interaction only      │
+│   Lore fidelity degrades with each retelling between agents    │
+├────────────────────────────────────────────────────────────────┤
+│ HEROIC PERSONA & VOICE LAYER                                    │
+│   Noble devotion hierarchy: deity → faction → survival → gain  │
+│   Heroic archetypes: selfless cleric, cunning rogue, etc.     │
+│   Text-to-speech voice profiles per race/class archetype       │
+│   Streaming agents: first-person perspective broadcast         │
+│   AI social experiment: observable across server cycles        │
 ├────────────────────────────────────────────────────────────────┤
 │ DEATH STATE                                                     │
 │   Alive/dead status, death cause, killer identity               │
@@ -472,6 +489,10 @@ The **sole exception** to permadeath is **betrayal**. If an agent was killed thr
 | Macro-Trigger | `macro_trigger_engine.py` | Classic bot behavior patterns (assist, follow, engage, heal, debuff) |
 | Lore-Seed | `lore_seeder.py` | EQEmu NPC/mob/boss data import and soul document pre-population |
 | Card Collection | `card_system.py` | Universal/god card tracking, world entropy, Unmaker conversion, server reboot |
+| Spawner Registry | `spawner_registry.py` | Per-entity spawn tracking, unmade status, world decay %, 50% vote trigger |
+| Experience Lore | `experience_lore.py` | Action screenshot memory cycle, interaction recall, collective lore propagation |
+| Agent Voice | `agent_voice.py` | Text-to-speech voice profiles per race/class, streaming agent voice output |
+| Heroic Persona | `persona_injector.py` | Noble deity devotion, faction loyalty hierarchy, heroic archetypes |
 
 ### 8.2 Persistence Strategy
 
