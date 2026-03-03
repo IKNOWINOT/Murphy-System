@@ -273,6 +273,14 @@ def create_auar_router(components: Optional[AUARComponents] = None):
     Returns ``None`` gracefully if FastAPI is not installed, so callers
     that only need the handler functions are not forced to depend on
     FastAPI.
+
+    Security Note:
+        This module returns an APIRouter. The parent FastAPI application
+        that mounts this router MUST apply security hardening via
+        :func:`fastapi_security.configure_secure_fastapi` to enforce
+        authentication, CORS, and rate limiting.  See
+        :func:`create_secure_auar_app` for a convenience wrapper that
+        does this automatically.
     """
     try:
         from fastapi import APIRouter, Request
@@ -315,3 +323,40 @@ def create_auar_router(components: Optional[AUARComponents] = None):
         return JSONResponse(content=handle_health(components))
 
     return router
+
+
+def create_secure_auar_app(components: Optional[AUARComponents] = None):
+    """Create a security-hardened FastAPI application with AUAR endpoints.
+
+    Convenience wrapper that:
+      1. Creates a :class:`FastAPI` application.
+      2. Applies :func:`fastapi_security.configure_secure_fastapi`
+         (CORS, API-key auth, rate limiting, security headers).
+      3. Mounts the AUAR router.
+
+    Returns ``None`` if FastAPI is not installed.
+    """
+    try:
+        from fastapi import FastAPI as _FastAPI
+    except ImportError:
+        logger.warning("FastAPI not installed — secure AUAR app unavailable.")
+        return None
+
+    router = create_auar_router(components)
+    if router is None:
+        return None
+
+    app = _FastAPI(title="AUAR API", version="0.1.0")
+
+    # Apply security hardening (SEC-001, SEC-002, SEC-004)
+    try:
+        from fastapi_security import configure_secure_fastapi
+        configure_secure_fastapi(app, service_name="auar-api")
+    except ImportError:
+        logger.warning(
+            "CRITICAL: fastapi_security not available — "
+            "AUAR app running WITHOUT authentication, CORS, or rate limiting."
+        )
+
+    app.include_router(router)
+    return app
