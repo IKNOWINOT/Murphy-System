@@ -1,15 +1,53 @@
 """
-LLM Output Schema Validation (GAP-3).
+LLM Output Schema Validation (GAP-3 / CFP-6).
 
 Defines Pydantic models for each structured LLM output type and provides
 an :class:`LLMOutputValidator` that validates raw dicts against these schemas,
 returning ``(is_valid, parsed_model_or_None, list_of_errors)``.
+
+Also exposes :class:`LLMOutputEnvelope` and :class:`ValidationResult` for
+envelope-level validation workflows (Gap CFP-6).
 """
 
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 try:
     from pydantic import BaseModel, Field, ValidationError, field_validator
+
+    # ------------------------------------------------------------------
+    # Envelope-level models (CFP-6)
+    # ------------------------------------------------------------------
+
+    class ValidationResult(BaseModel):
+        """Result of validating an LLM output envelope."""
+
+        valid: bool
+        errors: List[str] = Field(default_factory=list)
+        warnings: List[str] = Field(default_factory=list)
+        confidence: float = Field(default=1.0, ge=0.0, le=1.0)
+
+    class LLMOutputEnvelope(BaseModel):
+        """Envelope wrapping a raw LLM output with metadata for validation."""
+
+        output_type: str
+        raw_output: str = ""
+        parsed_output: Dict[str, Any] = Field(default_factory=dict)
+        schema_version: str = "1.0"
+        validation_result: Optional[ValidationResult] = None
+        timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    # ------------------------------------------------------------------
+    # Pre-registered output schemas
+    # ------------------------------------------------------------------
+
+    class LLMExpansionResult(BaseModel):
+        """Schema for an LLM-generated state-expansion result."""
+
+        new_dimension: str
+        initial_value: float = Field(default=0.0)
+        uncertainty: float = Field(default=0.5, ge=0.0, le=1.0)
+        rationale: str = ""
 
     class LLMGeneratedExpert(BaseModel):
         """Schema for an LLM-generated domain expert."""
@@ -65,6 +103,29 @@ except ImportError:
         pass
 
     @dataclass
+    class ValidationResult(BaseModel):  # type: ignore[no-redef]
+        valid: bool = True
+        errors: List[str] = dc_field(default_factory=list)
+        warnings: List[str] = dc_field(default_factory=list)
+        confidence: float = 1.0
+
+    @dataclass
+    class LLMOutputEnvelope(BaseModel):  # type: ignore[no-redef]
+        output_type: str = ""
+        raw_output: str = ""
+        parsed_output: Dict[str, Any] = dc_field(default_factory=dict)
+        schema_version: str = "1.0"
+        validation_result: Optional["ValidationResult"] = None
+        timestamp: datetime = dc_field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @dataclass
+    class LLMExpansionResult(BaseModel):  # type: ignore[no-redef]
+        new_dimension: str = ""
+        initial_value: float = 0.0
+        uncertainty: float = 0.5
+        rationale: str = ""
+
+    @dataclass
     class LLMGeneratedExpert(BaseModel):  # type: ignore[no-redef]
         name: str = ""
         domain: str = ""
@@ -92,7 +153,57 @@ class LLMOutputValidator:
     Each ``validate_*`` method returns a tuple::
 
         (is_valid: bool, parsed_model | None, errors: List[str])
+
+    The envelope-level API (``register_schema``, ``validate``,
+    ``validate_and_reject``) handles :class:`LLMOutputEnvelope` objects and
+    uses schemas registered via :meth:`register_schema`.
     """
+
+    # Pre-registered output-type → schema class mapping
+    _BUILTIN_SCHEMAS: Dict[str, type] = {}
+
+    def __init__(self) -> None:
+        # Start with the built-in schemas; callers can add more.
+        self._schemas: Dict[str, type] = dict(self._BUILTIN_SCHEMAS)
+
+    # ------------------------------------------------------------------
+    # Envelope-level API (CFP-6)
+    # ------------------------------------------------------------------
+
+    def register_schema(self, output_type: str, schema: Type[BaseModel]) -> None:  # type: ignore[valid-type]
+        """Register *schema* for *output_type* for envelope-level validation."""
+        self._schemas[output_type.lower()] = schema
+
+    def validate(self, envelope: LLMOutputEnvelope) -> ValidationResult:  # type: ignore[valid-type]
+        """Validate *envelope.parsed_output* against the registered schema.
+
+        Returns a :class:`ValidationResult` (always; never raises).
+        """
+        output_type = envelope.output_type.lower()
+        schema_cls = self._schemas.get(output_type)
+        if schema_cls is None:
+            return ValidationResult(  # type: ignore[call-arg]
+                valid=False,
+                errors=[f"No schema registered for output_type {output_type!r}"],
+                confidence=0.0,
+            )
+        ok, _, errors = self._validate(envelope.parsed_output, schema_cls)
+        return ValidationResult(  # type: ignore[call-arg]
+            valid=ok,
+            errors=errors,
+            confidence=1.0 if ok else 0.0,
+        )
+
+    def validate_and_reject(
+        self, envelope: LLMOutputEnvelope  # type: ignore[valid-type]
+    ) -> Tuple[bool, Optional[Any]]:
+        """Validate envelope and return ``(True, parsed_model)`` or ``(False, None)``."""
+        output_type = envelope.output_type.lower()
+        schema_cls = self._schemas.get(output_type)
+        if schema_cls is None:
+            return False, None
+        ok, obj, _ = self._validate(envelope.parsed_output, schema_cls)
+        return ok, obj if ok else None
 
     def validate_expert(
         self, raw_output: Dict[str, Any]
@@ -114,16 +225,19 @@ class LLMOutputValidator:
 
     def validate_any(
         self, raw_output: Dict[str, Any], schema_type: str
-    ) -> Tuple[bool, Optional[BaseModel], List[str]]:
+    ) -> Tuple[bool, Optional[BaseModel], List[str]]:  # type: ignore[valid-type]
         """Validate a raw dict against the named schema type.
 
-        *schema_type* must be one of ``"expert"``, ``"gate"``, or
-        ``"constraint"`` (case-insensitive).
+        *schema_type* must be one of ``"expert"``, ``"gate"``,
+        ``"constraint"``, or ``"expansion_result"`` (case-insensitive).
         """
-        mapping = {
+        mapping: Dict[str, type] = {
             "expert": LLMGeneratedExpert,
+            "generated_expert": LLMGeneratedExpert,
             "gate": LLMGeneratedGate,
+            "domain_gate": LLMGeneratedGate,
             "constraint": LLMGeneratedConstraint,
+            "expansion_result": LLMExpansionResult,
         }
         cls = mapping.get(schema_type.lower())
         if cls is None:
@@ -173,5 +287,19 @@ __all__ = [
     "LLMGeneratedExpert",
     "LLMGeneratedGate",
     "LLMGeneratedConstraint",
+    "LLMExpansionResult",
+    "LLMOutputEnvelope",
+    "ValidationResult",
     "LLMOutputValidator",
 ]
+
+
+# ------------------------------------------------------------------
+# Pre-register built-in schemas so all instances share them
+# ------------------------------------------------------------------
+LLMOutputValidator._BUILTIN_SCHEMAS = {
+    "generated_expert": LLMGeneratedExpert,
+    "domain_gate": LLMGeneratedGate,
+    "constraint": LLMGeneratedConstraint,
+    "expansion_result": LLMExpansionResult,
+}
