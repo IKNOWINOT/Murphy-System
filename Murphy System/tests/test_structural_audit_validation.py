@@ -462,9 +462,15 @@ class TestSecurityMiddlewareWiring:
         from auar_api import create_secure_auar_app
         app = create_secure_auar_app()
         assert app is not None
-        # Verify middleware stack contains SecurityMiddleware
-        middleware_types = [type(m).__name__ for m in getattr(app, 'user_middleware', [])]
-        # The app should have middleware configured (CORS + Security)
+        # Verify middleware stack contains SecurityMiddleware and CORS
+        middleware_names = [
+            type(m).__name__
+            if not hasattr(m, 'cls') else m.cls.__name__
+            for m in getattr(app, 'user_middleware', [])
+        ]
+        assert any("Security" in n or "CORS" in n for n in middleware_names), (
+            f"Expected security middleware, got: {middleware_names}"
+        )
         assert len(app.routes) > 0  # Routes registered
 
     def test_auar_create_secure_app_callable(self):

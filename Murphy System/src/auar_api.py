@@ -353,7 +353,10 @@ def create_secure_auar_app(components: Optional[AUARComponents] = None):
         from fastapi_security import configure_secure_fastapi
         configure_secure_fastapi(app, service_name="auar-api")
     except ImportError:
-        logger.warning("fastapi_security not available — AUAR app unsecured.")
+        logger.warning(
+            "CRITICAL: fastapi_security not available — "
+            "AUAR app running WITHOUT authentication, CORS, or rate limiting."
+        )
 
     app.include_router(router)
     return app
