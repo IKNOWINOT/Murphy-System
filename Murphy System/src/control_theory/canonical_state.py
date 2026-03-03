@@ -225,6 +225,8 @@ class CanonicalStateVector(BaseModel):
                 )
             return list(variances)
 
+        # base: small non-zero floor so the covariance matrix stays positive-definite.
+        # u_scale: maps [0,1] uncertainty scores to small variance contributions.
         base = 0.001
         u_scale = 0.01
         return [
