@@ -47,6 +47,15 @@ jobs:
       - name: Syntax check – Persistence Manager
         run: python -m py_compile src/persistence_manager.py
 
+      - name: Syntax check – AUAR modules
+        run: |
+          for f in src/auar/*.py; do
+            python -m py_compile "$f"
+          done
+
+      - name: Syntax check – AUAR API integration
+        run: python -m py_compile src/auar_api.py
+
   test:
     runs-on: ubuntu-latest
     needs: lint
@@ -73,6 +82,8 @@ jobs:
             tests/test_avatar.py \
             tests/test_security_hardening_phase1.py \
             tests/test_security_hardening_phase2.py \
+            tests/test_auar.py \
+            tests/test_auar_api.py \
             -v --tb=short
 
       - name: Run integration tests

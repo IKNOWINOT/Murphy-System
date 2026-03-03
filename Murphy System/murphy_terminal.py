@@ -21,10 +21,13 @@ import sys
 import uuid
 import json
 import re
+import subprocess
+import platform
 from datetime import datetime
 from typing import Optional
 
 import requests
+from textual import events
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
@@ -37,9 +40,39 @@ from textual.widgets import (
     RichLog,
 )
 
+from src.env_manager import (
+    read_env,
+    write_env_key,
+    reload_env,
+    validate_api_key,
+    strip_key_wrapping,
+    get_env_path,
+    API_KEY_FORMATS,
+)
+
+try:
+    import pyperclip  # Optional clipboard support
+except ImportError:
+    pyperclip = None
+
+try:
+    import win32clipboard as _win32clipboard  # Optional: Windows clipboard fallback (pywin32)
+except ImportError:
+    _win32clipboard = None
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
+
+# Placeholder strings that appear in template .env files but are not real keys.
+_PLACEHOLDER_KEY_VALUES = frozenset({
+    "your_groq_key_here", "your_openai_key_here",
+    # Placeholders used in .env.example
+    "your_groq_api_key_here", "sk-your_openai_key_here",
+    "sk-ant-your_anthropic_key_here",
+    "your_key_here", "your-key-here", "change_me",
+    "changeme", "xxx", "none",
+})
 
 DEFAULT_API_URL = "http://localhost:8000"
 API_URL = os.environ.get("MURPHY_API_URL", DEFAULT_API_URL)
@@ -64,8 +97,89 @@ MODULE_COMMAND_MAP: dict[str, list[str]] = {
     "sales_automation": ["sales report"],
     "system_librarian": ["librarian", "knowledge base"],
     "integration_engine": ["integrations", "show integrations"],
+    "api_setup": ["api keys", "get api keys", "set key <provider> <key>"],
     "command_system": ["help", "commands", "show modules"],
     "conversation_handler": ["chat (natural language)"],
+}
+
+# ---------------------------------------------------------------------------
+# API Provider Links — direct signup URLs for third-party services
+# ---------------------------------------------------------------------------
+# API Provider Links — direct signup URLs for third-party services.
+#
+# Each entry maps a service key to its display name, API key signup URL,
+# environment variable name, and description.  Used by ``intent_api_keys``
+# and ``DialogContext._infer_integrations`` to guide users to the exact
+# page where they can obtain credentials needed by Murphy.
+# ---------------------------------------------------------------------------
+
+API_PROVIDER_LINKS: dict[str, dict[str, str]] = {
+    "groq": {
+        "name": "Groq",
+        "url": "https://console.groq.com/keys",
+        "env_var": "GROQ_API_KEY",
+        "description": "LLM provider (fast inference for Llama, Mixtral, Gemma)",
+    },
+    "openai": {
+        "name": "OpenAI",
+        "url": "https://platform.openai.com/api-keys",
+        "env_var": "OPENAI_API_KEY",
+        "description": "LLM provider (GPT-4, GPT-3.5)",
+    },
+    "github": {
+        "name": "GitHub",
+        "url": "https://github.com/settings/tokens",
+        "env_var": "GITHUB_TOKEN",
+        "description": "Repository integration, CI/CD, issue tracking",
+    },
+    "slack": {
+        "name": "Slack",
+        "url": "https://api.slack.com/apps",
+        "env_var": "SLACK_BOT_TOKEN",
+        "description": "Team messaging and notifications",
+    },
+    "stripe": {
+        "name": "Stripe",
+        "url": "https://dashboard.stripe.com/apikeys",
+        "env_var": "STRIPE_API_KEY",
+        "description": "Payment processing and billing",
+    },
+    "sendgrid": {
+        "name": "SendGrid",
+        "url": "https://app.sendgrid.com/settings/api_keys",
+        "env_var": "SENDGRID_API_KEY",
+        "description": "Email delivery and marketing",
+    },
+    "twilio": {
+        "name": "Twilio",
+        "url": "https://www.twilio.com/console",
+        "env_var": "TWILIO_AUTH_TOKEN",
+        "description": "SMS, voice, and phone integrations",
+    },
+    "hubspot": {
+        "name": "HubSpot",
+        "url": "https://developers.hubspot.com/get-started",
+        "env_var": "HUBSPOT_API_KEY",
+        "description": "CRM, marketing, sales automation",
+    },
+    "salesforce": {
+        "name": "Salesforce",
+        "url": "https://developer.salesforce.com/signup",
+        "env_var": "SALESFORCE_TOKEN",
+        "description": "CRM and enterprise sales platform",
+    },
+    "shopify": {
+        "name": "Shopify",
+        "url": "https://partners.shopify.com/signup",
+        "env_var": "SHOPIFY_API_KEY",
+        "description": "E-commerce platform and store management",
+    },
+    "google": {
+        "name": "Google Cloud / Workspace",
+        "url": "https://console.cloud.google.com/apis/credentials",
+        "env_var": "GOOGLE_API_KEY",
+        "description": "Google Sheets, Gmail, Calendar, Cloud services",
+    },
 }
 
 # ---------------------------------------------------------------------------
@@ -173,6 +287,58 @@ class MurphyAPIClient:
 
     def hitl_stats(self) -> dict:
         return self._get("/api/hitl/statistics")
+
+    def librarian_ask(self, message: str) -> dict:
+        payload: dict = {"message": message}
+        if self.session_id:
+            payload["session_id"] = self.session_id
+        return self._post("/api/librarian/ask", payload)
+
+    def llm_status(self) -> dict:
+        return self._get("/api/llm/status")
+
+    def configure_llm(self, provider: str, api_key: str) -> dict:
+        """Notify the backend to hot-reload LLM config with the new provider/key."""
+        try:
+            return self._post("/api/llm/configure", {"provider": provider, "api_key": api_key})
+        except requests.RequestException:
+            return {"success": False, "error": "backend not reachable"}
+
+    def librarian_status(self) -> dict:
+        return self._get("/api/librarian/status")
+
+    def llm_test(self) -> dict:
+        """Ask the backend to make a minimal test call to verify the LLM key."""
+        try:
+            return self._post("/api/llm/test", {})
+        except requests.RequestException:
+            return {"success": False, "error": "backend not reachable"}
+
+    def llm_reload(self) -> dict:
+        """Ask the backend to re-read .env and reinitialise LLM config."""
+        try:
+            return self._post("/api/llm/reload", {})
+        except requests.RequestException:
+            return {"success": False, "error": "backend not reachable"}
+
+    def create_document(self, title: str, content: str, doc_type: str = "general") -> dict:
+        """Create a living document for block-command workflows."""
+        payload: dict = {"title": title, "content": content, "type": doc_type}
+        if self.session_id:
+            payload["session_id"] = self.session_id
+        return self._post("/api/documents", payload)
+
+    def magnify_document(self, doc_id: str, domain: str = "general") -> dict:
+        """Expand domain depth of a living document to increase context coverage."""
+        return self._post(f"/api/documents/{doc_id}/magnify", {"domain": domain})
+
+    def simplify_document(self, doc_id: str) -> dict:
+        """Reduce complexity of a living document to improve clarity."""
+        return self._post(f"/api/documents/{doc_id}/simplify", {})
+
+    def solidify_document(self, doc_id: str) -> dict:
+        """Lock a document and trigger swarm task generation."""
+        return self._post(f"/api/documents/{doc_id}/solidify", {})
 
 
 # ---------------------------------------------------------------------------
@@ -303,12 +469,136 @@ class DialogContext:
         return "Already at the beginning."
 
     def _complete_message(self) -> str:
-        return (
+        msg = (
             "[bold green]✓ Interview complete![/bold green]\n"
             f"Here's what I collected:\n{self.summary()}\n\n"
-            "Type [green]confirm[/green] to proceed, [green]edit[/green] to change answers, "
-            "or [green]restart[/green] to start over."
         )
+        # Infer and show recommended integrations from answers
+        recs = self._infer_integrations()
+        if recs:
+            msg += "[bold cyan]Recommended integrations based on your answers:[/bold cyan]\n"
+            for i, (svc_key, info) in enumerate(recs.items(), 1):
+                msg += (
+                    f"  {i}. [bold]{info['name']}[/bold] — {info['description']}\n"
+                    f"     Get your key: [link={info['url']}]{info['url']}[/link]\n"
+                    f"     Set: [green]{info['env_var']}[/green]\n"
+                )
+            msg += (
+                "\n[bold cyan]What to do next:[/bold cyan]\n"
+                "  1. Sign up for the API keys listed above (links provided)\n"
+                "  2. Set keys right here: [green]set key groq gsk_...[/green] (no restart needed)\n"
+                "  3. Type [green]status[/green] to verify everything is connected\n"
+                "  4. Type [green]execute <your first task>[/green] to start automating!\n\n"
+            )
+        else:
+            msg += (
+                "[bold cyan]What to do next:[/bold cyan]\n"
+                "  1. Type [green]status[/green] to verify the system is ready\n"
+                "  2. Type [green]execute <your first task>[/green] to start automating\n"
+                "  3. Type [green]api keys[/green] if you need integration credentials\n\n"
+            )
+        msg += (
+            "Type [green]confirm[/green] to proceed, [green]edit[/green] to change answers, "
+            "or [green]restart[/green] to start over.\n"
+            "Type [green]api keys[/green] to see all available API signup links."
+        )
+        return msg
+
+    def _infer_integrations(self) -> dict[str, dict[str, str]]:
+        """Analyze collected answers and return matching API_PROVIDER_LINKS entries.
+
+        Uses three inference levels:
+          1. **Keyword matching** — direct mentions of platforms
+          2. **Workflow action mapping** — infers APIs from described actions
+          3. **Business goal mapping** — infers APIs from high-level goals
+        """
+        combined = " ".join(str(v) for v in self.collected.values()).lower()
+
+        # Level 1: Direct keyword matching
+        keyword_map = {
+            "email": ["sendgrid", "google"],
+            "gmail": ["google"],
+            "crm": ["hubspot", "salesforce"],
+            "hubspot": ["hubspot"],
+            "salesforce": ["salesforce"],
+            "slack": ["slack"],
+            "sms": ["twilio"],
+            "phone": ["twilio"],
+            "github": ["github"],
+            "payment": ["stripe"],
+            "stripe": ["stripe"],
+            "shopify": ["shopify"],
+            "e-commerce": ["shopify", "stripe"],
+            "ecommerce": ["shopify", "stripe"],
+            "sell": ["stripe", "shopify"],
+            "sales": ["hubspot"],
+            "marketing": ["sendgrid", "hubspot"],
+            "google": ["google"],
+            "sheets": ["google"],
+            "jira": ["jira"],
+            "notion": ["notion"],
+        }
+
+        # Level 2: Workflow action → API inference
+        action_map = {
+            "send email": ["sendgrid", "google"],
+            "send notification": ["sendgrid", "slack"],
+            "send message": ["slack", "twilio"],
+            "notify team": ["slack", "sendgrid"],
+            "post to channel": ["slack"],
+            "create issue": ["github", "jira"],
+            "open ticket": ["jira", "github"],
+            "pull request": ["github"],
+            "deploy": ["github"],
+            "track leads": ["hubspot", "salesforce"],
+            "lead scoring": ["hubspot", "salesforce"],
+            "process payment": ["stripe"],
+            "online store": ["shopify", "stripe"],
+            "schedule meeting": ["google"],
+            "social media": ["zapier"],
+            "automate workflow": ["zapier"],
+        }
+
+        # Level 3: Business goal → API inference
+        goal_map = {
+            "increase sales": ["hubspot", "sendgrid", "stripe"],
+            "grow revenue": ["hubspot", "sendgrid", "stripe"],
+            "reduce costs": ["zapier", "google"],
+            "automate operations": ["zapier", "slack", "github"],
+            "customer support": ["hubspot", "slack", "sendgrid"],
+            "devops": ["github", "slack", "jira"],
+            "software development": ["github", "jira", "slack"],
+            "team collaboration": ["slack", "notion", "google"],
+            "lead generation": ["hubspot", "sendgrid"],
+        }
+
+        matched: dict[str, dict[str, str]] = {}
+
+        def _add(pk: str) -> None:
+            if pk not in matched and pk in API_PROVIDER_LINKS:
+                matched[pk] = API_PROVIDER_LINKS[pk]
+
+        for keyword, provider_keys in keyword_map.items():
+            if keyword in combined:
+                for pk in provider_keys:
+                    _add(pk)
+
+        for action, provider_keys in action_map.items():
+            if action in combined:
+                for pk in provider_keys:
+                    _add(pk)
+
+        for goal, provider_keys in goal_map.items():
+            if goal in combined:
+                for pk in provider_keys:
+                    _add(pk)
+
+        # Always recommend LLM if not configured
+        if "groq" not in matched:
+            llm_provider = os.environ.get("MURPHY_LLM_PROVIDER", "").strip()
+            if not llm_provider:
+                matched["groq"] = API_PROVIDER_LINKS["groq"]
+        return matched
 
     @staticmethod
     def _infer_value(key: str, text: str, original: str = "") -> str:
@@ -339,6 +629,9 @@ class DialogContext:
 # Mapping of intent keywords → handler method names on the app.
 INTENT_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"\b(health|alive|ping)\b", re.I), "intent_health"),
+    (re.compile(r"^llm[_ ]?status\b", re.I), "intent_llm_status"),
+    (re.compile(r"^librarian[_ ]?status\b", re.I), "intent_librarian_status"),
+    (re.compile(r"^(api[_ ]?keys?|get[_ ]?api[_ ]?keys?)\b", re.I), "intent_api_keys"),
     (re.compile(r"\b(status|state|dashboard)\b", re.I), "intent_status"),
     (re.compile(r"\b(info|about|version)\b", re.I), "intent_info"),
     (re.compile(r"\b(help|commands|what can)\b", re.I), "intent_help"),
@@ -346,6 +639,7 @@ INTENT_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"\b(corrections?|correction stats)\b", re.I), "intent_corrections"),
     (re.compile(r"\b(pending|interventions?|hitl)\b", re.I), "intent_hitl"),
     (re.compile(r"\b(execute|run task|launch)\b", re.I), "intent_execute"),
+    (re.compile(r"^set[_ ]?key\b", re.I), "intent_set_key"),
     (re.compile(r"^set[_ ]?api\b", re.I), "intent_set_api"),
     (re.compile(r"^test[_ ]?api\b|^test[_ ]?connection\b", re.I), "intent_test_api"),
     (re.compile(r"^reconnect\b", re.I), "intent_reconnect"),
@@ -360,6 +654,9 @@ INTENT_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"\b(billing|subscription|tier|pricing)\b", re.I), "intent_billing"),
     (re.compile(r"\b(links|urls|dashboards|open ui)\b", re.I), "intent_links"),
     (re.compile(r"\b(plan|planning|two.?plane|execution plan)\b", re.I), "intent_plan"),
+    (re.compile(r"^magnify\b", re.I), "intent_magnify"),
+    (re.compile(r"^simplify\b", re.I), "intent_simplify"),
+    (re.compile(r"^solidify\b", re.I), "intent_solidify"),
 ]
 
 # Patterns that indicate user frustration or feedback
@@ -406,6 +703,7 @@ and run end-to-end workflows with minimal manual effort.
 [bold cyan]📡 Quick Commands[/bold cyan]
   • [green]health[/green] / [green]status[/green]  — check system health
   • [green]execute <task>[/green]   — run a task or workflow
+  • [green]set key groq <key>[/green] — configure your API key (no restart needed)
   • [green]librarian[/green]       — consult the knowledge base expert
   • [green]billing[/green]         — view billing and subscription info
   • [green]links[/green]           — show dashboard and UI links
@@ -433,11 +731,13 @@ class StatusBar(Static):
 
     connected = reactive(False)
     api_url = reactive("")
+    llm_enabled = reactive(False)
 
     def render(self) -> str:
+        llm = "[green]LLM: On[/green]" if self.llm_enabled else "[yellow]LLM: Off[/yellow]"
         if self.connected:
-            return "[bold green]● Connected[/bold green]"
-        return "[bold red]● Disconnected[/bold red]"
+            return f"[bold green]● Connected[/bold green]  {llm}"
+        return f"[bold red]● Disconnected[/bold red]  {llm}"
 
 
 # ---------------------------------------------------------------------------
@@ -464,9 +764,10 @@ class MurphyTerminalApp(App):
         padding: 0 1;
     }
     #sidebar {
-        width: 30;
+        width: 44;
         border: solid $accent;
         padding: 1;
+        overflow-y: auto;
     }
     #input-area {
         dock: bottom;
@@ -487,6 +788,8 @@ class MurphyTerminalApp(App):
         Binding("ctrl+q", "quit", "Quit", show=True),
         Binding("ctrl+h", "show_help", "Help", show=True),
         Binding("ctrl+s", "show_status", "Status", show=True),
+        Binding("ctrl+v", "paste_clipboard", "Paste", show=False, priority=True),
+        Binding("shift+insert", "paste_clipboard", "Paste", show=False),
     ]
 
     def __init__(self, api_url: str = API_URL, **kwargs):
@@ -496,6 +799,9 @@ class MurphyTerminalApp(App):
         self.dialog = DialogContext()
         self._reconnect_attempts = 0
         self._reconnect_timer = None
+        self._offline_mode = False
+        self._awaiting_api_key = False
+        self._current_doc_id: Optional[str] = None  # tracks the last created living document
 
     # -- compose --
 
@@ -509,16 +815,21 @@ class MurphyTerminalApp(App):
                     "[bold cyan]Navigation[/bold cyan]\n\n"
                     "[dim]Ctrl+H[/dim] Help\n"
                     "[dim]Ctrl+S[/dim] Status\n"
-                    "[dim]Ctrl+Q[/dim] Quit\n\n"
+                    "[dim]Ctrl+Q[/dim] Quit\n"
+                    "[dim]Ctrl+V[/dim] Paste\n\n"
                     "[bold cyan]Quick Commands[/bold cyan]\n\n"
                     "[dim]health[/dim]\n"
                     "[dim]status[/dim]\n"
                     "[dim]start interview[/dim]\n"
                     "[dim]show modules[/dim]\n"
                     "[dim]librarian[/dim]\n"
+                    "[dim]api keys[/dim]\n"
+                    "[dim]set key <prov> <key>[/dim]\n"
                     "[dim]billing[/dim]\n"
                     "[dim]links[/dim]\n"
                     "[dim]plan[/dim]\n"
+                    "[dim]llm status[/dim]\n"
+                    "[dim]librarian status[/dim]\n"
                     "[dim]set api <url>[/dim]\n"
                     "[dim]test connection[/dim]\n"
                     "[dim]reconnect[/dim]\n"
@@ -536,6 +847,7 @@ class MurphyTerminalApp(App):
         chat.write(WELCOME_TEXT)
         self._update_status_url()
         self._check_connection()
+        self._check_api_key_on_startup()
 
     # -- connection --
 
@@ -553,6 +865,7 @@ class MurphyTerminalApp(App):
             self._cancel_reconnect_timer()
             self._write_system(f"Connected to Murphy backend. ({detail})")
             self._ensure_session()
+            self._check_llm_status()
         else:
             status_bar.connected = False
             self._write_system(
@@ -607,6 +920,91 @@ class MurphyTerminalApp(App):
             self._write_system(f"Session created: [cyan]{sid}[/cyan]")
         except Exception:
             pass
+
+    def _check_llm_status(self) -> None:
+        """Query backend LLM status and update the status bar."""
+        status_bar = self.query_one(StatusBar)
+        try:
+            data = self.client.llm_status()
+            enabled = data.get("enabled", False)
+            status_bar.llm_enabled = enabled
+            provider = data.get("provider") or "none"
+            if enabled:
+                model = data.get("model") or "default"
+                self._write_system(f"LLM enabled — provider=[cyan]{provider}[/cyan] model=[cyan]{model}[/cyan]")
+            else:
+                error = data.get("error", "not configured")
+                self._write_system(
+                    f"[yellow]LLM not configured ({error})[/yellow] — "
+                    "running in deterministic mode. "
+                    "Type [green]set key groq <your-key>[/green] to enable."
+                )
+        except Exception:
+            status_bar.llm_enabled = False
+
+    @staticmethod
+    def _is_real_key(value: Optional[str]) -> bool:
+        """Return True if *value* looks like a real API key (not a placeholder)."""
+        if not value:
+            return False
+        return value.strip().lower() not in _PLACEHOLDER_KEY_VALUES
+
+    def _check_api_key_on_startup(self) -> None:
+        """First-run gate: prompt for Groq API key if not configured."""
+        # Check environment first, then .env file
+        env_path = get_env_path()
+        env_vars = read_env(env_path)
+        has_key = (
+            self._is_real_key(os.environ.get("GROQ_API_KEY"))
+            or self._is_real_key(env_vars.get("GROQ_API_KEY"))
+        )
+        if has_key:
+            return  # Key exists — skip the gate
+
+        self._awaiting_api_key = True
+        self._write_murphy(
+            "[bold yellow]⚠ No Groq API key detected[/bold yellow]\n\n"
+            "Murphy needs at least a Groq API key for full AI features.\n\n"
+            "[bold cyan]Get your free key:[/bold cyan]\n"
+            "  → [link=https://console.groq.com/keys]https://console.groq.com/keys[/link]\n\n"
+            "Then paste it here, or type:\n"
+            "  [green]set key groq gsk_yourKeyHere[/green]\n"
+            "  [green]skip[/green] — continue in offline mode (limited functionality)\n"
+        )
+
+    def _handle_startup_key_input(self, message: str) -> None:
+        """Handle user input during the first-run API key prompt."""
+        stripped = message.strip()
+        lower = stripped.lower()
+
+        if lower == "skip":
+            self._awaiting_api_key = False
+            self._offline_mode = True
+            self._write_murphy(
+                "[yellow]Continuing in offline mode.[/yellow]\n"
+                "[dim]AI features will be limited. "
+                "Type [green]set key groq <your-key>[/green] at any time to activate full capabilities.[/dim]"
+            )
+            return
+
+        # Check if it looks like a bare key (starts with gsk_)
+        bare = strip_key_wrapping(stripped)
+        if bare.startswith("gsk_"):
+            self._awaiting_api_key = False
+            self._apply_api_key("groq", bare)
+            return
+
+        # Check if it's a 'set key' command
+        m = re.match(r"^set[_ ]?key\s+(\w+)\s+(\S+)", stripped, re.I)
+        if m:
+            self._awaiting_api_key = False
+            self._apply_api_key(m.group(1).lower(), m.group(2))
+            return
+
+        # For any other input, dismiss the gate and process normally
+        self._awaiting_api_key = False
+        self._offline_mode = True
+        self._process_message(message)
 
     # -- helpers --
 
@@ -667,16 +1065,21 @@ class MurphyTerminalApp(App):
                 "[bold cyan]Navigation[/bold cyan]\n\n"
                 "[dim]Ctrl+H[/dim] Help\n"
                 "[dim]Ctrl+S[/dim] Status\n"
-                "[dim]Ctrl+Q[/dim] Quit\n\n"
+                "[dim]Ctrl+Q[/dim] Quit\n"
+                "[dim]Ctrl+V[/dim] Paste\n\n"
                 "[bold cyan]Quick Commands[/bold cyan]\n\n"
                 "[dim]health[/dim]\n"
                 "[dim]status[/dim]\n"
                 "[dim]start interview[/dim]\n"
                 "[dim]show modules[/dim]\n"
                 "[dim]librarian[/dim]\n"
+                "[dim]api keys[/dim]\n"
+                "[dim]set key <prov> <key>[/dim]\n"
                 "[dim]billing[/dim]\n"
                 "[dim]links[/dim]\n"
                 "[dim]plan[/dim]\n"
+                "[dim]llm status[/dim]\n"
+                "[dim]librarian status[/dim]\n"
                 "[dim]set api <url>[/dim]\n"
                 "[dim]test connection[/dim]\n"
                 "[dim]reconnect[/dim]\n"
@@ -695,13 +1098,22 @@ class MurphyTerminalApp(App):
         self._process_message(message)
 
     def _process_message(self, message: str) -> None:
+        # Handle first-run API key prompt
+        if self._awaiting_api_key:
+            self._handle_startup_key_input(message)
+            return
+
         # If an interview is active, route most input through dialog context
         if self.dialog.active:
             # Allow certain intents even during interview
             intent = detect_intent(message)
             if intent in ("intent_help", "intent_exit", "intent_health",
-                          "intent_status", "intent_set_api", "intent_test_api",
-                          "intent_reconnect", "intent_links", "intent_modules"):
+                          "intent_status", "intent_set_api", "intent_set_key",
+                          "intent_test_api",
+                          "intent_reconnect", "intent_links", "intent_modules",
+                          "intent_llm_status", "intent_librarian_status",
+                          "intent_api_keys",
+                          "intent_magnify", "intent_simplify", "intent_solidify"):
                 handler = getattr(self, intent, None)
                 if handler:
                     handler(message)
@@ -730,8 +1142,8 @@ class MurphyTerminalApp(App):
             if handler:
                 handler(message)
                 return
-        # Default: send as chat to backend
-        self._send_chat(message)
+        # Default: route through Librarian + LLM
+        self._send_librarian(message)
 
     # -- feedback handling --
 
@@ -797,7 +1209,9 @@ class MurphyTerminalApp(App):
             "  • [green]health[/green] — check backend health\n"
             "  • [green]status[/green] — view system status\n"
             "  • [green]info[/green] — system version & information\n"
-            "  • [green]links[/green] — show dashboard and UI URLs\n\n"
+            "  • [green]links[/green] — show dashboard and UI URLs\n"
+            "  • [green]llm status[/green] — check LLM provider configuration\n"
+            "  • [green]librarian status[/green] — check librarian health\n\n"
             "[bold cyan]Onboarding & Interview[/bold cyan]\n"
             "  • [green]start interview[/green] — guided onboarding dialog\n"
             "  • [green]billing[/green] — view billing tiers & subscription\n\n"
@@ -805,14 +1219,26 @@ class MurphyTerminalApp(App):
             "  • [green]execute <task>[/green] — run a task\n"
             "  • [green]show modules[/green] — list all modules and commands\n"
             "  • [green]librarian[/green] — consult knowledge-base expert\n"
+            "  • [green]api keys[/green] — get API signup links for integrations\n"
+            "  • [green]set key <provider> <key>[/green] — set an API key inline (e.g. [green]set key groq gsk_...[/green])\n"
             "  • [green]plan[/green] — two-plane planning & execution overview\n"
             "  • [green]pending / hitl[/green] — pending interventions\n"
             "  • [green]corrections[/green] — correction statistics\n\n"
+            "[bold cyan]Document Block Commands[/bold cyan]\n"
+            "  • [green]magnify <topic>[/green] — create a document from a topic and expand its depth\n"
+            "  • [green]simplify[/green] — reduce complexity of the current document\n"
+            "  • [green]solidify[/green] — lock document and generate execution tasks\n"
+            "  Workflow: [green]magnify <goal>[/green] → [green]simplify[/green] → [green]solidify[/green] → [green]execute plan[/green]\n\n"
             "[bold cyan]Connection[/bold cyan]\n"
             "  • [green]set api <url>[/green] — change backend address\n"
             "  • [green]test connection[/green] — verify backend reachability\n"
             "  • [green]reconnect[/green] — retry backend connection\n\n"
-            "Or type any natural language message for chat\n"
+            "[bold cyan]Clipboard[/bold cyan]\n"
+            "  • [green]Ctrl+V[/green] — paste clipboard into input\n"
+            "  • [green]Shift+Insert[/green] — paste (terminal fallback)\n"
+            "  • Right-click paste may also work depending on your terminal\n"
+            "  • For long API keys, you can also edit the [green].env[/green] file directly\n\n"
+            "Or type any natural language message — Murphy will respond conversationally.\n"
             "  • [green]exit[/green] — quit the terminal"
         )
 
@@ -849,6 +1275,186 @@ class MurphyTerminalApp(App):
         except Exception as exc:
             self._write_murphy(f"[red]Execution failed: {self._friendly_error(exc)}[/red]")
 
+    # -- API key management --
+
+    def intent_set_key(self, msg: str) -> None:
+        """Handle ``set key <provider> [<value>]`` command."""
+        rest = re.sub(r"^set[_ ]?key\s*", "", msg, flags=re.I).strip()
+        parts = rest.split(None, 1)
+
+        if not parts:
+            supported = ", ".join(sorted(API_KEY_FORMATS.keys()))
+            self._write_murphy(
+                "[bold cyan]🔑 Set API Key[/bold cyan]\n\n"
+                f"Usage: [green]set key <provider> <key>[/green]\n"
+                f"Supported providers: [green]{supported}[/green]\n\n"
+                "Examples:\n"
+                "  [green]set key groq gsk_abc123...[/green]\n"
+                "  [green]set key openai sk-abc123...[/green]\n"
+                "  [green]set key anthropic sk-ant-abc123...[/green]"
+            )
+            return
+
+        provider = parts[0].lower()
+        key_value = parts[1] if len(parts) > 1 else None
+
+        if provider not in API_KEY_FORMATS:
+            supported = ", ".join(sorted(API_KEY_FORMATS.keys()))
+            self._write_murphy(
+                f"[red]Unknown provider '{provider}'.[/red]\n"
+                f"Supported: [green]{supported}[/green]"
+            )
+            return
+
+        if not key_value:
+            self._write_murphy(
+                f"Please provide your {provider} API key.\n"
+                f"Usage: [green]set key {provider} <your-key>[/green]"
+            )
+            return
+
+        self._apply_api_key(provider, strip_key_wrapping(key_value))
+
+    def _apply_api_key(self, provider: str, key_value: str) -> None:
+        """Validate, persist, and hot-reload an API key."""
+        key_value = strip_key_wrapping(key_value)
+        valid, message = validate_api_key(provider, key_value)
+        if not valid:
+            self._write_murphy(f"[red]✗ {message}[/red]")
+            return
+
+        fmt = API_KEY_FORMATS[provider]
+        env_var = fmt["env_var"]
+
+        # Persist to .env (both the API key and the provider selection)
+        env_path = get_env_path()
+        write_env_key(env_path, env_var, key_value)
+        write_env_key(env_path, "MURPHY_LLM_PROVIDER", provider)
+
+        # Hot-reload into current process
+        os.environ[env_var] = key_value
+        os.environ["MURPHY_LLM_PROVIDER"] = provider
+        reload_env(env_path)
+
+        # Notify the backend to hot-reload its LLM config
+        configure_result = self.client.configure_llm(provider, key_value)
+        if not configure_result.get("success", True):
+            self._write_murphy(
+                f"[red]✗ Backend configure failed: {configure_result.get('error', 'unknown error')}[/red]"
+            )
+            return
+
+        self._write_murphy(
+            f"[bold green]✓ {provider.capitalize()} API key saved![/bold green]\n"
+            f"  Env var : [green]{env_var}[/green]\n"
+            f"  .env    : [dim]{env_path}[/dim]"
+        )
+
+        # Verify the key actually authenticates with the provider
+        test_result = self.client.llm_test()
+        if test_result.get("success"):
+            self._write_murphy(
+                "[bold green]✓ Key verified — LLM is active and responding.[/bold green]\n"
+                "[dim]The key is active immediately — no restart needed.[/dim]"
+            )
+        else:
+            err = test_result.get("error", "unknown error")
+            self._write_murphy(
+                f"[yellow]⚠ Key saved but authentication failed: {err}[/yellow]\n"
+                "[dim]Please verify your key at "
+                "[link=https://console.groq.com/keys]https://console.groq.com/keys[/link][/dim]"
+            )
+
+        # Refresh the StatusBar — only mark LLM On if the test passed
+        self._check_llm_status()
+
+    # -- clipboard support --
+
+    @staticmethod
+    def _read_clipboard() -> Optional[str]:
+        """Try to read text from the system clipboard."""
+        # Try pyperclip first
+        if pyperclip is not None:
+            try:
+                return pyperclip.paste()
+            except Exception:
+                pass
+
+        # Platform-specific fallbacks
+        system = platform.system()
+        try:
+            if system == "Linux":
+                result = subprocess.run(
+                    ["xclip", "-selection", "clipboard", "-o"],
+                    capture_output=True, text=True, timeout=2,
+                )
+                if result.returncode == 0:
+                    return result.stdout
+            elif system == "Darwin":
+                result = subprocess.run(
+                    ["pbpaste"], capture_output=True, text=True, timeout=2,
+                )
+                if result.returncode == 0:
+                    return result.stdout
+            elif system == "Windows":
+                # Try PowerShell first
+                result = subprocess.run(
+                    ["powershell", "-command", "Get-Clipboard"],
+                    capture_output=True, text=True, timeout=2,
+                )
+                if result.returncode == 0:
+                    return result.stdout
+                # Fallback: win32clipboard (pywin32)
+                if _win32clipboard is not None:
+                    try:
+                        _win32clipboard.OpenClipboard()
+                        try:
+                            text = _win32clipboard.GetClipboardData(_win32clipboard.CF_UNICODETEXT)
+                            return text
+                        finally:
+                            _win32clipboard.CloseClipboard()
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+        return None
+
+    def _insert_text_into_input(self, text: str) -> None:
+        """Insert *text* into the command Input widget, using only the first line.
+
+        API keys and short commands are always single-line.  Silently ignores
+        errors so that clipboard/paste failures never crash the app.
+        """
+        first_line = text.strip().splitlines()[0].strip() if text.strip() else ""
+        if first_line:
+            try:
+                input_widget = self.query_one("#user-input", Input)
+                input_widget.insert_text_at_cursor(first_line)
+            except Exception:
+                pass
+
+    def action_paste_clipboard(self) -> None:
+        """Paste clipboard contents into the focused Input widget."""
+        text = self._read_clipboard()
+        if text:
+            self._insert_text_into_input(text)
+        else:
+            self._write_system(
+                "Paste not available. Try: Shift+Insert, or right-click in your "
+                "terminal. You can also set keys via .env file directly."
+            )
+
+    def on_paste(self, event: events.Paste) -> None:
+        """Handle terminal bracketed-paste events (e.g. right-click paste in Windows Terminal).
+
+        Routes the pasted text into the command input widget so users can
+        paste API keys directly without relying on the system clipboard API.
+        """
+        if event.text:
+            self._insert_text_into_input(event.text)
+            event.stop()
+
     # -- connectivity intents --
 
     def intent_set_api(self, msg: str) -> None:
@@ -880,6 +1486,11 @@ class MurphyTerminalApp(App):
         self._reconnect_attempts = 0
         self._write_system("Attempting reconnection…")
         self._check_connection()
+        # Re-read .env on the backend so any manual edits take effect
+        reload_result = self.client.llm_reload()
+        if reload_result.get("success"):
+            self._write_system("Backend .env reloaded.")
+        self._check_llm_status()
 
     # -- interview intents --
 
@@ -933,16 +1544,51 @@ class MurphyTerminalApp(App):
 
     # -- module exposure intents --
 
-    def intent_librarian(self, _msg: str) -> None:
-        self._write_murphy(
-            "[bold cyan]📚 Murphy Librarian[/bold cyan]\n\n"
-            "The Librarian is Murphy's knowledge-base expert. It can:\n"
-            "  • Search system documentation and transcripts\n"
-            "  • Generate execution plans from your requirements\n"
-            "  • Review and synthesize automation workflows\n"
-            "  • Provide module-level guidance and API references\n\n"
-            "Try: [green]execute librarian review[/green] or ask a question about any module."
-        )
+    def intent_librarian(self, msg: str) -> None:
+        # Strip the trigger word to extract the actual question
+        question = re.sub(r"^(librarian|library|knowledge base)\s*", "", msg, flags=re.I).strip()
+        if not question:
+            question = "What can you help me with?"
+        self._send_librarian(question)
+
+    def intent_llm_status(self, _msg: str) -> None:
+        try:
+            data = self.client.llm_status()
+            enabled = data.get("enabled", False)
+            provider = data.get("provider") or "none"
+            model = data.get("model") or "n/a"
+            healthy = data.get("healthy", False)
+            error = data.get("error", "")
+            if enabled:
+                self._write_murphy(
+                    f"[bold cyan]🤖 LLM Status[/bold cyan]\n\n"
+                    f"  Provider : [green]{provider}[/green]\n"
+                    f"  Model    : [green]{model}[/green]\n"
+                    f"  Healthy  : {'[green]yes[/green]' if healthy else '[red]no[/red]'}"
+                )
+            else:
+                self._write_murphy(
+                    f"[bold yellow]🤖 LLM Status — Not Configured[/bold yellow]\n\n"
+                    f"  Error: {error}\n\n"
+                    "To enable LLM, set your API key right here:\n"
+                    "  [green]set key groq gsk_your_key_here[/green]\n\n"
+                    "Get a free key: [link=https://console.groq.com/keys]https://console.groq.com/keys[/link]"
+                )
+        except Exception as exc:
+            self._write_murphy(f"[red]Could not fetch LLM status: {self._friendly_error(exc)}[/red]")
+
+    def intent_librarian_status(self, _msg: str) -> None:
+        try:
+            data = self.client.librarian_status()
+            enabled = data.get("enabled", False)
+            healthy = data.get("healthy", False)
+            self._write_murphy(
+                f"[bold cyan]📚 Librarian Status[/bold cyan]\n\n"
+                f"  Enabled : {'[green]yes[/green]' if enabled else '[yellow]no[/yellow]'}\n"
+                f"  Healthy : {'[green]yes[/green]' if healthy else '[yellow]no[/yellow]'}"
+            )
+        except Exception as exc:
+            self._write_murphy(f"[red]Could not fetch librarian status: {self._friendly_error(exc)}[/red]")
 
     def intent_modules(self, _msg: str) -> None:
         lines = ["[bold cyan]📦 Murphy System — Module ↔ Command Map[/bold cyan]\n"]
@@ -986,13 +1632,167 @@ class MurphyTerminalApp(App):
             "Try: [green]execute plan for <your goal>[/green]"
         )
 
+    def intent_api_keys(self, _msg: str) -> None:
+        """Show API provider signup links for all supported integrations."""
+        lines = ["[bold cyan]🔑 API Keys & Signup Links[/bold cyan]\n"]
+        for key, info in API_PROVIDER_LINKS.items():
+            lines.append(
+                f"  • [bold]{info['name']}[/bold] — {info['description']}\n"
+                f"    Signup: [link={info['url']}]{info['url']}[/link]\n"
+                f"    Env var: [green]{info['env_var']}[/green]"
+            )
+        lines.append(
+            "\n[bold cyan]Quick Start (LLM):[/bold cyan]\n"
+            "  1. Get a free Groq key: [link=https://console.groq.com/keys]https://console.groq.com/keys[/link]\n"
+            "  2. Set it right here in the terminal:\n"
+            "     [green]set key groq gsk_your_key_here[/green]\n"
+            "  That's it! No restart needed.\n\n"
+            "[dim]Tip: Run [green]start interview[/green] and Murphy will recommend "
+            "exactly which API keys you need based on your answers.[/dim]"
+        )
+        self._write_murphy("\n".join(lines))
+
+    # -- document block-command intents --
+
+    def _require_doc(self) -> Optional[str]:
+        """Return current doc_id or show a prompt to create one first."""
+        if self._current_doc_id:
+            return self._current_doc_id
+        self._write_murphy(
+            "[yellow]No active document.[/yellow] "
+            "Create one first:\n"
+            "  [green]magnify <topic>[/green] — start from a topic\n"
+            "  [green]magnify my sales automation plan[/green]"
+        )
+        return None
+
+    def intent_magnify(self, msg: str) -> None:
+        """Magnify: expand domain depth of the current document (or create one from the prompt)."""
+        topic = re.sub(r"^magnify\s*", "", msg, flags=re.I).strip()
+        if not topic and self._current_doc_id:
+            # Re-magnify existing document with no domain override
+            topic = "general"
+        if not topic:
+            self._write_murphy(
+                "Usage: [green]magnify <topic or goal>[/green]\n"
+                "Example: [green]magnify automate our customer onboarding workflow[/green]"
+            )
+            return
+        try:
+            if not self._current_doc_id:
+                # Create a new document from the topic, then magnify it
+                doc_data = self.client.create_document(
+                    title=topic[:80],
+                    content=topic,
+                    doc_type="plan",
+                )
+                if not doc_data.get("success"):
+                    self._write_murphy(
+                        f"[red]✗ Could not create document: {doc_data.get('error', 'unknown')}[/red]"
+                    )
+                    return
+                self._current_doc_id = doc_data["doc_id"]
+            result = self.client.magnify_document(self._current_doc_id, domain=topic[:40])
+            conf = result.get("confidence", 0)
+            depth = result.get("domain_depth", 0)
+            self._write_murphy(
+                f"[bold cyan]🔍 Magnified[/bold cyan] — doc [dim]{self._current_doc_id}[/dim]\n"
+                f"  Confidence  : [cyan]{conf:.0%}[/cyan]\n"
+                f"  Domain depth: [cyan]{depth}[/cyan]\n\n"
+                "Run [green]simplify[/green] to reduce complexity, or "
+                "[green]solidify[/green] to lock and generate tasks."
+            )
+        except Exception as exc:
+            self._write_murphy(f"[red]✗ magnify error: {self._friendly_error(exc)}[/red]")
+
+    def intent_simplify(self, msg: str) -> None:
+        """Simplify: reduce complexity of the current document."""
+        doc_id = self._require_doc()
+        if not doc_id:
+            return
+        try:
+            result = self.client.simplify_document(doc_id)
+            conf = result.get("confidence", 0)
+            depth = result.get("domain_depth", 0)
+            self._write_murphy(
+                f"[bold cyan]✂ Simplified[/bold cyan] — doc [dim]{doc_id}[/dim]\n"
+                f"  Confidence  : [cyan]{conf:.0%}[/cyan]\n"
+                f"  Domain depth: [cyan]{depth}[/cyan]\n\n"
+                "Run [green]solidify[/green] to lock and generate tasks, or "
+                "[green]magnify <topic>[/green] to expand again."
+            )
+        except Exception as exc:
+            self._write_murphy(f"[red]✗ simplify error: {self._friendly_error(exc)}[/red]")
+
+    def intent_solidify(self, msg: str) -> None:
+        """Solidify: lock the current document and trigger swarm task generation."""
+        doc_id = self._require_doc()
+        if not doc_id:
+            return
+        try:
+            result = self.client.solidify_document(doc_id)
+            conf = result.get("confidence", 0)
+            state = result.get("state", "SOLIDIFIED")
+            tasks = result.get("generated_tasks", [])
+            tasks_text = ""
+            if tasks:
+                task_lines = "\n".join(
+                    f"  {i+1}. {t.get('description', t)}"
+                    for i, t in enumerate(tasks[:10])
+                )
+                tasks_text = f"\n\n[bold]Generated tasks:[/bold]\n{task_lines}"
+            self._write_murphy(
+                f"[bold green]🔒 Solidified[/bold green] — doc [dim]{doc_id}[/dim] → state=[cyan]{state}[/cyan]\n"
+                f"  Confidence: [cyan]{conf:.0%}[/cyan]"
+                f"{tasks_text}"
+                "\n\n[dim]Document is locked. Run [green]execute plan[/green] to start execution.[/dim]"
+            )
+            # Clear current doc so next magnify starts fresh
+            self._current_doc_id = None
+        except Exception as exc:
+            self._write_murphy(f"[red]✗ solidify error: {self._friendly_error(exc)}[/red]")
+
     # -- chat fallback --
+
+    @staticmethod
+    def _extract_response(data: dict) -> str:
+        """Extract the display-ready response text from an API result."""
+        return str(
+            data.get("reply_text")
+            or data.get("response")
+            or data.get("message")
+            or json.dumps(data, indent=2, default=str)
+        )
+
+    def _send_librarian(self, message: str) -> None:
+        """Route a message through the Librarian + LLM endpoint."""
+        try:
+            data = self.client.librarian_ask(message)
+            mode = data.get("mode", "unknown")
+            if mode == "llm_error":
+                err_msg = data.get("llm_error", "unknown error")
+                self._write_murphy(
+                    f"[yellow]⚠ LLM call failed: {err_msg}[/yellow]\n"
+                    "[dim]Your API key may be invalid. "
+                    "Get a new key at [link=https://console.groq.com/keys]https://console.groq.com/keys[/link] "
+                    "then run [green]set key groq <your-key>[/green][/dim]"
+                )
+                return
+            text = self._extract_response(data)
+            suggested = data.get("suggested_commands", [])
+            if suggested:
+                text += "\n\n[dim]Suggested: " + ", ".join(f"[green]{c}[/green]" for c in suggested) + "[/dim]"
+            if mode == "deterministic":
+                text += "\n[dim](deterministic mode — type [green]set key groq <your-key>[/green] to enable LLM)[/dim]"
+            self._write_murphy(text)
+        except Exception:
+            # Fall back to /api/chat if /api/librarian/ask is unavailable
+            self._send_chat(message)
 
     def _send_chat(self, message: str) -> None:
         try:
             data = self.client.chat(message)
-            response = data.get("response") or data.get("message") or self._format_json(data)
-            self._write_murphy(str(response))
+            self._write_murphy(self._extract_response(data))
         except Exception as exc:
             self._write_murphy(
                 f"[red]Chat error: {self._friendly_error(exc)}[/red]\n"

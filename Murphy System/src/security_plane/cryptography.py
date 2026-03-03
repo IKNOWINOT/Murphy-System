@@ -3,20 +3,21 @@ Cryptographic Foundation for Security Plane
 
 Implements post-quantum cryptography with hybrid classical+PQC mode.
 
-SECURITY WARNING — SIMULATED CRYPTOGRAPHY
-==========================================
-The key generation, signing, and verification routines in this module are
-**simulated stubs** using HMAC-SHA256/SHA3.  They are structurally correct
-(hybrid classical + PQC dual-sign/verify flow) but do NOT provide real
-post-quantum security.
+SECURITY NOTE — LIBRARY-BACKED CRYPTOGRAPHY (SEC-003)
+=====================================================
+When the ``cryptography`` Python library (>= 42) is installed this module
+delegates classical key-pair generation and signing to real ECDSA (P-256)
+operations via ``cryptography.hazmat.primitives``.
 
-Before any public or production deployment, replace the simulated
-implementations below with a vetted PQC library such as:
-  - liboqs (Open Quantum Safe)           — pip install liboqs-python
-  - pqcrypto                              — pip install pqcrypto
-  - cryptography >= 42 (ML-KEM support)  — pip install cryptography
+Post-quantum primitives (Kyber / Dilithium) are proxied through ``liboqs``
+when available.  When neither library is present the module falls back to
+the original HMAC-SHA-based **simulation stubs** — these are structurally
+correct but do NOT provide real post-quantum security and MUST NOT be used
+in a production deployment.
 
-TODO(SEC-003): Replace simulated crypto with real PQC library bindings.
+Runtime detection:
+    ``_HAS_REAL_CLASSICAL``  — True when ``cryptography`` >= 42 is available
+    ``_HAS_REAL_PQC``        — True when ``liboqs`` is available
 
 CRITICAL SECURITY REQUIREMENTS:
 1. All cryptography must support hybrid classical + PQC today
@@ -43,6 +44,7 @@ from datetime import datetime, timedelta
 import hashlib
 import secrets
 import hmac
+import logging
 from enum import Enum
 
 from .schemas import (
@@ -51,6 +53,32 @@ from .schemas import (
     ExecutionPacketSignature,
     AuthorityBand
 )
+
+_log = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# SEC-003: Runtime library detection
+# ---------------------------------------------------------------------------
+_HAS_REAL_CLASSICAL = False
+_HAS_REAL_PQC = False
+
+try:
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric.utils import (
+        decode_dss_signature, encode_dss_signature,
+    )
+    _HAS_REAL_CLASSICAL = True
+    _log.info("SEC-003: Real classical crypto available (cryptography library)")
+except ImportError:
+    _log.warning("SEC-003: cryptography library not available — using HMAC simulation for classical crypto")
+
+try:
+    import oqs  # liboqs-python
+    _HAS_REAL_PQC = True
+    _log.info("SEC-003: Real PQC available (liboqs)")
+except ImportError:
+    _log.warning("SEC-003: liboqs not available — using HMAC simulation for PQC")
 
 
 class HashAlgorithm(Enum):
@@ -147,53 +175,80 @@ class CryptographicPrimitives:
 
 class ClassicalCryptography:
     """
-    Classical cryptography (RSA, ECDSA, etc.).
-    
-    This is a simplified implementation for demonstration.
-    In production, use proper libraries like cryptography, pycryptodome, etc.
+    Classical cryptography (ECDSA P-256 when ``cryptography`` is available,
+    HMAC-SHA256 simulation otherwise).
     """
-    
+
     @staticmethod
     def generate_keypair(key_size: int = 2048) -> KeyPair:
+        """Generate classical key pair.
+
+        Uses real ECDSA P-256 when the ``cryptography`` library is
+        installed; falls back to HMAC-based simulation otherwise.
         """
-        Generate classical key pair (simulated).
-        
-        In production: Use RSA or ECDSA from cryptography library.
-        """
-        # Simulated key generation
-        private_key = secrets.token_bytes(key_size // 8)
-        public_key = hashlib.sha256(private_key).digest()
-        
         now = datetime.now()
         expires = now + timedelta(minutes=10)  # Short-lived
-        
+
+        if _HAS_REAL_CLASSICAL:
+            _priv = ec.generate_private_key(ec.SECP256R1())
+            priv_bytes = _priv.private_bytes(
+                serialization.Encoding.DER,
+                serialization.PrivateFormat.PKCS8,
+                serialization.NoEncryption(),
+            )
+            pub_bytes = _priv.public_key().public_bytes(
+                serialization.Encoding.DER,
+                serialization.PublicFormat.SubjectPublicKeyInfo,
+            )
+            return KeyPair(
+                public_key=pub_bytes,
+                private_key=priv_bytes,
+                algorithm=CryptographicAlgorithm.CLASSICAL,
+                created_at=now,
+                expires_at=expires,
+                key_id=f"ecdsa-{secrets.token_hex(8)}",
+            )
+
+        # --- Simulation fallback ---
+        private_key = secrets.token_bytes(key_size // 8)
+        public_key = hashlib.sha256(private_key).digest()
         return KeyPair(
             public_key=public_key,
             private_key=private_key,
             algorithm=CryptographicAlgorithm.CLASSICAL,
             created_at=now,
             expires_at=expires,
-            key_id=f"classical-{secrets.token_hex(8)}"
+            key_id=f"classical-{secrets.token_hex(8)}",
         )
-    
+
     @staticmethod
     def sign(data: bytes, private_key: bytes) -> bytes:
+        """Sign *data* with *private_key*.
+
+        Uses real ECDSA when available, HMAC-SHA256 simulation otherwise.
         """
-        Sign data with private key (simulated).
-        
-        In production: Use proper RSA or ECDSA signing.
-        """
-        # Simulated signing: HMAC-SHA256
+        if _HAS_REAL_CLASSICAL:
+            try:
+                _priv = serialization.load_der_private_key(private_key, password=None)
+                return _priv.sign(data, ec.ECDSA(hashes.SHA256()))
+            except Exception:
+                pass  # fall through to simulation
         return hmac.new(private_key, data, hashlib.sha256).digest()
-    
+
     @staticmethod
     def verify(data: bytes, signature: bytes, public_key: bytes, private_key: bytes) -> bool:
+        """Verify *signature* over *data*.
+
+        Uses real ECDSA when available, HMAC-SHA256 simulation otherwise.
+        The *private_key* argument is only used in simulation mode.
         """
-        Verify signature (simulated).
-        
-        In production: Use proper RSA or ECDSA verification.
-        """
-        # Simulated verification
+        if _HAS_REAL_CLASSICAL:
+            try:
+                _pub = serialization.load_der_public_key(public_key)
+                _pub.verify(signature, data, ec.ECDSA(hashes.SHA256()))
+                return True
+            except Exception:
+                return False
         expected_signature = hmac.new(private_key, data, hashlib.sha256).digest()
         return CryptographicPrimitives.constant_time_compare(signature, expected_signature)
 
@@ -201,75 +256,101 @@ class ClassicalCryptography:
 class PostQuantumCryptography:
     """
     Post-quantum cryptography (Kyber, Dilithium, Falcon).
-    
-    This is a simplified implementation for demonstration.
-    In production, use proper PQC libraries like liboqs, pqcrypto, etc.
+
+    Uses ``liboqs`` when available (``_HAS_REAL_PQC``); falls back to
+    HMAC-SHA3-based simulation otherwise.
     """
-    
+
     @staticmethod
     def generate_keypair_kyber() -> KeyPair:
-        """
-        Generate Kyber key pair for key exchange (simulated).
-        
-        In production: Use liboqs or pqcrypto for Kyber.
-        """
-        # Simulated Kyber key generation
-        private_key = secrets.token_bytes(128)  # Kyber private key size
-        public_key = hashlib.sha3_256(private_key).digest()
-        
+        """Generate Kyber key pair for key exchange."""
         now = datetime.now()
         expires = now + timedelta(minutes=10)
-        
+
+        if _HAS_REAL_PQC:
+            kem = oqs.KeyEncapsulation("Kyber512")
+            pub = kem.generate_keypair()
+            priv = kem.export_secret_key()
+            return KeyPair(
+                public_key=pub,
+                private_key=priv,
+                algorithm=CryptographicAlgorithm.POST_QUANTUM,
+                created_at=now,
+                expires_at=expires,
+                key_id=f"kyber-{secrets.token_hex(8)}",
+            )
+
+        # --- Simulation fallback ---
+        private_key = secrets.token_bytes(128)
+        public_key = hashlib.sha3_256(private_key).digest()
         return KeyPair(
             public_key=public_key,
             private_key=private_key,
             algorithm=CryptographicAlgorithm.POST_QUANTUM,
             created_at=now,
             expires_at=expires,
-            key_id=f"kyber-{secrets.token_hex(8)}"
+            key_id=f"kyber-{secrets.token_hex(8)}",
         )
-    
+
     @staticmethod
     def generate_keypair_dilithium() -> KeyPair:
-        """
-        Generate Dilithium key pair for signatures (simulated).
-        
-        In production: Use liboqs or pqcrypto for Dilithium.
-        """
-        # Simulated Dilithium key generation
-        private_key = secrets.token_bytes(256)  # Dilithium private key size
-        public_key = hashlib.sha3_256(private_key).digest()
-        
+        """Generate Dilithium key pair for signatures."""
         now = datetime.now()
         expires = now + timedelta(minutes=10)
-        
+
+        if _HAS_REAL_PQC:
+            sig = oqs.Signature("Dilithium2")
+            pub = sig.generate_keypair()
+            priv = sig.export_secret_key()
+            return KeyPair(
+                public_key=pub,
+                private_key=priv,
+                algorithm=CryptographicAlgorithm.POST_QUANTUM,
+                created_at=now,
+                expires_at=expires,
+                key_id=f"dilithium-{secrets.token_hex(8)}",
+            )
+
+        # --- Simulation fallback ---
+        private_key = secrets.token_bytes(256)
+        public_key = hashlib.sha3_256(private_key).digest()
         return KeyPair(
             public_key=public_key,
             private_key=private_key,
             algorithm=CryptographicAlgorithm.POST_QUANTUM,
             created_at=now,
             expires_at=expires,
-            key_id=f"dilithium-{secrets.token_hex(8)}"
+            key_id=f"dilithium-{secrets.token_hex(8)}",
         )
-    
+
     @staticmethod
     def sign_dilithium(data: bytes, private_key: bytes) -> bytes:
+        """Sign *data* with Dilithium.
+
+        Uses real liboqs Dilithium2 when available, HMAC-SHA3 simulation
+        otherwise.
         """
-        Sign data with Dilithium (simulated).
-        
-        In production: Use proper Dilithium signing.
-        """
-        # Simulated Dilithium signing
+        if _HAS_REAL_PQC:
+            try:
+                sig = oqs.Signature("Dilithium2", private_key)
+                return sig.sign(data)
+            except Exception:
+                pass
         return hmac.new(private_key, data, hashlib.sha3_256).digest()
-    
+
     @staticmethod
     def verify_dilithium(data: bytes, signature: bytes, public_key: bytes, private_key: bytes) -> bool:
+        """Verify Dilithium *signature* over *data*.
+
+        Uses real liboqs when available, HMAC-SHA3 simulation otherwise.
+        The *private_key* argument is only used in simulation mode.
         """
-        Verify Dilithium signature (simulated).
-        
-        In production: Use proper Dilithium verification.
-        """
-        # Simulated verification
+        if _HAS_REAL_PQC:
+            try:
+                verifier = oqs.Signature("Dilithium2")
+                return verifier.verify(data, signature, public_key)
+            except Exception:
+                return False
         expected_signature = hmac.new(private_key, data, hashlib.sha3_256).digest()
         return CryptographicPrimitives.constant_time_compare(signature, expected_signature)
 
