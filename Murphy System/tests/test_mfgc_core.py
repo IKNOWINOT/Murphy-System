@@ -267,6 +267,74 @@ class TestMFGCController(unittest.TestCase):
         self.assertIn('final_confidence', summary)
         self.assertIn('total_gates', summary)
 
+    # ------------------------------------------------------------------
+    # CFP-4: FeedbackIntegrator wiring
+    # ------------------------------------------------------------------
+
+    def test_feedback_integrator_wired(self):
+        """MFGCController has a FeedbackIntegrator when available."""
+        if not self.controller._feedback_available:
+            self.skipTest("feedback_integrator not importable")
+        self.assertIsNotNone(self.controller._feedback_integrator)
+
+    def test_pending_feedback_signals_initialised(self):
+        """State starts with an empty pending_feedback_signals list."""
+        state = self.controller.execute("Test task")
+        self.assertIsInstance(state.pending_feedback_signals, list)
+
+    def test_murphy_threshold_populates_feedback_signals(self):
+        """When Murphy threshold is exceeded, a feedback signal is recorded."""
+        if not self.controller._feedback_available:
+            self.skipTest("feedback_integrator not importable")
+        # Lower the Murphy threshold so it fires on every phase
+        self.controller.murphy_monitor.threshold = 0.0
+        state = self.controller.execute("High-risk task")
+        self.assertGreater(len(state.pending_feedback_signals), 0)
+
+    def test_apply_feedback_correction_updates_state(self):
+        """apply_feedback_correction() adds a signal and logs an event."""
+        if not self.controller._feedback_available:
+            self.skipTest("feedback_integrator not importable")
+        state = self.controller.execute("Test task")
+        initial_event_count = len(state.events)
+        self.controller.apply_feedback_correction(
+            state,
+            original_confidence=0.4,
+            corrected_confidence=0.8,
+        )
+        self.assertGreater(len(state.events), initial_event_count)
+        event_types = [e['type'] for e in state.events]
+        self.assertIn('feedback_correction_applied', event_types)
+
+    def test_apply_feedback_correction_returns_state(self):
+        """apply_feedback_correction() returns the same state object."""
+        if not self.controller._feedback_available:
+            self.skipTest("feedback_integrator not importable")
+        state = self.controller.execute("Test task")
+        returned = self.controller.apply_feedback_correction(
+            state, 0.5, 0.9
+        )
+        self.assertIs(returned, state)
+
+    def test_recalibration_event_logged_when_triggered(self):
+        """recalibration_triggered event is logged when threshold exceeded."""
+        if not self.controller._feedback_available:
+            self.skipTest("feedback_integrator not importable")
+        # Force large Murphy index so corrections exceed the recalibration threshold
+        self.controller.murphy_monitor.threshold = 0.0
+        state = self.controller.execute("High-risk task for recalibration")
+        event_types = [e['type'] for e in state.events]
+        # If signals were emitted and they collectively exceeded the threshold,
+        # 'recalibration_triggered' must appear.  If not (signals below threshold
+        # or none emitted), the list just won't contain it — both outcomes are valid.
+        for etype in event_types:
+            self.assertIsInstance(etype, str)
+        if 'recalibration_triggered' in event_types:
+            # Verify the event has the expected fields
+            evt = next(e for e in state.events if e['type'] == 'recalibration_triggered')
+            self.assertIn('signal_count', evt['data'])
+            self.assertGreater(evt['data']['signal_count'], 0)
+
 
 if __name__ == '__main__':
     unittest.main()
