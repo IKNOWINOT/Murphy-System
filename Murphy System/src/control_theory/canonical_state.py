@@ -207,9 +207,9 @@ class CanonicalStateVector(BaseModel):
 
         Treats (UD, UA, UI, UR, UG) as an unnormalised weight vector,
         normalises to a probability distribution, and returns
-        H = -Σ p_i log₂(p_i).  When all uncertainties are zero the
-        distribution is uniform (maximum ignorance) and entropy equals
-        log₂(5) ≈ 2.32 bits.
+        H = -Σ p_i log₂(p_i).  When all uncertainties are zero,
+        ``normalize_distribution`` returns a uniform distribution
+        (maximum ignorance) so entropy equals log₂(5) ≈ 2.32 bits.
 
         Returns:
             Entropy in bits (≥ 0).
