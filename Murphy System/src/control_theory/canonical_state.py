@@ -201,6 +201,31 @@ class CanonicalStateVector(BaseModel):
         """Return the L2 norm of the numeric state vector."""
         return math.sqrt(sum(v * v for v in self.to_vector()))
 
+    def state_entropy(self) -> float:
+        """
+        Compute Shannon entropy over the five uncertainty dimensions.
+
+        Treats (UD, UA, UI, UR, UG) as an unnormalised weight vector,
+        normalises to a probability distribution, and returns
+        H = -Σ p_i log₂(p_i).  When all uncertainties are zero,
+        ``normalize_distribution`` returns a uniform distribution
+        (maximum ignorance) so entropy equals log₂(5) ≈ 2.32 bits.
+
+        Returns:
+            Entropy in bits (≥ 0).
+        """
+        from .entropy import normalize_distribution, shannon_entropy
+
+        weights = [
+            self.uncertainty_data,
+            self.uncertainty_authority,
+            self.uncertainty_information,
+            self.uncertainty_resources,
+            self.uncertainty_disagreement,
+        ]
+        dist = normalize_distribution(weights)
+        return shannon_entropy(dist)
+
     # ------------------------------------------------------------------ #
     # Per-variable uncertainty (covariance diagonal)
     # ------------------------------------------------------------------ #
