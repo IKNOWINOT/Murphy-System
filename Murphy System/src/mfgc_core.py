@@ -90,6 +90,16 @@ class MFGCSystemState:
             'data': data
         })
     
+    def to_canonical(self):
+        """Convert to a typed CanonicalStateVector for control-theoretic use.
+
+        Returns:
+            A :class:`~control_theory.canonical_state.CanonicalStateVector`
+            populated from this state's scalar fields.
+        """
+        from control_theory.state_adapter import from_mfgc_state
+        return from_mfgc_state(self)
+
     def advance_phase(self):
         """Move to next phase"""
         phases = list(Phase)
