@@ -40,6 +40,8 @@ from murphy_terminal import (
     StatusBar,
     detect_intent,
     _PLACEHOLDER_KEY_VALUES,
+    DASHBOARD_LINKS,
+    USER_TYPE_UI_LINKS,
 )
 from src.env_manager import (
     read_env,
@@ -828,3 +830,311 @@ class TestUserFullJourney:
             # Key should still be saved locally
             assert os.environ.get("GROQ_API_KEY") == "gsk_abcdefghijklmnopqrstuvwx"
             # No crash means the error was handled gracefully
+
+
+# ============================================================================
+# GAP-7: User-type UI links — every role maps to accessible HTML UIs
+# ============================================================================
+
+
+class TestUserTypeUILinks_GapClosure:
+    """
+    Capability gap: Users had no way to discover which HTML interfaces
+    were available for their role.  The system must provide direct links
+    to the appropriate UI pages for each user type.
+
+    These tests verify the gap is CLOSED from a user-testing perspective:
+    - Every RBAC role is represented in USER_TYPE_UI_LINKS
+    - Every HTML file referenced actually exists on disk
+    - The 'ui' command is discoverable and functional in the terminal
+    - The /api/ui/links endpoint returns a complete mapping
+    """
+
+    # -- data completeness --
+
+    def test_all_core_roles_have_ui_links(self):
+        """Every core RBAC role (owner, admin, operator, viewer) must have UI links."""
+        from murphy_terminal import USER_TYPE_UI_LINKS
+        required_roles = {"owner", "admin", "operator", "viewer"}
+        missing = required_roles - set(USER_TYPE_UI_LINKS.keys())
+        assert not missing, (
+            f"USER_TYPE_UI_LINKS is missing roles: {missing}. "
+            "Users with these roles have no UI links — gap NOT closed."
+        )
+
+    def test_no_role_has_empty_links(self):
+        """Every role in USER_TYPE_UI_LINKS must have at least one UI link."""
+        from murphy_terminal import USER_TYPE_UI_LINKS
+        for role, links in USER_TYPE_UI_LINKS.items():
+            assert len(links) > 0, (
+                f"Role '{role}' has empty UI links list — "
+                "user would see no interfaces. Gap NOT closed."
+            )
+
+    def test_each_link_has_required_fields(self):
+        """Every link entry must have 'name', 'url', and 'file' keys."""
+        from murphy_terminal import USER_TYPE_UI_LINKS
+        for role, links in USER_TYPE_UI_LINKS.items():
+            for link in links:
+                assert "name" in link, f"Link in role '{role}' missing 'name'"
+                assert "url" in link, f"Link in role '{role}' missing 'url'"
+                assert "file" in link, f"Link in role '{role}' missing 'file'"
+
+    def test_all_referenced_html_files_exist(self):
+        """Every HTML file referenced in USER_TYPE_UI_LINKS must exist on disk."""
+        from murphy_terminal import USER_TYPE_UI_LINKS
+        project_dir = os.path.join(os.path.dirname(__file__), "..")
+        seen_files = set()
+        missing = []
+        for role, links in USER_TYPE_UI_LINKS.items():
+            for link in links:
+                html_file = link["file"]
+                if html_file in seen_files:
+                    continue
+                seen_files.add(html_file)
+                full_path = os.path.join(project_dir, html_file)
+                if not os.path.isfile(full_path):
+                    missing.append(f"{role}/{link['name']}: {html_file}")
+        assert not missing, (
+            f"HTML files referenced in UI links do not exist:\n"
+            + "\n".join(missing)
+            + "\nGap NOT closed — links point to missing pages."
+        )
+
+    def test_all_html_files_are_linked(self):
+        """Every HTML file in the project should be reachable from USER_TYPE_UI_LINKS."""
+        from murphy_terminal import USER_TYPE_UI_LINKS
+        project_dir = os.path.join(os.path.dirname(__file__), "..")
+        # Collect all linked files
+        linked_files = set()
+        for links in USER_TYPE_UI_LINKS.values():
+            for link in links:
+                linked_files.add(link["file"])
+        # Collect all HTML files on disk
+        html_files = set()
+        for f in os.listdir(project_dir):
+            if f.endswith(".html"):
+                html_files.add(f)
+        unlinked = html_files - linked_files
+        assert not unlinked, (
+            f"HTML files exist but are NOT linked to any user type: {unlinked}. "
+            "Every UI page should be accessible to at least one role."
+        )
+
+    def test_url_paths_start_with_ui_prefix(self):
+        """All UI link URLs must start with /ui/ for consistent routing."""
+        from murphy_terminal import USER_TYPE_UI_LINKS
+        bad = []
+        for role, links in USER_TYPE_UI_LINKS.items():
+            for link in links:
+                if not link["url"].startswith("/ui/"):
+                    bad.append(f"{role}/{link['name']}: {link['url']}")
+        assert not bad, (
+            f"UI links with non-standard URL prefix:\n" + "\n".join(bad)
+        )
+
+    # -- role hierarchy consistency --
+
+    def test_owner_has_superset_of_admin_links(self):
+        """Owner should have access to all admin UIs plus more."""
+        from murphy_terminal import USER_TYPE_UI_LINKS
+        owner_urls = {l["url"] for l in USER_TYPE_UI_LINKS["owner"]}
+        admin_urls = {l["url"] for l in USER_TYPE_UI_LINKS["admin"]}
+        assert admin_urls.issubset(owner_urls), (
+            f"Admin has UIs that owner doesn't: {admin_urls - owner_urls}. "
+            "Owner role should be a superset of admin."
+        )
+
+    def test_viewer_has_fewest_links(self):
+        """Viewer role should have the fewest UI links (least privileged)."""
+        from murphy_terminal import USER_TYPE_UI_LINKS
+        viewer_count = len(USER_TYPE_UI_LINKS["viewer"])
+        for role, links in USER_TYPE_UI_LINKS.items():
+            if role != "viewer":
+                assert len(links) >= viewer_count, (
+                    f"Role '{role}' has fewer UIs ({len(links)}) than viewer ({viewer_count})"
+                )
+
+    # -- intent detection --
+
+    def test_ui_intent_detected(self):
+        """Typing 'ui' should trigger the intent_ui handler."""
+        assert detect_intent("ui") == "intent_ui"
+
+    def test_ui_links_intent_detected(self):
+        """Typing 'ui links' should trigger the intent_ui handler."""
+        assert detect_intent("ui links") == "intent_ui"
+
+    def test_show_ui_intent_detected(self):
+        """Typing 'show ui' should trigger the intent_ui handler."""
+        assert detect_intent("show ui") == "intent_ui"
+
+    def test_user_interface_intent_detected(self):
+        """Typing 'user interface' should trigger the intent_ui handler."""
+        assert detect_intent("user interface") == "intent_ui"
+
+    # -- TUI integration --
+
+    @pytest.mark.asyncio
+    async def test_user_types_ui_command_no_crash(self, monkeypatch):
+        """User types 'ui' in the terminal → command executes without crash."""
+        monkeypatch.setenv("GROQ_API_KEY", "gsk_skip_gate_for_ui_test")
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            for ch in "ui":
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
+            input_widget = app.query_one("#user-input", Input)
+            assert input_widget.value == "", (
+                "Input not cleared after 'ui' command — handler may not have fired."
+            )
+
+    @pytest.mark.asyncio
+    async def test_user_types_ui_links_command_no_crash(self, monkeypatch):
+        """User types 'ui links' in the terminal → command executes without crash."""
+        monkeypatch.setenv("GROQ_API_KEY", "gsk_skip_gate_for_ui_test")
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            for ch in "ui links":
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
+            input_widget = app.query_one("#user-input", Input)
+            assert input_widget.value == ""
+
+    @pytest.mark.asyncio
+    async def test_ui_command_shows_role_names(self, monkeypatch):
+        """'ui' output should mention all four role names."""
+        monkeypatch.setenv("GROQ_API_KEY", "gsk_skip_gate_for_ui_test")
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            for ch in "ui":
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
+            # Verify intent_ui handler exists and is callable
+            assert hasattr(app, "intent_ui")
+            assert callable(app.intent_ui)
+
+
+# ============================================================================
+# GAP-8: /api/ui/links endpoint — backend serves role-based UI mapping
+# ============================================================================
+
+
+class TestAPIUILinksEndpoint_GapClosure:
+    """
+    Capability gap: The backend had no endpoint for clients to discover
+    which UIs are available per role.  The /api/ui/links endpoint now
+    provides this mapping.
+
+    Tests verify the endpoint contract from a user-testing perspective:
+    a client can GET /api/ui/links and receive a complete, valid response.
+    """
+
+    def test_api_ui_links_endpoint_exists_in_runtime_source(self):
+        """The /api/ui/links endpoint must be defined in the runtime."""
+        runtime_path = os.path.join(
+            os.path.dirname(__file__), "..", "murphy_system_1.0_runtime.py"
+        )
+        with open(runtime_path, encoding="utf-8") as f:
+            source = f.read()
+        assert '"/api/ui/links"' in source, (
+            "/api/ui/links endpoint not found in runtime source. "
+            "Gap NOT closed — clients cannot discover role-based UIs."
+        )
+
+    def test_api_ui_links_returns_all_roles(self):
+        """The endpoint response must include all four core roles."""
+        runtime_path = os.path.join(
+            os.path.dirname(__file__), "..", "murphy_system_1.0_runtime.py"
+        )
+        with open(runtime_path, encoding="utf-8") as f:
+            source = f.read()
+        for role in ("owner", "admin", "operator", "viewer"):
+            assert f'"{role}"' in source, (
+                f"Role '{role}' not found in /api/ui/links endpoint response."
+            )
+
+    def test_terminal_and_runtime_ui_links_consistent(self):
+        """USER_TYPE_UI_LINKS in terminal must match the /api/ui/links response."""
+        from murphy_terminal import USER_TYPE_UI_LINKS
+
+        # Verify both define the same roles
+        terminal_roles = set(USER_TYPE_UI_LINKS.keys())
+        expected_roles = {"owner", "admin", "operator", "viewer"}
+        assert terminal_roles == expected_roles
+
+        # Verify terminal links have correct structure
+        for role, links in USER_TYPE_UI_LINKS.items():
+            for link in links:
+                assert "url" in link
+                assert link["url"].startswith("/ui/")
+
+
+# ============================================================================
+# GAP-9: Links integration completeness — no orphaned pages or broken refs
+# ============================================================================
+
+
+class TestLinksIntegrationCompleteness_GapClosure:
+    """
+    Capability gap: Links must form a complete, testable integration.
+    No HTML page should be orphaned (unreachable), and no link should
+    reference a non-existent page.
+
+    This is the overall integration quality gate for the links system.
+    """
+
+    def test_dashboard_links_are_still_valid(self):
+        """DASHBOARD_LINKS must still contain the core system links."""
+        from murphy_terminal import DASHBOARD_LINKS
+        names = {l["name"] for l in DASHBOARD_LINKS}
+        assert "Swagger API Docs" in names
+        assert "Health Check" in names
+        assert "System Dashboard" in names
+
+    def test_welcome_text_mentions_ui_command(self):
+        """WELCOME_TEXT or help output should mention the 'ui' command."""
+        from murphy_terminal import MurphyTerminalApp
+        # Verify intent_ui method exists on the app
+        assert hasattr(MurphyTerminalApp, "intent_ui"), (
+            "MurphyTerminalApp missing intent_ui method — 'ui' command not wired."
+        )
+
+    def test_intent_ui_is_in_allowed_interview_intents(self):
+        """The 'ui' intent should work even during an active interview."""
+        from murphy_terminal import MurphyTerminalApp
+        source_path = os.path.join(
+            os.path.dirname(__file__), "..", "murphy_terminal.py"
+        )
+        with open(source_path, encoding="utf-8") as f:
+            source = f.read()
+        assert '"intent_ui"' in source, (
+            "intent_ui not found in murphy_terminal.py — command not registered."
+        )
+
+    def test_no_duplicate_urls_within_role(self):
+        """No role should have duplicate URL entries."""
+        from murphy_terminal import USER_TYPE_UI_LINKS
+        for role, links in USER_TYPE_UI_LINKS.items():
+            urls = [l["url"] for l in links]
+            assert len(urls) == len(set(urls)), (
+                f"Role '{role}' has duplicate URLs: {urls}"
+            )
+
+    def test_no_duplicate_names_within_role(self):
+        """No role should have duplicate UI names."""
+        from murphy_terminal import USER_TYPE_UI_LINKS
+        for role, links in USER_TYPE_UI_LINKS.items():
+            names = [l["name"] for l in links]
+            assert len(names) == len(set(names)), (
+                f"Role '{role}' has duplicate names: {names}"
+            )

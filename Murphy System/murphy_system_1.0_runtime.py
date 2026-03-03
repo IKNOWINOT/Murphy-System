@@ -13491,6 +13491,37 @@ def create_app() -> FastAPI:
             "count": len(recs),
         })
 
+    # ==================== UI LINKS ENDPOINT ====================
+
+    @app.get("/api/ui/links")
+    async def ui_links():
+        """Return role-based UI links mapping each user type to their HTML interfaces."""
+        ui_map = {
+            "owner": [
+                {"name": "Architect Terminal", "url": "/ui/terminal-architect"},
+                {"name": "Integrated Terminal", "url": "/ui/terminal-integrated"},
+                {"name": "Full Dashboard", "url": "/ui/dashboard"},
+                {"name": "Onboarding Wizard", "url": "/ui/onboarding"},
+                {"name": "Landing Page", "url": "/ui/landing"},
+            ],
+            "admin": [
+                {"name": "Architect Terminal", "url": "/ui/terminal-architect"},
+                {"name": "Integrated Terminal", "url": "/ui/terminal-integrated"},
+                {"name": "Full Dashboard", "url": "/ui/dashboard"},
+                {"name": "Onboarding Wizard", "url": "/ui/onboarding"},
+            ],
+            "operator": [
+                {"name": "Worker Terminal", "url": "/ui/terminal-worker"},
+                {"name": "Enhanced Terminal", "url": "/ui/terminal-enhanced"},
+                {"name": "Integrated Terminal", "url": "/ui/terminal-integrated"},
+            ],
+            "viewer": [
+                {"name": "Landing Page", "url": "/ui/landing"},
+                {"name": "Enhanced Terminal", "url": "/ui/terminal-enhanced"},
+            ],
+        }
+        return JSONResponse({"success": True, "user_type_ui_links": ui_map})
+
     # ==================== SESSION ENDPOINTS ====================
 
     @app.post("/api/sessions/create")
