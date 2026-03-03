@@ -652,7 +652,8 @@ INTENT_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"\b(librarian|library|knowledge base)\b", re.I), "intent_librarian"),
     (re.compile(r"^(show modules|list modules|modules)\b", re.I), "intent_modules"),
     (re.compile(r"\b(billing|subscription|tier|pricing)\b", re.I), "intent_billing"),
-    (re.compile(r"\b(links|urls|dashboards|open ui)\b", re.I), "intent_links"),
+    (re.compile(r"^(ui|user interface|show ui|ui links|open ui)\b", re.I), "intent_ui"),
+    (re.compile(r"\b(links|urls|dashboards)\b", re.I), "intent_links"),
     (re.compile(r"\b(plan|planning|two.?plane|execution plan)\b", re.I), "intent_plan"),
     (re.compile(r"^magnify\b", re.I), "intent_magnify"),
     (re.compile(r"^simplify\b", re.I), "intent_simplify"),
@@ -724,6 +725,36 @@ DASHBOARD_LINKS: list[dict[str, str]] = [
     {"name": "Terminal (Web)", "url": "/terminal"},
     {"name": "Health Check", "url": "/api/health"},
 ]
+
+# ---------------------------------------------------------------------------
+# Role-based UI links — maps each RBAC user type to the HTML interfaces
+# that are appropriate for their access level.
+# ---------------------------------------------------------------------------
+
+USER_TYPE_UI_LINKS: dict[str, list[dict[str, str]]] = {
+    "owner": [
+        {"name": "Architect Terminal", "url": "/ui/terminal-architect", "file": "terminal_architect.html"},
+        {"name": "Integrated Terminal", "url": "/ui/terminal-integrated", "file": "murphy_ui_integrated_terminal.html"},
+        {"name": "Full Dashboard", "url": "/ui/dashboard", "file": "murphy_ui_integrated.html"},
+        {"name": "Onboarding Wizard", "url": "/ui/onboarding", "file": "onboarding_wizard.html"},
+        {"name": "Landing Page", "url": "/ui/landing", "file": "murphy_landing_page.html"},
+    ],
+    "admin": [
+        {"name": "Architect Terminal", "url": "/ui/terminal-architect", "file": "terminal_architect.html"},
+        {"name": "Integrated Terminal", "url": "/ui/terminal-integrated", "file": "murphy_ui_integrated_terminal.html"},
+        {"name": "Full Dashboard", "url": "/ui/dashboard", "file": "murphy_ui_integrated.html"},
+        {"name": "Onboarding Wizard", "url": "/ui/onboarding", "file": "onboarding_wizard.html"},
+    ],
+    "operator": [
+        {"name": "Worker Terminal", "url": "/ui/terminal-worker", "file": "terminal_worker.html"},
+        {"name": "Enhanced Terminal", "url": "/ui/terminal-enhanced", "file": "terminal_enhanced.html"},
+        {"name": "Integrated Terminal", "url": "/ui/terminal-integrated", "file": "terminal_integrated.html"},
+    ],
+    "viewer": [
+        {"name": "Landing Page", "url": "/ui/landing", "file": "murphy_landing_page.html"},
+        {"name": "Enhanced Terminal", "url": "/ui/terminal-enhanced", "file": "terminal_enhanced.html"},
+    ],
+}
 
 
 class StatusBar(Static):
@@ -1126,7 +1157,7 @@ class MurphyTerminalApp(App):
             if intent in ("intent_help", "intent_exit", "intent_health",
                           "intent_status", "intent_set_api", "intent_set_key",
                           "intent_test_api",
-                          "intent_reconnect", "intent_links", "intent_modules",
+                          "intent_reconnect", "intent_links", "intent_ui", "intent_modules",
                           "intent_llm_status", "intent_librarian_status",
                           "intent_api_keys",
                           "intent_magnify", "intent_simplify", "intent_solidify"):
@@ -1226,6 +1257,7 @@ class MurphyTerminalApp(App):
             "  • [green]status[/green] — view system status\n"
             "  • [green]info[/green] — system version & information\n"
             "  • [green]links[/green] — show dashboard and UI URLs\n"
+            "  • [green]ui[/green] — show user-type specific UI links\n"
             "  • [green]llm status[/green] — check LLM provider configuration\n"
             "  • [green]librarian status[/green] — check librarian health\n\n"
             "[bold cyan]Onboarding & Interview[/bold cyan]\n"
@@ -1641,6 +1673,23 @@ class MurphyTerminalApp(App):
             full_url = f"{base}{link['url']}"
             lines.append(f"  • {link['name']}: [link={full_url}]{full_url}[/link]")
         lines.append("\n[dim]Tip: Click any link to open in your browser.[/dim]")
+        lines.append("[dim]Type [green]ui[/green] to see role-based UI links.[/dim]")
+        self._write_murphy("\n".join(lines))
+
+    def intent_ui(self, _msg: str) -> None:
+        """Show direct links to HTML user interfaces grouped by user type."""
+        base = self.client.base_url
+        lines = ["[bold cyan]🖥️  User Interface Links by Role[/bold cyan]\n"]
+        for role, ui_links in USER_TYPE_UI_LINKS.items():
+            lines.append(f"  [bold yellow]{role.upper()}[/bold yellow]")
+            for link in ui_links:
+                full_url = f"{base}{link['url']}"
+                lines.append(f"    • {link['name']}: [link={full_url}]{full_url}[/link]")
+            lines.append("")
+        lines.append(
+            "[dim]Each role has access to UI pages matching their permission level.\n"
+            "Contact your admin to change roles.[/dim]"
+        )
         self._write_murphy("\n".join(lines))
 
     def intent_plan(self, _msg: str) -> None:

@@ -956,7 +956,7 @@ class TestNewModuleIntentDetection:
     def test_links_intent(self):
         assert detect_intent("links") == "intent_links"
         assert detect_intent("show urls") == "intent_links"
-        assert detect_intent("open ui") == "intent_links"
+        assert detect_intent("open ui") == "intent_ui"
         assert detect_intent("dashboards") == "intent_links"
 
     def test_plan_intent(self):
