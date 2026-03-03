@@ -922,17 +922,33 @@ class MurphyTerminalApp(App):
             pass
 
     def _check_llm_status(self) -> None:
-        """Query backend LLM status and update the status bar."""
+        """Query backend LLM status and update the status bar.
+
+        Uses the ``/api/llm/test`` endpoint so the status bar reflects
+        actual auth state, not merely whether an env var is set.
+        """
         status_bar = self.query_one(StatusBar)
         try:
             data = self.client.llm_status()
             enabled = data.get("enabled", False)
-            status_bar.llm_enabled = enabled
             provider = data.get("provider") or "none"
             if enabled:
-                model = data.get("model") or "default"
-                self._write_system(f"LLM enabled — provider=[cyan]{provider}[/cyan] model=[cyan]{model}[/cyan]")
+                # Verify the key actually authenticates
+                test_result = self.client.llm_test()
+                if test_result.get("success"):
+                    status_bar.llm_enabled = True
+                    model = data.get("model") or "default"
+                    self._write_system(f"LLM enabled — provider=[cyan]{provider}[/cyan] model=[cyan]{model}[/cyan]")
+                else:
+                    status_bar.llm_enabled = False
+                    error = test_result.get("error", "auth failed")
+                    self._write_system(
+                        f"[yellow]LLM key set but auth failed ({error})[/yellow] — "
+                        "running in deterministic mode. "
+                        "Type [green]set key groq <your-key>[/green] to update."
+                    )
             else:
+                status_bar.llm_enabled = False
                 error = data.get("error", "not configured")
                 self._write_system(
                     f"[yellow]LLM not configured ({error})[/yellow] — "
@@ -1338,7 +1354,7 @@ class MurphyTerminalApp(App):
 
         # Notify the backend to hot-reload its LLM config
         configure_result = self.client.configure_llm(provider, key_value)
-        if not configure_result.get("success", True):
+        if not configure_result.get("success", False):
             self._write_murphy(
                 f"[red]✗ Backend configure failed: {configure_result.get('error', 'unknown error')}[/red]"
             )
@@ -1397,14 +1413,8 @@ class MurphyTerminalApp(App):
                 if result.returncode == 0:
                     return result.stdout
             elif system == "Windows":
-                # Try PowerShell first
-                result = subprocess.run(
-                    ["powershell", "-command", "Get-Clipboard"],
-                    capture_output=True, text=True, timeout=2,
-                )
-                if result.returncode == 0:
-                    return result.stdout
-                # Fallback: win32clipboard (pywin32)
+                # Prefer win32clipboard (pywin32) — fast, in-process, and
+                # avoids the subprocess conflicts with Textual's Input widget.
                 if _win32clipboard is not None:
                     try:
                         _win32clipboard.OpenClipboard()
@@ -1415,6 +1425,13 @@ class MurphyTerminalApp(App):
                             _win32clipboard.CloseClipboard()
                     except Exception:
                         pass
+                # Fallback: PowerShell
+                result = subprocess.run(
+                    ["powershell", "-command", "Get-Clipboard"],
+                    capture_output=True, text=True, timeout=2,
+                )
+                if result.returncode == 0:
+                    return result.stdout
         except Exception:
             pass
 
@@ -1444,6 +1461,13 @@ class MurphyTerminalApp(App):
                 "Paste not available. Try: Shift+Insert, or right-click in your "
                 "terminal. You can also set keys via .env file directly."
             )
+
+    def key_ctrl_v(self, event: events.Key) -> None:
+        """Intercept Ctrl+V at the app level so paste works even when the
+        Input widget would otherwise swallow the key on Windows."""
+        self.action_paste_clipboard()
+        event.prevent_default()
+        event.stop()
 
     def on_paste(self, event: events.Paste) -> None:
         """Handle terminal bracketed-paste events (e.g. right-click paste in Windows Terminal).
