@@ -1294,7 +1294,7 @@ class TestBug5DefaultSuccessFalse:
         # With the old default of True, `not result.get("success", True)` would be
         # False (i.e. treated as success).  With the fix, `not result.get("success", False)`
         # is True (i.e. treated as failure).
-        assert not result.get("success", False) is True
+        assert result.get("success", False) is False
 
     @patch("murphy_terminal.requests.post")
     def test_configure_llm_explicit_success_true(self, mock_post):
@@ -1390,14 +1390,19 @@ class TestBug6NoHardcodedKeys:
 
     def test_no_groq_keys_in_archive(self):
         """Ensure no gsk_ prefixed keys of 20+ chars remain in the archive."""
-        import subprocess
         archive_dir = os.path.join(os.path.dirname(__file__), "..", "archive")
         if not os.path.isdir(archive_dir):
             pytest.skip("archive directory not present")
-        result = subprocess.run(
-            ["grep", "-r", "-E", r"gsk_[A-Za-z0-9]{20,}", archive_dir],
-            capture_output=True, text=True,
-        )
-        assert result.stdout.strip() == "", (
-            f"Found hardcoded Groq keys in archive:\n{result.stdout[:500]}"
-        )
+        pattern = re.compile(r"gsk_[A-Za-z0-9]{20,}")
+        hits: list[str] = []
+        for root, _dirs, files in os.walk(archive_dir):
+            for fname in files:
+                fpath = os.path.join(root, fname)
+                try:
+                    with open(fpath, encoding="utf-8", errors="ignore") as fh:
+                        for lineno, line in enumerate(fh, 1):
+                            if pattern.search(line):
+                                hits.append(f"{fpath}:{lineno}")
+                except (OSError, UnicodeDecodeError):
+                    pass
+        assert hits == [], f"Found hardcoded Groq keys:\n" + "\n".join(hits[:10])
