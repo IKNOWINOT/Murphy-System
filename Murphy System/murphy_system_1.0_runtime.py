@@ -13337,6 +13337,11 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     
+    # Load .env before initialising MurphySystem so env vars like
+    # MURPHY_LLM_PROVIDER and GROQ_API_KEY are available from the start.
+    if _load_dotenv is not None:
+        _load_dotenv(override=True)
+
     # Initialize Murphy System
     murphy = MurphySystem()
     
