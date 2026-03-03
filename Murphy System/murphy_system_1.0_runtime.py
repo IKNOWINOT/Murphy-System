@@ -13357,8 +13357,10 @@ def create_app() -> FastAPI:
     
     # Load .env before initialising MurphySystem so env vars like
     # MURPHY_LLM_PROVIDER and GROQ_API_KEY are available from the start.
+    # Resolve the path relative to this file so it works regardless of CWD.
     if _load_dotenv is not None:
-        _load_dotenv(override=True)
+        _env_path = Path(__file__).resolve().parent / ".env"
+        _load_dotenv(_env_path, override=True)
 
     # Initialize Murphy System
     murphy = MurphySystem()
@@ -13465,7 +13467,7 @@ def create_app() -> FastAPI:
         os.environ["MURPHY_LLM_PROVIDER"] = provider
         # Re-read .env so any manually edited values also take effect
         if _load_dotenv is not None:
-            _load_dotenv(override=True)
+            _load_dotenv(Path(__file__).resolve().parent / ".env", override=True)
         return JSONResponse({"success": True, **murphy._get_llm_status()})
 
     @app.post("/api/llm/test")
@@ -13483,7 +13485,7 @@ def create_app() -> FastAPI:
     async def llm_reload():
         """Re-read .env and reinitialise LLM config — called on terminal reconnect."""
         if _load_dotenv is not None:
-            _load_dotenv(override=True)
+            _load_dotenv(Path(__file__).resolve().parent / ".env", override=True)
         return JSONResponse({"success": True, **murphy._get_llm_status()})
 
     @app.get("/api/librarian/api-links")
@@ -13502,6 +13504,85 @@ def create_app() -> FastAPI:
             "recommendations": recs,
             "count": len(recs),
         })
+
+    # ==================== UI LINKS ENDPOINT ====================
+
+    @app.get("/api/ui/links")
+    async def ui_links():
+        """Return role-based UI links mapping each user type to their HTML interfaces."""
+        ui_map = {
+            "owner": [
+                {"name": "Architect Terminal", "url": "/ui/terminal-architect"},
+                {"name": "Integrated Terminal", "url": "/ui/terminal-integrated"},
+                {"name": "Full Dashboard", "url": "/ui/dashboard"},
+                {"name": "Onboarding Wizard", "url": "/ui/onboarding"},
+                {"name": "Landing Page", "url": "/ui/landing"},
+            ],
+            "admin": [
+                {"name": "Architect Terminal", "url": "/ui/terminal-architect"},
+                {"name": "Integrated Terminal", "url": "/ui/terminal-integrated"},
+                {"name": "Full Dashboard", "url": "/ui/dashboard"},
+                {"name": "Onboarding Wizard", "url": "/ui/onboarding"},
+            ],
+            "operator": [
+                {"name": "Worker Terminal", "url": "/ui/terminal-worker"},
+                {"name": "Enhanced Terminal", "url": "/ui/terminal-enhanced"},
+                {"name": "Operator Terminal", "url": "/ui/terminal-operator"},
+            ],
+            "viewer": [
+                {"name": "Landing Page", "url": "/ui/landing"},
+                {"name": "Enhanced Terminal", "url": "/ui/terminal-enhanced"},
+            ],
+        }
+        return JSONResponse({"success": True, "user_type_ui_links": ui_map})
+
+    # ==================== ACCOUNT LIFECYCLE ENDPOINT ====================
+
+    @app.get("/api/account/flow")
+    async def account_flow():
+        """Return the account lifecycle flow stages with UI and API links.
+
+        The flow describes the ordered stages a user goes through:
+        info → signup → verify → session → automation.
+        """
+        flow = [
+            {
+                "stage": "info",
+                "name": "Info & Landing Page",
+                "url": "/ui/landing",
+                "api": "/api/info",
+                "description": "Learn about Murphy System capabilities and features",
+            },
+            {
+                "stage": "signup",
+                "name": "Account Signup",
+                "url": "/ui/onboarding",
+                "api": "/api/onboarding/wizard/questions",
+                "description": "Create an account through the onboarding wizard",
+            },
+            {
+                "stage": "verify",
+                "name": "Account Verification",
+                "url": "/ui/onboarding",
+                "api": "/api/onboarding/wizard/validate",
+                "description": "Validate configuration and verify account setup",
+            },
+            {
+                "stage": "session",
+                "name": "Account Session",
+                "url": "/ui/dashboard",
+                "api": "/api/sessions/create",
+                "description": "Start an authenticated session to access your account",
+            },
+            {
+                "stage": "automation",
+                "name": "Automation Management",
+                "url": "/ui/terminal-integrated",
+                "api": "/api/execute",
+                "description": "Create, configure, and manage your automations",
+            },
+        ]
+        return JSONResponse({"success": True, "flow": flow, "stages": len(flow)})
 
     # ==================== SESSION ENDPOINTS ====================
 

@@ -87,7 +87,7 @@ if not exist groq_keys.txt (
         echo # Add your Groq API keys here (one per line^)
         echo # Get free keys at: https://console.groq.com/keys
         echo # Example:
-        echo # gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        echo # REDACTED_GROQ_KEY_PLACEHOLDER
     ) > groq_keys.txt
     echo [WARNING] Please add your Groq API keys to groq_keys.txt
 ) else (

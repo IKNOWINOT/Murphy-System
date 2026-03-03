@@ -652,7 +652,9 @@ INTENT_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"\b(librarian|library|knowledge base)\b", re.I), "intent_librarian"),
     (re.compile(r"^(show modules|list modules|modules)\b", re.I), "intent_modules"),
     (re.compile(r"\b(billing|subscription|tier|pricing)\b", re.I), "intent_billing"),
-    (re.compile(r"\b(links|urls|dashboards|open ui)\b", re.I), "intent_links"),
+    (re.compile(r"^(ui|user interface|show ui|ui links|open ui)\b", re.I), "intent_ui"),
+    (re.compile(r"^(account|sign.?up|sign.?in|get started|account flow)\b", re.I), "intent_account"),
+    (re.compile(r"\b(links|urls|dashboards)\b", re.I), "intent_links"),
     (re.compile(r"\b(plan|planning|two.?plane|execution plan)\b", re.I), "intent_plan"),
     (re.compile(r"^magnify\b", re.I), "intent_magnify"),
     (re.compile(r"^simplify\b", re.I), "intent_simplify"),
@@ -697,6 +699,7 @@ and run end-to-end workflows with minimal manual effort.
 
 [bold cyan]🚀 Getting Started[/bold cyan]
   • [green]start interview[/green]  — guided onboarding (I'll learn about your needs first)
+  • [green]account[/green]          — see the signup → verify → session → automation flow
   • [green]help[/green]             — see all available commands
   • [green]show modules[/green]    — list all system modules and their commands
 
@@ -707,6 +710,7 @@ and run end-to-end workflows with minimal manual effort.
   • [green]librarian[/green]       — consult the knowledge base expert
   • [green]billing[/green]         — view billing and subscription info
   • [green]links[/green]           — show dashboard and UI links
+  • [green]ui[/green]              — show role-based UI links
 
 [bold cyan]🔗 Dashboard Links[/bold cyan]
   • Swagger API Docs : [link=http://localhost:8000/docs]http://localhost:8000/docs[/link]
@@ -724,6 +728,79 @@ DASHBOARD_LINKS: list[dict[str, str]] = [
     {"name": "Terminal (Web)", "url": "/terminal"},
     {"name": "Health Check", "url": "/api/health"},
 ]
+
+# ---------------------------------------------------------------------------
+# Account lifecycle flow — the ordered stages a user goes through from
+# discovering the system to having a fully configured automation account.
+# ---------------------------------------------------------------------------
+
+ACCOUNT_LIFECYCLE_FLOW: list[dict[str, str]] = [
+    {
+        "stage": "info",
+        "name": "Info & Landing Page",
+        "url": "/ui/landing",
+        "api": "/api/info",
+        "description": "Learn about Murphy System capabilities and features",
+    },
+    {
+        "stage": "signup",
+        "name": "Account Signup",
+        "url": "/ui/onboarding",
+        "api": "/api/onboarding/wizard/questions",
+        "description": "Create an account through the onboarding wizard",
+    },
+    {
+        "stage": "verify",
+        "name": "Account Verification",
+        "url": "/ui/onboarding",
+        "api": "/api/onboarding/wizard/validate",
+        "description": "Validate configuration and verify account setup",
+    },
+    {
+        "stage": "session",
+        "name": "Account Session",
+        "url": "/ui/dashboard",
+        "api": "/api/sessions/create",
+        "description": "Start an authenticated session to access your account",
+    },
+    {
+        "stage": "automation",
+        "name": "Automation Management",
+        "url": "/ui/terminal-integrated",
+        "api": "/api/execute",
+        "description": "Create, configure, and manage your automations",
+    },
+]
+
+# ---------------------------------------------------------------------------
+# Role-based UI links — maps each RBAC user type to the HTML interfaces
+# that are appropriate for their access level.
+# ---------------------------------------------------------------------------
+
+USER_TYPE_UI_LINKS: dict[str, list[dict[str, str]]] = {
+    "owner": [
+        {"name": "Architect Terminal", "url": "/ui/terminal-architect", "file": "terminal_architect.html"},
+        {"name": "Integrated Terminal", "url": "/ui/terminal-integrated", "file": "murphy_ui_integrated_terminal.html"},
+        {"name": "Full Dashboard", "url": "/ui/dashboard", "file": "murphy_ui_integrated.html"},
+        {"name": "Onboarding Wizard", "url": "/ui/onboarding", "file": "onboarding_wizard.html"},
+        {"name": "Landing Page", "url": "/ui/landing", "file": "murphy_landing_page.html"},
+    ],
+    "admin": [
+        {"name": "Architect Terminal", "url": "/ui/terminal-architect", "file": "terminal_architect.html"},
+        {"name": "Integrated Terminal", "url": "/ui/terminal-integrated", "file": "murphy_ui_integrated_terminal.html"},
+        {"name": "Full Dashboard", "url": "/ui/dashboard", "file": "murphy_ui_integrated.html"},
+        {"name": "Onboarding Wizard", "url": "/ui/onboarding", "file": "onboarding_wizard.html"},
+    ],
+    "operator": [
+        {"name": "Worker Terminal", "url": "/ui/terminal-worker", "file": "terminal_worker.html"},
+        {"name": "Enhanced Terminal", "url": "/ui/terminal-enhanced", "file": "terminal_enhanced.html"},
+        {"name": "Operator Terminal", "url": "/ui/terminal-operator", "file": "terminal_integrated.html"},
+    ],
+    "viewer": [
+        {"name": "Landing Page", "url": "/ui/landing", "file": "murphy_landing_page.html"},
+        {"name": "Enhanced Terminal", "url": "/ui/terminal-enhanced", "file": "terminal_enhanced.html"},
+    ],
+}
 
 
 class StatusBar(Static):
@@ -922,17 +999,33 @@ class MurphyTerminalApp(App):
             pass
 
     def _check_llm_status(self) -> None:
-        """Query backend LLM status and update the status bar."""
+        """Query backend LLM status and update the status bar.
+
+        Uses the ``/api/llm/test`` endpoint so the status bar reflects
+        actual auth state, not merely whether an env var is set.
+        """
         status_bar = self.query_one(StatusBar)
         try:
             data = self.client.llm_status()
             enabled = data.get("enabled", False)
-            status_bar.llm_enabled = enabled
             provider = data.get("provider") or "none"
             if enabled:
-                model = data.get("model") or "default"
-                self._write_system(f"LLM enabled — provider=[cyan]{provider}[/cyan] model=[cyan]{model}[/cyan]")
+                # Verify the key actually authenticates
+                test_result = self.client.llm_test()
+                if test_result.get("success"):
+                    status_bar.llm_enabled = True
+                    model = data.get("model") or "default"
+                    self._write_system(f"LLM enabled — provider=[cyan]{provider}[/cyan] model=[cyan]{model}[/cyan]")
+                else:
+                    status_bar.llm_enabled = False
+                    error = test_result.get("error", "auth failed")
+                    self._write_system(
+                        f"[yellow]LLM key set but auth failed ({error})[/yellow] — "
+                        "running in deterministic mode. "
+                        "Type [green]set key groq <your-key>[/green] to update."
+                    )
             else:
+                status_bar.llm_enabled = False
                 error = data.get("error", "not configured")
                 self._write_system(
                     f"[yellow]LLM not configured ({error})[/yellow] — "
@@ -1110,7 +1203,7 @@ class MurphyTerminalApp(App):
             if intent in ("intent_help", "intent_exit", "intent_health",
                           "intent_status", "intent_set_api", "intent_set_key",
                           "intent_test_api",
-                          "intent_reconnect", "intent_links", "intent_modules",
+                          "intent_reconnect", "intent_links", "intent_ui", "intent_account", "intent_modules",
                           "intent_llm_status", "intent_librarian_status",
                           "intent_api_keys",
                           "intent_magnify", "intent_simplify", "intent_solidify"):
@@ -1210,6 +1303,8 @@ class MurphyTerminalApp(App):
             "  • [green]status[/green] — view system status\n"
             "  • [green]info[/green] — system version & information\n"
             "  • [green]links[/green] — show dashboard and UI URLs\n"
+            "  • [green]ui[/green] — show user-type specific UI links\n"
+            "  • [green]account[/green] — account lifecycle (signup → verify → session → automation)\n"
             "  • [green]llm status[/green] — check LLM provider configuration\n"
             "  • [green]librarian status[/green] — check librarian health\n\n"
             "[bold cyan]Onboarding & Interview[/bold cyan]\n"
@@ -1338,7 +1433,7 @@ class MurphyTerminalApp(App):
 
         # Notify the backend to hot-reload its LLM config
         configure_result = self.client.configure_llm(provider, key_value)
-        if not configure_result.get("success", True):
+        if not configure_result.get("success", False):
             self._write_murphy(
                 f"[red]✗ Backend configure failed: {configure_result.get('error', 'unknown error')}[/red]"
             )
@@ -1397,14 +1492,8 @@ class MurphyTerminalApp(App):
                 if result.returncode == 0:
                     return result.stdout
             elif system == "Windows":
-                # Try PowerShell first
-                result = subprocess.run(
-                    ["powershell", "-command", "Get-Clipboard"],
-                    capture_output=True, text=True, timeout=2,
-                )
-                if result.returncode == 0:
-                    return result.stdout
-                # Fallback: win32clipboard (pywin32)
+                # Prefer win32clipboard (pywin32) — fast, in-process, and
+                # avoids the subprocess conflicts with Textual's Input widget.
                 if _win32clipboard is not None:
                     try:
                         _win32clipboard.OpenClipboard()
@@ -1415,6 +1504,13 @@ class MurphyTerminalApp(App):
                             _win32clipboard.CloseClipboard()
                     except Exception:
                         pass
+                # Fallback: PowerShell
+                result = subprocess.run(
+                    ["powershell", "-command", "Get-Clipboard"],
+                    capture_output=True, text=True, timeout=2,
+                )
+                if result.returncode == 0:
+                    return result.stdout
         except Exception:
             pass
 
@@ -1444,6 +1540,13 @@ class MurphyTerminalApp(App):
                 "Paste not available. Try: Shift+Insert, or right-click in your "
                 "terminal. You can also set keys via .env file directly."
             )
+
+    def key_ctrl_v(self, event: events.Key) -> None:
+        """Intercept Ctrl+V at the app level so paste works even when the
+        Input widget would otherwise swallow the key on Windows."""
+        self.action_paste_clipboard()
+        event.prevent_default()
+        event.stop()
 
     def on_paste(self, event: events.Paste) -> None:
         """Handle terminal bracketed-paste events (e.g. right-click paste in Windows Terminal).
@@ -1617,6 +1720,23 @@ class MurphyTerminalApp(App):
             full_url = f"{base}{link['url']}"
             lines.append(f"  • {link['name']}: [link={full_url}]{full_url}[/link]")
         lines.append("\n[dim]Tip: Click any link to open in your browser.[/dim]")
+        lines.append("[dim]Type [green]ui[/green] to see role-based UI links.[/dim]")
+        self._write_murphy("\n".join(lines))
+
+    def intent_ui(self, _msg: str) -> None:
+        """Show direct links to HTML user interfaces grouped by user type."""
+        base = self.client.base_url
+        lines = ["[bold cyan]🖥️  User Interface Links by Role[/bold cyan]\n"]
+        for role, ui_links in USER_TYPE_UI_LINKS.items():
+            lines.append(f"  [bold yellow]{role.upper()}[/bold yellow]")
+            for link in ui_links:
+                full_url = f"{base}{link['url']}"
+                lines.append(f"    • {link['name']}: [link={full_url}]{full_url}[/link]")
+            lines.append("")
+        lines.append(
+            "[dim]Each role has access to UI pages matching their permission level.\n"
+            "Contact your admin to change roles.[/dim]"
+        )
         self._write_murphy("\n".join(lines))
 
     def intent_plan(self, _msg: str) -> None:
@@ -1631,6 +1751,28 @@ class MurphyTerminalApp(App):
             "  3. Execute — Murphy runs each step with safety checks\n\n"
             "Try: [green]execute plan for <your goal>[/green]"
         )
+
+    def intent_account(self, _msg: str) -> None:
+        """Show the account lifecycle flow: info → signup → verify → session → automation."""
+        base = self.client.base_url
+        lines = ["[bold cyan]🔐 Account Lifecycle Flow[/bold cyan]\n"]
+        for i, stage in enumerate(ACCOUNT_LIFECYCLE_FLOW, 1):
+            ui_url = f"{base}{stage['url']}"
+            api_url = f"{base}{stage['api']}"
+            lines.append(
+                f"  [bold yellow]{i}. {stage['name']}[/bold yellow] ({stage['stage']})\n"
+                f"     {stage['description']}\n"
+                f"     UI:  [link={ui_url}]{ui_url}[/link]\n"
+                f"     API: [link={api_url}]{api_url}[/link]"
+            )
+        lines.append(
+            "\n[bold cyan]Flow:[/bold cyan] "
+            "[green]Info[/green] → [green]Signup[/green] → "
+            "[green]Verify[/green] → [green]Session[/green] → "
+            "[green]Automation[/green]\n\n"
+            "[dim]Start with [green]start interview[/green] to begin the signup process.[/dim]"
+        )
+        self._write_murphy("\n".join(lines))
 
     def intent_api_keys(self, _msg: str) -> None:
         """Show API provider signup links for all supported integrations."""
