@@ -12266,13 +12266,26 @@ class MurphySystem:
         provider = os.environ.get("MURPHY_LLM_PROVIDER", "").strip().lower()
         model = os.environ.get("MURPHY_LLM_MODEL", "").strip()
         if not provider:
-            return {
-                "enabled": False,
-                "provider": None,
-                "model": None,
-                "healthy": False,
-                "error": "MURPHY_LLM_PROVIDER not set",
-            }
+            # Auto-detect provider from available API keys so that users who
+            # only set GROQ_API_KEY (without MURPHY_LLM_PROVIDER) are still served.
+            groq_key = os.environ.get("GROQ_API_KEY", "").strip()
+            openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
+            anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+            if groq_key:
+                provider = "groq"
+            elif openai_key:
+                provider = "openai"
+            elif anthropic_key:
+                provider = "anthropic"
+            else:
+                return {
+                    "enabled": False,
+                    "provider": None,
+                    "model": None,
+                    "healthy": False,
+                    "error": "MURPHY_LLM_PROVIDER not set",
+                }
+            os.environ["MURPHY_LLM_PROVIDER"] = provider
         # Validate provider-specific keys
         if provider == "groq":
             api_key = os.environ.get("GROQ_API_KEY", "").strip()

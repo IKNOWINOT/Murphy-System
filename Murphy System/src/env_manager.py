@@ -117,14 +117,22 @@ def reload_env(path: Optional[str] = None) -> Dict[str, str]:
 
 
 def strip_key_wrapping(key: str) -> str:
-    """Remove surrounding angle brackets, quotes, backticks, and whitespace."""
+    """Remove surrounding angle brackets, quotes, backticks, whitespace, and
+    invisible Unicode characters (zero-width spaces, BOM, non-breaking spaces)
+    that may appear when copy-pasting from browsers or Windows applications."""
+    # Strip standard whitespace first
     key = key.strip()
+    # Strip invisible Unicode characters that survive .strip():
+    # U+200B zero-width space, U+FEFF BOM/zero-width no-break space,
+    # U+00A0 non-breaking space, U+200C/D/E/F zero-width joiners/separators
+    _INVISIBLE_UNICODE_CHARS = "\u200b\u200c\u200d\u200e\u200f\ufeff\u00a0\u2028\u2029"
+    key = key.strip(_INVISIBLE_UNICODE_CHARS).strip()
     if len(key) >= 2:
         if key[0] == key[-1] and key[0] in ('"', "'", "`"):
             key = key[1:-1]
         elif key.startswith("<") and key.endswith(">"):
             key = key[1:-1]
-    return key.strip()
+    return key.strip(_INVISIBLE_UNICODE_CHARS).strip()
 
 
 def validate_api_key(provider: str, key: str) -> Tuple[bool, str]:

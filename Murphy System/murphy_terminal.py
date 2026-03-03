@@ -27,6 +27,7 @@ from datetime import datetime
 from typing import Optional
 
 import requests
+from textual import events
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
@@ -66,6 +67,9 @@ except ImportError:
 # Placeholder strings that appear in template .env files but are not real keys.
 _PLACEHOLDER_KEY_VALUES = frozenset({
     "your_groq_key_here", "your_openai_key_here",
+    # Placeholders used in .env.example
+    "your_groq_api_key_here", "sk-your_openai_key_here",
+    "sk-ant-your_anthropic_key_here",
     "your_key_here", "your-key-here", "change_me",
     "changeme", "xxx", "none",
 })
@@ -784,7 +788,8 @@ class MurphyTerminalApp(App):
         Binding("ctrl+q", "quit", "Quit", show=True),
         Binding("ctrl+h", "show_help", "Help", show=True),
         Binding("ctrl+s", "show_status", "Status", show=True),
-        Binding("ctrl+v", "paste_clipboard", "Paste", show=False),
+        Binding("ctrl+v", "paste_clipboard", "Paste", show=False, priority=True),
+        Binding("shift+insert", "paste_clipboard", "Paste", show=False),
     ]
 
     def __init__(self, api_url: str = API_URL, **kwargs):
@@ -1415,20 +1420,40 @@ class MurphyTerminalApp(App):
 
         return None
 
+    def _insert_text_into_input(self, text: str) -> None:
+        """Insert *text* into the command Input widget, using only the first line.
+
+        API keys and short commands are always single-line.  Silently ignores
+        errors so that clipboard/paste failures never crash the app.
+        """
+        first_line = text.strip().splitlines()[0].strip() if text.strip() else ""
+        if first_line:
+            try:
+                input_widget = self.query_one("#user-input", Input)
+                input_widget.insert_text_at_cursor(first_line)
+            except Exception:
+                pass
+
     def action_paste_clipboard(self) -> None:
         """Paste clipboard contents into the focused Input widget."""
         text = self._read_clipboard()
         if text:
-            try:
-                input_widget = self.query_one("#user-input", Input)
-                input_widget.insert_text_at_cursor(text.strip())
-            except Exception:
-                pass
+            self._insert_text_into_input(text)
         else:
             self._write_system(
                 "Paste not available. Try: Shift+Insert, or right-click in your "
                 "terminal. You can also set keys via .env file directly."
             )
+
+    def on_paste(self, event: events.Paste) -> None:
+        """Handle terminal bracketed-paste events (e.g. right-click paste in Windows Terminal).
+
+        Routes the pasted text into the command input widget so users can
+        paste API keys directly without relying on the system clipboard API.
+        """
+        if event.text:
+            self._insert_text_into_input(event.text)
+            event.stop()
 
     # -- connectivity intents --
 
