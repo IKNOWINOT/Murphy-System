@@ -1,0 +1,202 @@
+"""
+Canonical State Vector for the Murphy System.
+
+Unifies all fragmented state representations into a single typed Pydantic model
+that can serve as the formal state vector X(t) for a control-theoretic formulation.
+"""
+
+import math
+from datetime import datetime, timezone
+from typing import ClassVar, List, Optional
+
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+
+# Ordered list of numeric dimension names — ORDER IS CANONICAL and must not change.
+_DIMENSION_NAMES: List[str] = [
+    "confidence",
+    "authority",
+    "murphy_index",
+    "phase_index",
+    "complexity",
+    "domain_depth",
+    "gate_count",
+    "active_constraints",
+    "artifact_count",
+    "uncertainty_data",
+    "uncertainty_authority",
+    "uncertainty_information",
+    "uncertainty_resources",
+    "uncertainty_disagreement",
+    "uptime_seconds",
+    "active_tasks",
+    "cpu_usage_percent",
+]
+
+
+class CanonicalStateVector(BaseModel):
+    """
+    Canonical state vector X(t) for the Murphy System.
+
+    Unifies scalar state dimensions from MFGCSystemState, unified_mfgc SystemState,
+    system_integrator SystemState, rosetta SystemState, logging Session, and
+    LivingDocument into a single versioned, serialisable model.
+
+    Numeric dimensions (in canonical order):
+        1.  confidence            [0.0, 1.0]
+        2.  authority             [0.0, 1.0]
+        3.  murphy_index          [0.0, 1.0]
+        4.  phase_index           [0, 6]
+        5.  complexity            [0.0, 1.0]
+        6.  domain_depth          [0, ∞)
+        7.  gate_count            [0, ∞)
+        8.  active_constraints    [0, ∞)
+        9.  artifact_count        [0, ∞)
+        10. uncertainty_data      [0.0, 1.0]  (UD)
+        11. uncertainty_authority [0.0, 1.0]  (UA)
+        12. uncertainty_information [0.0, 1.0] (UI)
+        13. uncertainty_resources [0.0, 1.0]  (UR)
+        14. uncertainty_disagreement [0.0, 1.0] (UG)
+        15. uptime_seconds        [0.0, ∞)
+        16. active_tasks          [0, ∞)
+        17. cpu_usage_percent     [0.0, ∞)
+    """
+
+    # ------------------------------------------------------------------ #
+    # Numeric state dimensions
+    # ------------------------------------------------------------------ #
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+    authority: float = Field(default=0.0, ge=0.0, le=1.0)
+    murphy_index: float = Field(default=0.0, ge=0.0, le=1.0)
+    phase_index: int = Field(default=0, ge=0, le=6)
+    complexity: float = Field(default=0.0, ge=0.0, le=1.0)
+    domain_depth: int = Field(default=0, ge=0)
+    gate_count: int = Field(default=0, ge=0)
+    active_constraints: int = Field(default=0, ge=0)
+    artifact_count: int = Field(default=0, ge=0)
+    uncertainty_data: float = Field(default=0.0, ge=0.0, le=1.0)
+    uncertainty_authority: float = Field(default=0.0, ge=0.0, le=1.0)
+    uncertainty_information: float = Field(default=0.0, ge=0.0, le=1.0)
+    uncertainty_resources: float = Field(default=0.0, ge=0.0, le=1.0)
+    uncertainty_disagreement: float = Field(default=0.0, ge=0.0, le=1.0)
+    uptime_seconds: float = Field(default=0.0, ge=0.0)
+    active_tasks: int = Field(default=0, ge=0)
+    cpu_usage_percent: float = Field(default=0.0, ge=0.0)
+
+    # ------------------------------------------------------------------ #
+    # Metadata (not part of numeric vector)
+    # ------------------------------------------------------------------ #
+    schema_version: str = Field(default="1.0.0")
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    session_id: Optional[str] = Field(default=None)
+    domain: str = Field(default="general")
+
+    # ------------------------------------------------------------------ #
+    # Validators — clamp out-of-range values instead of raising
+    # ------------------------------------------------------------------ #
+    # Fields that must remain within the probability simplex [0.0, 1.0].
+    _PROBABILITY_FIELDS: ClassVar[tuple] = (
+        "confidence",
+        "authority",
+        "murphy_index",
+        "complexity",
+        "uncertainty_data",
+        "uncertainty_authority",
+        "uncertainty_information",
+        "uncertainty_resources",
+        "uncertainty_disagreement",
+    )
+
+    @field_validator(*_PROBABILITY_FIELDS, mode="before")
+    @classmethod
+    def clamp_probability(cls, v: float) -> float:
+        """Clamp probability-like fields to [0.0, 1.0]."""
+        try:
+            v = float(v)
+        except (TypeError, ValueError):
+            return 0.0
+        return max(0.0, min(1.0, v))
+
+    @field_validator("phase_index", mode="before")
+    @classmethod
+    def clamp_phase_index(cls, v: int) -> int:
+        """Clamp phase_index to [0, 6]."""
+        try:
+            v = int(v)
+        except (TypeError, ValueError):
+            return 0
+        return max(0, min(6, v))
+
+    @field_validator("domain_depth", "gate_count", "active_constraints", "artifact_count", "active_tasks", mode="before")
+    @classmethod
+    def clamp_non_negative_int(cls, v: int) -> int:
+        """Ensure non-negative integer counts."""
+        try:
+            v = int(v)
+        except (TypeError, ValueError):
+            return 0
+        return max(0, v)
+
+    @field_validator("uptime_seconds", "cpu_usage_percent", mode="before")
+    @classmethod
+    def clamp_non_negative_float(cls, v: float) -> float:
+        """Ensure non-negative floats."""
+        try:
+            v = float(v)
+        except (TypeError, ValueError):
+            return 0.0
+        return max(0.0, v)
+
+    # ------------------------------------------------------------------ #
+    # Vector interface
+    # ------------------------------------------------------------------ #
+    @staticmethod
+    def dimension_names() -> List[str]:
+        """Return the ordered list of numeric dimension names."""
+        return list(_DIMENSION_NAMES)
+
+    def dimensionality(self) -> int:
+        """Return the number of numeric state dimensions (17)."""
+        return len(_DIMENSION_NAMES)
+
+    def to_vector(self) -> List[float]:
+        """Return the state as a flat numeric list [x₁, x₂, …, xₙ]."""
+        return [
+            float(self.confidence),
+            float(self.authority),
+            float(self.murphy_index),
+            float(self.phase_index),
+            float(self.complexity),
+            float(self.domain_depth),
+            float(self.gate_count),
+            float(self.active_constraints),
+            float(self.artifact_count),
+            float(self.uncertainty_data),
+            float(self.uncertainty_authority),
+            float(self.uncertainty_information),
+            float(self.uncertainty_resources),
+            float(self.uncertainty_disagreement),
+            float(self.uptime_seconds),
+            float(self.active_tasks),
+            float(self.cpu_usage_percent),
+        ]
+
+    @classmethod
+    def from_vector(cls, values: List[float]) -> "CanonicalStateVector":
+        """
+        Reconstruct a CanonicalStateVector from a flat numeric list.
+
+        The list must contain exactly ``dimensionality()`` elements in
+        canonical order.  Metadata fields are left at their defaults.
+        """
+        names = _DIMENSION_NAMES
+        if len(values) != len(names):
+            raise ValueError(
+                f"Expected {len(names)} values, got {len(values)}"
+            )
+        data = dict(zip(names, values))
+        return cls(**data)
+
+    def norm(self) -> float:
+        """Return the L2 norm of the numeric state vector."""
+        return math.sqrt(sum(v * v for v in self.to_vector()))
