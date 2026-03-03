@@ -162,11 +162,11 @@ class LLMIntegrationLayer:
         
         # Groq API keys from file
         self.groq_api_keys = [
-            "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",
-            "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",
-            "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",
-            "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",
-            "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"
+            "REDACTED_GROQ_KEY_PLACEHOLDER",
+            "REDACTED_GROQ_KEY_PLACEHOLDER",
+            "REDACTED_GROQ_KEY_PLACEHOLDER",
+            "REDACTED_GROQ_KEY_PLACEHOLDER",
+            "REDACTED_GROQ_KEY_PLACEHOLDER"
         ]
         self.current_groq_key_index = 0
         

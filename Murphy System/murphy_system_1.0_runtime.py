@@ -13352,8 +13352,10 @@ def create_app() -> FastAPI:
     
     # Load .env before initialising MurphySystem so env vars like
     # MURPHY_LLM_PROVIDER and GROQ_API_KEY are available from the start.
+    # Resolve the path relative to this file so it works regardless of CWD.
     if _load_dotenv is not None:
-        _load_dotenv(override=True)
+        _env_path = Path(__file__).resolve().parent / ".env"
+        _load_dotenv(_env_path, override=True)
 
     # Initialize Murphy System
     murphy = MurphySystem()
@@ -13451,7 +13453,7 @@ def create_app() -> FastAPI:
         os.environ["MURPHY_LLM_PROVIDER"] = provider
         # Re-read .env so any manually edited values also take effect
         if _load_dotenv is not None:
-            _load_dotenv(override=True)
+            _load_dotenv(Path(__file__).resolve().parent / ".env", override=True)
         return JSONResponse({"success": True, **murphy._get_llm_status()})
 
     @app.post("/api/llm/test")
@@ -13469,7 +13471,7 @@ def create_app() -> FastAPI:
     async def llm_reload():
         """Re-read .env and reinitialise LLM config — called on terminal reconnect."""
         if _load_dotenv is not None:
-            _load_dotenv(override=True)
+            _load_dotenv(Path(__file__).resolve().parent / ".env", override=True)
         return JSONResponse({"success": True, **murphy._get_llm_status()})
 
     @app.get("/api/librarian/api-links")

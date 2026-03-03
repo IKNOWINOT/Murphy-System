@@ -97,7 +97,7 @@ if [ ! -f "groq_keys.txt" ]; then
 # Add your Groq API keys here (one per line)
 # Get free keys at: https://console.groq.com/keys
 # Example:
-# gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# REDACTED_GROQ_KEY_PLACEHOLDER
 EOF
     echo -e "${YELLOW}⚠️  Please add your Groq API keys to groq_keys.txt${NC}"
 else

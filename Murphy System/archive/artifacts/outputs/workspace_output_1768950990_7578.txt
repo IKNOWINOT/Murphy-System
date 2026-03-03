@@ -46,15 +46,15 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 # LLM Configuration
 # Multiple Groq API keys for load balancing and redundancy
 GROQ_API_KEYS = [
-    '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',
-    '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',
-    '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',
-    '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',
-    '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',
-    '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',
-    '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',
-    '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',
-    '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'
+    'REDACTED_GROQ_KEY_PLACEHOLDER',
+    'REDACTED_GROQ_KEY_PLACEHOLDER',
+    'REDACTED_GROQ_KEY_PLACEHOLDER',
+    'REDACTED_GROQ_KEY_PLACEHOLDER',
+    'REDACTED_GROQ_KEY_PLACEHOLDER',
+    'REDACTED_GROQ_KEY_PLACEHOLDER',
+    'REDACTED_GROQ_KEY_PLACEHOLDER',
+    'REDACTED_GROQ_KEY_PLACEHOLDER',
+    'REDACTED_GROQ_KEY_PLACEHOLDER'
 ]
 GROQ_API_KEY = os.getenv('GROQ_API_KEY', GROQ_API_KEYS[0])
 # Aristotle API (Claude for deterministic verification)

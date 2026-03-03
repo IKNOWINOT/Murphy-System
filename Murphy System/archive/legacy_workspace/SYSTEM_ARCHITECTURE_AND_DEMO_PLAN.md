@@ -6,25 +6,25 @@
 **Total: 17 API Keys**
 
 **Groq Keys (16 total):**
-1. Murphy System: `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`
-2. Murphy System 1: `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`
-3. Murphy System 2: `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`
-4. Murphy System 3: `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`
-5. Murphy System 4: `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`
-6. Murphy System 5: `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`
-7. Murphy System 6: `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`
-8. Murphy System 7: `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`
-9. Murphy System 8: `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`
-10. Murphy System 9: `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`
-11. Murphy System 10: `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`
-12. Murphy System 11: `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`
-13. Murphy System 12: `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`
-14. Murphy System 13: `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`
-15. Murphy System 14: `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`
-16. Murphy System 15: `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`
+1. Murphy System: `REDACTED_GROQ_KEY_PLACEHOLDER`
+2. Murphy System 1: `REDACTED_GROQ_KEY_PLACEHOLDER`
+3. Murphy System 2: `REDACTED_GROQ_KEY_PLACEHOLDER`
+4. Murphy System 3: `REDACTED_GROQ_KEY_PLACEHOLDER`
+5. Murphy System 4: `REDACTED_GROQ_KEY_PLACEHOLDER`
+6. Murphy System 5: `REDACTED_GROQ_KEY_PLACEHOLDER`
+7. Murphy System 6: `REDACTED_GROQ_KEY_PLACEHOLDER`
+8. Murphy System 7: `REDACTED_GROQ_KEY_PLACEHOLDER`
+9. Murphy System 8: `REDACTED_GROQ_KEY_PLACEHOLDER`
+10. Murphy System 9: `REDACTED_GROQ_KEY_PLACEHOLDER`
+11. Murphy System 10: `REDACTED_GROQ_KEY_PLACEHOLDER`
+12. Murphy System 11: `REDACTED_GROQ_KEY_PLACEHOLDER`
+13. Murphy System 12: `REDACTED_GROQ_KEY_PLACEHOLDER`
+14. Murphy System 13: `REDACTED_GROQ_KEY_PLACEHOLDER`
+15. Murphy System 14: `REDACTED_GROQ_KEY_PLACEHOLDER`
+16. Murphy System 15: `REDACTED_GROQ_KEY_PLACEHOLDER`
 
 **Aristotle Key (1 total - Math LLM):**
-- Aristotle: `arstl_D7uKG0m-c3fs_4pRRBZ9wxnYGDVVLgTCLIKkH0UD2vQ`
+- Aristotle: `REDACTED_ARISTOTLE_KEY_PLACEHOLDER`
 
 ### Current Problem
 ❌ **Only 9 keys loaded** from `groq_keys.txt` 
