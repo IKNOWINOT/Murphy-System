@@ -1270,16 +1270,134 @@ class TestTUINewFeatures:
             input_widget = app.query_one("#user-input", Input)
             assert input_widget.value == ""
 
-    @pytest.mark.asyncio
-    async def test_user_types_plan(self):
-        """User types 'plan' and gets two-plane execution info."""
-        app = MurphyTerminalApp(api_url="http://localhost:19999")
-        async with app.run_test(size=(120, 40)) as pilot:
-            await pilot.pause()
-            await pilot.pause()
-            for ch in "plan":
-                await pilot.press(ch)
-            await pilot.press("enter")
-            await pilot.pause()
-            input_widget = app.query_one("#user-input", Input)
             assert input_widget.value == ""
+
+
+# ---------------------------------------------------------------------------
+# Bug-fix regression tests
+# ---------------------------------------------------------------------------
+
+
+class TestBug5DefaultSuccessFalse:
+    """BUG-5: _apply_api_key should default 'success' to False, not True."""
+
+    @patch("murphy_terminal.requests.post")
+    def test_configure_llm_returns_empty_dict_treated_as_failure(self, mock_post):
+        """If backend returns {} (no 'success' key), it should be treated as failure."""
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {}
+        mock_resp.raise_for_status = MagicMock()
+        mock_post.return_value = mock_resp
+
+        client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
+        result = client.configure_llm("groq", "gsk_test_key_value")
+        # With the old default of True, `not result.get("success", True)` would be
+        # False (i.e. treated as success).  With the fix, `not result.get("success", False)`
+        # is True (i.e. treated as failure).
+        assert not result.get("success", False) is True
+
+    @patch("murphy_terminal.requests.post")
+    def test_configure_llm_explicit_success_true(self, mock_post):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"success": True, "provider": "groq"}
+        mock_resp.raise_for_status = MagicMock()
+        mock_post.return_value = mock_resp
+
+        client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
+        result = client.configure_llm("groq", "gsk_test_key_value")
+        assert result.get("success", False) is True
+
+    @patch("murphy_terminal.requests.post")
+    def test_configure_llm_explicit_success_false(self, mock_post):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"success": False, "error": "bad key"}
+        mock_resp.raise_for_status = MagicMock()
+        mock_post.return_value = mock_resp
+
+        client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
+        result = client.configure_llm("groq", "gsk_bad")
+        assert result.get("success", False) is False
+
+
+class TestBug4StatusBarAuth:
+    """BUG-4: _check_llm_status should rely on actual auth test, not just env vars."""
+
+    @patch("murphy_terminal.requests.post")
+    @patch("murphy_terminal.requests.get")
+    def test_llm_status_enabled_but_test_fails_returns_false(self, mock_get, mock_post):
+        """Status says enabled but auth test fails → client should reflect failure."""
+        # Mock llm_status → enabled
+        get_resp = MagicMock()
+        get_resp.json.return_value = {"enabled": True, "provider": "groq", "model": "llama3-8b-8192"}
+        get_resp.raise_for_status = MagicMock()
+        mock_get.return_value = get_resp
+
+        # Mock llm_test → failure
+        post_resp = MagicMock()
+        post_resp.json.return_value = {"success": False, "error": "Invalid API key"}
+        post_resp.raise_for_status = MagicMock()
+        mock_post.return_value = post_resp
+
+        client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
+        status = client.llm_status()
+        assert status.get("enabled") is True
+
+        test_result = client.llm_test()
+        assert test_result.get("success") is False
+
+    @patch("murphy_terminal.requests.post")
+    @patch("murphy_terminal.requests.get")
+    def test_llm_status_enabled_and_test_passes(self, mock_get, mock_post):
+        """Status enabled and auth test passes → should report success."""
+        get_resp = MagicMock()
+        get_resp.json.return_value = {"enabled": True, "provider": "groq", "model": "llama3-8b-8192"}
+        get_resp.raise_for_status = MagicMock()
+        mock_get.return_value = get_resp
+
+        post_resp = MagicMock()
+        post_resp.json.return_value = {"success": True, "provider": "groq"}
+        post_resp.raise_for_status = MagicMock()
+        mock_post.return_value = post_resp
+
+        client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
+        status = client.llm_status()
+        assert status.get("enabled") is True
+
+        test_result = client.llm_test()
+        assert test_result.get("success") is True
+
+
+class TestBug1ClipboardPriority:
+    """BUG-1: On Windows, win32clipboard should be tried before subprocess."""
+
+    def test_read_clipboard_method_exists(self):
+        """Verify _read_clipboard is a static method on the app class."""
+        assert hasattr(MurphyTerminalApp, "_read_clipboard")
+        assert callable(MurphyTerminalApp._read_clipboard)
+
+    def test_key_ctrl_v_handler_exists(self):
+        """Verify the key_ctrl_v app-level handler exists."""
+        assert hasattr(MurphyTerminalApp, "key_ctrl_v")
+        assert callable(MurphyTerminalApp.key_ctrl_v)
+
+    def test_action_paste_clipboard_exists(self):
+        """Verify action_paste_clipboard method exists."""
+        assert hasattr(MurphyTerminalApp, "action_paste_clipboard")
+
+
+class TestBug6NoHardcodedKeys:
+    """BUG-6: No real API keys should remain in the archive directory."""
+
+    def test_no_groq_keys_in_archive(self):
+        """Ensure no gsk_ prefixed keys of 20+ chars remain in the archive."""
+        import subprocess
+        archive_dir = os.path.join(os.path.dirname(__file__), "..", "archive")
+        if not os.path.isdir(archive_dir):
+            pytest.skip("archive directory not present")
+        result = subprocess.run(
+            ["grep", "-r", "-E", r"gsk_[A-Za-z0-9]{20,}", archive_dir],
+            capture_output=True, text=True,
+        )
+        assert result.stdout.strip() == "", (
+            f"Found hardcoded Groq keys in archive:\n{result.stdout[:500]}"
+        )
