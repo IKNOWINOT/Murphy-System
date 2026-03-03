@@ -1,7 +1,7 @@
 
 #!/usr/bin/env python3
 import os, json, argparse
-from datetime import datetime
+from datetime import datetime, timezone
 try:
     from PIL import ImageGrab
 except Exception:
@@ -19,7 +19,7 @@ def main():
     img = ImageGrab.grab(bbox=(x, y, x+w, y+h))
     png = os.path.join(a.out, f'{a.id}.png')
     img.save(png)
-    meta = {'id': a.id, 'kind':'image', 'path': png, 'notes':'auto-captured', 'ts': datetime.utcnow().isoformat()}
+    meta = {'id': a.id, 'kind':'image', 'path': png, 'notes':'auto-captured', 'ts': datetime.now(timezone.utc).isoformat()}
     with open(os.path.join(a.out, f'{a.id}.json'), 'w', encoding='utf-8') as f: json.dump(meta, f, indent=2)
     print('[locator] saved', png)
 if __name__=='__main__': main()

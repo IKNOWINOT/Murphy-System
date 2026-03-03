@@ -196,6 +196,109 @@ class PlanDecomposer:
         return plan
     
     def _extract_plan_content(self, plan_document_path: str) -> str:
+        """
+        Extract text content from a plan document.
+
+        Supported formats:
+        - ``.txt`` / ``.md`` — read as UTF-8 text
+        - ``.json`` — deserialise and pretty-print
+        - All other extensions — read as UTF-8 text with best-effort decoding
+
+        Falls back to an empty string when the file is missing or unreadable,
+        logging a warning so callers can handle gracefully.
+        """
+        import json as _json
+
+        if not plan_document_path or not os.path.isfile(plan_document_path):
+            logger.warning(
+                "Plan document not found at '%s'; returning empty content",
+                plan_document_path,
+            )
+            return ""
+
+        try:
+            with open(plan_document_path, "r", encoding="utf-8", errors="replace") as fh:
+                raw = fh.read()
+
+            ext = os.path.splitext(plan_document_path)[1].lower()
+            if ext == ".json":
+                data = _json.loads(raw)
+                return _json.dumps(data, indent=2)
+            return raw
+
+        except Exception as exc:
+            logger.warning("Failed to extract plan content from '%s': %s", plan_document_path, exc)
+            return ""
+    
+    def _parse_plan_structure(self, plan_content: str, context: str) -> Dict[str, Any]:
+        """
+        Parse plan structure from free-text or markdown content.
+
+        Heuristics:
+        1. First non-empty line → title
+        2. Lines starting with ``#`` → section headers
+        3. Lines starting with ``-`` or ``*`` → bullet items grouped under the
+           most recent header
+        4. Remaining text → description body
+        """
+        lines = plan_content.splitlines() if plan_content else []
+
+        title = context or "Parsed Plan"
+        sections: List[Dict[str, Any]] = []
+        description_parts: List[str] = []
+        current_section: Optional[Dict[str, Any]] = None
+        assumptions: List[str] = []
+        risks: List[str] = []
+
+        for raw_line in lines:
+            line = raw_line.strip()
+            if not line:
+                continue
+
+            # First non-empty line becomes the title if nothing better found
+            if title == context and not line.startswith("#"):
+                title = line
+                continue
+
+            # Markdown headers → new section
+            if line.startswith("#"):
+                header = line.lstrip("#").strip()
+                current_section = {"header": header, "items": []}
+                sections.append(current_section)
+                # Detect special sections
+                lower_header = header.lower()
+                if "assumption" in lower_header:
+                    current_section["_kind"] = "assumptions"
+                elif "risk" in lower_header:
+                    current_section["_kind"] = "risks"
+                continue
+
+            # Bullet items
+            if line.startswith(("-", "*", "•")):
+                item = line.lstrip("-*• ").strip()
+                if current_section is not None:
+                    current_section["items"].append(item)
+                    kind = current_section.get("_kind")
+                    if kind == "assumptions":
+                        assumptions.append(item)
+                    elif kind == "risks":
+                        risks.append(item)
+                else:
+                    description_parts.append(item)
+                continue
+
+            # Regular text
+            description_parts.append(line)
+
+        return {
+            "title": title,
+            "description": " ".join(description_parts) if description_parts else context,
+            "goal": context,
+            "domain": "custom",
+            "timeline": "TBD",
+            "sections": sections,
+            "assumptions": assumptions or ["Resources are available as planned"],
+            "risks": risks or ["Timeline may slip due to unforeseen challenges"],
         """Extract text content from plan document.
 
         Supports plain-text (``.txt``), Markdown (``.md``), and JSON
@@ -272,6 +375,65 @@ class PlanDecomposer:
         plan_structure: Dict[str, Any],
         expansion_level: str
     ) -> List[Task]:
+        """
+        Generate tasks from a parsed plan structure.
+
+        When the plan contains explicit sections with bullet items, each item
+        becomes a task.  When the plan is sparse, domain-agnostic default
+        phases are used, scaled by *expansion_level*.
+        """
+        tasks: List[Task] = []
+
+        sections = plan_structure.get("sections", [])
+        section_items = [
+            (sec.get("header", ""), item)
+            for sec in sections
+            if sec.get("_kind") is None  # skip assumptions / risks
+            for item in sec.get("items", [])
+        ]
+
+        if section_items:
+            # Build one task per bullet item from the document
+            for idx, (header, item) in enumerate(section_items):
+                priority = TaskPriority.HIGH if idx < 3 else TaskPriority.MEDIUM
+                task = Task(
+                    task_id=self._generate_task_id(),
+                    title=item[:120],
+                    description=f"[{header}] {item}" if header else item,
+                    priority=priority,
+                    status=TaskStatus.PENDING,
+                    estimated_hours=8.0,
+                    deliverables=[f"{item} — completed"],
+                )
+                tasks.append(task)
+
+        # If the document yielded no tasks, fall back to phase-based defaults
+        if not tasks:
+            granularity = {"minimal": 5, "moderate": 15, "comprehensive": 30}
+            num_tasks = granularity.get(expansion_level, 15)
+            default_phases = [
+                "Discovery & requirements analysis",
+                "Architecture & design",
+                "Core implementation",
+                "Integration & wiring",
+                "Unit & integration testing",
+                "Security hardening",
+                "Performance optimisation",
+                "Documentation",
+                "Stakeholder review",
+                "Deployment & release",
+            ]
+            # Repeat / slice to match desired count
+            phase_list = (default_phases * ((num_tasks // len(default_phases)) + 1))[:num_tasks]
+            for i, phase in enumerate(phase_list):
+                task = Task(
+                    task_id=self._generate_task_id(),
+                    title=phase,
+                    description=f"Phase {i + 1}: {phase}",
+                    priority=TaskPriority.HIGH if i < 3 else TaskPriority.MEDIUM,
+                    status=TaskStatus.PENDING,
+                    estimated_hours=8.0,
+                    deliverables=[f"{phase} deliverable"],
         """Generate tasks from plan structure.
 
         If the parsed plan contains sections with items, each item becomes
@@ -325,6 +487,68 @@ class PlanDecomposer:
         return tasks
     
     def _analyze_goal(self, goal: str, domain: str) -> Dict[str, Any]:
+        """
+        Analyse a free-text goal description and extract structured metadata.
+
+        The analysis uses keyword extraction and domain heuristics to identify
+        key objectives, success factors, and anticipated challenges.
+        """
+        # Tokenise goal into sentences / clauses for lightweight NLP
+        import re
+        sentences = [s.strip() for s in re.split(r'[.;!\n]', goal) if s.strip()]
+
+        # Extract key objective phrases (clauses that start with action verbs)
+        _action_verbs = {
+            "build", "create", "deploy", "design", "develop", "implement",
+            "integrate", "launch", "migrate", "optimise", "optimize",
+            "reduce", "scale", "ship", "test", "automate", "deliver",
+        }
+        key_objectives = []
+        for sent in sentences:
+            first_word = sent.split()[0].lower() if sent.split() else ""
+            if first_word in _action_verbs:
+                key_objectives.append(sent)
+        if not key_objectives:
+            key_objectives = sentences[:3] or [goal]
+
+        # Domain-aware success factors
+        _domain_success = {
+            "software_development": [
+                "All acceptance tests pass",
+                "Code coverage ≥ 80%",
+                "Zero critical security findings",
+            ],
+            "business_strategy": [
+                "Clear ROI model validated",
+                "Stakeholder sign-off obtained",
+                "Market-fit evidence documented",
+            ],
+            "marketing_campaign": [
+                "Target KPIs defined and baselined",
+                "Content calendar published",
+                "Conversion funnel instrumented",
+            ],
+        }
+        success_factors = _domain_success.get(domain, [
+            "Deliverables completed on schedule",
+            "Quality standards met",
+            "Stakeholders satisfied",
+        ])
+
+        # Anticipated challenges
+        challenges = [
+            "Scope creep risk if requirements evolve",
+            f"Resource constraints in {domain} domain",
+            "Integration complexity with existing systems",
+        ]
+
+        title = key_objectives[0][:80] if key_objectives else "Goal-Based Plan"
+        return {
+            "title": title,
+            "description": goal,
+            "key_objectives": key_objectives,
+            "success_factors": success_factors,
+            "challenges": challenges,
         """Analyze goal and extract key information using keyword heuristics.
 
         Scans the *goal* text for action verbs and domain-relevant nouns
@@ -431,6 +655,92 @@ class PlanDecomposer:
         return tasks
     
     def _identify_dependencies(self, tasks: List[Task]) -> List[Dependency]:
+        """Detect inter-task dependencies using keyword analysis and domain heuristics.
+
+        Strategy
+        --------
+        1. **Keyword scan** — look for natural-language cues in task titles
+           and descriptions that imply ordering (e.g. *"after"*, *"requires"*,
+           *"depends on"*).
+        2. **Domain phase ordering** — apply well-known SDLC / project-phase
+           heuristics (design before implementation, implementation before
+           testing, testing before deployment, etc.).
+        3. **Fallback** — if neither heuristic yields edges for a task, retain
+           a sequential FINISH_TO_START link so the DAG remains connected.
+
+        Returns a list of :class:`Dependency` objects and mutates each
+        ``task.dependencies`` list in place.
+        """
+        if not tasks:
+            return []
+
+        dependencies: list[Dependency] = []
+        task_ids = {t.task_id for t in tasks}
+        connected_to: set[str] = set()  # tasks that already have a predecessor
+
+        # Phase ordering heuristic — map task-title keywords to a tier.
+        # Lower tier must finish before higher tier may start.
+        _PHASE_KEYWORDS: list[tuple[int, tuple[str, ...]]] = [
+            (0, ("research", "discovery", "requirements", "gathering", "analysis")),
+            (1, ("design", "architecture", "planning", "scoping")),
+            (2, ("development", "implementation", "coding", "build", "core")),
+            (3, ("integration", "wiring", "connecting")),
+            (4, ("testing", "qa", "quality", "validation", "verification")),
+            (5, ("documentation", "docs", "manual")),
+            (6, ("deployment", "release", "launch", "delivery", "rollout")),
+            (7, ("monitoring", "operations", "maintenance", "optimization")),
+        ]
+
+        def _phase_tier(task: 'Task') -> int:
+            """Return the lowest matching tier, or -1 if none matches."""
+            text = (task.title + " " + (task.description or "")).lower()
+            for tier, keywords in _PHASE_KEYWORDS:
+                if any(kw in text for kw in keywords):
+                    return tier
+            return -1
+
+        # Group tasks by tier
+        tier_buckets: dict[int, list['Task']] = {}
+        untiered: list['Task'] = []
+        for t in tasks:
+            tier = _phase_tier(t)
+            if tier >= 0:
+                tier_buckets.setdefault(tier, []).append(t)
+            else:
+                untiered.append(t)
+
+        sorted_tiers = sorted(tier_buckets.keys())
+
+        # Create cross-tier FINISH_TO_START edges
+        for idx in range(len(sorted_tiers) - 1):
+            current_tier = sorted_tiers[idx]
+            next_tier = sorted_tiers[idx + 1]
+            for src in tier_buckets[current_tier]:
+                for tgt in tier_buckets[next_tier]:
+                    dep = Dependency(
+                        dependency_id=self._generate_dependency_id(),
+                        from_task_id=src.task_id,
+                        to_task_id=tgt.task_id,
+                        dependency_type=DependencyType.FINISH_TO_START,
+                        lag_days=0,
+                    )
+                    dependencies.append(dep)
+                    tgt.dependencies.append(src.task_id)
+                    connected_to.add(tgt.task_id)
+
+        # Fallback: connect any still-orphaned tasks sequentially
+        for i in range(len(tasks) - 1):
+            if tasks[i + 1].task_id not in connected_to:
+                dep = Dependency(
+                    dependency_id=self._generate_dependency_id(),
+                    from_task_id=tasks[i].task_id,
+                    to_task_id=tasks[i + 1].task_id,
+                    dependency_type=DependencyType.FINISH_TO_START,
+                    lag_days=0,
+                )
+                dependencies.append(dep)
+                tasks[i + 1].dependencies.append(tasks[i].task_id)
+                connected_to.add(tasks[i + 1].task_id)
         """Identify dependencies between tasks.
 
         Uses a two-pass approach:
@@ -551,6 +861,26 @@ class PlanDecomposer:
         goal_analysis: Dict[str, Any],
         tasks: List[Task]
     ) -> List[str]:
+        """
+        Derive plan-level assumptions from the goal analysis and task list.
+
+        Combines domain-agnostic defaults with task-count heuristics.
+        """
+        assumptions = [
+            "Resources are available as planned",
+            "No major external blockers during the execution window",
+            "Team members have the necessary domain expertise",
+        ]
+        if len(tasks) > 10:
+            assumptions.append(
+                "Parallel work-streams can proceed without excessive coordination overhead"
+            )
+        objectives = goal_analysis.get("key_objectives", [])
+        if objectives:
+            assumptions.append(
+                f"The primary objective ('{objectives[0][:60]}…') is well-scoped and stable"
+            )
+        return assumptions
         """Identify plan-level assumptions based on goal analysis and task set.
 
         Combines generic project assumptions with signals from the goal
@@ -584,6 +914,29 @@ class PlanDecomposer:
         tasks: List[Task],
         risk_tolerance: str
     ) -> List[str]:
+        """
+        Derive plan-level risks scaled by *risk_tolerance*.
+
+        Higher risk tolerance → fewer flagged risks.
+        """
+        base_risks = [
+            "Timeline may slip due to unforeseen technical challenges",
+            "Budget may be exceeded if scope increases",
+            "Quality may be compromised under time pressure",
+        ]
+        if risk_tolerance == "low":
+            base_risks.extend([
+                "External dependency outage could block progress",
+                "Key-person risk on specialised tasks",
+                "Regulatory or compliance changes mid-project",
+            ])
+        elif risk_tolerance == "medium":
+            base_risks.append("Integration risk between parallel work-streams")
+
+        challenges = goal_analysis.get("challenges", [])
+        for ch in challenges[:2]:
+            if ch not in base_risks:
+                base_risks.append(ch)
         """Identify plan-level risks using goal analysis and risk tolerance.
 
         Low risk-tolerance generates more granular risk entries; high

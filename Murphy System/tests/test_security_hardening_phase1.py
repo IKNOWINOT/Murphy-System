@@ -227,6 +227,46 @@ class TestFastAPISecurity:
         result3 = limiter.check("test-client")
         assert result3["allowed"] is False
 
+    def test_register_rbac_governance(self):
+        """register_rbac_governance should set the global RBAC instance"""
+        from src.fastapi_security import register_rbac_governance, _rbac_instance
+
+        class MockRBAC:
+            pass
+
+        register_rbac_governance(MockRBAC())
+        from src.fastapi_security import _rbac_instance as after
+        assert after is not None
+        # Clean up
+        register_rbac_governance(None)
+
+    def test_require_permission_returns_callable(self):
+        """require_permission should return a callable dependency"""
+        from src.fastapi_security import require_permission, register_rbac_governance
+
+        dep = require_permission("execute_task")
+        assert callable(dep)
+
+        # Without RBAC registered, the dependency should be permissive
+        register_rbac_governance(None)
+
+    def test_require_permission_permissive_without_rbac(self):
+        """Without RBAC registered, permission check should pass"""
+        import asyncio
+        from unittest.mock import MagicMock
+        from src.fastapi_security import require_permission, register_rbac_governance
+
+        register_rbac_governance(None)  # ensure no RBAC
+
+        dep = require_permission("execute_task")
+        mock_request = MagicMock()
+        # Should not raise
+        loop = asyncio.new_event_loop()
+        try:
+            loop.run_until_complete(dep(mock_request))
+        finally:
+            loop.close()
+
 
 # ============================================================================
 # CONFIDENCE ENGINE TENANT ISOLATION TESTS

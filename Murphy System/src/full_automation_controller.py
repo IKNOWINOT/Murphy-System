@@ -72,6 +72,8 @@ class HITLTransitionGap:
     gap_type: str  # approval_timeout, escalation_failure, intervention_rate
     severity: RiskLevel
     description: str
+    tenant_id: str = ""
+    agent_id: Optional[str] = None
     metrics: Dict[str, Any] = field(default_factory=dict)
     resolved: bool = False
     resolved_at: Optional[datetime] = None
@@ -291,6 +293,8 @@ class FullAutomationController:
             gap_type=gap_type,
             severity=severity,
             description=description,
+            tenant_id=tenant_id,
+            agent_id=agent_id,
             metrics=metrics or {},
         )
         
@@ -372,10 +376,32 @@ class FullAutomationController:
         tenant_id: str,
         agent_id: Optional[str],
     ) -> bool:
-        """Check if a gap belongs to a tenant/agent."""
-        # This would need to be implemented with proper gap tracking
-        # For now, return True as a placeholder
-        return True
+        """Determine whether *gap* belongs to the given tenant / agent scope.
+
+        Matching rules (most-specific first):
+        1. If *agent_id* is provided, the gap must match both
+           ``tenant_id`` **and** ``agent_id`` exactly.
+        2. If *agent_id* is ``None`` (tenant-level query), the gap must
+           match ``tenant_id``; agent-level gaps within that tenant are
+           also included.
+        3. Legacy gaps that were recorded before ownership fields were
+           added (empty ``tenant_id``) are visible to every query so
+           they remain actionable.
+        """
+        # Legacy / untagged gaps (tenant_id is empty string or None) are
+        # globally visible so they remain actionable after schema migration.
+        if not gap.tenant_id:
+            return True
+
+        if gap.tenant_id != tenant_id:
+            return False
+
+        # Tenant-level query → include all gaps for this tenant
+        if agent_id is None:
+            return True
+
+        # Agent-level query → must also match agent_id
+        return gap.agent_id == agent_id
 
     # ========================================================================
     # Risk-Based Automation

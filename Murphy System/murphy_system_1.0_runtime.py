@@ -13341,14 +13341,19 @@ def create_app() -> FastAPI:
         version="1.0.0"
     )
     
-    # Add CORS middleware
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    # Apply security hardening (CORS allowlist, API key auth, rate limiting, headers)
+    try:
+        from src.fastapi_security import configure_secure_fastapi
+        configure_secure_fastapi(app, service_name="murphy-system-1.0")
+    except ImportError:
+        logger.warning("fastapi_security not available — falling back to permissive CORS")
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
     
     # Load .env before initialising MurphySystem so env vars like
     # MURPHY_LLM_PROVIDER and GROQ_API_KEY are available from the start.
@@ -13357,6 +13362,15 @@ def create_app() -> FastAPI:
 
     # Initialize Murphy System
     murphy = MurphySystem()
+    
+    # Register RBAC governance with security layer (SEC-005)
+    rbac = getattr(murphy, 'rbac_governance', None)
+    if rbac is not None:
+        try:
+            from src.fastapi_security import register_rbac_governance
+            register_rbac_governance(rbac)
+        except ImportError:
+            logger.warning("fastapi_security not available — RBAC enforcement skipped")
     
     # ==================== CORE ENDPOINTS ====================
     

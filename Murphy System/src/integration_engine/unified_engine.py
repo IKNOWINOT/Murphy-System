@@ -285,6 +285,7 @@ class UnifiedIntegrationEngine:
                 
                 # Register agent if generated
                 if agent:
+                    self._register_swarm_agent(agent)
                     self._register_agent_with_swarm(agent, capabilities)
                     print(f"✓ Agent registered: {agent['name']}")
                 
@@ -372,6 +373,7 @@ class UnifiedIntegrationEngine:
         
         # Register agent if generated
         if agent:
+            self._register_swarm_agent(agent)
             print(f"🤖 Registering agent: {agent['name']}")
             self._register_agent_with_swarm(agent, capabilities)
         
@@ -430,6 +432,8 @@ class UnifiedIntegrationEngine:
         approval_request.status = ApprovalStatus.REJECTED
         approval_request.rejection_reason = reason
         
+        # Clean up (remove generated artefacts for the rejected integration)
+        self._cleanup_rejected(module)
         # Clean up (remove generated files, etc.)
         self._cleanup_rejected_integration(module)
         
@@ -513,6 +517,57 @@ class UnifiedIntegrationEngine:
         return None
 
     # ------------------------------------------------------------------
+    # TrueSwarmSystem agent registration
+    # ------------------------------------------------------------------
+
+    def _register_swarm_agent(self, agent: Dict[str, Any]) -> None:
+        """Register a generated agent with TrueSwarmSystem.
+
+        The swarm system is lazily initialised so that the integration
+        engine can operate without it (graceful degradation in
+        environments where the swarm is not deployed).
+        """
+        try:
+            from src.true_swarm_system import TrueSwarmSystem
+
+            if getattr(self, '_swarm_system', None) is None:
+                self._swarm_system = TrueSwarmSystem()
+
+            # Store agent metadata in the workspace for later phase execution
+            self._swarm_system.workspace.write_artifact(
+                {
+                    'artifact_type': 'agent_registration',
+                    'content': agent,
+                    'phase': None,
+                }
+            )
+            print(f"✓ Agent '{agent['name']}' registered with TrueSwarmSystem")
+        except Exception as exc:
+            # Non-fatal: the integration itself still succeeds
+            print(f"⚠ TrueSwarmSystem registration skipped: {exc}")
+
+    # ------------------------------------------------------------------
+    # Rejected-integration clean-up
+    # ------------------------------------------------------------------
+
+    def _cleanup_rejected(self, module: Dict[str, Any]) -> None:
+        """Remove artefacts generated for a rejected integration.
+
+        Removes on-disk generated files (commands, agents) that were
+        staged during the approval workflow.  The clean-up is
+        best-effort; failures are logged but do not propagate.
+        """
+        import shutil
+
+        generated_path = module.get('generated_path')
+        if generated_path and os.path.isdir(generated_path):
+            try:
+                shutil.rmtree(generated_path)
+                print(f"✓ Cleaned up generated artefacts at {generated_path}")
+            except OSError as exc:
+                print(f"⚠ Could not remove {generated_path}: {exc}")
+        else:
+            print("✓ No generated artefacts to clean up")
     # TrueSwarmSystem integration helpers
     # ------------------------------------------------------------------
 

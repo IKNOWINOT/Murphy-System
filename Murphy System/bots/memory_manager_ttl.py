@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 STM_DIR = Path("memory/stm")
@@ -22,7 +22,7 @@ def archive_to_ltm(entry: dict) -> None:
 
 
 def check_expired_stm() -> None:
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     for file in STM_DIR.glob("*.json"):
         try:
             with open(file, "r", encoding="utf-8") as f:
