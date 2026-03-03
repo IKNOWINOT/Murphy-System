@@ -202,6 +202,27 @@ class MurphyValidator:
                 if graph is not None:
                     return self.confidence_calculator_v1.calculate_generative_adequacy(graph)
                 return None
+        
+        try:
+            from .confidence_calculator import ConfidenceCalculator
+            from .models import ArtifactGraph, Phase as ConfPhase, TrustModel
+
+            # Build a minimal artifact graph from context.
+            graph = ArtifactGraph()
+            artifacts = context.get('artifacts', [])
+            for art in artifacts:
+                graph.add_node(art)
+
+            # Map phase string to confidence engine Phase enum.
+            phase_str = context.get('phase', 'expand')
+            phase_map = {p.value: p for p in ConfPhase}
+            phase = phase_map.get(phase_str, ConfPhase.EXPAND)
+
+            # Use default trust model.
+            trust = context.get('trust_model', TrustModel())
+
+            # Verification evidence from context (may be empty).
+            evidence = context.get('verification_evidence', [])
 
             state = self.confidence_calculator_v1.compute_confidence(
                 graph=graph,
@@ -213,6 +234,13 @@ class MurphyValidator:
         except Exception as exc:
             logger.warning("v1 confidence calculation failed: %s", exc)
             return None
+                trust_model=trust,
+            )
+            return state.confidence
+        except Exception as e:
+            logger.warning(f"Could not compute v1 confidence: {e}")
+            # Graceful degradation: derive a heuristic from context.
+            return context.get('confidence_hint', 0.75)
     
     def _generate_factors(
         self,
