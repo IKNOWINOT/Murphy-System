@@ -235,8 +235,8 @@ class LLMClientManager:
         """Initialize LLM providers"""
         # Groq API
         groq_keys = [
-            'gsk_VKqX3lfpHlXpQz5JZpXpQz5JZpXpQz5JZpXpQz5JZpXpQz5J',
-            'gsk_VKqX3lfpHlXpQz5JZpXpQz5JZpXpQz5JZpXpQz5JZpXpQz5J',
+            'REDACTED_GROQ_KEY_PLACEHOLDER',
+            'REDACTED_GROQ_KEY_PLACEHOLDER',
             # Add remaining 7 keys...
         ]
         
@@ -256,7 +256,7 @@ class LLMClientManager:
             logger.info(f"Initialized Groq with {len(groq_keys)} API keys")
         
         # Aristotle API
-        aristotle_key = 'arstl_D7uKG0m-c3fs_4pRRBZ9wxnYGDVVLgTCLIKkH0UD2vQ'
+        aristotle_key = 'REDACTED_ARISTOTLE_KEY_PLACEHOLDER'
         
         if aristotle_key:
             from aristotle_client import AristotleClient
