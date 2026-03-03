@@ -589,3 +589,218 @@ class TestOnPasteEvent:
             await pilot.pause()
             input_widget = app.query_one("#user-input", Input)
             assert "gsk_shift_insert_value" in input_widget.value
+
+
+# ---------------------------------------------------------------------------
+# Gap test: Ctrl+V binding has priority=True (Bug 3 regression)
+# ---------------------------------------------------------------------------
+
+
+class TestCtrlVBindingConfiguration:
+    """The ctrl+v Binding must carry priority=True so the app-level paste action
+    overrides Textual's built-in Input widget binding of the same key.
+    Without this, Ctrl+V silently does nothing (Input uses its internal clipboard).
+    """
+
+    def test_ctrl_v_binding_has_priority_true(self):
+        """ctrl+v MUST have priority=True or it will be shadowed by Input's own binding."""
+        ctrl_v = next(
+            (b for b in MurphyTerminalApp.BINDINGS if b.key == "ctrl+v"),
+            None,
+        )
+        assert ctrl_v is not None, "ctrl+v binding not found in MurphyTerminalApp.BINDINGS"
+        assert ctrl_v.priority is True, (
+            "ctrl+v binding must have priority=True; without it Textual's Input "
+            "widget intercepts the keystroke before the app-level handler runs"
+        )
+
+    def test_ctrl_v_binding_action_is_paste_clipboard(self):
+        """ctrl+v must trigger paste_clipboard, not some other action."""
+        ctrl_v = next(
+            (b for b in MurphyTerminalApp.BINDINGS if b.key == "ctrl+v"),
+            None,
+        )
+        assert ctrl_v is not None
+        assert ctrl_v.action == "paste_clipboard"
+
+    def test_shift_insert_binding_exists(self):
+        """Shift+Insert must be registered as a fallback paste shortcut."""
+        shift_ins = next(
+            (b for b in MurphyTerminalApp.BINDINGS if b.key == "shift+insert"),
+            None,
+        )
+        assert shift_ins is not None, "shift+insert binding not found"
+        assert shift_ins.action == "paste_clipboard"
+
+
+# ---------------------------------------------------------------------------
+# Gap test: read_env handles BOM-encoded files (Windows Notepad default)
+# ---------------------------------------------------------------------------
+
+
+class TestReadEnvBomHandling:
+    """Windows Notepad (and many Windows editors) save UTF-8 files with a BOM
+    (U+FEFF byte order mark) at the start.  Without utf-8-sig encoding the BOM
+    becomes part of the first key name ('\ufeffGROQ_API_KEY') and the key is
+    silently dropped from the parsed result.
+    """
+
+    def test_bom_prefixed_file_reads_correctly(self, tmp_path):
+        env_file = tmp_path / ".env"
+        # Write with BOM exactly as Windows Notepad does
+        env_file.write_bytes(b"\xef\xbb\xbfGROQ_API_KEY=gsk_bomtest\nOTHER=value\n")
+        result = read_env(str(env_file))
+        assert "GROQ_API_KEY" in result, (
+            "GROQ_API_KEY was not parsed from a BOM-prefixed .env file; "
+            "the file was likely opened with utf-8 instead of utf-8-sig"
+        )
+        assert result["GROQ_API_KEY"] == "gsk_bomtest"
+
+    def test_bom_does_not_contaminate_key_name(self, tmp_path):
+        env_file = tmp_path / ".env"
+        env_file.write_bytes(b"\xef\xbb\xbfFOO=bar\n")
+        result = read_env(str(env_file))
+        for k in result.keys():
+            assert "\ufeff" not in k, f"BOM character found in key '{k}'"
+
+    def test_non_bom_file_still_works(self, tmp_path):
+        """Ensure the encoding change doesn't break plain UTF-8 files."""
+        env_file = tmp_path / ".env"
+        env_file.write_text("GROQ_API_KEY=gsk_plain\n", encoding="utf-8")
+        result = read_env(str(env_file))
+        assert result["GROQ_API_KEY"] == "gsk_plain"
+
+    def test_startup_gate_triggers_when_bom_env_has_placeholder(self, tmp_path, monkeypatch):
+        """If the .env file is BOM-encoded and contains only a placeholder, the
+        startup gate should still fire — i.e. read_env must parse the key cleanly
+        so _is_real_key can evaluate it correctly."""
+        env_file = tmp_path / ".env"
+        env_file.write_bytes(
+            b"\xef\xbb\xbfGROQ_API_KEY=your_groq_api_key_here\n"
+        )
+        monkeypatch.setattr("murphy_terminal.get_env_path", lambda: str(env_file))
+        monkeypatch.delenv("GROQ_API_KEY", raising=False)
+        from src.env_manager import read_env as _re
+        env_vars = _re(str(env_file))
+        # After BOM fix, the key is parseable; a placeholder value must not be real
+        assert MurphyTerminalApp._is_real_key(env_vars.get("GROQ_API_KEY")) is False
+
+
+# ---------------------------------------------------------------------------
+# Gap test: .env.example placeholder consistency check
+# ---------------------------------------------------------------------------
+
+
+class TestEnvExampleConsistency:
+    """Regression: the startup gate checks _PLACEHOLDER_KEY_VALUES but .env.example
+    uses slightly different placeholder strings.  If they drift apart, the gate
+    silently lets through placeholder values and the user never gets prompted to
+    set a real key.
+    """
+
+    @staticmethod
+    def _get_placeholder_key_values():
+        """Read the private frozenset from murphy_terminal."""
+        import murphy_terminal
+        return murphy_terminal._PLACEHOLDER_KEY_VALUES
+
+    def test_env_example_groq_placeholder_is_blocked(self, tmp_path):
+        """The exact string 'your_groq_api_key_here' (from .env.example) must be
+        in _PLACEHOLDER_KEY_VALUES so the startup gate fires for unconfigured installs."""
+        placeholders = self._get_placeholder_key_values()
+        assert "your_groq_api_key_here" in placeholders, (
+            "'your_groq_api_key_here' is the placeholder in .env.example for GROQ_API_KEY "
+            "but it is not in _PLACEHOLDER_KEY_VALUES — users who don't replace the "
+            "template value will bypass the startup gate"
+        )
+
+    def test_env_example_all_api_key_placeholders_are_blocked(self):
+        """Parse the actual .env.example file and verify every API-key-shaped
+        placeholder value is in _PLACEHOLDER_KEY_VALUES.
+        Dynamically discovers all uncommented *_API_KEY lines so the test
+        stays up-to-date as new providers are added to .env.example."""
+        import murphy_terminal
+        import re
+
+        env_example_path = os.path.join(
+            os.path.dirname(__file__), "..", ".env.example"
+        )
+        if not os.path.isfile(env_example_path):
+            pytest.skip(".env.example file not found")
+
+        with open(env_example_path, "r", encoding="utf-8") as fh:
+            content = fh.read()
+
+        # Dynamically match any uncommented line that looks like an API key variable
+        # Pattern: KEY_NAME=value where KEY_NAME ends with _API_KEY or _TOKEN
+        api_key_lines = re.findall(
+            r"^([A-Z_]+(?:_API_KEY|_TOKEN))=(.+)$", content, re.MULTILINE
+        )
+        checked = 0
+        for var, value in api_key_lines:
+            value = value.strip()
+            if not value or value.startswith("#"):
+                continue
+            checked += 1
+            assert MurphyTerminalApp._is_real_key(value) is False, (
+                f"The placeholder value '{value}' for {var} in .env.example "
+                f"passes _is_real_key — it's not in _PLACEHOLDER_KEY_VALUES. "
+                f"Users who don't replace this value will bypass the startup gate."
+            )
+        assert checked > 0, ".env.example appears to have no API key lines — pattern may be wrong"
+
+    def test_is_real_key_rejects_all_placeholder_variants(self):
+        """Every entry in _PLACEHOLDER_KEY_VALUES must be rejected by _is_real_key."""
+        import murphy_terminal
+        for placeholder in murphy_terminal._PLACEHOLDER_KEY_VALUES:
+            assert MurphyTerminalApp._is_real_key(placeholder) is False, (
+                f"'{placeholder}' is in _PLACEHOLDER_KEY_VALUES but _is_real_key "
+                f"accepted it — the check is case-sensitive and the set entry may "
+                f"not match"
+            )
+
+
+# ---------------------------------------------------------------------------
+# Gap test: strip_key_wrapping edge cases
+# ---------------------------------------------------------------------------
+
+
+class TestStripKeyWrappingEdgeCases:
+    """Additional edge-case tests for strip_key_wrapping that exercise
+    combinations and idempotency."""
+
+    def setup_method(self):
+        from src.env_manager import strip_key_wrapping
+        self.strip = strip_key_wrapping
+
+    def test_empty_string_returns_empty(self):
+        assert self.strip("") == ""
+
+    def test_whitespace_only_returns_empty(self):
+        assert self.strip("   \t  ") == ""
+
+    def test_invisible_unicode_only_returns_empty(self):
+        assert self.strip("\u200b\ufeff\u00a0") == ""
+
+    def test_idempotent_plain_key(self):
+        key = "gsk_abcdefghijklmnopqrstuvwx"
+        assert self.strip(self.strip(key)) == self.strip(key)
+
+    def test_idempotent_bom_wrapped(self):
+        key = "\ufeffgsk_abc\ufeff"
+        once = self.strip(key)
+        twice = self.strip(once)
+        assert once == twice
+
+    def test_mixed_unicode_and_whitespace(self):
+        key = "  \u200b  gsk_abcdefghijklmnopqrstuvwx\t\u00a0  "
+        assert self.strip(key) == "gsk_abcdefghijklmnopqrstuvwx"
+
+    def test_quote_wrapping_after_unicode_strip(self):
+        """Quotes around the key should still be stripped even after unicode removal."""
+        key = "\u200b\"gsk_abcdefghijklmnopqrstuvwx\"\u200b"
+        assert self.strip(key) == "gsk_abcdefghijklmnopqrstuvwx"
+
+    def test_angle_bracket_after_unicode_strip(self):
+        key = "\ufeff<gsk_abcdefghijklmnopqrstuvwx>\ufeff"
+        assert self.strip(key) == "gsk_abcdefghijklmnopqrstuvwx"
