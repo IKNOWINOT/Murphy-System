@@ -273,7 +273,12 @@ class MFGCSystemState:
 
     # Audit trail
     events: List[Dict[str, Any]] = field(default_factory=list)
-    
+
+    # Feedback / learning loop (CFP-4)
+    pending_feedback_signals: List[Any] = field(default_factory=list, repr=False)
+    """Accumulated :class:`~feedback_integrator.FeedbackSignal` objects for
+    the current execution cycle, consumed by :class:`MFGCController`."""
+
     def log_event(self, event_type: str, data: Dict[str, Any]):
         """Add event to audit trail"""
         self.events.append({
@@ -725,6 +730,9 @@ class MFGCController:
     """
     Main MFGC controller implementing 7-phase execution
     """
+
+    _DEFAULT_UNCERTAINTY: float = 0.5
+    """Default per-dimension uncertainty applied when no prior data is available."""
     
     def __init__(self):
         self.confidence_engine = ConfidenceEngine()
@@ -732,7 +740,42 @@ class MFGCController:
         self.murphy_monitor = MurphyIndexMonitor()
         self.gate_compiler = GateCompiler()
         self.swarm_generator = SwarmGenerator()
-    
+
+        # CFP-4: Closed learning loop — wired FeedbackIntegrator
+        try:
+            from feedback_integrator import FeedbackIntegrator, FeedbackSignal as _FeedbackSignal
+            from state_schema import StateVariable, StateVectorSchema, TypedStateVector
+            self._feedback_integrator = FeedbackIntegrator()
+            self._FeedbackSignal = _FeedbackSignal
+            self._StateVariable = StateVariable
+            self._StateVectorSchema = StateVectorSchema
+            self._TypedStateVector = TypedStateVector
+            self._feedback_available = True
+        except ImportError:
+            self._feedback_integrator = None
+            self._feedback_available = False
+
+    def _make_uncertainty_state(self) -> Any:
+        """Create a :class:`~state_schema.TypedStateVector` with base MFGC dimensions."""
+        if not self._feedback_available:
+            return None
+        schema = self._StateVectorSchema(
+            domain="mfgc",
+            dimensions=[
+                self._StateVariable(name=d, value=0.0, dtype="float",
+                                    uncertainty=self._DEFAULT_UNCERTAINTY)
+                for d in (
+                    "domain_knowledge_level",
+                    "constraint_satisfaction_ratio",
+                    "information_completeness",
+                    "verification_coverage",
+                    "risk_exposure",
+                    "authority_utilization",
+                )
+            ],
+        )
+        return self._TypedStateVector(schema=schema)
+
     def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> MFGCSystemState:
         """
         Execute complete 7-phase MFGC cycle
@@ -749,6 +792,9 @@ class MFGCController:
         state.x_t = StateVector.from_dict({'task': task, 'context': context or {}})
         state.p_t = Phase.EXPAND
         state.phase_history.append(Phase.EXPAND)
+
+        # CFP-4: initialise per-dimension uncertainty tracker
+        uncertainty_state = self._make_uncertainty_state()
         
         state.log_event('execution_start', {'task': task})
         
@@ -777,9 +823,39 @@ class MFGCController:
                     'murphy_index': state.M_t,
                     'threshold': self.murphy_monitor.threshold
                 })
+                # CFP-4: emit a feedback signal when Murphy threshold is exceeded
+                # and integrate it into the uncertainty state
+                if self._feedback_available and uncertainty_state is not None:
+                    # Use the phase threshold as the "expected" confidence when
+                    # there is no prior history entry; this ensures original ≠ corrected.
+                    prev_conf = (
+                        state.confidence_history[-2]
+                        if len(state.confidence_history) >= 2
+                        else phase.confidence_threshold
+                    )
+                    signal = self._FeedbackSignal(
+                        signal_type="recalibration",
+                        source_task_id=f"phase:{phase.value}",
+                        original_confidence=prev_conf,
+                        corrected_confidence=state.c_t,
+                        affected_state_variables=list(uncertainty_state.keys()),
+                    )
+                    state.pending_feedback_signals.append(signal)
+                    self._feedback_integrator.integrate(signal, uncertainty_state)
+
                 # Synthesize emergency gates
                 emergency_gates = self._synthesize_emergency_gates(state)
                 state.G_t.extend(emergency_gates)
+
+        # CFP-4: check if accumulated signals warrant recalibration
+        if (self._feedback_available
+                and state.pending_feedback_signals
+                and self._feedback_integrator.should_trigger_recalibration(
+                    state.pending_feedback_signals
+                )):
+            state.log_event('recalibration_triggered', {
+                'signal_count': len(state.pending_feedback_signals),
+            })
         
         state.log_event('execution_complete', {
             'final_confidence': state.c_t,
@@ -787,6 +863,77 @@ class MFGCController:
             'total_gates': len(state.G_t)
         })
         
+        return state
+
+    def apply_feedback_correction(
+        self,
+        state: MFGCSystemState,
+        original_confidence: float,
+        corrected_confidence: float,
+        affected_variables: Optional[List[str]] = None,
+        source_task_id: str = "external",
+    ) -> MFGCSystemState:
+        """Apply an external feedback correction to *state*.
+
+        Creates a :class:`~feedback_integrator.FeedbackSignal` from the supplied
+        confidence pair and integrates it into *state*'s uncertainty tracker.
+        This is the public hook for post-execution callers (e.g. HITL reviewers,
+        automated test harnesses) to feed corrections back into the system.
+
+        Args:
+            state: The :class:`MFGCSystemState` to update.
+            original_confidence: Confidence value before correction.
+            corrected_confidence: Corrected/expected confidence value.
+            affected_variables: State-vector dimension names to adjust.
+                Defaults to all six base dimensions if not supplied.
+            source_task_id: Caller identifier for the audit trail.
+
+        Returns:
+            The (mutated) *state* object for chaining.
+        """
+        if not self._feedback_available:
+            return state
+
+        if affected_variables is None:
+            affected_variables = [
+                "domain_knowledge_level",
+                "constraint_satisfaction_ratio",
+                "information_completeness",
+                "verification_coverage",
+                "risk_exposure",
+                "authority_utilization",
+            ]
+
+        signal = self._FeedbackSignal(
+            signal_type="correction",
+            source_task_id=source_task_id,
+            original_confidence=original_confidence,
+            corrected_confidence=corrected_confidence,
+            affected_state_variables=affected_variables,
+        )
+        state.pending_feedback_signals.append(signal)
+
+        # Build a transient TypedStateVector from the current StateVector values
+        uncertainty_state = self._make_uncertainty_state()
+        if uncertainty_state is not None:
+            for dim in affected_variables:
+                raw_val = state.x_t.get(dim)
+                if raw_val is not None:
+                    uncertainty_state.set(dim, raw_val,
+                                          uncertainty=self._DEFAULT_UNCERTAINTY)
+                else:
+                    # Dimension not in current StateVector; integrate with default
+                    # uncertainty so the feedback signal still affects the loop.
+                    uncertainty_state.set(dim, 0.0,
+                                          uncertainty=self._DEFAULT_UNCERTAINTY)
+            self._feedback_integrator.integrate(signal, uncertainty_state)
+
+        state.log_event('feedback_correction_applied', {
+            'original_confidence': original_confidence,
+            'corrected_confidence': corrected_confidence,
+            'affected_variables': affected_variables,
+            'source_task_id': source_task_id,
+        })
         return state
     
     def _execute_phase(self, state: MFGCSystemState):

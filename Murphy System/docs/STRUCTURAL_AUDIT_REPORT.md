@@ -141,9 +141,11 @@ across the 8 audit categories and tracks remediation status.
 | Structural reintegration | ✅ | `FeedbackIntegrator.integrate()` updates state uncertainty | — | — |
 | Batch delta computation | ✅ | `compute_learning_delta()` | — | — |
 | Automatic recalibration trigger | ✅ | `should_trigger_recalibration()` | — | — |
+| Wired into execution loop | ✅ | `MFGCController` holds `FeedbackIntegrator`; signals emitted on Murphy threshold exceeded; `apply_feedback_correction()` for external callers | — | — |
 
 **Gap CFP-4 status:** ✅ Closed — `feedback_integrator.py` provides
 `FeedbackSignal` and `FeedbackIntegrator` with structural reintegration.
+`FeedbackIntegrator` is now wired into `MFGCController` (see `mfgc_core.py`).
 
 ---
 
@@ -157,7 +159,7 @@ score of ≥ 60/100:
 3. **[DONE] CFP-6** — LLM output envelope validation (`llm_output_validator.py`)
 4. **[DONE] CFP-7** — Security middleware wired into API servers (`auar_api.py`)
 5. **[TODO]** Expand `CanonicalStateVector` to 25+ dimensions as domain models mature
-6. **[TODO]** Wire `FeedbackIntegrator` into the main MFGC execution loop
+6. **[DONE]** Wire `FeedbackIntegrator` into the main MFGC execution loop (`mfgc_core.py` — `MFGCController.__init__`, `execute()`, `apply_feedback_correction()`)
 7. **[TODO]** Add automated drift detection based on entropy thresholds
 8. **[TODO]** Publish formal interface contracts (OpenAPI / AsyncAPI) for all public endpoints
 
