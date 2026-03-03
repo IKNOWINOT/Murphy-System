@@ -59,6 +59,7 @@ class Constraint:
     dependencies: List[str] = field(default_factory=list)  # Other constraints this depends on
     source: str = "user"  # user, system, regulatory, best_practice
     justification: str = ""
+    jurisdiction: str = "GLOBAL"  # jurisdiction code (e.g. "US", "EU", "GLOBAL")
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
     updated_at: str = field(default_factory=lambda: datetime.now().isoformat())
     
@@ -80,6 +81,7 @@ class Constraint:
             "dependencies": self.dependencies,
             "source": self.source,
             "justification": self.justification,
+            "jurisdiction": self.jurisdiction,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "success": True,
@@ -408,6 +410,18 @@ class ConstraintSystem:
             justification=justification
         )
     
+    def select_constraints(self, jurisdiction: str) -> List[Constraint]:
+        """
+        Return constraints that apply in the given *jurisdiction*.
+
+        A constraint matches if its ``jurisdiction`` field equals *jurisdiction*
+        or is ``"GLOBAL"``.
+        """
+        return [
+            c for c in self.constraints.values()
+            if c.jurisdiction in (jurisdiction, "GLOBAL")
+        ]
+
     def validate_constraints(
         self,
         system_state: Dict[str, Any]
