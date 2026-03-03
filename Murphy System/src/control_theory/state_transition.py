@@ -72,7 +72,7 @@ _DIM_BOUNDS: Dict[str, tuple] = {
     "uncertainty_disagreement": (0.0, 1.0),
     "uptime_seconds": (0.0, None),
     "active_tasks": (0, None),
-    "cpu_usage_percent": (0.0, None),
+    "cpu_usage_percent": (0.0, 100.0),
 }
 
 
