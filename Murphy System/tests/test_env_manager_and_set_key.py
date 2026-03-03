@@ -488,3 +488,104 @@ class TestPasteClipboardAction:
             # The action should not crash; input should remain empty / unchanged
             input_widget = app.query_one("#user-input", Input)
             assert input_widget.value == ""
+
+
+# ---------------------------------------------------------------------------
+# strip_key_wrapping — Unicode invisible character stripping
+# ---------------------------------------------------------------------------
+
+
+class TestStripKeyWrapping:
+
+    def test_strips_zero_width_space(self):
+        from src.env_manager import strip_key_wrapping
+        key = "\u200bgsk_abcdefghijklmnopqrstuvwx\u200b"
+        assert strip_key_wrapping(key) == "gsk_abcdefghijklmnopqrstuvwx"
+
+    def test_strips_bom(self):
+        from src.env_manager import strip_key_wrapping
+        key = "\ufeffgsk_abcdefghijklmnopqrstuvwx"
+        assert strip_key_wrapping(key) == "gsk_abcdefghijklmnopqrstuvwx"
+
+    def test_strips_non_breaking_space(self):
+        from src.env_manager import strip_key_wrapping
+        key = "\u00a0gsk_abcdefghijklmnopqrstuvwx\u00a0"
+        assert strip_key_wrapping(key) == "gsk_abcdefghijklmnopqrstuvwx"
+
+    def test_validate_key_with_zero_width_space_passes_after_strip(self):
+        ok, _ = validate_api_key("groq", "\u200bgsk_abcdefghijklmnopqrstuvwx\u200b")
+        assert ok is True
+
+
+# ---------------------------------------------------------------------------
+# Placeholder key detection — .env.example placeholders
+# ---------------------------------------------------------------------------
+
+
+class TestEnvExamplePlaceholders:
+
+    def test_groq_api_key_placeholder_not_real(self):
+        """The placeholder in .env.example should trigger the startup gate."""
+        assert MurphyTerminalApp._is_real_key("your_groq_api_key_here") is False
+
+    def test_openai_placeholder_not_real(self):
+        assert MurphyTerminalApp._is_real_key("sk-your_openai_key_here") is False
+
+    def test_anthropic_placeholder_not_real(self):
+        assert MurphyTerminalApp._is_real_key("sk-ant-your_anthropic_key_here") is False
+
+
+# ---------------------------------------------------------------------------
+# Bracketed paste — on_paste event handler
+# ---------------------------------------------------------------------------
+
+
+class TestOnPasteEvent:
+
+    @pytest.mark.asyncio
+    async def test_on_paste_inserts_text_into_input(self, monkeypatch):
+        """Textual Paste event (bracketed paste) should insert text into input."""
+        from textual import events
+        monkeypatch.setenv("GROQ_API_KEY", "gsk_test_for_bracketed_paste")
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            paste_event = events.Paste("gsk_bracketed_paste_value")
+            app.post_message(paste_event)
+            await pilot.pause()
+            input_widget = app.query_one("#user-input", Input)
+            assert "gsk_bracketed_paste_value" in input_widget.value
+
+    @pytest.mark.asyncio
+    async def test_on_paste_uses_first_line_only(self, monkeypatch):
+        """Bracketed paste with multiple lines should only insert the first line."""
+        from textual import events
+        monkeypatch.setenv("GROQ_API_KEY", "gsk_test_for_multiline_paste")
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            paste_event = events.Paste("gsk_firstline\nsecondline")
+            app.post_message(paste_event)
+            await pilot.pause()
+            input_widget = app.query_one("#user-input", Input)
+            assert "gsk_firstline" in input_widget.value
+            assert "secondline" not in input_widget.value
+
+    @pytest.mark.asyncio
+    async def test_shift_insert_pastes_clipboard(self, monkeypatch):
+        """Shift+Insert should also trigger paste_clipboard action."""
+        monkeypatch.setenv("GROQ_API_KEY", "gsk_test_for_shift_insert")
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            monkeypatch.setattr(
+                MurphyTerminalApp, "_read_clipboard",
+                staticmethod(lambda: "gsk_shift_insert_value"),
+            )
+            await pilot.press("shift+insert")
+            await pilot.pause()
+            input_widget = app.query_one("#user-input", Input)
+            assert "gsk_shift_insert_value" in input_widget.value
