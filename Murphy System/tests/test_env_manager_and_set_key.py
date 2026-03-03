@@ -335,6 +335,38 @@ class TestConfigureLlmClient:
         result = client.configure_llm("groq", "gsk_abcdefghijklmnopqrstuvwx")
         assert result.get("success") is False
 
+    def test_configure_llm_posts_to_correct_endpoint(self, monkeypatch):
+        """configure_llm should POST to /api/llm/configure with provider and api_key."""
+        from murphy_terminal import MurphyAPIClient
+        captured = {}
+
+        def mock_post(path, data):
+            captured["path"] = path
+            captured["data"] = data
+            return {"success": True, "enabled": True, "provider": "groq"}
+
+        client = MurphyAPIClient(base_url="http://localhost:19999")
+        monkeypatch.setattr(client, "_post", mock_post)
+        result = client.configure_llm("groq", "gsk_abcdefghijklmnopqrstuvwx")
+        assert captured["path"] == "/api/llm/configure"
+        assert captured["data"]["provider"] == "groq"
+        assert captured["data"]["api_key"] == "gsk_abcdefghijklmnopqrstuvwx"
+        assert result.get("success") is True
+
+    def test_configure_llm_returns_success_response(self, monkeypatch):
+        """configure_llm should return the backend response on success."""
+        from murphy_terminal import MurphyAPIClient
+
+        def mock_post(path, data):
+            return {"success": True, "enabled": True, "provider": "groq", "model": "llama3-8b-8192"}
+
+        client = MurphyAPIClient(base_url="http://localhost:19999")
+        monkeypatch.setattr(client, "_post", mock_post)
+        result = client.configure_llm("groq", "gsk_abcdefghijklmnopqrstuvwx")
+        assert result.get("success") is True
+        assert result.get("provider") == "groq"
+        assert result.get("model") == "llama3-8b-8192"
+
 
 # ---------------------------------------------------------------------------
 # Placeholder key detection
@@ -378,3 +410,81 @@ class TestWelcomeTextSetKey:
     def test_welcome_text_mentions_set_key(self):
         from murphy_terminal import WELCOME_TEXT
         assert "set key" in WELCOME_TEXT
+
+
+# ---------------------------------------------------------------------------
+# Paste (Ctrl+V) functionality
+# ---------------------------------------------------------------------------
+
+
+class TestReadClipboard:
+
+    def test_read_clipboard_returns_string_or_none(self):
+        """_read_clipboard should return a str or None — never raise."""
+        result = MurphyTerminalApp._read_clipboard()
+        assert result is None or isinstance(result, str)
+
+    def test_read_clipboard_uses_pyperclip_when_available(self, monkeypatch):
+        """_read_clipboard should use pyperclip when it is importable."""
+        import murphy_terminal
+
+        class FakePyperclip:
+            @staticmethod
+            def paste():
+                return "clipboard_via_pyperclip"
+
+        monkeypatch.setattr(murphy_terminal, "pyperclip", FakePyperclip)
+        result = MurphyTerminalApp._read_clipboard()
+        assert result == "clipboard_via_pyperclip"
+
+    def test_read_clipboard_returns_none_when_all_methods_fail(self, monkeypatch):
+        """_read_clipboard returns None when pyperclip is absent and subprocess fails."""
+        import subprocess
+        import murphy_terminal
+
+        monkeypatch.setattr(murphy_terminal, "pyperclip", None)
+
+        def failing_run(*args, **kwargs):
+            raise FileNotFoundError("no clipboard tool")
+
+        monkeypatch.setattr(subprocess, "run", failing_run)
+        result = MurphyTerminalApp._read_clipboard()
+        assert result is None
+
+
+class TestPasteClipboardAction:
+
+    @pytest.mark.asyncio
+    async def test_paste_clipboard_inserts_text_into_input(self, monkeypatch):
+        """Ctrl+V should paste clipboard text into the input widget."""
+        monkeypatch.setenv("GROQ_API_KEY", "gsk_test_for_paste_skip_gate")
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            monkeypatch.setattr(
+                MurphyTerminalApp, "_read_clipboard",
+                staticmethod(lambda: "gsk_pasted_key_value"),
+            )
+            await pilot.press("ctrl+v")
+            await pilot.pause()
+            input_widget = app.query_one("#user-input", Input)
+            assert "gsk_pasted_key_value" in input_widget.value
+
+    @pytest.mark.asyncio
+    async def test_paste_clipboard_empty_does_not_crash(self, monkeypatch):
+        """When clipboard is empty, action_paste_clipboard should not crash or modify input."""
+        monkeypatch.setenv("GROQ_API_KEY", "gsk_test_for_paste_skip_gate")
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            monkeypatch.setattr(
+                MurphyTerminalApp, "_read_clipboard",
+                staticmethod(lambda: None),
+            )
+            await pilot.press("ctrl+v")
+            await pilot.pause()
+            # The action should not crash; input should remain empty / unchanged
+            input_widget = app.query_one("#user-input", Input)
+            assert input_widget.value == ""
