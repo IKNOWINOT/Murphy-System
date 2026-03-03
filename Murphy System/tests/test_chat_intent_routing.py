@@ -301,6 +301,115 @@ class TestLLMStatus(unittest.TestCase):
             else:
                 os.environ.pop("GROQ_API_KEY", None)
 
+    def test_llm_status_auto_detects_groq_without_provider_var(self):
+        """Bug-1 regression: GROQ_API_KEY alone (no MURPHY_LLM_PROVIDER) must
+        enable LLM.  Before the fix, the backend required MURPHY_LLM_PROVIDER to
+        be explicitly set — users who only added GROQ_API_KEY to .env were stuck
+        in deterministic mode even with a valid key."""
+        old_provider = os.environ.pop("MURPHY_LLM_PROVIDER", None)
+        old_key = os.environ.get("GROQ_API_KEY")
+        os.environ["GROQ_API_KEY"] = "gsk_autodetecttest"
+        try:
+            status = self.murphy._get_llm_status()
+            self.assertTrue(
+                status["enabled"],
+                "LLM must be enabled when GROQ_API_KEY is set, even without "
+                "MURPHY_LLM_PROVIDER — auto-detection should kick in",
+            )
+            self.assertEqual(status["provider"], "groq")
+            self.assertTrue(status["healthy"])
+        finally:
+            if old_provider is not None:
+                os.environ["MURPHY_LLM_PROVIDER"] = old_provider
+            else:
+                os.environ.pop("MURPHY_LLM_PROVIDER", None)
+            if old_key is not None:
+                os.environ["GROQ_API_KEY"] = old_key
+            else:
+                os.environ.pop("GROQ_API_KEY", None)
+
+    def test_llm_status_auto_detects_openai_without_provider_var(self):
+        """Auto-detection should work for OpenAI keys too."""
+        old_provider = os.environ.pop("MURPHY_LLM_PROVIDER", None)
+        old_groq = os.environ.pop("GROQ_API_KEY", None)
+        old_openai = os.environ.get("OPENAI_API_KEY")
+        os.environ["OPENAI_API_KEY"] = "sk-autodetectopenai"
+        try:
+            status = self.murphy._get_llm_status()
+            self.assertTrue(status["enabled"])
+            self.assertEqual(status["provider"], "openai")
+        finally:
+            if old_provider is not None:
+                os.environ["MURPHY_LLM_PROVIDER"] = old_provider
+            else:
+                os.environ.pop("MURPHY_LLM_PROVIDER", None)
+            if old_groq is not None:
+                os.environ["GROQ_API_KEY"] = old_groq
+            if old_openai is not None:
+                os.environ["OPENAI_API_KEY"] = old_openai
+            else:
+                os.environ.pop("OPENAI_API_KEY", None)
+
+    def test_llm_status_groq_takes_priority_over_openai_in_auto_detect(self):
+        """When both GROQ_API_KEY and OPENAI_API_KEY are set but MURPHY_LLM_PROVIDER
+        is absent, Groq should be auto-selected (it's the recommended free-tier option)."""
+        old_provider = os.environ.pop("MURPHY_LLM_PROVIDER", None)
+        old_groq = os.environ.get("GROQ_API_KEY")
+        old_openai = os.environ.get("OPENAI_API_KEY")
+        os.environ["GROQ_API_KEY"] = "gsk_prioritytest"
+        os.environ["OPENAI_API_KEY"] = "sk-alsoavailable"
+        try:
+            status = self.murphy._get_llm_status()
+            self.assertEqual(
+                status["provider"],
+                "groq",
+                "Groq should take auto-detect priority over OpenAI",
+            )
+        finally:
+            if old_provider is not None:
+                os.environ["MURPHY_LLM_PROVIDER"] = old_provider
+            else:
+                os.environ.pop("MURPHY_LLM_PROVIDER", None)
+            if old_groq is not None:
+                os.environ["GROQ_API_KEY"] = old_groq
+            else:
+                os.environ.pop("GROQ_API_KEY", None)
+            if old_openai is not None:
+                os.environ["OPENAI_API_KEY"] = old_openai
+            else:
+                os.environ.pop("OPENAI_API_KEY", None)
+
+    def test_explicit_provider_var_not_overridden_by_auto_detect(self):
+        """An explicit MURPHY_LLM_PROVIDER must not be replaced by auto-detection."""
+        old_provider = os.environ.get("MURPHY_LLM_PROVIDER")
+        old_groq = os.environ.get("GROQ_API_KEY")
+        old_openai = os.environ.get("OPENAI_API_KEY")
+        # Explicitly set openai as provider, but also provide groq key
+        os.environ["MURPHY_LLM_PROVIDER"] = "openai"
+        os.environ["OPENAI_API_KEY"] = "sk-explicittestkey"
+        os.environ["GROQ_API_KEY"] = "gsk_shouldnotoverride"
+        try:
+            status = self.murphy._get_llm_status()
+            self.assertEqual(
+                status["provider"],
+                "openai",
+                "Explicit MURPHY_LLM_PROVIDER=openai must be respected even if "
+                "GROQ_API_KEY is also present",
+            )
+        finally:
+            if old_provider is not None:
+                os.environ["MURPHY_LLM_PROVIDER"] = old_provider
+            else:
+                os.environ.pop("MURPHY_LLM_PROVIDER", None)
+            if old_groq is not None:
+                os.environ["GROQ_API_KEY"] = old_groq
+            else:
+                os.environ.pop("GROQ_API_KEY", None)
+            if old_openai is not None:
+                os.environ["OPENAI_API_KEY"] = old_openai
+            else:
+                os.environ.pop("OPENAI_API_KEY", None)
+
     def test_librarian_status(self):
         """Librarian status should report enabled/healthy."""
         status = self.murphy._get_librarian_status()
