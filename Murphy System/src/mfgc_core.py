@@ -11,6 +11,196 @@ import copy
 from dataclasses import dataclass, field
 import json
 
+try:
+    from pydantic import BaseModel, Field, field_validator
+    _PYDANTIC_AVAILABLE = True
+except ImportError:
+    _PYDANTIC_AVAILABLE = False
+
+
+# === TYPED STATE VECTOR (GAP-1) ===
+
+N_BASE_DIMS: int = 6
+"""Number of base state dimensions in :class:`StateVector`."""
+
+# GAP-5 stability constants
+HYSTERESIS_BAND: float = 0.05
+"""If confidence is within this band of a phase threshold, hold current phase."""
+
+MAX_PHASE_REVERSALS: int = 3
+"""Maximum allowed phase reversals before forward progression is locked."""
+
+
+if _PYDANTIC_AVAILABLE:
+    class StateVector(BaseModel):
+        """
+        Typed state vector x_t for the MFGC system.
+
+        Contains six base dimensions (each in [0.0, 1.0]) plus an optional
+        dict of custom domain-specific float dimensions.
+
+        Supports dict-like access for backward compatibility with code that
+        treats x_t as a plain ``Dict[str, Any]``.
+        """
+
+        domain_knowledge_level: float = Field(default=0.0, ge=0.0, le=1.0)
+        constraint_satisfaction_ratio: float = Field(default=0.0, ge=0.0, le=1.0)
+        information_completeness: float = Field(default=0.0, ge=0.0, le=1.0)
+        verification_coverage: float = Field(default=0.0, ge=0.0, le=1.0)
+        risk_exposure: float = Field(default=0.0, ge=0.0, le=1.0)
+        authority_utilization: float = Field(default=0.0, ge=0.0, le=1.0)
+        custom_dimensions: Dict[str, float] = Field(default_factory=dict)
+        uncertainty: Dict[str, float] = Field(default_factory=dict)
+
+        # Allow extra dict-like keys stored in extra_data for backward compat
+        model_config = {"extra": "allow"}
+
+        def get_dimensionality(self) -> int:
+            """Return total number of dimensions (base + custom)."""
+            return N_BASE_DIMS + len(self.custom_dimensions)
+
+        # -------------------------------------------------------------- #
+        # Dict-like interface for backward compatibility
+        # -------------------------------------------------------------- #
+
+        def get(self, key: str, default: Any = None) -> Any:
+            """Dict-like get for backward compatibility."""
+            base = {
+                'domain_knowledge_level': self.domain_knowledge_level,
+                'constraint_satisfaction_ratio': self.constraint_satisfaction_ratio,
+                'information_completeness': self.information_completeness,
+                'verification_coverage': self.verification_coverage,
+                'risk_exposure': self.risk_exposure,
+                'authority_utilization': self.authority_utilization,
+            }
+            if key in base:
+                return base[key]
+            if key in self.custom_dimensions:
+                return self.custom_dimensions[key]
+            # Check pydantic extra fields
+            try:
+                return self.__pydantic_extra__.get(key, default)
+            except AttributeError:
+                return default
+
+        def __getitem__(self, key: str) -> Any:
+            result = self.get(key)
+            if result is None and key not in self._base_keys():
+                raise KeyError(key)
+            return result
+
+        def __setitem__(self, key: str, value: Any) -> None:
+            base_keys = self._base_keys()
+            if key in base_keys:
+                object.__setattr__(self, key, value)
+            else:
+                self.custom_dimensions[key] = float(value) if isinstance(value, (int, float)) else value
+
+        def __contains__(self, key: str) -> bool:
+            return self.get(key) is not None or key in self._base_keys()
+
+        def _base_keys(self):
+            return {
+                'domain_knowledge_level', 'constraint_satisfaction_ratio',
+                'information_completeness', 'verification_coverage',
+                'risk_exposure', 'authority_utilization',
+            }
+
+        def update(self, data: Dict[str, Any]) -> None:
+            """Dict-like update for backward compatibility."""
+            for k, v in data.items():
+                self[k] = v
+
+        @classmethod
+        def from_dict(cls, data: Dict[str, Any]) -> "StateVector":
+            """Create a StateVector from a plain dict."""
+            base_keys = {
+                'domain_knowledge_level', 'constraint_satisfaction_ratio',
+                'information_completeness', 'verification_coverage',
+                'risk_exposure', 'authority_utilization',
+                'custom_dimensions', 'uncertainty',
+            }
+            base = {k: v for k, v in data.items() if k in base_keys}
+            extra = {k: v for k, v in data.items() if k not in base_keys}
+            sv = cls(**base)
+            if extra:
+                if sv.__pydantic_extra__ is None:
+                    object.__setattr__(sv, '__pydantic_extra__', {})
+                sv.__pydantic_extra__.update(extra)
+            return sv
+
+else:
+    # Fallback dataclass when pydantic is not available
+    @dataclass
+    class StateVector:  # type: ignore[no-redef]
+        """Typed state vector (fallback dataclass when pydantic unavailable)."""
+
+        domain_knowledge_level: float = 0.0
+        constraint_satisfaction_ratio: float = 0.0
+        information_completeness: float = 0.0
+        verification_coverage: float = 0.0
+        risk_exposure: float = 0.0
+        authority_utilization: float = 0.0
+        custom_dimensions: Dict[str, float] = field(default_factory=dict)
+        uncertainty: Dict[str, float] = field(default_factory=dict)
+        _extra: Dict[str, Any] = field(default_factory=dict, repr=False)
+
+        def get_dimensionality(self) -> int:
+            return N_BASE_DIMS + len(self.custom_dimensions)
+
+        def get(self, key: str, default: Any = None) -> Any:
+            base = {
+                'domain_knowledge_level': self.domain_knowledge_level,
+                'constraint_satisfaction_ratio': self.constraint_satisfaction_ratio,
+                'information_completeness': self.information_completeness,
+                'verification_coverage': self.verification_coverage,
+                'risk_exposure': self.risk_exposure,
+                'authority_utilization': self.authority_utilization,
+            }
+            if key in base:
+                return base[key]
+            if key in self.custom_dimensions:
+                return self.custom_dimensions[key]
+            return self._extra.get(key, default)
+
+        def __getitem__(self, key: str) -> Any:
+            result = self.get(key)
+            if result is None:
+                raise KeyError(key)
+            return result
+
+        def __setitem__(self, key: str, value: Any) -> None:
+            base_keys = {
+                'domain_knowledge_level', 'constraint_satisfaction_ratio',
+                'information_completeness', 'verification_coverage',
+                'risk_exposure', 'authority_utilization',
+            }
+            if key in base_keys:
+                setattr(self, key, value)
+            else:
+                self.custom_dimensions[key] = float(value) if isinstance(value, (int, float)) else value
+
+        def __contains__(self, key: str) -> bool:
+            return self.get(key) is not None
+
+        def update(self, data: Dict[str, Any]) -> None:
+            for k, v in data.items():
+                self[k] = v
+
+        @classmethod
+        def from_dict(cls, data: Dict[str, Any]) -> "StateVector":
+            base_keys = {
+                'domain_knowledge_level', 'constraint_satisfaction_ratio',
+                'information_completeness', 'verification_coverage',
+                'risk_exposure', 'authority_utilization',
+                'custom_dimensions', 'uncertainty',
+            }
+            base = {k: v for k, v in data.items() if k in base_keys}
+            extra = {k: v for k, v in data.items() if k not in base_keys}
+            sv = cls(**base)
+            sv._extra.update(extra)
+            return sv
+
 
 # === PHASE DEFINITIONS ===
 
@@ -58,24 +248,29 @@ class Phase(Enum):
 @dataclass
 class MFGCSystemState:
     """Complete system state at time t"""
-    # Core state
-    x_t: Dict[str, Any] = field(default_factory=dict)  # Current state
+    # Core state — x_t is now a typed StateVector (GAP-1)
+    x_t: StateVector = field(default_factory=StateVector)
     c_t: float = 0.0  # Confidence
     p_t: Phase = Phase.EXPAND  # Current phase
     a_t: float = 0.0  # Authority level
     G_t: List[str] = field(default_factory=list)  # Active gates
     M_t: float = 0.0  # Murphy index
-    
+
+    # Stability tracking (GAP-5)
+    confidence_velocity: float = 0.0  # Rate of change of confidence
+    _phase_reversal_count: int = field(default=0, repr=False)
+    _forward_locked: bool = field(default=False, repr=False)
+
     # Execution tracking
     phase_history: List[Phase] = field(default_factory=list)
     confidence_history: List[float] = field(default_factory=list)
     murphy_history: List[float] = field(default_factory=list)
     gate_history: List[List[str]] = field(default_factory=list)
-    
+
     # Swarm data
     candidates: List[Dict[str, Any]] = field(default_factory=list)
     gate_proposals: List[Dict[str, Any]] = field(default_factory=list)
-    
+
     # Audit trail
     events: List[Dict[str, Any]] = field(default_factory=list)
     
@@ -89,7 +284,24 @@ class MFGCSystemState:
             'type': event_type,
             'data': data
         })
-    
+
+    def _update_confidence_velocity(self) -> None:
+        """Update confidence_velocity from history (GAP-5)."""
+        if len(self.confidence_history) >= 2:
+            self.confidence_velocity = (
+                self.confidence_history[-1] - self.confidence_history[-2]
+            )
+
+    def is_stable(self, n: int = 3) -> bool:
+        """Return True if |confidence_velocity| < 0.01 for the last *n* steps (GAP-5)."""
+        if len(self.confidence_history) < n:
+            return False
+        recent = self.confidence_history[-n:]
+        for i in range(1, len(recent)):
+            if abs(recent[i] - recent[i - 1]) >= 0.01:
+                return False
+        return True
+
     def to_canonical(self):
         """Convert to a typed CanonicalStateVector for control-theoretic use.
 
@@ -101,13 +313,19 @@ class MFGCSystemState:
         return from_mfgc_state(self)
 
     def advance_phase(self):
-        """Move to next phase"""
+        """Move to next phase, tracking reversals for stability safeguards (GAP-5)."""
         phases = list(Phase)
         current_idx = phases.index(self.p_t)
         if current_idx < len(phases) - 1:
             old_phase = self.p_t
             self.p_t = phases[current_idx + 1]
             if old_phase != self.p_t:  # Only append if actually changed
+                # Detect reversal: if last history entry is ahead of new phase
+                if (self.phase_history and
+                        phases.index(self.phase_history[-1]) > phases.index(self.p_t)):
+                    self._phase_reversal_count += 1
+                    if self._phase_reversal_count > MAX_PHASE_REVERSALS:
+                        self._forward_locked = True
                 self.phase_history.append(self.p_t)
             self.log_event('phase_advance', {'new_phase': self.p_t.value})
 
@@ -124,28 +342,43 @@ class ConfidenceEngine:
         self.base_generative = 0.5
         self.base_deterministic = 0.8
     
-    def compute_confidence(self, state: MFGCSystemState, 
+    def compute_confidence(self, state: MFGCSystemState,
                           generative_score: float,
                           deterministic_score: float) -> float:
         """
-        Compute confidence using phase-locked weights
-        
+        Compute confidence using phase-locked weights.
+
+        Incorporates hysteresis (GAP-5): if the raw confidence is within
+        ``HYSTERESIS_BAND`` of the current phase threshold, the previous
+        confidence value is held to prevent phase oscillation.
+
         Args:
             state: Current system state
             generative_score: G(x_t) - quality of generated candidates
             deterministic_score: D(x_t) - verification score
-        
+
         Returns:
             Confidence value in [0, 1]
         """
         w_g, w_d = state.p_t.weights
-        
+
         # Weighted combination
         confidence = w_g * generative_score + w_d * deterministic_score
-        
+
         # Clamp to [0, 1]
         confidence = max(0.0, min(1.0, confidence))
-        
+
+        # GAP-5: hysteresis — hold current confidence if within HYSTERESIS_BAND
+        # of the phase threshold to prevent oscillation
+        threshold = state.p_t.confidence_threshold
+        if state.confidence_history and abs(confidence - threshold) < HYSTERESIS_BAND:
+            confidence = state.confidence_history[-1]
+
+        # Update confidence velocity (GAP-5) using the previous history only,
+        # without mutating history (callers own the history.append() call).
+        if state.confidence_history:
+            state.confidence_velocity = confidence - state.confidence_history[-1]
+
         state.log_event('confidence_update', {
             'w_g': w_g,
             'w_d': w_d,
@@ -153,7 +386,7 @@ class ConfidenceEngine:
             'D_score': deterministic_score,
             'confidence': confidence
         })
-        
+
         return confidence
     
     def evaluate_generative(self, candidates: List[Dict[str, Any]]) -> float:
@@ -513,7 +746,7 @@ class MFGCController:
         """
         # Initialize state
         state = MFGCSystemState()
-        state.x_t = {'task': task, 'context': context or {}}
+        state.x_t = StateVector.from_dict({'task': task, 'context': context or {}})
         state.p_t = Phase.EXPAND
         state.phase_history.append(Phase.EXPAND)
         
