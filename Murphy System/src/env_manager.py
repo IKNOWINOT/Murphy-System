@@ -43,13 +43,16 @@ def read_env(path: Optional[str] = None) -> Dict[str, str]:
 
     Skips blank lines and comments (lines starting with ``#``).
     Strips optional surrounding quotes from values.
+    Opens with ``utf-8-sig`` encoding so that files saved with a UTF-8 BOM
+    (e.g. Windows Notepad) are read correctly — without this, the BOM character
+    (U+FEFF) silently prepends the first key name, causing it to be missed.
     """
     if path is None:
         path = get_env_path()
     result: Dict[str, str] = {}
     if not os.path.isfile(path):
         return result
-    with open(path, "r", encoding="utf-8") as fh:
+    with open(path, "r", encoding="utf-8-sig") as fh:
         for line in fh:
             line = line.strip()
             if not line or line.startswith("#"):
@@ -79,7 +82,7 @@ def write_env_key(path: Optional[str], key: str, value: str) -> None:
     found = False
 
     if os.path.isfile(path):
-        with open(path, "r", encoding="utf-8") as fh:
+        with open(path, "r", encoding="utf-8-sig") as fh:
             lines = fh.readlines()
 
     new_line = f"{key}={value}\n"
