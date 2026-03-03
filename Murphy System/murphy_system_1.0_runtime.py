@@ -13513,7 +13513,7 @@ def create_app() -> FastAPI:
             "operator": [
                 {"name": "Worker Terminal", "url": "/ui/terminal-worker"},
                 {"name": "Enhanced Terminal", "url": "/ui/terminal-enhanced"},
-                {"name": "Integrated Terminal", "url": "/ui/terminal-integrated"},
+                {"name": "Operator Terminal", "url": "/ui/terminal-operator"},
             ],
             "viewer": [
                 {"name": "Landing Page", "url": "/ui/landing"},

@@ -748,7 +748,7 @@ USER_TYPE_UI_LINKS: dict[str, list[dict[str, str]]] = {
     "operator": [
         {"name": "Worker Terminal", "url": "/ui/terminal-worker", "file": "terminal_worker.html"},
         {"name": "Enhanced Terminal", "url": "/ui/terminal-enhanced", "file": "terminal_enhanced.html"},
-        {"name": "Integrated Terminal", "url": "/ui/terminal-integrated", "file": "terminal_integrated.html"},
+        {"name": "Operator Terminal", "url": "/ui/terminal-operator", "file": "terminal_integrated.html"},
     ],
     "viewer": [
         {"name": "Landing Page", "url": "/ui/landing", "file": "murphy_landing_page.html"},
