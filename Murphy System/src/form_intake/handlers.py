@@ -4,11 +4,16 @@ Form Handlers for Murphy System
 This module provides handlers for processing each form type.
 Handlers validate forms, process submissions, and route to appropriate
 execution engines.
+
+A module-level submission ledger (``_SUBMISSION_LEDGER``) tracks every
+submission so that the ``/submission/{id}`` endpoint can return real-time
+status without coupling to a database.
 """
 
 from typing import Dict, Any, Optional
 from datetime import datetime
 import logging
+import threading
 
 from .schemas import (
     FormType,
@@ -22,6 +27,60 @@ from .schemas import (
 
 logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# Submission Ledger — thread-safe, module-scoped
+# ---------------------------------------------------------------------------
+_LEDGER_LOCK = threading.Lock()
+_SUBMISSION_LEDGER: Dict[str, Dict[str, Any]] = {}
+
+
+def _record_submission(submission_id: str, form_type: str, initial_status: str,
+                       data: Optional[Dict[str, Any]] = None) -> None:
+    """Record a new submission in the ledger."""
+    now = datetime.now().isoformat()
+    with _LEDGER_LOCK:
+        _SUBMISSION_LEDGER[submission_id] = {
+            'submission_id': submission_id,
+            'form_type': form_type,
+            'status': initial_status,
+            'progress_pct': 0.0,
+            'created_at': now,
+            'updated_at': now,
+            'phases_completed': [],
+            'current_phase': initial_status,
+            'data': data or {},
+            'error': None,
+        }
+
+
+def update_submission_status(submission_id: str, *,
+                             status_val: Optional[str] = None,
+                             progress_pct: Optional[float] = None,
+                             phase: Optional[str] = None,
+                             error: Optional[str] = None) -> None:
+    """Update an existing submission entry (thread-safe)."""
+    with _LEDGER_LOCK:
+        entry = _SUBMISSION_LEDGER.get(submission_id)
+        if entry is None:
+            return
+        if status_val is not None:
+            entry['status'] = status_val
+        if progress_pct is not None:
+            entry['progress_pct'] = progress_pct
+        if phase is not None:
+            entry['current_phase'] = phase
+            if phase not in entry['phases_completed']:
+                entry['phases_completed'].append(phase)
+        if error is not None:
+            entry['error'] = error
+        entry['updated_at'] = datetime.now().isoformat()
+
+
+def get_submission_status(submission_id: str) -> Optional[Dict[str, Any]]:
+    """Return a snapshot of a submission's current status, or ``None``."""
+    with _LEDGER_LOCK:
+        entry = _SUBMISSION_LEDGER.get(submission_id)
+        return dict(entry) if entry is not None else None
 # In-process submission status store.  Keyed by submission_id, each value
 # is a dict with at least: status, form_type, submitted_at, updated_at.
 # The execution engine updates entries as tasks progress.
@@ -110,6 +169,12 @@ class PlanUploadFormHandler:
                 'status': 'queued_for_processing',
                 'next_step': 'plan_decomposition'
             }
+
+            # Record in submission ledger for status tracking
+            _record_submission(
+                submission_id, self.form_type.value,
+                'queued_for_processing', data=result_data,
+            )
             
             _record_submission(submission_id, self.form_type.value)
             return FormSubmissionResult(
@@ -174,6 +239,12 @@ class PlanGenerationFormHandler:
                 'status': 'queued_for_generation',
                 'next_step': 'plan_generation'
             }
+
+            # Record in submission ledger for status tracking
+            _record_submission(
+                submission_id, self.form_type.value,
+                'queued_for_generation', data=result_data,
+            )
             
             _record_submission(submission_id, self.form_type.value)
             return FormSubmissionResult(

@@ -7,6 +7,7 @@ Tests model architecture, training, inference, and integration.
 
 import pytest
 torch = pytest.importorskip("torch")
+pytest.importorskip("torch_geometric")
 import numpy as np
 from unittest.mock import Mock, patch
 

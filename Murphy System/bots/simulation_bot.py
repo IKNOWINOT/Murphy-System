@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import random
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 import json as _json
 
@@ -35,7 +35,7 @@ class SimulationBot:
                 "deformation": f"{round(random.uniform(1.2, 2.5), 2)}mm",
                 "safety_factor": round(random.uniform(1.0, 2.0), 2),
             },
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         out_path = LOG_DIR / f"simulation_{task_json['task_id']}.json"

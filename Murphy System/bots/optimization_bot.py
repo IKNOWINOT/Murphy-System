@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, List, Tuple, Dict
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import numpy as np
 from .gpt_oss_runner import GPTOSSRunner  # ✅ GPT injected
@@ -63,7 +63,7 @@ def run_optimization(proposal: dict) -> None:
         "target": proposal.get("target_bot"),
         "area": proposal.get("area"),
         "status": "tested",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "improved": True,
         "notes": f"Auto-optimized logic in {proposal.get('target_bot')} for {proposal.get('area')}",
     }

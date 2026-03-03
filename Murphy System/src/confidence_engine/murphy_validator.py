@@ -177,13 +177,31 @@ class MurphyValidator:
         task: Any,
         context: Dict[str, Any]
     ) -> float:
-        """
-        Compute confidence using existing G/D/H formula
-        
-        This provides a comparison point and fallback.
+        """Compute confidence using the existing G/D/H formula.
+
+        Delegates to :class:`ConfidenceCalculator.compute_confidence` to
+        produce a real score from the *Generative adequacy* (G),
+        *Deterministic grounding* (D), and *Epistemic instability* (H)
+        factors.  Returns ``None`` when the v1 calculator is unavailable or
+        the context lacks the required artefacts.
         """
         if not self.has_v1_calculator:
             return None
+
+        try:
+            # Extract v1-compatible artefacts from context (graceful defaults)
+            graph = context.get('artifact_graph')
+            phase = context.get('phase')
+            evidence = context.get('verification_evidence', [])
+            trust_model = context.get('trust_model')
+
+            if graph is None or phase is None or trust_model is None:
+                # Minimal fallback when full artefact context is unavailable:
+                # return the calculator's generative-adequacy score alone,
+                # which is still more informative than a hardcoded constant.
+                if graph is not None:
+                    return self.confidence_calculator_v1.calculate_generative_adequacy(graph)
+                return None
         
         try:
             from .confidence_calculator import ConfidenceCalculator
@@ -210,6 +228,12 @@ class MurphyValidator:
                 graph=graph,
                 phase=phase,
                 verification_evidence=evidence,
+                trust_model=trust_model,
+            )
+            return state.confidence
+        except Exception as exc:
+            logger.warning("v1 confidence calculation failed: %s", exc)
+            return None
                 trust_model=trust,
             )
             return state.confidence

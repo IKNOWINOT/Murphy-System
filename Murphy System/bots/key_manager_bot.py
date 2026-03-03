@@ -5,7 +5,7 @@ import json
 import os
 import time
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Tuple, List
 from cryptography.fernet import Fernet
 
@@ -49,7 +49,7 @@ class KeyManagerBot:
             "status": "active",
             "key_value": key_value,
             "usage_count": 0,
-            "last_used": datetime.utcnow().isoformat()
+            "last_used": datetime.now(timezone.utc).isoformat()
         })
         _save_keys(data)
 
@@ -68,7 +68,7 @@ class KeyManagerBot:
         for entry in data:
             if entry["key_id"] == key_id and entry["assigned_to"] == bot_name:
                 entry["usage_count"] += 1
-                entry["last_used"] = datetime.utcnow().isoformat()
+                entry["last_used"] = datetime.now(timezone.utc).isoformat()
                 break
         _save_keys(data)
         return True
@@ -92,7 +92,7 @@ class KeyManagerBot:
         for entry in keys:
             if entry["assigned_to"] == "unassigned" and entry["status"] == "active":
                 entry["assigned_to"] = bot_name
-                entry["last_used"] = datetime.utcnow().isoformat()
+                entry["last_used"] = datetime.now(timezone.utc).isoformat()
                 _save_keys(keys)
                 self.keys[(bot_name, entry["key_id"])] = self.fernet.encrypt(entry["key_value"].encode())
                 return entry["key_id"]

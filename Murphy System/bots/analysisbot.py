@@ -74,6 +74,6 @@ Generate JSON in the format:
         if isinstance(scope_data, dict) and scope_data.get("recommended_modules"):
             loaded_modules = [self.fetch_module_knowledge(mod) for mod in scope_data["recommended_modules"]]
             scope_data["module_previews"] = loaded_modules
-        scope_data["timestamp"] = datetime.datetime.utcnow().isoformat()
+        scope_data["timestamp"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
         self.collected_insights.append(scope_data)
         return scope_data

@@ -20,7 +20,7 @@ import time
 import zlib
 import base64
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 import numpy as np
 from .crypto_utils import encrypt_payload, decrypt_payload
@@ -473,7 +473,7 @@ def store_stm(task_id: str, content: str, context: dict, ttl_seconds: int = 1800
         'task_id': task_id,
         'owner': 'AionMind_Core',
         'bot': context.get('bot', ''),
-        'timestamp': datetime.utcnow().isoformat(),
+        'timestamp': datetime.now(timezone.utc).isoformat(),
         'content': content,
         'tags': context.get('tags', []),
         'context': context,

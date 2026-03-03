@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict
 from threading import Thread
 from pynput import keyboard, mouse
@@ -44,13 +44,13 @@ class GhostControllerBot:
         self.last_activity_time = time.time()
         try:
             key_val = key.char if hasattr(key, 'char') else str(key)
-            self.keystrokes.append((datetime.utcnow().isoformat(), key_val))
+            self.keystrokes.append((datetime.now(timezone.utc).isoformat(), key_val))
         except Exception:
             pass
 
     def log_mouse(self, x, y):
         self.last_activity_time = time.time()
-        self.mouse_log.append((datetime.utcnow().isoformat(), x, y))
+        self.mouse_log.append((datetime.now(timezone.utc).isoformat(), x, y))
 
     def start_learning_task(self):
         self.tracking = True
@@ -80,7 +80,7 @@ class GhostControllerBot:
             "keystrokes": self.keystrokes,
             "mouse_path": self.mouse_log,
             "active_window": self.active_window,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         self.current_task_profile = profile
         self.chain_log.append(profile)
