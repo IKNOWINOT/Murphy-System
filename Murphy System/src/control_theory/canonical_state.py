@@ -200,3 +200,93 @@ class CanonicalStateVector(BaseModel):
     def norm(self) -> float:
         """Return the L2 norm of the numeric state vector."""
         return math.sqrt(sum(v * v for v in self.to_vector()))
+
+    # ------------------------------------------------------------------ #
+    # Per-variable uncertainty (covariance diagonal)
+    # ------------------------------------------------------------------ #
+
+    def covariance_diagonal(
+        self, variances: Optional[List[float]] = None
+    ) -> List[float]:
+        """
+        Return diagonal of a covariance matrix for the state.
+
+        If *variances* is ``None``, heuristic defaults are derived from
+        the five uncertainty dimensions (UD, UA, UI, UR, UG) — each
+        scaled by 0.01 so that high uncertainty ≈ high variance.
+        Dimensions without an explicit uncertainty channel get a small
+        default variance.
+        """
+        if variances is not None:
+            if len(variances) != len(_DIMENSION_NAMES):
+                raise ValueError(
+                    f"Expected {len(_DIMENSION_NAMES)} variances, "
+                    f"got {len(variances)}"
+                )
+            return list(variances)
+
+        base = 0.001
+        u_scale = 0.01
+        return [
+            self.uncertainty_data * u_scale + base,       # confidence
+            self.uncertainty_authority * u_scale + base,   # authority
+            base,                                          # murphy_index
+            base,                                          # phase_index
+            self.uncertainty_information * u_scale + base, # complexity
+            base,                                          # domain_depth
+            base,                                          # gate_count
+            base,                                          # active_constraints
+            base,                                          # artifact_count
+            self.uncertainty_data * u_scale + base,        # uncertainty_data
+            self.uncertainty_authority * u_scale + base,    # uncertainty_authority
+            self.uncertainty_information * u_scale + base,  # uncertainty_information
+            self.uncertainty_resources * u_scale + base,    # uncertainty_resources
+            self.uncertainty_disagreement * u_scale + base, # uncertainty_disagreement
+            base,                                          # uptime_seconds
+            base,                                          # active_tasks
+            base,                                          # cpu_usage_percent
+        ]
+
+
+# ------------------------------------------------------------------ #
+# Schema / dimension registry
+# ------------------------------------------------------------------ #
+
+class DimensionRegistry:
+    """
+    Registry that tracks registered state dimensions and supports
+    schema versioning when new dimensions are added.
+    """
+
+    def __init__(self) -> None:
+        self._dimensions: List[str] = list(_DIMENSION_NAMES)
+        self._version: int = 1
+
+    @property
+    def version(self) -> int:
+        return self._version
+
+    @property
+    def names(self) -> List[str]:
+        return list(self._dimensions)
+
+    @property
+    def size(self) -> int:
+        """dim(x_t) as a tracked integer."""
+        return len(self._dimensions)
+
+    def register_dimension(
+        self, name: str, dtype: str = "float", bounds: Optional[tuple] = None
+    ) -> None:
+        """
+        Register a new state dimension.
+
+        Increments the schema version.  Bounds are advisory.
+        """
+        if name in self._dimensions:
+            raise ValueError(f"Dimension '{name}' already registered.")
+        self._dimensions.append(name)
+        self._version += 1
+
+    def has_dimension(self, name: str) -> bool:
+        return name in self._dimensions
