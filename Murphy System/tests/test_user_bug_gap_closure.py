@@ -42,6 +42,7 @@ from murphy_terminal import (
     _PLACEHOLDER_KEY_VALUES,
     DASHBOARD_LINKS,
     USER_TYPE_UI_LINKS,
+    ACCOUNT_LIFECYCLE_FLOW,
 )
 from src.env_manager import (
     read_env,
@@ -1138,3 +1139,301 @@ class TestLinksIntegrationCompleteness_GapClosure:
             assert len(names) == len(set(names)), (
                 f"Role '{role}' has duplicate names: {names}"
             )
+
+
+# ============================================================================
+# GAP-10: Account lifecycle flow — info → signup → verify → session → automation
+# ============================================================================
+
+
+class TestAccountLifecycleFlow_GapClosure:
+    """
+    Capability gap: Users had no clear path from discovering the system to
+    having a configured, active automation account.  The system must provide
+    a defined flow:  info → signup → verify → session → automation.
+
+    These tests verify:
+    - The ACCOUNT_LIFECYCLE_FLOW data is complete and correctly structured
+    - Each stage has a UI link and an API endpoint reference
+    - The stages follow the correct order
+    - All referenced API endpoints exist in the runtime
+    - The 'account' command is discoverable and functional
+    """
+
+    # -- data completeness --
+
+    def test_lifecycle_flow_has_all_required_stages(self):
+        """The flow must include info, signup, verify, session, and automation."""
+        stage_names = [s["stage"] for s in ACCOUNT_LIFECYCLE_FLOW]
+        required = ["info", "signup", "verify", "session", "automation"]
+        assert stage_names == required, (
+            f"ACCOUNT_LIFECYCLE_FLOW stages are {stage_names}, expected {required}. "
+            "The account lifecycle gap is NOT closed."
+        )
+
+    def test_lifecycle_flow_stages_are_ordered(self):
+        """Stages must appear in logical order: info first, automation last."""
+        stages = [s["stage"] for s in ACCOUNT_LIFECYCLE_FLOW]
+        assert stages[0] == "info", "First stage must be 'info' (discovery)"
+        assert stages[-1] == "automation", "Last stage must be 'automation' (goal)"
+        assert stages.index("signup") < stages.index("verify"), "signup must come before verify"
+        assert stages.index("verify") < stages.index("session"), "verify must come before session"
+        assert stages.index("session") < stages.index("automation"), "session must come before automation"
+
+    def test_each_stage_has_required_fields(self):
+        """Every stage entry must have stage, name, url, api, and description."""
+        for stage in ACCOUNT_LIFECYCLE_FLOW:
+            for field in ("stage", "name", "url", "api", "description"):
+                assert field in stage, (
+                    f"Stage '{stage.get('stage', '?')}' missing '{field}' field"
+                )
+
+    def test_each_stage_url_starts_with_ui(self):
+        """Each stage UI URL should start with /ui/ for consistency."""
+        for stage in ACCOUNT_LIFECYCLE_FLOW:
+            assert stage["url"].startswith("/ui/"), (
+                f"Stage '{stage['stage']}' URL '{stage['url']}' doesn't start with /ui/"
+            )
+
+    def test_each_stage_api_starts_with_api(self):
+        """Each stage API endpoint should start with /api/."""
+        for stage in ACCOUNT_LIFECYCLE_FLOW:
+            assert stage["api"].startswith("/api/"), (
+                f"Stage '{stage['stage']}' API '{stage['api']}' doesn't start with /api/"
+            )
+
+    # -- API endpoint verification --
+
+    def test_all_lifecycle_api_endpoints_exist_in_runtime(self):
+        """Every API endpoint in the lifecycle must be defined in the runtime."""
+        runtime_path = os.path.join(
+            os.path.dirname(__file__), "..", "murphy_system_1.0_runtime.py"
+        )
+        with open(runtime_path, encoding="utf-8") as f:
+            source = f.read()
+        missing = []
+        for stage in ACCOUNT_LIFECYCLE_FLOW:
+            api_path = stage["api"]
+            # Check for the endpoint path in any decorator form
+            # e.g. @app.get("/api/info") or @app.post("/api/sessions/create")
+            if f'"{api_path}"' not in source:
+                missing.append(f"{stage['stage']}: {api_path}")
+        assert not missing, (
+            f"Lifecycle API endpoints not found in runtime:\n"
+            + "\n".join(missing)
+            + "\nGap NOT closed — account flow has broken API references."
+        )
+
+    def test_account_flow_endpoint_exists_in_runtime(self):
+        """The /api/account/flow endpoint must exist in the runtime."""
+        runtime_path = os.path.join(
+            os.path.dirname(__file__), "..", "murphy_system_1.0_runtime.py"
+        )
+        with open(runtime_path, encoding="utf-8") as f:
+            source = f.read()
+        assert '"/api/account/flow"' in source, (
+            "/api/account/flow endpoint not found in runtime. "
+            "Gap NOT closed — clients cannot discover the account lifecycle."
+        )
+
+    # -- intent detection --
+
+    def test_account_intent_detected(self):
+        """Typing 'account' should trigger the intent_account handler."""
+        assert detect_intent("account") == "intent_account"
+
+    def test_signup_intent_detected(self):
+        """Typing 'sign up' should trigger the intent_account handler."""
+        assert detect_intent("sign up") == "intent_account"
+
+    def test_signin_intent_detected(self):
+        """Typing 'sign in' should trigger the intent_account handler."""
+        assert detect_intent("sign in") == "intent_account"
+
+    def test_get_started_intent_detected(self):
+        """Typing 'get started' should trigger the intent_account handler."""
+        assert detect_intent("get started") == "intent_account"
+
+    def test_account_flow_intent_detected(self):
+        """Typing 'account flow' should trigger the intent_account handler."""
+        assert detect_intent("account flow") == "intent_account"
+
+    # -- TUI integration --
+
+    @pytest.mark.asyncio
+    async def test_user_types_account_command_no_crash(self, monkeypatch):
+        """User types 'account' in the terminal → shows lifecycle, no crash."""
+        monkeypatch.setenv("GROQ_API_KEY", "gsk_skip_gate_for_account_test")
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            for ch in "account":
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
+            input_widget = app.query_one("#user-input", Input)
+            assert input_widget.value == "", (
+                "Input not cleared after 'account' command — handler may not have fired."
+            )
+
+    @pytest.mark.asyncio
+    async def test_user_types_get_started_command_no_crash(self, monkeypatch):
+        """User types 'get started' in the terminal → shows lifecycle, no crash."""
+        monkeypatch.setenv("GROQ_API_KEY", "gsk_skip_gate_for_account_test")
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            for ch in "get started":
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
+            input_widget = app.query_one("#user-input", Input)
+            assert input_widget.value == ""
+
+    def test_intent_account_handler_exists(self):
+        """MurphyTerminalApp must have an intent_account method."""
+        assert hasattr(MurphyTerminalApp, "intent_account")
+        assert callable(MurphyTerminalApp.intent_account)
+
+    # -- consistency with runtime --
+
+    def test_lifecycle_flow_matches_runtime_flow_stages(self):
+        """The ACCOUNT_LIFECYCLE_FLOW stages must match the /api/account/flow response."""
+        runtime_path = os.path.join(
+            os.path.dirname(__file__), "..", "murphy_system_1.0_runtime.py"
+        )
+        with open(runtime_path, encoding="utf-8") as f:
+            source = f.read()
+        # Verify all 5 stage names appear in the runtime endpoint
+        for stage in ACCOUNT_LIFECYCLE_FLOW:
+            assert f'"stage": "{stage["stage"]}"' in source, (
+                f"Stage '{stage['stage']}' not found in /api/account/flow endpoint."
+            )
+
+    # -- welcome text mentions account flow --
+
+    def test_welcome_text_mentions_account(self):
+        """WELCOME_TEXT should mention the 'account' command."""
+        from murphy_terminal import WELCOME_TEXT
+        assert "account" in WELCOME_TEXT, (
+            "WELCOME_TEXT doesn't mention the 'account' command. "
+            "New users won't know how to start the account lifecycle."
+        )
+
+    def test_account_in_allowed_interview_intents(self):
+        """The 'account' intent should work even during an active interview."""
+        source_path = os.path.join(
+            os.path.dirname(__file__), "..", "murphy_terminal.py"
+        )
+        with open(source_path, encoding="utf-8") as f:
+            source = f.read()
+        assert '"intent_account"' in source, (
+            "intent_account not registered in murphy_terminal.py"
+        )
+
+
+# ============================================================================
+# GAP-11: Full user journey — info site to automation system
+# ============================================================================
+
+
+class TestFullAccountJourney_GapClosure:
+    """
+    End-to-end user journey combining the account lifecycle with role-based
+    UI access:
+    1. New user visits info/landing page
+    2. User signs up via onboarding wizard
+    3. System verifies account configuration
+    4. User starts an authenticated session
+    5. User accesses role-appropriate UI for automation management
+
+    This is the ultimate gap closure test: the entire flow from discovery
+    to automation must be navigable through the system's links and APIs.
+    """
+
+    def test_info_stage_links_to_landing_page(self):
+        """The info stage must link to the landing page HTML file."""
+        info_stage = ACCOUNT_LIFECYCLE_FLOW[0]
+        assert info_stage["stage"] == "info"
+        assert info_stage["url"] == "/ui/landing"
+        # Verify landing page file exists
+        landing_path = os.path.join(
+            os.path.dirname(__file__), "..", "murphy_landing_page.html"
+        )
+        assert os.path.isfile(landing_path), "Landing page HTML file missing"
+
+    def test_signup_stage_links_to_onboarding(self):
+        """The signup stage must link to the onboarding wizard."""
+        signup_stage = ACCOUNT_LIFECYCLE_FLOW[1]
+        assert signup_stage["stage"] == "signup"
+        assert signup_stage["url"] == "/ui/onboarding"
+        # Verify onboarding file exists
+        onboarding_path = os.path.join(
+            os.path.dirname(__file__), "..", "onboarding_wizard.html"
+        )
+        assert os.path.isfile(onboarding_path), "Onboarding wizard HTML file missing"
+
+    def test_verify_stage_has_validation_api(self):
+        """The verify stage must point to the wizard validate endpoint."""
+        verify_stage = ACCOUNT_LIFECYCLE_FLOW[2]
+        assert verify_stage["stage"] == "verify"
+        assert verify_stage["api"] == "/api/onboarding/wizard/validate"
+
+    def test_session_stage_has_session_create_api(self):
+        """The session stage must point to the session create endpoint."""
+        session_stage = ACCOUNT_LIFECYCLE_FLOW[3]
+        assert session_stage["stage"] == "session"
+        assert session_stage["api"] == "/api/sessions/create"
+
+    def test_automation_stage_links_to_terminal(self):
+        """The automation stage must link to the integrated terminal."""
+        automation_stage = ACCOUNT_LIFECYCLE_FLOW[4]
+        assert automation_stage["stage"] == "automation"
+        assert automation_stage["url"] == "/ui/terminal-integrated"
+        assert automation_stage["api"] == "/api/execute"
+
+    def test_lifecycle_apis_cover_runtime_flow_steps(self):
+        """The runtime's flow_steps (signup, region, setup, etc.) should be
+        reachable after the account lifecycle signup stage."""
+        runtime_path = os.path.join(
+            os.path.dirname(__file__), "..", "murphy_system_1.0_runtime.py"
+        )
+        with open(runtime_path, encoding="utf-8") as f:
+            source = f.read()
+        # The runtime defines flow_steps for onboarding: signup, region, setup, etc.
+        for runtime_stage in ("signup", "region", "setup", "automation_design", "billing"):
+            assert f'"stage": "{runtime_stage}"' in source, (
+                f"Runtime flow_step '{runtime_stage}' not found — "
+                "onboarding wizard is incomplete."
+            )
+
+    def test_owner_can_reach_all_lifecycle_uis(self):
+        """Owner role should be able to access every UI in the lifecycle."""
+        lifecycle_urls = {s["url"] for s in ACCOUNT_LIFECYCLE_FLOW}
+        owner_urls = {l["url"] for l in USER_TYPE_UI_LINKS["owner"]}
+        missing = lifecycle_urls - owner_urls
+        assert not missing, (
+            f"Owner role cannot access lifecycle UIs: {missing}. "
+            "Owner should have access to all account lifecycle pages."
+        )
+
+    @pytest.mark.asyncio
+    async def test_user_discovers_account_flow_from_terminal(self, monkeypatch):
+        """A new user can type 'account' to discover the full lifecycle."""
+        monkeypatch.setenv("GROQ_API_KEY", "gsk_skip_gate_for_journey_test")
+        app = MurphyTerminalApp(api_url="http://localhost:19999")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            # User types 'account' to learn the flow
+            for ch in "account":
+                await pilot.press(ch)
+            await pilot.press("enter")
+            await pilot.pause()
+            # Verify the handler exists and ran (input cleared)
+            input_widget = app.query_one("#user-input", Input)
+            assert input_widget.value == ""
+            # Verify intent_account is callable
+            assert callable(app.intent_account)

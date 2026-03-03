@@ -653,6 +653,7 @@ INTENT_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"^(show modules|list modules|modules)\b", re.I), "intent_modules"),
     (re.compile(r"\b(billing|subscription|tier|pricing)\b", re.I), "intent_billing"),
     (re.compile(r"^(ui|user interface|show ui|ui links|open ui)\b", re.I), "intent_ui"),
+    (re.compile(r"^(account|sign.?up|sign.?in|get started|account flow)\b", re.I), "intent_account"),
     (re.compile(r"\b(links|urls|dashboards)\b", re.I), "intent_links"),
     (re.compile(r"\b(plan|planning|two.?plane|execution plan)\b", re.I), "intent_plan"),
     (re.compile(r"^magnify\b", re.I), "intent_magnify"),
@@ -698,6 +699,7 @@ and run end-to-end workflows with minimal manual effort.
 
 [bold cyan]🚀 Getting Started[/bold cyan]
   • [green]start interview[/green]  — guided onboarding (I'll learn about your needs first)
+  • [green]account[/green]          — see the signup → verify → session → automation flow
   • [green]help[/green]             — see all available commands
   • [green]show modules[/green]    — list all system modules and their commands
 
@@ -708,6 +710,7 @@ and run end-to-end workflows with minimal manual effort.
   • [green]librarian[/green]       — consult the knowledge base expert
   • [green]billing[/green]         — view billing and subscription info
   • [green]links[/green]           — show dashboard and UI links
+  • [green]ui[/green]              — show role-based UI links
 
 [bold cyan]🔗 Dashboard Links[/bold cyan]
   • Swagger API Docs : [link=http://localhost:8000/docs]http://localhost:8000/docs[/link]
@@ -724,6 +727,49 @@ DASHBOARD_LINKS: list[dict[str, str]] = [
     {"name": "Onboarding UI", "url": "/onboarding"},
     {"name": "Terminal (Web)", "url": "/terminal"},
     {"name": "Health Check", "url": "/api/health"},
+]
+
+# ---------------------------------------------------------------------------
+# Account lifecycle flow — the ordered stages a user goes through from
+# discovering the system to having a fully configured automation account.
+# ---------------------------------------------------------------------------
+
+ACCOUNT_LIFECYCLE_FLOW: list[dict[str, str]] = [
+    {
+        "stage": "info",
+        "name": "Info & Landing Page",
+        "url": "/ui/landing",
+        "api": "/api/info",
+        "description": "Learn about Murphy System capabilities and features",
+    },
+    {
+        "stage": "signup",
+        "name": "Account Signup",
+        "url": "/ui/onboarding",
+        "api": "/api/onboarding/wizard/questions",
+        "description": "Create an account through the onboarding wizard",
+    },
+    {
+        "stage": "verify",
+        "name": "Account Verification",
+        "url": "/ui/onboarding",
+        "api": "/api/onboarding/wizard/validate",
+        "description": "Validate configuration and verify account setup",
+    },
+    {
+        "stage": "session",
+        "name": "Account Session",
+        "url": "/ui/dashboard",
+        "api": "/api/sessions/create",
+        "description": "Start an authenticated session to access your account",
+    },
+    {
+        "stage": "automation",
+        "name": "Automation Management",
+        "url": "/ui/terminal-integrated",
+        "api": "/api/execute",
+        "description": "Create, configure, and manage your automations",
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -1157,7 +1203,7 @@ class MurphyTerminalApp(App):
             if intent in ("intent_help", "intent_exit", "intent_health",
                           "intent_status", "intent_set_api", "intent_set_key",
                           "intent_test_api",
-                          "intent_reconnect", "intent_links", "intent_ui", "intent_modules",
+                          "intent_reconnect", "intent_links", "intent_ui", "intent_account", "intent_modules",
                           "intent_llm_status", "intent_librarian_status",
                           "intent_api_keys",
                           "intent_magnify", "intent_simplify", "intent_solidify"):
@@ -1258,6 +1304,7 @@ class MurphyTerminalApp(App):
             "  • [green]info[/green] — system version & information\n"
             "  • [green]links[/green] — show dashboard and UI URLs\n"
             "  • [green]ui[/green] — show user-type specific UI links\n"
+            "  • [green]account[/green] — account lifecycle (signup → verify → session → automation)\n"
             "  • [green]llm status[/green] — check LLM provider configuration\n"
             "  • [green]librarian status[/green] — check librarian health\n\n"
             "[bold cyan]Onboarding & Interview[/bold cyan]\n"
@@ -1704,6 +1751,28 @@ class MurphyTerminalApp(App):
             "  3. Execute — Murphy runs each step with safety checks\n\n"
             "Try: [green]execute plan for <your goal>[/green]"
         )
+
+    def intent_account(self, _msg: str) -> None:
+        """Show the account lifecycle flow: info → signup → verify → session → automation."""
+        base = self.client.base_url
+        lines = ["[bold cyan]🔐 Account Lifecycle Flow[/bold cyan]\n"]
+        for i, stage in enumerate(ACCOUNT_LIFECYCLE_FLOW, 1):
+            ui_url = f"{base}{stage['url']}"
+            api_url = f"{base}{stage['api']}"
+            lines.append(
+                f"  [bold yellow]{i}. {stage['name']}[/bold yellow] ({stage['stage']})\n"
+                f"     {stage['description']}\n"
+                f"     UI:  [link={ui_url}]{ui_url}[/link]\n"
+                f"     API: [link={api_url}]{api_url}[/link]"
+            )
+        lines.append(
+            "\n[bold cyan]Flow:[/bold cyan] "
+            "[green]Info[/green] → [green]Signup[/green] → "
+            "[green]Verify[/green] → [green]Session[/green] → "
+            "[green]Automation[/green]\n\n"
+            "[dim]Start with [green]start interview[/green] to begin the signup process.[/dim]"
+        )
+        self._write_murphy("\n".join(lines))
 
     def intent_api_keys(self, _msg: str) -> None:
         """Show API provider signup links for all supported integrations."""

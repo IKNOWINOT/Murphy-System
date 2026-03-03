@@ -13522,6 +13522,54 @@ def create_app() -> FastAPI:
         }
         return JSONResponse({"success": True, "user_type_ui_links": ui_map})
 
+    # ==================== ACCOUNT LIFECYCLE ENDPOINT ====================
+
+    @app.get("/api/account/flow")
+    async def account_flow():
+        """Return the account lifecycle flow stages with UI and API links.
+
+        The flow describes the ordered stages a user goes through:
+        info → signup → verify → session → automation.
+        """
+        flow = [
+            {
+                "stage": "info",
+                "name": "Info & Landing Page",
+                "url": "/ui/landing",
+                "api": "/api/info",
+                "description": "Learn about Murphy System capabilities and features",
+            },
+            {
+                "stage": "signup",
+                "name": "Account Signup",
+                "url": "/ui/onboarding",
+                "api": "/api/onboarding/wizard/questions",
+                "description": "Create an account through the onboarding wizard",
+            },
+            {
+                "stage": "verify",
+                "name": "Account Verification",
+                "url": "/ui/onboarding",
+                "api": "/api/onboarding/wizard/validate",
+                "description": "Validate configuration and verify account setup",
+            },
+            {
+                "stage": "session",
+                "name": "Account Session",
+                "url": "/ui/dashboard",
+                "api": "/api/sessions/create",
+                "description": "Start an authenticated session to access your account",
+            },
+            {
+                "stage": "automation",
+                "name": "Automation Management",
+                "url": "/ui/terminal-integrated",
+                "api": "/api/execute",
+                "description": "Create, configure, and manage your automations",
+            },
+        ]
+        return JSONResponse({"success": True, "flow": flow, "stages": len(flow)})
+
     # ==================== SESSION ENDPOINTS ====================
 
     @app.post("/api/sessions/create")
