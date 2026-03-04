@@ -13,6 +13,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional, Set
 
+import numpy as np
+
 from .canonical_state import CanonicalStateVector, _DIMENSION_NAMES
 
 
@@ -198,3 +200,111 @@ class ObservationFunction:
         self.channel_state_map[channel] = dimensions
         if noise is not None:
             self.noise_models[channel] = noise
+
+
+# ------------------------------------------------------------------ #
+# Kalman-based observation — matrix formulation
+# ------------------------------------------------------------------ #
+
+
+
+class KalmanObserver:
+    """
+    Matrix-based observation model providing Kalman gain and information gain.
+
+    Supplements ObservationFunction with the formal linear algebra needed
+    for covariance-aware state estimation:
+
+        Innovation:  y = z - H x_predicted
+        Kalman gain: K = P Hᵀ (H P Hᵀ + R)⁻¹
+        Info gain:   IG = 0.5 * ln( det(P_prior) / det(P_posterior) )
+    """
+
+    def observe(
+        self,
+        x_predicted: np.ndarray,
+        measurement: np.ndarray,
+        H: np.ndarray,
+        P: np.ndarray,
+        R: np.ndarray,
+    ) -> tuple:
+        """
+        Compute innovation and Kalman gain.
+
+        Args:
+            x_predicted: predicted state vector ∈ ℝ^n.
+            measurement: observed measurement z ∈ ℝ^m.
+            H: measurement matrix ∈ ℝ^{m×n}.
+            P: state covariance ∈ ℝ^{n×n}.
+            R: measurement noise covariance ∈ ℝ^{m×m}.
+
+        Returns:
+            (innovation, kalman_gain) — y ∈ ℝ^m, K ∈ ℝ^{n×m}.
+        """
+        innovation = measurement - H @ x_predicted
+        S = H @ P @ H.T + R
+        K = P @ H.T @ np.linalg.inv(S)
+        return innovation, K
+
+    def compute_information_gain(
+        self,
+        P: np.ndarray,
+        H: np.ndarray,
+        R: np.ndarray,
+    ) -> float:
+        """
+        Compute expected information gain for a Kalman measurement step.
+
+            IG = 0.5 * ln( det(P_prior) / det(P_posterior) )
+
+        where P_posterior = (I - K H) P_prior.
+
+        Args:
+            P: prior covariance ∈ ℝ^{n×n}.
+            H: measurement matrix ∈ ℝ^{m×n}.
+            R: measurement noise covariance ∈ ℝ^{m×m}.
+
+        Returns:
+            Information gain ≥ 0.0.
+        """
+        n = P.shape[0]
+        S = H @ P @ H.T + R
+        K = P @ H.T @ np.linalg.inv(S)
+        P_post = (np.eye(n) - K @ H) @ P
+
+        sign_prior, logdet_prior = np.linalg.slogdet(P)
+        sign_post, logdet_post = np.linalg.slogdet(P_post)
+
+        if sign_prior <= 0 or sign_post <= 0:
+            return 0.0
+
+        return 0.5 * (logdet_prior - logdet_post)
+
+    def select_best_question(
+        self,
+        P: np.ndarray,
+        candidate_channels: list,
+    ) -> Optional[str]:
+        """
+        Select the observation channel that maximises information gain.
+
+        Args:
+            P: current prior covariance ∈ ℝ^{n×n}.
+            candidate_channels: list of (channel_id, H_matrix, R_matrix).
+
+        Returns:
+            channel_id of the best question, or None if the list is empty.
+        """
+        if not candidate_channels:
+            return None
+
+        best_id: Optional[str] = None
+        best_ig = -math.inf
+
+        for ch_id, H, R in candidate_channels:
+            ig = self.compute_information_gain(P, H, R)
+            if ig > best_ig:
+                best_ig = ig
+                best_id = ch_id
+
+        return best_id

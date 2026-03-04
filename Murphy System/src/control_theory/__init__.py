@@ -75,6 +75,50 @@ from .llm_validation import (
     validate_llm_output,
 )
 
+# New control-theory modules closing the structural audit gaps
+from .state_model import (
+    StateDimension,
+    StateVector,
+    StateEvolution,
+)
+from .infinity_metric import (
+    CandidateQuestion,
+    EntropyTracker,
+    QuestionSelector,
+    UncertaintyBudget,
+    compute_differential_entropy,
+    compute_murphy_index_formal,
+)
+from .control_structure import (
+    AuthorityGate,
+    ControlDimension,
+    ControlLaw as PIControlLaw,
+    ControlVector as PIControlVector,
+    StabilityMonitor,
+    StabilityResult as StructuralStabilityResult,
+)
+from .scaling_mechanism import (
+    AuthorityExpander,
+    ConstraintInjector,
+    DimensionExpander,
+    InjectedConstraint,
+    RefinementLoop,
+    RoleNode,
+)
+from .llm_synthesis_validator import (
+    ConflictKind,
+    ConflictReport,
+    ConflictResolver as SynthesisConflictResolver,
+    GeneratedConstraint,
+    GeneratedRole,
+    GeneratedStateDimension,
+    OutputValidator,
+    RegenerationTrigger,
+    ValidationResult,
+    validate_output,
+)
+from .observation_model import KalmanObserver
+
 __all__ = [
     # State model
     "CanonicalStateVector",
@@ -138,4 +182,42 @@ __all__ = [
     "RegenerationPolicy",
     "ResolutionStrategy",
     "validate_llm_output",
+    # state_model
+    "StateDimension",
+    "StateVector",
+    "StateEvolution",
+    # infinity_metric
+    "CandidateQuestion",
+    "EntropyTracker",
+    "QuestionSelector",
+    "UncertaintyBudget",
+    "compute_differential_entropy",
+    "compute_murphy_index_formal",
+    # control_structure
+    "AuthorityGate",
+    "ControlDimension",
+    "PIControlLaw",
+    "PIControlVector",
+    "StabilityMonitor",
+    "StructuralStabilityResult",
+    # scaling_mechanism
+    "AuthorityExpander",
+    "ConstraintInjector",
+    "DimensionExpander",
+    "InjectedConstraint",
+    "RefinementLoop",
+    "RoleNode",
+    # llm_synthesis_validator
+    "ConflictKind",
+    "ConflictReport",
+    "SynthesisConflictResolver",
+    "GeneratedConstraint",
+    "GeneratedRole",
+    "GeneratedStateDimension",
+    "OutputValidator",
+    "RegenerationTrigger",
+    "ValidationResult",
+    "validate_output",
+    # observation_model extension
+    "KalmanObserver",
 ]
