@@ -454,7 +454,7 @@ class EventBackbone:
         if not os.path.exists(path):
             return
         try:
-            with open(path, "r") as f:
+            with open(path, "r", encoding='utf-8') as f:
                 state = json.load(f)
             for et_value, events in state.get("queues", {}).items():
                 et = EventType(et_value)

@@ -42,7 +42,7 @@ class SecureKeyManager:
         # Try to load from .env file first
         env_path = Path('.env')
         if env_path.exists():
-            with open(env_path, 'r') as f:
+            with open(env_path, 'r', encoding='utf-8') as f:
                 for line in f:
                     if line.startswith('MURPHY_MASTER_KEY='):
                         key_value = line.split('=', 1)[1].strip()
@@ -120,7 +120,7 @@ class SecureKeyManager:
             )
         
         # Load encrypted data
-        with open(self.encrypted_keys_path, 'r') as f:
+        with open(self.encrypted_keys_path, 'r', encoding='utf-8') as f:
             encrypted_data = json.load(f)
         
         # Decrypt keys
@@ -158,7 +158,7 @@ class SecureKeyManager:
         logger.info("Migrating keys from %s", plaintext_file)
         
         keys = []
-        with open(plaintext_file, 'r') as f:
+        with open(plaintext_file, 'r', encoding='utf-8') as f:
             for line in f:
                 line = line.strip()
                 if not line or line.startswith('#'):

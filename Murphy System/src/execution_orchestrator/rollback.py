@@ -334,7 +334,7 @@ class RollbackEnforcer:
                 file_path = check.get('path', '')
                 expected_content = check.get('content', '')
                 try:
-                    with open(file_path, 'r') as f:
+                    with open(file_path, 'r', encoding='utf-8') as f:
                         actual_content = f.read()
                     if actual_content != expected_content:
                         return False

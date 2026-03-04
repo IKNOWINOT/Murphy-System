@@ -306,7 +306,7 @@ class TrainingPipeline:
         best_checkpoint_path = checkpoint_dir / "checkpoint_best.json"
         
         if best_checkpoint_path.exists():
-            with open(best_checkpoint_path, 'r') as f:
+            with open(best_checkpoint_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 return TrainingCheckpoint(**data)
         

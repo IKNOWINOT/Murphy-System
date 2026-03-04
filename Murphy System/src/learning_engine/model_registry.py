@@ -281,7 +281,7 @@ class ModelRegistry:
             return
         
         try:
-            with open(registry_file, 'r') as f:
+            with open(registry_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             
             # Load models

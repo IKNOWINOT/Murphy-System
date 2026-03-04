@@ -122,6 +122,7 @@ class DocumentDeliveryAdapter(BaseDeliveryAdapter):
     """Generates markdown documents from structured payloads."""
 
     def __init__(self) -> None:
+        super().__init__()
         self._delivery_count: int = 0
 
     def validate(self, request: DeliveryRequest) -> tuple[bool, List[str]]:
@@ -185,6 +186,7 @@ class EmailDeliveryAdapter(BaseDeliveryAdapter):
     _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
     def __init__(self) -> None:
+        super().__init__()
         self._delivery_count: int = 0
 
     def validate(self, request: DeliveryRequest) -> tuple[bool, List[str]]:
@@ -255,6 +257,7 @@ class ChatDeliveryAdapter(BaseDeliveryAdapter):
     SUPPORTED_PLATFORMS = {"slack", "teams", "discord", "webhook", "internal"}
 
     def __init__(self) -> None:
+        super().__init__()
         self._delivery_count: int = 0
 
     def validate(self, request: DeliveryRequest) -> tuple[bool, List[str]]:
@@ -321,6 +324,7 @@ class VoiceDeliveryAdapter(BaseDeliveryAdapter):
     """Prepares voice scripts with playback steps."""
 
     def __init__(self) -> None:
+        super().__init__()
         self._delivery_count: int = 0
 
     def validate(self, request: DeliveryRequest) -> tuple[bool, List[str]]:
@@ -406,6 +410,7 @@ class TranslationDeliveryAdapter(BaseDeliveryAdapter):
     }
 
     def __init__(self) -> None:
+        super().__init__()
         self._delivery_count: int = 0
 
     def validate(self, request: DeliveryRequest) -> tuple[bool, List[str]]:

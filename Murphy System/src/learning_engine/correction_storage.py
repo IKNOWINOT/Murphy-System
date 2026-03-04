@@ -551,7 +551,7 @@ class CorrectionStorageSystem:
     
     def import_from_file(self, filepath: str) -> List[str]:
         """Import corrections from JSON file."""
-        with open(filepath, 'r') as f:
+        with open(filepath, 'r', encoding='utf-8') as f:
             corrections_data = json.load(f)
         
         return self.import_corrections(corrections_data)

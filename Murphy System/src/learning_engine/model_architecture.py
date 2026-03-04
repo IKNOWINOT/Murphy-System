@@ -316,7 +316,7 @@ class ShadowAgentModel:
         model_path = os.path.join(path, 'model.pkl')
 
         if os.path.isfile(meta_path):
-            with open(meta_path, 'r') as f:
+            with open(meta_path, 'r', encoding='utf-8') as f:
                 meta_dict = json.load(f)
             self.metadata.train_accuracy = meta_dict.get('train_accuracy', 0.0)
             self.metadata.validation_accuracy = meta_dict.get('validation_accuracy', 0.0)

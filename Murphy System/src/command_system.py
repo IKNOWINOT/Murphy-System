@@ -74,10 +74,10 @@ class CommandModule:
             return None
         
         try:
-            with open(filepath, 'r') as f:
+            with open(filepath, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except json.JSONDecodeError:
-            with open(filepath, 'r') as f:
+            with open(filepath, 'r', encoding='utf-8') as f:
                 return f.read()
 
 
