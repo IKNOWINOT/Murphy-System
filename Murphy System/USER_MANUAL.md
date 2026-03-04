@@ -1205,7 +1205,7 @@ curl http://localhost:8000/api/health
 
 | Channel | Contact |
 |---------|---------|
-| GitHub Issues | [Murphy-System Issues](https://github.com/your-org/Murphy-System/issues) |
+| GitHub Issues | [Murphy-System Issues](https://github.com/IKNOWINOT/Murphy-System/issues) |
 | Documentation | `documentation/` directory in the repository |
 | Email | support@inoni.com |
 

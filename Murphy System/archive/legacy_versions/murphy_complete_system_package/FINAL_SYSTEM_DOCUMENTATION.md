@@ -364,7 +364,7 @@ result = system.make_prediction(
 
 ```bash
 # Clone repository
-git clone https://github.com/your-org/murphy-system.git
+git clone https://github.com/IKNOWINOT/Murphy-System.git
 cd murphy-system
 
 # Start services
@@ -466,7 +466,7 @@ kubectl get pods -n murphy-system
 - **Operations Runbook:** `/deployment/RUNBOOK.md`
 
 ### Community
-- **GitHub:** https://github.com/your-org/murphy-system
+- **GitHub:** https://github.com/IKNOWINOT/Murphy-System
 - **Documentation:** https://docs.murphy-system.com
 - **Community Forum:** https://community.murphy-system.com
 

@@ -42,7 +42,7 @@ This guide covers deploying Murphy System to production environments using Docke
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/your-org/murphy-system.git
+git clone https://github.com/IKNOWINOT/Murphy-System.git
 cd murphy-system
 ```
 
