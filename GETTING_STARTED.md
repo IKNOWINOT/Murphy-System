@@ -304,7 +304,7 @@ for mod in ['fastapi', 'uvicorn', 'pydantic']:
 
 ### Landing Page
 
-![Murphy System Landing Page](https://github.com/user-attachments/assets/eaaca012-48f2-477a-ba2b-90a59cf1bfb4)
+![Murphy System Landing Page](https://github.com/user-attachments/assets/32662384-6caa-4d30-afd8-32a2d9edc19e)
 
 ### Pricing Tiers
 
@@ -315,25 +315,25 @@ for mod in ['fastapi', 'uvicorn', 'pydantic']:
 | Professional | $99/mo | Per seat |
 | Enterprise | $750/mo | Per seat — funds community free tier |
 
-![Pricing Section](https://github.com/user-attachments/assets/c48623cb-51c3-455b-8c01-6a962e8d133b)
+![Pricing Section](https://github.com/user-attachments/assets/8e455cc5-5fc2-47f7-9c6d-983ef5f06e54)
 
 ### Onboarding Wizard
 
-![Onboarding Wizard](https://github.com/user-attachments/assets/fcb66a2a-8996-459b-8d00-d82e28bf369f)
+![Onboarding Wizard](https://github.com/user-attachments/assets/a9f44201-c0bd-42fe-a3a0-f5d080f1ad3f)
 
 ### Architect Terminal
 
-![Architect Terminal](https://github.com/user-attachments/assets/58b7339c-d53c-460e-bc9e-e8264d3fbcb7)
+![Architect Terminal](https://github.com/user-attachments/assets/f14a7fff-d572-40c0-a3a8-c597565e5484)
 
 ### Integrated Terminal
 
-![Integrated Terminal](https://github.com/user-attachments/assets/15889254-53c5-4759-9c39-7d3518d79d58)
+![Integrated Terminal](https://github.com/user-attachments/assets/b105b2d1-b78e-4ebe-b2da-b3f7a3efd95e)
 
 ### API Health & Status
 
-![API Health](https://github.com/user-attachments/assets/fb0c5187-6524-4757-90ea-39b1ddbb0542)
+![API Health](https://github.com/user-attachments/assets/2a72f770-7876-48ac-9568-c0abffae4493)
 
-![API Status](https://github.com/user-attachments/assets/2952d21c-0218-463f-a11f-0d5ace328eca)
+![API Status](https://github.com/user-attachments/assets/c3ff91e4-3e5f-49fd-9695-c44062d13e67)
 
 ---
 
