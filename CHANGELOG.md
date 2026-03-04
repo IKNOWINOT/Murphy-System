@@ -8,7 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **45-category code-quality audit** (rounds 3–20) — systematic static analysis across all 583 source files:
+- **Round 30–32 deep audit** — final gap-closure verification across all 584 source modules:
+  - Created `learning_engine/models.py` re-export module (5 submodules depended on it)
+  - Fixed 3 dataclass field-ordering `TypeError`s in `supervisor/schemas.py`
+  - Fixed 5 broken relative imports (`inference_gate_engine`, `modular_runtime`, `statistics_collector`, `integration_framework`, `shadow_agent`)
+  - Fixed 4 learning-engine modules referencing non-existent packages
+  - Enhanced `GETTING_STARTED.md` with onboarding wizard walkthrough, role-based terminal descriptions, and concrete use-case examples
+  - Added `murphy_ui_integrated_terminal.html` to documentation UI table
+  - 50 new gap-closure tests (`test_gap_closure_round{29,30,31}.py`) verifying all fixes
+  - Updated documentation counts: 584 modules, 339 test files, 190+ gap-closure tests, 8,136 badge
+- **45-category code-quality audit** (rounds 3–20) — systematic static analysis across all source files:
   - 01-bare_except, 02-http_timeout, 03-pickle, 04-eval, 05-yaml, 06-shell_true, 07-div_by_zero, 08-unbounded_append, 09-secrets, 10-syntax, 11-wildcard_imports, 12-asserts, 13-mutable_defaults, 14-silent_swallow, 15-sensitive_logs, 16-unreachable_code, 17-duplicate_methods, 18-nested_try, 19-exception_naming, 20-except_without_as, 21-write_encoding, 22-init_all, 23-unused_except_var, 24-read_encoding, 25-bool_eq, 26-todo_fixme, 27-shadowed_builtins, 28-empty_fstring, 29-is_with_literal, 30-specific_silent_pass, 31-del_method, 32-cmp_empty_collection, 33-exec_outside_repl, 34-inherit_object, 35-return_in_init
   - 126 gap-closure tests verifying all categories remain at zero
 - **`__all__` exports** in `eq/__init__.py`, `rosetta/__init__.py`, `comms_system/__init__.py`
