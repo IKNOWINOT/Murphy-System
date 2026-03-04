@@ -92,7 +92,7 @@ class AssumptionArtifact:
     invalidation_signals: List[InvalidationSignal] = field(default_factory=list)
 
     # Ownership
-    owner_role: str  # Human/team responsible for this assumption
+    owner_role: str = ""  # Human/team responsible for this assumption
 
     # Review schedule
     review_interval_days: int = 30  # How often to review
@@ -187,8 +187,8 @@ class SupervisorFeedbackArtifact:
     required_evidence: List[str] = field(default_factory=list)  # Evidence needed
 
     # Supervisor info
-    supervisor_id: str
-    supervisor_role: str
+    supervisor_id: str = ""
+    supervisor_role: str = ""
 
     # Metadata
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -237,7 +237,7 @@ class CorrectionAction:
     trigger_reexpansion: bool = False           # Trigger hypothesis re-expansion
 
     # Rationale
-    reason: str
+    reason: str = ""
 
     # Metadata
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))

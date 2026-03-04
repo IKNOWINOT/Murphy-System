@@ -12,7 +12,10 @@ import logging
 
 from .model_architecture import ShadowAgentModel, ModelMetadata
 from .model_registry import ModelRegistry, ModelVersion
-from ..phase_2_murphy_validation.models import UncertaintyScore
+try:
+    from confidence_engine.murphy_models import UncertaintyScores as UncertaintyScore
+except ImportError:
+    UncertaintyScore = None  # type: ignore[assignment,misc]
 
 logger = logging.getLogger(__name__)
 

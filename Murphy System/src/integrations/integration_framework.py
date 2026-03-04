@@ -11,7 +11,7 @@ import logging
 import time
 from collections import defaultdict
 
-from ..thread_safe_operations import ThreadSafeDict, ThreadSafeCounter, CircuitBreaker, RateLimiter
+from thread_safe_operations import ThreadSafeDict, ThreadSafeCounter, CircuitBreaker, RateLimiter
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
