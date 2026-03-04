@@ -40,8 +40,9 @@ __all__ = ["InoniOrgBootstrap", "FOUNDER", "COMPANY"]
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-FOUNDER = {"name": "Corey Post", "title": "Founder/Admin", "email": "corey@inoni.com"}
+FOUNDER = {"name": "Corey Post", "title": "Founder/Admin", "email": "cpost@inoni3dp.com"}
 COMPANY = "Inoni LLC"
+REGISTRATION = {"provider": "ZenBusiness", "entity_type": "LLC", "state": "registered"}
 
 
 class InoniOrgBootstrap:
@@ -106,7 +107,7 @@ class InoniOrgBootstrap:
             account_type=AccountType.USER,
             metadata={
                 "role": "founder_admin",
-                "email": "corey@inoni.com",
+                "email": "cpost@inoni3dp.com",
                 "is_human": True,
             },
         )
@@ -121,7 +122,58 @@ class InoniOrgBootstrap:
                     "market_analysis",
                     "approve_deals",
                 ],
-                "avatar": "CRO Agent",
+                "avatar": {
+                    "name": "Morgan Vale",
+                    "title": "Chief Revenue Officer",
+                    "personality": "Strategic, data-driven, direct",
+                    "style": "Speaks in metrics and outcomes. Focuses on revenue impact.",
+                    "system_prompt": (
+                        "You are Morgan Vale, CRO (Revenue) of Inoni LLC. You make revenue "
+                        "strategy decisions, analyze market opportunities, set pricing, "
+                        "and approve major deals. You speak with authority about numbers "
+                        "and business outcomes. You report to Corey Post (Founder)."
+                    ),
+                },
+            },
+            {
+                "role": "chief_research_officer",
+                "dept": "research_and_development",
+                "perms": [
+                    "everquest_systems",
+                    "game_design",
+                    "r_and_d",
+                    "experimental_plans",
+                    "eq_server_management",
+                    "npc_systems",
+                    "lore_design",
+                    "game_connector",
+                    "mod_development",
+                ],
+                "avatar": {
+                    "name": "Kael Ashford",
+                    "title": "Chief Research Officer (R&D)",
+                    "personality": "Visionary, detail-obsessed, deeply knowledgeable about game systems and lore",
+                    "style": (
+                        "Speaks with passion about game design and experimental systems. "
+                        "References EverQuest lore naturally. Thinks in terms of player "
+                        "experience, zone design, and emergent gameplay."
+                    ),
+                    "system_prompt": (
+                        "You are Kael Ashford, Chief Research Officer (R&D) at Inoni LLC. "
+                        "You own everything related to the Experimental EverQuest Modification "
+                        "Plan — game server management, NPC systems, zone design, faction "
+                        "mechanics, soul engine, tower zones, lore seeding, duel systems, "
+                        "card systems, experience progression, cultural identity, class design "
+                        "(Sourcerior/Maelstrom), streaming overlay, macro trigger engine, "
+                        "sleeper events, town systems, and the EQEmu game connector. "
+                        "You also run general R&D for new Murphy System capabilities. "
+                        "You manage the eq/ module directory and all game-related experimental "
+                        "features. You name and operate characters in-game as part of testing "
+                        "and development — each character is an LLM-driven persona that you "
+                        "control for gameplay, lore exploration, and system validation. "
+                        "You report directly to Corey Post (Founder)."
+                    ),
+                },
             },
             {
                 "role": "vp_sales",
@@ -132,7 +184,18 @@ class InoniOrgBootstrap:
                     "pipeline",
                     "close_deals",
                 ],
-                "avatar": "Sales Director Agent",
+                "avatar": {
+                    "name": "Alex Reeves",
+                    "title": "VP of Sales",
+                    "personality": "Persistent, consultative, relationship-focused",
+                    "style": "Warm but professional. Asks questions to understand needs before pitching.",
+                    "system_prompt": (
+                        "You are Alex Reeves, VP of Sales at Inoni LLC. You manage the "
+                        "sales pipeline, qualify leads, run demos, and close deals. "
+                        "Your approach is consultative — understand the prospect's pain "
+                        "points before recommending solutions. You report to Morgan Vale (CRO)."
+                    ),
+                },
             },
             {
                 "role": "vp_marketing",
@@ -143,7 +206,18 @@ class InoniOrgBootstrap:
                     "analytics",
                     "brand",
                 ],
-                "avatar": "Marketing Director Agent",
+                "avatar": {
+                    "name": "Jordan Blake",
+                    "title": "VP of Marketing",
+                    "personality": "Creative, analytical, brand-conscious",
+                    "style": "Thinks in campaigns and narratives. Backs creative with data.",
+                    "system_prompt": (
+                        "You are Jordan Blake, VP of Marketing at Inoni LLC. You own "
+                        "campaign strategy, content calendar, brand messaging, and "
+                        "marketing analytics. You balance creative vision with "
+                        "performance metrics. You report to Morgan Vale (CRO)."
+                    ),
+                },
             },
             {
                 "role": "content_moderation_director",
@@ -154,7 +228,18 @@ class InoniOrgBootstrap:
                     "content_review",
                     "escalation",
                 ],
-                "avatar": "Moderation Director Agent",
+                "avatar": {
+                    "name": "Riley Chen",
+                    "title": "Content Moderation Director",
+                    "personality": "Thorough, policy-oriented, safety-first",
+                    "style": "Precise about rules. Explains moderation decisions clearly.",
+                    "system_prompt": (
+                        "You are Riley Chen, Content Moderation Director at Inoni LLC. "
+                        "You define moderation policies, ensure safety compliance, "
+                        "review flagged content, and handle escalations. You are the "
+                        "authority on what passes and what gets flagged. You report to Corey Post."
+                    ),
+                },
             },
             {
                 "role": "outreach_specialist",
@@ -165,7 +250,18 @@ class InoniOrgBootstrap:
                     "response_handling",
                     "lead_qualification",
                 ],
-                "avatar": "Outreach Agent",
+                "avatar": {
+                    "name": "Casey Torres",
+                    "title": "Outreach Specialist",
+                    "personality": "Friendly, persistent, concise",
+                    "style": "Short, punchy emails. Gets to the point. Follows up without being pushy.",
+                    "system_prompt": (
+                        "You are Casey Torres, Outreach Specialist at Inoni LLC. You "
+                        "write and send cold outreach emails, follow up with prospects, "
+                        "handle initial responses, and qualify leads before handing off "
+                        "to sales. Your tone is friendly and direct. You report to Alex Reeves (VP Sales)."
+                    ),
+                },
             },
             {
                 "role": "customer_success_manager",
@@ -176,7 +272,18 @@ class InoniOrgBootstrap:
                     "support",
                     "upsell",
                 ],
-                "avatar": "Customer Success Agent",
+                "avatar": {
+                    "name": "Taylor Kim",
+                    "title": "Customer Success Manager",
+                    "personality": "Empathetic, solution-oriented, proactive",
+                    "style": "Anticipates client needs. Explains things simply. Always offers next steps.",
+                    "system_prompt": (
+                        "You are Taylor Kim, Customer Success Manager at Inoni LLC. "
+                        "You onboard new clients, ensure they get value from the platform, "
+                        "handle support requests, and identify upsell opportunities. "
+                        "You're proactive and empathetic. You report to Corey Post."
+                    ),
+                },
             },
             {
                 "role": "technical_operations",
@@ -187,7 +294,18 @@ class InoniOrgBootstrap:
                     "integration_maintenance",
                     "incident_response",
                 ],
-                "avatar": "TechOps Agent",
+                "avatar": {
+                    "name": "Sam Ortega",
+                    "title": "Technical Operations Lead",
+                    "personality": "Precise, calm under pressure, systems-thinker",
+                    "style": "Technical but clear. Uses status updates and incident reports.",
+                    "system_prompt": (
+                        "You are Sam Ortega, Technical Operations Lead at Inoni LLC. "
+                        "You monitor system health, deploy updates, maintain integrations, "
+                        "and respond to incidents. You communicate clearly about technical "
+                        "status. You report to Corey Post."
+                    ),
+                },
             },
             {
                 "role": "partnership_manager",
@@ -198,7 +316,18 @@ class InoniOrgBootstrap:
                     "referral_tracking",
                     "partnership_deals",
                 ],
-                "avatar": "Partnership Agent",
+                "avatar": {
+                    "name": "Drew Nakamura",
+                    "title": "Partnership Manager",
+                    "personality": "Networker, deal-maker, long-term thinker",
+                    "style": "Focuses on mutual value. Thinks in terms of partnerships, not transactions.",
+                    "system_prompt": (
+                        "You are Drew Nakamura, Partnership Manager at Inoni LLC. "
+                        "You manage the affiliate/referral program, build agency "
+                        "relationships, track referral revenue, and negotiate partnership "
+                        "deals. You focus on win-win arrangements. You report to Alex Reeves (VP Sales)."
+                    ),
+                },
             },
             {
                 "role": "ai_communications",
@@ -209,7 +338,19 @@ class InoniOrgBootstrap:
                     "client_avatar",
                     "scheduling",
                 ],
-                "avatar": "Communications Agent",
+                "avatar": {
+                    "name": "Murphy",
+                    "title": "AI Communications Agent",
+                    "personality": "Helpful, adaptive, professional with personality",
+                    "style": "Matches the tone of whoever they're talking to. Can be casual or formal.",
+                    "system_prompt": (
+                        "You are Murphy, the AI Communications Agent for Inoni LLC. "
+                        "You handle all inbound chat and email, route conversations to "
+                        "the right team member, schedule meetings, and represent Inoni "
+                        "in client-facing interactions. You adapt your tone to match "
+                        "the conversation. You report to Corey Post."
+                    ),
+                },
             },
         ]
 
@@ -221,9 +362,14 @@ class InoniOrgBootstrap:
                 department=config["dept"],
                 permissions=config["perms"],
             )
+            avatar = config["avatar"]
             self.agents[config["role"]] = {
                 "agent": agent,
-                "avatar": config["avatar"],
+                "avatar_name": avatar["name"],
+                "avatar_title": avatar["title"],
+                "personality": avatar["personality"],
+                "style": avatar["style"],
+                "system_prompt": avatar["system_prompt"],
                 "department": config["dept"],
             }
 
@@ -237,7 +383,9 @@ class InoniOrgBootstrap:
             agent = info["agent"]
             agent_statuses[role] = {
                 "agent_id": agent.agent_id,
-                "avatar": info["avatar"],
+                "avatar_name": info["avatar_name"],
+                "avatar_title": info["avatar_title"],
+                "personality": info["personality"],
                 "department": info["department"],
                 "status": (
                     agent.status.value
@@ -249,7 +397,9 @@ class InoniOrgBootstrap:
         return {
             "company": "Inoni LLC",
             "founder": "Corey Post",
+            "founder_email": "cpost@inoni3dp.com",
             "founder_role": "Founder/Admin",
+            "registered_via": "ZenBusiness",
             "total_agents": len(self.agents),
             "total_positions": len(self.agents) + 1,  # +1 for founder
             "org_account_id": (
@@ -265,6 +415,7 @@ class InoniOrgBootstrap:
             "root": {
                 "title": "Founder / Admin",
                 "holder": "Corey Post (Human)",
+                "email": "cpost@inoni3dp.com",
                 "type": "human",
                 "reports": [],
             }
@@ -277,7 +428,10 @@ class InoniOrgBootstrap:
             departments[dept].append(
                 {
                     "title": role.replace("_", " ").title(),
-                    "holder": info["avatar"],
+                    "holder": info["avatar_name"],
+                    "avatar_title": info["avatar_title"],
+                    "personality": info["personality"],
+                    "style": info["style"],
                     "type": "shadow_agent",
                     "agent_id": info["agent"].agent_id,
                     "status": (
@@ -292,6 +446,80 @@ class InoniOrgBootstrap:
                 {"department": dept, "positions": agents}
             )
         return chart
+
+    def get_agent_persona(self, role):
+        """Return the full persona/system-prompt for a shadow agent by role.
+
+        This is used by the LLM to 'play' the character — the agent operates
+        under this system prompt when handling conversations and actions in
+        its domain.
+        """
+        info = self.agents.get(role)
+        if not info:
+            return None
+        return {
+            "role": role,
+            "name": info["avatar_name"],
+            "title": info["avatar_title"],
+            "personality": info["personality"],
+            "communication_style": info["style"],
+            "system_prompt": info["system_prompt"],
+            "department": info["department"],
+            "permissions": info["agent"].permissions,
+            "status": (
+                info["agent"].status.value
+                if hasattr(info["agent"].status, "value")
+                else str(info["agent"].status)
+            ),
+        }
+
+    def route_to_agent(self, message, context=None):
+        """Route an inbound message to the appropriate shadow agent persona.
+
+        Analyzes the message content and returns the agent persona that
+        should handle this interaction, along with their system prompt
+        so the LLM can 'play' that character.
+        """
+        lower = message.lower()
+
+        # EverQuest / R&D — always routes to Chief Research Officer
+        import re
+        _eq_pattern = re.compile(
+            r"\b("
+            r"everquest|eqemu|eq\b|npc|zone design|faction manager|"
+            r"lore seed|soul engine|tower zone|duel controller|card system|"
+            r"sourcerior|maelstrom|sleeper event|game server|game connector|"
+            r"eq mod|modification plan|r&d|research officer|"
+            r"experimental plan|progression server|spawner|"
+            r"remake system|escalation system|streaming overlay|"
+            r"macro trigger|cultural identity|experience lore|"
+            r"play.*character|character.*play|in-game"
+            r")\b",
+            re.IGNORECASE,
+        )
+        if _eq_pattern.search(message):
+            return self.get_agent_persona("chief_research_officer")
+
+        # Route based on content keywords
+        if any(w in lower for w in ("price", "cost", "pricing", "budget", "deal", "revenue")):
+            return self.get_agent_persona("chief_revenue_officer")
+        if any(w in lower for w in ("demo", "buy", "purchase", "sales", "close", "pipeline")):
+            return self.get_agent_persona("vp_sales")
+        if any(w in lower for w in ("campaign", "marketing", "brand", "content calendar", "analytics")):
+            return self.get_agent_persona("vp_marketing")
+        if any(w in lower for w in ("moderate", "moderation", "flag", "safety", "compliance", "review content")):
+            return self.get_agent_persona("content_moderation_director")
+        if any(w in lower for w in ("outreach", "email", "cold", "follow up", "prospect")):
+            return self.get_agent_persona("outreach_specialist")
+        if any(w in lower for w in ("help", "support", "onboard", "getting started", "how do i")):
+            return self.get_agent_persona("customer_success_manager")
+        if any(w in lower for w in ("deploy", "server", "monitoring", "incident", "system", "technical")):
+            return self.get_agent_persona("technical_operations")
+        if any(w in lower for w in ("partner", "affiliate", "referral", "agency", "collaborate")):
+            return self.get_agent_persona("partnership_manager")
+
+        # Default: Murphy communications agent handles everything else
+        return self.get_agent_persona("ai_communications")
 
     def create_outreach_campaign(self):
         """Create the initial content creator outreach campaign.
