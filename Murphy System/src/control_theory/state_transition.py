@@ -17,6 +17,10 @@ from typing import Dict, List, Optional
 
 from .canonical_state import CanonicalStateVector, _DIMENSION_NAMES
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ------------------------------------------------------------------ #
 # Process noise model  w_t ~ N(0, Q)

@@ -3,6 +3,10 @@
 import math
 from typing import List
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def shannon_entropy(probabilities: List[float]) -> float:
     """

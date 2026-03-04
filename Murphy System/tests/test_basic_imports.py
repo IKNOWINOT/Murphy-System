@@ -45,7 +45,7 @@ def main():
     print("=" * 60)
     print("Murphy System Integration - Basic Import Tests")
     print("=" * 60)
-    
+
     tests = [
         test_unified_confidence_engine_import,
         test_integrated_correction_system_import,
@@ -53,16 +53,16 @@ def main():
         test_integrated_hitl_monitor_import,
         test_form_intake_import,
     ]
-    
+
     results = []
     for test in tests:
         print(f"\nTesting: {test.__name__}")
         results.append(test())
-    
+
     print("\n" + "=" * 60)
     print(f"Results: {sum(results)}/{len(results)} tests passed")
     print("=" * 60)
-    
+
     if all(results):
         print("\n✓ All imports successful!")
         return 0

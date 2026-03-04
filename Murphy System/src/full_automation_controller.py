@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
 from enum import Enum
 from typing import Dict, List, Optional, Any, Tuple, Callable
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +97,7 @@ class AutomationMetrics:
 class FullAutomationController:
     """
     Controller for toggleable full automation with HITL gap detection.
-    
+
     Features:
     - Toggle between MANUAL, SEMI_AUTONOMOUS, and FULL_AUTONOMOUS modes
     - HITL transition gap detection and monitoring
@@ -113,13 +114,13 @@ class FullAutomationController:
         self._hitl_gaps: Dict[str, HITLTransitionGap] = {}
         self._metrics: Dict[str, AutomationMetrics] = {}
         self._audit_log: List[Dict[str, Any]] = []
-        
+
         # Configuration
         self._success_rate_threshold = 0.95  # 95% success rate for full automation
         self._hitl_gap_threshold = 3  # Max gaps before mode downgrade
         self._risk_threshold = RiskLevel.MEDIUM  # Max risk for semi-autonomous
         self._min_observations = 50  # Minimum actions before considering automation
-        
+
         # Callbacks
         self._on_mode_change: Optional[Callable[[str, AutomationMode, AutomationMode], None]] = None
         self._on_hitl_gap_detected: Optional[Callable[[HITLTransitionGap], None]] = None
@@ -140,10 +141,10 @@ class FullAutomationController:
     ) -> Tuple[bool, str]:
         """
         Set automation mode for a tenant or agent.
-        
+
         Only admin/owner roles can enable full automation for organizations.
         Only account owners can enable full automation for their own agents.
-        
+
         Args:
             tenant_id: Tenant identifier
             agent_id: Optional agent identifier (None for tenant-level)
@@ -152,7 +153,7 @@ class FullAutomationController:
             reason: Reason for the change
             user_role: Role of the requesting user
             is_organization: Whether this is an organization context
-            
+
         Returns:
             (success, message) tuple
         """
@@ -164,11 +165,11 @@ class FullAutomationController:
             else:
                 if user_role != "owner":
                     return False, "Only account owners can enable full automation for their agents"
-        
+
         with self._lock:
             key = self._make_key(tenant_id, agent_id)
             current_state = self._states.get(key)
-            
+
             if current_state is None:
                 current_state = AutomationState(
                     tenant_id=tenant_id,
@@ -189,16 +190,16 @@ class FullAutomationController:
                     "user_id": user_id,
                     "reason": reason.value,
                 })
-                
+
                 # Update state
                 current_state.mode = mode
                 current_state.enabled_at = datetime.now(timezone.utc)
                 current_state.enabled_by = user_id
                 current_state.reason = reason
                 current_state.last_transition = datetime.now(timezone.utc)
-            
+
             # Log audit
-            self._audit_log.append({
+            capped_append(self._audit_log, {
                 "event": "automation_mode_changed",
                 "tenant_id": tenant_id,
                 "agent_id": agent_id,
@@ -209,18 +210,18 @@ class FullAutomationController:
                 "reason": reason.value,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             })
-            
+
             logger.info(
                 "Automation mode changed for %s: %s -> %s by %s (%s)",
                 key, current_state.transition_history[-2]["from_mode"] if len(current_state.transition_history) >= 2 else "none",
                 mode.value, user_id, reason.value
             )
-            
+
             # Trigger callback
             if self._on_mode_change and len(current_state.transition_history) >= 2:
                 old_mode = AutomationMode(current_state.transition_history[-2]["from_mode"])
                 self._on_mode_change(key, old_mode, mode)
-            
+
             return True, f"Automation mode set to {mode.value}"
 
     def get_automation_mode(
@@ -245,7 +246,7 @@ class FullAutomationController:
             state = self._states.get(key)
             if state is None:
                 return None
-            
+
             return {
                 "tenant_id": state.tenant_id,
                 "agent_id": state.agent_id,
@@ -273,7 +274,7 @@ class FullAutomationController:
     ) -> HITLTransitionGap:
         """
         Detect and record a HITL transition gap.
-        
+
         Args:
             tenant_id: Tenant identifier
             agent_id: Optional agent identifier
@@ -281,12 +282,12 @@ class FullAutomationController:
             severity: Risk level of the gap
             description: Description of the gap
             metrics: Additional metrics about the gap
-            
+
         Returns:
             Created HITLTransitionGap
         """
         import uuid
-        
+
         gap = HITLTransitionGap(
             gap_id=str(uuid.uuid4()),
             detected_at=datetime.now(timezone.utc),
@@ -297,28 +298,28 @@ class FullAutomationController:
             agent_id=agent_id,
             metrics=metrics or {},
         )
-        
+
         with self._lock:
             key = self._make_key(tenant_id, agent_id)
             self._hitl_gaps[gap.gap_id] = gap
-            
+
             # Update metrics
             if key not in self._metrics:
                 self._metrics[key] = AutomationMetrics()
             self._metrics[key].hitl_gap_count += 1
-            
+
             # Check if we should downgrade automation mode
             self._check_hitl_gap_threshold(key, tenant_id, agent_id)
-            
+
             # Trigger callback
             if self._on_hitl_gap_detected:
                 self._on_hitl_gap_detected(gap)
-            
+
             logger.warning(
                 "HITL gap detected for %s: %s (%s) - %s",
                 key, gap_type, severity.value, description
             )
-        
+
         return gap
 
     def resolve_hitl_gap(self, gap_id: str, resolved_by: str) -> bool:
@@ -327,10 +328,10 @@ class FullAutomationController:
             gap = self._hitl_gaps.get(gap_id)
             if gap is None:
                 return False
-            
+
             gap.resolved = True
             gap.resolved_at = datetime.now(timezone.utc)
-            
+
             logger.info("HITL gap %s resolved by %s", gap_id, resolved_by)
             return True
 
@@ -355,7 +356,7 @@ class FullAutomationController:
     ) -> None:
         """Check if HITL gap threshold exceeded and downgrade mode if needed."""
         active_gaps = self.get_active_hitl_gaps(tenant_id, agent_id)
-        
+
         if len(active_gaps) >= self._hitl_gap_threshold:
             state = self._states.get(key)
             if state and state.mode != AutomationMode.MANUAL:
@@ -364,7 +365,7 @@ class FullAutomationController:
                 state.mode = AutomationMode.MANUAL
                 state.reason = AutomationToggleReason.HITL_GAP_DETECTED
                 state.last_transition = datetime.now(timezone.utc)
-                
+
                 logger.warning(
                     "Downgrading automation mode for %s from %s to MANUAL due to HITL gaps",
                     key, old_mode.value
@@ -414,31 +415,31 @@ class FullAutomationController:
     ) -> RiskLevel:
         """
         Evaluate the risk level of an action.
-        
+
         Args:
             action_type: Type of action being evaluated
             context: Context information about the action
-            
+
         Returns:
             Risk level for the action
         """
         # Simple risk evaluation logic
         # This would be enhanced with more sophisticated risk assessment
-        
+
         critical_actions = {
             "deploy_to_production",
             "delete_data",
             "modify_security_settings",
             "change_user_permissions",
         }
-        
+
         high_risk_actions = {
             "deploy_to_staging",
             "modify_configuration",
             "execute_code",
             "access_sensitive_data",
         }
-        
+
         if action_type in critical_actions:
             return RiskLevel.CRITICAL
         elif action_type in high_risk_actions:
@@ -457,39 +458,39 @@ class FullAutomationController:
     ) -> Tuple[bool, str]:
         """
         Determine if an action should be auto-approved based on automation mode and risk.
-        
+
         Args:
             tenant_id: Tenant identifier
             agent_id: Optional agent identifier
             action_type: Type of action
             context: Context information
-            
+
         Returns:
             (should_approve, reason) tuple
         """
         mode = self.get_automation_mode(tenant_id, agent_id)
         if mode is None:
             return False, "No automation mode configured"
-        
+
         risk = self.evaluate_action_risk(action_type, context)
-        
+
         if mode == AutomationMode.MANUAL:
             return False, "Manual mode - all actions require approval"
-        
+
         elif mode == AutomationMode.SEMI_AUTONOMOUS:
             # Auto-approve only low and minimal risk actions
             if risk in [RiskLevel.LOW, RiskLevel.MINIMAL]:
                 return True, f"Semi-autonomous mode - {risk.value} risk auto-approved"
             else:
                 return False, f"Semi-autonomous mode - {risk.value} risk requires approval"
-        
+
         elif mode == AutomationMode.FULL_AUTONOMOUS:
             # Auto-approve everything except critical
             if risk == RiskLevel.CRITICAL:
                 return False, "Full-autonomous mode - critical risk requires approval"
             else:
                 return True, f"Full-autonomous mode - {risk.value} risk auto-approved"
-        
+
         return False, "Unknown automation mode"
 
     # ========================================================================
@@ -508,7 +509,7 @@ class FullAutomationController:
     ) -> None:
         """
         Record the outcome of an action for success rate tracking.
-        
+
         Args:
             tenant_id: Tenant identifier
             agent_id: Optional agent identifier
@@ -520,13 +521,13 @@ class FullAutomationController:
         """
         with self._lock:
             key = self._make_key(tenant_id, agent_id)
-            
+
             if key not in self._metrics:
                 self._metrics[key] = AutomationMetrics()
-            
+
             metrics = self._metrics[key]
             metrics.total_actions += 1
-            
+
             if approved:
                 if auto_approved:
                     metrics.auto_approved += 1
@@ -534,7 +535,7 @@ class FullAutomationController:
                     metrics.human_approved += 1
             else:
                 metrics.rejected += 1
-            
+
             if success:
                 # Update success rate using exponential moving average
                 current_rate = metrics.success_rate
@@ -547,15 +548,15 @@ class FullAutomationController:
                 alpha = 0.1
                 new_rate = alpha * 0.0 + (1 - alpha) * current_rate
                 metrics.success_rate = new_rate
-            
+
             if response_time is not None:
                 # Update average response time
                 current_avg = metrics.avg_response_time
                 count = metrics.total_actions
                 metrics.avg_response_time = (current_avg * (count - 1) + response_time) / count
-            
+
             metrics.last_updated = datetime.now(timezone.utc)
-            
+
             # Check if we should upgrade automation mode
             self._check_success_rate_threshold(key, tenant_id, agent_id)
 
@@ -569,23 +570,23 @@ class FullAutomationController:
         metrics = self._metrics.get(key)
         if metrics is None:
             return
-        
+
         if metrics.total_actions < self._min_observations:
             return
-        
+
         state = self._states.get(key)
         if state is None:
             return
-        
+
         # Check if we can upgrade to semi-autonomous
         if (state.mode == AutomationMode.MANUAL and
             metrics.success_rate >= self._success_rate_threshold and
             metrics.hitl_gap_count == 0):
-            
+
             state.mode = AutomationMode.SEMI_AUTONOMOUS
             state.reason = AutomationToggleReason.SUCCESS_RATE_HIGH
             state.last_transition = datetime.now(timezone.utc)
-            
+
             logger.info(
                 "Upgrading automation mode for %s to SEMI_AUTONOMOUS due to high success rate (%.2f)",
                 key, metrics.success_rate
@@ -602,7 +603,7 @@ class FullAutomationController:
             metrics = self._metrics.get(key)
             if metrics is None:
                 return None
-            
+
             return {
                 "total_actions": metrics.total_actions,
                 "auto_approved": metrics.auto_approved,

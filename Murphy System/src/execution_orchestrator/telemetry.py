@@ -17,6 +17,9 @@ from typing import Dict, List, Optional, Callable
 from datetime import datetime
 import json
 
+import logging
+logger = logging.getLogger("execution_orchestrator.telemetry")
+
 from .models import (
     TelemetryEvent,
     TelemetryStream,
@@ -28,25 +31,25 @@ from .models import (
 class TelemetryStreamer:
     """
     Streams telemetry events during execution
-    
+
     Provides:
     - Event emission
     - Real-time streaming
     - Metric aggregation
     - Confidence tracking
     """
-    
+
     def __init__(self):
         self.streams: Dict[str, TelemetryStream] = {}
         self.subscribers: Dict[str, List[Callable]] = {}
-    
+
     def create_stream(self, packet_id: str) -> TelemetryStream:
         """Create new telemetry stream for packet execution"""
         stream = TelemetryStream(packet_id=packet_id)
         self.streams[packet_id] = stream
         self.subscribers[packet_id] = []
         return stream
-    
+
     def emit_event(
         self,
         packet_id: str,
@@ -58,7 +61,7 @@ class TelemetryStreamer:
     ):
         """
         Emit telemetry event
-        
+
         Args:
             packet_id: Packet being executed
             event_type: Type of event
@@ -77,14 +80,14 @@ class TelemetryStreamer:
             risk_score=risk_score,
             confidence_score=confidence_score
         )
-        
+
         # Add to stream
         if packet_id in self.streams:
             self.streams[packet_id].add_event(event)
-        
+
         # Notify subscribers
         self._notify_subscribers(packet_id, event)
-    
+
     def emit_execution_start(
         self,
         packet_id: str,
@@ -104,7 +107,7 @@ class TelemetryStreamer:
             risk_score=risk_score,
             confidence_score=confidence_score
         )
-    
+
     def emit_step_start(
         self,
         packet_id: str,
@@ -127,7 +130,7 @@ class TelemetryStreamer:
             risk_score=risk_score,
             confidence_score=confidence_score
         )
-    
+
     def emit_step_complete(
         self,
         packet_id: str,
@@ -149,7 +152,7 @@ class TelemetryStreamer:
             risk_score=risk_score,
             confidence_score=confidence_score
         )
-    
+
     def emit_step_failed(
         self,
         packet_id: str,
@@ -169,7 +172,7 @@ class TelemetryStreamer:
             risk_score=risk_score,
             confidence_score=confidence_score
         )
-    
+
     def emit_risk_threshold_breach(
         self,
         packet_id: str,
@@ -190,7 +193,7 @@ class TelemetryStreamer:
             risk_score=current_risk,
             confidence_score=confidence_score
         )
-    
+
     def emit_confidence_drop(
         self,
         packet_id: str,
@@ -211,7 +214,7 @@ class TelemetryStreamer:
             risk_score=risk_score,
             confidence_score=new_confidence
         )
-    
+
     def emit_interface_failure(
         self,
         packet_id: str,
@@ -232,7 +235,7 @@ class TelemetryStreamer:
             risk_score=risk_score,
             confidence_score=confidence_score
         )
-    
+
     def emit_rollback_start(
         self,
         packet_id: str,
@@ -252,7 +255,7 @@ class TelemetryStreamer:
             risk_score=risk_score,
             confidence_score=confidence_score
         )
-    
+
     def emit_rollback_complete(
         self,
         packet_id: str,
@@ -272,7 +275,7 @@ class TelemetryStreamer:
             risk_score=risk_score,
             confidence_score=confidence_score
         )
-    
+
     def emit_execution_paused(
         self,
         packet_id: str,
@@ -292,7 +295,7 @@ class TelemetryStreamer:
             risk_score=risk_score,
             confidence_score=confidence_score
         )
-    
+
     def emit_execution_resumed(
         self,
         packet_id: str,
@@ -310,7 +313,7 @@ class TelemetryStreamer:
             risk_score=risk_score,
             confidence_score=confidence_score
         )
-    
+
     def emit_execution_complete(
         self,
         packet_id: str,
@@ -332,7 +335,7 @@ class TelemetryStreamer:
             risk_score=risk_score,
             confidence_score=confidence_score
         )
-    
+
     def emit_execution_failed(
         self,
         packet_id: str,
@@ -352,52 +355,52 @@ class TelemetryStreamer:
             risk_score=risk_score,
             confidence_score=confidence_score
         )
-    
+
     def subscribe(self, packet_id: str, callback: Callable[[TelemetryEvent], None]):
         """
         Subscribe to telemetry events for a packet
-        
+
         Args:
             packet_id: Packet to subscribe to
             callback: Function to call with each event
         """
         if packet_id not in self.subscribers:
             self.subscribers[packet_id] = []
-        
+
         self.subscribers[packet_id].append(callback)
-    
+
     def unsubscribe(self, packet_id: str, callback: Callable[[TelemetryEvent], None]):
         """Unsubscribe from telemetry events"""
         if packet_id in self.subscribers:
             self.subscribers[packet_id].remove(callback)
-    
+
     def get_stream(self, packet_id: str) -> Optional[TelemetryStream]:
         """Get telemetry stream for packet"""
         return self.streams.get(packet_id)
-    
+
     def get_aggregated_metrics(self, packet_id: str) -> Dict:
         """
         Get aggregated metrics for packet execution
-        
+
         Returns:
             Dictionary with aggregated metrics
         """
         stream = self.streams.get(packet_id)
         if not stream:
             return {}
-        
+
         events = stream.events
-        
+
         # Calculate metrics
         total_events = len(events)
         step_starts = len(stream.get_events_by_type(TelemetryEventType.STEP_START))
         step_completes = len(stream.get_events_by_type(TelemetryEventType.STEP_COMPLETE))
         step_failures = len(stream.get_events_by_type(TelemetryEventType.STEP_FAILED))
-        
+
         # Risk and confidence tracking
         risk_scores = [e.risk_score for e in events]
         confidence_scores = [e.confidence_score for e in events]
-        
+
         return {
             'packet_id': packet_id,
             'total_events': total_events,
@@ -414,38 +417,38 @@ class TelemetryStreamer:
             'confidence_scores': {
                 'min': min(confidence_scores) if confidence_scores else 0,
                 'max': max(confidence_scores) if confidence_scores else 0,
-                'avg': sum(confidence_scores) / len(confidence_scores) if confidence_scores else 0,
+                'avg': sum(confidence_scores) / (len(confidence_scores) or 1) if confidence_scores else 0,
                 'current': confidence_scores[-1] if confidence_scores else 0
             }
         }
-    
+
     def _notify_subscribers(self, packet_id: str, event: TelemetryEvent):
         """Notify all subscribers of new event"""
         if packet_id in self.subscribers:
             for callback in self.subscribers[packet_id]:
                 try:
                     callback(event)
-                except Exception as e:
-                    print(f"Error notifying subscriber: {e}")
-    
-    def export_stream(self, packet_id: str, format: str = 'json') -> str:
+                except Exception as exc:
+                    logger.info(f"Error notifying subscriber: {exc}")
+
+    def export_stream(self, packet_id: str, output_format: str = 'json') -> str:
         """
-        Export telemetry stream to file format
-        
+        Export telemetry stream to file output_format
+
         Args:
             packet_id: Packet ID
-            format: Export format ('json', 'csv')
-            
+            output_format: Export format ('json', 'csv')
+
         Returns:
             Exported data as string
         """
         stream = self.streams.get(packet_id)
         if not stream:
             return ""
-        
-        if format == 'json':
+
+        if output_format == 'json':
             return json.dumps(stream.to_dict(), indent=2)
-        elif format == 'csv':
+        elif output_format == 'csv':
             # CSV export
             lines = ['timestamp,event_type,step_id,risk_score,confidence_score']
             for event in stream.events:
@@ -458,4 +461,4 @@ class TelemetryStreamer:
                 )
             return '\n'.join(lines)
         else:
-            raise ValueError(f"Unsupported export format: {format}")
+            raise ValueError(f"Unsupported export output_format: {output_format}")

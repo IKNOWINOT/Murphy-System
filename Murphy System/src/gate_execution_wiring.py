@@ -14,6 +14,7 @@ from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple
 import logging
 import uuid
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +146,7 @@ class GateExecutionWiring:
                 evaluation.policy = policy
                 evaluation.gate_type = gate_type
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 evaluation = GateEvaluation(
                     gate_id=str(uuid.uuid4()),
                     gate_type=gate_type,
@@ -157,7 +159,7 @@ class GateExecutionWiring:
             evaluations.append(evaluation)
 
             # Record in history
-            self._history.append({
+            capped_append(self._history, {
                 "session_id": session_id,
                 "task": task,
                 "evaluation": evaluation.to_dict(),
@@ -241,6 +243,7 @@ class GateExecutionWiring:
         try:
             result = executor(task)
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
                 "status": "error",
                 "gate_evaluations": gate_data,

@@ -384,8 +384,8 @@ class RuntimeProfileCompiler:
         if explicit is not None:
             try:
                 return AutonomyLevel(explicit)
-            except ValueError:
-                pass
+            except ValueError as exc:
+                logger.debug("Suppressed %s: %s", type(exc).__name__, exc)  # noqa: E501
 
         if mode == RuntimeMode.STRICT:
             return AutonomyLevel.HUMAN_SUPERVISED

@@ -2,7 +2,7 @@
 
 import math
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 
 from .entropy import (
@@ -12,6 +12,10 @@ from .entropy import (
     shannon_entropy,
     uniform_distribution,
 )
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 _EPSILON = 1e-15
 
@@ -61,7 +65,7 @@ class Observation:
     observation_id: str
     channel: str
     value: str
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: Dict = field(default_factory=dict)
 
 

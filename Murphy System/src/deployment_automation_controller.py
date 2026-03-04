@@ -43,6 +43,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -185,7 +186,7 @@ class DeploymentAutomationController:
             required=required,
         )
         with self._lock:
-            self._gates.append(gate)
+            capped_append(self._gates, gate)
         return gate.gate_id
 
     def list_gates(self) -> List[Dict[str, Any]]:
@@ -291,6 +292,7 @@ class DeploymentAutomationController:
                 dep.updated_at = datetime.now(timezone.utc).isoformat()
                 self._record_event(deployment_id, "deployed", {"version": dep.version})
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             with self._lock:
                 dep.status = DeploymentStatus.FAILED
                 dep.error_message = str(exc)
@@ -381,7 +383,7 @@ class DeploymentAutomationController:
 
     def _record_event(self, deployment_id: str, action: str, details: Dict[str, Any]) -> None:
         """Append audit event (caller must hold _lock)."""
-        self._history.append({
+        capped_append(self._history, {
             "deployment_id": deployment_id,
             "action": action,
             "details": details,

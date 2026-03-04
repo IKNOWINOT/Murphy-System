@@ -8,6 +8,9 @@ from datetime import datetime, timezone
 from enum import Enum
 from pydantic import BaseModel, Field
 
+import logging
+logger = logging.getLogger("learning_engine.correction_capture")
+
 from .correction_models import (
     Correction, CorrectionType, CorrectionSeverity, CorrectionSource,
     CorrectionContext, CorrectionDiff, OriginalValue, CorrectedValue,
@@ -59,11 +62,11 @@ class InteractiveCorrectionCapture:
     """
     Interactive correction capture with guided prompts.
     """
-    
+
     def __init__(self):
         self.current_correction: Optional[Correction] = None
         self.capture_history: List[Correction] = []
-    
+
     def start_capture(
         self,
         task_id: str,
@@ -72,12 +75,12 @@ class InteractiveCorrectionCapture:
     ) -> Dict[str, Any]:
         """
         Start interactive correction capture session.
-        
+
         Args:
             task_id: ID of the task being corrected
             operation: Operation that produced the output
             original_output: Original output to be corrected
-            
+
         Returns:
             Dictionary with session info and prompts
         """
@@ -86,7 +89,7 @@ class InteractiveCorrectionCapture:
             phase="execution",
             operation=operation
         )
-        
+
         return {
             "session_id": f"capture_{datetime.now(timezone.utc).timestamp()}",
             "task_id": task_id,
@@ -94,7 +97,7 @@ class InteractiveCorrectionCapture:
             "prompts": self._generate_prompts(),
             "context": context.model_dump()
         }
-    
+
     def _generate_prompts(self) -> List[Dict[str, Any]]:
         """Generate interactive prompts for correction capture."""
         return [
@@ -130,7 +133,7 @@ class InteractiveCorrectionCapture:
                 "field": "notes"
             }
         ]
-    
+
     def capture_step(
         self,
         session_id: str,
@@ -139,26 +142,26 @@ class InteractiveCorrectionCapture:
     ) -> Dict[str, Any]:
         """
         Capture response for a specific step.
-        
+
         Args:
             session_id: Session ID
             step: Step number
             response: User's response
-            
+
         Returns:
             Next step info or completion status
         """
         # Store response
         if not hasattr(self, '_session_data'):
             self._session_data = {}
-        
+
         if session_id not in self._session_data:
             self._session_data[session_id] = {}
-        
+
         self._session_data[session_id][f"step_{step}"] = response
-        
+
         prompts = self._generate_prompts()
-        
+
         if step < len(prompts):
             return {
                 "next_step": step + 1,
@@ -170,7 +173,7 @@ class InteractiveCorrectionCapture:
                 "complete": True,
                 "message": "Correction capture complete"
             }
-    
+
     def finalize_capture(
         self,
         session_id: str,
@@ -178,22 +181,22 @@ class InteractiveCorrectionCapture:
     ) -> Correction:
         """
         Finalize and create correction from captured data.
-        
+
         Args:
             session_id: Session ID
             context: Correction context
-            
+
         Returns:
             Complete Correction object
         """
         session_data = self._session_data.get(session_id, {})
-        
+
         # Extract data from session
         correction_type = CorrectionType(session_data.get("step_1", "output_modification"))
         severity = CorrectionSeverity(session_data.get("step_2", "medium"))
         corrected_output = session_data.get("step_3")
         reasoning = session_data.get("step_4", "")
-        
+
         # Create correction
         correction = create_simple_correction(
             task_id=context.task_id,
@@ -204,7 +207,7 @@ class InteractiveCorrectionCapture:
             correction_type=correction_type,
             severity=severity
         )
-        
+
         self.capture_history.append(correction)
         return correction
 
@@ -213,38 +216,38 @@ class BatchCorrectionCapture:
     """
     Batch correction capture for processing multiple corrections at once.
     """
-    
+
     def __init__(self):
         self.batch_queue: List[CorrectionCaptureRequest] = []
         self.processed_corrections: List[Correction] = []
-    
+
     def add_to_batch(self, request: CorrectionCaptureRequest):
         """Add correction request to batch queue."""
         self.batch_queue.append(request)
-    
+
     def process_batch(self) -> List[Correction]:
         """
         Process all corrections in the batch queue.
-        
+
         Returns:
             List of created Correction objects
         """
         corrections = []
-        
+
         for request in self.batch_queue:
             try:
                 correction = self._process_request(request)
                 corrections.append(correction)
                 self.processed_corrections.append(correction)
-            except Exception as e:
-                print(f"Error processing correction: {e}")
+            except Exception as exc:
+                logger.info(f"Error processing correction: {exc}")
                 continue
-        
+
         # Clear queue
         self.batch_queue.clear()
-        
+
         return corrections
-    
+
     def _process_request(self, request: CorrectionCaptureRequest) -> Correction:
         """Process a single correction request."""
         context = CorrectionContext(
@@ -254,13 +257,13 @@ class BatchCorrectionCapture:
             user_id=request.user_id,
             metadata=request.metadata
         )
-        
+
         # Detect changes between original and corrected
         diffs = self._detect_changes(
             request.original_output,
             request.corrected_output
         )
-        
+
         correction = Correction(
             correction_type=request.correction_type or CorrectionType.OUTPUT_MODIFICATION,
             severity=request.severity or CorrectionSeverity.MEDIUM,
@@ -273,18 +276,18 @@ class BatchCorrectionCapture:
                 correction_complexity="moderate"
             )
         )
-        
+
         return correction
-    
+
     def _detect_changes(self, original: Any, corrected: Any) -> List[CorrectionDiff]:
         """Detect changes between original and corrected values."""
         diffs = []
-        
+
         # Handle different types
         if isinstance(original, dict) and isinstance(corrected, dict):
             # Dictionary comparison
             all_keys = set(original.keys()) | set(corrected.keys())
-            
+
             for key in all_keys:
                 if key not in original:
                     # Added
@@ -302,7 +305,7 @@ class BatchCorrectionCapture:
                         description=f"Added field {key}"
                     )
                     diffs.append(diff)
-                
+
                 elif key not in corrected:
                     # Removed
                     diff = CorrectionDiff(
@@ -322,7 +325,7 @@ class BatchCorrectionCapture:
                         description=f"Removed field {key}"
                     )
                     diffs.append(diff)
-                
+
                 elif original[key] != corrected[key]:
                     # Modified
                     diff = CorrectionDiff(
@@ -342,7 +345,7 @@ class BatchCorrectionCapture:
                         description=f"Modified field {key}"
                     )
                     diffs.append(diff)
-        
+
         else:
             # Simple value comparison
             if original != corrected:
@@ -363,7 +366,7 @@ class BatchCorrectionCapture:
                     description="Value modified"
                 )
                 diffs.append(diff)
-        
+
         return diffs
 
 
@@ -371,35 +374,35 @@ class APICorrectionCapture:
     """
     API-based correction capture for programmatic access.
     """
-    
+
     def __init__(self):
         self.capture_handlers: Dict[str, Callable] = {}
         self.validation_rules: List[Callable] = []
-    
+
     def register_handler(self, operation: str, handler: Callable):
         """Register a custom capture handler for an operation."""
         self.capture_handlers[operation] = handler
-    
+
     def add_validation_rule(self, rule: Callable):
         """Add a validation rule for corrections."""
         self.validation_rules.append(rule)
-    
+
     async def capture(
         self,
         request: CorrectionCaptureRequest
     ) -> CorrectionCaptureResponse:
         """
         Capture correction via API.
-        
+
         Args:
             request: Correction capture request
-            
+
         Returns:
             CorrectionCaptureResponse with result
         """
         # Validate request
         validation_errors = self._validate_request(request)
-        
+
         if validation_errors:
             return CorrectionCaptureResponse(
                 correction_id="",
@@ -407,42 +410,43 @@ class APICorrectionCapture:
                 message="Validation failed",
                 validation_errors=validation_errors
             )
-        
+
         # Check for custom handler
         handler = self.capture_handlers.get(request.operation)
-        
+
         if handler:
             correction = await handler(request)
         else:
             correction = self._default_capture(request)
-        
+
         return CorrectionCaptureResponse(
             correction_id=correction.id,
             success=True,
             message="Correction captured successfully"
         )
-    
+
     def _validate_request(self, request: CorrectionCaptureRequest) -> List[str]:
         """Validate correction request."""
         errors = []
-        
+
         # Basic validation
         if not request.task_id:
             errors.append("task_id is required")
-        
+
         if not request.reasoning:
             errors.append("reasoning is required")
-        
+
         # Custom validation rules
         for rule in self.validation_rules:
             try:
                 if not rule(request):
                     errors.append(f"Validation rule failed: {rule.__name__}")
-            except Exception as e:
-                errors.append(f"Validation error: {str(e)}")
-        
+            except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
+                errors.append(f"Validation error: {str(exc)}")
+
         return errors
-    
+
     def _default_capture(self, request: CorrectionCaptureRequest) -> Correction:
         """Default correction capture logic."""
         context = CorrectionContext(
@@ -452,7 +456,7 @@ class APICorrectionCapture:
             user_id=request.user_id,
             metadata=request.metadata
         )
-        
+
         return create_simple_correction(
             task_id=request.task_id,
             field_name="output",
@@ -468,10 +472,10 @@ class InlineCorrectionCapture:
     """
     Inline correction capture for real-time corrections during execution.
     """
-    
+
     def __init__(self):
         self.active_corrections: Dict[str, Correction] = {}
-    
+
     def start_inline_correction(
         self,
         task_id: str,
@@ -480,12 +484,12 @@ class InlineCorrectionCapture:
     ) -> str:
         """
         Start an inline correction.
-        
+
         Args:
             task_id: Task ID
             field_name: Field being corrected
             current_value: Current value
-            
+
         Returns:
             Correction ID
         """
@@ -494,7 +498,7 @@ class InlineCorrectionCapture:
             phase="execution",
             operation="inline_correction"
         )
-        
+
         correction = Correction(
             correction_type=CorrectionType.OUTPUT_MODIFICATION,
             severity=CorrectionSeverity.MEDIUM,
@@ -507,10 +511,10 @@ class InlineCorrectionCapture:
                 correction_complexity="simple"
             )
         )
-        
+
         self.active_corrections[correction.id] = correction
         return correction.id
-    
+
     def apply_inline_correction(
         self,
         correction_id: str,
@@ -521,22 +525,22 @@ class InlineCorrectionCapture:
     ) -> Correction:
         """
         Apply an inline correction.
-        
+
         Args:
             correction_id: Correction ID
             field_name: Field name
             original_value: Original value
             corrected_value: Corrected value
             reasoning: Reasoning for correction
-            
+
         Returns:
             Updated Correction object
         """
         correction = self.active_corrections.get(correction_id)
-        
+
         if not correction:
             raise ValueError(f"Correction {correction_id} not found")
-        
+
         # Add diff
         diff = CorrectionDiff(
             field_name=field_name,
@@ -554,20 +558,20 @@ class InlineCorrectionCapture:
             impact_score=0.5,
             description=f"Inline correction of {field_name}"
         )
-        
+
         correction.diffs.append(diff)
         correction.reasoning = reasoning
         correction.explanation = reasoning
-        
+
         return correction
-    
+
     def finalize_inline_correction(self, correction_id: str) -> Correction:
         """Finalize an inline correction."""
         correction = self.active_corrections.pop(correction_id, None)
-        
+
         if not correction:
             raise ValueError(f"Correction {correction_id} not found")
-        
+
         correction.updated_at = datetime.now(timezone.utc)
         return correction
 
@@ -577,40 +581,40 @@ class CorrectionCaptureSystem:
     Unified correction capture system.
     Provides all capture methods in one interface.
     """
-    
+
     def __init__(self):
         self.interactive = InteractiveCorrectionCapture()
         self.batch = BatchCorrectionCapture()
         self.api = APICorrectionCapture()
         self.inline = InlineCorrectionCapture()
         self.all_corrections: List[Correction] = []
-    
+
     # Interactive methods
     def start_interactive(self, task_id: str, operation: str, original_output: Any):
         """Start interactive correction capture."""
         return self.interactive.start_capture(task_id, operation, original_output)
-    
+
     def capture_interactive_step(self, session_id: str, step: int, response: Any):
         """Capture interactive step."""
         return self.interactive.capture_step(session_id, step, response)
-    
+
     def finalize_interactive(self, session_id: str, context: CorrectionContext) -> Correction:
         """Finalize interactive capture."""
         correction = self.interactive.finalize_capture(session_id, context)
         self.all_corrections.append(correction)
         return correction
-    
+
     # Batch methods
     def add_to_batch(self, request: CorrectionCaptureRequest):
         """Add to batch queue."""
         self.batch.add_to_batch(request)
-    
+
     def process_batch(self) -> List[Correction]:
         """Process batch queue."""
         corrections = self.batch.process_batch()
         self.all_corrections.extend(corrections)
         return corrections
-    
+
     # API methods
     async def capture_via_api(self, request: CorrectionCaptureRequest) -> CorrectionCaptureResponse:
         """Capture via API."""
@@ -619,12 +623,12 @@ class CorrectionCaptureSystem:
             # Would retrieve and store the correction
             pass
         return response
-    
+
     # Inline methods
     def start_inline(self, task_id: str, field_name: str, current_value: Any) -> str:
         """Start inline correction."""
         return self.inline.start_inline_correction(task_id, field_name, current_value)
-    
+
     def apply_inline(
         self,
         correction_id: str,
@@ -641,18 +645,18 @@ class CorrectionCaptureSystem:
             corrected_value,
             reasoning
         )
-    
+
     def finalize_inline(self, correction_id: str) -> Correction:
         """Finalize inline correction."""
         correction = self.inline.finalize_inline_correction(correction_id)
         self.all_corrections.append(correction)
         return correction
-    
+
     # Utility methods
     def get_all_corrections(self) -> List[Correction]:
         """Get all captured corrections."""
         return self.all_corrections
-    
+
     def get_correction_count(self) -> int:
         """Get total correction count."""
         return len(self.all_corrections)

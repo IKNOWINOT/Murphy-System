@@ -11,6 +11,10 @@ import copy
 from dataclasses import dataclass, field
 import json
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 try:
     from pydantic import BaseModel, Field, field_validator
     _PYDANTIC_AVAILABLE = True
@@ -213,7 +217,7 @@ class Phase(Enum):
     COLLAPSE = "collapse"
     BIND = "bind"
     EXECUTE = "execute"
-    
+
     @property
     def confidence_threshold(self) -> float:
         """Minimum confidence to advance from this phase"""
@@ -227,7 +231,7 @@ class Phase(Enum):
             Phase.EXECUTE: 0.85
         }
         return thresholds[self]
-    
+
     @property
     def weights(self) -> Tuple[float, float]:
         """(w_g, w_d) weights for generative vs deterministic"""
@@ -342,11 +346,11 @@ class ConfidenceEngine:
     Continuous confidence mathematics:
     c_t = w_g(p_t) × G(x_t) + w_d(p_t) × D(x_t)
     """
-    
+
     def __init__(self):
         self.base_generative = 0.5
         self.base_deterministic = 0.8
-    
+
     def compute_confidence(self, state: MFGCSystemState,
                           generative_score: float,
                           deterministic_score: float) -> float:
@@ -393,11 +397,11 @@ class ConfidenceEngine:
         })
 
         return confidence
-    
+
     def evaluate_generative(self, candidates: List[Dict[str, Any]]) -> float:
         """
         Evaluate quality of generated candidates
-        
+
         Metrics:
         - Diversity: How different are the candidates?
         - Coverage: Do they span the solution space?
@@ -405,21 +409,21 @@ class ConfidenceEngine:
         """
         if not candidates:
             return 0.0
-        
+
         # Simple heuristic: more candidates = higher score
         # In practice, would use semantic similarity, clustering, etc.
         diversity_score = min(1.0, len(candidates) / 10.0)
-        
+
         # Check for variety in candidate types
         types = set(c.get('type', 'unknown') for c in candidates)
         coverage_score = min(1.0, len(types) / 5.0)
-        
+
         return (diversity_score + coverage_score) / 2.0
-    
+
     def evaluate_deterministic(self, state: MFGCSystemState) -> float:
         """
         Evaluate deterministic verification
-        
+
         Metrics:
         - Gate coverage: Are all risks covered?
         - Constraint satisfaction: Are constraints met?
@@ -427,13 +431,13 @@ class ConfidenceEngine:
         """
         # Check gate coverage
         gate_score = min(1.0, len(state.G_t) / 5.0)
-        
+
         # Check Murphy index (lower is better)
         murphy_score = 1.0 - min(1.0, state.M_t / 0.3)
-        
+
         # Check phase progress
-        phase_score = (list(Phase).index(state.p_t) + 1) / len(Phase)
-        
+        phase_score = (list(Phase).index(state.p_t) + 1) / (len(Phase) or 1)
+
         return (gate_score + murphy_score + phase_score) / 3.0
 
 
@@ -444,31 +448,31 @@ class AuthorityController:
     Authority function: a_t = Γ(c_t)
     Authority automatically revokes if confidence drops
     """
-    
+
     def __init__(self):
         self.min_authority = 0.0
         self.max_authority = 1.0
-    
+
     def compute_authority(self, confidence: float, phase: Phase) -> float:
         """
         Compute authority level based on confidence and phase
-        
+
         Authority increases with confidence but requires higher
         confidence in later phases
         """
         # Phase-dependent threshold
         threshold = phase.confidence_threshold
-        
+
         if confidence < threshold:
             # Below threshold: minimal authority
             return self.min_authority
-        
+
         # Above threshold: scale authority with confidence
         # a_t = (c_t - threshold) / (1 - threshold)
         authority = (confidence - threshold) / (1.0 - threshold)
-        
+
         return max(self.min_authority, min(self.max_authority, authority))
-    
+
     def can_execute(self, authority: float, action: str) -> bool:
         """Check if authority level permits action"""
         # Define authority requirements for different actions
@@ -479,7 +483,7 @@ class AuthorityController:
             'commit': 0.7,
             'deploy': 0.9
         }
-        
+
         required = requirements.get(action, 0.5)
         return authority >= required
 
@@ -491,11 +495,11 @@ class MurphyIndexMonitor:
     Murphy index: M_t = Σ L_k × p_k
     Tracks accumulated risk and triggers contraction
     """
-    
+
     def __init__(self, threshold: float = 0.3):
         self.threshold = threshold
         self.risks: List[Dict[str, Any]] = []
-    
+
     def add_risk(self, loss: float, probability: float, description: str):
         """Add a risk to the index"""
         self.risks.append({
@@ -504,25 +508,25 @@ class MurphyIndexMonitor:
             'description': description,
             'contribution': loss * probability
         })
-    
+
     def compute_index(self) -> float:
         """Compute current Murphy index"""
         if not self.risks:
             return 0.0
-        
+
         return sum(r['contribution'] for r in self.risks)
-    
+
     def check_threshold(self, current_index: float) -> bool:
         """Check if Murphy index exceeds threshold"""
         return current_index > self.threshold
-    
+
     def get_top_risks(self, n: int = 5) -> List[Dict[str, Any]]:
         """Get top N risks by contribution"""
-        sorted_risks = sorted(self.risks, 
-                            key=lambda r: r['contribution'], 
+        sorted_risks = sorted(self.risks,
+                            key=lambda r: r['contribution'],
                             reverse=True)
         return sorted_risks[:n]
-    
+
     def clear_risks(self):
         """Clear all risks (after mitigation)"""
         self.risks.clear()
@@ -535,7 +539,7 @@ class GateCompiler:
     Dynamic gate synthesis using Murphy inversion
     Gates are discovered, not predefined
     """
-    
+
     def __init__(self):
         self.gate_templates = {
             'validation': 'Validate {aspect} before {action}',
@@ -544,40 +548,40 @@ class GateCompiler:
             'monitoring': 'Monitor {metric} and alert if {threshold}',
             'rollback': 'Enable rollback for {operation}'
         }
-    
-    def synthesize_gates(self, 
+
+    def synthesize_gates(self,
                         candidates: List[Dict[str, Any]],
                         risks: List[Dict[str, Any]]) -> List[str]:
         """
         Synthesize gates from candidates and risks
-        
+
         Process:
         1. Identify failure modes in candidates
         2. Invert risks into preventive gates
         3. Generate verification gates
         """
         gates = []
-        
+
         # Generate gates from risks
         for risk in risks:
             gate = self._risk_to_gate(risk)
             if gate:
                 gates.append(gate)
-        
+
         # Generate gates from candidates
         for candidate in candidates:
             candidate_gates = self._candidate_to_gates(candidate)
             gates.extend(candidate_gates)
-        
+
         # Deduplicate
         gates = list(set(gates))
-        
+
         return gates
-    
+
     def _risk_to_gate(self, risk: Dict[str, Any]) -> Optional[str]:
         """Convert risk to preventive gate"""
         desc = risk.get('description', '')
-        
+
         # Pattern matching for common risks
         if 'vendor' in desc.lower():
             return "Validate vendor independence and avoid lock-in"
@@ -589,27 +593,27 @@ class GateCompiler:
             return "Monitor performance metrics and set thresholds"
         elif 'cost' in desc.lower():
             return "Track costs and set budget alerts"
-        
+
         return f"Mitigate: {desc}"
-    
+
     def _candidate_to_gates(self, candidate: Dict[str, Any]) -> List[str]:
         """Generate verification gates for candidate"""
         gates = []
-        
+
         # Check for required validations
         if 'requires_validation' in candidate:
             for aspect in candidate['requires_validation']:
                 gates.append(f"Validate {aspect} before deployment")
-        
+
         # Check for dependencies
         if 'dependencies' in candidate:
             gates.append("Verify all dependencies are available")
-        
+
         # Check for constraints
         if 'constraints' in candidate:
             for constraint in candidate['constraints']:
                 gates.append(f"Ensure {constraint} is satisfied")
-        
+
         return gates
 
 
@@ -621,7 +625,7 @@ class SwarmGenerator:
     1. Generate solution candidates
     2. Generate control gates
     """
-    
+
     def __init__(self):
         self.generation_strategies = [
             'brainstorm',
@@ -630,14 +634,14 @@ class SwarmGenerator:
             'constraint_based',
             'random_exploration'
         ]
-    
-    def generate_candidates(self, 
+
+    def generate_candidates(self,
                           task: str,
                           phase: Phase,
                           context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
         Generate solution candidates based on phase
-        
+
         Each phase has different generation strategies:
         - EXPAND: Broad, creative, many options
         - TYPE: Categorize and classify
@@ -648,7 +652,7 @@ class SwarmGenerator:
         - EXECUTE: Generate deployment plan
         """
         candidates = []
-        
+
         if phase == Phase.EXPAND:
             candidates = self._expand_candidates(task, context)
         elif phase == Phase.TYPE:
@@ -663,9 +667,9 @@ class SwarmGenerator:
             candidates = self._bind_candidates(task, context)
         elif phase == Phase.EXECUTE:
             candidates = self._execute_candidates(task, context)
-        
+
         return candidates
-    
+
     def _expand_candidates(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """EXPAND phase: Generate broad range of approaches"""
         return [
@@ -675,7 +679,7 @@ class SwarmGenerator:
             {'type': 'prototype', 'approach': 'Rapid prototyping', 'score': 0.6},
             {'type': 'research', 'approach': 'Research-first approach', 'score': 0.65}
         ]
-    
+
     def _type_candidates(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """TYPE phase: Classify and categorize"""
         return [
@@ -683,7 +687,7 @@ class SwarmGenerator:
             {'category': 'research', 'subcategory': 'investigation'},
             {'category': 'design', 'subcategory': 'architecture'}
         ]
-    
+
     def _enumerate_candidates(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """ENUMERATE phase: List specific options"""
         return [
@@ -691,7 +695,7 @@ class SwarmGenerator:
             {'option': 'Option B', 'pros': ['Flexible'], 'cons': ['Complex']},
             {'option': 'Option C', 'pros': ['Simple'], 'cons': ['Slow']}
         ]
-    
+
     def _constrain_candidates(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """CONSTRAIN phase: Apply constraints"""
         return [
@@ -699,14 +703,14 @@ class SwarmGenerator:
             {'constraint': 'time', 'value': 'meets deadline'},
             {'constraint': 'quality', 'value': 'meets standards'}
         ]
-    
+
     def _collapse_candidates(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """COLLAPSE phase: Synthesize solution"""
         return [
             {'solution': 'Hybrid approach combining best elements',
              'components': ['modular', 'incremental', 'tested']}
         ]
-    
+
     def _bind_candidates(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """BIND phase: Create specifications"""
         return [
@@ -714,7 +718,7 @@ class SwarmGenerator:
             {'spec': 'Implementation plan', 'completeness': 0.85},
             {'spec': 'Testing strategy', 'completeness': 0.8}
         ]
-    
+
     def _execute_candidates(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """EXECUTE phase: Deployment plan"""
         return [
@@ -733,7 +737,7 @@ class MFGCController:
 
     _DEFAULT_UNCERTAINTY: float = 0.5
     """Default per-dimension uncertainty applied when no prior data is available."""
-    
+
     def __init__(self):
         self.confidence_engine = ConfidenceEngine()
         self.authority_controller = AuthorityController()
@@ -779,11 +783,11 @@ class MFGCController:
     def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> MFGCSystemState:
         """
         Execute complete 7-phase MFGC cycle
-        
+
         Args:
             task: Task description
             context: Optional context information
-        
+
         Returns:
             Final system state with complete audit trail
         """
@@ -795,18 +799,18 @@ class MFGCController:
 
         # CFP-4: initialise per-dimension uncertainty tracker
         uncertainty_state = self._make_uncertainty_state()
-        
+
         state.log_event('execution_start', {'task': task})
-        
+
         # Execute all 7 phases
         for phase in Phase:
             state.p_t = phase
             # Add to history if not already there
             if not state.phase_history or state.phase_history[-1] != phase:
                 state.phase_history.append(phase)
-            
+
             self._execute_phase(state)
-            
+
             # Check if we can advance
             if state.c_t < phase.confidence_threshold:
                 state.log_event('phase_blocked', {
@@ -816,7 +820,7 @@ class MFGCController:
                 })
                 # In practice, would iterate or request more information
                 # For now, continue with lower confidence
-            
+
             # Check Murphy index
             if self.murphy_monitor.check_threshold(state.M_t):
                 state.log_event('murphy_threshold_exceeded', {
@@ -856,13 +860,13 @@ class MFGCController:
             state.log_event('recalibration_triggered', {
                 'signal_count': len(state.pending_feedback_signals),
             })
-        
+
         state.log_event('execution_complete', {
             'final_confidence': state.c_t,
             'final_murphy_index': state.M_t,
             'total_gates': len(state.G_t)
         })
-        
+
         return state
 
     def apply_feedback_correction(
@@ -935,13 +939,13 @@ class MFGCController:
             'source_task_id': source_task_id,
         })
         return state
-    
+
     def _execute_phase(self, state: MFGCSystemState):
         """Execute single phase"""
         phase = state.p_t
-        
+
         state.log_event('phase_start', {'phase': phase.value})
-        
+
         # 1. Generate candidates
         candidates = self.swarm_generator.generate_candidates(
             state.x_t['task'],
@@ -949,31 +953,31 @@ class MFGCController:
             state.x_t.get('context', {})
         )
         state.candidates = candidates
-        
+
         # 2. Evaluate generative quality
         gen_score = self.confidence_engine.evaluate_generative(candidates)
-        
+
         # 3. Evaluate deterministic verification
         det_score = self.confidence_engine.evaluate_deterministic(state)
-        
+
         # 4. Compute confidence
         state.c_t = self.confidence_engine.compute_confidence(
             state, gen_score, det_score
         )
         state.confidence_history.append(state.c_t)
-        
+
         # 5. Compute authority
         state.a_t = self.authority_controller.compute_authority(
             state.c_t, phase
         )
-        
+
         # 6. Identify risks
         self._identify_risks(state, candidates)
-        
+
         # 7. Compute Murphy index
         state.M_t = self.murphy_monitor.compute_index()
         state.murphy_history.append(state.M_t)
-        
+
         # 8. Synthesize gates
         new_gates = self.gate_compiler.synthesize_gates(
             candidates,
@@ -981,7 +985,7 @@ class MFGCController:
         )
         state.G_t.extend(new_gates)
         state.gate_history.append(list(state.G_t))
-        
+
         state.log_event('phase_complete', {
             'phase': phase.value,
             'confidence': state.c_t,
@@ -989,22 +993,22 @@ class MFGCController:
             'murphy_index': state.M_t,
             'gates_added': len(new_gates)
         })
-    
+
     def _identify_risks(self, state: MFGCSystemState, candidates: List[Dict[str, Any]]):
         """Identify risks in current phase"""
         # Clear previous risks
         self.murphy_monitor.clear_risks()
-        
+
         # Add phase-specific risks
         phase = state.p_t
-        
+
         if phase == Phase.EXPAND:
             self.murphy_monitor.add_risk(0.3, 0.5, "Scope creep")
             self.murphy_monitor.add_risk(0.2, 0.4, "Unfocused exploration")
         elif phase == Phase.EXECUTE:
             self.murphy_monitor.add_risk(0.8, 0.3, "Deployment failure")
             self.murphy_monitor.add_risk(0.5, 0.2, "Data loss")
-        
+
         # Add candidate-specific risks
         for candidate in candidates:
             if 'risk' in candidate:
@@ -1013,17 +1017,17 @@ class MFGCController:
                     candidate['risk'],
                     f"Candidate risk: {candidate.get('description', 'unknown')}"
                 )
-    
+
     def _synthesize_emergency_gates(self, state: MFGCSystemState) -> List[str]:
         """Synthesize emergency gates when Murphy index is high"""
         top_risks = self.murphy_monitor.get_top_risks(3)
-        
+
         gates = []
         for risk in top_risks:
             gates.append(f"EMERGENCY: Mitigate {risk['description']}")
-        
+
         return gates
-    
+
     def get_summary(self, state: MFGCSystemState) -> Dict[str, Any]:
         """Get execution summary"""
         return {

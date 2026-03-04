@@ -17,6 +17,10 @@ import json
 
 from dataclasses import dataclass, field
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ArtifactType(Enum):
     """Types of governance artifacts"""
@@ -41,24 +45,24 @@ class ArtifactScope(Enum):
 @dataclass
 class GovernanceArtifact:
     """Governance artifact for execution control"""
-    
+
     artifact_id: str
     artifact_type: ArtifactType
     name: str
     version: str
     source_system: str
-    
+
     # Required metadata
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     expires_at: Optional[datetime] = None
     authority_level: str = "LOW"
     scope: ArtifactScope = ArtifactScope.ORGANIZATION
     jurisdiction: List[str] = field(default_factory=list)
-    
+
     # Content reference
     reference_url: Optional[str] = None
     hash_checksum: Optional[str] = None
-    
+
     def validate(self) -> bool:
         """Validate artifact structure"""
         return (
@@ -66,7 +70,7 @@ class GovernanceArtifact:
             isinstance(self.name, str) and
             len(self.name) > 0
         )
-    
+
     def is_expired(self) -> bool:
         """Check if artifact is expired"""
         if self.expires_at is None:
@@ -76,27 +80,27 @@ class GovernanceArtifact:
 
 class ArtifactRegistry:
     """Registry for managing governance artifacts"""
-    
+
     def __init__(self):
         self.artifacts: Dict[str, GovernanceArtifact] = {}
-    
+
     def register_artifact(self, artifact: GovernanceArtifact) -> bool:
         """Register a new governance artifact"""
         if not artifact.validate():
             return False
-        
+
         self.artifacts[artifact.artifact_id] = artifact
         return True
-    
+
     def get_artifact(self, artifact_id: str) -> Optional[GovernanceArtifact]:
         """Retrieve artifact by ID"""
         return self.artifacts.get(artifact_id)
-    
+
     def find_required_artifacts(self, action_type: str, scope: str) -> List[GovernanceArtifact]:
         """Find artifacts required for specific action"""
         required = []
         for artifact in self.artifacts.values():
-            if (not artifact.is_expired() and 
+            if (not artifact.is_expired() and
                 artifact.scope.value == scope):
                 required.append(artifact)
         return required
@@ -104,45 +108,45 @@ class ArtifactRegistry:
 
 class ArtifactValidator:
     """Validates artifacts for execution permissions"""
-    
+
     def __init__(self, registry: ArtifactRegistry):
         self.registry = registry
-    
+
     def validate_execution_permissions(self, agent, proposed_action: str) -> Dict[str, any]:
         """Validate if agent has required artifacts for action"""
-        
+
         # Get required artifacts for this action
         required_artifacts = self.registry.find_required_artifacts(
-            proposed_action, 
+            proposed_action,
             getattr(agent, 'scope', 'ORGANIZATION')
         )
-        
+
         result = {
             "validation_result": "PASS",
             "missing_artifacts": [],
             "insufficient_authority": [],
             "expired_artifacts": []
         }
-        
+
         # Check each required artifact
         for artifact in required_artifacts:
             if artifact.is_expired():
                 result["expired_artifacts"].append(artifact.artifact_id)
                 result["validation_result"] = "BLOCKED"
-            
+
             if artifact.authority_level > getattr(agent, 'authority_band', 'LOW'):
                 result["insufficient_authority"].append(artifact.artifact_id)
                 result["validation_result"] = "BLOCKED"
-        
+
         return result
 
 
 class LLMSuggestionEngine:
     """LLM-powered suggestion system for governance artifacts"""
-    
+
     PROHIBITED_OPERATIONS = [
         "assert_compliance",
-        "override_artifact", 
+        "override_artifact",
         "interpret_legal_text",
         "modify_artifact_terms",
         "grant_exceptions",
@@ -150,7 +154,7 @@ class LLMSuggestionEngine:
         "determine_jurisdiction",
         "certify_compliance"
     ]
-    
+
     def suggest_artifacts(self, action_description: str, agent_context: Dict) -> Dict[str, str]:
         """Suggest relevant governance artifacts"""
         suggestions = {
@@ -160,7 +164,7 @@ class LLMSuggestionEngine:
             "reasoning": "Action involves data processing requiring policy compliance"
         }
         return suggestions
-    
+
     def validate_llm_output(self, output: str) -> bool:
         """Ensure LLM doesn't attempt prohibited operations"""
         for prohibited in self.PROHIBITED_OPERATIONS:

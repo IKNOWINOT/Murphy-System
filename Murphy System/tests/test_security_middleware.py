@@ -34,7 +34,7 @@ from src.security_plane.middleware import (
 def test_middleware_config_creation():
     """Test middleware configuration creation"""
     config = SecurityMiddlewareConfig()
-    
+
     assert config.require_authentication is True
     assert config.require_encryption is True
     assert config.enable_audit_logging is True
@@ -50,7 +50,7 @@ def test_middleware_config_customization():
         require_encryption=False,
         enable_timing_normalization=False
     )
-    
+
     assert config.require_authentication is False
     assert config.require_encryption is False
     assert config.enable_timing_normalization is False
@@ -66,7 +66,7 @@ def test_security_context_creation():
         request_id="test_request",
         timestamp=datetime.now()
     )
-    
+
     assert context.request_id == "test_request"
     assert context.authenticated is False
     assert context.encrypted is False
@@ -79,10 +79,10 @@ def test_security_context_elapsed_time():
         request_id="test",
         timestamp=datetime.now()
     )
-    
+
     time.sleep(0.1)  # 100ms
     elapsed = context.get_elapsed_time_ms()
-    
+
     assert 90 <= elapsed <= 150  # Allow some tolerance
 
 
@@ -94,10 +94,10 @@ def test_authentication_middleware_disabled():
     """Test authentication middleware when disabled"""
     config = SecurityMiddlewareConfig(require_authentication=False)
     auth = AuthenticationMiddleware(config)
-    
+
     context = SecurityContext(request_id="test", timestamp=datetime.now())
     result = auth.authenticate_request({}, context)
-    
+
     assert result is True
     assert context.authenticated is True
 
@@ -106,10 +106,10 @@ def test_authentication_middleware_missing_credentials():
     """Test authentication middleware with missing credentials"""
     config = SecurityMiddlewareConfig(require_authentication=True)
     auth = AuthenticationMiddleware(config)
-    
+
     context = SecurityContext(request_id="test", timestamp=datetime.now())
     result = auth.authenticate_request({}, context)
-    
+
     assert result is False
     assert context.authenticated is False
 
@@ -118,7 +118,7 @@ def test_authentication_middleware_human_auth():
     """Test authentication middleware with human credentials"""
     config = SecurityMiddlewareConfig(require_authentication=True)
     auth = AuthenticationMiddleware(config)
-    
+
     request_data = {
         'auth_type': 'human',
         'credentials': {
@@ -127,11 +127,11 @@ def test_authentication_middleware_human_auth():
             'passkey_response': 'response'
         }
     }
-    
+
     context = SecurityContext(request_id="test", timestamp=datetime.now())
     # Note: Will fail without valid passkey, but tests the flow
     result = auth.authenticate_request(request_data, context)
-    
+
     assert context.identity == 'test_user'
 
 
@@ -143,10 +143,10 @@ def test_encryption_middleware_disabled():
     """Test encryption middleware when disabled"""
     config = SecurityMiddlewareConfig(require_encryption=False)
     encryption = EncryptionMiddleware(config)
-    
+
     context = SecurityContext(request_id="test", timestamp=datetime.now())
     data = b"test data"
-    
+
     encrypted = encryption.encrypt_data(data, context)
     assert encrypted == data  # No encryption
     assert context.encrypted is False
@@ -156,10 +156,10 @@ def test_encryption_middleware_enabled():
     """Test encryption middleware when enabled"""
     config = SecurityMiddlewareConfig(require_encryption=True, use_hybrid_pqc=True)
     encryption = EncryptionMiddleware(config)
-    
+
     context = SecurityContext(request_id="test", timestamp=datetime.now())
     data = b"test data"
-    
+
     encrypted = encryption.encrypt_data(data, context)
     assert context.encrypted is True
     assert "Kyber-1024" in context.encryption_algorithm
@@ -180,16 +180,16 @@ def test_audit_logging_request():
     """Test audit logging for requests"""
     config = SecurityMiddlewareConfig(enable_audit_logging=True)
     audit = AuditLoggingMiddleware(config)
-    
+
     request_data = {
         'component': 'test_component',
         'operation': 'test_operation'
     }
     context = SecurityContext(request_id="test", timestamp=datetime.now())
     context.authenticated = True
-    
+
     audit.log_request(request_data, context)
-    
+
     assert len(audit.audit_logs) == 1
     assert audit.audit_logs[0].component == 'test_component'
     assert audit.audit_logs[0].operation == 'test_operation'
@@ -199,15 +199,15 @@ def test_audit_logging_response():
     """Test audit logging for responses"""
     config = SecurityMiddlewareConfig(enable_audit_logging=True)
     audit = AuditLoggingMiddleware(config)
-    
+
     response_data = {
         'component': 'test_component',
         'operation': 'test_operation'
     }
     context = SecurityContext(request_id="test", timestamp=datetime.now())
-    
+
     audit.log_response(response_data, context, success=True)
-    
+
     assert len(audit.audit_logs) == 1
     assert audit.audit_logs[0].success is True
 
@@ -216,14 +216,14 @@ def test_audit_logging_query():
     """Test audit log querying"""
     config = SecurityMiddlewareConfig(enable_audit_logging=True)
     audit = AuditLoggingMiddleware(config)
-    
+
     # Log multiple entries
     for i in range(5):
         request_data = {'component': f'component_{i}', 'operation': 'test'}
         context = SecurityContext(request_id=f"test_{i}", timestamp=datetime.now())
         context.identity = f"user_{i % 2}"  # Alternate users
         audit.log_request(request_data, context)
-    
+
     # Query by identity
     logs = audit.get_audit_logs(identity="user_0")
     assert len(logs) == 3  # user_0, user_0, user_0
@@ -237,17 +237,17 @@ def test_timing_normalization_disabled():
     """Test timing normalization when disabled"""
     config = SecurityMiddlewareConfig(enable_timing_normalization=False)
     timing = TimingNormalizationMiddleware(config)
-    
+
     context = SecurityContext(request_id="test", timestamp=datetime.now())
-    
+
     def fast_operation():
         time.sleep(0.01)  # 10ms
         return "result"
-    
+
     start = time.time()
     result = timing.normalize_timing(fast_operation, context)
     elapsed = (time.time() - start) * 1000
-    
+
     assert result == "result"
     assert 8 <= elapsed <= 20  # Should be ~10ms
 
@@ -259,17 +259,17 @@ def test_timing_normalization_enabled():
         target_time_ms=100.0
     )
     timing = TimingNormalizationMiddleware(config)
-    
+
     context = SecurityContext(request_id="test", timestamp=datetime.now())
-    
+
     def fast_operation():
         time.sleep(0.01)  # 10ms
         return "result"
-    
+
     start = time.time()
     result = timing.normalize_timing(fast_operation, context)
     elapsed = (time.time() - start) * 1000
-    
+
     assert result == "result"
     assert 95 <= elapsed <= 110  # Should be normalized to ~100ms
     assert context.normalized_time_ms is not None
@@ -283,17 +283,17 @@ def test_dlp_classification():
     """Test DLP data classification"""
     config = SecurityMiddlewareConfig(enable_dlp=True)
     dlp = DLPMiddleware(config)
-    
+
     # Test with sensitive data
     data = {
         'email': 'test@example.com',
         'ssn': '123-45-6789',
         'credit_card': '4111-1111-1111-1111'
     }
-    
+
     context = SecurityContext(request_id="test", timestamp=datetime.now())
     classification = dlp.classify_data(data, context)
-    
+
     # Classification should detect sensitive data
     assert classification is not None
     assert context.data_classification is not None
@@ -303,15 +303,15 @@ def test_dlp_exfiltration_prevention():
     """Test DLP exfiltration prevention"""
     config = SecurityMiddlewareConfig(enable_dlp=True, block_sensitive_data=True)
     dlp = DLPMiddleware(config)
-    
+
     data = {'sensitive': 'data'}
     context = SecurityContext(request_id="test", timestamp=datetime.now())
     context.sensitive_data_detected = True
-    
+
     # Trusted destination
     allowed = dlp.prevent_exfiltration(data, "localhost", context)
     assert allowed is True
-    
+
     # Untrusted destination
     blocked = dlp.prevent_exfiltration(data, "untrusted.com", context)
     assert blocked is False
@@ -328,16 +328,16 @@ def test_anti_surveillance_metadata_scrubbing():
         scrub_metadata=True
     )
     anti_surv = AntiSurveillanceMiddleware(config)
-    
+
     metadata = {
         'timestamp': datetime(2024, 1, 15, 14, 37, 42),
         'ip_address': '192.168.1.100',
         'user_agent': 'Chrome/120.0'
     }
-    
+
     context = SecurityContext(request_id="test", timestamp=datetime.now())
     scrubbed = anti_surv.scrub_metadata(metadata, context)
-    
+
     assert scrubbed['timestamp'].minute == 0  # Fuzzed
     assert scrubbed['ip_address'] == '192.168.1.0'  # Anonymized
     assert 'Murphy' in scrubbed['user_agent']  # Normalized
@@ -351,7 +351,7 @@ def test_anti_surveillance_metadata_scrubbing():
 def test_security_middleware_initialization():
     """Test security middleware initialization"""
     middleware = SecurityMiddleware()
-    
+
     assert middleware.auth is not None
     assert middleware.encryption is not None
     assert middleware.audit is not None
@@ -368,18 +368,18 @@ def test_security_middleware_process_request():
         enable_timing_normalization=False
     )
     middleware = SecurityMiddleware(config)
-    
+
     request_data = {
         'component': 'test',
         'operation': 'test_op',
         'data': 'test data'
     }
-    
+
     def operation(req, ctx):
         return {'result': 'success', 'data': req['data']}
-    
+
     result = middleware.process_request(request_data, operation, 'test_component')
-    
+
     assert result['result'] == 'success'
     assert 'security_context' in result
     assert result['security_context']['request_id'] is not None
@@ -389,16 +389,16 @@ def test_security_middleware_authentication_failure():
     """Test security middleware with authentication failure"""
     config = SecurityMiddlewareConfig(require_authentication=True)
     middleware = SecurityMiddleware(config)
-    
+
     request_data = {
         'component': 'test',
         'operation': 'test_op'
         # No authentication credentials
     }
-    
+
     def operation(req, ctx):
         return {'result': 'success'}
-    
+
     with pytest.raises(PermissionError, match="Authentication failed"):
         middleware.process_request(request_data, operation, 'test_component')
 
@@ -410,10 +410,10 @@ def test_security_middleware_statistics():
         require_encryption=False
     )
     middleware = SecurityMiddleware(config)
-    
+
     # Process some requests
     request_data = {'component': 'test', 'operation': 'test_op'}
-    
+
     for _ in range(5):
         try:
             middleware.process_request(
@@ -423,9 +423,9 @@ def test_security_middleware_statistics():
             )
         except:
             pass
-    
+
     stats = middleware.get_statistics()
-    
+
     assert stats['total_requests'] == 5
     assert 'authentication_rate' in stats
     assert 'encryption_rate' in stats
@@ -438,13 +438,13 @@ def test_security_middleware_decorator():
         require_encryption=False
     )
     middleware = SecurityMiddleware(config)
-    
+
     @middleware.secure_endpoint('test_component')
     def test_endpoint(request_data):
         return {'result': 'success', 'data': request_data.get('data')}
-    
+
     result = test_endpoint({'data': 'test'})
-    
+
     assert result['result'] == 'success'
     assert 'security_context' in result
 
@@ -456,7 +456,7 @@ def test_security_middleware_decorator():
 def test_confidence_engine_middleware():
     """Test Confidence Engine specific middleware"""
     middleware = ConfidenceEngineMiddleware()
-    
+
     assert middleware.component_name == "confidence_engine"
     assert middleware.auth is not None
 
@@ -464,7 +464,7 @@ def test_confidence_engine_middleware():
 def test_gate_synthesis_middleware():
     """Test Gate Synthesis specific middleware"""
     middleware = GateSynthesisMiddleware()
-    
+
     assert middleware.component_name == "gate_synthesis"
     assert middleware.auth is not None
 
@@ -472,7 +472,7 @@ def test_gate_synthesis_middleware():
 def test_execution_orchestrator_middleware():
     """Test Execution Orchestrator specific middleware"""
     middleware = ExecutionOrchestratorMiddleware()
-    
+
     assert middleware.component_name == "execution_orchestrator"
     assert middleware.auth is not None
 
@@ -492,7 +492,7 @@ def test_full_security_pipeline():
         enable_anti_surveillance=True
     )
     middleware = SecurityMiddleware(config)
-    
+
     request_data = {
         'component': 'test',
         'operation': 'test_op',
@@ -502,25 +502,25 @@ def test_full_security_pipeline():
             'ip_address': '192.168.1.100'
         }
     }
-    
+
     def operation(req, ctx):
         return {
             'result': 'success',
             'data': req['data'],
             'metadata': req.get('metadata', {})
         }
-    
+
     result = middleware.process_request(request_data, operation, 'test_component')
-    
+
     # Verify security context
     assert 'security_context' in result
     assert result['security_context']['authenticated'] is True
     assert result['security_context']['data_classification'] is not None
-    
+
     # Verify metadata scrubbing (if present)
     if 'metadata' in result and 'ip_address' in result['metadata']:
         assert result['metadata']['ip_address'] == '192.168.1.0'
-    
+
     # Verify audit logs
     assert len(middleware.audit.audit_logs) >= 2  # Request + response
 
@@ -533,18 +533,18 @@ def test_security_middleware_performance():
         enable_timing_normalization=False
     )
     middleware = SecurityMiddleware(config)
-    
+
     request_data = {'component': 'test', 'operation': 'test_op'}
-    
+
     def fast_operation(req, ctx):
         return {'result': 'success'}
-    
+
     # Measure overhead
     start = time.time()
     for _ in range(100):
         middleware.process_request(request_data, fast_operation, 'test')
     elapsed = time.time() - start
-    
+
     # Should complete 100 requests in reasonable time
     assert elapsed < 5.0  # Less than 5 seconds for 100 requests
 
@@ -556,15 +556,15 @@ def test_security_middleware_error_handling():
         enable_audit_logging=True
     )
     middleware = SecurityMiddleware(config)
-    
+
     request_data = {'component': 'test', 'operation': 'test_op'}
-    
+
     def failing_operation(req, ctx):
         raise ValueError("Operation failed")
-    
+
     with pytest.raises(ValueError, match="Operation failed"):
         middleware.process_request(request_data, failing_operation, 'test')
-    
+
     # Verify failure was logged
     logs = middleware.audit.get_audit_logs()
     assert any(not log.success for log in logs)

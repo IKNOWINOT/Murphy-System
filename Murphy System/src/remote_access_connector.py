@@ -27,12 +27,17 @@ import time
 import uuid
 from typing import Any, Dict, List, Optional
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ---------------------------------------------------------------------------
 # Enums
 # ---------------------------------------------------------------------------
 
 class RemotePlatform(enum.Enum):
+    """Remote platform (Enum subclass)."""
     TEAMVIEWER = "teamviewer"
     ANYDESK = "anydesk"
     RDP = "rdp"
@@ -45,6 +50,7 @@ class RemotePlatform(enum.Enum):
 
 
 class SessionStatus(enum.Enum):
+    """Session status (Enum subclass)."""
     IDLE = "idle"
     CONNECTING = "connecting"
     CONNECTED = "connected"
@@ -55,6 +61,7 @@ class SessionStatus(enum.Enum):
 
 
 class AccessLevel(enum.Enum):
+    """Access level (Enum subclass)."""
     VIEW_ONLY = "view_only"
     STANDARD = "standard"
     FULL_CONTROL = "full_control"
@@ -63,6 +70,7 @@ class AccessLevel(enum.Enum):
 
 
 class ProtocolType(enum.Enum):
+    """Protocol type (Enum subclass)."""
     RDP = "rdp"
     VNC = "vnc"
     SSH = "ssh"
@@ -71,6 +79,7 @@ class ProtocolType(enum.Enum):
 
 
 class ConnectorStatus(enum.Enum):
+    """Connector status (Enum subclass)."""
     CONNECTED = "connected"
     DISCONNECTED = "disconnected"
     ERROR = "error"

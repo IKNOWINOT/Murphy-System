@@ -22,40 +22,44 @@ from .models import (
     RewardSignal
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class TrainingOutputGenerator:
     """
     Generates training outputs from simulation results
-    
+
     Creates labeled datasets for:
     - Confidence estimation
     - Gate policy learning
     - Risk prediction
     """
-    
+
     def __init__(self):
         self.training_artifacts: List[TrainingArtifact] = []
         self.reward_signals: List[RewardSignal] = []
-    
+
     def generate_confidence_training_data(
         self,
         simulation_results
     ) -> List[TrainingArtifact]:
         """
         Generate training data for confidence models
-        
+
         Trains estimators to predict:
         - Instability H(x)
         - Grounding D(x)
         - Failure probability p_k
-        
+
         Args:
             simulation_results: Can be List[SimulationResult] or List[FailureCase]
         """
         from .models import FailureCase, SimulationResult, TelemetryOutcome
-        
+
         artifacts = []
-        
+
         # Handle both FailureCase and SimulationResult inputs
         for item in simulation_results:
             if isinstance(item, FailureCase):
@@ -87,10 +91,10 @@ class TrainingOutputGenerator:
                 result = item
                 failure_case = result.failure_case
                 telemetry = result.telemetry_outcome
-            
+
             # Extract features from simulation
             features = self._extract_confidence_features(result)
-            
+
             # Create labels for each timestep
             for i in range(len(telemetry.confidence_trajectory)):
                 artifact = TrainingArtifact(
@@ -121,31 +125,31 @@ class TrainingOutputGenerator:
                         'execution_halted': result.execution_halted
                     }
                 )
-                
+
                 artifacts.append(artifact)
                 self.training_artifacts.append(artifact)
-        
+
         return artifacts
-    
+
     def generate_gate_policy_data(
         self,
         simulation_results
     ) -> List[TrainingArtifact]:
         """
         Generate training data for gate policy learning
-        
+
         Optimizes for:
         - Earlier detection
         - Lower execution exposure
         - Reduced Murphy index
-        
+
         Args:
             simulation_results: Can be List[SimulationResult] or List[FailureCase]
         """
         from .models import FailureCase, SimulationResult, TelemetryOutcome
-        
+
         artifacts = []
-        
+
         # Handle both FailureCase and SimulationResult inputs
         for item in simulation_results:
             if isinstance(item, FailureCase):
@@ -175,13 +179,13 @@ class TrainingOutputGenerator:
             else:
                 result = item
                 failure_case = result.failure_case
-            
+
             # Extract gate-related features
             features = self._extract_gate_features(result)
-            
+
             # Calculate reward signal
             reward = self._calculate_reward(result)
-            
+
             artifact = TrainingArtifact(
                 artifact_id=f"gate_policy_{result.simulation_id}",
                 artifact_type='gate_policy',
@@ -208,45 +212,45 @@ class TrainingOutputGenerator:
                     'halt_reason': result.halt_reason
                 }
             )
-            
+
             artifacts.append(artifact)
             self.training_artifacts.append(artifact)
-        
+
         return artifacts
-    
+
     def generate_reward_signals(
         self,
         simulation_results: List[SimulationResult]
     ) -> List[RewardSignal]:
         """
         Generate reward signals for gate policy learning
-        
+
         Reward function: R = -Σ(L_k × p_k) - latency_penalty - false_positive_penalty
         """
         signals = []
-        
+
         for result in simulation_results:
             reward = self._calculate_reward(result)
             signals.append(reward)
             self.reward_signals.append(reward)
-        
+
         return signals
-    
+
     def generate_risk_prediction_data(
         self,
         simulation_results: List[SimulationResult]
     ) -> List[TrainingArtifact]:
         """
         Generate training data for risk prediction
-        
+
         Predicts future risk trajectory
         """
         artifacts = []
-        
+
         for result in simulation_results:
             failure_case = result.failure_case
             telemetry = result.telemetry_outcome
-            
+
             # Create training examples for risk prediction
             for i in range(len(telemetry.risk_trajectory) - 1):
                 artifact = TrainingArtifact(
@@ -271,63 +275,63 @@ class TrainingOutputGenerator:
                         'step_index': i
                     }
                 )
-                
+
                 artifacts.append(artifact)
                 self.training_artifacts.append(artifact)
-        
+
         return artifacts
-    
+
     def export_dataset(
         self,
         artifact_type: str,
-        format: str = 'json'
+        output_format: str = 'json'
     ) -> str:
         """
         Export training dataset
-        
+
         Args:
             artifact_type: Type of artifacts to export
-            format: Export format ('json', 'csv')
+            output_format: Export format ('json', 'csv')
         """
         # Filter artifacts by type
         artifacts = [
             a for a in self.training_artifacts
             if a.artifact_type == artifact_type
         ]
-        
-        if format == 'json':
+
+        if output_format == 'json':
             import json
             return json.dumps([a.to_dict() for a in artifacts], indent=2)
-        elif format == 'csv':
+        elif output_format == 'csv':
             # CSV export
             if not artifacts:
                 return ""
-            
+
             # Get all feature and label keys
             feature_keys = set()
             label_keys = set()
             for a in artifacts:
                 feature_keys.update(a.input_features.keys())
                 label_keys.update(a.target_labels.keys())
-            
+
             feature_keys = sorted(feature_keys)
             label_keys = sorted(label_keys)
-            
+
             # Create CSV
             lines = []
             header = ['artifact_id'] + feature_keys + label_keys
             lines.append(','.join(header))
-            
+
             for a in artifacts:
                 row = [a.artifact_id]
                 row.extend([str(a.input_features.get(k, '')) for k in feature_keys])
                 row.extend([str(a.target_labels.get(k, '')) for k in label_keys])
                 lines.append(','.join(row))
-            
+
             return '\n'.join(lines)
         else:
-            raise ValueError(f"Unsupported format: {format}")
-    
+            raise ValueError(f"Unsupported output_format: {output_format}")
+
     def get_statistics(self) -> Dict[str, Any]:
         """Get statistics about generated training data"""
         stats = {
@@ -337,26 +341,26 @@ class TrainingOutputGenerator:
             'average_reward': 0.0,
             'failure_type_distribution': {}
         }
-        
+
         # Count by type
         for artifact in self.training_artifacts:
             artifact_type = artifact.artifact_type
             stats['artifacts_by_type'][artifact_type] = \
                 stats['artifacts_by_type'].get(artifact_type, 0) + 1
-        
+
         # Average reward
         if self.reward_signals:
-            stats['average_reward'] = sum(r.total_reward for r in self.reward_signals) / len(self.reward_signals)
-        
+            stats['average_reward'] = sum(r.total_reward for r in self.reward_signals) / (len(self.reward_signals) or 1)
+
         # Failure type distribution
         for artifact in self.training_artifacts:
             if 'failure_type' in artifact.input_features:
                 failure_type = artifact.input_features['failure_type']
                 stats['failure_type_distribution'][failure_type] = \
                     stats['failure_type_distribution'].get(failure_type, 0) + 1
-        
+
         return stats
-    
+
     def _extract_confidence_features(
         self,
         result: SimulationResult
@@ -369,7 +373,7 @@ class TrainingOutputGenerator:
             'initial_confidence': result.failure_case.confidence_drift_profile.initial_confidence,
             'initial_risk': result.telemetry_outcome.risk_trajectory[0]
         }
-    
+
     def _extract_gate_features(
         self,
         result: SimulationResult
@@ -382,26 +386,26 @@ class TrainingOutputGenerator:
             'interface_count': 5,  # Placeholder
             'available_gates': len(result.failure_case.recommended_gates)
         }
-    
+
     def _calculate_reward(
         self,
         result: SimulationResult
     ) -> RewardSignal:
         """
         Calculate reward signal
-        
+
         R = -Σ(L_k × p_k) - latency_penalty - false_positive_penalty
         """
         # Expected loss
         expected_loss = result.telemetry_outcome.total_loss
-        
+
         # Latency penalty (reward early detection)
         latency_penalty = result.telemetry_outcome.detection_latency * 0.01
-        
+
         # False positive penalty (penalize unnecessary gates)
         false_positives = max(0, len(result.gates_triggered) - len(result.gates_missed))
         false_positive_penalty = false_positives * 0.05
-        
+
         reward = RewardSignal(
             scenario_id=result.scenario_id,
             expected_loss=expected_loss,
@@ -412,7 +416,7 @@ class TrainingOutputGenerator:
             detection_time=result.telemetry_outcome.detection_latency,
             false_positives=false_positives
         )
-        
+
         reward.calculate_reward()
-        
+
         return reward

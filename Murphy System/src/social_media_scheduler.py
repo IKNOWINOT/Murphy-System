@@ -60,6 +60,7 @@ _MAX_METRICS = 200_000
 # ---------------------------------------------------------------------------
 
 class PostStatus(str, Enum):
+    """Post status (str subclass)."""
     DRAFT = "draft"
     SCHEDULED = "scheduled"
     PUBLISHED = "published"

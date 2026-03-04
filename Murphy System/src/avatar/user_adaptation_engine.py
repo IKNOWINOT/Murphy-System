@@ -6,6 +6,10 @@ from typing import Any, Dict, Optional
 
 from .avatar_models import UserAdaptation
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class UserAdaptationEngine:
     """Tracks and adapts to user interaction patterns."""

@@ -8,13 +8,15 @@ Goes beyond generic failures to identify risks specific to each capability.
 import ast
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
+import logging
+logger = logging.getLogger(__name__)
 
 
 @dataclass
 class FailureMode:
     """
     Enhanced failure mode with detailed metadata.
-    
+
     Attributes:
         category: Failure category (network, filesystem, computation, state, validation, dependency)
         description: Human-readable description
@@ -26,7 +28,7 @@ class FailureMode:
         code_location: Where in code this failure can occur
         related_operations: Operations that can trigger this failure
     """
-    
+
     category: str
     description: str
     likelihood: float
@@ -36,7 +38,7 @@ class FailureMode:
     detection_method: str
     code_location: Optional[str] = None
     related_operations: List[str] = field(default_factory=list)
-    
+
     def __post_init__(self):
         """Validate failure mode"""
         if self.likelihood < 0.0 or self.likelihood > 1.0:
@@ -50,7 +52,7 @@ class FailureMode:
 class EnhancedFailureModeDetector:
     """
     Detect capability-specific failure modes through code analysis.
-    
+
     Analyzes:
     - Network operations
     - File system operations
@@ -59,63 +61,64 @@ class EnhancedFailureModeDetector:
     - Resource usage
     - State management
     """
-    
+
     def __init__(self):
         """Initialize detector"""
         self.network_modules = {'requests', 'urllib', 'http', 'socket', 'aiohttp'}
         self.filesystem_modules = {'os', 'pathlib', 'shutil', 'tempfile'}
         self.computation_modules = {'numpy', 'scipy', 'math', 'decimal'}
-    
+
     def detect_failure_modes(self, code: str, capability_name: str = "") -> List[FailureMode]:
         """
         Detect all potential failure modes for a capability.
-        
+
         Args:
             code: Source code to analyze
             capability_name: Name of capability (for context)
-        
+
         Returns:
             List of detected failure modes with risk scores
         """
         failure_modes = []
-        
+
         try:
             # Parse code into AST
             tree = ast.parse(code)
-            
+
             # 1. Network failure modes
             if self._uses_network(tree):
                 failure_modes.extend(self._detect_network_failures(tree))
-            
+
             # 2. File system failure modes
             if self._uses_filesystem(tree):
                 failure_modes.extend(self._detect_filesystem_failures(tree))
-            
+
             # 3. Computation failure modes
             if self._is_computation_heavy(tree):
                 failure_modes.extend(self._detect_computation_failures(tree))
-            
+
             # 4. State corruption modes
             if self._is_stateful(tree):
                 failure_modes.extend(self._detect_state_failures(tree))
-            
+
             # 5. Input validation failures
             failure_modes.extend(self._detect_validation_failures(tree))
-            
+
             # 6. Dependency failures
             failure_modes.extend(self._detect_dependency_failures(tree))
-            
+
             # 7. Generic failures (always present)
             failure_modes.extend(self._detect_generic_failures())
-        
-        except SyntaxError as e:
+
+        except SyntaxError as exc:
             # If code can't be parsed, return generic failures only
+            logger.debug("Suppressed exception: %s", exc)
             failure_modes.extend(self._detect_generic_failures())
-        
+
         return failure_modes
-    
+
     # ========== Network Failure Detection ==========
-    
+
     def _uses_network(self, tree: ast.AST) -> bool:
         """Check if code uses network operations"""
         for node in ast.walk(tree):
@@ -127,11 +130,11 @@ class EnhancedFailureModeDetector:
                 if node.module and any(mod in node.module for mod in self.network_modules):
                     return True
         return False
-    
+
     def _detect_network_failures(self, tree: ast.AST) -> List[FailureMode]:
         """Detect network-related failure modes"""
         failures = []
-        
+
         # Check for HTTP requests
         if self._uses_http(tree):
             failures.append(FailureMode(
@@ -145,7 +148,7 @@ class EnhancedFailureModeDetector:
                 code_location=self._find_http_calls(tree),
                 related_operations=["requests.get", "requests.post", "urllib.request"]
             ))
-            
+
             failures.append(FailureMode(
                 category="network",
                 description="HTTP connection refused",
@@ -157,7 +160,7 @@ class EnhancedFailureModeDetector:
                 code_location=self._find_http_calls(tree),
                 related_operations=["requests.get", "requests.post"]
             ))
-            
+
             failures.append(FailureMode(
                 category="network",
                 description="HTTP 4xx/5xx error response",
@@ -169,7 +172,7 @@ class EnhancedFailureModeDetector:
                 code_location=self._find_http_calls(tree),
                 related_operations=["requests.get", "requests.post"]
             ))
-        
+
         # Check for socket operations
         if self._uses_sockets(tree):
             failures.append(FailureMode(
@@ -183,9 +186,9 @@ class EnhancedFailureModeDetector:
                 code_location=self._find_socket_calls(tree),
                 related_operations=["socket.connect", "socket.send", "socket.recv"]
             ))
-        
+
         return failures
-    
+
     def _uses_http(self, tree: ast.AST) -> bool:
         """Check if code uses HTTP operations"""
         for node in ast.walk(tree):
@@ -193,7 +196,7 @@ class EnhancedFailureModeDetector:
                 if node.attr in ['get', 'post', 'put', 'delete', 'request']:
                     return True
         return False
-    
+
     def _uses_sockets(self, tree: ast.AST) -> bool:
         """Check if code uses socket operations"""
         for node in ast.walk(tree):
@@ -201,7 +204,7 @@ class EnhancedFailureModeDetector:
                 if node.attr in ['connect', 'send', 'recv', 'socket']:
                     return True
         return False
-    
+
     def _find_http_calls(self, tree: ast.AST) -> str:
         """Find location of HTTP calls"""
         for node in ast.walk(tree):
@@ -210,7 +213,7 @@ class EnhancedFailureModeDetector:
                     if node.func.attr in ['get', 'post', 'put', 'delete']:
                         return f"line {node.lineno}"
         return "unknown location"
-    
+
     def _find_socket_calls(self, tree: ast.AST) -> str:
         """Find location of socket calls"""
         for node in ast.walk(tree):
@@ -219,9 +222,9 @@ class EnhancedFailureModeDetector:
                     if node.func.attr in ['connect', 'send', 'recv']:
                         return f"line {node.lineno}"
         return "unknown location"
-    
+
     # ========== File System Failure Detection ==========
-    
+
     def _uses_filesystem(self, tree: ast.AST) -> bool:
         """Check if code uses file system operations"""
         for node in ast.walk(tree):
@@ -236,11 +239,11 @@ class EnhancedFailureModeDetector:
                 if isinstance(node.func, ast.Name) and node.func.id == 'open':
                     return True
         return False
-    
+
     def _detect_filesystem_failures(self, tree: ast.AST) -> List[FailureMode]:
         """Detect file system-related failure modes"""
         failures = []
-        
+
         failures.append(FailureMode(
             category="filesystem",
             description="File not found",
@@ -252,7 +255,7 @@ class EnhancedFailureModeDetector:
             code_location=self._find_file_operations(tree),
             related_operations=["open", "read", "write"]
         ))
-        
+
         failures.append(FailureMode(
             category="filesystem",
             description="Permission denied",
@@ -264,7 +267,7 @@ class EnhancedFailureModeDetector:
             code_location=self._find_file_operations(tree),
             related_operations=["open", "write", "chmod"]
         ))
-        
+
         failures.append(FailureMode(
             category="filesystem",
             description="Disk space exhausted",
@@ -276,9 +279,9 @@ class EnhancedFailureModeDetector:
             code_location=self._find_file_operations(tree),
             related_operations=["write", "shutil.copy"]
         ))
-        
+
         return failures
-    
+
     def _find_file_operations(self, tree: ast.AST) -> str:
         """Find location of file operations"""
         for node in ast.walk(tree):
@@ -286,9 +289,9 @@ class EnhancedFailureModeDetector:
                 if isinstance(node.func, ast.Name) and node.func.id == 'open':
                     return f"line {node.lineno}"
         return "unknown location"
-    
+
     # ========== Computation Failure Detection ==========
-    
+
     def _is_computation_heavy(self, tree: ast.AST) -> bool:
         """Check if code is computation-heavy"""
         # Check for math operations or numeric libraries
@@ -300,11 +303,11 @@ class EnhancedFailureModeDetector:
                     if any(mod in alias.name for mod in self.computation_modules):
                         return True
         return False
-    
+
     def _detect_computation_failures(self, tree: ast.AST) -> List[FailureMode]:
         """Detect computation-related failure modes"""
         failures = []
-        
+
         # Check for division operations
         if self._has_division(tree):
             failures.append(FailureMode(
@@ -318,7 +321,7 @@ class EnhancedFailureModeDetector:
                 code_location=self._find_divisions(tree),
                 related_operations=["/", "//", "divmod"]
             ))
-        
+
         # Check for numeric operations
         if self._has_numeric_ops(tree):
             failures.append(FailureMode(
@@ -332,7 +335,7 @@ class EnhancedFailureModeDetector:
                 code_location=self._find_numeric_ops(tree),
                 related_operations=["**", "*", "+"]
             ))
-            
+
             failures.append(FailureMode(
                 category="computation",
                 description="Floating point precision loss",
@@ -344,9 +347,9 @@ class EnhancedFailureModeDetector:
                 code_location=self._find_float_ops(tree),
                 related_operations=["float", "/"]
             ))
-        
+
         return failures
-    
+
     def _has_division(self, tree: ast.AST) -> bool:
         """Check if code has division operations"""
         for node in ast.walk(tree):
@@ -354,14 +357,14 @@ class EnhancedFailureModeDetector:
                 if isinstance(node.op, (ast.Div, ast.FloorDiv)):
                     return True
         return False
-    
+
     def _has_numeric_ops(self, tree: ast.AST) -> bool:
         """Check if code has numeric operations"""
         for node in ast.walk(tree):
             if isinstance(node, ast.BinOp):
                 return True
         return False
-    
+
     def _find_divisions(self, tree: ast.AST) -> str:
         """Find location of division operations"""
         for node in ast.walk(tree):
@@ -369,14 +372,14 @@ class EnhancedFailureModeDetector:
                 if isinstance(node.op, (ast.Div, ast.FloorDiv)):
                     return f"line {node.lineno}"
         return "unknown location"
-    
+
     def _find_numeric_ops(self, tree: ast.AST) -> str:
         """Find location of numeric operations"""
         for node in ast.walk(tree):
             if isinstance(node, ast.BinOp):
                 return f"line {node.lineno}"
         return "unknown location"
-    
+
     def _find_float_ops(self, tree: ast.AST) -> str:
         """Find location of float operations"""
         for node in ast.walk(tree):
@@ -384,9 +387,9 @@ class EnhancedFailureModeDetector:
                 if isinstance(node.func, ast.Name) and node.func.id == 'float':
                     return f"line {node.lineno}"
         return "unknown location"
-    
+
     # ========== State Failure Detection ==========
-    
+
     def _is_stateful(self, tree: ast.AST) -> bool:
         """Check if code maintains state"""
         for node in ast.walk(tree):
@@ -395,11 +398,11 @@ class EnhancedFailureModeDetector:
             if isinstance(node, ast.Global):
                 return True
         return False
-    
+
     def _detect_state_failures(self, tree: ast.AST) -> List[FailureMode]:
         """Detect state-related failure modes"""
         failures = []
-        
+
         failures.append(FailureMode(
             category="state",
             description="State corruption from concurrent access",
@@ -411,7 +414,7 @@ class EnhancedFailureModeDetector:
             code_location="class or global variables detected",
             related_operations=["class", "global"]
         ))
-        
+
         failures.append(FailureMode(
             category="state",
             description="Memory leak from unreleased resources",
@@ -423,15 +426,15 @@ class EnhancedFailureModeDetector:
             code_location="resource allocation detected",
             related_operations=["open", "connect"]
         ))
-        
+
         return failures
-    
+
     # ========== Validation Failure Detection ==========
-    
+
     def _detect_validation_failures(self, tree: ast.AST) -> List[FailureMode]:
         """Detect input validation failure modes"""
         failures = []
-        
+
         # Check for function parameters
         has_params = False
         for node in ast.walk(tree):
@@ -439,7 +442,7 @@ class EnhancedFailureModeDetector:
                 if node.args.args:
                     has_params = True
                     break
-        
+
         if has_params:
             failures.append(FailureMode(
                 category="validation",
@@ -452,7 +455,7 @@ class EnhancedFailureModeDetector:
                 code_location="function parameters",
                 related_operations=["function parameters"]
             ))
-            
+
             failures.append(FailureMode(
                 category="validation",
                 description="Input out of expected range",
@@ -464,22 +467,22 @@ class EnhancedFailureModeDetector:
                 code_location="function parameters",
                 related_operations=["function parameters"]
             ))
-        
+
         return failures
-    
+
     # ========== Dependency Failure Detection ==========
-    
+
     def _detect_dependency_failures(self, tree: ast.AST) -> List[FailureMode]:
         """Detect dependency-related failure modes"""
         failures = []
-        
+
         # Check for imports
         has_imports = False
         for node in ast.walk(tree):
             if isinstance(node, (ast.Import, ast.ImportFrom)):
                 has_imports = True
                 break
-        
+
         if has_imports:
             failures.append(FailureMode(
                 category="dependency",
@@ -492,7 +495,7 @@ class EnhancedFailureModeDetector:
                 code_location="import statements",
                 related_operations=["import"]
             ))
-            
+
             failures.append(FailureMode(
                 category="dependency",
                 description="Incompatible dependency version",
@@ -504,11 +507,11 @@ class EnhancedFailureModeDetector:
                 code_location="import statements",
                 related_operations=["import"]
             ))
-        
+
         return failures
-    
+
     # ========== Generic Failure Detection ==========
-    
+
     def _detect_generic_failures(self) -> List[FailureMode]:
         """Detect generic failure modes (always present)"""
         return [

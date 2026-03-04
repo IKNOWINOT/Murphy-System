@@ -60,6 +60,7 @@ _STATUS_TIMEOUT_MS = 5_000
 # ---------------------------------------------------------------------------
 
 class ModuleHealth(str, Enum):
+    """Module health (str subclass)."""
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNREACHABLE = "unreachable"
@@ -278,6 +279,7 @@ class OperationalDashboardAggregator:
                 if status_data.get("system_status") in ("unhealthy", "degraded"):
                     health = ModuleHealth.DEGRADED
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             latency = (time.monotonic() - start) * 1000
             status_data = {}
             health = ModuleHealth.UNREACHABLE

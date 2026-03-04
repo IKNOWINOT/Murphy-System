@@ -20,6 +20,7 @@ from typing import Dict, List, Optional, Any, Callable, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -414,7 +415,7 @@ class RubixEvidenceAdapter:
 
     def _record(self, artifact: EvidenceArtifact) -> None:
         with self._lock:
-            self._history.append(artifact)
+            capped_append(self._history, artifact)
         logger.debug(
             "Recorded artifact %s: %s %s",
             artifact.artifact_id,

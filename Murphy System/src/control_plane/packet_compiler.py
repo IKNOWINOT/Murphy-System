@@ -16,6 +16,10 @@ from .execution_packet import (
     ActionType, ConstraintType, create_simple_packet
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class PacketCompilationError(Exception):
     """Raised when packet compilation fails"""
@@ -25,20 +29,20 @@ class PacketCompilationError(Exception):
 class PacketCompiler:
     """
     Compiles execution packets from system state.
-    
+
     This is the ONLY place where plans become executable actions.
     Enforces all MFGC-AI safety conditions.
     """
-    
+
     def __init__(self):
         self.confidence_threshold = 0.85
         self.murphy_threshold = 0.5
         self.gate_satisfaction_threshold = 0.7
         self.max_unknowns = 2
-        
+
         self.compiled_packets: Dict[str, ExecutionPacket] = {}
         self.compilation_log: List[Dict[str, Any]] = []
-    
+
     def can_compile(
         self,
         confidence: float,
@@ -49,53 +53,53 @@ class PacketCompiler:
     ) -> Tuple[bool, List[str]]:
         """
         Check if execution packet can be compiled.
-        
+
         Formal Compilation Preconditions:
         1. Phase = Execute
         2. Confidence >= threshold
         3. Murphy Index <= threshold
         4. All gates satisfied
         5. Unknowns <= max
-        
+
         Returns (can_compile, reasons)
         """
         reasons = []
-        
+
         # Phase condition
         if phase.lower() != "execute":
             reasons.append(f"Phase must be 'execute', currently '{phase}'")
-        
+
         # Confidence condition
         if confidence < self.confidence_threshold:
             reasons.append(
                 f"Confidence {confidence:.2f} below threshold {self.confidence_threshold}"
             )
-        
+
         # Murphy index condition
         if murphy_index > self.murphy_threshold:
             reasons.append(
                 f"Murphy index {murphy_index:.2f} above threshold {self.murphy_threshold}"
             )
-        
+
         # Gate satisfaction
         satisfied_gates = sum(1 for g in gates if g.is_satisfied)
         total_gates = len(gates)
         satisfaction_rate = satisfied_gates / total_gates if total_gates > 0 else 0
-        
+
         if satisfaction_rate < self.gate_satisfaction_threshold:
             reasons.append(
                 f"Gate satisfaction {satisfaction_rate:.1%} below threshold "
                 f"{self.gate_satisfaction_threshold:.0%} ({satisfied_gates}/{total_gates})"
             )
-        
+
         # Unknowns condition
         if len(unknowns) > self.max_unknowns:
             reasons.append(
                 f"Too many unknowns: {len(unknowns)} > {self.max_unknowns}"
             )
-        
+
         return (len(reasons) == 0, reasons)
-    
+
     def compile_packet(
         self,
         task_description: str,
@@ -108,10 +112,10 @@ class PacketCompiler:
     ) -> ExecutionPacket:
         """
         Compile an execution packet from system state.
-        
+
         This is the main compilation entry point.
         """
-        
+
         # Convert gate dicts to Gate objects
         gate_objects = [
             Gate(
@@ -124,12 +128,12 @@ class PacketCompiler:
             )
             for g in gates
         ]
-        
+
         # Check compilation preconditions
         can_compile, reasons = self.can_compile(
             confidence, murphy_index, phase, gate_objects, unknowns
         )
-        
+
         if not can_compile:
             error_msg = f"Cannot compile execution packet: {'; '.join(reasons)}"
             self._log_compilation_attempt(
@@ -140,18 +144,18 @@ class PacketCompiler:
                 error=error_msg
             )
             raise PacketCompilationError(error_msg)
-        
+
         # Generate packet ID
         packet_id = f"EP-{datetime.now().strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:8]}"
-        
+
         # Extract actions from task description (simplified for MVP)
         actions = self._extract_actions(task_description, confidence)
-        
+
         # Create safety constraints
         safety_constraints = self._generate_safety_constraints(
             confidence, murphy_index, gate_objects
         )
-        
+
         # Create packet
         packet = create_simple_packet(
             packet_id=packet_id,
@@ -162,10 +166,10 @@ class PacketCompiler:
             gates=gate_objects,
             validity_hours=24
         )
-        
+
         # Add safety constraints
         packet.safety_constraints = safety_constraints
-        
+
         # Add compilation log
         packet.compilation_log.append(
             f"Compiled at {datetime.now().isoformat()} with confidence {confidence:.2f}"
@@ -176,13 +180,13 @@ class PacketCompiler:
         packet.compilation_log.append(
             f"Gates satisfied: {packet.gates_satisfied_count}/{packet.gates_total_count}"
         )
-        
+
         # Sign packet (simplified for MVP)
         self._sign_packet(packet)
-        
+
         # Store packet
         self.compiled_packets[packet_id] = packet
-        
+
         # Log successful compilation
         self._log_compilation_attempt(
             success=True,
@@ -191,9 +195,9 @@ class PacketCompiler:
             phase=phase,
             packet_id=packet_id
         )
-        
+
         return packet
-    
+
     def _extract_actions(
         self,
         task_description: str,
@@ -204,7 +208,7 @@ class PacketCompiler:
         Simplified for MVP - production would use more sophisticated parsing.
         """
         actions = []
-        
+
         # Create a simple action for the task
         action = Action(
             action_id=f"action-{uuid.uuid4().hex[:8]}",
@@ -217,10 +221,10 @@ class PacketCompiler:
             max_retries=3,
             timeout_seconds=300
         )
-        
+
         actions.append(action)
         return actions
-    
+
     def _generate_safety_constraints(
         self,
         confidence: float,
@@ -229,7 +233,7 @@ class PacketCompiler:
     ) -> List[SafetyConstraint]:
         """Generate safety constraints based on system state"""
         constraints = []
-        
+
         # Confidence monitoring constraint
         constraints.append(SafetyConstraint(
             constraint_id=f"conf-monitor-{uuid.uuid4().hex[:8]}",
@@ -239,7 +243,7 @@ class PacketCompiler:
             violation_action="halt",
             severity="critical"
         ))
-        
+
         # Murphy index constraint
         constraints.append(SafetyConstraint(
             constraint_id=f"murphy-monitor-{uuid.uuid4().hex[:8]}",
@@ -249,7 +253,7 @@ class PacketCompiler:
             violation_action="halt",
             severity="critical"
         ))
-        
+
         # Timeout constraint
         constraints.append(SafetyConstraint(
             constraint_id=f"timeout-{uuid.uuid4().hex[:8]}",
@@ -259,7 +263,7 @@ class PacketCompiler:
             violation_action="halt",
             severity="high"
         ))
-        
+
         # Gate monitoring constraint
         if gates:
             constraints.append(SafetyConstraint(
@@ -270,9 +274,9 @@ class PacketCompiler:
                 violation_action="halt",
                 severity="critical"
             ))
-        
+
         return constraints
-    
+
     def _sign_packet(self, packet: ExecutionPacket):
         """
         Sign packet with control plane signatures.
@@ -280,13 +284,13 @@ class PacketCompiler:
         """
         # In production, these would be cryptographic signatures
         # For MVP, we just add placeholder signatures
-        
+
         packet.add_signature("gate_compiler", f"sig-gc-{uuid.uuid4().hex[:16]}")
         packet.add_signature("confidence_engine", f"sig-ce-{uuid.uuid4().hex[:16]}")
         packet.add_signature("authority_controller", f"sig-ac-{uuid.uuid4().hex[:16]}")
-        
+
         packet.is_signed = True
-    
+
     def _log_compilation_attempt(
         self,
         success: bool,
@@ -307,11 +311,11 @@ class PacketCompiler:
             'error': error
         }
         self.compilation_log.append(log_entry)
-    
+
     def get_packet(self, packet_id: str) -> Optional[ExecutionPacket]:
         """Retrieve a compiled packet by ID"""
         return self.compiled_packets.get(packet_id)
-    
+
     def list_packets(self) -> List[Dict[str, Any]]:
         """List all compiled packets"""
         return [
@@ -325,7 +329,7 @@ class PacketCompiler:
             }
             for pid, packet in self.compiled_packets.items()
         ]
-    
+
     def get_compilation_log(self) -> List[Dict[str, Any]]:
         """Get compilation attempt log for audit"""
         return self.compilation_log

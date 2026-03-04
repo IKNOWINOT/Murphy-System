@@ -210,6 +210,7 @@ class SchemaTranslator:
         try:
             return fn(value)
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             errors.append(f"Transform {name} failed: {exc}")
             return value
 

@@ -19,11 +19,15 @@ from dataclasses import dataclass, field
 
 from .stability_controller import ExecutionOutcome
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class RefusalRecord:
     """Record of agent refusal for audit"""
-    
+
     agent_id: str
     refusal_code: str
     refusal_reason: str
@@ -31,7 +35,7 @@ class RefusalRecord:
     refusing_authority: str
     blocked_dependencies: List[str]
     audit_signature: str
-    
+
     def to_dict(self) -> Dict:
         """Convert to dictionary for serialization"""
         return {
@@ -47,7 +51,7 @@ class RefusalRecord:
 
 class RefusalHandler:
     """Manages refusal as valid execution state"""
-    
+
     VALID_REFUSAL_CODES = {
         "SAFETY_CONSTRAINT_VIOLATION": "Action violates immutable safety constraints",
         "INSUFFICIENT_GOVERNANCE_ARTIFACTS": "Essential governance artifact unavailable",
@@ -58,19 +62,19 @@ class RefusalHandler:
         "RESOURCE_CONSTRAINT": "Insufficient resources for safe execution",
         "STABILITY_LIMIT_EXCEEDED": "Operation would exceed stability thresholds"
     }
-    
+
     def __init__(self):
         self.refusal_history: Dict[str, List[RefusalRecord]] = {}
         self.blocked_agents: Dict[str, Dict] = {}
-    
+
     def validate_refusal(self, agent_id: str, refusal_code: str, refusal_reason: str) -> bool:
         """Validate refusal meets system criteria"""
         return refusal_code in self.VALID_REFUSAL_CODES
-    
-    def handle_refusal(self, agent_id: str, refusal_code: str, refusal_reason: str, 
+
+    def handle_refusal(self, agent_id: str, refusal_code: str, refusal_reason: str,
                      authority_level: str, dependencies: List[str]) -> RefusalRecord:
         """Handle refusal as valid terminal state"""
-        
+
         refusal_record = RefusalRecord(
             agent_id=agent_id,
             refusal_code=refusal_code,
@@ -80,17 +84,17 @@ class RefusalHandler:
             blocked_dependencies=dependencies,
             audit_signature=self._generate_audit_signature(agent_id, refusal_code, refusal_reason)
         )
-        
+
         # Store in history
         if agent_id not in self.refusal_history:
             self.refusal_history[agent_id] = []
         self.refusal_history[agent_id].append(refusal_record)
-        
+
         # Block dependent agents
         self._block_dependent_agents(agent_id, refusal_code, dependencies)
-        
+
         return refusal_record
-    
+
     def _block_dependent_agents(self, refusing_agent: str, refusal_code: str, dependencies: List[str]):
         """Block all agents that depend on refusing agent"""
         for dependent_id in dependencies:
@@ -99,7 +103,7 @@ class RefusalHandler:
                 "refusal_code": refusal_code,
                 "blocked_time": datetime.now(timezone.utc)
             }
-    
+
     def _generate_audit_signature(self, agent_id: str, refusal_code: str, refusal_reason: str) -> str:
         """Generate cryptographic signature for audit trail"""
         audit_data = {

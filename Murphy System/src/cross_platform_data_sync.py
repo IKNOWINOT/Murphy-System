@@ -7,19 +7,25 @@ Implements RECOMMENDATIONS.md Section 6.2.4.
 """
 
 import hashlib
+import logging
 import threading
 import time
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
+from thread_safe_operations import capped_append
+
+logger = logging.getLogger(__name__)
 
 
 class SyncDirection(Enum):
+    """Sync direction (Enum subclass)."""
     UNIDIRECTIONAL = "unidirectional"
     BIDIRECTIONAL = "bidirectional"
 
 
 class ConflictStrategy(Enum):
+    """Conflict strategy (Enum subclass)."""
     LATEST_WINS = "latest_wins"
     SOURCE_WINS = "source_wins"
     TARGET_WINS = "target_wins"
@@ -28,6 +34,7 @@ class ConflictStrategy(Enum):
 
 
 class SyncState(Enum):
+    """Sync state (Enum subclass)."""
     IDLE = "idle"
     SYNCING = "syncing"
     ERROR = "error"
@@ -263,16 +270,17 @@ class CrossPlatformDataSync:
             if read_fn:
                 try:
                     source_data = read_fn(mapping.entity_type)
-                except Exception as e:
+                except Exception as exc:
+                    logger.debug("Caught exception: %s", exc)
                     log_entry = {
                         "mapping_id": mapping.mapping_id,
                         "status": "error",
-                        "error": str(e),
+                        "error": str(exc),
                         "timestamp": datetime.now(timezone.utc).isoformat(),
                     }
                     with self._lock:
-                        self._sync_log.append(log_entry)
-                    return {"mapping_id": mapping.mapping_id, "status": "error", "error": str(e)}
+                        capped_append(self._sync_log, log_entry)
+                    return {"mapping_id": mapping.mapping_id, "status": "error", "error": str(exc)}
             else:
                 source_data = []
 
@@ -282,8 +290,8 @@ class CrossPlatformDataSync:
             if mapping.transform:
                 try:
                     mapped = mapping.transform(mapped)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.error("Transform failed for record: %s", exc)
             mapped_records.append(mapped)
             records_synced += 1
 
@@ -292,8 +300,8 @@ class CrossPlatformDataSync:
         if write_fn and mapped_records:
             try:
                 write_fn(mapping.entity_type, mapped_records)
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.error("Write failed for %s: %s", mapping.entity_type, exc)
 
         with self._lock:
             tracker = self._change_trackers.get(mapping.source_platform, {})
@@ -311,7 +319,7 @@ class CrossPlatformDataSync:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         with self._lock:
-            self._sync_log.append(log_entry)
+            capped_append(self._sync_log, log_entry)
 
         return {
             "mapping_id": mapping.mapping_id,

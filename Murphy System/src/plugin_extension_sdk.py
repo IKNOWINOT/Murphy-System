@@ -14,9 +14,13 @@ import time
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
+from thread_safe_operations import capped_append
+import logging
+logger = logging.getLogger(__name__)
 
 
 class PluginState(Enum):
+    """Plugin state (Enum subclass)."""
     REGISTERED = "registered"
     VALIDATED = "validated"
     INSTALLED = "installed"
@@ -27,6 +31,7 @@ class PluginState(Enum):
 
 
 class PluginCapability(Enum):
+    """Plugin capability (Enum subclass)."""
     READ_DATA = "read_data"
     WRITE_DATA = "write_data"
     EXECUTE_TASKS = "execute_tasks"
@@ -111,7 +116,7 @@ class PluginSandbox:
                     "error": "rate_limit_exceeded",
                     "plugin": self.manifest.name,
                 }
-            self._call_timestamps.append(now)
+            capped_append(self._call_timestamps, now)
 
         start = time.monotonic()
         try:
@@ -126,7 +131,8 @@ class PluginSandbox:
                 "plugin": self.manifest.name,
                 "elapsed_ms": round(elapsed, 2),
             }
-        except Exception as e:
+        except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             elapsed = (time.monotonic() - start) * 1000
             with self._lock:
                 self._call_count += 1
@@ -134,8 +140,8 @@ class PluginSandbox:
                 self._total_time_ms += elapsed
             return {
                 "success": False,
-                "error": str(e),
-                "error_type": type(e).__name__,
+                "error": str(exc),
+                "error_type": type(exc).__name__,
                 "plugin": self.manifest.name,
                 "elapsed_ms": round(elapsed, 2),
             }
@@ -286,7 +292,8 @@ class PluginExtensionSDK:
                     for fn in self._hooks[hook_name]:
                         try:
                             fn(plugin_name)
-                        except Exception:
+                        except Exception as exc:
+                            logger.debug("Suppressed exception: %s", exc)
                             pass
 
             plugin["state"] = PluginState.ACTIVE
@@ -415,4 +422,4 @@ class PluginExtensionSDK:
         }
         if extra:
             event.update(extra)
-        self._event_log.append(event)
+        capped_append(self._event_log, event)

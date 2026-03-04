@@ -25,6 +25,7 @@ from .schemas import (
     InvalidationSignal,
     InvalidationSource
 )
+from thread_safe_operations import capped_append
 from .assumption_management import (
     AssumptionRegistry,
     AssumptionValidator,
@@ -44,7 +45,7 @@ class SupervisorAuditLog:
     assumption_id: str
     timestamp: datetime
     details: Dict
-    
+
     def to_json(self) -> str:
         """Convert to JSON for storage."""
         return json.dumps({
@@ -61,17 +62,17 @@ class SupervisorAuditLog:
 class SupervisorAuditLogger:
     """
     Tracks all supervisor actions in an immutable audit log.
-    
+
     Responsibilities:
     - Log all supervisor feedback
     - Provide audit trail
     - Support compliance queries
     """
-    
+
     def __init__(self):
         self._logs: List[SupervisorAuditLog] = []
         self._log_counter = 0
-    
+
     def log_feedback(
         self,
         feedback: SupervisorFeedbackArtifact,
@@ -80,7 +81,7 @@ class SupervisorAuditLogger:
     ) -> SupervisorAuditLog:
         """Log supervisor feedback action."""
         self._log_counter += 1
-        
+
         log_entry = SupervisorAuditLog(
             log_id=f"audit-{self._log_counter:06d}",
             feedback_id=feedback.feedback_id,
@@ -90,37 +91,37 @@ class SupervisorAuditLogger:
             timestamp=datetime.now(),
             details=details
         )
-        
-        self._logs.append(log_entry)
-        
+
+        capped_append(self._logs, log_entry)
+
         logger.info(
             f"Audit log: {log_entry.log_id} - {action_taken} by {feedback.supervisor_id} "
             f"on assumption {feedback.assumption_id}"
         )
-        
+
         return log_entry
-    
+
     def get_logs_for_assumption(self, assumption_id: str) -> List[SupervisorAuditLog]:
         """Get all audit logs for an assumption."""
         return [log for log in self._logs if log.assumption_id == assumption_id]
-    
+
     def get_logs_for_supervisor(self, supervisor_id: str) -> List[SupervisorAuditLog]:
         """Get all audit logs for a supervisor."""
         return [log for log in self._logs if log.supervisor_id == supervisor_id]
-    
+
     def get_recent_logs(self, limit: int = 100) -> List[SupervisorAuditLog]:
         """Get most recent audit logs."""
         return self._logs[-limit:]
-    
+
     def get_statistics(self) -> Dict:
         """Get audit log statistics."""
         actions = {}
         supervisors = set()
-        
+
         for log in self._logs:
             actions[log.action] = actions.get(log.action, 0) + 1
             supervisors.add(log.supervisor_id)
-        
+
         return {
             "total_logs": len(self._logs),
             "actions_by_type": actions,
@@ -131,13 +132,13 @@ class SupervisorAuditLogger:
 class FeedbackProcessor:
     """
     Processes supervisor feedback and takes appropriate actions.
-    
+
     Responsibilities:
     - Execute feedback actions (approve, deny, modify, etc.)
     - Update assumption status
     - Trigger corrections
     """
-    
+
     def __init__(
         self,
         registry: AssumptionRegistry,
@@ -149,17 +150,17 @@ class FeedbackProcessor:
         self.validator = validator
         self.lifecycle_manager = lifecycle_manager
         self.audit_logger = audit_logger
-    
+
     def process_approve(self, feedback: SupervisorFeedbackArtifact) -> bool:
         """Process APPROVE feedback."""
         assumption = self.registry.get(feedback.assumption_id)
         if not assumption:
             logger.error(f"Assumption {feedback.assumption_id} not found")
             return False
-        
+
         # Mark as under review (supervisor is reviewing)
         self.lifecycle_manager.mark_under_review(feedback.assumption_id)
-        
+
         # Log action
         self.audit_logger.log_feedback(
             feedback,
@@ -169,17 +170,17 @@ class FeedbackProcessor:
                 "previous_status": assumption.status.value
             }
         )
-        
+
         logger.info(f"Supervisor {feedback.supervisor_id} approved assumption {feedback.assumption_id}")
         return True
-    
+
     def process_deny(self, feedback: SupervisorFeedbackArtifact) -> bool:
         """Process DENY feedback."""
         assumption = self.registry.get(feedback.assumption_id)
         if not assumption:
             logger.error(f"Assumption {feedback.assumption_id} not found")
             return False
-        
+
         # Create invalidation signal
         signal = InvalidationSignal(
             signal_id=f"sig-{feedback.feedback_id}",
@@ -190,10 +191,10 @@ class FeedbackProcessor:
             severity="high",
             timestamp=feedback.timestamp
         )
-        
+
         # Mark as invalidated
         self.lifecycle_manager.mark_invalidated(feedback.assumption_id, signal)
-        
+
         # Log action
         self.audit_logger.log_feedback(
             feedback,
@@ -204,24 +205,24 @@ class FeedbackProcessor:
                 "signal_id": signal.signal_id
             }
         )
-        
+
         logger.warning(f"Supervisor {feedback.supervisor_id} denied assumption {feedback.assumption_id}")
         return True
-    
+
     def process_modify(self, feedback: SupervisorFeedbackArtifact) -> bool:
         """Process MODIFY feedback."""
         assumption = self.registry.get(feedback.assumption_id)
         if not assumption:
             logger.error(f"Assumption {feedback.assumption_id} not found")
             return False
-        
+
         # Update description if corrections provided
         if feedback.corrections:
             assumption.description = feedback.corrections
-        
+
         # Mark as under review
         self.lifecycle_manager.mark_under_review(feedback.assumption_id)
-        
+
         # Log action
         self.audit_logger.log_feedback(
             feedback,
@@ -232,17 +233,17 @@ class FeedbackProcessor:
                 "previous_status": assumption.status.value
             }
         )
-        
+
         logger.info(f"Supervisor {feedback.supervisor_id} modified assumption {feedback.assumption_id}")
         return True
-    
+
     def process_invalidate(self, feedback: SupervisorFeedbackArtifact) -> bool:
         """Process INVALIDATE feedback."""
         assumption = self.registry.get(feedback.assumption_id)
         if not assumption:
             logger.error(f"Assumption {feedback.assumption_id} not found")
             return False
-        
+
         # Create invalidation signal
         signal = InvalidationSignal(
             signal_id=f"sig-{feedback.feedback_id}",
@@ -253,10 +254,10 @@ class FeedbackProcessor:
             severity="critical",
             timestamp=feedback.timestamp
         )
-        
+
         # Mark as invalidated
         self.lifecycle_manager.mark_invalidated(feedback.assumption_id, signal)
-        
+
         # Log action
         self.audit_logger.log_feedback(
             feedback,
@@ -267,17 +268,17 @@ class FeedbackProcessor:
                 "signal_id": signal.signal_id
             }
         )
-        
+
         logger.warning(f"Supervisor {feedback.supervisor_id} invalidated assumption {feedback.assumption_id}")
         return True
-    
+
     def process_validate(self, feedback: SupervisorFeedbackArtifact) -> bool:
         """Process VALIDATE feedback."""
         assumption = self.registry.get(feedback.assumption_id)
         if not assumption:
             logger.error(f"Assumption {feedback.assumption_id} not found")
             return False
-        
+
         # Create validation evidence
         evidence = ValidationEvidence(
             evidence_id=f"ev-{feedback.feedback_id}",
@@ -289,10 +290,10 @@ class FeedbackProcessor:
             timestamp=feedback.timestamp,
             is_external=True  # Supervisor is external
         )
-        
+
         # Mark as validated
         self.lifecycle_manager.mark_validated(feedback.assumption_id, [evidence])
-        
+
         # Log action
         self.audit_logger.log_feedback(
             feedback,
@@ -303,20 +304,20 @@ class FeedbackProcessor:
                 "evidence_id": evidence.evidence_id
             }
         )
-        
+
         logger.info(f"Supervisor {feedback.supervisor_id} validated assumption {feedback.assumption_id}")
         return True
-    
+
     def process_request_evidence(self, feedback: SupervisorFeedbackArtifact) -> bool:
         """Process REQUEST_EVIDENCE feedback."""
         assumption = self.registry.get(feedback.assumption_id)
         if not assumption:
             logger.error(f"Assumption {feedback.assumption_id} not found")
             return False
-        
+
         # Mark as under review
         self.lifecycle_manager.mark_under_review(feedback.assumption_id)
-        
+
         # Log action
         self.audit_logger.log_feedback(
             feedback,
@@ -327,7 +328,7 @@ class FeedbackProcessor:
                 "previous_status": assumption.status.value
             }
         )
-        
+
         logger.info(
             f"Supervisor {feedback.supervisor_id} requested evidence for assumption {feedback.assumption_id}"
         )
@@ -337,13 +338,13 @@ class FeedbackProcessor:
 class FeedbackRouter:
     """
     Routes supervisor feedback to appropriate handlers.
-    
+
     Responsibilities:
     - Route feedback based on type
     - Validate feedback
     - Coordinate with processor
     """
-    
+
     def __init__(self, processor: FeedbackProcessor):
         self.processor = processor
         self._handlers: Dict[FeedbackType, Callable] = {
@@ -354,33 +355,33 @@ class FeedbackRouter:
             FeedbackType.VALIDATE: processor.process_validate,
             FeedbackType.REQUEST_EVIDENCE: processor.process_request_evidence
         }
-    
+
     def route(self, feedback: SupervisorFeedbackArtifact) -> bool:
         """Route feedback to appropriate handler."""
         handler = self._handlers.get(feedback.feedback_type)
-        
+
         if not handler:
             logger.error(f"No handler for feedback type {feedback.feedback_type}")
             return False
-        
+
         try:
             return handler(feedback)
-        except Exception as e:
-            logger.error(f"Error processing feedback {feedback.feedback_id}: {e}")
+        except Exception as exc:
+            logger.error(f"Error processing feedback {feedback.feedback_id}: {exc}")
             return False
 
 
 class SupervisorInterface:
     """
     Interface for receiving supervisor feedback.
-    
+
     Responsibilities:
     - Accept feedback from supervisors
     - Validate feedback format
     - Route to processor
     - Track feedback statistics
     """
-    
+
     def __init__(
         self,
         registry: Optional[AssumptionRegistry] = None,
@@ -399,7 +400,7 @@ class SupervisorInterface:
         )
         self.router = FeedbackRouter(self.processor)
         self._feedback_counter = 0
-    
+
     def submit_feedback(
         self,
         assumption_id: str,
@@ -414,14 +415,14 @@ class SupervisorInterface:
     ) -> tuple[bool, str]:
         """
         Submit supervisor feedback.
-        
+
         Returns (success, feedback_id)
         """
         # Validate assumption exists
         assumption = self.registry.get(assumption_id)
         if not assumption:
             return False, ""
-        
+
         # Create feedback artifact
         self._feedback_counter += 1
         feedback = SupervisorFeedbackArtifact(
@@ -437,16 +438,16 @@ class SupervisorInterface:
             confidence_adjustment=confidence_adjustment,
             authority_adjustment=authority_adjustment
         )
-        
+
         # Route to processor
         success = self.router.route(feedback)
-        
+
         return success, feedback.feedback_id
-    
+
     def get_feedback_for_assumption(self, assumption_id: str) -> List[SupervisorAuditLog]:
         """Get all feedback for an assumption."""
         return self.audit_logger.get_logs_for_assumption(assumption_id)
-    
+
     def get_statistics(self) -> Dict:
         """Get supervisor interface statistics."""
         return {

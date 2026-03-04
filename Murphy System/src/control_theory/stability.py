@@ -12,6 +12,10 @@ from typing import Dict, List, Optional, Tuple
 
 from .canonical_state import CanonicalStateVector, _DIMENSION_NAMES
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ------------------------------------------------------------------ #
 # Lyapunov candidate

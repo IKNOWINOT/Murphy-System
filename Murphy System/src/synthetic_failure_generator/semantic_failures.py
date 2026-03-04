@@ -23,17 +23,21 @@ from .models import (
     ConfidenceProfile
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class SemanticFailureGenerator:
     """
     Generates semantic failures
-    
+
     Injects failures into:
     - Artifact graphs
     - Prompts
     - Interface schemas
     """
-    
+
     def __init__(self):
         self.unit_pairs = [
             ('celsius', 'fahrenheit', 'temperature'),
@@ -45,7 +49,7 @@ class SemanticFailureGenerator:
             ('watts', 'horsepower', 'power'),
             ('seconds', 'minutes', 'time')
         ]
-        
+
         self.ambiguous_terms = [
             ('rate', ['speed', 'frequency', 'ratio']),
             ('load', ['weight', 'electrical_load', 'workload']),
@@ -54,7 +58,7 @@ class SemanticFailureGenerator:
             ('range', ['distance', 'interval', 'variety']),
             ('scale', ['size', 'measurement_system', 'proportion'])
         ]
-    
+
     def generate_unit_mismatch(
         self,
         artifact_graph: Dict[str, Any],
@@ -62,15 +66,15 @@ class SemanticFailureGenerator:
     ) -> FailureCase:
         """
         Generate unit mismatch failure
-        
+
         Example: Temperature specified in °C but interpreted as °F
         """
         # Select random unit pair
         unit1, unit2, quantity = random.choice(self.unit_pairs)
-        
+
         # Create failure case
         failure_id = self._generate_failure_id('unit_mismatch')
-        
+
         # Inject mismatch into artifact graph
         perturbed_graph = self._inject_unit_mismatch(
             artifact_graph,
@@ -78,11 +82,11 @@ class SemanticFailureGenerator:
             unit2,
             quantity
         )
-        
+
         # Calculate impact
         expected_loss = self._calculate_unit_mismatch_loss(unit1, unit2)
         murphy_probability = 0.8  # High probability of failure
-        
+
         # Create confidence drift profile
         confidence_profile = ConfidenceProfile(
             initial_confidence=0.85,
@@ -92,7 +96,7 @@ class SemanticFailureGenerator:
             final_confidence=0.40,
             drift_rate=-0.1125  # Rapid decline
         )
-        
+
         return FailureCase(
             failure_id=failure_id,
             failure_type=FailureType.UNIT_MISMATCH,
@@ -124,7 +128,7 @@ class SemanticFailureGenerator:
             expected_loss=expected_loss,
             murphy_probability=murphy_probability
         )
-    
+
     def generate_ambiguous_label(
         self,
         artifact_graph: Dict[str, Any],
@@ -132,21 +136,21 @@ class SemanticFailureGenerator:
     ) -> FailureCase:
         """
         Generate ambiguous label failure
-        
+
         Example: "rate" could mean speed, frequency, or ratio
         """
         # Select random ambiguous term
         term, interpretations = random.choice(self.ambiguous_terms)
-        
+
         failure_id = self._generate_failure_id('ambiguous_label')
-        
+
         # Select two conflicting interpretations
         interp1, interp2 = random.sample(interpretations, 2)
-        
+
         # Calculate impact
         expected_loss = 0.3  # Medium impact
         murphy_probability = 0.6
-        
+
         # Create confidence drift profile
         confidence_profile = ConfidenceProfile(
             initial_confidence=0.80,
@@ -156,7 +160,7 @@ class SemanticFailureGenerator:
             final_confidence=0.55,
             drift_rate=-0.0625
         )
-        
+
         return FailureCase(
             failure_id=failure_id,
             failure_type=FailureType.AMBIGUOUS_LABEL,
@@ -188,7 +192,7 @@ class SemanticFailureGenerator:
             expected_loss=expected_loss,
             murphy_probability=murphy_probability
         )
-    
+
     def generate_missing_constraint(
         self,
         artifact_graph: Dict[str, Any],
@@ -196,11 +200,11 @@ class SemanticFailureGenerator:
     ) -> FailureCase:
         """
         Generate missing constraint failure
-        
+
         Example: No upper bound specified for temperature
         """
         failure_id = self._generate_failure_id('missing_constraint')
-        
+
         # Common constraint types
         constraint_types = [
             ('upper_bound', 'temperature', 'No maximum temperature specified'),
@@ -209,13 +213,13 @@ class SemanticFailureGenerator:
             ('precision', 'measurement', 'No precision requirement specified'),
             ('timeout', 'operation', 'No timeout constraint specified')
         ]
-        
+
         constraint_type, parameter, description = random.choice(constraint_types)
-        
+
         # Calculate impact
         expected_loss = 0.5  # High impact
         murphy_probability = 0.7
-        
+
         # Create confidence drift profile
         confidence_profile = ConfidenceProfile(
             initial_confidence=0.75,
@@ -225,7 +229,7 @@ class SemanticFailureGenerator:
             final_confidence=0.35,
             drift_rate=-0.1
         )
-        
+
         return FailureCase(
             failure_id=failure_id,
             failure_type=FailureType.MISSING_CONSTRAINT,
@@ -257,7 +261,7 @@ class SemanticFailureGenerator:
             expected_loss=expected_loss,
             murphy_probability=murphy_probability
         )
-    
+
     def generate_conflicting_goal(
         self,
         artifact_graph: Dict[str, Any],
@@ -265,11 +269,11 @@ class SemanticFailureGenerator:
     ) -> FailureCase:
         """
         Generate conflicting goal failure
-        
+
         Example: Maximize speed AND minimize fuel consumption (conflicting)
         """
         failure_id = self._generate_failure_id('conflicting_goal')
-        
+
         # Common conflicting goal pairs
         conflict_pairs = [
             ('maximize_speed', 'minimize_fuel', 'Speed vs fuel efficiency'),
@@ -278,13 +282,13 @@ class SemanticFailureGenerator:
             ('maximize_accuracy', 'minimize_time', 'Accuracy vs speed'),
             ('maximize_coverage', 'minimize_risk', 'Coverage vs risk')
         ]
-        
+
         goal1, goal2, description = random.choice(conflict_pairs)
-        
+
         # Calculate impact
         expected_loss = 0.8  # Critical impact
         murphy_probability = 0.85
-        
+
         # Create confidence drift profile
         confidence_profile = ConfidenceProfile(
             initial_confidence=0.70,
@@ -294,7 +298,7 @@ class SemanticFailureGenerator:
             final_confidence=0.20,
             drift_rate=-0.125
         )
-        
+
         return FailureCase(
             failure_id=failure_id,
             failure_type=FailureType.CONFLICTING_GOAL,
@@ -318,7 +322,7 @@ class SemanticFailureGenerator:
                 },
                 {
                     'gate_type': 'verification',
-                    'condition': f'validate_goal_prioritization()',
+                    'condition': 'validate_goal_prioritization()',
                     'priority': 'critical'
                 }
             ],
@@ -326,7 +330,7 @@ class SemanticFailureGenerator:
             expected_loss=expected_loss,
             murphy_probability=murphy_probability
         )
-    
+
     def generate_batch(
         self,
         artifact_graph: Dict[str, Any],
@@ -334,7 +338,7 @@ class SemanticFailureGenerator:
     ) -> List[FailureCase]:
         """Generate batch of semantic failures"""
         failures = []
-        
+
         for _ in range(count):
             failure_type = random.choice([
                 'unit_mismatch',
@@ -342,7 +346,7 @@ class SemanticFailureGenerator:
                 'missing_constraint',
                 'conflicting_goal'
             ])
-            
+
             if failure_type == 'unit_mismatch':
                 failures.append(self.generate_unit_mismatch(artifact_graph))
             elif failure_type == 'ambiguous_label':
@@ -351,15 +355,15 @@ class SemanticFailureGenerator:
                 failures.append(self.generate_missing_constraint(artifact_graph))
             else:
                 failures.append(self.generate_conflicting_goal(artifact_graph))
-        
+
         return failures
-    
+
     def _generate_failure_id(self, failure_type: str) -> str:
         """Generate unique failure ID"""
         timestamp = datetime.now().isoformat()
         data = f"{failure_type}:{timestamp}:{random.random()}"
         return hashlib.sha256(data.encode()).hexdigest()[:16]
-    
+
     def _inject_unit_mismatch(
         self,
         artifact_graph: Dict[str, Any],
@@ -370,11 +374,11 @@ class SemanticFailureGenerator:
         """Inject unit mismatch into artifact graph"""
         # Create perturbed copy
         perturbed = artifact_graph.copy()
-        
+
         # Add conflicting unit specifications
         if 'artifacts' not in perturbed:
             perturbed['artifacts'] = []
-        
+
         perturbed['artifacts'].append({
             'id': f'artifact_{quantity}',
             'type': 'measurement',
@@ -383,9 +387,9 @@ class SemanticFailureGenerator:
             'interpreted_unit': unit2,
             'mismatch': True
         })
-        
+
         return perturbed
-    
+
     def _calculate_unit_mismatch_loss(self, unit1: str, unit2: str) -> float:
         """Calculate expected loss from unit mismatch"""
         # Conversion factors that cause significant errors
@@ -394,7 +398,7 @@ class SemanticFailureGenerator:
             ('kg', 'lb'),
             ('meters', 'feet')
         ]
-        
+
         if (unit1, unit2) in high_impact_pairs or (unit2, unit1) in high_impact_pairs:
             return 0.7  # High loss
         else:

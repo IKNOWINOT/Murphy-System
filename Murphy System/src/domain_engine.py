@@ -8,7 +8,11 @@ from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, asdict
 from enum import Enum
 
+import logging
+logger = logging.getLogger("domain_engine")
+
 class DomainType(Enum):
+    """Domain type (Enum subclass)."""
     BUSINESS = "business"
     ENGINEERING = "engineering"
     FINANCIAL = "financial"
@@ -21,6 +25,7 @@ class DomainType(Enum):
     GENERATIVE = "generative"
 
 class ImpactLevel(Enum):
+    """Impact level (Enum subclass)."""
     NONE = 0
     LOW = 1
     MEDIUM = 2
@@ -46,7 +51,7 @@ class Domain:
     cross_impacts: Dict[str, DomainImpact]
     constraints: List[str]
     gates: List[str]
-    
+
     def to_dict(self):
         return {
             'name': self.name,
@@ -66,23 +71,23 @@ class GenerativeDomainTemplate:
     name_pattern: str
     discovery_questions: List[str]
     required_fields: List[str]
-    
+
     def to_dict(self):
         return asdict(self)
 
 class DomainEngine:
     """Main domain classification and generation engine"""
-    
+
     def __init__(self):
         self.domains = self._initialize_domains()
         self.templates = self._initialize_templates()
         self.generative_domains = {}
         self.cross_impact_matrix = self._build_impact_matrix()
-    
+
     def _initialize_domains(self) -> Dict[str, Domain]:
         """Initialize all standard domains"""
         domains = {}
-        
+
         # Business Domain
         domains['business'] = Domain(
             name="Business Domain",
@@ -122,7 +127,7 @@ class DomainEngine:
                 "Strategic Alignment Gate"
             ]
         )
-        
+
         # Engineering Domain
         domains['engineering'] = Domain(
             name="Engineering Domain",
@@ -163,7 +168,7 @@ class DomainEngine:
                 "Integration Testing Gate"
             ]
         )
-        
+
         # Financial Domain
         domains['financial'] = Domain(
             name="Financial Domain",
@@ -203,7 +208,7 @@ class DomainEngine:
                 "Cost Control Gate"
             ]
         )
-        
+
         # Legal Domain
         domains['legal'] = Domain(
             name="Legal Domain",
@@ -243,7 +248,7 @@ class DomainEngine:
                 "IP Protection Gate"
             ]
         )
-        
+
         # Operations Domain
         domains['operations'] = Domain(
             name="Operations Domain",
@@ -283,7 +288,7 @@ class DomainEngine:
                 "Capacity Planning Gate"
             ]
         )
-        
+
         # Marketing Domain
         domains['marketing'] = Domain(
             name="Marketing Domain",
@@ -323,7 +328,7 @@ class DomainEngine:
                 "ROI Validation Gate"
             ]
         )
-        
+
         # HR Domain
         domains['hr'] = Domain(
             name="Human Resources Domain",
@@ -363,7 +368,7 @@ class DomainEngine:
                 "Culture Fit Gate"
             ]
         )
-        
+
         # Sales Domain
         domains['sales'] = Domain(
             name="Sales Domain",
@@ -403,7 +408,7 @@ class DomainEngine:
                 "Customer Validation Gate"
             ]
         )
-        
+
         # Product Domain
         domains['product'] = Domain(
             name="Product Domain",
@@ -443,9 +448,9 @@ class DomainEngine:
                 "Launch Readiness Gate"
             ]
         )
-        
+
         return domains
-    
+
     def _build_impact_matrix(self) -> Dict[str, Dict[str, ImpactLevel]]:
         """Build cross-domain impact matrix"""
         matrix = {
@@ -541,11 +546,11 @@ class DomainEngine:
             }
         }
         return matrix
-    
+
     def _initialize_templates(self) -> Dict[str, GenerativeDomainTemplate]:
         """Initialize generative domain templates"""
         templates = {}
-        
+
         # New Industry Vertical Template
         templates['industry'] = GenerativeDomainTemplate(
             template_type="industry",
@@ -567,7 +572,7 @@ class DomainEngine:
                 "success_factors"
             ]
         )
-        
+
         # Hybrid Domain Template
         templates['hybrid'] = GenerativeDomainTemplate(
             template_type="hybrid",
@@ -589,7 +594,7 @@ class DomainEngine:
                 "synergies"
             ]
         )
-        
+
         # Emerging Technology Template
         templates['technology'] = GenerativeDomainTemplate(
             template_type="technology",
@@ -611,7 +616,7 @@ class DomainEngine:
                 "implementation_challenges"
             ]
         )
-        
+
         # Process Innovation Template
         templates['process'] = GenerativeDomainTemplate(
             template_type="process",
@@ -633,32 +638,32 @@ class DomainEngine:
                 "innovation_description"
             ]
         )
-        
+
         return templates
-    
+
     def analyze_request(self, request: str) -> Dict:
         """Analyze request and determine domain coverage"""
         # Extract keywords
         keywords = self._extract_keywords(request.lower())
-        
+
         # Match against existing domains
         domain_matches = {}
         for domain_name, domain in self.domains.items():
             score = self._calculate_domain_match(keywords, domain)
             if score > 0:
                 domain_matches[domain_name] = score
-        
+
         # Calculate coverage
         total_score = sum(domain_matches.values())
         coverage = min(total_score / 10.0, 1.0)  # Normalize to 0-1
-        
+
         return {
             'coverage': coverage,
             'matched_domains': domain_matches,
             'needs_generative': coverage < 0.7,
             'keywords': keywords
         }
-    
+
     def _extract_keywords(self, text: str) -> List[str]:
         """Extract relevant keywords from text"""
         # Simple keyword extraction (can be enhanced with NLP)
@@ -673,51 +678,51 @@ class DomainEngine:
             'sales': ['sales', 'revenue', 'customer', 'pricing', 'channel', 'account'],
             'product': ['product', 'feature', 'roadmap', 'user', 'design', 'ux']
         }
-        
+
         found_keywords = []
         for domain, keywords in domain_keywords.items():
             for keyword in keywords:
                 if keyword in text:
                     found_keywords.append(keyword)
-        
+
         return found_keywords
-    
+
     def _calculate_domain_match(self, keywords: List[str], domain: Domain) -> float:
         """Calculate how well keywords match a domain"""
         score = 0.0
         domain_text = f"{domain.name} {domain.purpose} {' '.join(domain.sub_domains)}".lower()
-        
+
         for keyword in keywords:
             if keyword in domain_text:
                 score += 1.0
-        
+
         return score
-    
+
     def select_template(self, request: str, analysis: Dict) -> GenerativeDomainTemplate:
         """Select appropriate template for generative domain"""
         keywords = analysis['keywords']
-        
+
         # Check for industry-specific terms
         industry_terms = ['healthcare', 'finance', 'retail', 'manufacturing', 'education']
         if any(term in request.lower() for term in industry_terms):
             return self.templates['industry']
-        
+
         # Check for multiple domain mentions
         if len(analysis['matched_domains']) >= 2:
             return self.templates['hybrid']
-        
+
         # Check for technology terms
         tech_terms = ['ai', 'ml', 'blockchain', 'iot', 'cloud', 'automation']
         if any(term in request.lower() for term in tech_terms):
             return self.templates['technology']
-        
+
         # Default to process innovation
         return self.templates['process']
-    
+
     def generate_questions(self, template: GenerativeDomainTemplate, request: str) -> List[Dict]:
         """Generate questions for domain discovery"""
         questions = []
-        
+
         # Add template questions
         for i, question in enumerate(template.discovery_questions):
             questions.append({
@@ -726,7 +731,7 @@ class DomainEngine:
                 'type': 'text',
                 'required': True
             })
-        
+
         # Add cross-domain impact questions
         for domain_name in self.domains.keys():
             questions.append({
@@ -735,10 +740,10 @@ class DomainEngine:
                 'type': 'text',
                 'required': False
             })
-        
+
         return questions
-    
-    def synthesize_domain(self, template: GenerativeDomainTemplate, 
+
+    def synthesize_domain(self, template: GenerativeDomainTemplate,
                          responses: Dict) -> Domain:
         """Create new domain from template and responses"""
         # Extract domain name
@@ -752,23 +757,23 @@ class DomainEngine:
             domain_name = responses.get('technology_name', 'Technology') + ' Domain'
         else:
             domain_name = responses.get('process_name', 'Process') + ' Innovation Domain'
-        
+
         # Extract purpose
         purpose = responses.get('purpose', 'Custom domain for specific requirements')
-        
+
         # Extract sub-domains
         sub_domains = responses.get('sub_domains', [])
         if isinstance(sub_domains, str):
             sub_domains = [s.strip() for s in sub_domains.split(',')]
-        
+
         # Extract constraints
         constraints = responses.get('constraints', [])
         if isinstance(constraints, str):
             constraints = [c.strip() for c in constraints.split(',')]
-        
+
         # Generate gates
         gates = self._generate_domain_gates(domain_name, responses)
-        
+
         # Build cross-impacts
         cross_impacts = {}
         for domain_name_key in self.domains.keys():
@@ -781,7 +786,7 @@ class DomainEngine:
                     dependencies=[],
                     constraints=[]
                 )
-        
+
         # Create domain
         domain = Domain(
             name=domain_name,
@@ -793,9 +798,9 @@ class DomainEngine:
             constraints=constraints,
             gates=gates
         )
-        
+
         return domain
-    
+
     def _generate_domain_gates(self, domain_name: str, responses: Dict) -> List[str]:
         """Generate validation gates for domain"""
         gates = [
@@ -804,77 +809,77 @@ class DomainEngine:
             f"{domain_name} Validation Gate",
             f"{domain_name} Compliance Gate"
         ]
-        
+
         # Add custom gates based on responses
         if 'regulatory_requirements' in responses:
             gates.append(f"{domain_name} Regulatory Gate")
-        
+
         if 'quality_standards' in responses:
             gates.append(f"{domain_name} Quality Gate")
-        
+
         return gates
-    
+
     def validate_domain(self, domain: Domain) -> Tuple[bool, List[str]]:
         """Validate domain completeness"""
         issues = []
-        
+
         if not domain.name:
             issues.append("Domain name is required")
-        
+
         if not domain.purpose:
             issues.append("Domain purpose is required")
-        
+
         if len(domain.sub_domains) == 0:
             issues.append("At least one sub-domain is required")
-        
+
         if len(domain.key_questions) == 0:
             issues.append("Key questions are required")
-        
+
         if len(domain.gates) == 0:
             issues.append("At least one gate is required")
-        
+
         return len(issues) == 0, issues
-    
+
     def integrate_domain(self, domain: Domain) -> bool:
         """Integrate new domain into system"""
         # Add to generative domains
         domain_key = domain.name.lower().replace(' ', '_')
         self.generative_domains[domain_key] = domain
-        
+
         # Update cross-impact matrix
         self._update_impact_matrix(domain)
-        
+
         return True
-    
+
     def _update_impact_matrix(self, domain: Domain):
         """Update cross-impact matrix with new domain"""
         domain_key = domain.name.lower().replace(' ', '_')
-        
+
         # Add row for new domain
         self.cross_impact_matrix[domain_key] = {}
-        
+
         # Add impacts from new domain to existing domains
         for target_domain, impact in domain.cross_impacts.items():
             self.cross_impact_matrix[domain_key][target_domain] = impact.impact_level
-        
+
         # Add impacts from existing domains to new domain (default to MEDIUM)
         for existing_domain in self.domains.keys():
             if existing_domain not in self.cross_impact_matrix:
                 self.cross_impact_matrix[existing_domain] = {}
             self.cross_impact_matrix[existing_domain][domain_key] = ImpactLevel.MEDIUM
-    
+
     def get_all_domains(self) -> List[Dict]:
         """Get all domains (standard + generative)"""
         all_domains = []
-        
+
         for domain in self.domains.values():
             all_domains.append(domain.to_dict())
-        
+
         for domain in self.generative_domains.values():
             all_domains.append(domain.to_dict())
-        
+
         return all_domains
-    
+
     def get_cross_impact_analysis(self, domain_names: List[str]) -> Dict:
         """Get cross-domain impact analysis"""
         analysis = {
@@ -883,37 +888,37 @@ class DomainEngine:
             'high_impact_pairs': [],
             'dependencies': []
         }
-        
+
         for source in domain_names:
             analysis['impacts'][source] = {}
             for target in domain_names:
                 if source != target and source in self.cross_impact_matrix:
                     impact = self.cross_impact_matrix[source].get(target, ImpactLevel.NONE)
                     analysis['impacts'][source][target] = impact.value
-                    
+
                     if impact == ImpactLevel.HIGH:
                         analysis['high_impact_pairs'].append({
                             'source': source,
                             'target': target,
                             'level': 'HIGH'
                         })
-        
+
         return analysis
 
 # Example usage
 if __name__ == "__main__":
     engine = DomainEngine()
-    
+
     # Test request analysis
     request = "Build an AI-powered sustainable supply chain system"
     analysis = engine.analyze_request(request)
-    print(f"Analysis: {analysis}")
-    
+    logger.info(f"Analysis: {analysis}")
+
     # Test template selection
     if analysis['needs_generative']:
         template = engine.select_template(request, analysis)
-        print(f"Selected template: {template.template_type}")
-        
+        logger.info(f"Selected template: {template.template_type}")
+
         # Generate questions
         questions = engine.generate_questions(template, request)
-        print(f"Generated {len(questions)} questions")
+        logger.info(f"Generated {len(questions)} questions")

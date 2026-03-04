@@ -202,7 +202,7 @@ class ComplianceReportAggregator:
 
         passed = sum(1 for c in checks if c.passed)
         failed = len(checks) - passed
-        overall = passed / len(checks) if checks else 1.0
+        overall = passed / (len(checks) or 1) if checks else 1.0
 
         # Per-framework scores
         fw_totals: Dict[str, int] = Counter()

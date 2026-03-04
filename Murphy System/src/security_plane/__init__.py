@@ -145,7 +145,7 @@ __all__ = [
     "CryptographicKey",
     "SecurityGate",
     "SecurityFreeze",
-    
+
     # Cryptography
     "CryptographicPrimitives",
     "HashAlgorithm",
@@ -157,7 +157,7 @@ __all__ = [
     "KeyPair",
     "SignatureResult",
     "VerificationResult",
-    
+
     # Authentication
     "HumanAuthenticator",
     "MachineAuthenticator",

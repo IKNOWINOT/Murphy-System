@@ -12,6 +12,10 @@ envelope-level validation workflows (Gap CFP-6).
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple, Type
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 try:
     from pydantic import BaseModel, Field, ValidationError, field_validator
 
@@ -97,13 +101,16 @@ except ImportError:
     _PYDANTIC_AVAILABLE = False
 
     class BaseModel:  # type: ignore[no-redef]
+        """Base model."""
         pass
 
     class ValidationError(Exception):  # type: ignore[no-redef]
+        """Validation error (Exception subclass)."""
         pass
 
     @dataclass
     class ValidationResult(BaseModel):  # type: ignore[no-redef]
+        """Validation result."""
         valid: bool = True
         errors: List[str] = dc_field(default_factory=list)
         warnings: List[str] = dc_field(default_factory=list)
@@ -111,6 +118,7 @@ except ImportError:
 
     @dataclass
     class LLMOutputEnvelope(BaseModel):  # type: ignore[no-redef]
+        """LLM output envelope."""
         output_type: str = ""
         raw_output: str = ""
         parsed_output: Dict[str, Any] = dc_field(default_factory=dict)
@@ -120,6 +128,7 @@ except ImportError:
 
     @dataclass
     class LLMExpansionResult(BaseModel):  # type: ignore[no-redef]
+        """LLM expansion result."""
         new_dimension: str = ""
         initial_value: float = 0.0
         uncertainty: float = 0.5
@@ -127,6 +136,7 @@ except ImportError:
 
     @dataclass
     class LLMGeneratedExpert(BaseModel):  # type: ignore[no-redef]
+        """LLM generated expert."""
         name: str = ""
         domain: str = ""
         capabilities: List[str] = dc_field(default_factory=list)
@@ -134,6 +144,7 @@ except ImportError:
 
     @dataclass
     class LLMGeneratedGate(BaseModel):  # type: ignore[no-redef]
+        """LLM generated gate."""
         gate_type: str = ""
         target: str = ""
         trigger_condition: str = ""
@@ -141,6 +152,7 @@ except ImportError:
 
     @dataclass
     class LLMGeneratedConstraint(BaseModel):  # type: ignore[no-redef]
+        """LLM generated constraint."""
         parameter: str = ""
         operator: str = ""
         threshold: float = 0.0
@@ -280,6 +292,7 @@ class LLMOutputValidator:
                 obj = model_cls(**{k: raw_output.get(k, getattr(model_cls, k, None)) for k in required})
                 return True, obj, []
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 return False, None, [str(exc)]
 
 

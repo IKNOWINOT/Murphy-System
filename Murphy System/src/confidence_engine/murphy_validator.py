@@ -23,18 +23,18 @@ logger = logging.getLogger(__name__)
 class MurphyValidator:
     """
     Murphy Validator - Main validation interface
-    
+
     Integrates:
     - Uncertainty calculations (UD, UA, UI, UR, UG)
     - Confidence scoring (both new and existing formulas)
     - Murphy Gate decisions
     - Integration with existing confidence engine
     """
-    
+
     def __init__(self):
         self.uncertainty_calculator = UncertaintyCalculator()
         self.murphy_gate = MurphyGate()
-        
+
         # Try to import existing confidence engine
         try:
             from src.confidence_engine.confidence_calculator import ConfidenceCalculator
@@ -45,7 +45,7 @@ class MurphyValidator:
             self.confidence_calculator_v1 = None
             self.has_v1_calculator = False
             logger.warning("Could not load existing confidence calculator")
-        
+
         # Weights for uncertainty-based confidence calculation
         self.uncertainty_weights = {
             'data': 0.25,
@@ -54,7 +54,7 @@ class MurphyValidator:
             'risk': 0.25,
             'disagreement': 0.15
         }
-    
+
     def validate(
         self,
         task: Any,
@@ -64,38 +64,38 @@ class MurphyValidator:
     ) -> ConfidenceReport:
         """
         Complete validation of a task
-        
+
         Args:
             task: Task to validate
             context: Execution context
             phase: Current execution phase (optional)
             threshold: Custom confidence threshold (optional)
-            
+
         Returns:
             ConfidenceReport with complete assessment
         """
         logger.info(f"Validating task: {getattr(task, 'task_id', 'unknown')}")
-        
+
         # Compute uncertainty scores
         uncertainty_scores = self.uncertainty_calculator.compute_all_uncertainties(
             task=task,
             context=context
         )
-        
+
         # Compute confidence from uncertainties
         confidence = self._compute_confidence_from_uncertainties(uncertainty_scores)
-        
+
         # Compute confidence using existing formula (if available)
         confidence_v1 = None
         if self.has_v1_calculator:
             try:
                 confidence_v1 = self._compute_confidence_v1(task, context)
-            except Exception as e:
-                logger.warning(f"Could not compute v1 confidence: {e}")
-        
+            except Exception as exc:
+                logger.warning(f"Could not compute v1 confidence: {exc}")
+
         # Use higher confidence (conservative approach)
         final_confidence = max(confidence, confidence_v1) if confidence_v1 else confidence
-        
+
         # Evaluate Murphy Gate
         gate_result = self.murphy_gate.evaluate(
             confidence=final_confidence,
@@ -103,24 +103,24 @@ class MurphyValidator:
             phase=phase,
             context=context
         )
-        
+
         # Generate detailed factors
         factors = self._generate_factors(task, context, uncertainty_scores)
-        
+
         # Generate recommendations
         recommendations = self._generate_recommendations(
             uncertainty_scores,
             confidence,
             gate_result
         )
-        
+
         # Generate warnings
         warnings = self._generate_warnings(
             uncertainty_scores,
             confidence,
             gate_result
         )
-        
+
         # Create report
         report = ConfidenceReport(
             uncertainty_scores=uncertainty_scores,
@@ -131,23 +131,23 @@ class MurphyValidator:
             recommendations=recommendations,
             warnings=warnings
         )
-        
+
         logger.info(
             f"Validation complete: confidence={final_confidence:.2f}, "
             f"gate_action={gate_result.action.value}"
         )
-        
+
         return report
-    
+
     def _compute_confidence_from_uncertainties(
         self,
         uncertainty_scores: UncertaintyScores
     ) -> float:
         """
         Compute confidence from uncertainty scores
-        
+
         Formula: C = 1 - (w_d·UD + w_a·UA + w_i·UI + w_r·UR + w_g·UG)
-        
+
         Where weights sum to 1.0
         """
         total_uncertainty = (
@@ -157,21 +157,21 @@ class MurphyValidator:
             self.uncertainty_weights['risk'] * uncertainty_scores.UR +
             self.uncertainty_weights['disagreement'] * uncertainty_scores.UG
         )
-        
+
         confidence = 1.0 - total_uncertainty
-        
+
         # Ensure in valid range
         confidence = max(0.0, min(1.0, confidence))
-        
+
         logger.debug(
             f"Confidence from uncertainties: {confidence:.3f} "
             f"(UD={uncertainty_scores.UD:.2f}, UA={uncertainty_scores.UA:.2f}, "
             f"UI={uncertainty_scores.UI:.2f}, UR={uncertainty_scores.UR:.2f}, "
             f"UG={uncertainty_scores.UG:.2f})"
         )
-        
+
         return confidence
-    
+
     def _compute_confidence_v1(
         self,
         task: Any,
@@ -226,7 +226,7 @@ class MurphyValidator:
         except Exception as exc:
             logger.warning("v1 confidence calculation failed: %s", exc)
             return None
-    
+
     def _generate_factors(
         self,
         task: Any,
@@ -244,7 +244,7 @@ class MurphyValidator:
             'has_validation_criteria': bool(getattr(task, 'validation_criteria', [])),
             'has_human_checkpoints': bool(getattr(task, 'human_checkpoints', []))
         }
-    
+
     def _categorize_score(self, score: float) -> str:
         """Categorize a score into quality levels"""
         if score >= 0.9:
@@ -257,7 +257,7 @@ class MurphyValidator:
             return 'poor'
         else:
             return 'very_poor'
-    
+
     def _generate_recommendations(
         self,
         uncertainty_scores: UncertaintyScores,
@@ -266,46 +266,46 @@ class MurphyValidator:
     ) -> list:
         """Generate recommendations for improving confidence"""
         recommendations = []
-        
+
         # Data uncertainty recommendations
         if uncertainty_scores.UD > 0.3:
             recommendations.append(
                 "Consider additional data validation and verification to reduce data uncertainty"
             )
-        
+
         # Authority uncertainty recommendations
         if uncertainty_scores.UA > 0.3:
             recommendations.append(
                 "Verify source credentials and seek expert consensus to reduce authority uncertainty"
             )
-        
+
         # Intent uncertainty recommendations
         if uncertainty_scores.UI > 0.3:
             recommendations.append(
                 "Clarify requirements and add measurable success criteria to reduce intent uncertainty"
             )
-        
+
         # Risk uncertainty recommendations
         if uncertainty_scores.UR > 0.3:
             recommendations.append(
                 "Implement risk mitigation strategies and increase reversibility to reduce risk uncertainty"
             )
-        
+
         # Disagreement uncertainty recommendations
         if uncertainty_scores.UG > 0.3:
             recommendations.append(
                 "Resolve conflicting information and establish decision authority to reduce disagreement uncertainty"
             )
-        
+
         # Gate-specific recommendations
         if not gate_result.allowed:
             recommendations.append(
                 f"Confidence {confidence:.2f} is below threshold {gate_result.threshold:.2f}. "
                 f"Address the above recommendations before proceeding."
             )
-        
+
         return recommendations
-    
+
     def _generate_warnings(
         self,
         uncertainty_scores: UncertaintyScores,
@@ -314,33 +314,33 @@ class MurphyValidator:
     ) -> list:
         """Generate warnings about potential issues"""
         warnings = []
-        
+
         # High uncertainty warnings
         if uncertainty_scores.UD > 0.7:
             warnings.append("WARNING: Very high data uncertainty - data quality is poor")
-        
+
         if uncertainty_scores.UA > 0.7:
             warnings.append("WARNING: Very high authority uncertainty - source credibility is questionable")
-        
+
         if uncertainty_scores.UI > 0.7:
             warnings.append("WARNING: Very high intent uncertainty - requirements are unclear")
-        
+
         if uncertainty_scores.UR > 0.7:
             warnings.append("WARNING: Very high risk uncertainty - potential for significant negative consequences")
-        
+
         if uncertainty_scores.UG > 0.7:
             warnings.append("WARNING: Very high disagreement uncertainty - major conflicts in information")
-        
+
         # Low confidence warnings
         if confidence < 0.5:
             warnings.append("WARNING: Confidence is very low - execution is not recommended")
-        
+
         # Gate warnings
         if gate_result.action == 'block_execution':
             warnings.append("CRITICAL: Murphy Gate has blocked execution - do not proceed")
-        
+
         return warnings
-    
+
     def get_uncertainty_breakdown(
         self,
         task: Any,
@@ -351,9 +351,9 @@ class MurphyValidator:
             task=task,
             context=context
         )
-        
+
         return uncertainty_scores.to_dict()
-    
+
     def evaluate_gate_only(
         self,
         confidence: float,

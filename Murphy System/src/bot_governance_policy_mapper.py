@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -211,7 +212,7 @@ class BotGovernancePolicyMapper:
                 transform_fn=entry["transform_fn"],
                 description=entry["description"],
             )
-            self._mappings.append(mapping)
+            capped_append(self._mappings, mapping)
         logger.info("Loaded %d default policy mappings", len(self._mappings))
 
     # -- policy registration ------------------------------------------------
@@ -368,7 +369,7 @@ class BotGovernancePolicyMapper:
             return result
 
     def _record_gate(self, bot_id: str, result: GateCheckResult) -> None:
-        self._gate_history.append({
+        capped_append(self._gate_history, {
             "bot_id": bot_id,
             "gate_name": result.gate_name,
             "allowed": result.allowed,

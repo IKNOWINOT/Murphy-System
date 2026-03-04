@@ -1,5 +1,5 @@
+"""Behavioral anomaly detection for bots in the Murphy System."""
 # Copyright © 2020 Inoni Limited Liability Company
-# Bot Anomaly Detector — behavioral anomaly detection for bots in the Murphy System.
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -202,7 +203,7 @@ class BotAnomalyDetector:
             alerts.extend(self._check_resource_spike(bot_id))
 
             for alert in alerts:
-                self._alerts.append(alert)
+                capped_append(self._alerts, alert)
                 self._total_alerts_generated += 1
                 logger.warning(
                     "Anomaly [%s] for bot %s — z=%.2f severity=%s",

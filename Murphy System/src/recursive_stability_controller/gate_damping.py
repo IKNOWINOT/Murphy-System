@@ -17,23 +17,26 @@ from dataclasses import dataclass
 from typing import Dict, List
 import numpy as np
 
+import logging
+logger = logging.getLogger("recursive_stability_controller.gate_damping")
+
 
 @dataclass
 class GateSynthesisRequest:
     """Gate synthesis request"""
-    
+
     # Request details
     request_id: str
     gate_type: str
     num_gates: int
-    
+
     # Context
     timestamp: float
     cycle_id: int
-    
+
     # Requester
     requester: str
-    
+
     def to_dict(self) -> Dict:
         """Convert to dictionary"""
         return {
@@ -49,22 +52,22 @@ class GateSynthesisRequest:
 @dataclass
 class GateSynthesisResponse:
     """Gate synthesis response"""
-    
+
     # Allowed gates
     allowed_gates: int
-    
+
     # Request
     request: GateSynthesisRequest
-    
+
     # Damping factor applied
     damping_factor: float
-    
+
     # Reasoning
     reason: str
-    
+
     # Metadata
     timestamp: float
-    
+
     def to_dict(self) -> Dict:
         """Convert to dictionary"""
         return {
@@ -79,28 +82,28 @@ class GateSynthesisResponse:
 class GateDampingController:
     """
     Control gate synthesis rate with damping.
-    
+
     Prevents exponential gate proliferation by:
     - Applying confidence-based damping
     - Enforcing sub-linear growth
     - Hard upper bounds
     """
-    
+
     # Damping coefficient (κ)
     KAPPA = 0.5
-    
+
     # Hard upper bound on total gates
     MAX_TOTAL_GATES = 1000
-    
+
     # Maximum gates per synthesis request
     MAX_GATES_PER_REQUEST = 50
-    
+
     def __init__(self):
         """Initialize gate damping controller"""
         self.current_gate_count = 0
         self.synthesis_history = []
         self.max_history = 1000
-    
+
     def request_synthesis(
         self,
         request: GateSynthesisRequest,
@@ -108,40 +111,40 @@ class GateDampingController:
     ) -> GateSynthesisResponse:
         """
         Request gate synthesis with damping.
-        
+
         Formula:
             allowed = κ·requested·e^(-C)
-        
+
         Args:
             request: Gate synthesis request
             current_confidence: Current system confidence
-            
+
         Returns:
             GateSynthesisResponse with allowed gate count
         """
         import time
-        
+
         # Apply damping formula
         damping_factor = self.KAPPA * np.exp(-current_confidence)
         allowed_gates = int(request.num_gates * damping_factor)
-        
+
         # Enforce per-request limit
         if allowed_gates > self.MAX_GATES_PER_REQUEST:
             allowed_gates = self.MAX_GATES_PER_REQUEST
             reason = f"Capped at per-request limit ({self.MAX_GATES_PER_REQUEST})"
-        
+
         # Enforce total gate limit
         elif self.current_gate_count + allowed_gates > self.MAX_TOTAL_GATES:
             allowed_gates = max(0, self.MAX_TOTAL_GATES - self.current_gate_count)
             reason = f"Capped at total limit ({self.MAX_TOTAL_GATES})"
-        
+
         # Normal damping
         else:
             reason = f"Damped by factor {damping_factor:.3f} (confidence: {current_confidence:.3f})"
-        
+
         # Update gate count
         self.current_gate_count += allowed_gates
-        
+
         # Create response
         response = GateSynthesisResponse(
             allowed_gates=allowed_gates,
@@ -150,46 +153,46 @@ class GateDampingController:
             reason=reason,
             timestamp=time.time()
         )
-        
+
         # Record in history
         self._record_history(response)
-        
-        print(f"[GATE SYNTHESIS] Requested: {request.num_gates}, Allowed: {allowed_gates}")
-        print(f"  {reason}")
-        
+
+        logger.info(f"[GATE SYNTHESIS] Requested: {request.num_gates}, Allowed: {allowed_gates}")
+        logger.info(f"  {reason}")
+
         return response
-    
+
     def retire_gates(self, count: int):
         """
         Retire gates (reduce count).
-        
+
         Args:
             count: Number of gates to retire
         """
         self.current_gate_count = max(0, self.current_gate_count - count)
-        print(f"[GATE RETIRE] Retired {count} gates, current: {self.current_gate_count}")
-    
+        logger.info(f"[GATE RETIRE] Retired {count} gates, current: {self.current_gate_count}")
+
     def get_gate_count(self) -> int:
         """Get current gate count"""
         return self.current_gate_count
-    
+
     def get_capacity(self) -> Dict:
         """
         Get gate capacity information.
-        
+
         Returns:
             Dictionary with current, max, available, utilization
         """
         available = max(0, self.MAX_TOTAL_GATES - self.current_gate_count)
         utilization = self.current_gate_count / self.MAX_TOTAL_GATES
-        
+
         return {
             "current": self.current_gate_count,
             "max": self.MAX_TOTAL_GATES,
             "available": available,
             "utilization": utilization
         }
-    
+
     def _record_history(self, response: GateSynthesisResponse):
         """Record synthesis response in history"""
         self.synthesis_history.append({
@@ -200,29 +203,29 @@ class GateDampingController:
             "timestamp": response.timestamp,
             "total_gates_after": self.current_gate_count
         })
-        
+
         # Trim history if needed
         if len(self.synthesis_history) > self.max_history:
             self.synthesis_history = self.synthesis_history[-self.max_history:]
-    
+
     def get_history(self, n: int = None) -> List[Dict]:
         """
         Get synthesis history.
-        
+
         Args:
             n: Number of recent entries (all if None)
-            
+
         Returns:
             List of history entries
         """
         if n is None:
             return self.synthesis_history
         return self.synthesis_history[-n:]
-    
+
     def get_statistics(self) -> Dict:
         """
         Get gate synthesis statistics.
-        
+
         Returns:
             Dictionary with total requested, total allowed, damping stats
         """
@@ -234,11 +237,11 @@ class GateDampingController:
                 "mean_damping": 0.0,
                 "approval_rate": 0.0
             }
-        
+
         total_requested = sum(h["request"]["num_gates"] for h in self.synthesis_history)
         total_allowed = sum(h["allowed_gates"] for h in self.synthesis_history)
         mean_damping = np.mean([h["damping_factor"] for h in self.synthesis_history])
-        
+
         return {
             "total_requests": len(self.synthesis_history),
             "total_requested": total_requested,
@@ -246,19 +249,19 @@ class GateDampingController:
             "mean_damping": mean_damping,
             "approval_rate": total_allowed / max(total_requested, 1)
         }
-    
+
     def halt_synthesis(self):
         """Halt all gate synthesis (emergency)"""
-        print("[HALT] Gate synthesis halted - no new gates allowed")
+        logger.info("[HALT] Gate synthesis halted - no new gates allowed")
         # Note: Actual halt logic handled by returning 0 allowed gates
-    
+
     def reset_count(self, new_count: int = 0):
         """
         Reset gate count (use with caution).
-        
+
         Args:
             new_count: New gate count
         """
         old_count = self.current_gate_count
         self.current_gate_count = new_count
-        print(f"[RESET] Gate count reset: {old_count} → {new_count}")
+        logger.info(f"[RESET] Gate count reset: {old_count} → {new_count}")

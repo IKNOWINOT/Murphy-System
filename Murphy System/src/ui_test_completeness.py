@@ -14,6 +14,11 @@ import re
 import time
 import copy
 from typing import Any, Dict, List, Optional, Tuple
+from thread_safe_operations import capped_append
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================================================
@@ -277,7 +282,7 @@ class AccessibilityChecker:
             "passed": passed,
         }
         with self._lock:
-            self._results.append(result)
+            capped_append(self._results, result)
         return result
 
     def check_aria_labels(self, elements: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -305,7 +310,7 @@ class AccessibilityChecker:
         passed = len(issues) == 0
         result = {"check": "aria_labels", "passed": passed, "issues": issues, "element_count": len(elements)}
         with self._lock:
-            self._results.append(result)
+            capped_append(self._results, result)
         return result
 
     def check_keyboard_navigation(self, tab_order: List[str]) -> Dict[str, Any]:
@@ -322,7 +327,7 @@ class AccessibilityChecker:
         passed = len(issues) == 0
         result = {"check": "keyboard_navigation", "passed": passed, "issues": issues, "tab_stops": len(tab_order)}
         with self._lock:
-            self._results.append(result)
+            capped_append(self._results, result)
         return result
 
     def check_screen_reader(self, page_structure: Dict[str, Any]) -> Dict[str, Any]:
@@ -342,7 +347,7 @@ class AccessibilityChecker:
         passed = len(issues) == 0
         result = {"check": "screen_reader", "passed": passed, "issues": issues}
         with self._lock:
-            self._results.append(result)
+            capped_append(self._results, result)
         return result
 
     def get_report(self) -> Dict[str, Any]:
@@ -429,7 +434,7 @@ class ResponsiveLayoutTester:
             "errors": errors,
         }
         with self._lock:
-            self._results.append(result)
+            capped_append(self._results, result)
         return result
 
     def test_all_viewports(self, layout_fn: Any) -> Dict[str, Any]:
@@ -541,7 +546,7 @@ class UserInteractionSimulator:
             "step_details": executed,
         }
         with self._lock:
-            self._history.append(result)
+            capped_append(self._history, result)
         return result
 
     def simulate_login(
@@ -557,7 +562,7 @@ class UserInteractionSimulator:
         }
         result = {"action": "login", "success": success, "state": state}
         with self._lock:
-            self._history.append(result)
+            capped_append(self._history, result)
         return result
 
     def simulate_task_submission(
@@ -579,7 +584,7 @@ class UserInteractionSimulator:
             "state": {"status": "submitted", "progress": 0},
         }
         with self._lock:
-            self._history.append(result)
+            capped_append(self._history, result)
         return result
 
     def simulate_settings_change(
@@ -608,7 +613,7 @@ class UserInteractionSimulator:
             "settings": updated,
         }
         with self._lock:
-            self._history.append(result)
+            capped_append(self._history, result)
         return result
 
     def get_history(self) -> Dict[str, Any]:

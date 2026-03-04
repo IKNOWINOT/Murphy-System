@@ -49,10 +49,10 @@ def is_debug_mode() -> bool:
 def get_cors_origins() -> List[str]:
     """
     Get allowed CORS origins from environment.
-    
+
     Reads MURPHY_CORS_ORIGINS env var (comma-separated).
     Defaults to localhost origins for development.
-    
+
     Returns:
         List of allowed origin strings
     """
@@ -67,7 +67,7 @@ def get_cors_origins() -> List[str]:
 def get_configured_api_keys() -> List[str]:
     """
     Get configured API keys from environment.
-    
+
     Reads MURPHY_API_KEYS env var (comma-separated).
     Returns empty list if not configured (auth disabled in dev mode).
     """
@@ -80,10 +80,10 @@ def get_configured_api_keys() -> List[str]:
 def validate_api_key(api_key: str) -> bool:
     """
     Validate an API key against configured keys.
-    
+
     Args:
         api_key: The API key to validate
-        
+
     Returns:
         True if valid, False otherwise
     """
@@ -103,12 +103,12 @@ def _extract_api_key() -> Optional[str]:
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
         return auth_header[7:].strip()
-    
+
     # Check X-API-Key header
     api_key = request.headers.get("X-API-Key", "")
     if api_key:
         return api_key
-    
+
     return None
 
 
@@ -123,14 +123,14 @@ def _is_health_endpoint(path: str) -> bool:
 
 class _FlaskRateLimiter:
     """Simple token-bucket rate limiter for Flask requests."""
-    
+
     import time as _time
-    
+
     def __init__(self, requests_per_minute: int = 60, burst_size: int = 10):
         self.rpm = requests_per_minute
         self.burst = burst_size
         self._buckets: Dict[str, Dict[str, Any]] = {}
-    
+
     def check(self, client_id: str) -> Dict[str, Any]:
         import time
         now = time.monotonic()
@@ -144,7 +144,7 @@ class _FlaskRateLimiter:
         refill = elapsed * (self.rpm / 60.0)
         bucket["tokens"] = min(self.burst, bucket["tokens"] + refill)
         bucket["last_refill"] = now
-        
+
         if bucket["tokens"] >= 1:
             bucket["tokens"] -= 1
             return {"allowed": True, "remaining": int(bucket["tokens"])}
@@ -211,7 +211,7 @@ def _check_injection(data: Any) -> bool:
 def configure_secure_app(app: Flask, service_name: str = "murphy-api") -> Flask:
     """
     Apply security hardening to a Flask application.
-    
+
     This wires in:
     - CORS with origin allowlist (SEC-002)
     - API key authentication on all routes (SEC-001, SEC-004)
@@ -219,11 +219,11 @@ def configure_secure_app(app: Flask, service_name: str = "murphy-api") -> Flask:
     - Input sanitization (ARCH-001)
     - Security response headers
     - Audit logging
-    
+
     Args:
         app: Flask application to secure
         service_name: Service name for logging
-        
+
     Returns:
         The same Flask app, now secured
     """
@@ -237,7 +237,7 @@ def configure_secure_app(app: Flask, service_name: str = "murphy-api") -> Flask:
         methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
     )
     logger.info(f"[{service_name}] CORS configured with allowed origins: {origins}")
-    
+
     # 2. Before-request hook: authentication + rate limiting + input sanitization
     @app.before_request
     def _security_before_request():
@@ -246,7 +246,7 @@ def configure_secure_app(app: Flask, service_name: str = "murphy-api") -> Flask:
             return None
         if _is_health_endpoint(request.path):
             return None
-        
+
         # Rate limiting by client IP (skip in testing mode)
         if not app.config.get('TESTING'):
             client_ip = request.remote_addr or "unknown"
@@ -257,7 +257,7 @@ def configure_secure_app(app: Flask, service_name: str = "murphy-api") -> Flask:
                     "error": "Rate limit exceeded",
                     "retry_after_seconds": rate_result.get("retry_after_seconds", 60)
                 }), 429
-        
+
         # API key authentication
         api_key = _extract_api_key()
         if api_key is None:
@@ -268,11 +268,11 @@ def configure_secure_app(app: Flask, service_name: str = "murphy-api") -> Flask:
                 return jsonify({"error": "Authentication required"}), 401
             # In development mode, allow requests without API key
             return None
-        
+
         if not validate_api_key(api_key):
             logger.warning(f"[{service_name}] Invalid API key from {client_ip}")
             return jsonify({"error": "Invalid API key"}), 401
-        
+
         # Input sanitization for JSON requests
         if request.is_json and request.data:
             try:
@@ -280,17 +280,18 @@ def configure_secure_app(app: Flask, service_name: str = "murphy-api") -> Flask:
                 if data and _check_injection(data):
                     logger.warning(f"[{service_name}] Injection attempt from {client_ip}")
                     return jsonify({"error": "Malicious input detected"}), 400
-            except Exception:
+            except Exception as exc:
+                logger.debug("Suppressed exception: %s", exc)
                 pass  # Non-JSON body, skip sanitization
-        
+
         return None
-    
+
     # 3. After-request hook: security headers
     @app.after_request
     def _security_after_request(response: Response) -> Response:
         for header, value in _SECURITY_HEADERS.items():
             response.headers.setdefault(header, value)
         return response
-    
+
     logger.info(f"[{service_name}] Security hardening applied: auth, CORS, rate limiting, input sanitization, security headers")
     return app

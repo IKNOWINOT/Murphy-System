@@ -17,6 +17,7 @@ from typing import Dict, List, Optional, Any, Set, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +140,7 @@ class RBACGovernance:
                 logger.warning("Tenant %s already exists", policy.tenant_id)
                 return policy.tenant_id
             self._tenants[policy.tenant_id] = policy
-            self._audit_log.append({
+            capped_append(self._audit_log, {
                 "event": "tenant_created",
                 "tenant_id": policy.tenant_id,
                 "name": policy.name,
@@ -161,7 +162,7 @@ class RBACGovernance:
                 logger.warning("User %s already registered", identity.user_id)
                 return identity.user_id
             self._users[identity.user_id] = identity
-            self._audit_log.append({
+            capped_append(self._audit_log, {
                 "event": "user_registered",
                 "user_id": identity.user_id,
                 "tenant_id": identity.tenant_id,
@@ -211,15 +212,15 @@ class RBACGovernance:
     ) -> Tuple[bool, str]:
         """
         Check if a user can toggle full automation mode.
-        
+
         For organizations: Only admin or owner roles can toggle full automation.
         For non-organizations: Only account owners can toggle full automation.
-        
+
         Args:
             user_id: User identifier
             tenant_id: Tenant identifier
             is_organization: Whether this is an organization context
-            
+
         Returns:
             (allowed, reason) tuple
         """
@@ -227,14 +228,18 @@ class RBACGovernance:
             user = self._users.get(user_id)
             if user is None:
                 return False, "unknown_user"
-            
+
             if user.tenant_id != tenant_id:
                 return False, "user_not_in_tenant"
-            
+
             if is_organization:
                 # Only admin or owner can toggle in organizations
                 if Role.ADMIN in user.roles or Role.OWNER in user.roles:
-                    return True, f"granted_by_role:{user.roles[0].value}"
+                    granting = next(
+                        (r for r in user.roles if r in (Role.ADMIN, Role.OWNER)),
+                        user.roles[0] if user.roles else Role.ADMIN,
+                    )
+                    return True, f"granted_by_role:{granting.value}"
                 else:
                     return False, "only_admin_or_owner_can_toggle_in_organization"
             else:
@@ -314,7 +319,7 @@ class RBACGovernance:
 
             if role not in user.roles:
                 user.roles.append(role)
-                self._audit_log.append({
+                capped_append(self._audit_log, {
                     "event": "role_assigned",
                     "user_id": user_id,
                     "role": role.value,
@@ -348,7 +353,7 @@ class RBACGovernance:
 
             if role in user.roles:
                 user.roles.remove(role)
-                self._audit_log.append({
+                capped_append(self._audit_log, {
                     "event": "role_removed",
                     "user_id": user_id,
                     "role": role.value,

@@ -15,6 +15,10 @@ from dataclasses import dataclass, field
 
 from .preset_manager import GovernancePreset, GovernanceRequirement, EnforcementMode
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ComplianceStatus(Enum):
     """Compliance status levels"""
@@ -44,7 +48,7 @@ class ComplianceGap:
     severity: str  # CRITICAL, HIGH, MEDIUM, LOW
     remedy: str
     can_configure: bool = True
-    
+
     def to_dict(self) -> Dict:
         """Convert to dictionary for serialization"""
         return {
@@ -69,31 +73,31 @@ class ValidationResult:
     satisfied_requirements: int
     gaps: List[ComplianceGap] = field(default_factory=list)
     risk_assessment: str = ""
-    
+
     def get_compliance_percentage(self) -> float:
         """Calculate compliance percentage"""
         if self.total_requirements == 0:
             return 100.0
         return (self.satisfied_requirements / self.total_requirements) * 100.0
-    
+
     def get_critical_gaps(self) -> List[ComplianceGap]:
         """Get all critical gaps"""
         return [gap for gap in self.gaps if gap.severity == "CRITICAL"]
-    
+
     def has_blocking_gaps(self) -> bool:
         """Check if any gaps block system activation"""
-        return any(gap.gap_type == GapType.MISSING_CONTROL and 
-                  gap.severity in ["CRITICAL", "HIGH"] 
+        return any(gap.gap_type == GapType.MISSING_CONTROL and
+                  gap.severity in ["CRITICAL", "HIGH"]
                   for gap in self.gaps)
 
 
 class ValidationEngine:
     """Validates system configuration against governance requirements"""
-    
+
     def __init__(self):
         self.system_capabilities = self._discover_system_capabilities()
         self.artifact_registry = self._initialize_artifact_registry()
-    
+
     def _discover_system_capabilities(self) -> Dict[str, Any]:
         """Discover current system capabilities"""
         # Check Murphy System components
@@ -103,38 +107,38 @@ class ValidationEngine:
             "frameworks": set(),
             "features": set()
         }
-        
+
         # Core governance components (from our implementation)
         capabilities["controls"].update([
             "agent_descriptor", "authority_mapper", "stability_controller",
             "refusal_handler", "governance_scheduler", "artifact_validator"
         ])
-        
+
         # Security plane components
         capabilities["controls"].update([
             "access_control", "authentication", "authorization", "audit_logging",
             "data_leak_prevention", "integrity_validation", "encryption"
         ])
-        
+
         # Confidence engine components
         capabilities["controls"].update([
             "confidence_calculator", "risk_assessment", "murphy_index",
             "gate_synthesis", "phase_controller"
         ])
-        
+
         # Services (from existing implementation)
         capabilities["services"].update([
             "confidence_engine", "gate_synthesis_engine", "security_plane",
             "execution_orchestrator", "deterministic_compute_plane"
         ])
-        
+
         # Framework compliance
         capabilities["frameworks"].update([
             "governance_framework", "security_framework", "stability_framework"
         ])
-        
+
         return capabilities
-    
+
     def _initialize_artifact_registry(self) -> Dict[str, Any]:
         """Initialize artifact registry with available artifacts"""
         # This would connect to the artifact ingestion system
@@ -144,22 +148,22 @@ class ValidationEngine:
             "attestations": ["privacy_training", "security_training"],
             "contracts": ["vendor_agreements", "sla_documents"]
         }
-    
+
     def validate_configuration(self, enabled_presets: List[GovernancePreset]) -> ValidationResult:
         """Validate current system configuration against enabled presets"""
-        
+
         validation_id = f"validation_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
-        
+
         # Collect all requirements
         all_requirements = []
         for preset in enabled_presets:
             for req in preset.requirements:
                 all_requirements.append((req, preset.preset_id))
-        
+
         total_requirements = len(all_requirements)
         satisfied_requirements = 0
         gaps = []
-        
+
         # Validate each requirement
         for requirement, preset_id in all_requirements:
             gap = self._validate_requirement(requirement, preset_id)
@@ -172,7 +176,7 @@ class ValidationEngine:
                     satisfied_requirements += 1
             else:
                 satisfied_requirements += 1
-        
+
         # Determine overall status
         if not gaps:
             overall_status = ComplianceStatus.COMPLIANT
@@ -180,7 +184,7 @@ class ValidationEngine:
             overall_status = ComplianceStatus.NON_COMPLIANT
         else:
             overall_status = ComplianceStatus.PARTIALLY_COMPLIANT
-        
+
         return ValidationResult(
             validation_id=validation_id,
             timestamp=datetime.now(timezone.utc),
@@ -190,16 +194,16 @@ class ValidationEngine:
             gaps=gaps,
             risk_assessment=self._generate_risk_assessment(gaps)
         )
-    
+
     def _validate_requirement(self, requirement: GovernanceRequirement, preset_id: str) -> Optional[ComplianceGap]:
         """Validate individual requirement"""
-        
+
         # Check if required controls are available
         missing_controls = []
         for control in requirement.controls_required:
             if control not in self.system_capabilities["controls"]:
                 missing_controls.append(control)
-        
+
         if missing_controls:
             return ComplianceGap(
                 gap_id=f"gap_control_{preset_id}_{requirement.requirement_id}",
@@ -211,7 +215,7 @@ class ValidationEngine:
                 remedy=f"Implement missing controls: {', '.join(missing_controls)}",
                 can_configure=False
             )
-        
+
         # Check if required artifacts are available
         missing_artifacts = []
         for artifact in requirement.artifacts_required:
@@ -222,7 +226,7 @@ class ValidationEngine:
                     break
             if not found:
                 missing_artifacts.append(artifact)
-        
+
         if missing_artifacts:
             return ComplianceGap(
                 gap_id=f"gap_artifact_{preset_id}_{requirement.requirement_id}",
@@ -234,20 +238,20 @@ class ValidationEngine:
                 remedy=f"Obtain missing artifacts: {', '.join(missing_artifacts)}",
                 can_configure=True
             )
-        
+
         # Check dependencies
         for dep_id in requirement.depends_on:
             # This would check if dependent requirements are satisfied
             pass
-        
+
         # No gaps found
         return None
-    
+
     def _generate_risk_assessment(self, gaps: List[ComplianceGap]) -> str:
         """Generate risk assessment based on gaps"""
         critical_count = len([g for g in gaps if g.severity == "CRITICAL"])
         high_count = len([g for g in gaps if g.severity == "HIGH"])
-        
+
         if critical_count > 0:
             return f"CRITICAL: {critical_count} critical gaps requiring immediate attention"
         elif high_count > 3:
@@ -256,25 +260,25 @@ class ValidationEngine:
             return f"MEDIUM: {len(gaps)} gaps found, system operational with limitations"
         else:
             return "LOW: No compliance gaps detected"
-    
+
     def check_mandatory_baseline_controls(self) -> ValidationResult:
         """Check mandatory baseline controls are present"""
-        
+
         mandatory_controls = [
             "authority_mapper",          # Explicit authority scoping
-            "deterministic_compute",     # Deterministic execution gating  
+            "deterministic_compute",     # Deterministic execution gating
             "refusal_handler",          # Refusal as valid outcome
             "audit_logging",            # Immutable audit logging
             "stability_controller",     # Separation of proposal/enforcement
             "governance_scheduler",     # Bounded execution and retry limits
             "escalation_handler"        # Explicit escalation paths
         ]
-        
+
         missing_mandatory = []
         for control in mandatory_controls:
             if control not in self.system_capabilities["controls"]:
                 missing_mandatory.append(control)
-        
+
         if missing_mandatory:
             return ValidationResult(
                 validation_id="mandatory_baseline_check",
@@ -296,7 +300,7 @@ class ValidationEngine:
                 ],
                 risk_assessment="CRITICAL: System cannot be deployed without mandatory baseline controls"
             )
-        
+
         return ValidationResult(
             validation_id="mandatory_baseline_check",
             timestamp=datetime.now(timezone.utc),

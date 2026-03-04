@@ -9,6 +9,9 @@ from enum import Enum
 import json
 from datetime import datetime
 
+import logging
+logger = logging.getLogger("dynamic_expert_generator")
+
 
 class ExpertLevel(Enum):
     """Expert seniority levels"""
@@ -27,7 +30,7 @@ class ExpertCapability:
     years_experience: int
     certified: bool = False
     tools: List[str] = field(default_factory=list)
-    
+
     def to_dict(self) -> Dict:
         return {
             "name": self.name,
@@ -46,7 +49,7 @@ class ExpertKnowledge:
     best_practices: List[str] = field(default_factory=list)
     regulatory_knowledge: List[str] = field(default_factory=list)
     architectural_patterns: List[str] = field(default_factory=list)
-    
+
     def to_dict(self) -> Dict:
         return {
             "domains": self.domains,
@@ -65,7 +68,7 @@ class ExpertArtifact:
     modification: bool = True
     review: bool = True
     examples: List[str] = field(default_factory=list)
-    
+
     def to_dict(self) -> Dict:
         return {
             "artifact_type": self.artifact_type,
@@ -90,7 +93,7 @@ class GeneratedExpert:
     confidence_threshold: float = 0.85
     cost_per_hour: float = 0.0
     availability: float = 1.0  # 0.0 to 1.0
-    
+
     def to_dict(self) -> Dict:
         return {
             "id": self.id,
@@ -117,12 +120,12 @@ class DynamicExpertGenerator:
     Generates domain experts dynamically based on system requirements
     Uses templates and LLM prompts to create specialized experts
     """
-    
+
     def __init__(self):
         self.expert_count = 0
         self.expert_templates = self._load_expert_templates()
         self.domain_knowledge = self._load_domain_knowledge()
-        
+
     def _load_expert_templates(self) -> Dict:
         """Load expert templates for common roles"""
         return {
@@ -152,7 +155,7 @@ class DynamicExpertGenerator:
                 "artifacts": ["deployment_scripts", "monitoring_dashboards", "playbooks"]
             }
         }
-    
+
     def _load_domain_knowledge(self) -> Dict:
         """Load knowledge about different domains"""
         return {
@@ -172,7 +175,7 @@ class DynamicExpertGenerator:
                 "architectural": ["data_lake", "data_warehouse", "streaming"]
             }
         }
-    
+
     def generate_expert(
         self,
         title: str = None,
@@ -187,7 +190,7 @@ class DynamicExpertGenerator:
     ) -> GeneratedExpert:
         """
         Generate a dynamic expert based on requirements
-        
+
         Args:
             title: Expert title (e.g., "Backend Developer", "Security Architect")
             domain: Domain (e.g., "software", "infrastructure", "data")
@@ -197,7 +200,7 @@ class DynamicExpertGenerator:
             budget_constraint: Maximum hourly rate
             regulatory_requirements: Required regulatory knowledge
             architectural_requirements: Required architectural knowledge
-            
+
         Returns:
             GeneratedExpert object or dict with expert key
         """
@@ -210,29 +213,29 @@ class DynamicExpertGenerator:
             domain = "software"
         self.expert_count += 1
         expert_id = f"expert_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{self.expert_count}"
-        
+
         # Map level string to enum
         level_enum = ExpertLevel(level.lower())
-        
+
         # Generate capabilities
         capabilities = self._generate_capabilities(
             title, domain, level_enum, specializations
         )
-        
+
         # Generate knowledge
         knowledge = self._generate_knowledge(
             domain, level_enum, regulatory_requirements, architectural_requirements
         )
-        
+
         # Generate artifacts
         artifacts = self._generate_artifacts(title, domain)
-        
+
         # Calculate cost based on level and capabilities
         cost_per_hour = self._calculate_cost(level_enum, capabilities, budget_constraint)
-        
+
         # Determine confidence threshold
         confidence_threshold = self._calculate_confidence_threshold(level_enum)
-        
+
         # Create expert
         expert = GeneratedExpert(
             id=expert_id,
@@ -247,9 +250,9 @@ class DynamicExpertGenerator:
             cost_per_hour=cost_per_hour,
             availability=1.0
         )
-        
+
         return expert
-    
+
     def _generate_capabilities(
         self,
         title: str,
@@ -259,14 +262,14 @@ class DynamicExpertGenerator:
     ) -> List[ExpertCapability]:
         """Generate expert capabilities based on title, domain, and level"""
         capabilities = []
-        
+
         # Get base capabilities from template or create from title
         template_key = title.lower().replace(" ", "_")
         if template_key in self.expert_templates:
             base_caps = self.expert_templates[template_key]["capabilities"]
         else:
             base_caps = self._derive_capabilities_from_title(title)
-        
+
         # Generate capability objects with proficiency based on level
         level_proficiency = {
             ExpertLevel.JUNIOR: 0.4,
@@ -275,7 +278,7 @@ class DynamicExpertGenerator:
             ExpertLevel.PRINCIPAL: 0.9,
             ExpertLevel.EXPERT: 0.95
         }
-        
+
         base_prof = level_proficiency[level]
         years_exp = {
             ExpertLevel.JUNIOR: 1,
@@ -284,7 +287,7 @@ class DynamicExpertGenerator:
             ExpertLevel.PRINCIPAL: 12,
             ExpertLevel.EXPERT: 15
         }[level]
-        
+
         for cap in base_caps:
             proficiency = base_prof + (0.05 if specializations and cap in specializations else 0)
             capabilities.append(ExpertCapability(
@@ -294,7 +297,7 @@ class DynamicExpertGenerator:
                 certified=level in [ExpertLevel.SENIOR, ExpertLevel.PRINCIPAL, ExpertLevel.EXPERT],
                 tools=self._get_tools_for_capability(cap, domain)
             ))
-        
+
         # Add specializations
         if specializations:
             for spec in specializations:
@@ -306,13 +309,13 @@ class DynamicExpertGenerator:
                         certified=True,
                         tools=self._get_tools_for_capability(spec, domain)
                     ))
-        
+
         return capabilities
-    
+
     def _derive_capabilities_from_title(self, title: str) -> List[str]:
         """Derive capabilities from expert title"""
         title_lower = title.lower()
-        
+
         capability_mapping = {
             "developer": ["programming", "debugging", "code_review", "testing"],
             "architect": ["system_design", "pattern_selection", "scalability_planning", "integration"],
@@ -323,14 +326,14 @@ class DynamicExpertGenerator:
             "designer": ["design", "prototyping", "user_experience", "visual_composition"],
             "consultant": ["consultation", "strategy", "recommendations", "guidance"]
         }
-        
+
         derived = []
         for keyword, caps in capability_mapping.items():
             if keyword in title_lower:
                 derived.extend(caps)
-        
+
         return derived if derived else ["general_knowledge", "problem_solving", "communication"]
-    
+
     def _get_tools_for_capability(self, capability: str, domain: str) -> List[str]:
         """Get relevant tools for a capability"""
         tool_mapping = {
@@ -342,9 +345,9 @@ class DynamicExpertGenerator:
             "monitoring": ["monitoring_tools", "logging", "alerting"],
             "testing": ["testing_frameworks", "automation", "mocking"]
         }
-        
+
         return tool_mapping.get(capability.lower(), ["general_tools"])
-    
+
     def _generate_knowledge(
         self,
         domain: str,
@@ -354,19 +357,19 @@ class DynamicExpertGenerator:
     ) -> ExpertKnowledge:
         """Generate knowledge domains for expert"""
         domain_data = self.domain_knowledge.get(domain, {})
-        
+
         # Base knowledge from domain
         best_practices = domain_data.get("best_practices", [])
         regulatory = domain_data.get("regulatory", [])
         architectural = domain_data.get("architectural", [])
-        
+
         # Add custom requirements
         if regulatory_requirements:
             regulatory.extend(regulatory_requirements)
-        
+
         if architectural_requirements:
             architectural.extend(architectural_requirements)
-        
+
         # Generate specialized areas based on level
         specialized_areas = []
         if level in [ExpertLevel.SENIOR, ExpertLevel.PRINCIPAL, ExpertLevel.EXPERT]:
@@ -375,7 +378,7 @@ class DynamicExpertGenerator:
                 "mentoring",
                 "architecture_review"
             ]
-        
+
         return ExpertKnowledge(
             domains=[domain],
             specialized_areas=specialized_areas,
@@ -383,11 +386,11 @@ class DynamicExpertGenerator:
             regulatory_knowledge=list(set(regulatory)),
             architectural_patterns=list(set(architectural))
         )
-    
+
     def _generate_artifacts(self, title: str, domain: str) -> List[ExpertArtifact]:
         """Generate artifact types for expert"""
         title_lower = title.lower()
-        
+
         # Common artifact mappings
         artifact_mapping = {
             "developer": [
@@ -416,22 +419,22 @@ class DynamicExpertGenerator:
                 ExpertArtifact("resource_allocation")
             ]
         }
-        
+
         for keyword, artifacts in artifact_mapping.items():
             if keyword in title_lower:
                 return artifacts
-        
+
         # Default artifacts
         return [
             ExpertArtifact("documentation"),
             ExpertArtifact("reports"),
             ExpertArtifact("recommendations")
         ]
-    
+
     def _determine_system_logic_effects(self, domain: str, title: str) -> List[str]:
         """Determine what system logic the expert affects"""
         effects = []
-        
+
         domain_effects = {
             "software": [
                 "code_quality",
@@ -452,18 +455,18 @@ class DynamicExpertGenerator:
                 "data_governance"
             ]
         }
-        
+
         effects.extend(domain_effects.get(domain, []))
-        
+
         # Title-specific effects
         if "security" in title.lower():
             effects.extend(["security_posture", "compliance_status", "vulnerability_management"])
-        
+
         if "architect" in title.lower():
             effects.extend(["system_architecture", "technical_direction", "design_consistency"])
-        
+
         return list(set(effects))
-    
+
     def _calculate_cost(
         self,
         level: ExpertLevel,
@@ -478,23 +481,23 @@ class DynamicExpertGenerator:
             ExpertLevel.PRINCIPAL: 175,
             ExpertLevel.EXPERT: 250
         }
-        
+
         base_rate = base_rates[level]
-        
+
         # Add premium for certifications
         premium = sum(10 for cap in capabilities if cap.certified)
-        
+
         # Add premium for high proficiency
         proficiency_bonus = sum(5 for cap in capabilities if cap.proficiency > 0.8)
-        
+
         total = base_rate + premium + proficiency_bonus
-        
+
         # Apply budget constraint if specified
         if budget_constraint:
             total = min(total, budget_constraint)
-        
+
         return total
-    
+
     def _calculate_confidence_threshold(self, level: ExpertLevel) -> float:
         """Calculate confidence threshold for expert"""
         thresholds = {
@@ -517,29 +520,29 @@ class DynamicExpertGenerator:
     ) -> Tuple[List[GeneratedExpert], Dict[str, Any]]:
         """
         Generate a team of experts based on system requirements
-        
+
         Args:
             requirements: System requirements dict
             budget: Total budget constraint
-            
+
         Returns:
             Tuple of (expert_list, team_analysis)
         """
         experts = []
         total_cost = 0
-        
+
         # Extract key requirements
         domain = requirements.get("domain", "software")
         complexity = requirements.get("complexity", "medium")
         team_size = self._determine_team_size(complexity)
-        
+
         # Determine required expert types
         expert_types = self._determine_expert_types(domain, complexity, requirements)
-        
+
         # Generate each expert
         for expert_type in expert_types:
-            expert_budget = budget / len(expert_types) if budget else None
-            
+            expert_budget = budget / (len(expert_types) or 1) if budget else None
+
             expert = self.generate_expert(
                 title=expert_type["title"],
                 domain=domain,
@@ -549,22 +552,22 @@ class DynamicExpertGenerator:
                 regulatory_requirements=requirements.get("regulatory_requirements"),
                 architectural_requirements=requirements.get("architectural_requirements")
             )
-            
+
             experts.append(expert)
             total_cost += expert.cost_per_hour
-        
+
         # Generate team analysis
         team_analysis = {
             "total_experts": len(experts),
             "total_cost_per_hour": total_cost,
-            "average_confidence": sum(e.confidence_threshold for e in experts) / len(experts),
+            "average_confidence": sum(e.confidence_threshold for e in experts) / (len(experts) or 1),
             "coverage": self._calculate_team_coverage(experts, requirements),
             "budget_utilization": total_cost / budget if budget else None,
             "expertise_distribution": self._calculate_expertise_distribution(experts)
         }
-        
+
         return experts, team_analysis
-    
+
     def _determine_team_size(self, complexity: str) -> int:
         """Determine optimal team size based on complexity"""
         sizes = {
@@ -574,7 +577,7 @@ class DynamicExpertGenerator:
             "very_complex": 8
         }
         return sizes.get(complexity.lower(), 4)
-    
+
     def _determine_expert_types(
         self,
         domain: str,
@@ -583,7 +586,7 @@ class DynamicExpertGenerator:
     ) -> List[Dict]:
         """Determine what types of experts are needed"""
         expert_types = []
-        
+
         # Domain-specific base experts
         if domain == "software":
             expert_types.append({"title": "Software Architect", "level": "senior"})
@@ -591,30 +594,30 @@ class DynamicExpertGenerator:
             expert_types.append({"title": "Frontend Developer", "level": "mid"})
             if complexity in ["complex", "very_complex"]:
                 expert_types.append({"title": "Security Specialist", "level": "senior"})
-        
+
         elif domain == "infrastructure":
             expert_types.append({"title": "Cloud Architect", "level": "senior"})
             expert_types.append({"title": "DevOps Engineer", "level": "mid"})
             expert_types.append({"title": "Security Engineer", "level": "senior"})
             if complexity in ["complex", "very_complex"]:
                 expert_types.append({"title": "Network Engineer", "level": "mid"})
-        
+
         elif domain == "data":
             expert_types.append({"title": "Data Architect", "level": "senior"})
             expert_types.append({"title": "Data Scientist", "level": "mid"})
             expert_types.append({"title": "Data Engineer", "level": "mid"})
             if complexity in ["complex", "very_complex"]:
                 expert_types.append({"title": "ML Engineer", "level": "senior"})
-        
+
         # Add specialists based on requirements
         if requirements.get("security_focus"):
             expert_types.append({"title": "Security Specialist", "level": "senior"})
-        
+
         if requirements.get("ml_focus"):
             expert_types.append({"title": "ML Engineer", "level": "senior"})
-        
+
         return expert_types
-    
+
     def _calculate_team_coverage(
         self,
         experts: List[GeneratedExpert],
@@ -628,16 +631,16 @@ class DynamicExpertGenerator:
                 if cap.name not in all_capabilities:
                     all_capabilities[cap.name] = 0.0
                 all_capabilities[cap.name] = max(all_capabilities[cap.name], cap.proficiency)
-        
+
         # Calculate average coverage
         coverage = {
-            "capability_coverage": sum(all_capabilities.values()) / len(all_capabilities),
+            "capability_coverage": sum(all_capabilities.values()) / (len(all_capabilities) or 1),
             "expert_count": len(experts),
             "unique_capabilities": len(all_capabilities)
         }
-        
+
         return coverage
-    
+
     def _calculate_expertise_distribution(
         self,
         experts: List[GeneratedExpert]
@@ -658,20 +661,20 @@ def create_expert_from_description(
     """
     Create an expert from a natural language description
     This would typically use LLM generation in production
-    
+
     Args:
         description: Natural language description of expert needed
         domain: Domain (software, infrastructure, data)
         budget: Budget constraint
-        
+
     Returns:
         GeneratedExpert object
     """
     generator = DynamicExpertGenerator()
-    
+
     # Simple keyword extraction (would use LLM in production)
     description_lower = description.lower()
-    
+
     # Extract level
     level = "mid"
     if "senior" in description_lower:
@@ -680,7 +683,7 @@ def create_expert_from_description(
         level = "junior"
     elif "principal" in description_lower or "lead" in description_lower:
         level = "principal"
-    
+
     # Extract title (simplified)
     title = "General Developer"
     if "architect" in description_lower:
@@ -695,7 +698,7 @@ def create_expert_from_description(
         title = "Frontend Developer"
     elif "backend" in description_lower:
         title = "Backend Developer"
-    
+
     # Extract specializations
     specializations = []
     if "python" in description_lower:
@@ -706,7 +709,7 @@ def create_expert_from_description(
         specializations.append("cloud")
     if "ml" in description_lower or "machine learning" in description_lower:
         specializations.append("machine_learning")
-    
+
     return generator.generate_expert(
         title=title,
         domain=domain,
@@ -719,9 +722,9 @@ def create_expert_from_description(
 if __name__ == "__main__":
     # Test dynamic expert generation
     generator = DynamicExpertGenerator()
-    
+
     # Test 1: Generate single expert
-    print("=== Test 1: Generate Single Expert ===")
+    logger.info("=== Test 1: Generate Single Expert ===")
     expert = generator.generate_expert(
         title="Software Architect",
         domain="software",
@@ -730,10 +733,10 @@ if __name__ == "__main__":
         regulatory_requirements=["gdpr"],
         architectural_requirements=["microservices", "event_driven"]
     )
-    print(json.dumps(expert.to_dict(), indent=2))
-    
+    logger.info(json.dumps(expert.to_dict(), indent=2))
+
     # Test 2: Generate expert team
-    print("\n=== Test 2: Generate Expert Team ===")
+    logger.info("\n=== Test 2: Generate Expert Team ===")
     requirements = {
         "domain": "software",
         "complexity": "complex",
@@ -741,19 +744,19 @@ if __name__ == "__main__":
         "regulatory_requirements": ["gdpr", "hipaa"],
         "architectural_requirements": ["microservices"]
     }
-    
+
     experts, analysis = generator.generate_expert_team(requirements, budget=1000)
-    print(f"Team Size: {analysis['total_experts']}")
-    print(f"Total Cost: ${analysis['total_cost_per_hour']}/hour")
-    print(f"Avg Confidence: {analysis['average_confidence']:.2%}")
-    print(f"Coverage: {analysis['coverage']}")
-    print(f"Budget Utilization: {analysis['budget_utilization']:.2%}" if analysis['budget_utilization'] else "No budget")
-    
+    logger.info(f"Team Size: {analysis['total_experts']}")
+    logger.info(f"Total Cost: ${analysis['total_cost_per_hour']}/hour")
+    logger.info(f"Avg Confidence: {analysis['average_confidence']:.2%}")
+    logger.info(f"Coverage: {analysis['coverage']}")
+    logger.info(f"Budget Utilization: {analysis['budget_utilization']:.2%}" if analysis['budget_utilization'] else "No budget")
+
     # Test 3: Create from description
-    print("\n=== Test 3: Create Expert from Description ===")
+    logger.info("\n=== Test 3: Create Expert from Description ===")
     expert = create_expert_from_description(
         "I need a senior security specialist with cloud experience",
         domain="software",
         budget=200
     )
-    print(json.dumps(expert.to_dict(), indent=2))
+    logger.info(json.dumps(expert.to_dict(), indent=2))

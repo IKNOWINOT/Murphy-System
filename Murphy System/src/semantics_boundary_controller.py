@@ -19,6 +19,7 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +135,7 @@ def _compute_cvar(sorted_values: List[float], alpha: float) -> float:
     n = len(sorted_values)
     cutoff = max(1, int(math.ceil(n * alpha)))
     tail = sorted_values[-cutoff:]
-    return sum(tail) / len(tail)
+    return sum(tail) / (len(tail) or 1)
 
 
 # ---------------------------------------------------------------------------
@@ -441,7 +442,7 @@ class SemanticsBoundaryController:
             details=details,
         )
         with self._lock:
-            self._verifications.append(verification)
+            capped_append(self._verifications, verification)
         logger.info("Recorded verification %s for task %s: %s", verification.verification_id, task_id, outcome)
         return verification
 

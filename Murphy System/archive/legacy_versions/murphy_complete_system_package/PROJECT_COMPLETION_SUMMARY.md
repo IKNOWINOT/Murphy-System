@@ -416,7 +416,7 @@ kubectl apply -f kubernetes/
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/your-org/murphy-system.git
+git clone https://github.com/IKNOWINOT/Murphy-System.git
 cd murphy-system
 
 # 2. Start with Docker Compose
@@ -460,7 +460,7 @@ kubectl get pods -n murphy-system
 - **Operations Runbook:** `/deployment/RUNBOOK.md`
 
 ### Community
-- **GitHub:** https://github.com/your-org/murphy-system
+- **GitHub:** https://github.com/IKNOWINOT/Murphy-System
 - **Documentation:** https://docs.murphy-system.com
 - **Community Forum:** https://community.murphy-system.com
 

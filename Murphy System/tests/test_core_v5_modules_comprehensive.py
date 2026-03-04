@@ -36,19 +36,19 @@ except ImportError as e:
 
 class TestSystemIntegrator(unittest.TestCase):
     """Test SystemIntegrator core functionality"""
-    
+
     def setUp(self):
         """Set up test fixtures"""
         try:
             self.integrator = SystemIntegrator()
         except Exception as e:
             self.skipTest(f"Cannot create SystemIntegrator: {e}")
-    
+
     def test_initialization(self):
         """Test that SystemIntegrator initializes correctly"""
         self.assertIsNotNone(self.integrator)
         self.assertTrue(hasattr(self.integrator, 'state') or hasattr(self.integrator, 'get_system_state'))
-    
+
     def test_process_user_request(self):
         """Test processing user requests"""
         try:
@@ -59,7 +59,7 @@ class TestSystemIntegrator(unittest.TestCase):
             self.assertIn('response', result)
         except Exception as e:
             self.skipTest(f"Process user request failed: {e}")
-    
+
     def test_get_system_state(self):
         """Test getting system state"""
         try:
@@ -68,7 +68,7 @@ class TestSystemIntegrator(unittest.TestCase):
             self.assertIsInstance(state, dict)
         except Exception as e:
             self.skipTest(f"Get system state failed: {e}")
-    
+
     def test_adapter_initialization(self):
         """Test that all adapters are initialized"""
         adapters = [
@@ -85,18 +85,18 @@ class TestSystemIntegrator(unittest.TestCase):
 
 class TestDocumentProcessor(unittest.TestCase):
     """Test DocumentProcessor functionality"""
-    
+
     def setUp(self):
         """Set up test fixtures"""
         try:
             self.processor = DocumentProcessor()
         except Exception as e:
             self.skipTest(f"Cannot create DocumentProcessor: {e}")
-    
+
     def test_initialization(self):
         """Test initialization"""
         self.assertIsNotNone(self.processor)
-    
+
     def test_process_simple_document(self):
         """Test processing a simple document"""
         try:
@@ -105,7 +105,7 @@ class TestDocumentProcessor(unittest.TestCase):
             self.assertIsNotNone(result)
         except Exception as e:
             self.skipTest(f"Process document failed: {e}")
-    
+
     def test_extract_requirements(self):
         """Test extracting requirements from document"""
         try:
@@ -119,18 +119,18 @@ class TestDocumentProcessor(unittest.TestCase):
 
 class TestTelemetryAdapter(unittest.TestCase):
     """Test TelemetryAdapter functionality"""
-    
+
     def setUp(self):
         """Set up test fixtures"""
         try:
             self.adapter = TelemetryAdapter()
         except Exception as e:
             self.skipTest(f"Cannot create TelemetryAdapter: {e}")
-    
+
     def test_initialization(self):
         """Test initialization"""
         self.assertIsNotNone(self.adapter)
-    
+
     def test_collect_metric(self):
         """Test collecting a metric"""
         try:
@@ -142,7 +142,7 @@ class TestTelemetryAdapter(unittest.TestCase):
             self.assertIsNotNone(result)
         except Exception as e:
             self.skipTest(f"Collect metric failed: {e}")
-    
+
     def test_get_metrics(self):
         """Test retrieving metrics"""
         try:
@@ -153,7 +153,7 @@ class TestTelemetryAdapter(unittest.TestCase):
             self.assertIsNotNone(metrics)
         except Exception as e:
             self.skipTest(f"Get metrics failed: {e}")
-    
+
     def test_detect_anomalies(self):
         """Test anomaly detection"""
         try:
@@ -170,18 +170,18 @@ class TestTelemetryAdapter(unittest.TestCase):
 
 class TestSystemLibrarian(unittest.TestCase):
     """Test SystemLibrarian functionality"""
-    
+
     def setUp(self):
         """Set up test fixtures"""
         try:
             self.librarian = SystemLibrarian()
         except Exception as e:
             self.skipTest(f"Cannot create SystemLibrarian: {e}")
-    
+
     def test_initialization(self):
         """Test initialization"""
         self.assertIsNotNone(self.librarian)
-    
+
     def test_answer_question(self):
         """Test answering a question"""
         try:
@@ -191,7 +191,7 @@ class TestSystemLibrarian(unittest.TestCase):
             self.assertIsNotNone(answer)
         except Exception as e:
             self.skipTest(f"Answer question failed: {e}")
-    
+
     def test_get_documentation(self):
         """Test getting documentation"""
         try:
@@ -199,7 +199,7 @@ class TestSystemLibrarian(unittest.TestCase):
             self.assertIsNotNone(docs)
         except Exception as e:
             self.skipTest(f"Get documentation failed: {e}")
-    
+
     def test_troubleshoot(self):
         """Test troubleshooting"""
         try:
@@ -213,18 +213,18 @@ class TestSystemLibrarian(unittest.TestCase):
 
 class TestConstraintSystem(unittest.TestCase):
     """Test ConstraintSystem functionality"""
-    
+
     def setUp(self):
         """Set up test fixtures"""
         try:
             self.constraint_system = ConstraintSystem()
         except Exception as e:
             self.skipTest(f"Cannot create ConstraintSystem: {e}")
-    
+
     def test_initialization(self):
         """Test initialization"""
         self.assertIsNotNone(self.constraint_system)
-    
+
     def test_add_constraint(self):
         """Test adding a constraint"""
         try:
@@ -238,7 +238,7 @@ class TestConstraintSystem(unittest.TestCase):
             self.assertTrue(result.get('success', False))
         except Exception as e:
             self.skipTest(f"Add constraint failed: {e}")
-    
+
     def test_validate_constraints(self):
         """Test validating constraints"""
         try:
@@ -258,18 +258,18 @@ class TestConstraintSystem(unittest.TestCase):
 
 class TestSecurityPlaneAdapter(unittest.TestCase):
     """Test SecurityPlaneAdapter functionality"""
-    
+
     def setUp(self):
         """Set up test fixtures"""
         try:
             self.adapter = SecurityPlaneAdapter()
         except Exception as e:
             self.skipTest(f"Cannot create SecurityPlaneAdapter: {e}")
-    
+
     def test_initialization(self):
         """Test initialization"""
         self.assertIsNotNone(self.adapter)
-    
+
     def test_validate_input(self):
         """Test input validation"""
         try:
@@ -277,7 +277,7 @@ class TestSecurityPlaneAdapter(unittest.TestCase):
             self.assertIsNotNone(result)
         except Exception as e:
             self.skipTest(f"Validate input failed: {e}")
-    
+
     def test_compute_trust_score(self):
         """Test trust score computation"""
         try:
@@ -294,18 +294,18 @@ class TestSecurityPlaneAdapter(unittest.TestCase):
 
 class TestNeuroSymbolicAdapter(unittest.TestCase):
     """Test NeuroSymbolicAdapter functionality"""
-    
+
     def setUp(self):
         """Set up test fixtures"""
         try:
             self.adapter = NeuroSymbolicAdapter()
         except Exception as e:
             self.skipTest(f"Cannot create NeuroSymbolicAdapter: {e}")
-    
+
     def test_initialization(self):
         """Test initialization"""
         self.assertIsNotNone(self.adapter)
-    
+
     def test_inference(self):
         """Test inference"""
         try:
@@ -316,7 +316,7 @@ class TestNeuroSymbolicAdapter(unittest.TestCase):
             self.assertIsNotNone(result)
         except Exception as e:
             self.skipTest(f"Perform inference failed: {e}")
-    
+
     def test_validate_constraints(self):
         """Test constraint validation"""
         try:
@@ -333,18 +333,18 @@ class TestNeuroSymbolicAdapter(unittest.TestCase):
 
 class TestBotInventoryLibrary(unittest.TestCase):
     """Test BotInventoryLibrary functionality"""
-    
+
     def setUp(self):
         """Set up test fixtures"""
         try:
             self.library = BotInventoryLibrary()
         except Exception as e:
             self.skipTest(f"Cannot create BotInventoryLibrary: {e}")
-    
+
     def test_initialization(self):
         """Test initialization"""
         self.assertIsNotNone(self.library)
-    
+
     def test_register_bot(self):
         """Test registering a bot"""
         try:
@@ -355,7 +355,7 @@ class TestBotInventoryLibrary(unittest.TestCase):
             self.assertIsNotNone(result)
         except Exception as e:
             self.skipTest(f"Register bot failed: {e}")
-    
+
     def test_search_bots(self):
         """Test searching for bots"""
         try:
@@ -376,18 +376,18 @@ class TestBotInventoryLibrary(unittest.TestCase):
 
 class TestSystemBuilder(unittest.TestCase):
     """Test SystemBuilder functionality"""
-    
+
     def setUp(self):
         """Set up test fixtures"""
         try:
             self.builder = SystemBuilder()
         except Exception as e:
             self.skipTest(f"Cannot create SystemBuilder: {e}")
-    
+
     def test_initialization(self):
         """Test initialization"""
         self.assertIsNotNone(self.builder)
-    
+
     def test_build_system(self):
         """Test building a system"""
         try:
@@ -399,7 +399,7 @@ class TestSystemBuilder(unittest.TestCase):
             self.assertIn('architecture', result)
         except Exception as e:
             self.skipTest(f"Build system failed: {e}")
-    
+
     def test_get_system_patterns(self):
         """Test getting system patterns"""
         try:
@@ -412,18 +412,18 @@ class TestSystemBuilder(unittest.TestCase):
 
 class TestDynamicExpertGenerator(unittest.TestCase):
     """Test DynamicExpertGenerator functionality"""
-    
+
     def setUp(self):
         """Set up test fixtures"""
         try:
             self.generator = DynamicExpertGenerator()
         except Exception as e:
             self.skipTest(f"Cannot create DynamicExpertGenerator: {e}")
-    
+
     def test_initialization(self):
         """Test initialization"""
         self.assertIsNotNone(self.generator)
-    
+
     def test_generate_expert(self):
         """Test generating an expert"""
         try:
@@ -435,7 +435,7 @@ class TestDynamicExpertGenerator(unittest.TestCase):
             self.assertIn('expert', result)
         except Exception as e:
             self.skipTest(f"Generate expert failed: {e}")
-    
+
     def test_get_available_domains(self):
         """Test getting available domains"""
         try:
@@ -448,18 +448,18 @@ class TestDynamicExpertGenerator(unittest.TestCase):
 
 class TestDomainGateGenerator(unittest.TestCase):
     """Test DomainGateGenerator functionality"""
-    
+
     def setUp(self):
         """Set up test fixtures"""
         try:
             self.generator = DomainGateGenerator()
         except Exception as e:
             self.skipTest(f"Cannot create DomainGateGenerator: {e}")
-    
+
     def test_initialization(self):
         """Test initialization"""
         self.assertIsNotNone(self.generator)
-    
+
     def test_generate_gate(self):
         """Test generating a gate"""
         try:
@@ -471,7 +471,7 @@ class TestDomainGateGenerator(unittest.TestCase):
             self.assertIn('gate', result)
         except Exception as e:
             self.skipTest(f"Generate gate failed: {e}")
-    
+
     def test_generate_gates_for_domain(self):
         """Test generating gates for a domain"""
         try:
@@ -490,7 +490,7 @@ def run_comprehensive_tests():
     # Create test suite
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
-    
+
     # Add all test classes
     test_classes = [
         TestSystemIntegrator,
@@ -505,15 +505,15 @@ def run_comprehensive_tests():
         TestDynamicExpertGenerator,
         TestDomainGateGenerator
     ]
-    
+
     for test_class in test_classes:
         tests = loader.loadTestsFromTestCase(test_class)
         suite.addTests(tests)
-    
+
     # Run tests
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
-    
+
     # Print summary
     print("\n" + "="*70)
     print("COMPREHENSIVE TEST SUMMARY")
@@ -525,7 +525,7 @@ def run_comprehensive_tests():
     print(f"Skipped: {len(result.skipped)}")
     print(f"Success Rate: {((result.testsRun - len(result.failures) - len(result.errors)) / result.testsRun * 100):.1f}%")
     print("="*70)
-    
+
     return result
 
 

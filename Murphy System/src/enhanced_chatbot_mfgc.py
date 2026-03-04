@@ -9,6 +9,10 @@ from typing import Dict, Any, Optional, Tuple
 from mfgc_core import MFGCController
 from domain_swarms import DomainDetector
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ComplexityAnalyzer:
     """Analyzes message complexity to determine routing."""

@@ -4,6 +4,10 @@ from typing import Dict, List
 
 from .avatar_models import SentimentResult
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class SentimentClassifier:
     """Simple keyword-based sentiment classifier (no external ML dependencies)."""

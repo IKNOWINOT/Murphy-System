@@ -5,6 +5,8 @@ Uses pattern matching and templates for offline operation
 Integrates with Ollama for local model inference when available
 """
 
+import logging
+logger = logging.getLogger(__name__)
 import re
 from typing import Dict, Any, List, Tuple, Optional
 import random
@@ -25,7 +27,8 @@ def _check_ollama_available(base_url: str = "http://localhost:11434") -> bool:
         req = urllib.request.Request(f"{base_url}/api/tags", method="GET")
         with urllib.request.urlopen(req, timeout=2) as resp:
             return resp.status == 200
-    except Exception:
+    except Exception as exc:
+        logger.debug("Suppressed exception: %s", exc)
         return False
 
 
@@ -54,7 +57,8 @@ def _query_ollama(
         with urllib.request.urlopen(req, timeout=30) as resp:
             data = _json.loads(resp.read().decode("utf-8"))
             return data.get("response", "")
-    except Exception:
+    except Exception as exc:
+        logger.debug("Suppressed exception: %s", exc)
         return None
 
 
@@ -68,34 +72,34 @@ class LocalLLMFallback:
     Uses intelligent pattern matching and response templates.
     When Ollama is available locally, routes queries to a real local model.
     """
-    
+
     def __init__(self):
         self.knowledge_base = self._build_knowledge_base()
         self.patterns = self._build_patterns()
         self._ollama_available: Optional[bool] = None
         self._ollama_model: Optional[str] = None
-    
+
     def _build_knowledge_base(self) -> Dict[str, str]:
         """Build a knowledge base of common topics"""
         return {
             "neural_networks": """Neural networks are computational models inspired by biological neurons. They consist of interconnected layers of nodes (neurons) that process information through weighted connections. Each neuron receives inputs, applies an activation function, and passes the output to the next layer. Through training with data, the network adjusts these weights to learn patterns and make predictions. Common types include feedforward networks, convolutional neural networks (CNNs) for images, and recurrent neural networks (RNNs) for sequences.""",
-            
+
             "machine_learning": """Machine learning is a subset of artificial intelligence that enables systems to learn and improve from experience without explicit programming. It uses algorithms to identify patterns in data and make predictions or decisions. The three main types are: supervised learning (learning from labeled data), unsupervised learning (finding patterns in unlabeled data), and reinforcement learning (learning through trial and error with rewards).""",
-            
+
             "python": """Python is a high-level, interpreted programming language known for its simplicity and readability. It supports multiple programming paradigms including procedural, object-oriented, and functional programming. Python is widely used in web development, data science, machine learning, automation, and scientific computing. Its extensive standard library and rich ecosystem of third-party packages make it versatile for various applications.""",
-            
+
             "web_development": """Web development involves creating websites and web applications. It typically consists of frontend development (HTML, CSS, JavaScript for user interfaces), backend development (server-side logic, databases, APIs), and full-stack development (both frontend and backend). Modern web development uses frameworks like React, Vue, Angular for frontend, and Node.js, Django, Flask for backend. Key concepts include responsive design, RESTful APIs, authentication, and database management.""",
-            
+
             "databases": """Databases are organized collections of structured data. Relational databases (SQL) like PostgreSQL and MySQL use tables with defined schemas and relationships. NoSQL databases like MongoDB and Redis offer flexible schemas for unstructured data. Key concepts include CRUD operations (Create, Read, Update, Delete), indexing for performance, transactions for data integrity, and normalization for efficient storage.""",
-            
+
             "algorithms": """Algorithms are step-by-step procedures for solving problems or performing computations. Common algorithm types include sorting (quicksort, mergesort), searching (binary search, depth-first search), dynamic programming (solving complex problems by breaking them into subproblems), and greedy algorithms (making locally optimal choices). Algorithm efficiency is measured using Big O notation, which describes time and space complexity.""",
-            
+
             "api": """APIs (Application Programming Interfaces) are interfaces that allow different software systems to communicate. REST APIs use HTTP methods (GET, POST, PUT, DELETE) to perform operations on resources. GraphQL APIs provide flexible querying of data. APIs typically return data in JSON or XML format. Key concepts include endpoints, authentication (API keys, OAuth), rate limiting, and versioning.""",
-            
+
             "cloud_computing": """Cloud computing delivers computing services over the internet, including servers, storage, databases, networking, and software. Major providers include AWS, Azure, and Google Cloud. Cloud services are categorized as IaaS (Infrastructure as a Service), PaaS (Platform as a Service), and SaaS (Software as a Service). Benefits include scalability, cost-efficiency, and reduced infrastructure management.""",
-            
+
             "security": """Cybersecurity protects systems, networks, and data from digital attacks. Key practices include encryption (protecting data in transit and at rest), authentication (verifying user identity), authorization (controlling access), input validation (preventing injection attacks), and regular security updates. Common threats include SQL injection, cross-site scripting (XSS), and denial-of-service (DoS) attacks.""",
-            
+
             "git": """Git is a distributed version control system for tracking changes in source code. Key concepts include repositories (project storage), commits (snapshots of changes), branches (parallel development lines), and merging (combining changes). Common workflows involve cloning repositories, creating feature branches, committing changes, and pushing to remote repositories like GitHub or GitLab.""",
 
             "murphy": """Murphy System is an AI-powered automation assistant that helps teams automate operations, onboard new users, manage integrations, and run end-to-end workflows. Key commands include: 'start interview' for guided onboarding, 'help' for command list, 'show modules' for system modules, 'status' for system health, 'execute <task>' to run workflows, 'set key <provider> <key>' to configure API keys, and 'api keys' for integration setup links.""",
@@ -104,7 +108,7 @@ class LocalLLMFallback:
 
             "murphy_troubleshooting": """Common Murphy troubleshooting: If LLM is not working, check 'llm status' and ensure your API key is set with 'set key groq <key>'. If the backend is unreachable, try 'reconnect' or 'set api <url>'. If you're stuck, type 'help' for available commands. For API key issues, use 'set key <provider> <key>' to set keys inline without restarting.""",
         }
-    
+
     def _build_patterns(self) -> List[Tuple[str, str]]:
         """Build regex patterns for matching queries"""
         return [
@@ -117,7 +121,7 @@ class LocalLLMFallback:
             (r"(create|build|make|design) (.+)", "creation"),
             (r"(best|good|recommend) (.+)", "recommendation"),
         ]
-    
+
     @property
     def ollama_available(self) -> bool:
         """Check (and cache) whether Ollama is reachable."""
@@ -150,37 +154,37 @@ class LocalLLMFallback:
     def _generate_offline(self, prompt: str, max_tokens: int = 500) -> str:
         """Generate a response using the built-in pattern matcher."""
         prompt_lower = prompt.lower()
-        
+
         # Check knowledge base for direct matches
         for topic, content in self.knowledge_base.items():
             if topic.replace("_", " ") in prompt_lower:
                 return self._format_response(content, max_tokens)
-        
+
         # Pattern-based responses
         for pattern, response_type in self.patterns:
             match = re.search(pattern, prompt_lower)
             if match:
                 return self._generate_by_type(response_type, prompt, max_tokens)
-        
+
         # Default intelligent response
         return self._generate_default_response(prompt, max_tokens)
-    
+
     def _format_response(self, content: str, max_tokens: int) -> str:
         """Format response to fit within token limit"""
         words = content.split()
         # Rough estimate: 1 token ≈ 0.75 words
         max_words = int(max_tokens * 0.75)
-        
+
         if len(words) <= max_words:
             return content
-        
+
         # Truncate and add ellipsis
         truncated = " ".join(words[:max_words])
         return truncated + "..."
-    
+
     def _generate_by_type(self, response_type: str, prompt: str, max_tokens: int) -> str:
         """Generate response based on query type"""
-        
+
         if response_type == "definition":
             return f"""Based on your question about '{prompt}', here's what I can explain:
 
@@ -193,7 +197,7 @@ This is a concept that requires understanding its core components and how they w
 5. **Related Concepts**: Connected ideas worth exploring
 
 For detailed, up-to-date information, I recommend consulting online resources or documentation when internet connectivity is available."""
-        
+
         elif response_type == "explanation":
             return f"""To explain '{prompt}', let me break it down:
 
@@ -212,7 +216,7 @@ For detailed, up-to-date information, I recommend consulting online resources or
 - Stay updated with best practices
 
 Note: I'm currently in offline mode. For comprehensive, current information, please check online resources when available."""
-        
+
         elif response_type == "creation":
             return f"""To create/build '{prompt}', here's a structured approach:
 
@@ -235,7 +239,7 @@ Note: I'm currently in offline mode. For comprehensive, current information, ple
 - Get feedback early and often
 
 I'm operating in offline mode, so for specific technical details and current best practices, please consult online documentation when available."""
-        
+
         elif response_type == "recommendation":
             return f"""Regarding '{prompt}', here are some general recommendations:
 
@@ -258,10 +262,10 @@ I'm operating in offline mode, so for specific technical details and current bes
 - Iterate based on feedback
 
 Note: I'm in offline mode. For current recommendations and comparisons, please check online resources and community forums when internet is available."""
-        
+
         else:
             return self._generate_default_response(prompt, max_tokens)
-    
+
     def _generate_default_response(self, prompt: str, max_tokens: int) -> str:
         """Generate a default intelligent response"""
         return f"""I understand you're asking about: "{prompt}"

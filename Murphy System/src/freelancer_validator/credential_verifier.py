@@ -13,6 +13,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from thread_safe_operations import capped_append
 from .models import (
     CertificationType,
     ComplaintRecord,
@@ -159,7 +160,7 @@ class CredentialVerifier:
 
     def register_source(self, source: PublicRecordSource) -> None:
         """Add a public-record source to the verification pipeline."""
-        self._sources.append(source)
+        capped_append(self._sources, source)
 
     # ── Requirement matching ─────────────────────────────────────────
 

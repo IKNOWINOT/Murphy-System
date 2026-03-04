@@ -13,6 +13,10 @@ from typing import Any, Dict
 
 from .rosetta_models import ArchiveEntry, RosettaAgentState
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ArchiveClassifier:
     """Rule-based classifier that decides archive category and eligibility."""

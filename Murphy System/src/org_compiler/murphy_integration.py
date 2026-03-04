@@ -21,19 +21,23 @@ from .schemas import (
     HandoffEvent,
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ArtifactGraphIntegration:
     """
     Integrates with Murphy's Artifact Graph
-    
+
     Converts org compiler artifacts into graph nodes and edges.
     """
-    
+
     @staticmethod
     def role_template_to_artifact(role_template: RoleTemplate) -> Dict:
         """
         Convert RoleTemplate to Artifact Graph node
-        
+
         Returns:
             Dict compatible with Artifact Graph API
         """
@@ -58,14 +62,14 @@ class ArtifactGraphIntegration:
             'confidence': None,  # Will be computed by Confidence Engine
             'status': 'verified'  # Role templates are verified by compilation
         }
-    
+
     @staticmethod
     def proposal_to_artifact(proposal: TemplateProposalArtifact) -> Dict:
         """
         Convert TemplateProposalArtifact to Artifact Graph node
-        
+
         CRITICAL: Proposals are ALWAYS sandbox-only
-        
+
         Returns:
             Dict compatible with Artifact Graph API
         """
@@ -90,17 +94,17 @@ class ArtifactGraphIntegration:
             'status': 'sandbox',  # ALWAYS sandbox
             'execution_rights': False  # NEVER has execution rights
         }
-    
+
     @staticmethod
     def create_dependency_edges(role_template: RoleTemplate, handoffs: List[HandoffEvent]) -> List[Dict]:
         """
         Create dependency edges between roles
-        
+
         Returns:
             List of edges for Artifact Graph
         """
         edges = []
-        
+
         # Escalation edges
         for path in role_template.escalation_paths:
             edges.append({
@@ -112,7 +116,7 @@ class ArtifactGraphIntegration:
                     'sla_hours': path.sla_hours
                 }
             })
-        
+
         # Handoff edges
         for handoff in handoffs:
             if handoff.from_role == role_template.role_name:
@@ -125,22 +129,22 @@ class ArtifactGraphIntegration:
                         'approval_required': handoff.approval_required
                     }
                 })
-        
+
         return edges
 
 
 class GateSynthesisIntegration:
     """
     Integrates with Gate Synthesis Engine
-    
+
     Converts substitution gates into Murphy gates.
     """
-    
+
     @staticmethod
     def substitution_gate_to_murphy_gate(gate: SubstitutionGate, proposal: TemplateProposalArtifact) -> Dict:
         """
         Convert SubstitutionGate to Murphy Gate
-        
+
         Returns:
             Dict compatible with Gate Synthesis API
         """
@@ -156,7 +160,7 @@ class GateSynthesisIntegration:
                 'gate_subtype': gate.gate_type
             }
         }
-        
+
         # Add type-specific criteria
         if gate.gate_type == 'performance_evidence':
             murphy_gate['criteria'].append({
@@ -171,7 +175,7 @@ class GateSynthesisIntegration:
                 'actual': gate.actual_success_rate,
                 'satisfied': gate.actual_success_rate >= gate.required_success_rate if gate.actual_success_rate else False
             })
-        
+
         elif gate.gate_type == 'deterministic_verification':
             murphy_gate['criteria'].append({
                 'criterion': 'verification_exists',
@@ -179,7 +183,7 @@ class GateSynthesisIntegration:
                 'actual': gate.verification_passed,
                 'satisfied': gate.verification_passed
             })
-        
+
         elif gate.gate_type == 'compliance_check':
             murphy_gate['criteria'].append({
                 'criterion': 'compliance_verified',
@@ -188,7 +192,7 @@ class GateSynthesisIntegration:
                 'satisfied': gate.compliance_verified,
                 'regulation': gate.regulation
             })
-        
+
         elif gate.gate_type == 'human_signoff':
             murphy_gate['criteria'].append({
                 'criterion': 'signoff_granted',
@@ -197,14 +201,14 @@ class GateSynthesisIntegration:
                 'satisfied': gate.signoff_granted,
                 'signoff_from': gate.signoff_required_from
             })
-        
+
         return murphy_gate
-    
+
     @staticmethod
     def create_gate_policy(proposal: TemplateProposalArtifact, gates: List[SubstitutionGate]) -> Dict:
         """
         Create gate policy for automation substitution
-        
+
         Returns:
             Dict compatible with Gate Synthesis API
         """
@@ -229,26 +233,26 @@ class GateSynthesisIntegration:
 class ExecutionOrchestratorIntegration:
     """
     Integrates with Execution Orchestrator
-    
+
     Registers automation agents and enforces substitution gates.
     """
-    
+
     @staticmethod
     def register_automation_agent(proposal: TemplateProposalArtifact, gates: List[SubstitutionGate]) -> Dict:
         """
         Register automation agent with Execution Orchestrator
-        
+
         CRITICAL: Agent can only be registered if ALL gates are satisfied
-        
+
         Returns:
             Dict compatible with Execution Orchestrator API
         """
         # Check if all gates are satisfied
         all_satisfied = all(gate.status.value == 'satisfied' for gate in gates)
-        
+
         if not all_satisfied:
             raise ValueError("Cannot register automation agent: Not all gates are satisfied")
-        
+
         return {
             'agent_id': f"automation_agent_{proposal.proposal_id}",
             'agent_type': 'role_automation',
@@ -267,12 +271,12 @@ class ExecutionOrchestratorIntegration:
                 'registered_at': datetime.now(timezone.utc).isoformat()
             }
         }
-    
+
     @staticmethod
     def create_execution_constraints(role_template: RoleTemplate, proposal: TemplateProposalArtifact) -> Dict:
         """
         Create execution constraints for automation agent
-        
+
         Returns:
             Dict with execution constraints
         """
@@ -290,7 +294,7 @@ class ExecutionOrchestratorIntegration:
                     }
                     for path in role_template.escalation_paths
                 ],
-                
+
                 # Compliance constraints
                 'compliance_required': [
                     {
@@ -301,10 +305,10 @@ class ExecutionOrchestratorIntegration:
                     }
                     for c in role_template.compliance_constraints
                 ],
-                
+
                 # Human signoff constraints
                 'human_signoff_points': proposal.human_signoff_points,
-                
+
                 # Execution constraints
                 'can_create_execution_packets': False,  # Must go through compiler
                 'can_modify_gates': False,
@@ -316,10 +320,10 @@ class ExecutionOrchestratorIntegration:
 class TelemetryIntegration:
     """
     Integrates with Murphy's Telemetry Pipeline
-    
+
     Sends org compiler events to telemetry system.
     """
-    
+
     @staticmethod
     def send_role_compiled_event(role_template: RoleTemplate) -> Dict:
         """Send role compiled event"""
@@ -335,7 +339,7 @@ class TelemetryIntegration:
                 'escalation_paths_count': len(role_template.escalation_paths)
             }
         }
-    
+
     @staticmethod
     def send_proposal_generated_event(proposal: TemplateProposalArtifact) -> Dict:
         """Send proposal generated event"""
@@ -355,7 +359,7 @@ class TelemetryIntegration:
                 )
             }
         }
-    
+
     @staticmethod
     def send_gate_evaluated_event(gate: SubstitutionGate, proposal: TemplateProposalArtifact) -> Dict:
         """Send gate evaluated event"""
@@ -370,7 +374,7 @@ class TelemetryIntegration:
                 'shadowed_role': proposal.shadowed_role
             }
         }
-    
+
     @staticmethod
     def send_substitution_approved_event(proposal: TemplateProposalArtifact, gates: List[SubstitutionGate]) -> Dict:
         """Send substitution approved event"""
@@ -390,40 +394,40 @@ class TelemetryIntegration:
 class MurphySystemBridge:
     """
     Complete bridge to Murphy System
-    
+
     Provides unified interface for all Murphy integrations.
     """
-    
+
     def __init__(self):
         self.artifact_graph = ArtifactGraphIntegration()
         self.gate_synthesis = GateSynthesisIntegration()
         self.orchestrator = ExecutionOrchestratorIntegration()
         self.telemetry = TelemetryIntegration()
-    
+
     def register_role_template(self, role_template: RoleTemplate, handoffs: List[HandoffEvent] = None) -> Dict:
         """
         Register role template with Murphy System
-        
+
         Returns:
             Dict with registration results
         """
         results = {}
-        
+
         # 1. Add to Artifact Graph
         artifact = self.artifact_graph.role_template_to_artifact(role_template)
         results['artifact_graph'] = artifact
-        
+
         # 2. Create dependency edges
         if handoffs:
             edges = self.artifact_graph.create_dependency_edges(role_template, handoffs)
             results['dependency_edges'] = edges
-        
+
         # 3. Send telemetry
         telemetry_event = self.telemetry.send_role_compiled_event(role_template)
         results['telemetry'] = telemetry_event
-        
+
         return results
-    
+
     def register_automation_proposal(
         self,
         proposal: TemplateProposalArtifact,
@@ -432,33 +436,33 @@ class MurphySystemBridge:
     ) -> Dict:
         """
         Register automation proposal with Murphy System
-        
+
         Returns:
             Dict with registration results
         """
         results = {}
-        
+
         # 1. Add proposal to Artifact Graph (sandbox-only)
         artifact = self.artifact_graph.proposal_to_artifact(proposal)
         results['artifact_graph'] = artifact
-        
+
         # 2. Create Murphy gates
         murphy_gates = [
             self.gate_synthesis.substitution_gate_to_murphy_gate(gate, proposal)
             for gate in gates
         ]
         results['murphy_gates'] = murphy_gates
-        
+
         # 3. Create gate policy
         gate_policy = self.gate_synthesis.create_gate_policy(proposal, gates)
         results['gate_policy'] = gate_policy
-        
+
         # 4. Send telemetry
         telemetry_event = self.telemetry.send_proposal_generated_event(proposal)
         results['telemetry'] = telemetry_event
-        
+
         return results
-    
+
     def approve_substitution(
         self,
         proposal: TemplateProposalArtifact,
@@ -467,9 +471,9 @@ class MurphySystemBridge:
     ) -> Dict:
         """
         Approve automation substitution (after all gates satisfied)
-        
+
         CRITICAL: Can only be called if ALL gates are satisfied
-        
+
         Returns:
             Dict with approval results
         """
@@ -477,19 +481,19 @@ class MurphySystemBridge:
         all_satisfied = all(gate.status.value == 'satisfied' for gate in gates)
         if not all_satisfied:
             raise ValueError("Cannot approve substitution: Not all gates are satisfied")
-        
+
         results = {}
-        
+
         # 1. Register automation agent with Orchestrator
         agent_registration = self.orchestrator.register_automation_agent(proposal, gates)
         results['agent_registration'] = agent_registration
-        
+
         # 2. Create execution constraints
         constraints = self.orchestrator.create_execution_constraints(role_template, proposal)
         results['execution_constraints'] = constraints
-        
+
         # 3. Send telemetry
         telemetry_event = self.telemetry.send_substitution_approved_event(proposal, gates)
         results['telemetry'] = telemetry_event
-        
+
         return results

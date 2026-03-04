@@ -20,6 +20,10 @@ from pydantic import BaseModel, Field
 
 from .state_vector import StateVector
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ------------------------------------------------------------------ #
 # Observation Channel Enum
@@ -188,7 +192,7 @@ class ObservationMapping:
         )
         # Heuristic: question length as a proxy for specificity
         specificity = min(1.0, len(question) / 200.0)
-        sigma_avg = sum(_DEFAULT_NOISE.values()) / len(_DEFAULT_NOISE)
+        sigma_avg = sum(_DEFAULT_NOISE.values()) / (len(_DEFAULT_NOISE) or 1)
         noise_var = sigma_avg ** 2
         prior_var = prior_uncertainty ** 2
         gain = (prior_var / (prior_var + noise_var + 1e-9)) * specificity

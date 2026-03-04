@@ -60,7 +60,7 @@ _tenant_evidence: Dict[str, List[VerificationEvidence]] = {}
 def _get_tenant_id() -> str:
     """
     Extract tenant ID from the request.
-    
+
     Uses X-Tenant-ID header, falling back to 'default' for
     backward compatibility during migration.
     """
@@ -102,7 +102,7 @@ def add_artifact():
         data = request.json
         tenant_id = _get_tenant_id()
         current_graph = _get_tenant_graph(tenant_id)
-        
+
         # Create artifact node
         node = ArtifactNode(
             id=data.get('id', ''),
@@ -113,13 +113,13 @@ def add_artifact():
             dependencies=data.get('dependencies', []),
             metadata=data.get('metadata', {})
         )
-        
+
         # Add to graph
         current_graph.add_node(node)
-        
+
         # Validate DAG
         is_valid, errors = graph_analyzer.validate_dag(current_graph)
-        
+
         if not is_valid:
             # Remove node if it breaks DAG
             del current_graph.nodes[node.id]
@@ -128,9 +128,9 @@ def add_artifact():
                 'error': 'Adding this artifact would break DAG structure',
                 'details': errors
             }), 400
-        
+
         logger.info(f"Added artifact {node.id} to graph (tenant={tenant_id})")
-        
+
         return jsonify({
             'success': True,
             'artifact_id': node.id,
@@ -139,10 +139,10 @@ def add_artifact():
                 'is_dag': is_valid
             }
         })
-    
-    except Exception as e:
-        logger.error(f"Error adding artifact: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+
+    except Exception as exc:
+        logger.error(f"Error adding artifact: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/confidence-engine/artifacts/graph', methods=['GET'])
@@ -155,9 +155,9 @@ def get_graph():
             'success': True,
             'graph': current_graph.to_dict()
         })
-    except Exception as e:
-        logger.error(f"Error getting graph: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error getting graph: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/confidence-engine/artifacts/analyze', methods=['GET'])
@@ -168,16 +168,16 @@ def analyze_graph():
         current_graph = _get_tenant_graph(tenant_id)
         # Validate DAG
         is_valid, errors = graph_analyzer.validate_dag(current_graph)
-        
+
         # Detect contradictions
         contradictions = graph_analyzer.detect_contradictions(current_graph)
-        
+
         # Calculate entropy
         entropy = graph_analyzer.calculate_entropy(current_graph)
-        
+
         # Analyze dependencies
         dep_analysis = graph_analyzer.analyze_dependencies(current_graph)
-        
+
         return jsonify({
             'success': True,
             'analysis': {
@@ -188,9 +188,9 @@ def analyze_graph():
                 'dependencies': dep_analysis
             }
         })
-    except Exception as e:
-        logger.error(f"Error analyzing graph: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error analyzing graph: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================
@@ -204,7 +204,7 @@ def add_verification():
         data = request.json
         tenant_id = _get_tenant_id()
         verification_evidence_store = _get_tenant_evidence(tenant_id)
-        
+
         evidence = VerificationEvidence(
             artifact_id=data['artifact_id'],
             result=VerificationResult(data['result']),
@@ -212,19 +212,19 @@ def add_verification():
             confidence_boost=data.get('confidence_boost', 0.0),
             details=data.get('details', {})
         )
-        
+
         verification_evidence_store.append(evidence)
-        
+
         logger.info(f"Added verification evidence for artifact {evidence.artifact_id}")
-        
+
         return jsonify({
             'success': True,
             'evidence_count': len(verification_evidence_store)
         })
-    
-    except Exception as e:
-        logger.error(f"Error adding verification: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+
+    except Exception as exc:
+        logger.error(f"Error adding verification: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/confidence-engine/verification/list', methods=['GET'])
@@ -238,9 +238,9 @@ def list_verification():
             'evidence': [e.to_dict() for e in verification_evidence_store],
             'count': len(verification_evidence_store)
         })
-    except Exception as e:
-        logger.error(f"Error listing verification: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error listing verification: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================
@@ -254,27 +254,27 @@ def add_trust_source():
         data = request.json
         tenant_id = _get_tenant_id()
         current_trust_model = _get_tenant_trust_model(tenant_id)
-        
+
         source = SourceTrust(
             source_id=data['source_id'],
             source_type=ArtifactSource(data['source_type']),
             trust_weight=data['trust_weight'],
             volatility=data.get('volatility', 0.1)
         )
-        
+
         current_trust_model.add_source(source)
-        
+
         logger.info(f"Added trust source {source.source_id}")
-        
+
         return jsonify({
             'success': True,
             'source_id': source.source_id,
             'trust_weight': source.trust_weight
         })
-    
-    except Exception as e:
-        logger.error(f"Error adding trust source: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+
+    except Exception as exc:
+        logger.error(f"Error adding trust source: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/confidence-engine/trust/update', methods=['POST'])
@@ -286,20 +286,20 @@ def update_trust():
         current_trust_model = _get_tenant_trust_model(tenant_id)
         source_id = data['source_id']
         success = data['success']
-        
+
         current_trust_model.update_source(source_id, success)
-        
+
         logger.info(f"Updated trust for {source_id}: success={success}")
-        
+
         return jsonify({
             'success': True,
             'source_id': source_id,
             'new_trust': current_trust_model.get_trust(source_id)
         })
-    
-    except Exception as e:
-        logger.error(f"Error updating trust: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+
+    except Exception as exc:
+        logger.error(f"Error updating trust: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/confidence-engine/trust/model', methods=['GET'])
@@ -312,9 +312,9 @@ def get_trust_model():
             'success': True,
             'trust_model': current_trust_model.to_dict()
         })
-    except Exception as e:
-        logger.error(f"Error getting trust model: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error getting trust model: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================
@@ -331,7 +331,7 @@ def compute_confidence():
         current_trust_model = _get_tenant_trust_model(tenant_id)
         verification_evidence_store = _get_tenant_evidence(tenant_id)
         phase = Phase(data.get('phase', 'expand'))
-        
+
         # Compute confidence
         confidence_state = confidence_calculator.compute_confidence(
             current_graph,
@@ -339,17 +339,17 @@ def compute_confidence():
             verification_evidence_store,
             current_trust_model
         )
-        
+
         logger.info(f"Computed confidence: {confidence_state.confidence:.3f}")
-        
+
         return jsonify({
             'success': True,
             'confidence_state': confidence_state.to_dict()
         })
-    
-    except Exception as e:
-        logger.error(f"Error computing confidence: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+
+    except Exception as exc:
+        logger.error(f"Error computing confidence: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================
@@ -366,7 +366,7 @@ def compute_murphy():
         current_trust_model = _get_tenant_trust_model(tenant_id)
         verification_evidence_store = _get_tenant_evidence(tenant_id)
         phase = Phase(data.get('phase', 'expand'))
-        
+
         # First compute confidence
         confidence_state = confidence_calculator.compute_confidence(
             current_graph,
@@ -374,33 +374,33 @@ def compute_murphy():
             verification_evidence_store,
             current_trust_model
         )
-        
+
         # Compute Murphy index
         murphy_index = murphy_calculator.calculate_murphy_index(
             current_graph,
             confidence_state,
             phase
         )
-        
+
         # Get failure mode details
         failure_modes = murphy_calculator.get_failure_mode_details(
             current_graph,
             confidence_state,
             phase
         )
-        
+
         logger.info(f"Computed Murphy index: {murphy_index:.3f}")
-        
+
         return jsonify({
             'success': True,
             'murphy_index': murphy_index,
             'failure_modes': failure_modes,
             'confidence': confidence_state.confidence
         })
-    
-    except Exception as e:
-        logger.error(f"Error computing Murphy index: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+
+    except Exception as exc:
+        logger.error(f"Error computing Murphy index: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================
@@ -419,7 +419,7 @@ def compute_authority():
         phase = Phase(data.get('phase', 'expand'))
         gate_satisfaction = data.get('gate_satisfaction', 0.0)
         unknowns = data.get('unknowns', 0)
-        
+
         # Compute confidence
         confidence_state = confidence_calculator.compute_confidence(
             current_graph,
@@ -427,14 +427,14 @@ def compute_authority():
             verification_evidence_store,
             current_trust_model
         )
-        
+
         # Compute Murphy index
         murphy_index = murphy_calculator.calculate_murphy_index(
             current_graph,
             confidence_state,
             phase
         )
-        
+
         # Map to authority
         authority_state = authority_mapper.map_authority(
             confidence_state,
@@ -442,7 +442,7 @@ def compute_authority():
             gate_satisfaction,
             unknowns
         )
-        
+
         # Get execution blockers
         blockers = authority_mapper.get_execution_blockers(
             confidence_state.confidence,
@@ -451,18 +451,18 @@ def compute_authority():
             unknowns,
             phase
         )
-        
+
         logger.info(f"Computed authority: {authority_state.authority_band.value}")
-        
+
         return jsonify({
             'success': True,
             'authority_state': authority_state.to_dict(),
             'execution_blockers': blockers
         })
-    
-    except Exception as e:
-        logger.error(f"Error computing authority: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+
+    except Exception as exc:
+        logger.error(f"Error computing authority: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================
@@ -479,7 +479,7 @@ def check_phase_transition():
         current_trust_model = _get_tenant_trust_model(tenant_id)
         verification_evidence_store = _get_tenant_evidence(tenant_id)
         current_phase = Phase(data['current_phase'])
-        
+
         # Compute confidence
         confidence_state = confidence_calculator.compute_confidence(
             current_graph,
@@ -487,15 +487,15 @@ def check_phase_transition():
             verification_evidence_store,
             current_trust_model
         )
-        
+
         # Check transition
         new_phase, transitioned, reason = phase_controller.check_phase_transition(
             current_phase,
             confidence_state
         )
-        
+
         logger.info(f"Phase transition check: {reason}")
-        
+
         return jsonify({
             'success': True,
             'current_phase': current_phase.value,
@@ -505,10 +505,10 @@ def check_phase_transition():
             'confidence': confidence_state.confidence,
             'threshold': current_phase.confidence_threshold
         })
-    
-    except Exception as e:
-        logger.error(f"Error checking phase transition: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+
+    except Exception as exc:
+        logger.error(f"Error checking phase transition: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/confidence-engine/phase/progress', methods=['GET'])
@@ -517,17 +517,17 @@ def get_phase_progress():
     try:
         phase_str = request.args.get('phase', 'expand')
         phase = Phase(phase_str)
-        
+
         progress = phase_controller.get_phase_progress(phase)
-        
+
         return jsonify({
             'success': True,
             'progress': progress
         })
-    
-    except Exception as e:
-        logger.error(f"Error getting phase progress: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+
+    except Exception as exc:
+        logger.error(f"Error getting phase progress: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/confidence-engine/phase/history', methods=['GET'])
@@ -535,16 +535,16 @@ def get_phase_history():
     """Get phase transition history"""
     try:
         history = phase_controller.get_phase_history()
-        
+
         return jsonify({
             'success': True,
             'history': history,
             'transition_count': len(history)
         })
-    
-    except Exception as e:
-        logger.error(f"Error getting phase history: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+
+    except Exception as exc:
+        logger.error(f"Error getting phase history: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================
@@ -563,7 +563,7 @@ def get_complete_state():
         phase = Phase(data.get('phase', 'expand'))
         gate_satisfaction = data.get('gate_satisfaction', 0.0)
         unknowns = data.get('unknowns', 0)
-        
+
         # Compute all components
         confidence_state = confidence_calculator.compute_confidence(
             current_graph,
@@ -571,24 +571,24 @@ def get_complete_state():
             verification_evidence_store,
             current_trust_model
         )
-        
+
         murphy_index = murphy_calculator.calculate_murphy_index(
             current_graph,
             confidence_state,
             phase
         )
-        
+
         authority_state = authority_mapper.map_authority(
             confidence_state,
             murphy_index,
             gate_satisfaction,
             unknowns
         )
-        
+
         # Graph analysis
         is_valid, errors = graph_analyzer.validate_dag(current_graph)
         contradictions = graph_analyzer.detect_contradictions(current_graph)
-        
+
         return jsonify({
             'success': True,
             'timestamp': datetime.now().isoformat(),
@@ -602,10 +602,10 @@ def get_complete_state():
                 'verified_artifacts': confidence_state.verified_artifacts
             }
         })
-    
-    except Exception as e:
-        logger.error(f"Error getting complete state: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+
+    except Exception as exc:
+        logger.error(f"Error getting complete state: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================
@@ -641,9 +641,9 @@ def reset_state():
         _tenant_graphs[tenant_id] = ArtifactGraph()
         _tenant_trust_models[tenant_id] = TrustModel()
         _tenant_evidence[tenant_id] = []
-    
+
     logger.info(f"Reset confidence engine state (tenant={tenant_id})")
-    
+
     return jsonify({
         'success': True,
         'message': 'State reset successfully'

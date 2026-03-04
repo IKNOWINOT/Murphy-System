@@ -22,7 +22,7 @@ class LLMProvider(Enum):
 
 class LLMConfig:
     """LLM configuration"""
-    
+
     # Recommended models by size (for 4GB RAM system)
     MODELS = {
         'tiny': {
@@ -47,7 +47,7 @@ class LLMConfig:
             'description': 'Mistral 7B - High quality (needs 8GB+ RAM)'
         }
     }
-    
+
     @classmethod
     def get_recommended_model(cls, available_ram_gb: float) -> str:
         """Get recommended model based on available RAM"""
@@ -62,32 +62,32 @@ class LLMConfig:
 class OllamaLLM:
     """
     Ollama LLM integration
-    
+
     Ollama is the easiest way to run local LLMs:
     - Simple installation
     - Automatic model management
     - Good performance
     - Multiple model support
     """
-    
+
     def __init__(self, model_name: str = "phi"):
         """
         Initialize Ollama LLM
-        
+
         Args:
             model_name: Ollama model name (tinyllama, phi, mistral, etc.)
         """
         self.model_name = model_name
         self.base_url = "http://localhost:11434"
-        
+
         # Check if Ollama is available
         self.available = self._check_ollama()
-        
+
         if self.available:
-            print(f"✓ Ollama available with model: {model_name}")
+            logger.info(f"✓ Ollama available with model: {model_name}")
         else:
-            print("⚠ Ollama not available - install with: curl -fsSL https://ollama.com/install.sh | sh")
-    
+            logger.info("⚠ Ollama not available - install with: curl -fsSL https://ollama.com/install.sh | sh")
+
     def _check_ollama(self) -> bool:
         """Check if Ollama is running"""
         try:
@@ -97,27 +97,27 @@ class OllamaLLM:
         except Exception as exc:
             logger.debug("Ollama connectivity check failed: %s", exc)
             return False
-    
-    def generate(self, prompt: str, system_prompt: Optional[str] = None, 
+
+    def generate(self, prompt: str, system_prompt: Optional[str] = None,
                 max_tokens: int = 500, temperature: float = 0.7) -> str:
         """
         Generate text using Ollama
-        
+
         Args:
             prompt: User prompt
             system_prompt: Optional system prompt
             max_tokens: Maximum tokens to generate
             temperature: Sampling temperature (0.0-1.0)
-        
+
         Returns:
             Generated text
         """
         if not self.available:
             return "[Ollama not available - using fallback]"
-        
+
         try:
             import requests
-            
+
             payload = {
                 "model": self.model_name,
                 "prompt": prompt,
@@ -127,44 +127,45 @@ class OllamaLLM:
                     "num_predict": max_tokens
                 }
             }
-            
+
             if system_prompt:
                 payload["system"] = system_prompt
-            
+
             response = requests.post(
                 f"{self.base_url}/api/generate",
                 json=payload,
                 timeout=30
             )
-            
+
             if response.status_code == 200:
                 result = response.json()
                 return result.get("response", "")
             else:
                 return f"[Error: {response.status_code}]"
-        
-        except Exception as e:
-            return f"[Error: {str(e)}]"
-    
-    def chat(self, messages: List[Dict[str, str]], 
+
+        except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
+            return f"[Error: {str(exc)}]"
+
+    def chat(self, messages: List[Dict[str, str]],
             max_tokens: int = 500, temperature: float = 0.7) -> str:
         """
         Chat completion using Ollama
-        
+
         Args:
             messages: List of message dicts with 'role' and 'content'
             max_tokens: Maximum tokens to generate
             temperature: Sampling temperature
-        
+
         Returns:
             Assistant response
         """
         if not self.available:
             return "[Ollama not available - using fallback]"
-        
+
         try:
             import requests
-            
+
             payload = {
                 "model": self.model_name,
                 "messages": messages,
@@ -174,67 +175,68 @@ class OllamaLLM:
                     "num_predict": max_tokens
                 }
             }
-            
+
             response = requests.post(
                 f"{self.base_url}/api/chat",
                 json=payload,
                 timeout=30
             )
-            
+
             if response.status_code == 200:
                 result = response.json()
                 return result.get("message", {}).get("content", "")
             else:
                 return f"[Error: {response.status_code}]"
-        
-        except Exception as e:
-            return f"[Error: {str(e)}]"
+
+        except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
+            return f"[Error: {str(exc)}]"
 
 
 class LLMEnhancedMFGC:
     """
     MFGC system enhanced with LLM reasoning
-    
+
     Uses LLM for:
     1. Candidate generation (more creative solutions)
     2. Risk analysis (better risk identification)
     3. Gate synthesis (more comprehensive gates)
     4. Natural language understanding
     """
-    
+
     def __init__(self, llm_provider: LLMProvider = LLMProvider.OLLAMA,
                  model_name: str = "phi"):
         """
         Initialize LLM-enhanced MFGC
-        
+
         Args:
             llm_provider: LLM provider to use
             model_name: Model name for the provider
         """
         self.llm_provider = llm_provider
-        
+
         if llm_provider == LLMProvider.OLLAMA:
             self.llm = OllamaLLM(model_name)
         else:
             self.llm = None
-            print("⚠ No LLM provider - using rule-based fallback")
-    
-    def generate_candidates(self, task: str, phase: str, 
+            logger.info("⚠ No LLM provider - using rule-based fallback")
+
+    def generate_candidates(self, task: str, phase: str,
                           existing_candidates: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Generate solution candidates using LLM
-        
+
         Args:
             task: Task description
             phase: Current MFGC phase
             existing_candidates: Candidates from rule-based system
-        
+
         Returns:
             Enhanced list of candidates
         """
         if not self.llm or not self.llm.available:
             return existing_candidates
-        
+
         prompt = f"""Task: {task}
 Phase: {phase}
 
@@ -246,9 +248,9 @@ Format your response as JSON:
   {{"approach": "...", "pros": ["..."], "cons": ["..."], "score": 0.0-1.0}},
   ...
 ]"""
-        
+
         response = self.llm.generate(prompt, temperature=0.8, max_tokens=500)
-        
+
         # Try to parse JSON response
         try:
             llm_candidates = json.loads(response)
@@ -257,23 +259,23 @@ Format your response as JSON:
                 return existing_candidates + llm_candidates
         except (json.JSONDecodeError, TypeError, ValueError) as exc:
             logger.debug("LLM candidate response not valid JSON, returning existing candidates: %s", exc)
-        
+
         return existing_candidates
-    
+
     def analyze_risks(self, task: str, candidates: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Analyze risks using LLM
-        
+
         Args:
             task: Task description
             candidates: Solution candidates
-        
+
         Returns:
             List of identified risks
         """
         if not self.llm or not self.llm.available:
             return []
-        
+
         prompt = f"""Task: {task}
 
 Candidates:
@@ -287,32 +289,32 @@ Format as JSON:
   {{"risk": "...", "probability": 0.0-1.0, "impact": 0.0-1.0, "mitigation": "..."}},
   ...
 ]"""
-        
+
         response = self.llm.generate(prompt, temperature=0.5, max_tokens=500)
-        
+
         try:
             risks = json.loads(response)
             if isinstance(risks, list):
                 return risks
         except (json.JSONDecodeError, TypeError, ValueError) as exc:
             logger.debug("LLM risk analysis response not valid JSON, returning empty list: %s", exc)
-        
+
         return []
-    
+
     def synthesize_gates(self, task: str, risks: List[Dict[str, Any]]) -> List[str]:
         """
         Synthesize control gates using LLM
-        
+
         Args:
             task: Task description
             risks: Identified risks
-        
+
         Returns:
             List of control gates
         """
         if not self.llm or not self.llm.available:
             return []
-        
+
         prompt = f"""Task: {task}
 
 Risks:
@@ -323,32 +325,32 @@ Each gate should be a clear checkpoint or validation step.
 
 Format as JSON array of strings:
 ["Gate 1", "Gate 2", ...]"""
-        
+
         response = self.llm.generate(prompt, temperature=0.3, max_tokens=300)
-        
+
         try:
             gates = json.loads(response)
             if isinstance(gates, list):
                 return [str(g) for g in gates]
         except (json.JSONDecodeError, TypeError, ValueError) as exc:
             logger.debug("LLM gate synthesis response not valid JSON, returning empty list: %s", exc)
-        
+
         return []
-    
+
     def enhance_conversation(self, message: str, context: Dict[str, Any]) -> str:
         """
         Enhance conversation responses using LLM
-        
+
         Args:
             message: User message
             context: Conversation context
-        
+
         Returns:
             Enhanced response
         """
         if not self.llm or not self.llm.available:
             return None
-        
+
         messages = [
             {
                 "role": "system",
@@ -359,7 +361,7 @@ Format as JSON array of strings:
                 "content": message
             }
         ]
-        
+
         response = self.llm.chat(messages, temperature=0.7, max_tokens=500)
         return response
 
@@ -367,11 +369,11 @@ Format as JSON array of strings:
 def get_system_info() -> Dict[str, Any]:
     """Get system information for LLM selection"""
     import psutil
-    
+
     # Get available RAM
     mem = psutil.virtual_memory()
     available_ram_gb = mem.available / (1024**3)
-    
+
     return {
         'available_ram_gb': available_ram_gb,
         'total_ram_gb': mem.total / (1024**3),
@@ -382,7 +384,7 @@ def get_system_info() -> Dict[str, Any]:
 
 def print_installation_guide():
     """Print installation guide for Ollama"""
-    print("""
+    logger.info("""
 ╔══════════════════════════════════════════════════════════════╗
 ║              LLM Enhancement Installation Guide              ║
 ╚══════════════════════════════════════════════════════════════╝
@@ -396,13 +398,13 @@ To enable LLM-enhanced MFGC, install Ollama:
    ollama serve
 
 3. Pull a model (choose based on your RAM):
-   
+
    For 2-4GB RAM (Recommended for this system):
    ollama pull phi
-   
+
    For 1-2GB RAM (Minimal):
    ollama pull tinyllama
-   
+
    For 8GB+ RAM (Best quality):
    ollama pull mistral
 
@@ -412,13 +414,12 @@ Models will be downloaded automatically on first use.
 
 Current system specs:
 """)
-    
+
     info = get_system_info()
-    print(f"  • Available RAM: {info['available_ram_gb']:.1f} GB")
-    print(f"  • Total RAM: {info['total_ram_gb']:.1f} GB")
-    print(f"  • CPU cores: {info['cpu_count']}")
-    print(f"  • Recommended model: {info['recommended_model']}")
-    print()
+    logger.info(f"  • Available RAM: {info['available_ram_gb']:.1f} GB")
+    logger.info(f"  • Total RAM: {info['total_ram_gb']:.1f} GB")
+    logger.info(f"  • CPU cores: {info['cpu_count']}")
+    logger.info(f"  • Recommended model: {info['recommended_model']}")
 
 
 if __name__ == "__main__":

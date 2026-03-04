@@ -44,6 +44,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -242,7 +243,7 @@ class SelfOptimisationEngine:
                 continue
 
             sorted_values = sorted(values)
-            mean_value = sum(sorted_values) / len(sorted_values)
+            mean_value = sum(sorted_values) / (len(sorted_values) or 1)
             p95_index = int(len(sorted_values) * 0.95)
             p95_index = min(p95_index, len(sorted_values) - 1)
             p95_value = sorted_values[p95_index]
@@ -327,7 +328,7 @@ class SelfOptimisationEngine:
         )
 
         with self._lock:
-            self._cycles.append(cycle)
+            capped_append(self._cycles, cycle)
 
         # Persist
         if self._pm is not None:

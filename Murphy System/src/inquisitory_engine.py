@@ -11,6 +11,9 @@ import json
 from datetime import datetime
 import random
 
+import logging
+logger = logging.getLogger("inquisitory_engine")
+
 
 class ChoiceType(Enum):
     """Types of choices/recommendations"""
@@ -43,7 +46,7 @@ class ChoiceOption:
     success_probability: float
     dependencies: List[str] = field(default_factory=list)
     required_capabilities: List[str] = field(default_factory=list)
-    
+
     def to_dict(self) -> Dict:
         return {
             "option_id": self.option_id,
@@ -74,7 +77,7 @@ class ChoiceRecommendation:
     context: Dict[str, Any]
     statistical_basis: Dict[str, Any]
     created_at: str
-    
+
     def to_dict(self) -> Dict:
         return {
             "recommendation_id": self.recommendation_id,
@@ -98,7 +101,7 @@ class DecisionTree:
     name: str
     root_node: str
     nodes: Dict[str, Dict[str, Any]]
-    
+
     def to_dict(self) -> Dict:
         return {
             "tree_id": self.tree_id,
@@ -113,13 +116,13 @@ class InquisitoryEngine:
     Inquisitory choice engine using deductive reasoning
     Provides recommendations based on statistical knowledge of organizations
     """
-    
+
     def __init__(self):
         self.recommendation_count = 0
         self.decision_trees = self._load_decision_trees()
         self.statistical_knowledge = self._load_statistical_knowledge()
         self.organization_patterns = self._load_organization_patterns()
-    
+
     def _load_decision_trees(self) -> Dict[str, DecisionTree]:
         """Load decision trees for common scenarios"""
         return {
@@ -241,7 +244,7 @@ class InquisitoryEngine:
                 }
             )
         }
-    
+
     def _load_statistical_knowledge(self) -> Dict[str, Any]:
         """Load statistical knowledge about organizations"""
         return {
@@ -271,7 +274,7 @@ class InquisitoryEngine:
                 "limited_budget": {"failure_risk_increase": 0.12}
             }
         }
-    
+
     def _load_organization_patterns(self) -> Dict[str, Any]:
         """Load patterns of how organizations typically operate"""
         return {
@@ -297,7 +300,7 @@ class InquisitoryEngine:
                 "decision_factors": ["client_budget", "timeline", "quality"]
             }
         }
-    
+
     def analyze_choice(
         self,
         question: str,
@@ -307,19 +310,19 @@ class InquisitoryEngine:
     ) -> ChoiceRecommendation:
         """
         Analyze a choice and provide recommendation
-        
+
         Args:
             question: The question or decision to make
             choice_type: Type of choice
             options: List of option dictionaries
             context: Additional context (budget, timeline, constraints, etc.)
-            
+
         Returns:
             ChoiceRecommendation object
         """
         self.recommendation_count += 1
         recommendation_id = f"rec_{self.recommendation_count}"
-        
+
         # Create ChoiceOption objects
         choice_options = []
         for i, opt in enumerate(options):
@@ -337,18 +340,18 @@ class InquisitoryEngine:
                 required_capabilities=opt.get("required_capabilities", [])
             )
             choice_options.append(option)
-        
+
         # Score each option
         scores = {}
         for option in choice_options:
             scores[option.option_id] = self._score_option(
                 option, choice_type, context
             )
-        
+
         # Select recommended option
         recommended_option_id = max(scores, key=scores.get)
         confidence_score = scores[recommended_option_id]
-        
+
         # Determine confidence level
         if confidence_score > 0.9:
             confidence = ChoiceConfidence.HIGH
@@ -358,15 +361,15 @@ class InquisitoryEngine:
             confidence = ChoiceConfidence.LOW
         else:
             confidence = ChoiceConfidence.UNCERTAIN
-        
+
         # Generate reasoning
         reasoning = self._generate_reasoning(
             recommended_option_id, choice_options, scores, context
         )
-        
+
         # Get statistical basis
         statistical_basis = self._get_statistical_basis(choice_type, recommended_option_id)
-        
+
         # Create recommendation
         recommendation = ChoiceRecommendation(
             recommendation_id=recommendation_id,
@@ -381,9 +384,9 @@ class InquisitoryEngine:
             statistical_basis=statistical_basis,
             created_at=datetime.now().isoformat()
         )
-        
+
         return recommendation
-    
+
     def _score_option(
         self,
         option: ChoiceOption,
@@ -392,10 +395,10 @@ class InquisitoryEngine:
     ) -> float:
         """Score an option based on multiple factors"""
         score = 0.0
-        
+
         # Base score from success probability
         score += option.success_probability * 0.4
-        
+
         # Cost score (lower is better)
         budget = context.get("budget", float('inf')) if context else float('inf')
         if budget > 0:
@@ -404,7 +407,7 @@ class InquisitoryEngine:
                 score += cost_score * 0.2
             else:
                 score -= 0.2  # Penalty for over budget
-        
+
         # Time score (lower is better)
         timeline = context.get("timeline", float('inf')) if context else float('inf')
         if timeline > 0:
@@ -413,18 +416,18 @@ class InquisitoryEngine:
                 score += time_score * 0.15
             else:
                 score -= 0.15  # Penalty for over timeline
-        
+
         # Risk score
         risk_scores = {"low": 0.1, "medium": 0.0, "high": -0.1}
         score += risk_scores.get(option.risk_level, 0.0) * 0.15
-        
+
         # Statistical knowledge
         stats = self._get_statistical_score(option, choice_type)
         score += stats * 0.1
-        
+
         # Cap score at 1.0
         return min(1.0, max(0.0, score))
-    
+
     def _get_statistical_score(
         self,
         option: ChoiceOption,
@@ -438,9 +441,9 @@ class InquisitoryEngine:
             for tech_key, data in tech_stack_success.items():
                 if tech_key in option.name.lower():
                     return data.get("success_rate", 0.7)
-        
+
         return 0.75  # Default average
-    
+
     def _generate_reasoning(
         self,
         recommended_id: str,
@@ -452,10 +455,10 @@ class InquisitoryEngine:
         recommended = next((o for o in options if o.option_id == recommended_id), None)
         if not recommended:
             return "Unable to generate reasoning"
-        
+
         reasoning_parts = [f"Recommended: {recommended.name}"]
         reasoning_parts.append(f"Score: {scores[recommended_id]:.2f}")
-        
+
         # Add context-based reasoning
         if context:
             if "budget" in context:
@@ -463,22 +466,22 @@ class InquisitoryEngine:
                     reasoning_parts.append("Fits within budget")
                 else:
                     reasoning_parts.append("Slightly exceeds budget but offers best value")
-            
+
             if "timeline" in context:
                 if recommended.estimated_time <= context["timeline"]:
                     reasoning_parts.append("Meets timeline requirements")
-        
+
         # Add pros emphasis
         if recommended.pros:
             reasoning_parts.append(f"Key benefits: {', '.join(recommended.pros[:2])}")
-        
+
         # Add statistical backing
         stats = self._get_statistical_basis(None, recommended_id)
         if stats:
             reasoning_parts.append(f"Based on statistical data: {stats.get('description', '')}")
-        
+
         return ". ".join(reasoning_parts)
-    
+
     def _get_statistical_basis(
         self,
         choice_type: Optional[ChoiceType],
@@ -492,7 +495,7 @@ class InquisitoryEngine:
             "confidence_interval": 0.95,
             "description": "Based on analysis of similar organizations and projects"
         }
-    
+
     def navigate_decision_tree(
         self,
         tree_id: str,
@@ -500,37 +503,37 @@ class InquisitoryEngine:
     ) -> Optional[Dict[str, Any]]:
         """
         Navigate a decision tree with given answers
-        
+
         Args:
             tree_id: ID of decision tree to use
             answers: Dictionary of question IDs to answers
-            
+
         Returns:
             Recommendation node or None if path incomplete
         """
         if tree_id not in self.decision_trees:
             return None
-        
+
         tree = self.decision_trees[tree_id]
         current_node = tree.root_node
-        
+
         while current_node in tree.nodes:
             node = tree.nodes[current_node]
-            
+
             if node.get("type") == "recommendation":
                 return node
-            
+
             if current_node not in answers:
                 return None  # Incomplete path
-            
+
             answer = answers[current_node]
             if answer not in node.get("options", {}):
                 return None  # Invalid answer
-            
+
             current_node = node["options"][answer]
-        
+
         return None
-    
+
     def get_next_question(
         self,
         tree_id: str,
@@ -538,44 +541,44 @@ class InquisitoryEngine:
     ) -> Optional[Dict[str, Any]]:
         """
         Get the next question in a decision tree
-        
+
         Args:
             tree_id: ID of decision tree
             answers: Answers provided so far
-            
+
         Returns:
             Next question node or None if complete
         """
         result = self.navigate_decision_tree(tree_id, answers)
-        
+
         if result and result.get("type") == "recommendation":
             return result  # Complete, return recommendation
-        
+
         if result is None:
             # Navigate to find where we are
             if tree_id not in self.decision_trees:
                 return None
-            
+
             tree = self.decision_trees[tree_id]
             current_node = tree.root_node
-            
+
             while current_node in tree.nodes:
                 if current_node not in answers:
                     # Return this question
                     return tree.nodes[current_node]
-                
+
                 node = tree.nodes[current_node]
                 if node.get("type") == "recommendation":
                     return node
-                
+
                 answer = answers[current_node]
                 if answer not in node.get("options", {}):
                     return None
-                
+
                 current_node = node["options"][answer]
-        
+
         return None
-    
+
     def deductive_reasoning(
         self,
         premises: List[str],
@@ -583,66 +586,66 @@ class InquisitoryEngine:
     ) -> Dict[str, Any]:
         """
         Apply deductive reasoning to premises
-        
+
         Args:
             premises: List of factual premises
             context: Additional context
-            
+
         Returns:
             Reasoning result with conclusion
         """
         # Simplified deductive reasoning
         conclusions = []
         confidence = 0.0
-        
+
         # Pattern matching on premises
         for premise in premises:
             premise_lower = premise.lower()
-            
+
             # Budget constraints
             if "budget" in premise_lower and ("limited" in premise_lower or "small" in premise_lower):
                 conclusions.append("Recommend cost-effective solutions")
                 conclusions.append("Prioritize open-source technologies")
                 confidence += 0.2
-            
+
             # Time constraints
             if "deadline" in premise_lower and ("tight" in premise_lower or "short" in premise_lower):
                 conclusions.append("Recommend proven, stable technologies")
                 conclusions.append("Avoid experimental frameworks")
                 confidence += 0.2
-            
+
             # Scale requirements
             if "scale" in premise_lower and ("large" in premise_lower or "millions" in premise_lower):
                 conclusions.append("Recommend scalable architecture")
                 conclusions.append("Consider microservices")
                 confidence += 0.2
-            
+
             # Security requirements
             if "security" in premise_lower or "compliance" in premise_lower:
                 conclusions.append("Prioritize security-first approach")
                 conclusions.append("Ensure compliance standards")
                 confidence += 0.2
-        
+
         # Normalize confidence
-        confidence = min(1.0, confidence / len(premises) if premises else 0.0)
-        
+        confidence = min(1.0, confidence / (len(premises) or 1) if premises else 0.0)
+
         return {
             "premises": premises,
             "conclusions": conclusions,
             "confidence": confidence,
             "reasoning_method": "deductive_pattern_matching"
         }
-    
+
     def generate_choice_report(
         self,
         recommendations: List[ChoiceRecommendation]
     ) -> Dict[str, Any]:
         """
         Generate comprehensive choice report
-        
+
         Args:
             recommendations: List of recommendations to include
-            
+
         Returns:
             Report dictionary
         """
@@ -651,16 +654,16 @@ class InquisitoryEngine:
         for rec in recommendations:
             rec_type = rec.choice_type.value
             by_type[rec_type] = by_type.get(rec_type, 0) + 1
-        
+
         # Count by confidence
         by_confidence = {}
         for rec in recommendations:
             conf = rec.confidence.value
             by_confidence[conf] = by_confidence.get(conf, 0) + 1
-        
+
         # Calculate average confidence
-        avg_confidence = sum(r.confidence_score for r in recommendations) / len(recommendations) if recommendations else 0.0
-        
+        avg_confidence = sum(r.confidence_score for r in recommendations) / (len(recommendations) or 1) if recommendations else 0.0
+
         return {
             "total_recommendations": len(recommendations),
             "by_type": by_type,
@@ -674,9 +677,9 @@ class InquisitoryEngine:
 if __name__ == "__main__":
     # Test inquisitory engine
     engine = InquisitoryEngine()
-    
+
     # Test 1: Analyze tech stack choice
-    print("=== Test 1: Analyze Tech Stack Choice ===")
+    logger.info("=== Test 1: Analyze Tech Stack Choice ===")
     question = "Which technology stack should we use for our web application?"
     options = [
         {
@@ -710,62 +713,62 @@ if __name__ == "__main__":
             "success_probability": 0.75
         }
     ]
-    
+
     context = {
         "budget": 10000,
         "timeline": 200,
         "team_size": 4
     }
-    
+
     recommendation = engine.analyze_choice(
         question=question,
         choice_type=ChoiceType.TECHNICAL,
         options=options,
         context=context
     )
-    
-    print(f"Question: {recommendation.question}")
-    print(f"Recommended: {recommendation.options[0].name if recommendation.options else 'N/A'}")
-    print(f"Confidence: {recommendation.confidence.value} ({recommendation.confidence_score:.2f})")
-    print(f"Reasoning: {recommendation.reasoning}")
-    
+
+    logger.info(f"Question: {recommendation.question}")
+    logger.info(f"Recommended: {recommendation.options[0].name if recommendation.options else 'N/A'}")
+    logger.info(f"Confidence: {recommendation.confidence.value} ({recommendation.confidence_score:.2f})")
+    logger.info(f"Reasoning: {recommendation.reasoning}")
+
     # Test 2: Navigate decision tree
-    print("\n=== Test 2: Navigate Decision Tree ===")
+    logger.info("\n=== Test 2: Navigate Decision Tree ===")
     answers = {
         "question_1": "web",
         "question_2": "medium"
     }
-    
+
     result = engine.navigate_decision_tree("tech_stack_selection", answers)
     if result:
-        print(f"Recommendation: {result.get('technology')}")
-        print(f"Justification: {result.get('justification')}")
-    
+        logger.info(f"Recommendation: {result.get('technology')}")
+        logger.info(f"Justification: {result.get('justification')}")
+
     # Test 3: Get next question
-    print("\n=== Test 3: Get Next Question ===")
+    logger.info("\n=== Test 3: Get Next Question ===")
     next_question = engine.get_next_question("tech_stack_selection", {"question_1": "web"})
     if next_question and next_question.get("question"):
-        print(f"Question: {next_question['question']}")
-        print(f"Options: {list(next_question.get('options', {}).keys())}")
-    
+        logger.info(f"Question: {next_question['question']}")
+        logger.info(f"Options: {list(next_question.get('options', {}).keys())}")
+
     # Test 4: Deductive reasoning
-    print("\n=== Test 4: Deductive Reasoning ===")
+    logger.info("\n=== Test 4: Deductive Reasoning ===")
     premises = [
         "The project has a tight deadline",
         "The budget is limited",
         "Security is a high priority",
         "We need to scale to millions of users"
     ]
-    
+
     result = engine.deductive_reasoning(premises, {})
-    print(f"Conclusions:")
+    logger.info("Conclusions:")
     for conclusion in result["conclusions"]:
-        print(f"  - {conclusion}")
-    print(f"Confidence: {result['confidence']:.2f}")
-    
+        logger.info(f"  - {conclusion}")
+    logger.info(f"Confidence: {result['confidence']:.2f}")
+
     # Test 5: Generate report
-    print("\n=== Test 5: Generate Report ===")
+    logger.info("\n=== Test 5: Generate Report ===")
     report = engine.generate_choice_report([recommendation])
-    print(f"Total Recommendations: {report['total_recommendations']}")
-    print(f"Average Confidence: {report['average_confidence']:.2f}")
-    print(f"High Confidence: {report['high_confidence_count']}")
+    logger.info(f"Total Recommendations: {report['total_recommendations']}")
+    logger.info(f"Average Confidence: {report['average_confidence']:.2f}")
+    logger.info(f"High Confidence: {report['high_confidence_count']}")

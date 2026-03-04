@@ -18,6 +18,11 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
+from thread_safe_operations import capped_append
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -149,7 +154,7 @@ class SpawnerRegistry:
             if pct >= threshold:
                 msg = f"[WORLD DECAY] {threshold}% of entity types have been unmade!"
                 if msg not in self._announcements:
-                    self._announcements.append(msg)
+                    capped_append(self._announcements, msg)
 
     @property
     def announcements(self) -> List[str]:

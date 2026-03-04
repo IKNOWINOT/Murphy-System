@@ -8,6 +8,10 @@ from dataclasses import dataclass
 from enum import Enum
 import re
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class SwarmType(Enum):
     """Types of swarms for different generation strategies"""
@@ -63,7 +67,7 @@ class SafetyGate:
 class AdvancedSwarmGenerator:
     """
     Advanced swarm generator with multiple strategies
-    
+
     Key features:
     1. Multiple swarm types (creative, analytical, hybrid, adversarial)
     2. Domain-specific generation
@@ -71,17 +75,17 @@ class AdvancedSwarmGenerator:
     4. Automatic gate synthesis
     5. Organizational context awareness
     """
-    
+
     def __init__(self):
         self.swarm_types = list(SwarmType)
         self.domains = list(GenerationDomain)
         self.generation_history = []
         self.gate_library = self._initialize_gate_library()
-    
+
     def _initialize_gate_library(self) -> Dict[str, SafetyGate]:
         """Initialize comprehensive gate library"""
         gates = {}
-        
+
         # Universal gates (apply to all domains)
         gates['scope_creep'] = SafetyGate(
             id='scope_creep',
@@ -93,7 +97,7 @@ class AdvancedSwarmGenerator:
             rationale='Prevents unbounded scope expansion',
             auto_fix=lambda c: self._limit_scope(c, 15)
         )
-        
+
         gates['resource_constraint'] = SafetyGate(
             id='resource_constraint',
             name='Resource Constraint Check',
@@ -104,7 +108,7 @@ class AdvancedSwarmGenerator:
             rationale='Ensures solution is resource-feasible',
             auto_fix=None
         )
-        
+
         gates['time_constraint'] = SafetyGate(
             id='time_constraint',
             name='Time Constraint Check',
@@ -115,7 +119,7 @@ class AdvancedSwarmGenerator:
             rationale='Prevents unrealistic timelines',
             auto_fix=lambda c: self._adjust_timeline(c)
         )
-        
+
         # Software domain gates
         gates['tech_debt'] = SafetyGate(
             id='tech_debt',
@@ -127,7 +131,7 @@ class AdvancedSwarmGenerator:
             rationale='Prevents accumulation of technical debt',
             auto_fix=lambda c: self._simplify_architecture(c)
         )
-        
+
         gates['security_baseline'] = SafetyGate(
             id='security_baseline',
             name='Security Baseline',
@@ -138,7 +142,7 @@ class AdvancedSwarmGenerator:
             rationale='Ensures security is considered',
             auto_fix=lambda c: self._add_security_requirements(c)
         )
-        
+
         # Business domain gates
         gates['market_validation'] = SafetyGate(
             id='market_validation',
@@ -150,7 +154,7 @@ class AdvancedSwarmGenerator:
             rationale='Ensures market demand exists',
             auto_fix=None
         )
-        
+
         gates['roi_threshold'] = SafetyGate(
             id='roi_threshold',
             name='ROI Threshold',
@@ -161,7 +165,7 @@ class AdvancedSwarmGenerator:
             rationale='Ensures financial viability',
             auto_fix=None
         )
-        
+
         # Research domain gates
         gates['reproducibility'] = SafetyGate(
             id='reproducibility',
@@ -173,7 +177,7 @@ class AdvancedSwarmGenerator:
             rationale='Ensures research can be reproduced',
             auto_fix=lambda c: self._add_reproducibility_requirements(c)
         )
-        
+
         gates['peer_review'] = SafetyGate(
             id='peer_review',
             name='Peer Review Required',
@@ -184,9 +188,9 @@ class AdvancedSwarmGenerator:
             rationale='Ensures quality through peer review',
             auto_fix=None
         )
-        
+
         return gates
-    
+
     def generate_swarm(
         self,
         task: str,
@@ -197,19 +201,19 @@ class AdvancedSwarmGenerator:
     ) -> List[SwarmCandidate]:
         """
         Generate a swarm of candidates
-        
+
         Args:
             task: Task description
             swarm_type: Type of swarm to generate
             domain: Domain for specialized generation
             context: Additional context
             count: Number of candidates to generate
-        
+
         Returns:
             List of candidates with full metadata
         """
         candidates = []
-        
+
         if swarm_type == SwarmType.CREATIVE:
             candidates = self._generate_creative_swarm(task, domain, context, count)
         elif swarm_type == SwarmType.ANALYTICAL:
@@ -222,7 +226,7 @@ class AdvancedSwarmGenerator:
             candidates = self._generate_synthesis_swarm(task, domain, context, count)
         elif swarm_type == SwarmType.OPTIMIZATION:
             candidates = self._generate_optimization_swarm(task, domain, context, count)
-        
+
         # Store in history
         self.generation_history.append({
             'task': task,
@@ -230,9 +234,9 @@ class AdvancedSwarmGenerator:
             'domain': domain,
             'count': len(candidates)
         })
-        
+
         return candidates
-    
+
     def _generate_creative_swarm(
         self,
         task: str,
@@ -242,7 +246,7 @@ class AdvancedSwarmGenerator:
     ) -> List[SwarmCandidate]:
         """Generate creative, divergent solutions"""
         candidates = []
-        
+
         # Creative strategies
         strategies = [
             'analogical_thinking',  # Draw analogies from other domains
@@ -256,7 +260,7 @@ class AdvancedSwarmGenerator:
             'constraint_removal',  # Remove assumed constraints
             'future_backwards'  # Work backwards from ideal future
         ]
-        
+
         for i, strategy in enumerate(strategies[:count]):
             candidate = SwarmCandidate(
                 id=f"creative_{i}",
@@ -276,9 +280,9 @@ class AdvancedSwarmGenerator:
                 }
             )
             candidates.append(candidate)
-        
+
         return candidates
-    
+
     def _generate_analytical_swarm(
         self,
         task: str,
@@ -288,7 +292,7 @@ class AdvancedSwarmGenerator:
     ) -> List[SwarmCandidate]:
         """Generate analytical, systematic solutions"""
         candidates = []
-        
+
         # Analytical strategies
         strategies = [
             'decomposition',  # Break into sub-problems
@@ -302,7 +306,7 @@ class AdvancedSwarmGenerator:
             'simulation',  # Model and simulate
             'benchmarking'  # Compare to existing solutions
         ]
-        
+
         for i, strategy in enumerate(strategies[:count]):
             candidate = SwarmCandidate(
                 id=f"analytical_{i}",
@@ -322,9 +326,9 @@ class AdvancedSwarmGenerator:
                 }
             )
             candidates.append(candidate)
-        
+
         return candidates
-    
+
     def _generate_hybrid_swarm(
         self,
         task: str,
@@ -336,10 +340,10 @@ class AdvancedSwarmGenerator:
         # Generate half creative, half analytical
         creative_count = count // 2
         analytical_count = count - creative_count
-        
+
         creative = self._generate_creative_swarm(task, domain, context, creative_count)
         analytical = self._generate_analytical_swarm(task, domain, context, analytical_count)
-        
+
         # Combine and mark as hybrid
         candidates = creative + analytical
         for c in candidates:
@@ -347,9 +351,9 @@ class AdvancedSwarmGenerator:
             c.confidence = (c.confidence + 0.7) / 2  # Balance confidence
             c.novelty = (c.novelty + 0.5) / 2  # Balance novelty
             c.feasibility = (c.feasibility + 0.7) / 2  # Balance feasibility
-        
+
         return candidates
-    
+
     def _generate_adversarial_swarm(
         self,
         task: str,
@@ -359,7 +363,7 @@ class AdvancedSwarmGenerator:
     ) -> List[SwarmCandidate]:
         """Generate adversarial candidates (red team, find weaknesses)"""
         candidates = []
-        
+
         # Adversarial strategies
         attack_vectors = [
             'edge_cases',  # Test boundary conditions
@@ -373,7 +377,7 @@ class AdvancedSwarmGenerator:
             'malicious_input',  # Test input validation
             'dependency_failures'  # Test external dependencies
         ]
-        
+
         for i, vector in enumerate(attack_vectors[:count]):
             candidate = SwarmCandidate(
                 id=f"adversarial_{i}",
@@ -397,9 +401,9 @@ class AdvancedSwarmGenerator:
                 }
             )
             candidates.append(candidate)
-        
+
         return candidates
-    
+
     def _generate_synthesis_swarm(
         self,
         task: str,
@@ -411,9 +415,9 @@ class AdvancedSwarmGenerator:
         # First generate diverse candidates
         creative = self._generate_creative_swarm(task, domain, context, 3)
         analytical = self._generate_analytical_swarm(task, domain, context, 3)
-        
+
         candidates = []
-        
+
         # Synthesize combinations
         for i in range(min(count, 10)):
             # Pick 2-3 candidates to combine
@@ -422,7 +426,7 @@ class AdvancedSwarmGenerator:
                 to_combine.append(creative[i % len(creative)])
             if analytical:
                 to_combine.append(analytical[i % len(analytical)])
-            
+
             if len(to_combine) >= 2:
                 candidate = SwarmCandidate(
                     id=f"synthesis_{i}",
@@ -446,9 +450,9 @@ class AdvancedSwarmGenerator:
                     }
                 )
                 candidates.append(candidate)
-        
+
         return candidates
-    
+
     def _generate_optimization_swarm(
         self,
         task: str,
@@ -458,7 +462,7 @@ class AdvancedSwarmGenerator:
     ) -> List[SwarmCandidate]:
         """Generate optimization candidates (refine existing solutions)"""
         candidates = []
-        
+
         # Optimization dimensions
         dimensions = [
             'performance',
@@ -472,7 +476,7 @@ class AdvancedSwarmGenerator:
             'reliability',
             'flexibility'
         ]
-        
+
         for i, dimension in enumerate(dimensions[:count]):
             candidate = SwarmCandidate(
                 id=f"optimization_{i}",
@@ -496,9 +500,9 @@ class AdvancedSwarmGenerator:
                 }
             )
             candidates.append(candidate)
-        
+
         return candidates
-    
+
     def synthesize_gates_from_candidates(
         self,
         candidates: List[SwarmCandidate],
@@ -507,31 +511,31 @@ class AdvancedSwarmGenerator:
     ) -> List[SafetyGate]:
         """
         Synthesize safety gates from candidates
-        
+
         Key insight: Gates are discovered from risks in candidates,
         not predefined
         """
         gates = []
-        
+
         # Analyze candidates for risks
         risks = self._extract_risks_from_candidates(candidates)
-        
+
         # Create gates for each risk
         for risk in risks:
             gate = self._create_gate_from_risk(risk, domain, organizational_context)
             if gate:
                 gates.append(gate)
-        
+
         # Add domain-specific gates
         domain_gates = self._get_domain_gates(domain)
         gates.extend(domain_gates)
-        
+
         # Add organizational gates
         org_gates = self._get_organizational_gates(organizational_context)
         gates.extend(org_gates)
-        
+
         return gates
-    
+
     def _apply_creative_strategy(
         self,
         task: str,
@@ -548,7 +552,7 @@ class AdvancedSwarmGenerator:
             'domain': domain.value,
             'novelty': 'high'
         }
-    
+
     def _apply_analytical_strategy(
         self,
         task: str,
@@ -564,7 +568,7 @@ class AdvancedSwarmGenerator:
             'domain': domain.value,
             'systematic': True
         }
-    
+
     def _identify_dependencies(self, strategy: str, domain: GenerationDomain) -> List[str]:
         """Identify dependencies for a strategy"""
         # Simplified dependency identification
@@ -576,7 +580,7 @@ class AdvancedSwarmGenerator:
         if domain == GenerationDomain.SOFTWARE:
             deps.append('development_environment')
         return deps
-    
+
     def _describe_attack_vector(self, vector: str, domain: GenerationDomain) -> str:
         """Describe an attack vector"""
         descriptions = {
@@ -587,21 +591,21 @@ class AdvancedSwarmGenerator:
             'resource_exhaustion': 'Test resource limit handling'
         }
         return descriptions.get(vector, f"Test {vector}")
-    
+
     def _suggest_mitigation(self, vector: str, domain: GenerationDomain) -> str:
         """Suggest mitigation for attack vector"""
         return f"Implement safeguards against {vector}"
-    
+
     def _assess_severity(self, vector: str, domain: GenerationDomain) -> str:
         """Assess severity of attack vector"""
         high_severity = ['security_vulnerabilities', 'data_corruption', 'resource_exhaustion']
         return 'high' if vector in high_severity else 'medium'
-    
+
     def _synthesize_approaches(self, candidates: List[SwarmCandidate]) -> str:
         """Synthesize multiple approaches"""
         strategies = [c.metadata.get('strategy', 'unknown') for c in candidates]
         return f"Hybrid approach combining: {', '.join(strategies)}"
-    
+
     def _combine_strengths(self, candidates: List[SwarmCandidate]) -> List[str]:
         """Combine strengths from multiple candidates"""
         strengths = []
@@ -613,7 +617,7 @@ class AdvancedSwarmGenerator:
             if c.confidence > 0.7:
                 strengths.append('reliable')
         return list(set(strengths))
-    
+
     def _get_optimization_approach(self, dimension: str, domain: GenerationDomain) -> str:
         """Get optimization approach for dimension"""
         approaches = {
@@ -623,7 +627,7 @@ class AdvancedSwarmGenerator:
             'time': 'Parallelize and streamline processes'
         }
         return approaches.get(dimension, f"Optimize {dimension}")
-    
+
     def _identify_trade_offs(self, dimension: str) -> List[str]:
         """Identify trade-offs for optimization"""
         trade_offs = {
@@ -632,7 +636,7 @@ class AdvancedSwarmGenerator:
             'quality': ['May increase cost', 'May increase time']
         }
         return trade_offs.get(dimension, ['Trade-offs exist'])
-    
+
     def _extract_risks_from_candidates(self, candidates: List[SwarmCandidate]) -> List[Dict[str, Any]]:
         """Extract risks from candidates"""
         risks = []
@@ -645,7 +649,7 @@ class AdvancedSwarmGenerator:
                     'mitigation_needed': True
                 })
         return risks
-    
+
     def _create_gate_from_risk(
         self,
         risk: Dict[str, Any],
@@ -665,7 +669,7 @@ class AdvancedSwarmGenerator:
                 auto_fix=None
             )
         return None
-    
+
     def _get_domain_gates(self, domain: GenerationDomain) -> List[SafetyGate]:
         """Get domain-specific gates"""
         domain_gates = []
@@ -673,37 +677,37 @@ class AdvancedSwarmGenerator:
             if gate.domain == domain or gate.domain is None:
                 domain_gates.append(gate)
         return domain_gates
-    
+
     def _get_organizational_gates(self, context: Dict[str, Any]) -> List[SafetyGate]:
         """Get organization-specific gates"""
         org_gates = []
         org_context = context.get('organizational_context', '')
-        
+
         for gate_id, gate in self.gate_library.items():
             if gate.organizational_context and gate.organizational_context in org_context:
                 org_gates.append(gate)
-        
+
         return org_gates
-    
+
     # Auto-fix functions
     def _limit_scope(self, candidate: Dict[str, Any], max_items: int) -> Dict[str, Any]:
         """Limit scope to prevent scope creep"""
         if 'requirements' in candidate:
             candidate['requirements'] = candidate['requirements'][:max_items]
         return candidate
-    
+
     def _adjust_timeline(self, candidate: Dict[str, Any]) -> Dict[str, Any]:
         """Adjust timeline to be more realistic"""
         if 'estimated_time_months' in candidate:
             candidate['estimated_time_months'] = min(candidate['estimated_time_months'], 18)
         return candidate
-    
+
     def _simplify_architecture(self, candidate: Dict[str, Any]) -> Dict[str, Any]:
         """Simplify architecture to reduce complexity"""
         if 'components' in candidate:
             candidate['components'] = candidate['components'][:5]
         return candidate
-    
+
     def _add_security_requirements(self, candidate: Dict[str, Any]) -> Dict[str, Any]:
         """Add security requirements"""
         if 'requirements' not in candidate:
@@ -711,7 +715,7 @@ class AdvancedSwarmGenerator:
         candidate['requirements'].append('Security audit required')
         candidate['requirements'].append('OWASP compliance')
         return candidate
-    
+
     def _add_reproducibility_requirements(self, candidate: Dict[str, Any]) -> Dict[str, Any]:
         """Add reproducibility requirements"""
         if 'requirements' not in candidate:

@@ -17,6 +17,11 @@ import uuid
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
+from thread_safe_operations import capped_append
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -24,6 +29,7 @@ from typing import Any, Dict, List, Optional
 # ---------------------------------------------------------------------------
 
 class PlatformType(Enum):
+    """Platform type (Enum subclass)."""
     FACEBOOK = "facebook"
     INSTAGRAM = "instagram"
     TWITTER = "twitter"
@@ -35,12 +41,14 @@ class PlatformType(Enum):
 
 
 class ContentVerdict(Enum):
+    """Content verdict (Enum subclass)."""
     SAFE = "safe"
     WARNING = "warning"
     VIOLATION = "violation"
 
 
 class ViolationCategory(Enum):
+    """Violation category (Enum subclass)."""
     SPAM = "spam"
     HARASSMENT = "harassment"
     HATE_SPEECH = "hate_speech"
@@ -51,6 +59,7 @@ class ViolationCategory(Enum):
 
 
 class ModerationAction(Enum):
+    """Moderation action (Enum subclass)."""
     APPROVE = "approve"
     REJECT = "reject"
     FLAG = "flag"
@@ -60,6 +69,7 @@ class ModerationAction(Enum):
 
 
 class QueuePriority(Enum):
+    """Queue priority (Enum subclass)."""
     LOW = 1
     MEDIUM = 2
     HIGH = 3
@@ -67,6 +77,7 @@ class QueuePriority(Enum):
 
 
 class AppealStatus(Enum):
+    """Appeal status (Enum subclass)."""
     PENDING = "pending"
     UNDER_REVIEW = "under_review"
     APPROVED = "approved"
@@ -75,6 +86,7 @@ class AppealStatus(Enum):
 
 
 class ConnectorHealth(Enum):
+    """Connector health (Enum subclass)."""
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -83,6 +95,7 @@ class ConnectorHealth(Enum):
 
 
 class AuthType(Enum):
+    """Auth type (Enum subclass)."""
     API_KEY = "api_key"
     OAUTH2 = "oauth2"
     TOKEN = "token"
@@ -95,6 +108,7 @@ class AuthType(Enum):
 
 @dataclass
 class RateLimitConfig:
+    """Rate limit config."""
     max_requests: int = 100
     window_seconds: int = 60
     burst_limit: int = 10
@@ -102,6 +116,7 @@ class RateLimitConfig:
 
 @dataclass
 class AuthConfig:
+    """Auth config."""
     auth_type: AuthType = AuthType.OAUTH2
     credentials: Dict[str, str] = field(default_factory=dict)
     scopes: List[str] = field(default_factory=list)
@@ -109,6 +124,7 @@ class AuthConfig:
 
 @dataclass
 class ModerationRule:
+    """Moderation rule."""
     rule_id: str = ""
     name: str = ""
     platform: Optional[PlatformType] = None
@@ -122,6 +138,7 @@ class ModerationRule:
 
 @dataclass
 class QueueItem:
+    """Queue item."""
     item_id: str = ""
     content_id: str = ""
     platform: PlatformType = PlatformType.FACEBOOK
@@ -137,6 +154,7 @@ class QueueItem:
 
 @dataclass
 class Appeal:
+    """Appeal."""
     appeal_id: str = ""
     content_id: str = ""
     platform: PlatformType = PlatformType.FACEBOOK
@@ -222,7 +240,7 @@ class PlatformConnector:
                 "status": "moderated",
                 "metadata": metadata or {},
             }
-            self._moderation_log.append(entry)
+            capped_append(self._moderation_log, entry)
             return entry
 
     def get_content_queue(self) -> List[Dict[str, Any]]:
@@ -232,7 +250,7 @@ class PlatformConnector:
     def add_to_queue(self, item: Dict[str, Any]) -> Dict[str, Any]:
         with self._lock:
             item.setdefault("queued_at", time.time())
-            self._content_queue.append(item)
+            capped_append(self._content_queue, item)
             return {"queued": True, "platform": self.platform_type.value, "item": item}
 
     def disable(self) -> Dict[str, Any]:
@@ -314,7 +332,7 @@ class ContentClassifier:
                 "classified_at": time.time(),
                 "context": context or {},
             }
-            self._history.append(result)
+            capped_append(self._history, result)
             return result
 
     def get_history(self) -> List[Dict[str, Any]]:
@@ -454,7 +472,7 @@ class ModerationQueueManager:
                 record = self._to_dict(item)
                 record["auto_action"] = ModerationAction.APPROVE.value
                 record["status"] = "auto_approved"
-                self._processed.append(record)
+                capped_append(self._processed, record)
                 return record
 
             # Auto-reject clear violations with high confidence
@@ -463,11 +481,11 @@ class ModerationQueueManager:
                 record = self._to_dict(item)
                 record["auto_action"] = ModerationAction.REJECT.value
                 record["status"] = "auto_rejected"
-                self._processed.append(record)
+                capped_append(self._processed, record)
                 return record
 
             # Otherwise queue for human review
-            self._queue.append(item)
+            capped_append(self._queue, item)
             record = self._to_dict(item)
             record["status"] = "queued"
             return record
@@ -491,7 +509,7 @@ class ModerationQueueManager:
                     record["reviewer_id"] = reviewer_id
                     record["processed_at"] = time.time()
                     record["status"] = "processed"
-                    self._processed.append(record)
+                    capped_append(self._processed, record)
                     self._queue.pop(idx)
                     return record
             return {"error": "item_not_found", "item_id": item_id}
@@ -619,7 +637,7 @@ class ModerationAnalytics:
                 "is_false_positive": is_false_positive,
                 "recorded_at": time.time(),
             }
-            self._actions.append(entry)
+            capped_append(self._actions, entry)
             return entry
 
     def get_summary(self, platform: Optional[PlatformType] = None) -> Dict[str, Any]:

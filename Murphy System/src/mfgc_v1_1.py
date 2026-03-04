@@ -11,6 +11,10 @@ from dataclasses import dataclass, field
 
 from mfgc_core import MFGCController, MFGCSystemState, ConfidenceEngine
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ---------------------------------------------------------------------------
 # Trust-Weighted Grounding
@@ -62,6 +66,7 @@ class TrustWeightedGrounding:
 # ---------------------------------------------------------------------------
 
 class OrganizationalOverride(Enum):
+    """Organizational override (Enum subclass)."""
     NONE = 0
     SUGGEST = 1
     ACCELERATE = 2

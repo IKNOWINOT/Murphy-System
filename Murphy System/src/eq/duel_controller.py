@@ -17,6 +17,11 @@ import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import List
+from thread_safe_operations import capped_append
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -88,7 +93,7 @@ class DuelController:
             defender_id=defender_id,
             stake_item_ids=list(stake_items),
         )
-        self._challenges.append(challenge)
+        capped_append(self._challenges, challenge)
         return challenge
 
     def accept_challenge(self, challenge: DuelChallenge) -> DuelChallenge:
@@ -125,7 +130,7 @@ class DuelController:
             loot_transferred=list(challenge.stake_item_ids),
             was_forfeit=was_forfeit,
         )
-        self._outcomes.append(outcome)
+        capped_append(self._outcomes, outcome)
         return outcome
 
     # --- Queries ---

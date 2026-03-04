@@ -1,5 +1,5 @@
+"""PII detection and sanitization for the Murphy System logging pipeline."""
 # Copyright © 2020 Inoni Limited Liability Company
-# Murphy System — PII detection and sanitization for the logging pipeline.
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -200,7 +201,7 @@ class LogSanitizer:
     def add_pattern(self, pattern: PIIPattern) -> None:
         """Add a custom PII detection pattern."""
         with self._lock:
-            self._patterns.append(pattern)
+            capped_append(self._patterns, pattern)
             self._rebuild_compiled()
         logger.info("Added PII pattern for %s", pattern.pii_type.value)
 

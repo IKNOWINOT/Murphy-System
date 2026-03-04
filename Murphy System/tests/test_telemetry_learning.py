@@ -89,7 +89,7 @@ def test_telemetry_artifact_creation():
         source_id="test_component",
         data={"test": "data"},
     )
-    
+
     assert artifact.artifact_id.startswith("telemetry_operational_")
     assert artifact.domain == TelemetryDomain.OPERATIONAL
     assert artifact.source_id == "test_component"
@@ -106,7 +106,7 @@ def test_telemetry_bus_publish(telemetry_bus):
         source_id="test",
         data={"key": "value"},
     )
-    
+
     assert success
     stats = telemetry_bus.get_stats()
     assert stats["events_received"] == 1
@@ -117,7 +117,7 @@ def test_telemetry_bus_publish(telemetry_bus):
 def test_telemetry_bus_deduplication(telemetry_bus):
     """Test event deduplication"""
     data = {"key": "value"}
-    
+
     # Publish same event twice
     success1 = telemetry_bus.publish(
         domain=TelemetryDomain.OPERATIONAL,
@@ -129,10 +129,10 @@ def test_telemetry_bus_deduplication(telemetry_bus):
         source_id="test",
         data=data,
     )
-    
+
     assert success1
     assert not success2  # Deduplicated
-    
+
     stats = telemetry_bus.get_stats()
     assert stats["events_received"] == 2
     assert stats["events_deduplicated"] == 1
@@ -149,10 +149,10 @@ def test_telemetry_ingestion(telemetry_bus, telemetry_ingester):
             source_id=f"source_{i}",
             data={"index": i},
         )
-    
+
     # Ingest
     ingested = telemetry_ingester.ingest_batch(batch_size=10)
-    
+
     assert ingested == 5
     stats = telemetry_ingester.get_stats()
     assert stats["artifacts_ingested"] == 5
@@ -168,13 +168,13 @@ def test_telemetry_query(telemetry_bus, telemetry_ingester):
         data={"key": "value"},
     )
     telemetry_ingester.ingest_batch()
-    
+
     # Query
     artifacts = telemetry_ingester.get_artifacts(
         domain=TelemetryDomain.OPERATIONAL,
         limit=10,
     )
-    
+
     assert len(artifacts) == 1
     assert artifacts[0].domain == TelemetryDomain.OPERATIONAL
 
@@ -183,7 +183,7 @@ def test_telemetry_query(telemetry_bus, telemetry_ingester):
 def test_gate_strengthening_near_miss():
     """Test gate strengthening on near-miss detection"""
     engine = GateStrengtheningEngine()
-    
+
     # Create near-miss events
     telemetry = []
     for i in range(3):
@@ -197,10 +197,10 @@ def test_gate_strengthening_near_miss():
             },
         )
         telemetry.append(artifact)
-    
+
     # Analyze
     proposals = engine.analyze(telemetry)
-    
+
     assert len(proposals) == 1
     assert proposals[0].gate_id == "safety_gate_artifact_001"
     assert ReasonCode.NEAR_MISS_DETECTED in proposals[0].reason_codes
@@ -211,10 +211,10 @@ def test_gate_strengthening_near_miss():
 def test_gate_strengthening_contradictions():
     """Test gate strengthening on contradiction increase"""
     engine = GateStrengtheningEngine()
-    
+
     # Create contradiction events (historical low, recent high)
     telemetry = []
-    
+
     # Historical (6+ hours ago)
     for i in range(5):
         artifact = TelemetryArtifact.create(
@@ -227,7 +227,7 @@ def test_gate_strengthening_contradictions():
         )
         artifact.timestamp = datetime.now(timezone.utc) - timedelta(hours=12)
         telemetry.append(artifact)
-    
+
     # Recent (high)
     for i in range(5):
         artifact = TelemetryArtifact.create(
@@ -239,10 +239,10 @@ def test_gate_strengthening_contradictions():
             },
         )
         telemetry.append(artifact)
-    
+
     # Analyze
     proposals = engine.analyze(telemetry)
-    
+
     assert len(proposals) >= 1
     assert any(
         ReasonCode.CONTRADICTION_INCREASE in p.reason_codes
@@ -254,7 +254,7 @@ def test_gate_strengthening_contradictions():
 def test_phase_tuning_backlog():
     """Test phase tuning on verification backlog"""
     engine = PhaseTuningEngine()
-    
+
     # Create backlog events
     telemetry = []
     for i in range(15):
@@ -270,10 +270,10 @@ def test_phase_tuning_backlog():
             },
         )
         telemetry.append(artifact)
-    
+
     # Analyze
     insights = engine.analyze(telemetry)
-    
+
     assert len(insights) >= 1
     assert any(
         i.insight_type == InsightType.PHASE_TUNING
@@ -285,7 +285,7 @@ def test_phase_tuning_backlog():
 def test_phase_tuning_retries():
     """Test phase tuning on high retry rate"""
     engine = PhaseTuningEngine()
-    
+
     # Create high-retry events
     telemetry = []
     for i in range(10):
@@ -300,10 +300,10 @@ def test_phase_tuning_retries():
             },
         )
         telemetry.append(artifact)
-    
+
     # Analyze
     insights = engine.analyze(telemetry)
-    
+
     assert len(insights) >= 1
     assert any(
         "retry" in i.title.lower()
@@ -315,7 +315,7 @@ def test_phase_tuning_retries():
 def test_bottleneck_detector_latency():
     """Test bottleneck detection on high latency"""
     detector = BottleneckDetector()
-    
+
     # Create high-latency events
     telemetry = []
     for i in range(10):
@@ -331,10 +331,10 @@ def test_bottleneck_detector_latency():
             },
         )
         telemetry.append(artifact)
-    
+
     # Analyze
     insights = detector.analyze(telemetry)
-    
+
     assert len(insights) >= 1
     assert any(
         i.insight_type == InsightType.BOTTLENECK_DETECTION
@@ -346,7 +346,7 @@ def test_bottleneck_detector_latency():
 def test_assumption_invalidator_confidence():
     """Test assumption invalidation on confidence drops"""
     invalidator = AssumptionInvalidator()
-    
+
     # Create confidence drop events
     telemetry = []
     for i in range(15):
@@ -360,10 +360,10 @@ def test_assumption_invalidator_confidence():
             },
         )
         telemetry.append(artifact)
-    
+
     # Analyze
     insights = invalidator.analyze(telemetry)
-    
+
     assert len(insights) >= 1
     assert any(
         i.insight_type == InsightType.ASSUMPTION_INVALIDATION
@@ -375,10 +375,10 @@ def test_assumption_invalidator_confidence():
 def test_hardening_policy_engine():
     """Test hardening policy application"""
     engine = HardeningPolicyEngine()
-    
+
     # Create mixed telemetry
     telemetry = []
-    
+
     # Safety events
     for i in range(3):
         artifact = TelemetryArtifact.create(
@@ -391,10 +391,10 @@ def test_hardening_policy_engine():
             },
         )
         telemetry.append(artifact)
-    
+
     # Analyze
     proposals, insights = engine.analyze_all(telemetry)
-    
+
     assert len(proposals) >= 0  # May or may not generate proposals
     assert len(insights) >= 0
 
@@ -403,18 +403,18 @@ def test_hardening_policy_engine():
 def test_shadow_mode_controller():
     """Test shadow mode operation"""
     controller = ShadowModeController(mode=OperationMode.SHADOW)
-    
+
     # In shadow mode, should not enforce
     assert not controller.should_enforce("test_id")
-    
+
     # Change to full mode
     controller.set_mode(OperationMode.FULL)
     assert controller.should_enforce("test_id")
-    
+
     # Change to gradual mode
     controller.set_mode(OperationMode.GRADUAL)
     controller.set_enforcement_percentage(0.5)
-    
+
     # Should enforce ~50% of the time (deterministic by hash)
     enforced_count = sum(
         1 for i in range(100)
@@ -427,7 +427,7 @@ def test_shadow_mode_controller():
 def test_shadow_mode_logging():
     """Test shadow mode logging"""
     controller = ShadowModeController()
-    
+
     # Create proposal
     proposal = GateEvolutionArtifact.create(
         gate_id="test_gate",
@@ -436,10 +436,10 @@ def test_shadow_mode_logging():
         parameter_diff={"threshold": {"before": 0.7, "after": 0.85}},
         rollback_state={"threshold": 0.7},
     )
-    
+
     # Log
     controller.log_proposal(proposal, enforced=False)
-    
+
     # Check log
     log = controller.get_shadow_log()
     assert len(log) == 1
@@ -450,7 +450,7 @@ def test_shadow_mode_logging():
 def test_authorization_submit():
     """Test submitting proposal for authorization"""
     interface = AuthorizationInterface()
-    
+
     proposal = GateEvolutionArtifact.create(
         gate_id="test_gate",
         reason_codes=[ReasonCode.NEAR_MISS_DETECTED],
@@ -458,9 +458,9 @@ def test_authorization_submit():
         parameter_diff={"threshold": {"before": 0.7, "after": 0.85}},
         rollback_state={"threshold": 0.7},
     )
-    
+
     evolution_id = interface.submit_proposal(proposal)
-    
+
     assert evolution_id == proposal.evolution_id
     pending = interface.get_pending_proposals()
     assert len(pending) == 1
@@ -470,7 +470,7 @@ def test_authorization_submit():
 def test_authorization_approve():
     """Test approving a proposal"""
     interface = AuthorizationInterface()
-    
+
     proposal = GateEvolutionArtifact.create(
         gate_id="test_gate",
         reason_codes=[ReasonCode.NEAR_MISS_DETECTED],
@@ -478,17 +478,17 @@ def test_authorization_approve():
         parameter_diff={"threshold": {"before": 0.7, "after": 0.85}},
         rollback_state={"threshold": 0.7},
     )
-    
+
     interface.submit_proposal(proposal)
     success = interface.authorize_proposal(
         evolution_id=proposal.evolution_id,
         authorized_by="admin",
     )
-    
+
     assert success
     assert proposal.authorized
     assert proposal.authorized_by == "admin"
-    
+
     # Should be removed from pending
     pending = interface.get_pending_proposals()
     assert len(pending) == 0
@@ -498,7 +498,7 @@ def test_authorization_approve():
 def test_authorization_reject():
     """Test rejecting a proposal"""
     interface = AuthorizationInterface()
-    
+
     proposal = GateEvolutionArtifact.create(
         gate_id="test_gate",
         reason_codes=[ReasonCode.NEAR_MISS_DETECTED],
@@ -506,16 +506,16 @@ def test_authorization_reject():
         parameter_diff={"threshold": {"before": 0.7, "after": 0.85}},
         rollback_state={"threshold": 0.7},
     )
-    
+
     interface.submit_proposal(proposal)
     success = interface.reject_proposal(
         evolution_id=proposal.evolution_id,
         rejected_by="admin",
         reason="Not needed",
     )
-    
+
     assert success
-    
+
     # Should be removed from pending
     pending = interface.get_pending_proposals()
     assert len(pending) == 0
@@ -525,7 +525,7 @@ def test_authorization_reject():
 def test_authorization_rollback():
     """Test rolling back an evolution"""
     interface = AuthorizationInterface()
-    
+
     proposal = GateEvolutionArtifact.create(
         gate_id="test_gate",
         reason_codes=[ReasonCode.NEAR_MISS_DETECTED],
@@ -533,21 +533,21 @@ def test_authorization_rollback():
         parameter_diff={"threshold": {"before": 0.7, "after": 0.85}},
         rollback_state={"threshold": 0.7},
     )
-    
+
     # Submit and authorize
     interface.submit_proposal(proposal)
     interface.authorize_proposal(
         evolution_id=proposal.evolution_id,
         authorized_by="admin",
     )
-    
+
     # Rollback
     rollback_state = interface.rollback_evolution(
         evolution_id=proposal.evolution_id,
         rolled_back_by="admin",
         reason="Testing rollback",
     )
-    
+
     assert rollback_state is not None
     assert rollback_state["evolution_id"] == proposal.evolution_id
 
@@ -556,7 +556,7 @@ def test_authorization_rollback():
 def test_safety_enforcer_validation():
     """Test safety validation of proposals"""
     enforcer = SafetyEnforcer()
-    
+
     # Valid proposal
     proposal = GateEvolutionArtifact.create(
         gate_id="test_gate",
@@ -565,7 +565,7 @@ def test_safety_enforcer_validation():
         parameter_diff={"threshold": {"before": 0.7, "after": 0.85}},
         rollback_state={"threshold": 0.7},
     )
-    
+
     is_valid, error = enforcer.validate_proposal(proposal)
     assert is_valid
     assert error is None
@@ -575,7 +575,7 @@ def test_safety_enforcer_validation():
 def test_safety_enforcer_relaxation_check():
     """Test safety check for relaxation without evidence"""
     enforcer = SafetyEnforcer()
-    
+
     # Relaxation proposal without deterministic evidence
     proposal = GateEvolutionArtifact.create(
         gate_id="test_gate",
@@ -584,7 +584,7 @@ def test_safety_enforcer_relaxation_check():
         parameter_diff={"threshold": {"before": 0.85, "after": 0.7}},  # Relaxation
         rollback_state={"threshold": 0.85},
     )
-    
+
     is_valid, error = enforcer.validate_proposal(proposal)
     assert not is_valid
     assert "deterministic evidence" in error.lower()
@@ -594,12 +594,12 @@ def test_safety_enforcer_relaxation_check():
 def test_safety_enforcer_block_execution():
     """Test blocking execution actions"""
     enforcer = SafetyEnforcer()
-    
+
     enforcer.block_execution_action(
         action_type="direct_execution",
         reason="Telemetry must not execute",
     )
-    
+
     blocked = enforcer.get_blocked_actions()
     assert len(blocked) == 1
     assert blocked[0]["action_type"] == "direct_execution"
@@ -609,7 +609,7 @@ def test_safety_enforcer_block_execution():
 def test_hardening_coefficient():
     """Test hardening coefficient makes proposals more conservative"""
     engine = HardeningPolicyEngine()
-    
+
     proposal = GateEvolutionArtifact.create(
         gate_id="test_gate",
         reason_codes=[ReasonCode.NEAR_MISS_DETECTED],
@@ -617,9 +617,9 @@ def test_hardening_coefficient():
         parameter_diff={"threshold": {"before": 0.7, "after": 0.85}},
         rollback_state={"threshold": 0.7},
     )
-    
+
     hardened = engine._apply_hardening_coefficient(proposal)
-    
+
     # After should be higher than original
     original_after = 0.85
     hardened_after = hardened.parameter_diff["threshold"]["after"]
@@ -641,18 +641,18 @@ def test_full_workflow(telemetry_bus, telemetry_ingester):
                 "index": i,  # Make events unique
             },
         )
-    
+
     # 2. Ingest
     telemetry_ingester.ingest_batch()
-    
+
     # 3. Get artifacts
     artifacts = telemetry_ingester.get_artifacts(limit=100)
     assert len(artifacts) == 5
-    
+
     # 4. Run learning
     engine = HardeningPolicyEngine()
     proposals, insights = engine.analyze_all(artifacts)
-    
+
     # Should generate proposals due to 5 near-misses for same artifact (threshold is 3)
     assert len(proposals) >= 1
 
@@ -665,13 +665,13 @@ def test_telemetry_integrity():
         source_id="test",
         data={"key": "value"},
     )
-    
+
     # Should verify
     assert artifact.verify_integrity()
-    
+
     # Tamper with data
     artifact.data["key"] = "tampered"
-    
+
     # Should fail verification
     assert not artifact.verify_integrity()
 
@@ -680,7 +680,7 @@ def test_telemetry_integrity():
 def test_conservative_trajectory():
     """Test that system defaults to more strict over time"""
     engine = HardeningPolicyEngine()
-    
+
     # Create strengthening proposal
     proposal = GateEvolutionArtifact.create(
         gate_id="test_gate",
@@ -689,13 +689,13 @@ def test_conservative_trajectory():
         parameter_diff={"threshold": {"before": 0.7, "after": 0.85}},
         rollback_state={"threshold": 0.7},
     )
-    
+
     # Apply hardening
     hardened = engine._apply_hardening_policy([proposal])
-    
+
     # Should accept strengthening
     assert len(hardened) == 1
-    
+
     # Create relaxation proposal without evidence
     relaxation = GateEvolutionArtifact.create(
         gate_id="test_gate",
@@ -704,10 +704,10 @@ def test_conservative_trajectory():
         parameter_diff={"threshold": {"before": 0.85, "after": 0.7}},
         rollback_state={"threshold": 0.85},
     )
-    
+
     # Apply hardening
     hardened = engine._apply_hardening_policy([relaxation])
-    
+
     # Should reject relaxation without deterministic evidence
     assert len(hardened) == 0
 

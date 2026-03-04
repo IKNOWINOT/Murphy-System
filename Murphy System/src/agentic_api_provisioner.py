@@ -25,6 +25,11 @@ import threading
 import time
 import uuid
 from typing import Any, Callable, Dict, List, Optional, Tuple
+from thread_safe_operations import capped_append
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -32,6 +37,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 # ---------------------------------------------------------------------------
 
 class EndpointMethod(enum.Enum):
+    """Endpoint method (Enum subclass)."""
     GET = "GET"
     POST = "POST"
     PUT = "PUT"
@@ -41,6 +47,7 @@ class EndpointMethod(enum.Enum):
 
 
 class AuthPolicy(enum.Enum):
+    """Auth policy (Enum subclass)."""
     NONE = "none"
     API_KEY = "api_key"
     BEARER_TOKEN = "bearer_token"
@@ -49,6 +56,7 @@ class AuthPolicy(enum.Enum):
 
 
 class EndpointStatus(enum.Enum):
+    """Endpoint status (Enum subclass)."""
     ACTIVE = "active"
     DEGRADED = "degraded"
     DISABLED = "disabled"
@@ -57,6 +65,7 @@ class EndpointStatus(enum.Enum):
 
 
 class APIVersion(enum.Enum):
+    """API version (Enum subclass)."""
     V1 = "v1"
     V2 = "v2"
     V3 = "v3"
@@ -388,7 +397,7 @@ class AgenticAPIProvisioner:
                 "module_count": len(module_catalog),
                 "timestamp": time.time(),
             }
-            self._provision_log.append(result)
+            capped_append(self._provision_log, result)
             return result
 
     def register_endpoint(self, path: str, method: EndpointMethod,

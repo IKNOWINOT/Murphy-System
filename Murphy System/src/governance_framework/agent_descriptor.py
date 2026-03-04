@@ -176,7 +176,7 @@ class EscalationSpec:
 class AgentDescriptor:
     """
     Formal Agent Descriptor for Murphy System
-    
+
     Defines complete governance constraints, authority limits, and operational
     parameters for autonomous agents operating within the Murphy System.
     """
@@ -185,7 +185,7 @@ class AgentDescriptor:
     version: str = "1.0.0"
     signature: Optional[str] = None
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    
+
     # Authority Scope
     authority_band: AuthorityBand = AuthorityBand.NONE
     resource_limits: ResourceCaps = field(default_factory=lambda: ResourceCaps(
@@ -195,10 +195,10 @@ class AgentDescriptor:
         max_api_calls_per_sec=10
     ))
     access_scope: AccessMatrix = field(default_factory=AccessMatrix)
-    
+
     # Permitted Action Types
     action_permissions: ActionSet = field(default_factory=ActionSet)
-    
+
     # Stability Limits
     convergence_constraints: ConvergenceSpec = field(default_factory=lambda: ConvergenceSpec(
         max_iterations=100,
@@ -213,62 +213,62 @@ class AgentDescriptor:
         max_backoff_ms=30000,
         retry_condition=RetryCondition.STATE_CHANGE_REQUIRED
     ))
-    
+
     # Scheduling Constraints
     scheduling_requirements: SchedulingSpec = field(default_factory=lambda: SchedulingSpec(
         priority=PriorityLevel.NORMAL,
         cpu_reservation=1,
         memory_reservation=256
     ))
-    
+
     # Termination Conditions
     termination_criteria: TerminationSpec = field(default_factory=TerminationSpec)
-    
+
     # Escalation Rules
     escalation_policy: EscalationSpec = field(default_factory=EscalationSpec)
-    
+
     # Additional metadata
     owner: Optional[str] = None
     description: Optional[str] = None
     tags: List[str] = field(default_factory=list)
-    
+
     def __post_init__(self):
         """Validate descriptor after initialization"""
         self.validate_basic_constraints()
         self.generate_hash()
-    
+
     def validate_basic_constraints(self):
         """Validate basic descriptor constraints"""
         if not self.agent_id:
             raise ValueError("Agent ID is required")
-        
+
         if not self.version:
             raise ValueError("Version is required")
-        
+
         if self.resource_limits.max_cpu_cores <= 0:
             raise ValueError("Max CPU cores must be positive")
-        
+
         if self.resource_limits.max_memory_mb <= 0:
             raise ValueError("Max memory must be positive")
-        
+
         if self.resource_limits.max_execution_time_sec <= 0:
             raise ValueError("Max execution time must be positive")
-        
+
         if self.convergence_constraints.max_iterations <= 0:
             raise ValueError("Max iterations must be positive")
-        
+
         if not (0 <= self.convergence_constraints.convergence_threshold <= 1):
             raise ValueError("Convergence threshold must be between 0 and 1")
-        
+
         if not (0 <= self.convergence_constraints.divergence_threshold <= 1):
             raise ValueError("Divergence threshold must be between 0 and 1")
-    
+
     def generate_hash(self):
         """Generate cryptographic hash of descriptor"""
         descriptor_dict = self.to_dict()
         descriptor_json = json.dumps(descriptor_dict, sort_keys=True, default=str)
         self.signature = hashlib.sha256(descriptor_json.encode()).hexdigest()
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert descriptor to dictionary"""
         return {
@@ -332,7 +332,7 @@ class AgentDescriptor:
             "description": self.description,
             "tags": self.tags
         }
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'AgentDescriptor':
         """Create descriptor from dictionary"""
@@ -341,7 +341,7 @@ class AgentDescriptor:
         data["scheduling_requirements"]["priority"] = PriorityLevel[data["scheduling_requirements"]["priority"]]
         data["retry_policy"]["retry_condition"] = RetryCondition[data["retry_policy"]["retry_condition"]]
         data["escalation_policy"]["required_authority_level"] = AuthorityBand[data["escalation_policy"]["required_authority_level"]]
-        
+
         # Convert action permissions
         if "action_permissions" in data:
             ap = data["action_permissions"]
@@ -351,20 +351,20 @@ class AgentDescriptor:
                 allowed_executions=[ExecutionType[e] for e in ap.get("allowed_executions", [])],
                 prohibited_actions=[ActionType[a] for a in ap.get("prohibited_actions", [])]
             )
-        
+
         # Convert datetime
         if "created_at" in data:
             data["created_at"] = datetime.fromisoformat(data["created_at"])
-        
+
         # Create descriptor
         descriptor = cls(**data)
         return descriptor
-    
+
     def can_execute_action(self, action_type: ActionType) -> bool:
         """Check if agent is permitted to execute specific action type"""
         if action_type in self.action_permissions.prohibited_actions:
             return False
-        
+
         if action_type in [ActionType.PROPOSE_PLAN, ActionType.PROPOSE_CODE, ActionType.PROPOSE_ACTION]:
             return action_type in self.action_permissions.allowed_proposals
         elif action_type == ActionType.VALIDATE:
@@ -373,13 +373,13 @@ class AgentDescriptor:
             return action_type in self.action_permissions.allowed_executions
         elif action_type == ActionType.COMMUNICATE:
             return action_type in self.action_permissions.allowed_executions
-        
+
         return False
-    
+
     def has_sufficient_authority(self, required_band: AuthorityBand) -> bool:
         """Check if agent has sufficient authority for required level"""
         return self.authority_band.value >= required_band.value
-    
+
     def is_within_resource_limits(self, cpu: int, memory: int, time_sec: int) -> bool:
         """Check if resource usage is within limits"""
         return (cpu <= self.resource_limits.max_cpu_cores and
@@ -389,7 +389,7 @@ class AgentDescriptor:
 
 class AgentDescriptorValidator:
     """Validates agent descriptors against Murphy System constraints"""
-    
+
     def __init__(self):
         self.validation_rules = [
             self.validate_authority_consistency,
@@ -399,139 +399,140 @@ class AgentDescriptorValidator:
             self.validate_termination_conditions,
             self.validate_escalation_policy
         ]
-    
+
     def validate(self, descriptor: AgentDescriptor) -> tuple[bool, List[str]]:
         """Validate descriptor against all rules"""
         errors = []
-        
+
         for rule in self.validation_rules:
             try:
                 rule_errors = rule(descriptor)
                 errors.extend(rule_errors)
-            except Exception as e:
-                errors.append(f"Validation rule error: {str(e)}")
-        
+            except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
+                errors.append(f"Validation rule error: {str(exc)}")
+
         is_valid = len(errors) == 0
         return is_valid, errors
-    
+
     def validate_authority_consistency(self, descriptor: AgentDescriptor) -> List[str]:
         """Validate authority band consistency with other parameters"""
         errors = []
-        
+
         # High authority requires more resources
         if descriptor.authority_band.value >= AuthorityBand.HIGH.value:
             if descriptor.resource_limits.max_cpu_cores < 2:
                 errors.append("High authority agents require at least 2 CPU cores")
             if descriptor.resource_limits.max_memory_mb < 1024:
                 errors.append("High authority agents require at least 1GB memory")
-        
+
         # Critical authority requires specific configurations
         if descriptor.authority_band == AuthorityBand.CRITICAL:
             if not descriptor.escalation_policy.escalation_paths:
                 errors.append("Critical authority agents must have escalation paths defined")
             if descriptor.scheduling_requirements.priority != PriorityLevel.REALTIME:
                 errors.append("Critical authority agents must have REALTIME priority")
-        
+
         return errors
-    
+
     def validate_resource_limits(self, descriptor: AgentDescriptor) -> List[str]:
         """Validate resource limit constraints"""
         errors = []
-        
+
         # Check for reasonable resource limits
         if descriptor.resource_limits.max_execution_time_sec > 86400:  # 24 hours
             errors.append("Maximum execution time cannot exceed 24 hours without escalation")
-        
+
         if descriptor.resource_limits.max_api_calls_per_sec > 1000:
             errors.append("API call rate limit cannot exceed 1000 per second")
-        
+
         # Validate reservations don't exceed limits
         if descriptor.scheduling_requirements.cpu_reservation > descriptor.resource_limits.max_cpu_cores:
             errors.append("CPU reservation cannot exceed maximum CPU cores")
-        
+
         if descriptor.scheduling_requirements.memory_reservation > descriptor.resource_limits.max_memory_mb:
             errors.append("Memory reservation cannot exceed maximum memory")
-        
+
         return errors
-    
+
     def validate_action_permissions(self, descriptor: AgentDescriptor) -> List[str]:
         """Validate action permission consistency"""
         errors = []
-        
+
         # Check for prohibited actions in allowed lists
         prohibited_in_allowed = set(descriptor.action_permissions.prohibited_actions) & \
-                               set(descriptor.action_permissions.allowed_proposals + 
+                               set(descriptor.action_permissions.allowed_proposals +
                                    descriptor.action_permissions.allowed_executions)
-        
+
         if prohibited_in_allowed:
             errors.append(f"Prohibited actions found in allowed lists: {[a.name for a in prohibited_in_allowed]}")
-        
+
         # Low authority agents have restricted actions
         if descriptor.authority_band == AuthorityBand.LOW:
             dangerous_actions = [ActionType.EXECUTE, ActionType.PROPOSE_ACTION]
             for action in dangerous_actions:
                 if action in descriptor.action_permissions.allowed_executions:
                     errors.append(f"Low authority agents cannot execute {action.name}")
-        
+
         return errors
-    
+
     def validate_stability_constraints(self, descriptor: AgentDescriptor) -> List[str]:
         """Validate stability and convergence constraints"""
         errors = []
-        
+
         # Convergence threshold should be reasonable
         if descriptor.convergence_constraints.convergence_threshold > descriptor.convergence_constraints.divergence_threshold:
             errors.append("Convergence threshold cannot be greater than divergence threshold")
-        
+
         # Stability window should be reasonable for iteration count
         min_window_for_iterations = descriptor.convergence_constraints.max_iterations * 100  # 100ms per iteration
         if descriptor.convergence_constraints.stability_window_ms < min_window_for_iterations:
             errors.append("Stability window too small for max iterations")
-        
+
         # Retry policy should be reasonable
         if descriptor.retry_policy.max_retries > 10:
             errors.append("Maximum retries cannot exceed 10 without escalation")
-        
+
         return errors
-    
+
     def validate_termination_conditions(self, descriptor: AgentDescriptor) -> List[str]:
         """Validate termination condition specifications"""
         errors = []
-        
+
         # At least one termination condition should be specified
         all_conditions = (descriptor.termination_criteria.success_conditions +
                           descriptor.termination_criteria.failure_conditions +
                           descriptor.termination_criteria.timeout_conditions)
-        
+
         if not all_conditions:
             errors.append("At least one termination condition must be specified")
-        
+
         # Timeout conditions should be reasonable
         for condition in descriptor.termination_criteria.timeout_conditions:
             if "timeout_ms" in condition.parameters:
                 timeout_ms = condition.parameters["timeout_ms"]
                 if timeout_ms > descriptor.resource_limits.max_execution_time_sec * 1000:
                     errors.append("Timeout condition exceeds maximum execution time")
-        
+
         return errors
-    
+
     def validate_escalation_policy(self, descriptor: AgentDescriptor) -> List[str]:
         """Validate escalation policy specifications"""
         errors = []
-        
+
         # Escalation timeout should be reasonable
         if descriptor.escalation_policy.escalation_timeout_ms > 3600000:  # 1 hour
             errors.append("Escalation timeout cannot exceed 1 hour")
-        
+
         # Required authority level should be higher than current
         if descriptor.escalation_policy.required_authority_level.value <= descriptor.authority_band.value:
             errors.append("Required escalation authority must be higher than current authority")
-        
+
         # Escalation paths should be valid
         for path in descriptor.escalation_policy.escalation_paths:
             if path.target_authority.value <= descriptor.authority_band.value:
                 errors.append("Escalation path target authority must be higher than current authority")
-        
+
         return errors
 
 
@@ -542,7 +543,7 @@ def create_standard_descriptor(
     max_retries: int = 3
 ) -> AgentDescriptor:
     """Create a standard agent descriptor with common defaults"""
-    
+
     descriptor = AgentDescriptor(
         agent_id=agent_id,
         authority_band=authority_band,
@@ -569,5 +570,5 @@ def create_standard_descriptor(
             memory_reservation=256
         )
     )
-    
+
     return descriptor

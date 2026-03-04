@@ -6,14 +6,18 @@ Handles system commands like /gates, /confidence, /swarmmonitor, etc.
 from typing import Dict, Any, Optional, Tuple
 import re
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class CommandParser:
     """Parse and execute system commands"""
-    
+
     def __init__(self, mfgc_system):
         """Initialize with reference to MFGC system"""
         self.system = mfgc_system
-        
+
         # Command registry
         self.commands = {
             '/swarmmonitor': self.cmd_swarmmonitor,
@@ -24,12 +28,12 @@ class CommandParser:
             '/status': self.cmd_status,
             '/docs': self._cmd_docs
         }
-    
+
     def is_command(self, message: str) -> bool:
         """Check if message is a command"""
         message = message.strip().lower()
         return any(message.startswith(cmd) for cmd in self.commands.keys())
-    
+
     def parse_and_execute(self, message: str) -> Tuple[bool, Optional[Dict[str, Any]]]:
         """
         Parse and execute command
@@ -37,7 +41,7 @@ class CommandParser:
         """
         message = message.strip()
         message_lower = message.lower()
-        
+
         # Check each command
         for cmd_name, cmd_func in self.commands.items():
             if message_lower.startswith(cmd_name):
@@ -45,51 +49,10 @@ class CommandParser:
                 args = message[len(cmd_name):].strip()
                 result = cmd_func(args)
                 return True, result
-        
+
         return False, None
-    
-        """Show current confidence levels"""
-        state = self.system.get_system_state()
-        
-        # Handle both dict and SystemState object
-        if hasattr(state, 'confidence'):
-            confidence = state.confidence
-            band = state.band if hasattr(state, 'band') else 'introductory'
-            domain = state.domain if hasattr(state, 'domain') else 'general'
-            complexity = state.complexity if hasattr(state, 'complexity') else 0.0
-            memory_state = state.memory_state if hasattr(state, 'memory_state') else {}
-        else:
-            # It's already a dict
-            confidence = state.get('confidence', 0.0)
-            band = state.get('band', 'introductory')
-            domain = state.get('domain', 'general')
-            complexity = state.get('complexity', 0.0)
-            memory_state = state.get('memory_state', {})
-        
-        response = f"""## System Confidence Status
 
-**Current Confidence:** {confidence:.2f}
-**Active Band:** {band.upper()}
-**Domain:** {domain}
-**Complexity:** {complexity:.2f}
 
-**Memory Status:**
-• Sandbox: {memory_state.get('sandbox', 0)} artifacts
-• Working: {memory_state.get('working', 0)} artifacts
-• Control: {state['memory_state'].get('control', 0)} artifacts
-• Execution: {state['memory_state'].get('execution', 0)} artifacts
-
-**Gates Active:** {state['gates_count']}
-"""
-        
-        return {
-            'content': response,
-            'band': 'introductory',
-            'confidence': 1.0,
-            'is_command': True,
-            'command': 'confidence'
-        }
-    
     def cmd_swarmmonitor(self, args: str) -> Dict[str, Any]:
         """Monitor swarm status"""
         try:
@@ -125,7 +88,7 @@ class CommandParser:
                         'control_active': False,
                         'recent_activity': 'No recent swarm activity'
                     }
-            
+
             response = f"""## Swarm System Status
 
 **Active Swarms:** {swarm_status.get('active_swarms', 0)}
@@ -139,7 +102,7 @@ class CommandParser:
 **Recent Activity:**
 {swarm_status.get('recent_activity', 'No recent swarm activity')}
 """
-            
+
             return {
                 'content': response,
                 'band': 'introductory',
@@ -147,15 +110,16 @@ class CommandParser:
                 'is_command': True,
                 'command': 'swarmmonitor'
             }
-        except Exception as e:
+        except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
-                'content': f'Swarm status not available: {str(e)}',
+                'content': f'Swarm status not available: {str(exc)}',
                 'band': 'introductory',
                 'confidence': 1.0,
                 'is_command': True,
                 'command': 'swarmmonitor'
             }
-    
+
     def cmd_swarmauto(self, args: str) -> Dict[str, Any]:
         """Execute swarm automation task"""
         if not args:
@@ -166,7 +130,7 @@ class CommandParser:
                 'is_command': True,
                 'command': 'swarmauto'
             }
-        
+
         # This will be handled by the main system in exploratory band
         return {
             'content': f"Initiating swarm automation for: {args}",
@@ -177,7 +141,7 @@ class CommandParser:
             'task': args,
             'trigger_exploratory': True
         }
-    
+
     def cmd_memory(self, args: str) -> Dict[str, Any]:
         """Show memory system status"""
         try:
@@ -192,7 +156,7 @@ class CommandParser:
                     memory_status = state.get('memory_state', {})
                 else:
                     memory_status = {'sandbox': 0, 'working': 0, 'control': 0, 'execution': 0}
-            
+
             response = f"""## Memory Artifact System
 
 **4-Plane Memory Architecture:**
@@ -215,7 +179,7 @@ class CommandParser:
 
 **Total Artifacts:** {sum(memory_status.values())}
 """
-            
+
             return {
                 'content': response,
                 'band': 'introductory',
@@ -223,19 +187,20 @@ class CommandParser:
                 'is_command': True,
                 'command': 'memory'
             }
-        except Exception as e:
+        except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
-                'content': f'Memory status not available: {str(e)}',
+                'content': f'Memory status not available: {str(exc)}',
                 'band': 'introductory',
                 'confidence': 1.0,
                 'is_command': True,
                 'command': 'memory'
             }
-    
+
     def cmd_reset(self, args: str) -> Dict[str, Any]:
         """Reset conversation context"""
         self.system.reset_context()
-        
+
         return {
             'content': "Conversation context has been reset. Starting fresh!",
             'band': 'introductory',
@@ -243,7 +208,7 @@ class CommandParser:
             'is_command': True,
             'command': 'reset'
         }
-    
+
     def cmd_help(self, args: str) -> Dict[str, Any]:
         """Show available commands"""
         response = """## Available Commands
@@ -266,7 +231,7 @@ class CommandParser:
 • Use `/gates` to view active safety constraints
 • Use `/docs` to access system documentation
 """
-        
+
         return {
             'content': response,
             'band': 'introductory',
@@ -274,11 +239,11 @@ class CommandParser:
             'is_command': True,
             'command': 'help'
         }
-    
+
     def cmd_status(self, args: str) -> Dict[str, Any]:
         """Show overall system status"""
         state = self.system.get_system_state()
-        
+
         response = f"""## Murphy System Status
 
 **System:** Unified MFGC (Murphy-Free Generative Control AI)
@@ -300,7 +265,7 @@ class CommandParser:
 
 **Ready to assist!**
 """
-        
+
         return {
             'content': response,
             'band': 'introductory',
@@ -311,7 +276,7 @@ class CommandParser:
     def _cmd_docs(self, args: str) -> Dict[str, Any]:
         """Search or view documentation"""
         import os
-        
+
         if not args:
             # List available docs
             docs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)))
@@ -322,7 +287,7 @@ class CommandParser:
                 'FINAL_FIX_SUMMARY.md', 'LLM_FIX_COMPLETE.md',
                 'CONTRIBUTING.md', 'CHANGELOG.md'
             ]
-            
+
             response = "## Available Documentation\n\n"
             response += "**Getting Started:**\n"
             response += "- README.md - Project overview\n"
@@ -341,20 +306,20 @@ class CommandParser:
             response += "- CHANGELOG.md - Version history\n\n"
             response += "Use `/docs <filename>` to read a specific document\n"
             response += "Use `/docs search <query>` to search documentation"
-            
+
             return {
                 'content': response,
                 'is_command': True,
                 'band': 'introductory',
                 'confidence': 1.0
             }
-        
+
         # Check if it's a search
         if args.startswith('search '):
             query = args[7:].strip()
             docs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)))
             results = []
-            
+
             doc_files = [
                 'README.md', 'RELEASE_v1.0.0.md', 'CONTACT_INFO.md',
                 'PHASE_1_COMPLETE.md', 'MFGC_SPECIFICATION_ANALYSIS.md',
@@ -362,7 +327,7 @@ class CommandParser:
                 'FINAL_FIX_SUMMARY.md', 'LLM_FIX_COMPLETE.md',
                 'CONTRIBUTING.md', 'CHANGELOG.md'
             ]
-            
+
             for filename in doc_files:
                 file_path = os.path.join(docs_dir, filename)
                 if os.path.exists(file_path):
@@ -375,29 +340,29 @@ class CommandParser:
                                 if query.lower() in line.lower():
                                     results.append(f"**{filename}** (line {i+1}):\n{line}\n")
                                     break
-            
+
             if results:
                 response = f"## Search Results for '{query}'\n\n" + '\n'.join(results[:5])
             else:
                 response = f"No results found for '{query}'"
-            
+
             return {
                 'content': response,
                 'is_command': True,
                 'band': 'introductory',
                 'confidence': 1.0
             }
-        
+
         # Read specific document
         docs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)))
         filename = args.strip()
-        
+
         # Add .md if not present
         if not filename.endswith('.md'):
             filename += '.md'
-        
+
         file_path = os.path.join(docs_dir, filename)
-        
+
         if not os.path.exists(file_path):
             return {
                 'content': f"Document '{filename}' not found. Use `/docs` to see available documents.",
@@ -405,24 +370,25 @@ class CommandParser:
                 'band': 'introductory',
                 'confidence': 1.0
             }
-        
+
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-            
+
             # Limit to first 2000 characters for display
             if len(content) > 2000:
                 content = content[:2000] + "\n\n... (truncated, see full document in sidebar)"
-            
+
             return {
                 'content': f"## {filename}\n\n{content}",
                 'is_command': True,
                 'band': 'introductory',
                 'confidence': 1.0
             }
-        except Exception as e:
+        except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
-                'content': f"Error reading document: {str(e)}",
+                'content': f"Error reading document: {str(exc)}",
                 'is_command': True,
                 'band': 'introductory',
                 'confidence': 1.0

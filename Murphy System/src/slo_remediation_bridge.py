@@ -37,6 +37,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -173,7 +174,7 @@ class SLORemediationBridge:
             new_actions.append(action)
             with self._lock:
                 self._tracked_violations.add(target_name)
-                self._actions.append(action)
+                capped_append(self._actions, action)
 
         # Publish event
         if self._event_backbone is not None and new_actions:

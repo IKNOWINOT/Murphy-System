@@ -15,6 +15,8 @@ from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Optional
 
 from .state_vector import StateVector
+import logging
+logger = logging.getLogger(__name__)
 
 
 # ------------------------------------------------------------------ #
@@ -204,8 +206,9 @@ class ProbabilisticConstraintChecker:
 
             try:
                 sampled_state = StateVector(**perturbed)
-            except Exception:
+            except Exception as exc:
                 # If clamping still violates Pydantic bounds, skip sample
+                logger.debug("Suppressed exception: %s", exc)
                 continue
 
             if constraint.is_satisfied(sampled_state):

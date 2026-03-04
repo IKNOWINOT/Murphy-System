@@ -6,8 +6,13 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class AvatarVoice(str, Enum):
+    """Avatar voice (str subclass)."""
     PROFESSIONAL = "professional"
     FRIENDLY = "friendly"
     AUTHORITATIVE = "authoritative"
@@ -17,6 +22,7 @@ class AvatarVoice(str, Enum):
 
 
 class AvatarStyle(str, Enum):
+    """Avatar style (str subclass)."""
     FORMAL = "formal"
     CASUAL = "casual"
     TECHNICAL = "technical"
@@ -26,6 +32,7 @@ class AvatarStyle(str, Enum):
 
 
 class AvatarProfile(BaseModel):
+    """Avatar profile."""
     avatar_id: str
     name: str
     voice: AvatarVoice = AvatarVoice.PROFESSIONAL
@@ -39,6 +46,7 @@ class AvatarProfile(BaseModel):
 
 
 class UserAdaptation(BaseModel):
+    """User adaptation."""
     user_id: str
     avatar_id: str
     interaction_count: int = 0
@@ -51,6 +59,7 @@ class UserAdaptation(BaseModel):
 
 
 class SentimentResult(BaseModel):
+    """Sentiment result."""
     text: str
     sentiment: str
     confidence: float
@@ -58,6 +67,7 @@ class SentimentResult(BaseModel):
 
 
 class CostEntry(BaseModel):
+    """Cost entry."""
     entry_id: str
     avatar_id: str
     service: str
@@ -68,6 +78,7 @@ class CostEntry(BaseModel):
 
 
 class ComplianceViolation(BaseModel):
+    """Compliance violation."""
     violation_id: str
     avatar_id: str
     rule: str
@@ -78,6 +89,7 @@ class ComplianceViolation(BaseModel):
 
 
 class AvatarSession(BaseModel):
+    """Avatar session."""
     session_id: str
     avatar_id: str
     user_id: str

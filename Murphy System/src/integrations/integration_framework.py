@@ -11,7 +11,7 @@ import logging
 import time
 from collections import defaultdict
 
-from ..thread_safe_operations import ThreadSafeDict, ThreadSafeCounter, CircuitBreaker, RateLimiter
+from thread_safe_operations import ThreadSafeDict, ThreadSafeCounter, CircuitBreaker, RateLimiter
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ class IntegrationStatus(Enum):
 
 class Integration:
     """External system integration"""
-    
+
     def __init__(
         self,
         integration_id: Optional[str] = None,
@@ -58,7 +58,7 @@ class Integration:
         self.rate_limits = rate_limits or {}
         self.endpoints = endpoints or {}
         self.metadata = metadata or {}
-        
+
         # Status
         self.status = IntegrationStatus.INACTIVE
         self.created_at = datetime.now(timezone.utc)
@@ -67,7 +67,7 @@ class Integration:
         self.connection_attempts = 0
         self.successful_calls = 0
         self.failed_calls = 0
-    
+
     def to_dict(self) -> Dict:
         """Convert integration to dictionary"""
         return {
@@ -81,14 +81,14 @@ class Integration:
             'connection_attempts': self.connection_attempts,
             'successful_calls': self.successful_calls,
             'failed_calls': self.failed_calls,
-            'success_rate': self.successful_calls / (self.successful_calls + self.failed_calls) 
+            'success_rate': self.successful_calls / (self.successful_calls + self.failed_calls)
                           if (self.successful_calls + self.failed_calls) > 0 else 0.0
         }
 
 
 class IntegrationResult:
     """Result of integration call"""
-    
+
     def __init__(
         self,
         success: bool,
@@ -101,7 +101,7 @@ class IntegrationResult:
         self.error = error
         self.metadata = metadata or {}
         self.timestamp = datetime.now(timezone.utc)
-    
+
     def to_dict(self) -> Dict:
         """Convert result to dictionary"""
         return {
@@ -115,7 +115,7 @@ class IntegrationResult:
 
 class IntegrationFramework:
     """Framework for managing external system integrations"""
-    
+
     def __init__(self):
         self.integrations: ThreadSafeDict = ThreadSafeDict()
         self.call_history: ThreadSafeDict = ThreadSafeDict()
@@ -123,28 +123,28 @@ class IntegrationFramework:
         self.rate_limiters: Dict[str, RateLimiter] = {}
         self._lock = threading.Lock()
         self._monitoring_active = False
-        
+
     def register_integration(self, integration: Integration) -> str:
         """Register an integration"""
         integration_id = integration.integration_id
-        
+
         # Create circuit breaker
         self.circuit_breakers[integration_id] = CircuitBreaker(
             failure_threshold=integration.rate_limits.get('failure_threshold', 5),
             recovery_timeout=integration.rate_limits.get('recovery_timeout', 60.0)
         )
-        
+
         # Create rate limiter
         max_calls = integration.rate_limits.get('max_calls', 100)
         time_window = integration.rate_limits.get('time_window', 60.0)
         self.rate_limiters[integration_id] = RateLimiter(max_calls, time_window)
-        
+
         # Store integration
         self.integrations.set(integration_id, integration)
-        
+
         logger.info(f"Integration registered: {integration_id} - {integration.name}")
         return integration_id
-    
+
     def unregister_integration(self, integration_id: str) -> bool:
         """Unregister an integration"""
         with self._lock:
@@ -152,33 +152,33 @@ class IntegrationFramework:
                 del self.circuit_breakers[integration_id]
             if integration_id in self.rate_limiters:
                 del self.rate_limiters[integration_id]
-            
+
             if self.integrations.delete(integration_id):
                 logger.info(f"Integration unregistered: {integration_id}")
                 return True
             return False
-    
+
     def get_integration(self, integration_id: str) -> Optional[Integration]:
         """Get integration by ID"""
         return self.integrations.get(integration_id)
-    
+
     def get_all_integrations(self) -> List[Dict]:
         """Get all integrations"""
         return [integration.to_dict() for integration in self.integrations.values()]
-    
+
     def connect(self, integration_id: str) -> bool:
         """Connect to an integration"""
         integration = self.get_integration(integration_id)
         if not integration:
             return False
-        
+
         try:
             integration.status = IntegrationStatus.CONNECTING
             integration.connection_attempts += 1
-            
+
             # Simulate connection (override in specific integrations)
             connection_success = self._connect_to_system(integration)
-            
+
             if connection_success:
                 integration.status = IntegrationStatus.ACTIVE
                 integration.last_connected_at = datetime.now(timezone.utc)
@@ -190,23 +190,23 @@ class IntegrationFramework:
                 integration.last_error = "Connection failed"
                 logger.error(f"Failed to connect to integration: {integration_id}")
                 return False
-        
-        except Exception as e:
+
+        except Exception as exc:
             integration.status = IntegrationStatus.ERROR
-            integration.last_error = str(e)
-            logger.error(f"Error connecting to integration {integration_id}: {e}")
+            integration.last_error = str(exc)
+            logger.error(f"Error connecting to integration {integration_id}: {exc}")
             return False
-    
+
     def disconnect(self, integration_id: str) -> bool:
         """Disconnect from an integration"""
         integration = self.get_integration(integration_id)
         if not integration:
             return False
-        
+
         integration.status = IntegrationStatus.DISCONNECTED
         logger.info(f"Disconnected from integration: {integration_id}")
         return True
-    
+
     def execute_integration_call(
         self,
         integration_id: str,
@@ -221,13 +221,13 @@ class IntegrationFramework:
                 success=False,
                 error=f"Integration not found: {integration_id}"
             )
-        
+
         if integration.status != IntegrationStatus.ACTIVE:
             return IntegrationResult(
                 success=False,
                 error=f"Integration not active: {integration_id}"
             )
-        
+
         # Check rate limit
         rate_limiter = self.rate_limiters.get(integration_id)
         if rate_limiter and not rate_limiter.acquire():
@@ -235,42 +235,43 @@ class IntegrationFramework:
                 success=False,
                 error="Rate limit exceeded"
             )
-        
+
         # Execute with circuit breaker
         circuit_breaker = self.circuit_breakers.get(integration_id)
-        
+
         def execute_call():
             return self._execute_call(integration, method, parameters)
-        
+
         try:
             result = circuit_breaker.call(execute_call) if circuit_breaker else execute_call()
-            
+
             integration.successful_calls += 1
-            
+
             # Log call
             self._log_call(integration_id, method, result)
-            
+
             return result
-        
-        except Exception as e:
+
+        except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             integration.failed_calls += 1
-            integration.last_error = str(e)
-            
+            integration.last_error = str(exc)
+
             error_result = IntegrationResult(
                 success=False,
-                error=str(e)
+                error=str(exc)
             )
-            
+
             # Log failed call
             self._log_call(integration_id, method, error_result)
-            
+
             return error_result
-    
+
     def _connect_to_system(self, integration: Integration) -> bool:
         """Connect to external system (override in subclasses)"""
         # Default implementation - just simulate connection
         return True
-    
+
     def _execute_call(
         self,
         integration: Integration,
@@ -283,7 +284,7 @@ class IntegrationFramework:
             success=True,
             data={'method': method, 'parameters': parameters}
         )
-    
+
     def _log_call(self, integration_id: str, method: str, result: IntegrationResult) -> None:
         """Log integration call"""
         call_record = {
@@ -293,35 +294,35 @@ class IntegrationFramework:
             'error': result.error,
             'timestamp': datetime.now(timezone.utc).isoformat()
         }
-        
+
         history_key = f"{integration_id}_{method}"
         current_history = self.call_history.get(history_key, [])
         current_history.append(call_record)
         self.call_history.set(history_key, current_history)
-    
+
     def get_call_history(self, integration_id: str, method: Optional[str] = None, limit: int = 100) -> List[Dict]:
         """Get call history"""
         if method:
             history_key = f"{integration_id}_{method}"
             return self.call_history.get(history_key, [])[-limit:]
-        
+
         # Get all history for integration
         all_history = []
         for key, history in self.call_history.items():
             if key.startswith(integration_id):
                 all_history.extend(history)
-        
+
         return all_history[-limit:]
-    
+
     def get_integration_statistics(self, integration_id: str) -> Optional[Dict]:
         """Get integration statistics"""
         integration = self.get_integration(integration_id)
         if not integration:
             return None
-        
+
         circuit_breaker = self.circuit_breakers.get(integration_id)
         rate_limiter = self.rate_limiters.get(integration_id)
-        
+
         return {
             'integration_id': integration_id,
             'status': integration.status.value,
@@ -334,11 +335,11 @@ class IntegrationFramework:
             'circuit_breaker_failures': circuit_breaker.get_failure_count() if circuit_breaker else 0,
             'current_rate': rate_limiter.get_call_count() if rate_limiter else 0
         }
-    
+
     def monitor_integrations(self, interval: float = 60.0) -> None:
         """Monitor integrations health"""
         self._monitoring_active = True
-        
+
         def monitor_loop():
             while self._monitoring_active:
                 for integration_id, integration in self.integrations.items():
@@ -350,20 +351,20 @@ class IntegrationFramework:
                                 method='health_check',
                                 parameters={}
                             )
-                            
+
                             if not result.success:
                                 logger.warning(f"Integration health check failed: {integration_id}")
-                        
-                        except Exception as e:
-                            logger.error(f"Error monitoring integration {integration_id}: {e}")
-                
+
+                        except Exception as exc:
+                            logger.error(f"Error monitoring integration {integration_id}: {exc}")
+
                 time.sleep(interval)
-        
+
         import threading
         monitor_thread = threading.Thread(target=monitor_loop, daemon=True)
         monitor_thread.start()
         logger.info("Integration monitoring started")
-    
+
     def stop_monitoring(self) -> None:
         """Stop integration monitoring"""
         self._monitoring_active = False

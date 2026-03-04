@@ -12,6 +12,9 @@ License: Apache License 2.0
 
 from __future__ import annotations
 
+import logging
+logger = logging.getLogger(__name__)
+
 import hashlib
 import json
 import time
@@ -20,9 +23,11 @@ from datetime import datetime, timezone
 from enum import Enum
 from threading import Lock
 from typing import Any, Dict, List, Optional, Set
+from thread_safe_operations import capped_append
 
 
 class TaskCategory(str, Enum):
+    """Task category (str subclass)."""
     COVERAGE_GAP = "coverage_gap"
     INTEGRATION_GAP = "integration_gap"
     COMPETITIVE_GAP = "competitive_gap"
@@ -34,6 +39,7 @@ class TaskCategory(str, Enum):
 
 
 class TaskStatus(str, Enum):
+    """Task status (str subclass)."""
     QUEUED = "queued"
     IN_PROGRESS = "in_progress"
     TESTING = "testing"
@@ -44,6 +50,7 @@ class TaskStatus(str, Enum):
 
 
 class PromptStep(str, Enum):
+    """Prompt step (str subclass)."""
     ANALYSIS = "analysis"
     PLANNING = "planning"
     IMPLEMENTATION = "implementation"
@@ -184,7 +191,8 @@ class SelfAutomationOrchestrator:
         try:
             self._persistence.save_document(self._PERSIST_DOC_ID, state)
             return True
-        except Exception:
+        except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             return False
 
     def load_state(self) -> bool:
@@ -197,7 +205,8 @@ class SelfAutomationOrchestrator:
             return False
         try:
             state = self._persistence.load_document(self._PERSIST_DOC_ID)
-        except Exception:
+        except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             return False
         if state is None:
             return False
@@ -283,7 +292,7 @@ class SelfAutomationOrchestrator:
         )
         with self._lock:
             self._tasks[task_id] = task
-            self._queue_order.append(task_id)
+            capped_append(self._queue_order, task_id)
             self._sort_queue()
         return task
 
@@ -358,7 +367,7 @@ class SelfAutomationOrchestrator:
             task.status = TaskStatus.COMPLETED
             task.completed_at = datetime.now(timezone.utc).isoformat()
             task.result = result or {}
-            self._completed_tasks.append(task_id)
+            capped_append(self._completed_tasks, task_id)
             if task_id in self._queue_order:
                 self._queue_order.remove(task_id)
             if self._current_cycle:
@@ -417,7 +426,7 @@ class SelfAutomationOrchestrator:
             if not self._current_cycle:
                 return None
             self._current_cycle.completed_at = datetime.now(timezone.utc).isoformat()
-            self._cycles.append(self._current_cycle)
+            capped_append(self._cycles, self._current_cycle)
             completed = self._current_cycle
             self._current_cycle = None
             return completed

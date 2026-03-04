@@ -5,12 +5,15 @@ Reading level: High school student
 from typing import Dict, List, Any, Optional
 import json
 
+import logging
+logger = logging.getLogger("gate_builder")
+
 class GateBuilder:
     """
     Creates safety gates (protections) for systems
     Gates stop bad things from happening
     """
-    
+
     def __init__(self):
         # Common safety concerns and their gates
         self.safety_concerns = {
@@ -75,7 +78,7 @@ class GateBuilder:
                 "check": "Verify all dependencies are working"
             }
         }
-        
+
         # System-specific gate templates
         self.system_gate_templates = {
             "web_app": [
@@ -103,28 +106,28 @@ class GateBuilder:
                 "performance_degradation"
             ]
         }
-    
-    def build_gates(self, analysis: Dict[str, Any], 
+
+    def build_gates(self, analysis: Dict[str, Any],
                    architecture: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
         Build safety gates for a system
-        
+
         Args:
             analysis: Request analysis (intent, domain, complexity)
             architecture: System architecture specification
-        
+
         Returns:
             List of gates to implement
         """
         gates = []
-        
+
         # Determine which gate template to use
         system_type = self._determine_system_type(analysis['domain'])
         gate_keys = self.system_gate_templates.get(
-            system_type, 
+            system_type,
             self.system_gate_templates['web_app']
         )
-        
+
         # Add gates based on template
         for gate_key in gate_keys:
             gate = self.safety_concerns[gate_key].copy()
@@ -132,14 +135,14 @@ class GateBuilder:
             gate["severity"] = self._get_gate_severity(gate_key, analysis['complexity'])
             gate["risk_reduction"] = self._calculate_risk_reduction(gate_key)
             gates.append(gate)
-        
+
         # Add custom gates based on complexity
         if analysis['complexity'] == "complex":
             custom_gates = self._generate_complex_gates(architecture)
             gates.extend(custom_gates)
-        
+
         return gates
-    
+
     def _determine_system_type(self, domain: str) -> str:
         """Determine which gate template to use"""
         type_map = {
@@ -149,19 +152,19 @@ class GateBuilder:
             "system": "control_system"
         }
         return type_map.get(domain, "web_app")
-    
+
     def _get_gate_severity(self, gate_key: str, complexity: str) -> str:
         """Get the severity level of a gate"""
         # High severity gates
         high_severity = ["security_breach", "data_loss", "data_corruption"]
-        
+
         if gate_key in high_severity:
             return "critical"
         elif complexity == "complex":
             return "high"
         else:
             return "medium"
-    
+
     def _calculate_risk_reduction(self, gate_key: str) -> float:
         """Calculate how much risk this gate reduces (0.0 to 1.0)"""
         risk_reduction_map = {
@@ -177,11 +180,11 @@ class GateBuilder:
             "dependency_failure": 0.7
         }
         return risk_reduction_map.get(gate_key, 0.5)
-    
+
     def _generate_complex_gates(self, architecture: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Generate additional gates for complex systems"""
         gates = []
-        
+
         # Add monitoring gate
         gates.append({
             "gate_id": "GATE-MON",
@@ -192,7 +195,7 @@ class GateBuilder:
             "severity": "medium",
             "risk_reduction": 0.4
         })
-        
+
         # Add rollback gate
         gates.append({
             "gate_id": "GATE-RBK",
@@ -203,7 +206,7 @@ class GateBuilder:
             "severity": "high",
             "risk_reduction": 0.85
         })
-        
+
         # Add notification gate
         gates.append({
             "gate_id": "GATE-NTF",
@@ -214,9 +217,9 @@ class GateBuilder:
             "severity": "low",
             "risk_reduction": 0.3
         })
-        
+
         return gates
-    
+
     def get_gate_implementation_guide(self, gate: Dict[str, Any]) -> str:
         """
         Generate implementation guide for a gate
@@ -270,5 +273,5 @@ else:
 gate_builder = GateBuilder()
 
 if __name__ == "__main__":
-    print("Gate Builder Module")
-    print("Creates safety gates for any system")
+    logger.info("Gate Builder Module")
+    logger.info("Creates safety gates for any system")

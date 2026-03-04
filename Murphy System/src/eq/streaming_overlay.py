@@ -18,6 +18,11 @@ import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List
+from thread_safe_operations import capped_append
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -110,7 +115,7 @@ class StreamOverlayManager:
 
     def register_overlay(self, config: OverlayConfig) -> None:
         """Register an overlay configuration."""
-        self._overlays.append(config)
+        capped_append(self._overlays, config)
 
     def get_active_overlays(self) -> List[OverlayConfig]:
         """Return all enabled overlay configurations."""
@@ -127,7 +132,7 @@ class StreamOverlayManager:
             text=text,
             duration_seconds=duration,
         )
-        self._thought_bubbles.append(bubble)
+        capped_append(self._thought_bubbles, bubble)
         return bubble
 
     # --- Duel highlights ---
@@ -146,7 +151,7 @@ class StreamOverlayManager:
             defender_name=defender,
             winner_name=winner,
         )
-        self._duel_highlights.append(highlight)
+        capped_append(self._duel_highlights, highlight)
         return highlight
 
     # --- Faction war map ---

@@ -43,25 +43,25 @@ class RuntimeConfig:
 
 class GovernanceRuntime:
     """Main governance runtime orchestrator"""
-    
+
     def __init__(self, config: RuntimeConfig = None):
         self.config = config or RuntimeConfig()
         self.status = RuntimeStatus.INACTIVE
-        
+
         # Initialize components
         self.preset_manager = PresetManager()
         self.validation_engine = ValidationEngine()
         self.compliance_monitor = ComplianceMonitor()
-        
+
         # Runtime state
         self.initialization_time = None
         self.last_validation_time = None
         self.operator_acknowledgements: Dict[str, datetime] = {}
-        
+
         # Setup logging
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
-        
+
         # Runtime state tracking
         self.runtime_metrics = {
             "validations_performed": 0,
@@ -69,33 +69,33 @@ class GovernanceRuntime:
             "presets_enabled": 0,
             "last_status_change": datetime.now(timezone.utc)
         }
-    
+
     def initialize(self) -> ValidationResult:
         """Initialize the governance runtime"""
         self.logger.info("Initializing governance runtime...")
         self.status = RuntimeStatus.INITIALIZING
-        
+
         try:
             # Check mandatory baseline controls first
             baseline_check = self.validation_engine.check_mandatory_baseline_controls()
-            
+
             if baseline_check.has_blocking_gaps():
                 self.status = RuntimeStatus.BLOCKED
                 self.logger.critical("System blocked - missing mandatory baseline controls")
                 return baseline_check
-            
+
             # Auto-enable configured presets
             for preset_id in self.config.auto_enable_presets:
                 if self.preset_manager.enable_preset(preset_id):
                     self.logger.info(f"Auto-enabled preset: {preset_id}")
-            
+
             # Perform initial validation
             enabled_presets = self.preset_manager.get_enabled_presets()
             initial_validation = self.validation_engine.validate_configuration(enabled_presets)
-            
+
             # Store validation result
             self.compliance_monitor.record_validation_result(initial_validation)
-            
+
             # Determine final status
             if initial_validation.overall_status == ComplianceStatus.COMPLIANT:
                 self.status = RuntimeStatus.ACTIVE
@@ -110,22 +110,22 @@ class GovernanceRuntime:
             else:
                 self.status = RuntimeStatus.ERROR
                 self.logger.error("Runtime failed initialization - non-compliant")
-            
+
             self.initialization_time = datetime.now(timezone.utc)
             self.last_validation_time = datetime.now(timezone.utc)
             self.runtime_metrics["presets_enabled"] = len(enabled_presets)
-            
+
             return initial_validation
-            
-        except Exception as e:
+
+        except Exception as exc:
             self.status = RuntimeStatus.ERROR
-            self.logger.error(f"Runtime initialization failed: {e}")
+            self.logger.error(f"Runtime initialization failed: {exc}")
             raise
-    
+
     def get_system_status(self) -> Dict[str, Any]:
         """Get comprehensive system status"""
         compliance_summary = self.compliance_monitor.get_compliance_summary()
-        
+
         return {
             "runtime_status": self.status.value,
             "initialized_at": self.initialization_time.isoformat() if self.initialization_time else None,
@@ -137,14 +137,14 @@ class GovernanceRuntime:
             "blocking_gaps": len(self.compliance_monitor.check_blocking_gaps()),
             "can_activate": self._can_activate_system()
         }
-    
+
     def _can_activate_system(self) -> bool:
         """Check if system can be activated"""
         if self.status in [RuntimeStatus.INACTIVE, RuntimeStatus.ERROR, RuntimeStatus.BLOCKED]:
             return False
-        
+
         blocking_gaps = self.compliance_monitor.check_blocking_gaps()
         if blocking_gaps:
             return False
-        
+
         return True

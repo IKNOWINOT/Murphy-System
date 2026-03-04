@@ -9,6 +9,10 @@ from datetime import datetime
 from enum import Enum
 from pydantic import BaseModel, ConfigDict, Field
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 # Floating-point comparison tolerance for CPM zero-float detection
 _FLOAT_TOLERANCE = 1e-9
 
@@ -41,7 +45,7 @@ class DependencyType(str, Enum):
 
 class Dependency(BaseModel):
     """Task dependency"""
-    
+
     dependency_id: str = Field(..., description="Unique dependency ID")
     from_task_id: str = Field(..., description="Task that must be completed first")
     to_task_id: str = Field(..., description="Task that depends on the first task")
@@ -53,7 +57,7 @@ class Dependency(BaseModel):
         default=0,
         description="Number of days to wait after dependency is satisfied"
     )
-    
+
     model_config = ConfigDict(json_schema_extra={
         "examples": [{
             "dependency_id": "dep_001",
@@ -67,7 +71,7 @@ class Dependency(BaseModel):
 
 class ValidationCriterion(BaseModel):
     """Validation criterion for task completion"""
-    
+
     criterion_id: str = Field(..., description="Unique criterion ID")
     description: str = Field(..., description="What needs to be validated")
     validation_method: str = Field(
@@ -82,7 +86,7 @@ class ValidationCriterion(BaseModel):
         default=True,
         description="Whether this criterion must be met"
     )
-    
+
     model_config = ConfigDict(json_schema_extra={
         "examples": [{
             "criterion_id": "crit_001",
@@ -96,7 +100,7 @@ class ValidationCriterion(BaseModel):
 
 class HumanCheckpoint(BaseModel):
     """Human review checkpoint"""
-    
+
     checkpoint_id: str = Field(..., description="Unique checkpoint ID")
     checkpoint_type: str = Field(
         ...,
@@ -111,7 +115,7 @@ class HumanCheckpoint(BaseModel):
         default=True,
         description="Whether execution blocks until checkpoint is cleared"
     )
-    
+
     model_config = ConfigDict(json_schema_extra={
         "examples": [{
             "checkpoint_id": "chk_001",
@@ -125,7 +129,7 @@ class HumanCheckpoint(BaseModel):
 
 class Task(BaseModel):
     """Individual task in a plan"""
-    
+
     task_id: str = Field(..., description="Unique task ID")
     title: str = Field(..., description="Task title")
     description: str = Field(..., description="Detailed task description")
@@ -185,7 +189,7 @@ class Task(BaseModel):
         default_factory=datetime.now,
         description="Task last update timestamp"
     )
-    
+
     model_config = ConfigDict(json_schema_extra={
         "examples": [{
             "task_id": "task_001",
@@ -232,7 +236,7 @@ class Task(BaseModel):
 
 class Plan(BaseModel):
     """Complete execution plan"""
-    
+
     plan_id: str = Field(..., description="Unique plan ID")
     title: str = Field(..., description="Plan title")
     description: str = Field(..., description="Plan description")
@@ -277,45 +281,45 @@ class Plan(BaseModel):
         None,
         description="User who created the plan"
     )
-    
+
     def get_task(self, task_id: str) -> Optional[Task]:
         """Get task by ID"""
         for task in self.tasks:
             if task.task_id == task_id:
                 return task
         return None
-    
+
     def get_task_dependencies(self, task_id: str) -> List[Dependency]:
         """Get all dependencies for a task"""
         return [dep for dep in self.dependencies if dep.to_task_id == task_id]
-    
+
     def get_dependent_tasks(self, task_id: str) -> List[str]:
         """Get all tasks that depend on this task"""
         return [dep.to_task_id for dep in self.dependencies if dep.from_task_id == task_id]
-    
+
     def get_ready_tasks(self) -> List[Task]:
         """Get all tasks that are ready to execute (dependencies satisfied)"""
         ready_tasks = []
-        
+
         for task in self.tasks:
             if task.status != TaskStatus.PENDING:
                 continue
-            
+
             # Check if all dependencies are satisfied
             dependencies = self.get_task_dependencies(task.task_id)
             all_satisfied = True
-            
+
             for dep in dependencies:
                 dep_task = self.get_task(dep.from_task_id)
                 if not dep_task or dep_task.status != TaskStatus.COMPLETED:
                     all_satisfied = False
                     break
-            
+
             if all_satisfied:
                 ready_tasks.append(task)
-        
+
         return ready_tasks
-    
+
     def get_critical_path(self) -> List[str]:
         """Compute the critical path using the Critical Path Method (CPM).
 
@@ -400,79 +404,15 @@ class Plan(BaseModel):
             if abs(lf[tid] - ef[tid]) < _FLOAT_TOLERANCE
         ]
         return critical_path
-        task_map: Dict[str, 'Task'] = {t.task_id: t for t in self.tasks}
 
-        # Build adjacency list from finish-to-start dependencies.
-        successors: Dict[str, List[str]] = {t.task_id: [] for t in self.tasks}
-        predecessors: Dict[str, List[str]] = {t.task_id: [] for t in self.tasks}
-        for dep in self.dependencies:
-            if dep.dependency_type == DependencyType.FINISH_TO_START:
-                successors[dep.from_task_id].append(dep.to_task_id)
-                predecessors[dep.to_task_id].append(dep.from_task_id)
-
-        def _duration(tid: str) -> float:
-            t = task_map.get(tid)
-            return (t.estimated_hours or 8.0) if t else 8.0
-
-        # Forward pass – compute earliest finish for every task.
-        earliest_finish: Dict[str, float] = {}
-
-        def _ef(tid: str) -> float:
-            if tid in earliest_finish:
-                return earliest_finish[tid]
-            preds = predecessors.get(tid, [])
-            es = max((_ef(p) for p in preds), default=0.0)
-            earliest_finish[tid] = es + _duration(tid)
-            return earliest_finish[tid]
-
-        for t in self.tasks:
-            _ef(t.task_id)
-
-        if not earliest_finish:
-            return []
-
-        # The project finishes at the maximum earliest-finish.
-        project_end = max(earliest_finish.values())
-
-        # Backward pass – compute latest finish for every task.
-        latest_finish: Dict[str, float] = {}
-
-        def _lf(tid: str) -> float:
-            if tid in latest_finish:
-                return latest_finish[tid]
-            succs = successors.get(tid, [])
-            if not succs:
-                latest_finish[tid] = project_end
-            else:
-                # Latest finish = earliest possible latest start of any successor
-                # LS(successor) = LF(successor) - duration(successor)
-                # LF(task) = min(LS(successor) for each successor)
-                latest_start_of_succs = min(
-                    _lf(s) - _duration(s) for s in succs
-                )
-                latest_finish[tid] = latest_start_of_succs
-            return latest_finish[tid]
-
-        for t in self.tasks:
-            _lf(t.task_id)
-
-        # Critical tasks have zero total float (EF == LF).
-        critical_ids = {
-            tid for tid in earliest_finish
-            if abs(earliest_finish[tid] - latest_finish.get(tid, 0)) < 1e-9
-        }
-
-        # Return the critical tasks ordered by earliest finish.
-        return sorted(critical_ids, key=lambda tid: earliest_finish[tid])
-    
     def get_completion_percentage(self) -> float:
         """Get plan completion percentage"""
         if not self.tasks:
             return 0.0
-        
+
         completed = sum(1 for task in self.tasks if task.status == TaskStatus.COMPLETED)
         return (completed / len(self.tasks)) * 100.0
-    
+
     model_config = ConfigDict(json_schema_extra={
         "examples": [{
             "plan_id": "plan_001",

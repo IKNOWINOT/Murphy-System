@@ -44,6 +44,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -236,7 +237,7 @@ class AutoDocumentationEngine:
             self._artifacts.append(doc)
 
             if design_label:
-                self._label_inventory.append(DesignLabelEntry(
+                capped_append(self._label_inventory, DesignLabelEntry(
                     label=design_label,
                     module_name=module_name,
                     file_path=file_path,

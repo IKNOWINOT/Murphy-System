@@ -6,6 +6,11 @@ Provides a simplified HypothesisIntakeService wrapper with a
 
 import re
 from typing import Dict, Any, List
+from thread_safe_operations import capped_append
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class HypothesisIntakeService:
@@ -54,7 +59,7 @@ class HypothesisIntakeService:
             "assumptions": assumptions,
             "verification_requests": verification_requests,
         }
-        self._log.append(result)
+        capped_append(self._log, result)
         return result
 
     # ------------------------------------------------------------------

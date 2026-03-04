@@ -79,6 +79,10 @@ from artifact_viewport import ArtifactViewport
 from artifact_viewport_api import mount_viewport_api
 from viewport_content_resolver import ViewportContentResolver
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 _viewport = ArtifactViewport()
 _viewport_resolver = ViewportContentResolver()
 mount_viewport_api(app, _viewport, _viewport_resolver.resolve)
@@ -92,7 +96,7 @@ execution_owners: Dict[str, str] = {}  # packet_id -> owner identity
 def _get_caller_identity() -> str:
     """
     Extract the caller identity from request headers.
-    
+
     Uses X-Tenant-ID or X-API-Key as the ownership identifier.
     Falls back to client IP for backward compatibility.
     """
@@ -128,7 +132,7 @@ def health_check():
 def execute_packet():
     """
     Execute sealed packet
-    
+
     Request body:
     {
         "packet": {...},
@@ -156,26 +160,26 @@ def execute_packet():
         return invalid
 
     expected_signature = packet.get('signature', '')
-    
+
     # Check if already executing
     if packet_id in executions:
         return jsonify({
             'error': 'Packet is already being executed'
         }), 400
-    
+
     # Validate packet
     all_valid, errors = validator.validate_all(
         packet,
         expected_signature,
         authority_level
     )
-    
+
     if not all_valid:
         return jsonify({
             'error': 'Validation failed',
             'errors': errors
         }), 400
-    
+
     # Create execution state
     execution_state = ExecutionState(
         packet_id=packet_id,
@@ -185,11 +189,11 @@ def execute_packet():
         total_steps=len(packet.get('execution_graph', {}).get('steps', [])),
         start_time=datetime.now()
     )
-    
+
     executions[packet_id] = execution_state
     execution_locks[packet_id] = threading.Lock()
     execution_owners[packet_id] = _get_caller_identity()
-    
+
     # Start execution in background thread
     thread = threading.Thread(
         target=_execute_packet_async,
@@ -197,7 +201,7 @@ def execute_packet():
     )
     thread.daemon = True
     thread.start()
-    
+
     return jsonify({
         'packet_id': packet_id,
         'status': 'started',
@@ -208,21 +212,21 @@ def execute_packet():
 def _execute_packet_async(packet: Dict, execution_state: ExecutionState):
     """Execute packet asynchronously"""
     packet_id = packet['packet_id']
-    
+
     try:
         # Initialize monitoring
         base_risk = packet.get('expected_loss', 0.0)
         initial_confidence = packet.get('confidence', 0.8)
-        
+
         risk_monitor.initialize_monitoring(
             packet_id,
             base_risk,
             initial_confidence
         )
-        
+
         # Create telemetry stream
         telemetry.create_stream(packet_id)
-        
+
         # Emit execution start
         telemetry.emit_execution_start(
             packet_id,
@@ -230,31 +234,31 @@ def _execute_packet_async(packet: Dict, execution_state: ExecutionState):
             base_risk,
             initial_confidence
         )
-        
+
         # Update status
         execution_state.status = ExecutionStatus.RUNNING
-        
+
         # Execute steps
         steps = packet.get('execution_graph', {}).get('steps', [])
         context = {}
-        
+
         for i, step in enumerate(steps):
             # Check if should pause
             if risk_monitor.should_pause(packet_id):
                 execution_state.status = ExecutionStatus.PAUSED
                 stop_conditions = risk_monitor.get_stop_conditions(packet_id)
-                
+
                 telemetry.emit_execution_paused(
                     packet_id,
                     f"Safety threshold breached: {len(stop_conditions)} conditions",
                     risk_monitor.get_safety_state(packet_id).current_risk,
                     risk_monitor.get_safety_state(packet_id).current_confidence
                 )
-                
+
                 # Execute rollback
                 _execute_rollback(packet, execution_state)
                 return
-            
+
             # Emit step start
             telemetry.emit_step_start(
                 packet_id,
@@ -264,18 +268,18 @@ def _execute_packet_async(packet: Dict, execution_state: ExecutionState):
                 risk_monitor.get_safety_state(packet_id).current_risk,
                 risk_monitor.get_safety_state(packet_id).current_confidence
             )
-            
+
             # Execute step
             step_result = executor.execute_step(step, context)
             execution_state.results.append(step_result)
             execution_state.current_step = i + 1
-            
+
             # Update context with step output
             if step_result.success and step_result.output:
                 output_var = step.get('output_variable')
                 if output_var:
                     context[output_var] = step_result.output
-            
+
             # Update monitoring
             new_confidence = initial_confidence + step_result.confidence_delta
             safety_state = risk_monitor.update_after_step(
@@ -283,7 +287,7 @@ def _execute_packet_async(packet: Dict, execution_state: ExecutionState):
                 step_result,
                 new_confidence
             )
-            
+
             # Emit step complete/failed
             if step_result.success:
                 telemetry.emit_step_complete(
@@ -299,25 +303,25 @@ def _execute_packet_async(packet: Dict, execution_state: ExecutionState):
                     safety_state.current_risk,
                     safety_state.current_confidence
                 )
-                
+
                 # Step failed - execute rollback
                 execution_state.status = ExecutionStatus.FAILED
                 execution_state.error = step_result.error
                 _execute_rollback(packet, execution_state)
                 return
-        
+
         # All steps completed successfully
         execution_state.status = ExecutionStatus.COMPLETED
         execution_state.end_time = datetime.now()
-        
+
         # Get final metrics
         final_risk = risk_monitor.get_safety_state(packet_id).current_risk
         final_confidence = risk_monitor.get_safety_state(packet_id).current_confidence
-        
+
         # Generate completion certificate
         artifacts_created = packet.get('artifacts_created', [])
         artifacts_modified = packet.get('artifacts_modified', [])
-        
+
         certificate = completion_certifier.generate_certificate(
             execution_state,
             final_risk,
@@ -325,7 +329,7 @@ def _execute_packet_async(packet: Dict, execution_state: ExecutionState):
             artifacts_created,
             artifacts_modified
         )
-        
+
         # Emit execution complete
         telemetry.emit_execution_complete(
             packet_id,
@@ -334,15 +338,16 @@ def _execute_packet_async(packet: Dict, execution_state: ExecutionState):
             final_risk,
             final_confidence
         )
-        
-    except Exception as e:
+
+    except Exception as exc:
+        logger.debug("Caught exception: %s", exc)
         execution_state.status = ExecutionStatus.FAILED
-        execution_state.error = str(e)
+        execution_state.error = str(exc)
         execution_state.end_time = datetime.now()
-        
+
         telemetry.emit_execution_failed(
             packet_id,
-            str(e),
+            str(exc),
             risk_monitor.get_safety_state(packet_id).current_risk if packet_id in risk_monitor.safety_states else 0.0,
             risk_monitor.get_safety_state(packet_id).current_confidence if packet_id in risk_monitor.safety_states else 0.0
         )
@@ -351,7 +356,7 @@ def _execute_packet_async(packet: Dict, execution_state: ExecutionState):
 def _execute_rollback(packet: Dict, execution_state: ExecutionState):
     """Execute rollback for failed execution"""
     packet_id = packet['packet_id']
-    
+
     # Emit rollback start
     telemetry.emit_rollback_start(
         packet_id,
@@ -359,7 +364,7 @@ def _execute_rollback(packet: Dict, execution_state: ExecutionState):
         risk_monitor.get_safety_state(packet_id).current_risk,
         risk_monitor.get_safety_state(packet_id).current_confidence
     )
-    
+
     # Execute rollback
     rollback_plan = packet.get('rollback_plan', {})
     success, errors = rollback_enforcer.execute_rollback(
@@ -367,7 +372,7 @@ def _execute_rollback(packet: Dict, execution_state: ExecutionState):
         execution_state.results,
         rollback_plan
     )
-    
+
     # Emit rollback complete
     telemetry.emit_rollback_complete(
         packet_id,
@@ -375,7 +380,7 @@ def _execute_rollback(packet: Dict, execution_state: ExecutionState):
         risk_monitor.get_safety_state(packet_id).current_risk,
         risk_monitor.get_safety_state(packet_id).current_confidence
     )
-    
+
     if not success:
         execution_state.error = f"Rollback failed: {', '.join(errors)}"
 
@@ -405,7 +410,7 @@ def get_execution_status(packet_id: str):
         return denied
 
     execution_state = executions[packet_id]
-    
+
     return jsonify({
         'execution_state': execution_state.to_dict(),
         'safety_state': risk_monitor.get_safety_state(packet_id).to_dict() if packet_id in risk_monitor.safety_states else None,
@@ -417,10 +422,10 @@ def get_execution_status(packet_id: str):
 def get_telemetry(packet_id: str):
     """Get telemetry stream"""
     stream = telemetry.get_stream(packet_id)
-    
+
     if not stream:
         return jsonify({'error': 'Telemetry stream not found'}), 404
-    
+
     return jsonify({
         'stream': stream.to_dict(),
         'metrics': telemetry.get_aggregated_metrics(packet_id)
@@ -431,24 +436,24 @@ def get_telemetry(packet_id: str):
 def get_system_telemetry():
     """Get system-wide telemetry for Recursive Stability Controller"""
     # Get all active packets
-    active_packets = [p for p in executor.packets.values() 
+    active_packets = [p for p in executor.packets.values()
                      if p.status in ['planning', 'executing']]
-    
+
     # Count by authority level
     authority_levels = {'none': 0, 'low': 0, 'medium': 0, 'high': 0, 'full': 0}
     for packet in active_packets:
         auth = packet.authority_level
         if auth in authority_levels:
             authority_levels[auth] += 1
-    
+
     # Count by status
     executing_packets = sum(1 for p in executor.packets.values() if p.status == 'executing')
     queued_packets = sum(1 for p in executor.packets.values() if p.status == 'queued')
     failed_packets = sum(1 for p in executor.packets.values() if p.status == 'failed')
-    
+
     # Active agents = packets with authority > none
     active_agents = sum(1 for p in active_packets if p.authority_level != 'none')
-    
+
     return jsonify({
         'active_agents': active_agents,
         'executing_packets': executing_packets,
@@ -463,10 +468,10 @@ def get_system_telemetry():
 def get_runtime_risk(packet_id: str):
     """Get runtime risk"""
     summary = risk_monitor.get_monitoring_summary(packet_id)
-    
+
     if not summary:
         return jsonify({'error': 'Risk monitoring not found'}), 404
-    
+
     return jsonify(summary)
 
 
@@ -474,10 +479,10 @@ def get_runtime_risk(packet_id: str):
 def get_certificate(packet_id: str):
     """Get completion certificate"""
     certificate = completion_certifier.get_certificate(packet_id)
-    
+
     if not certificate:
         return jsonify({'error': 'Certificate not found'}), 404
-    
+
     return jsonify({
         'certificate': certificate.to_dict(),
         'verified': completion_certifier.verify_certificate(certificate)
@@ -488,7 +493,7 @@ def get_certificate(packet_id: str):
 def get_interfaces():
     """Get interface status"""
     status = validator.get_interface_status()
-    
+
     return jsonify(status.to_dict())
 
 
@@ -511,9 +516,9 @@ def register_interface():
         error_rate=float(data.get('error_rate', 0.0)),
         last_check=datetime.now()
     )
-    
+
     validator.register_interface(health)
-    
+
     return jsonify({
         'status': 'registered',
         'interface': health.to_dict()
@@ -571,16 +576,16 @@ def abort_execution(packet_id: str):
     """Abort execution (only by owner)"""
     if packet_id not in executions:
         return jsonify({'error': 'Execution not found'}), 404
-    
+
     # ARCH-004: Ownership check — prevent IDOR
     denied = _check_ownership(packet_id)
     if denied:
         return denied
-    
+
     execution_state = executions[packet_id]
     execution_state.status = ExecutionStatus.ABORTED
     execution_state.end_time = datetime.now()
-    
+
     return jsonify({
         'status': 'aborted',
         'execution_state': execution_state.to_dict()

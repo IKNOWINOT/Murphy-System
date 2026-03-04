@@ -6,6 +6,11 @@ from threading import Lock
 from typing import Any, Dict, List, Optional
 
 from .avatar_models import CostEntry
+from thread_safe_operations import capped_append
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class CostLedger:
@@ -34,7 +39,7 @@ class CostLedger:
             metadata=metadata or {},
         )
         with self._lock:
-            self._entries.append(entry)
+            capped_append(self._entries, entry)
         return entry
 
     def get_total_cost(

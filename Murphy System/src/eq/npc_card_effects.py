@@ -25,12 +25,17 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ---------------------------------------------------------------------------
 # Enums
 # ---------------------------------------------------------------------------
 
 class DamageType(Enum):
+    """Damage type (Enum subclass)."""
     BLUNT = "blunt"
     SLASH = "slash"
     PIERCE = "pierce"
@@ -43,6 +48,7 @@ class DamageType(Enum):
 
 
 class CombatArchetype(Enum):
+    """Combat archetype (Enum subclass)."""
     MELEE = "melee"
     CASTER = "caster"
     HYBRID = "hybrid"
@@ -51,6 +57,7 @@ class CombatArchetype(Enum):
 
 
 class ProtectorAIType(Enum):
+    """Protector AI type (Enum subclass)."""
     FULL_AI = "full_ai"
     PET_AI = "pet_ai"
 
@@ -142,6 +149,7 @@ class IdentityTemplate:
 
 @dataclass
 class Tier1CombatSpell:
+    """Tier 1 combat spell."""
     name: str
     description: str
     condition: str
@@ -153,6 +161,7 @@ class Tier1CombatSpell:
 
 @dataclass
 class Tier2DefensiveBuff:
+    """Tier 2 defensive buff."""
     name: str
     description: str
     mitigation_type: str
@@ -162,6 +171,7 @@ class Tier2DefensiveBuff:
 
 @dataclass
 class Tier3Specialization:
+    """Tier 3 specialization."""
     name: str
     description: str
     effect_type: str  # weapon_conversion | spell_enhancement | hybrid
@@ -171,6 +181,7 @@ class Tier3Specialization:
 
 @dataclass
 class Tier4SoulProtector:
+    """Tier 4 soul protector."""
     name: str
     protector_entity_id: str
     protector_level: int

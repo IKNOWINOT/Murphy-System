@@ -15,6 +15,10 @@ from dataclasses import dataclass, field
 from datetime import datetime
 import hashlib
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class StateEntry:
@@ -44,14 +48,14 @@ class SetupConfiguration:
 class LibrarianStateManager:
     """
     Manages system state using Librarian integration
-    
+
     Features:
     - State persistence
     - State versioning
     - State rollback
     - State queries and filtering
     """
-    
+
     def __init__(self):
         self.states: Dict[str, StateEntry] = {}
         self.state_history: List[StateEntry] = []
@@ -59,14 +63,14 @@ class LibrarianStateManager:
         self.lock = threading.Lock()
         self.auto_save = True
         self.max_history = 1000
-    
+
     def set_state(self, state_key: str, state_value: Any,
                  state_type: str = "string", metadata: Dict[str, Any] = None) -> str:
         """Set a state value"""
         with self.lock:
             # Create checksum
             checksum = self._create_checksum(state_value)
-            
+
             # Create state entry
             state_entry = StateEntry(
                 state_id=f"state_{len(self.states)}_{int(datetime.now().timestamp())}",
@@ -77,18 +81,18 @@ class LibrarianStateManager:
                 checksum=checksum,
                 metadata=metadata or {}
             )
-            
+
             # Store state
             self.states[state_entry.state_id] = state_entry
-            
+
             # Add to index
             if state_key not in self.state_index:
                 self.state_index[state_key] = []
             self.state_index[state_key].append(state_entry.state_id)
-            
+
             # Add to history
             self.state_history.append(state_entry)
-            
+
             # Trim history if needed
             if len(self.state_history) > self.max_history:
                 removed = self.state_history.pop(0)
@@ -96,9 +100,9 @@ class LibrarianStateManager:
                     del self.states[removed.state_id]
                 if removed.state_key in self.state_index and removed.state_id in self.state_index[removed.state_key]:
                     self.state_index[removed.state_key].remove(removed.state_id)
-            
+
             return state_entry.state_id
-    
+
     def get_state(self, state_key: str) -> Optional[Any]:
         """Get the current state value for a key"""
         with self.lock:
@@ -109,16 +113,16 @@ class LibrarianStateManager:
                 if state_entry:
                     return state_entry.state_value
         return None
-    
+
     def get_state_history(self, state_key: str, limit: int = 10) -> List[StateEntry]:
         """Get state history for a key"""
         with self.lock:
             if state_key not in self.state_index:
                 return []
-            
+
             state_ids = self.state_index[state_key][-limit:]
             return [self.states[sid] for sid in state_ids if sid in self.states]
-    
+
     def delete_state(self, state_key: str) -> bool:
         """Delete a state"""
         with self.lock:
@@ -127,20 +131,20 @@ class LibrarianStateManager:
                 for state_id in self.state_index[state_key]:
                     if state_id in self.states:
                         del self.states[state_id]
-                
+
                 # Remove from index
                 del self.state_index[state_key]
                 return True
         return False
-    
+
     def query_states(self, query: Dict[str, Any]) -> List[StateEntry]:
         """Query states by metadata or values"""
         with self.lock:
             results = []
-            
+
             for state_entry in self.state_history:
                 match = True
-                
+
                 # Check metadata
                 for key, value in query.items():
                     if key == 'state_key':
@@ -154,52 +158,52 @@ class LibrarianStateManager:
                     else:
                         match = False
                         break
-                
+
                 if match:
                     results.append(state_entry)
-            
+
             return results
-    
+
     def get_all_state_keys(self) -> List[str]:
         """Get all state keys"""
         with self.lock:
             return list(self.state_index.keys())
-    
+
     def export_states(self) -> Dict[str, Any]:
         """Export all states to dictionary"""
         with self.lock:
             export = {}
-            
+
             for state_key in self.state_index.keys():
                 state_value = self.get_state(state_key)
                 if state_value is not None:
                     export[state_key] = state_value
-            
+
             return export
-    
+
     def import_states(self, states: Dict[str, Any]) -> int:
         """Import states from dictionary"""
         count = 0
-        
+
         for state_key, state_value in states.items():
             state_type = self._determine_type(state_value)
             self.set_state(state_key, state_value, state_type)
             count += 1
-        
+
         return count
-    
+
     def clear_all_states(self) -> None:
         """Clear all states"""
         with self.lock:
             self.states.clear()
             self.state_history.clear()
             self.state_index.clear()
-    
+
     def _create_checksum(self, value: Any) -> str:
         """Create a checksum for a value"""
         value_str = json.dumps(value, sort_keys=True)
         return hashlib.md5(value_str.encode()).hexdigest()
-    
+
     def _determine_type(self, value: Any) -> str:
         """Determine the type of a value"""
         if isinstance(value, str):
@@ -219,26 +223,26 @@ class LibrarianStateManager:
 class LibrarianSetupManager:
     """
     Manages setup configurations using Librarian integration
-    
+
     Features:
     - Setup configuration management
     - Configuration versioning
     - Configuration activation/deactivation
     - Setup queries and filtering
     """
-    
+
     def __init__(self):
         self.configurations: Dict[str, SetupConfiguration] = {}
         self.config_index: Dict[str, List[str]] = {}  # category -> config_ids
         self.active_configs: Dict[str, str] = {}  # category -> active_config_id
         self.lock = threading.Lock()
-    
+
     def create_configuration(self, config_name: str, config_category: str,
                           configuration: Dict[str, Any]) -> str:
         """Create a new setup configuration"""
         with self.lock:
             config_id = f"config_{len(self.configurations)}_{int(datetime.now().timestamp())}"
-            
+
             setup_config = SetupConfiguration(
                 config_id=config_id,
                 config_name=config_name,
@@ -249,27 +253,27 @@ class LibrarianSetupManager:
                 updated_at=datetime.now(),
                 version=1
             )
-            
+
             self.configurations[config_id] = setup_config
-            
+
             # Add to index
             if config_category not in self.config_index:
                 self.config_index[config_category] = []
             self.config_index[config_category].append(config_id)
-            
+
             return config_id
-    
+
     def get_configuration(self, config_id: str) -> Optional[SetupConfiguration]:
         """Get a configuration by ID"""
         with self.lock:
             return self.configurations.get(config_id)
-    
+
     def get_configurations_by_category(self, category: str) -> List[SetupConfiguration]:
         """Get all configurations in a category"""
         with self.lock:
             config_ids = self.config_index.get(category, [])
             return [self.configurations[cid] for cid in config_ids if cid in self.configurations]
-    
+
     def update_configuration(self, config_id: str, configuration: Dict[str, Any]) -> bool:
         """Update a configuration"""
         with self.lock:
@@ -280,42 +284,42 @@ class LibrarianSetupManager:
                 config.version += 1
                 return True
         return False
-    
+
     def activate_configuration(self, config_id: str) -> bool:
         """Activate a configuration"""
         with self.lock:
             if config_id not in self.configurations:
                 return False
-            
+
             config = self.configurations[config_id]
-            
+
             # Deactivate other configs in same category
             category = config.config_category
             for other_config_id in self.config_index.get(category, []):
                 if other_config_id in self.configurations:
                     self.configurations[other_config_id].is_active = False
-            
+
             # Activate this config
             config.is_active = True
             self.active_configs[category] = config_id
-            
+
             return True
-    
+
     def deactivate_configuration(self, config_id: str) -> bool:
         """Deactivate a configuration"""
         with self.lock:
             if config_id in self.configurations:
                 config = self.configurations[config_id]
                 config.is_active = False
-                
+
                 # Remove from active configs
                 category = config.config_category
                 if category in self.active_configs and self.active_configs[category] == config_id:
                     del self.active_configs[category]
-                
+
                 return True
         return False
-    
+
     def get_active_configuration(self, category: str) -> Optional[SetupConfiguration]:
         """Get the active configuration for a category"""
         with self.lock:
@@ -323,28 +327,28 @@ class LibrarianSetupManager:
             if active_id:
                 return self.configurations.get(active_id)
         return None
-    
+
     def delete_configuration(self, config_id: str) -> bool:
         """Delete a configuration"""
         with self.lock:
             if config_id in self.configurations:
                 config = self.configurations[config_id]
-                
+
                 # Remove from index
                 category = config.config_category
                 if category in self.config_index and config_id in self.config_index[category]:
                     self.config_index[category].remove(config_id)
-                
+
                 # Remove from active configs
                 if category in self.active_configs and self.active_configs[category] == config_id:
                     del self.active_configs[category]
-                
+
                 # Delete configuration
                 del self.configurations[config_id]
-                
+
                 return True
         return False
-    
+
     def export_configuration(self, config_id: str) -> Optional[Dict[str, Any]]:
         """Export a configuration to dictionary"""
         config = self.get_configuration(config_id)
@@ -360,7 +364,7 @@ class LibrarianSetupManager:
                 'updated_at': config.updated_at.isoformat()
             }
         return None
-    
+
     def import_configuration(self, config_data: Dict[str, Any]) -> str:
         """Import a configuration from dictionary"""
         config_id = self.create_configuration(
@@ -368,41 +372,41 @@ class LibrarianSetupManager:
             config_data['config_category'],
             config_data['configuration']
         )
-        
+
         # Set version if provided
         if 'version' in config_data:
             config = self.configurations[config_id]
             config.version = config_data['version']
-        
+
         # Activate if it was active
         if config_data.get('is_active', False):
             self.activate_configuration(config_id)
-        
+
         return config_id
 
 
 class LibrarianIntegration:
     """
     Main integration point for Librarian state and setup management
-    
+
     This class provides a unified interface for:
     - State management
     - Setup configuration
     - Knowledge-based queries
     - System-wide operations
     """
-    
+
     def __init__(self):
         self.state_manager = LibrarianStateManager()
         self.setup_manager = LibrarianSetupManager()
         self.initialized = False
-    
+
     def initialize(self) -> None:
         """Initialize the librarian integration"""
         # Create default configurations
         self._create_default_configurations()
         self.initialized = True
-    
+
     def _create_default_configurations(self) -> None:
         """Create default setup configurations"""
         # System configuration
@@ -415,7 +419,7 @@ class LibrarianIntegration:
                 "max_history": 1000
             }
         )
-        
+
         # Performance configuration
         self.setup_manager.create_configuration(
             "Default Performance",
@@ -426,7 +430,7 @@ class LibrarianIntegration:
                 "enable_parallel_processing": True
             }
         )
-        
+
         # Security configuration
         self.setup_manager.create_configuration(
             "Default Security",
@@ -437,39 +441,39 @@ class LibrarianIntegration:
                 "log_security_events": True
             }
         )
-    
+
     def get_state(self, key: str) -> Optional[Any]:
         """Get a state value"""
         return self.state_manager.get_state(key)
-    
+
     def set_state(self, key: str, value: Any, **kwargs) -> str:
         """Set a state value"""
         return self.state_manager.set_state(key, value, **kwargs)
-    
+
     def get_setup(self, category: str) -> Optional[Dict[str, Any]]:
         """Get active setup configuration for a category"""
         config = self.setup_manager.get_active_configuration(category)
         return config.configuration if config else None
-    
+
     def update_setup(self, category: str, configuration: Dict[str, Any]) -> bool:
         """Update setup configuration for a category"""
         config = self.setup_manager.get_active_configuration(category)
         if config:
             return self.setup_manager.update_configuration(config.config_id, configuration)
         return False
-    
+
     def query_states(self, query: Dict[str, Any]) -> List[StateEntry]:
         """Query states"""
         return self.state_manager.query_states(query)
-    
+
     def get_all_states(self) -> Dict[str, Any]:
         """Get all states"""
         return self.state_manager.export_states()
-    
+
     def get_all_configurations(self) -> List[SetupConfiguration]:
         """Get all configurations"""
         return list(self.setup_manager.configurations.values())
-    
+
     def export_all(self) -> Dict[str, Any]:
         """Export all states and configurations"""
         return {
@@ -479,13 +483,13 @@ class LibrarianIntegration:
                 for c in self.get_all_configurations()
             ]
         }
-    
+
     def import_all(self, data: Dict[str, Any]) -> None:
         """Import all states and configurations"""
         # Import states
         if 'states' in data:
             self.state_manager.import_states(data['states'])
-        
+
         # Import configurations
         if 'configurations' in data:
             for config_data in data['configurations']:

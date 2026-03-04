@@ -10,8 +10,13 @@ import threading
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class TemplateCategory(str):
+    """Template category (str subclass)."""
     pass
 
 

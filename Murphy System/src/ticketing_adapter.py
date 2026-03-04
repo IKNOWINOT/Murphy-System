@@ -16,6 +16,7 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -314,7 +315,7 @@ class TicketingAdapter:
 
     def _record_event(self, ticket_id: str, action: str, details: Dict[str, Any]) -> None:
         """Append an audit event (caller must hold self._lock)."""
-        self._history.append({
+        capped_append(self._history, {
             "ticket_id": ticket_id,
             "action": action,
             "details": details,

@@ -38,6 +38,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 class RoutingStrategy(Enum):
+    """Routing strategy (Enum subclass)."""
     COST_OPTIMIZED = "cost_optimized"
     LATENCY_OPTIMIZED = "latency_optimized"
     RELIABILITY_FIRST = "reliability_first"
@@ -46,6 +47,7 @@ class RoutingStrategy(Enum):
 
 
 class CircuitState(Enum):
+    """Circuit state (Enum subclass)."""
     CLOSED = "closed"
     OPEN = "open"
     HALF_OPEN = "half_open"

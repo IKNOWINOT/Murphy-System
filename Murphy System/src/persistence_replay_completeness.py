@@ -27,6 +27,7 @@ from dataclasses import dataclass, field, asdict
 from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Callable
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -161,7 +162,8 @@ class WriteAheadLog:
             with open(tmp, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, default=str)
             tmp.replace(self._wal_file())
-        except Exception:
+        except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             if tmp.exists():
                 tmp.unlink()
             raise
@@ -198,7 +200,7 @@ class WriteAheadLog:
             status=WAL_STATUS_PENDING,
         )
         with self._lock:
-            self._entries.append(entry)
+            capped_append(self._entries, entry)
             self._flush()
         logger.debug("WAL logged operation %s (%s)", entry.entry_id, operation)
         return entry.entry_id
@@ -317,7 +319,8 @@ class SnapshotManager:
             with open(tmp, "w", encoding="utf-8") as f:
                 json.dump(snapshot.to_dict(), f, indent=2, default=str)
             tmp.replace(filepath)
-        except Exception:
+        except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             if tmp.exists():
                 tmp.unlink()
             raise
@@ -546,7 +549,7 @@ class PointInTimeRecovery:
             "label": label,
         }
         with self._lock:
-            self._history.append(entry)
+            capped_append(self._history, entry)
             self._history.sort(key=lambda e: e["timestamp"])
             idx = self._history.index(entry)
         return {"index": idx, "timestamp": ts, "label": label}
@@ -709,6 +712,7 @@ class ReplayOrchestrator:
             result["status"] = "ok"
             result["result"] = step.result
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             step.error = str(exc)
             step.executed = True
             result["status"] = "error"
@@ -780,7 +784,7 @@ class ReplayOrchestrator:
         result = self._execute_step(step)
 
         with self._lock:
-            self._results.append(result)
+            capped_append(self._results, result)
             if self._current_index >= len(self._steps):
                 self._state = ReplayState.COMPLETED
             else:
@@ -887,7 +891,8 @@ class PersistenceReplayCompleteness:
             result = executor(data)
             self.wal.commit(entry_id, result)
             return result
-        except Exception:
+        except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             self.wal.rollback(entry_id)
             raise
 

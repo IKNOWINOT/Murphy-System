@@ -40,6 +40,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -132,7 +133,7 @@ class AutomationLoopConnector:
     def _queue_outcome(self, payload: Dict[str, Any], outcome_type: str) -> None:
         """Queue an outcome for the next cycle."""
         with self._lock:
-            self._pending_outcomes.append({
+            capped_append(self._pending_outcomes, {
                 "task_id": payload.get("task_id", f"evt-{uuid.uuid4().hex[:8]}"),
                 "session_id": payload.get("session_id", "auto"),
                 "outcome": outcome_type,
@@ -224,12 +225,14 @@ class AutomationLoopConnector:
             # 5. Persist
             try:
                 self._engine.save_state()
-            except Exception:
+            except Exception as exc:
+                logger.debug("Suppressed exception: %s", exc)
                 pass
             if self._orchestrator is not None:
                 try:
                     self._orchestrator.save_state()
-                except Exception:
+                except Exception as exc:
+                    logger.debug("Suppressed exception: %s", exc)
                     pass
 
         result = LoopCycleResult(

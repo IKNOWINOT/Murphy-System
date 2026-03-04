@@ -47,6 +47,8 @@ import hmac
 import logging
 from enum import Enum
 
+logger = logging.getLogger("security_plane.cryptography")
+
 from .schemas import (
     CryptographicKey,
     CryptographicAlgorithm,
@@ -92,7 +94,7 @@ class HashAlgorithm(Enum):
 class KeyPair:
     """
     Cryptographic key pair.
-    
+
     CRITICAL: Keys are short-lived (minutes).
     """
     public_key: bytes
@@ -101,7 +103,7 @@ class KeyPair:
     created_at: datetime
     expires_at: datetime
     key_id: str
-    
+
     def is_expired(self) -> bool:
         """Check if key pair has expired."""
         return datetime.now() > self.expires_at
@@ -130,16 +132,16 @@ class VerificationResult:
 class CryptographicPrimitives:
     """
     Low-level cryptographic primitives.
-    
+
     This is a simplified implementation for demonstration.
     In production, use proper PQC libraries like liboqs, pqcrypto, etc.
     """
-    
+
     @staticmethod
     def hash_data(data: bytes, algorithm: HashAlgorithm = HashAlgorithm.SHA256) -> bytes:
         """
         Hash data using specified algorithm.
-        
+
         Default: SHA-256 (will migrate to SHA-3 or BLAKE3)
         """
         if algorithm == HashAlgorithm.SHA256:
@@ -152,22 +154,22 @@ class CryptographicPrimitives:
             return hashlib.sha256(data).digest()
         else:
             raise ValueError(f"Unsupported hash algorithm: {algorithm}")
-    
+
     @staticmethod
     def generate_nonce(length: int = 32) -> str:
         """Generate cryptographically secure nonce."""
         return secrets.token_hex(length)
-    
+
     @staticmethod
     def constant_time_compare(a: bytes, b: bytes) -> bool:
         """Constant-time comparison to prevent timing attacks."""
         return hmac.compare_digest(a, b)
-    
+
     @staticmethod
     def derive_key(master_key: bytes, context: bytes, length: int = 32) -> bytes:
         """
         Derive key from master key using HKDF-like construction.
-        
+
         In production: Use proper HKDF from cryptography library.
         """
         return hashlib.pbkdf2_hmac('sha256', master_key, context, 100000, dklen=length)
@@ -231,7 +233,8 @@ class ClassicalCryptography:
             try:
                 _priv = serialization.load_der_private_key(private_key, password=None)
                 return _priv.sign(data, ec.ECDSA(hashes.SHA256()))
-            except Exception:
+            except Exception as exc:
+                _log.debug("Suppressed exception: %s", exc)
                 pass  # fall through to simulation
         return hmac.new(private_key, data, hashlib.sha256).digest()
 
@@ -247,7 +250,8 @@ class ClassicalCryptography:
                 _pub = serialization.load_der_public_key(public_key)
                 _pub.verify(signature, data, ec.ECDSA(hashes.SHA256()))
                 return True
-            except Exception:
+            except Exception as exc:
+                _log.debug("Suppressed exception: %s", exc)
                 return False
         expected_signature = hmac.new(private_key, data, hashlib.sha256).digest()
         return CryptographicPrimitives.constant_time_compare(signature, expected_signature)
@@ -334,7 +338,8 @@ class PostQuantumCryptography:
             try:
                 sig = oqs.Signature("Dilithium2", private_key)
                 return sig.sign(data)
-            except Exception:
+            except Exception as exc:
+                _log.debug("Suppressed exception: %s", exc)
                 pass
         return hmac.new(private_key, data, hashlib.sha3_256).digest()
 
@@ -349,7 +354,8 @@ class PostQuantumCryptography:
             try:
                 verifier = oqs.Signature("Dilithium2")
                 return verifier.verify(data, signature, public_key)
-            except Exception:
+            except Exception as exc:
+                _log.debug("Suppressed exception: %s", exc)
                 return False
         expected_signature = hmac.new(private_key, data, hashlib.sha3_256).digest()
         return CryptographicPrimitives.constant_time_compare(signature, expected_signature)
@@ -358,35 +364,35 @@ class PostQuantumCryptography:
 class HybridCryptography:
     """
     Hybrid classical + post-quantum cryptography.
-    
+
     CRITICAL: This is the default mode for production.
     Provides security against both classical and quantum attacks.
     """
-    
+
     @staticmethod
     def generate_keypair() -> Tuple[KeyPair, KeyPair]:
         """
         Generate hybrid key pair (classical + PQC).
-        
+
         Returns (classical_keypair, pqc_keypair)
         """
         classical = ClassicalCryptography.generate_keypair()
         pqc = PostQuantumCryptography.generate_keypair_dilithium()
-        
+
         return classical, pqc
-    
+
     @staticmethod
     def sign_hybrid(data: bytes, classical_private: bytes, pqc_private: bytes) -> Tuple[bytes, bytes]:
         """
         Sign data with both classical and PQC algorithms.
-        
+
         Returns (classical_signature, pqc_signature)
         """
         classical_sig = ClassicalCryptography.sign(data, classical_private)
         pqc_sig = PostQuantumCryptography.sign_dilithium(data, pqc_private)
-        
+
         return classical_sig, pqc_sig
-    
+
     @staticmethod
     def verify_hybrid(
         data: bytes,
@@ -399,7 +405,7 @@ class HybridCryptography:
     ) -> bool:
         """
         Verify hybrid signature.
-        
+
         BOTH signatures must be valid.
         """
         classical_valid = ClassicalCryptography.verify(
@@ -408,26 +414,26 @@ class HybridCryptography:
         pqc_valid = PostQuantumCryptography.verify_dilithium(
             data, pqc_sig, pqc_public, pqc_private
         )
-        
+
         return classical_valid and pqc_valid
 
 
 class KeyManager:
     """
     Manages cryptographic keys with automatic rotation.
-    
+
     CRITICAL FEATURES:
     1. Short-lived keys (minutes)
     2. Automatic rotation
     3. Capability-scoped
     4. Encrypted at rest
     """
-    
+
     def __init__(self, rotation_threshold: timedelta = timedelta(minutes=5)):
         self.rotation_threshold = rotation_threshold
         self._keys: Dict[str, CryptographicKey] = {}
         self._keypairs: Dict[str, Tuple[KeyPair, Optional[KeyPair]]] = {}  # (classical, pqc)
-    
+
     def generate_key(
         self,
         identity_id: str,
@@ -437,15 +443,15 @@ class KeyManager:
     ) -> CryptographicKey:
         """
         Generate new cryptographic key.
-        
+
         Default: Hybrid classical + PQC
         """
         if capabilities is None:
             capabilities = {"sign", "verify"}
-        
+
         now = datetime.now()
         expires = now + timedelta(minutes=10)
-        
+
         if algorithm == CryptographicAlgorithm.HYBRID:
             classical_kp, pqc_kp = HybridCryptography.generate_keypair()
             keypairs = (classical_kp, pqc_kp)
@@ -461,12 +467,12 @@ class KeyManager:
             keypairs = (classical_kp, None)
             public_key = classical_kp.public_key
             private_key = classical_kp.private_key
-        
+
         key_id = f"key-{secrets.token_hex(16)}"
-        
+
         # Encrypt private key (simulated - in production use proper encryption)
         private_key_encrypted = self._encrypt_private_key(private_key)
-        
+
         key = CryptographicKey(
             key_id=key_id,
             key_type=key_type,
@@ -478,30 +484,30 @@ class KeyManager:
             identity_id=identity_id,
             capabilities=capabilities
         )
-        
+
         self._keys[key_id] = key
         self._keypairs[key_id] = keypairs
-        
+
         return key
-    
+
     def _encrypt_private_key(self, private_key: bytes) -> bytes:
         """
         Encrypt private key at rest (simulated).
-        
+
         In production: Use proper encryption (AES-256-GCM with hardware key).
         """
         # Simulated encryption
         return hashlib.sha256(private_key).digest()
-    
+
     def _decrypt_private_key(self, encrypted_key: bytes) -> bytes:
         """
         Decrypt private key (simulated).
-        
+
         In production: Use proper decryption.
         """
         # Simulated decryption - in reality this would reverse the encryption
         return encrypted_key
-    
+
     def get_key(self, key_id: str) -> Optional[CryptographicKey]:
         """Get key by ID."""
         return self._keys.get(key_id)
@@ -509,21 +515,21 @@ class KeyManager:
     def get_keypairs(self, key_id: str) -> Tuple[Optional[KeyPair], Optional[KeyPair]]:
         """Return the ``(classical_kp, pqc_kp)`` tuple for *key_id*."""
         return self._keypairs.get(key_id, (None, None))
-    
+
     def rotate_key(self, key_id: str) -> CryptographicKey:
         """
         Rotate key (generate new key with same properties).
-        
+
         Old key is marked as rotated.
         """
         old_key = self._keys.get(key_id)
         if not old_key:
             raise ValueError(f"Key {key_id} not found")
-        
+
         # Mark old key as rotated
         old_key.rotated = True
         old_key.rotation_scheduled_at = datetime.now()
-        
+
         # Generate new key
         new_key = self.generate_key(
             identity_id=old_key.identity_id,
@@ -531,53 +537,53 @@ class KeyManager:
             algorithm=old_key.algorithm,
             capabilities=old_key.capabilities
         )
-        
+
         return new_key
-    
+
     def check_rotation_needed(self) -> list[str]:
         """
         Check which keys need rotation.
-        
+
         Returns list of key IDs that should be rotated.
         """
         keys_to_rotate = []
-        
+
         for key_id, key in self._keys.items():
             if key.should_rotate(self.rotation_threshold):
                 keys_to_rotate.append(key_id)
-        
+
         return keys_to_rotate
-    
+
     def auto_rotate_keys(self) -> list[str]:
         """
         Automatically rotate keys that need rotation.
-        
+
         Returns list of rotated key IDs.
         """
         keys_to_rotate = self.check_rotation_needed()
         rotated = []
-        
+
         for key_id in keys_to_rotate:
             try:
                 self.rotate_key(key_id)
                 rotated.append(key_id)
-            except Exception as e:
+            except Exception as exc:
                 # Log error but continue rotating other keys
-                print(f"Error rotating key {key_id}: {e}")
-        
+                logger.info(f"Error rotating key {key_id}: {exc}")
+
         return rotated
 
 
 class PacketSigner:
     """
     Signs execution packets with Control Plane authority.
-    
+
     CRITICAL: Only Control Plane can sign execution packets.
     """
-    
+
     def __init__(self, key_manager: KeyManager):
         self.key_manager = key_manager
-    
+
     def sign_execution_packet(
         self,
         packet_id: str,
@@ -589,34 +595,34 @@ class PacketSigner:
     ) -> ExecutionPacketSignature:
         """
         Sign execution packet.
-        
+
         CRITICAL: This creates a cryptographically sealed, single-use,
         time-bound execution packet.
         """
         # Get or generate signing key
         signing_key = self._get_or_create_signing_key(signer_id)
-        
+
         # Generate unique nonce for replay prevention
         nonce = CryptographicPrimitives.generate_nonce()
-        
+
         # Create signature payload
         now = datetime.now()
         time_window_start = now
         time_window_end = now + timedelta(minutes=time_window_minutes)
-        
+
         payload = (
             f"{packet_id}{packet_data.hex()}{authority_band.value}"
             f"{target_adapter}{time_window_start.isoformat()}"
             f"{time_window_end.isoformat()}{nonce}"
         ).encode()
-        
+
         # Sign with hybrid cryptography
         keypairs = self.key_manager._keypairs.get(signing_key.key_id)
         if not keypairs:
             raise ValueError(f"Keypairs not found for key {signing_key.key_id}")
-        
+
         classical_kp, pqc_kp = keypairs
-        
+
         if signing_key.algorithm == CryptographicAlgorithm.HYBRID and pqc_kp:
             classical_sig, pqc_sig = HybridCryptography.sign_hybrid(
                 payload,
@@ -636,7 +642,7 @@ class PacketSigner:
                 payload,
                 classical_kp.private_key
             )
-        
+
         return ExecutionPacketSignature(
             packet_id=packet_id,
             signature=signature,
@@ -649,7 +655,7 @@ class PacketSigner:
             target_adapter=target_adapter,
             nonce=nonce
         )
-    
+
     def _get_or_create_signing_key(self, signer_id: str) -> CryptographicKey:
         """Get or create signing key for signer."""
         # Look for existing valid key
@@ -659,7 +665,7 @@ class PacketSigner:
                 not key.is_expired() and
                 not key.rotated):
                 return key
-        
+
         # Create new key
         return self.key_manager.generate_key(
             identity_id=signer_id,
@@ -667,7 +673,7 @@ class PacketSigner:
             algorithm=CryptographicAlgorithm.HYBRID,
             capabilities={"sign"}
         )
-    
+
     def verify_packet_signature(
         self,
         packet_signature: ExecutionPacketSignature,
@@ -675,7 +681,7 @@ class PacketSigner:
     ) -> VerificationResult:
         """
         Verify execution packet signature.
-        
+
         Checks:
         1. Signature validity
         2. Time window
@@ -690,14 +696,14 @@ class PacketSigner:
                 public_key=b"",
                 error_message="Packet signature expired or already used"
             )
-        
+
         # Get signing key
         signing_key = None
         for key in self.key_manager._keys.values():
             if key.identity_id == packet_signature.signed_by and key.key_type == "signing":
                 signing_key = key
                 break
-        
+
         if not signing_key:
             return VerificationResult(
                 valid=False,
@@ -706,14 +712,14 @@ class PacketSigner:
                 public_key=b"",
                 error_message="Signing key not found"
             )
-        
+
         # Reconstruct payload
         payload = (
             f"{packet_signature.packet_id}{packet_data.hex()}{packet_signature.authority_band.value}"
             f"{packet_signature.target_adapter}{packet_signature.time_window_start.isoformat()}"
             f"{packet_signature.time_window_end.isoformat()}{packet_signature.nonce}"
         ).encode()
-        
+
         # Verify signature
         keypairs = self.key_manager._keypairs.get(signing_key.key_id)
         if not keypairs:
@@ -724,9 +730,9 @@ class PacketSigner:
                 public_key=signing_key.public_key,
                 error_message="Keypairs not found"
             )
-        
+
         classical_kp, pqc_kp = keypairs
-        
+
         try:
             if packet_signature.algorithm == CryptographicAlgorithm.HYBRID and pqc_kp:
                 # Decode 4-byte prefix that encodes the classical sig length.
@@ -736,7 +742,7 @@ class PacketSigner:
                 classical_sig_len = int.from_bytes(raw[:4], 'little')
                 classical_sig = raw[4:4 + classical_sig_len]
                 pqc_sig = raw[4 + classical_sig_len:]
-                
+
                 valid = HybridCryptography.verify_hybrid(
                     payload,
                     classical_sig,
@@ -760,7 +766,7 @@ class PacketSigner:
                     classical_kp.public_key,
                     classical_kp.private_key
                 )
-            
+
             return VerificationResult(
                 valid=valid,
                 algorithm=packet_signature.algorithm,
@@ -768,12 +774,13 @@ class PacketSigner:
                 public_key=signing_key.public_key,
                 error_message=None if valid else "Signature verification failed"
             )
-        
-        except Exception as e:
+
+        except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return VerificationResult(
                 valid=False,
                 algorithm=packet_signature.algorithm,
                 verified_at=datetime.now(),
                 public_key=signing_key.public_key,
-                error_message=f"Verification error: {str(e)}"
+                error_message=f"Verification error: {str(exc)}"
             )

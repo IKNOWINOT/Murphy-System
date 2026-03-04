@@ -23,12 +23,17 @@ from typing import Any, Callable, Dict, List, Optional
 
 from .macro_trigger_engine import MacroTriggerEngine, TriggerResult
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ---------------------------------------------------------------------------
 # Pipeline Stage
 # ---------------------------------------------------------------------------
 
 class PipelineStage(Enum):
+    """Pipeline stage (Enum subclass)."""
     SCAN = "scan"
     INFER = "infer"
     DECIDE = "decide"

@@ -28,12 +28,14 @@ logger = logging.getLogger(__name__)
 # ── Enums ────────────────────────────────────────────────────────────
 
 class ChunkStrategy(str, Enum):
+    """Chunk strategy (str subclass)."""
     FIXED = "fixed"
     SENTENCE = "sentence"
     PARAGRAPH = "paragraph"
 
 
 class RetrievalMode(str, Enum):
+    """Retrieval mode (str subclass)."""
     VECTOR = "vector"
     GRAPH = "graph"
     HYBRID = "hybrid"
@@ -43,6 +45,7 @@ class RetrievalMode(str, Enum):
 
 @dataclass
 class DocumentChunk:
+    """Document chunk."""
     chunk_id: str
     doc_id: str
     text: str
@@ -53,6 +56,7 @@ class DocumentChunk:
 
 @dataclass
 class IngestedDocument:
+    """Ingested document."""
     doc_id: str
     title: str
     source: str
@@ -63,6 +67,7 @@ class IngestedDocument:
 
 @dataclass
 class SearchResult:
+    """Search result."""
     chunk_id: str
     doc_id: str
     score: float
@@ -72,6 +77,7 @@ class SearchResult:
 
 @dataclass
 class GraphEntity:
+    """Graph entity."""
     entity_id: str
     name: str
     entity_type: str
@@ -81,6 +87,7 @@ class GraphEntity:
 
 @dataclass
 class GraphRelation:
+    """Graph relation."""
     relation_id: str
     source_entity: str
     target_entity: str

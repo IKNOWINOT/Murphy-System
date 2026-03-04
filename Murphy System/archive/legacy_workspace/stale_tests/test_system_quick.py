@@ -27,13 +27,13 @@ def run_tests():
     passed = 0
     failed = 0
     start_time = time.time()
-    
+
     print("\n" + "="*80)
     print("QUICK SYSTEM TEST - 100 TESTS")
     print("="*80)
     print("\nTesting ONE unified system across all confidence bands")
     print("Using fuzzy match verification (semantic relevance)\n")
-    
+
     tests = [
         # Introductory Band (30 tests)
         ("hi", ["hello", "mfgc", "system"], "introductory"),
@@ -66,7 +66,7 @@ def run_tests():
         ("okay", ["okay", "good"], "introductory"),
         ("nice", ["nice", "good"], "introductory"),
         ("cool", ["cool", "good"], "introductory"),
-        
+
         # Conversational Band - Software (25 tests)
         ("design a website", ["web", "design", "frontend"], "conversational"),
         ("create a web app", ["web", "app", "design"], "conversational"),
@@ -93,7 +93,7 @@ def run_tests():
         ("create a React Native app", ["react", "native", "mobile"], "conversational"),
         ("build a payment API", ["payment", "api", "transaction"], "conversational"),
         ("design NoSQL database", ["nosql", "database", "document"], "conversational"),
-        
+
         # Conversational Band - Business (25 tests)
         ("create a business plan", ["business", "plan", "strategy"], "conversational"),
         ("analyze the market", ["market", "analysis", "research"], "conversational"),
@@ -120,7 +120,7 @@ def run_tests():
         ("create a valuation model", ["valuation", "model", "worth"], "conversational"),
         ("increase capacity", ["increase", "capacity", "scale"], "conversational"),
         ("create a technology strategy", ["technology", "strategy", "digital"], "conversational"),
-        
+
         # Conversational Band - Research (20 tests)
         ("analyze data", ["analyze", "data", "insight"], "conversational"),
         ("research patterns", ["research", "pattern", "data"], "conversational"),
@@ -143,40 +143,40 @@ def run_tests():
         ("examine accuracy", ["examine", "accuracy", "precision"], "conversational"),
         ("analyze reliability", ["analyze", "reliability", "consistent"], "conversational"),
     ]
-    
+
     for i, (message, keywords, expected_band) in enumerate(tests, 1):
         try:
             result = system.process_message(message)
-            
+
             # Verify response quality
             if not verify_response(result.get('response', '')):
                 print(f"❌ Test {i}: {message[:40]}")
                 failed += 1
                 continue
-            
+
             # Verify fuzzy match
             if not fuzzy_match(result['response'], keywords):
                 print(f"❌ Test {i}: {message[:40]}")
                 failed += 1
                 continue
-            
+
             # Verify band (if specified)
             if expected_band and result.get('band') != expected_band:
                 print(f"❌ Test {i}: {message[:40]} (wrong band: {result.get('band')})")
                 failed += 1
                 continue
-            
+
             print(f"✅ Test {i}: {message[:40]}")
             passed += 1
-            
+
         except Exception as e:
             print(f"❌ Test {i}: {message[:40]} (error: {str(e)[:30]})")
             failed += 1
-    
+
     duration = time.time() - start_time
     total = passed + failed
     pass_rate = (passed / total * 100) if total > 0 else 0
-    
+
     print("\n" + "="*80)
     print("TEST SUMMARY")
     print("="*80)
@@ -186,7 +186,7 @@ def run_tests():
     print(f"Pass Rate: {pass_rate:.1f}%")
     print(f"Duration: {duration:.1f}s")
     print(f"Tests/sec: {total/duration:.1f}")
-    
+
     if pass_rate >= 95:
         print("\n🎉 EXCELLENT - System performing at high quality")
     elif pass_rate >= 90:
@@ -195,9 +195,9 @@ def run_tests():
         print("\n⚠️  ACCEPTABLE - Minor issues")
     else:
         print("\n❌ NEEDS WORK - Significant issues")
-    
+
     print("\n" + "="*80)
-    
+
     return passed, failed
 
 if __name__ == "__main__":

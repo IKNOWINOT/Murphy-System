@@ -12,6 +12,10 @@ import time
 import threading
 from typing import Any, Dict, List, Optional
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 _start_time = time.monotonic()
 
 # ── In-process counters ────────────────────────────────────────────
@@ -125,6 +129,7 @@ def get_system_health() -> Dict[str, Any]:
             try:
                 modules[name] = info["status_fn"]()
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 modules[name] = {"status": "error", "error": str(exc)}
 
     all_healthy = all(
