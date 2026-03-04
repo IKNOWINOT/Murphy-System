@@ -19,11 +19,13 @@ logger = logging.getLogger(__name__)
 
 
 class SyncDirection(Enum):
+    """Sync direction (Enum subclass)."""
     UNIDIRECTIONAL = "unidirectional"
     BIDIRECTIONAL = "bidirectional"
 
 
 class ConflictStrategy(Enum):
+    """Conflict strategy (Enum subclass)."""
     LATEST_WINS = "latest_wins"
     SOURCE_WINS = "source_wins"
     TARGET_WINS = "target_wins"
@@ -32,6 +34,7 @@ class ConflictStrategy(Enum):
 
 
 class SyncState(Enum):
+    """Sync state (Enum subclass)."""
     IDLE = "idle"
     SYNCING = "syncing"
     ERROR = "error"

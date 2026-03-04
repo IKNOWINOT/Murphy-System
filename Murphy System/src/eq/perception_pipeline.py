@@ -29,6 +29,7 @@ from .macro_trigger_engine import MacroTriggerEngine, TriggerResult
 # ---------------------------------------------------------------------------
 
 class PipelineStage(Enum):
+    """Pipeline stage (Enum subclass)."""
     SCAN = "scan"
     INFER = "infer"
     DECIDE = "decide"

@@ -56,12 +56,14 @@ _MAX_ALERTS = 10_000
 # ---------------------------------------------------------------------------
 
 class AlertSeverity(str, Enum):
+    """Alert severity (str subclass)."""
     CRITICAL = "critical"
     WARNING = "warning"
     INFO = "info"
 
 
 class Comparator(str, Enum):
+    """Comparator (str subclass)."""
     GT = "gt"      # greater than
     LT = "lt"      # less than
     GTE = "gte"    # greater than or equal

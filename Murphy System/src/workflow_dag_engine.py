@@ -19,6 +19,7 @@ from thread_safe_operations import capped_append
 
 
 class StepStatus(Enum):
+    """Step status (Enum subclass)."""
     PENDING = "pending"
     READY = "ready"
     RUNNING = "running"
@@ -30,6 +31,7 @@ class StepStatus(Enum):
 
 
 class WorkflowStatus(Enum):
+    """Workflow status (Enum subclass)."""
     DRAFT = "draft"
     READY = "ready"
     RUNNING = "running"
@@ -41,6 +43,7 @@ class WorkflowStatus(Enum):
 
 @dataclass
 class StepDefinition:
+    """Step definition."""
     step_id: str
     name: str
     action: str  # what to execute
@@ -55,6 +58,7 @@ class StepDefinition:
 
 @dataclass
 class StepExecution:
+    """Step execution."""
     step_id: str
     status: StepStatus = StepStatus.PENDING
     result: Any = None
@@ -67,6 +71,7 @@ class StepExecution:
 
 @dataclass
 class WorkflowDefinition:
+    """Workflow definition."""
     workflow_id: str
     name: str
     description: str = ""
@@ -77,6 +82,7 @@ class WorkflowDefinition:
 
 @dataclass
 class WorkflowExecution:
+    """Workflow execution."""
     execution_id: str
     workflow_id: str
     status: WorkflowStatus = WorkflowStatus.DRAFT

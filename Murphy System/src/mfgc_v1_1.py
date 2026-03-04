@@ -62,6 +62,7 @@ class TrustWeightedGrounding:
 # ---------------------------------------------------------------------------
 
 class OrganizationalOverride(Enum):
+    """Organizational override (Enum subclass)."""
     NONE = 0
     SUGGEST = 1
     ACCELERATE = 2

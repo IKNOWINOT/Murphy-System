@@ -58,12 +58,14 @@ def _cosine_similarity(a: Sequence[float], b: Sequence[float]) -> float:
 # ──────────────────────────────────────────────────────────────────────
 
 class AnomalyMethod(str, Enum):
+    """Anomaly method (str subclass)."""
     ZSCORE = "zscore"
     IQR = "iqr"
 
 
 @dataclass
 class AnomalyResult:
+    """Anomaly result."""
     value: float
     is_anomaly: bool
     score: float
@@ -134,6 +136,7 @@ class AnomalyDetector:
 # ──────────────────────────────────────────────────────────────────────
 
 class ForecastMethod(str, Enum):
+    """Forecast method (str subclass)."""
     MOVING_AVERAGE = "moving_average"
     EXPONENTIAL_SMOOTHING = "exponential_smoothing"
     WEIGHTED_MOVING_AVERAGE = "weighted_moving_average"
@@ -141,6 +144,7 @@ class ForecastMethod(str, Enum):
 
 @dataclass
 class ForecastResult:
+    """Forecast result."""
     predicted: float
     confidence_interval: Tuple[float, float]
     method: str
@@ -281,6 +285,7 @@ class NaiveBayesClassifier:
 
 @dataclass
 class Recommendation:
+    """Recommendation."""
     item_id: str
     score: float
     reason: str
@@ -379,6 +384,7 @@ class RecommendationEngine:
 
 @dataclass
 class ClusterResult:
+    """Cluster result."""
     labels: List[int]
     centroids: List[List[float]]
     iterations: int
@@ -477,6 +483,7 @@ class QLearningAgent:
 
 @dataclass
 class FeatureImportance:
+    """Feature importance."""
     feature: str
     importance: float
     method: str
@@ -549,6 +556,7 @@ class FeatureAnalyzer:
 
 @dataclass
 class ABTestResult:
+    """A b test result."""
     test_name: str
     variant_a_mean: float
     variant_b_mean: float
@@ -615,6 +623,7 @@ class ABTestingFramework:
 # ──────────────────────────────────────────────────────────────────────
 
 class EnsembleStrategy(str, Enum):
+    """Ensemble strategy (str subclass)."""
     MAJORITY_VOTE = "majority_vote"
     WEIGHTED_VOTE = "weighted_vote"
     AVERAGE = "average"
@@ -623,6 +632,7 @@ class EnsembleStrategy(str, Enum):
 
 @dataclass
 class EnsemblePrediction:
+    """Ensemble prediction."""
     prediction: Any
     confidence: float
     strategy: str
@@ -677,6 +687,7 @@ class EnsemblePredictor:
 
 @dataclass
 class OnlineLearnerState:
+    """Online learner state."""
     samples_seen: int
     current_accuracy: float
     feature_weights: Dict[str, float]

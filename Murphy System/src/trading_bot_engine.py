@@ -45,18 +45,21 @@ LIVE_TRADING_ENABLED = False
 
 
 class AssetClass(Enum):
+    """Asset class (Enum subclass)."""
     STOCK = "stock"
     CRYPTO = "crypto"
     OPTION = "option"
 
 
 class Signal(Enum):
+    """Signal (Enum subclass)."""
     BUY = "buy"
     SELL = "sell"
     HOLD = "hold"
 
 
 class MarketRegime(Enum):
+    """Market regime (Enum subclass)."""
     BULL = "bull"
     BEAR = "bear"
     SIDEWAYS = "sideways"
@@ -64,12 +67,14 @@ class MarketRegime(Enum):
 
 
 class PositionSizingMethod(Enum):
+    """Position sizing method (Enum subclass)."""
     KELLY = "kelly"
     FIXED_FRACTIONAL = "fixed_fractional"
     EQUAL_WEIGHT = "equal_weight"
 
 
 class TradingMode(Enum):
+    """Trading mode (Enum subclass)."""
     PAPER = "paper"
     LIVE = "live"
 
@@ -80,6 +85,7 @@ class TradingMode(Enum):
 
 @dataclass
 class MarketData:
+    """Market data."""
     symbol: str
     asset_class: AssetClass
     price: float
@@ -122,6 +128,7 @@ class MarketData:
 
 @dataclass
 class TradeOrder:
+    """Trade order."""
     order_id: str
     symbol: str
     side: str  # "buy" or "sell"
@@ -158,6 +165,7 @@ class TradeOrder:
 
 @dataclass
 class Position:
+    """Position."""
     symbol: str
     quantity: float
     avg_entry_price: float
@@ -194,6 +202,7 @@ class Position:
 
 @dataclass
 class TaxLot:
+    """Tax lot."""
     lot_id: str
     symbol: str
     quantity: float

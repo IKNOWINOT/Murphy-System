@@ -76,6 +76,7 @@ class AutomationRole(str, Enum):
 
 
 class AuthDecision(str, Enum):
+    """Auth decision (str subclass)."""
     ALLOWED = "allowed"
     DENIED = "denied"
 

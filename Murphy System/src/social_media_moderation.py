@@ -25,6 +25,7 @@ from thread_safe_operations import capped_append
 # ---------------------------------------------------------------------------
 
 class PlatformType(Enum):
+    """Platform type (Enum subclass)."""
     FACEBOOK = "facebook"
     INSTAGRAM = "instagram"
     TWITTER = "twitter"
@@ -36,12 +37,14 @@ class PlatformType(Enum):
 
 
 class ContentVerdict(Enum):
+    """Content verdict (Enum subclass)."""
     SAFE = "safe"
     WARNING = "warning"
     VIOLATION = "violation"
 
 
 class ViolationCategory(Enum):
+    """Violation category (Enum subclass)."""
     SPAM = "spam"
     HARASSMENT = "harassment"
     HATE_SPEECH = "hate_speech"
@@ -52,6 +55,7 @@ class ViolationCategory(Enum):
 
 
 class ModerationAction(Enum):
+    """Moderation action (Enum subclass)."""
     APPROVE = "approve"
     REJECT = "reject"
     FLAG = "flag"
@@ -61,6 +65,7 @@ class ModerationAction(Enum):
 
 
 class QueuePriority(Enum):
+    """Queue priority (Enum subclass)."""
     LOW = 1
     MEDIUM = 2
     HIGH = 3
@@ -68,6 +73,7 @@ class QueuePriority(Enum):
 
 
 class AppealStatus(Enum):
+    """Appeal status (Enum subclass)."""
     PENDING = "pending"
     UNDER_REVIEW = "under_review"
     APPROVED = "approved"
@@ -76,6 +82,7 @@ class AppealStatus(Enum):
 
 
 class ConnectorHealth(Enum):
+    """Connector health (Enum subclass)."""
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -84,6 +91,7 @@ class ConnectorHealth(Enum):
 
 
 class AuthType(Enum):
+    """Auth type (Enum subclass)."""
     API_KEY = "api_key"
     OAUTH2 = "oauth2"
     TOKEN = "token"
@@ -96,6 +104,7 @@ class AuthType(Enum):
 
 @dataclass
 class RateLimitConfig:
+    """Rate limit config."""
     max_requests: int = 100
     window_seconds: int = 60
     burst_limit: int = 10
@@ -103,6 +112,7 @@ class RateLimitConfig:
 
 @dataclass
 class AuthConfig:
+    """Auth config."""
     auth_type: AuthType = AuthType.OAUTH2
     credentials: Dict[str, str] = field(default_factory=dict)
     scopes: List[str] = field(default_factory=list)
@@ -110,6 +120,7 @@ class AuthConfig:
 
 @dataclass
 class ModerationRule:
+    """Moderation rule."""
     rule_id: str = ""
     name: str = ""
     platform: Optional[PlatformType] = None
@@ -123,6 +134,7 @@ class ModerationRule:
 
 @dataclass
 class QueueItem:
+    """Queue item."""
     item_id: str = ""
     content_id: str = ""
     platform: PlatformType = PlatformType.FACEBOOK
@@ -138,6 +150,7 @@ class QueueItem:
 
 @dataclass
 class Appeal:
+    """Appeal."""
     appeal_id: str = ""
     content_id: str = ""
     platform: PlatformType = PlatformType.FACEBOOK

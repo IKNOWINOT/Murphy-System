@@ -71,6 +71,7 @@ class AutomationMode(IntEnum):
 
 
 class TransitionDirection(str, Enum):
+    """Transition direction (str subclass)."""
     UPGRADE = "upgrade"
     DOWNGRADE = "downgrade"
     MANUAL = "manual"

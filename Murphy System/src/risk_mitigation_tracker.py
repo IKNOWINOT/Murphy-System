@@ -57,12 +57,14 @@ _MAX_STATUS_HISTORY = 10_000
 # ---------------------------------------------------------------------------
 
 class RiskCategory(str, Enum):
+    """Risk category (str subclass)."""
     TECHNICAL = "technical"
     OPERATIONAL = "operational"
     BUSINESS = "business"
 
 
 class RiskStatus(str, Enum):
+    """Risk status (str subclass)."""
     OPEN = "open"
     MITIGATING = "mitigating"
     MITIGATED = "mitigated"
@@ -71,12 +73,14 @@ class RiskStatus(str, Enum):
 
 
 class Likelihood(str, Enum):
+    """Likelihood (str subclass)."""
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
 
 
 class Impact(str, Enum):
+    """Impact (str subclass)."""
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"

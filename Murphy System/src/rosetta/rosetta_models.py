@@ -18,6 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field
 # ==================== Enums ====================
 
 class GoalStatus(str, Enum):
+    """Goal status (str subclass)."""
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
@@ -26,6 +27,7 @@ class GoalStatus(str, Enum):
 
 
 class TaskStatus(str, Enum):
+    """Task status (str subclass)."""
     QUEUED = "queued"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -34,6 +36,7 @@ class TaskStatus(str, Enum):
 
 
 class RecalibrationStatus(str, Enum):
+    """Recalibration status (str subclass)."""
     IDLE = "idle"
     SCHEDULED = "scheduled"
     RUNNING = "running"

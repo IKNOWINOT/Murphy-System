@@ -37,6 +37,7 @@ except ImportError:
     SECURITY_PLANE_AVAILABLE = False
     # Fallback implementations
     class TrustLevel(Enum):
+        """Trust level (Enum subclass)."""
         CRITICAL = "critical"
         HIGH = "high"
         MEDIUM = "medium"
@@ -44,6 +45,7 @@ except ImportError:
         NONE = "none"
 
     class AnomalyType(Enum):
+        """Anomaly type (Enum subclass)."""
         UNAUTHORIZED_ACCESS = "unauthorized_access"
         SUSPICIOUS_PATTERN = "suspicious_pattern"
         RATE_LIMIT_EXCEEDED = "rate_limit_exceeded"

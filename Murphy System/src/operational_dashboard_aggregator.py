@@ -60,6 +60,7 @@ _STATUS_TIMEOUT_MS = 5_000
 # ---------------------------------------------------------------------------
 
 class ModuleHealth(str, Enum):
+    """Module health (str subclass)."""
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNREACHABLE = "unreachable"

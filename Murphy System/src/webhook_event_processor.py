@@ -16,6 +16,7 @@ from thread_safe_operations import capped_append
 
 
 class WebhookStatus(Enum):
+    """Webhook status (Enum subclass)."""
     RECEIVED = "received"
     VERIFIED = "verified"
     REJECTED = "rejected"
@@ -25,6 +26,7 @@ class WebhookStatus(Enum):
 
 
 class SignatureAlgorithm(Enum):
+    """Signature algorithm (Enum subclass)."""
     SHA256 = "sha256"
     SHA1 = "sha1"
     MD5 = "md5"
@@ -33,6 +35,7 @@ class SignatureAlgorithm(Enum):
 
 @dataclass
 class WebhookSource:
+    """Webhook source."""
     source_id: str
     name: str
     platform: str
@@ -47,6 +50,7 @@ class WebhookSource:
 
 @dataclass
 class NormalizationRule:
+    """Normalization rule."""
     rule_id: str
     source_id: str
     source_event: str
@@ -57,6 +61,7 @@ class NormalizationRule:
 
 @dataclass
 class WebhookEvent:
+    """Webhook event."""
     event_id: str
     source_id: str
     raw_event_type: str

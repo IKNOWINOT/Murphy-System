@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class ExecutionStatus(Enum):
+    """Execution status (Enum subclass)."""
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"

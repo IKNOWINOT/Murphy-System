@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 class ObjectiveCategory(str, Enum):
+    """Objective category (str subclass)."""
     REVENUE_TARGET = "revenue_target"
     COST_REDUCTION = "cost_reduction"
     MARKET_EXPANSION = "market_expansion"
@@ -41,6 +42,7 @@ class ObjectiveCategory(str, Enum):
 
 
 class ObjectiveStatus(str, Enum):
+    """Objective status (str subclass)."""
     DRAFT = "draft"
     ACTIVE = "active"
     ON_TRACK = "on_track"
@@ -51,6 +53,7 @@ class ObjectiveStatus(str, Enum):
 
 
 class GateType(str, Enum):
+    """Gate type (str subclass)."""
     BUDGET_GATE = "budget_gate"
     APPROVAL_GATE = "approval_gate"
     COMPLIANCE_GATE = "compliance_gate"
@@ -60,6 +63,7 @@ class GateType(str, Enum):
 
 
 class GateStatus(str, Enum):
+    """Gate status (str subclass)."""
     PENDING = "pending"
     OPEN = "open"
     PASSED = "passed"
@@ -69,6 +73,7 @@ class GateStatus(str, Enum):
 
 
 class InitiativeStatus(str, Enum):
+    """Initiative status (str subclass)."""
     PROPOSED = "proposed"
     APPROVED = "approved"
     IN_PROGRESS = "in_progress"
@@ -77,6 +82,7 @@ class InitiativeStatus(str, Enum):
 
 
 class WorkflowNodeStatus(str, Enum):
+    """Workflow node status (str subclass)."""
     PENDING = "pending"
     READY = "ready"
     RUNNING = "running"
@@ -86,6 +92,7 @@ class WorkflowNodeStatus(str, Enum):
 
 
 class BindingStatus(str, Enum):
+    """Binding status (str subclass)."""
     UNBOUND = "unbound"
     BOUND = "bound"
     ACTIVE = "active"

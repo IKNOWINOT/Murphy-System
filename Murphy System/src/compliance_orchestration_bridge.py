@@ -59,12 +59,14 @@ _MAX_ASSESSMENTS = 500
 # ---------------------------------------------------------------------------
 
 class ControlStatus(str, Enum):
+    """Control status (str subclass)."""
     MET = "met"
     NOT_MET = "not_met"
     UNKNOWN = "unknown"
 
 
 class FrameworkVerdict(str, Enum):
+    """Framework verdict (str subclass)."""
     COMPLIANT = "compliant"
     NON_COMPLIANT = "non_compliant"
     PARTIAL = "partial"

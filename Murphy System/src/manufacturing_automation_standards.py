@@ -21,6 +21,7 @@ from thread_safe_operations import capped_append
 # ---------------------------------------------------------------------------
 
 class ManufacturingStandard(Enum):
+    """Manufacturing standard (Enum subclass)."""
     ISA_95 = "isa_95"
     OPC_UA = "opc_ua"
     MTCONNECT = "mtconnect"
@@ -30,6 +31,7 @@ class ManufacturingStandard(Enum):
 
 
 class ManufacturingLayer(Enum):
+    """Manufacturing layer (Enum subclass)."""
     ENTERPRISE = "L4"
     SITE_OPERATIONS = "L3"
     SUPERVISORY = "L2"
@@ -38,6 +40,7 @@ class ManufacturingLayer(Enum):
 
 
 class ConnectorStatus(Enum):
+    """Connector status (Enum subclass)."""
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"

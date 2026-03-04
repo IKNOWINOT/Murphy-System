@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional, Set
 
 
 class AutomationCategory(Enum):
+    """Automation category (Enum subclass)."""
     IT_OPERATIONS = "it_operations"
     BUSINESS_PROCESS = "business_process"
     DATA_PIPELINE = "data_pipeline"
@@ -32,6 +33,7 @@ class AutomationCategory(Enum):
 
 
 class ComplexityLevel(Enum):
+    """Complexity level (Enum subclass)."""
     SIMPLE = "simple"  # single step, no approvals
     MODERATE = "moderate"  # multi-step, may need approval
     COMPLEX = "complex"  # multi-step, cross-system, requires approvals
@@ -40,6 +42,7 @@ class ComplexityLevel(Enum):
 
 @dataclass
 class AutomationTemplate:
+    """Automation template."""
     template_id: str
     name: str
     category: AutomationCategory
@@ -56,6 +59,7 @@ class AutomationTemplate:
 
 @dataclass
 class AutomationCapability:
+    """Automation capability."""
     capability_id: str
     name: str
     category: AutomationCategory

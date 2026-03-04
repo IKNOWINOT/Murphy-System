@@ -58,12 +58,14 @@ _MAX_RESULTS = 5_000
 # ---------------------------------------------------------------------------
 
 class ValidationStage(str, Enum):
+    """Validation stage (str subclass)."""
     PRE_EXECUTION = "pre_execution"
     EXECUTION = "execution"
     POST_EXECUTION = "post_execution"
 
 
 class CheckOutcome(str, Enum):
+    """Check outcome (str subclass)."""
     PASSED = "passed"
     FAILED = "failed"
     WARNING = "warning"
@@ -71,6 +73,7 @@ class CheckOutcome(str, Enum):
 
 
 class OverallVerdict(str, Enum):
+    """Overall verdict (str subclass)."""
     PASSED = "passed"
     FAILED = "failed"
     WARNING = "warning"

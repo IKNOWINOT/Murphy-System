@@ -64,6 +64,7 @@ _MAX_REPORTS = 500
 # ---------------------------------------------------------------------------
 
 class BootstrapTaskStatus(str, Enum):
+    """Bootstrap task status (str subclass)."""
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"

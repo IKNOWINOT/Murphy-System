@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 class ResourceType(str, Enum):
+    """Resource type (str subclass)."""
     CPU = "cpu"
     MEMORY = "memory"
     STORAGE = "storage"
@@ -35,6 +36,7 @@ class ResourceType(str, Enum):
 
 
 class ComponentStatus(str, Enum):
+    """Component status (str subclass)."""
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -42,6 +44,7 @@ class ComponentStatus(str, Enum):
 
 
 class RunbookStatus(str, Enum):
+    """Runbook status (str subclass)."""
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"

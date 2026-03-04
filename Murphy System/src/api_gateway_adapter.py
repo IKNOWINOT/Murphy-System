@@ -15,6 +15,7 @@ from thread_safe_operations import capped_append
 
 
 class GatewayAuthMethod(Enum):
+    """Gateway auth method (Enum subclass)."""
     API_KEY = "api_key"
     BEARER_TOKEN = "bearer_token"
     OAUTH2 = "oauth2"
@@ -24,6 +25,7 @@ class GatewayAuthMethod(Enum):
 
 
 class RouteMethod(Enum):
+    """Route method (Enum subclass)."""
     GET = "GET"
     POST = "POST"
     PUT = "PUT"
@@ -33,6 +35,7 @@ class RouteMethod(Enum):
 
 
 class CircuitState(Enum):
+    """Circuit state (Enum subclass)."""
     CLOSED = "closed"  # normal operation
     OPEN = "open"  # failing, reject requests
     HALF_OPEN = "half_open"  # testing recovery
@@ -40,6 +43,7 @@ class CircuitState(Enum):
 
 @dataclass
 class RateLimitRule:
+    """Rate limit rule."""
     max_requests: int = 100
     window_seconds: int = 60
     per_client: bool = True
@@ -47,6 +51,7 @@ class RateLimitRule:
 
 @dataclass
 class CircuitBreakerConfig:
+    """Circuit breaker config."""
     failure_threshold: int = 5
     recovery_timeout: float = 30.0
     half_open_max_calls: int = 3
@@ -54,6 +59,7 @@ class CircuitBreakerConfig:
 
 @dataclass
 class RouteDefinition:
+    """Route definition."""
     route_id: str
     path: str
     method: RouteMethod
@@ -70,6 +76,7 @@ class RouteDefinition:
 
 @dataclass
 class RouteState:
+    """Route state."""
     route: RouteDefinition
     request_count: int = 0
     error_count: int = 0
@@ -85,6 +92,7 @@ class RouteState:
 
 @dataclass
 class GatewayRequest:
+    """Gateway request."""
     request_id: str
     path: str
     method: str
@@ -97,6 +105,7 @@ class GatewayRequest:
 
 @dataclass
 class GatewayResponse:
+    """Gateway response."""
     request_id: str
     status_code: int
     body: Any = None

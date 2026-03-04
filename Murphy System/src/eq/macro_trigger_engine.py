@@ -26,6 +26,7 @@ from thread_safe_operations import capped_append
 # ---------------------------------------------------------------------------
 
 class TriggerType(Enum):
+    """Trigger type (Enum subclass)."""
     ASSIST = "assist"       # Target the MA's target
     FOLLOW = "follow"       # Follow a designated leader
     ATTACK = "attack"       # Engage current target
@@ -50,6 +51,7 @@ class TriggerType(Enum):
 # ---------------------------------------------------------------------------
 
 class CombatState(Enum):
+    """Combat state (Enum subclass)."""
     IDLE = "idle"
     COMBAT = "combat"
     FLEEING = "fleeing"

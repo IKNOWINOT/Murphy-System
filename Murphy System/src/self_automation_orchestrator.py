@@ -27,6 +27,7 @@ from thread_safe_operations import capped_append
 
 
 class TaskCategory(str, Enum):
+    """Task category (str subclass)."""
     COVERAGE_GAP = "coverage_gap"
     INTEGRATION_GAP = "integration_gap"
     COMPETITIVE_GAP = "competitive_gap"
@@ -38,6 +39,7 @@ class TaskCategory(str, Enum):
 
 
 class TaskStatus(str, Enum):
+    """Task status (str subclass)."""
     QUEUED = "queued"
     IN_PROGRESS = "in_progress"
     TESTING = "testing"
@@ -48,6 +50,7 @@ class TaskStatus(str, Enum):
 
 
 class PromptStep(str, Enum):
+    """Prompt step (str subclass)."""
     ANALYSIS = "analysis"
     PLANNING = "planning"
     IMPLEMENTATION = "implementation"

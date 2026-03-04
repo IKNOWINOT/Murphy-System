@@ -30,12 +30,14 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 class CertificationLevel(Enum):
+    """Certification level (Enum subclass)."""
     EXPERIMENTAL = "experimental"
     BETA = "beta"
     PRODUCTION = "production"
 
 
 class HealthStatus(Enum):
+    """Health status (Enum subclass)."""
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
