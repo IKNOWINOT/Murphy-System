@@ -2,7 +2,7 @@
 
 **Universal AI Automation System**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/IKNOWINOT/Murphy-System) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.11+-yellow.svg)](https://www.python.org/) [![Tests](https://img.shields.io/badge/tests-8206%20passing-brightgreen.svg)](#-test-status)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/IKNOWINOT/Murphy-System) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.11+-yellow.svg)](https://www.python.org/) [![Tests](https://img.shields.io/badge/tests-8215%20passing-brightgreen.svg)](#-test-status)
 
 ---
 
@@ -146,7 +146,7 @@ Murphy-System/
     ├── murphy                          ← CLI tool (start/stop/status/…)
     ├── murphy_system_1.0_runtime.py    ← Single production runtime
     ├── src/                            ← 420+ production modules
-    ├── tests/                          ← 348 test files (8,200+ tests)
+    ├── tests/                          ← 349 test files (8,200+ tests)
     ├── bots/                           ← 94 production bots
     ├── documentation/                  ← Structured API/user docs
     ├── docs/                           ← Technical docs

@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Round 40 final verification** — 90-category comprehensive audit complete:
+  - 9 final gate tests covering syntax, imports, bare-except, eval/exec, wildcards, secrets, repo files, CHANGELOG, package coverage
+  - 118 gap-closure tests across 12 round files, all passing
+  - Full import sweep: 517/517 modules clean
+  - Updated badge: 8,206 → 8,215 tests; 349 test files
+  - **ALL 90 AUDIT CATEGORIES VERIFIED AT ZERO**
 - **Round 39 final audit** — 80-category code-quality verification:
   - Custom exceptions properly inherit from Error/Exception
   - pyproject.toml has all required sections (project, build-system)
