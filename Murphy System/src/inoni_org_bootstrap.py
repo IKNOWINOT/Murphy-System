@@ -6,6 +6,8 @@ the sole human employee (Founder/Admin) and all other positions are filled by
 shadow agents.
 """
 
+import re
+
 try:
     from src.shadow_agent_integration import (
         ShadowAgentIntegration,
@@ -42,7 +44,7 @@ __all__ = ["InoniOrgBootstrap", "FOUNDER", "COMPANY"]
 # ---------------------------------------------------------------------------
 FOUNDER = {"name": "Corey Post", "title": "Founder/Admin", "email": "cpost@inoni3dp.com"}
 COMPANY = "Inoni LLC"
-REGISTRATION = {"provider": "ZenBusiness", "entity_type": "LLC", "state": "registered"}
+REGISTRATION = {"provider": "ZenBusiness", "entity_type": "LLC", "registration_status": "registered"}
 
 
 class InoniOrgBootstrap:
@@ -483,7 +485,6 @@ class InoniOrgBootstrap:
         lower = message.lower()
 
         # EverQuest / R&D — always routes to Chief Research Officer
-        import re
         _eq_pattern = re.compile(
             r"\b("
             r"everquest|eqemu|eq\b|npc|zone design|faction manager|"
