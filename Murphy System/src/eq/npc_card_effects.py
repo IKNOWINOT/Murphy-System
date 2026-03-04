@@ -145,7 +145,7 @@ class IdentityTemplate:
 
 @dataclass
 class Tier1CombatSpell:
-    """Tier1 combat spell."""
+    """Tier 1 combat spell."""
     name: str
     description: str
     condition: str
@@ -157,7 +157,7 @@ class Tier1CombatSpell:
 
 @dataclass
 class Tier2DefensiveBuff:
-    """Tier2 defensive buff."""
+    """Tier 2 defensive buff."""
     name: str
     description: str
     mitigation_type: str
@@ -167,7 +167,7 @@ class Tier2DefensiveBuff:
 
 @dataclass
 class Tier3Specialization:
-    """Tier3 specialization."""
+    """Tier 3 specialization."""
     name: str
     description: str
     effect_type: str  # weapon_conversion | spell_enhancement | hybrid
@@ -177,7 +177,7 @@ class Tier3Specialization:
 
 @dataclass
 class Tier4SoulProtector:
-    """Tier4 soul protector."""
+    """Tier 4 soul protector."""
     name: str
     protector_entity_id: str
     protector_level: int
