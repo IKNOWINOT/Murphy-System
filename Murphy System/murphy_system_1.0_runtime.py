@@ -11788,7 +11788,12 @@ class MurphySystem:
         region = region_info["region"]
 
         # --- Librarian enrichment: analyse answers so far and add context ---
+        # Enrich based on the stage just captured AND preview hints for the next stage
         librarian_hint = self._librarian_enrich_flow(current_stage["stage"], answers)
+        if next_stage["stage"] != current_stage["stage"]:
+            next_hint = self._librarian_enrich_flow(next_stage["stage"] + "_preview", answers)
+            if next_hint:
+                librarian_hint = (librarian_hint + "\n" + next_hint) if librarian_hint else next_hint
 
         result = {
             "current_stage": current_stage["stage"],
@@ -11811,6 +11816,10 @@ class MurphySystem:
         they'll need API keys for those services — even before the interview
         finishes.
 
+        The Librarian also generates specific follow-up suggestion prompts based
+        on what it has inferred from answers so far — helping the user identify
+        exactly what they need rather than asking generic questions.
+
         Returns a hint string (possibly empty) that gets appended to the next
         prompt so the user can see what the Librarian has already figured out.
         """
@@ -11818,6 +11827,80 @@ class MurphySystem:
             return ""
 
         hints: List[str] = []
+
+        # After 'signup', acknowledge the goal and ask specifics
+        if stage == "signup" and "signup" in answers:
+            goal_text = answers["signup"].lower()
+            if len(goal_text) > 10:
+                hints.append(
+                    f"\n💡 *Librarian note:* Great — I'm already thinking about "
+                    f"what integrations will support your goal."
+                )
+                # Infer specific suggestions from the signup goal
+                if any(w in goal_text for w in ("sales", "pipeline", "leads", "crm")):
+                    hints.append(
+                        "\n🔎 *Suggestion:* Since you mentioned sales, consider whether "
+                        "you already use a CRM like **Salesforce** or **HubSpot** — "
+                        "Murphy can connect directly to either. Also, do you need "
+                        "automated follow-up emails or SMS to leads?"
+                    )
+                elif any(w in goal_text for w in ("email", "marketing", "campaign", "newsletter")):
+                    hints.append(
+                        "\n🔎 *Suggestion:* For email automation, Murphy supports "
+                        "**SendGrid**, **Mailchimp**, and **Google Workspace**. "
+                        "Do you need bulk campaigns, transactional emails, or both?"
+                    )
+                elif any(w in goal_text for w in ("devops", "deploy", "code", "ci/cd", "github")):
+                    hints.append(
+                        "\n🔎 *Suggestion:* For DevOps workflows, Murphy integrates with "
+                        "**GitHub**, **Jira**, and **Slack** for notifications. "
+                        "What's your deployment target — cloud, on-prem, or hybrid?"
+                    )
+                elif any(w in goal_text for w in ("support", "customer", "helpdesk", "ticket")):
+                    hints.append(
+                        "\n🔎 *Suggestion:* For customer support, Murphy can integrate "
+                        "**Slack** for internal routing, **SendGrid** for auto-responses, "
+                        "and **HubSpot** for ticket tracking. "
+                        "How many support agents will be using the system?"
+                    )
+                else:
+                    hints.append(
+                        "\n🔎 *Suggestion:* To help me recommend the best setup, "
+                        "think about: What tools does your team use daily? "
+                        "What manual tasks take the most time? "
+                        "Are there any compliance requirements I should know about?"
+                    )
+
+        # After 'region', suggest region-specific considerations
+        if stage == "region" and "region" in answers:
+            region_text = answers["region"].lower()
+            if any(w in region_text for w in ("eu", "europe", "uk", "germany", "france", "gdpr")):
+                hints.append(
+                    "\n💡 *Librarian note:* Since you're operating in the EU, I'll "
+                    "automatically enable GDPR-compliant data handling and recommend "
+                    "EU-hosted service endpoints where available."
+                )
+                hints.append(
+                    "\n🔎 *Suggestion:* Do you need data residency guarantees? "
+                    "Some integrations (like Google Workspace) offer EU-only data storage."
+                )
+            elif any(w in region_text for w in ("us", "united states", "america", "canada")):
+                hints.append(
+                    "\n💡 *Librarian note:* Noted — US region. I'll configure "
+                    "standard data handling with SOC 2 compliance defaults."
+                )
+                if "signup" in answers and any(w in answers["signup"].lower() for w in ("health", "medical", "hipaa")):
+                    hints.append(
+                        "\n🔎 *Suggestion:* Since you mentioned healthcare, do you "
+                        "need HIPAA-compliant data handling? This affects which "
+                        "integrations and storage options are available."
+                    )
+            else:
+                hints.append(
+                    "\n💡 *Librarian note:* I'll configure the system for your "
+                    f"region. If you have specific compliance requirements, "
+                    "mention them in the next step."
+                )
 
         # After 'setup' or 'automation_design', peek at integrations
         if stage in ("setup", "automation_design"):
@@ -11829,15 +11912,68 @@ class MurphySystem:
                     f"you'll likely need: **{', '.join(svc_names)}**. "
                     "I'll provide direct signup links when we finish."
                 )
+                # Provide specific next-step suggestions based on inferred services
+                missing_context = []
+                combined = " ".join(str(v) for v in answers.values()).lower()
+                if any(r["service"] in ("hubspot", "salesforce") for r in recs):
+                    if "pipeline" not in combined and "stage" not in combined:
+                        missing_context.append(
+                            "How many stages does your sales pipeline have? "
+                            "(e.g., lead → qualified → demo → proposal → closed)"
+                        )
+                if any(r["service"] == "sendgrid" for r in recs):
+                    if "template" not in combined and "frequency" not in combined:
+                        missing_context.append(
+                            "How often will automated emails be sent? "
+                            "(e.g., immediately on trigger, daily digest, weekly)"
+                        )
+                if any(r["service"] == "slack" for r in recs):
+                    if "channel" not in combined:
+                        missing_context.append(
+                            "Which Slack channels should receive notifications? "
+                            "(e.g., #sales-alerts, #ops-updates)"
+                        )
+                if missing_context:
+                    hints.append(
+                        "\n🔎 *Suggestions to help me build a better plan:*"
+                    )
+                    for q in missing_context[:3]:
+                        hints.append(f"  • {q}")
 
-        # After 'signup', acknowledge the goal
-        if stage == "signup" and "signup" in answers:
-            goal_text = answers["signup"]
-            if len(goal_text) > 10:
-                hints.append(
-                    f"\n💡 *Librarian note:* Great — I'm already thinking about "
-                    f"what integrations will support your goal."
+        # After 'automation_production', ask about monitoring
+        if stage == "automation_production":
+            hints.append(
+                "\n💡 *Librarian note:* I'll set up monitoring and safety gates "
+                "for your production automation."
+            )
+            combined = " ".join(str(v) for v in answers.values()).lower()
+            suggestions = []
+            if "alert" not in combined and "notify" not in combined:
+                suggestions.append(
+                    "Who should be alerted if an automation fails? "
+                    "(e.g., email to ops team, Slack message to #alerts)"
                 )
+            if "rollback" not in combined and "undo" not in combined:
+                suggestions.append(
+                    "Do you need automatic rollback on failure, or manual approval?"
+                )
+            if "schedule" not in combined and "window" not in combined:
+                suggestions.append(
+                    "Is there a preferred maintenance window for deploying changes? "
+                    "(e.g., weekdays 2-4 AM, weekends only)"
+                )
+            if suggestions:
+                hints.append("\n🔎 *Suggestions to finalize your production setup:*")
+                for q in suggestions[:3]:
+                    hints.append(f"  • {q}")
+
+        # Preview hint for upcoming production stage
+        if stage == "automation_production_preview":
+            hints.append(
+                "\n🔎 *Coming up next:* I'll ask about monitoring, alerts, and "
+                "rollout windows. Think about who should be notified on failures "
+                "and whether you want automatic rollback."
+            )
 
         return "\n".join(hints)
 
@@ -12604,7 +12740,7 @@ class MurphySystem:
             }
 
         # Deterministic fallback — librarian is still active using onboard knowledge
-        fallback_reply = self._deterministic_reply(message, nl_intent)
+        fallback_reply = self._deterministic_reply(message, nl_intent, session_id=session_id)
         llm_status = self._get_llm_status()
         # Show LLM upgrade notice once per session (librarian is always active)
         if not llm_status.get("enabled") and not session.get("_llm_notice_shown"):
@@ -12644,15 +12780,42 @@ class MurphySystem:
         }
         return mapping.get(nl_intent, mapping["general"])
 
-    def _deterministic_reply(self, message: str, nl_intent: str) -> str:
-        """Generate a helpful deterministic reply when LLM is unavailable."""
+    def _deterministic_reply(self, message: str, nl_intent: str, session_id: str = "default") -> str:
+        """Generate a helpful deterministic reply when LLM is unavailable.
+
+        When session context is available (user has started onboarding or
+        previously chatted), the Librarian uses that context to provide
+        more specific suggestions and follow-up questions rather than
+        generic guidance.
+        """
+        # Gather session context for inference-based suggestions
+        session = self.chat_sessions.get(session_id, {})
+        answers = session.get("answers", {})
+        context_suffix = ""
+        if answers:
+            # Build inference-based suggestions from collected data
+            context_suffix = self._build_inference_suggestions(answers, message)
+
         if nl_intent == "status_inquiry":
             st = self.get_system_status()
-            return (
+            reply = (
                 f"**System Status:** {st.get('status', 'unknown')} | "
                 f"**Version:** {st.get('version', '?')}\n\n"
                 "For full details, type **status**."
             )
+            if answers:
+                recs = self.infer_needed_integrations(answers)
+                if recs:
+                    configured = [r["name"] for r in recs if os.environ.get(r["env_var"])]
+                    missing = [r["name"] for r in recs if not os.environ.get(r["env_var"])]
+                    if missing:
+                        reply += (
+                            f"\n\n🔎 *Based on your onboarding answers, you still need "
+                            f"API keys for: **{', '.join(missing[:4])}**. "
+                            f"Type **api keys** for signup links.*"
+                        )
+            return reply
+
         if nl_intent == "onboarding":
             return (
                 "It sounds like you'd like to get started! Type **start interview** "
@@ -12670,24 +12833,79 @@ class MurphySystem:
                 "available services, or **show modules** to browse the full module catalogue.\n\n"
                 "Type **api keys** to see direct signup links for supported services."
             )
+            if answers:
+                recs = self.infer_needed_integrations(answers)
+                if recs:
+                    svc_names = [r["name"] for r in recs[:5]]
+                    reply += (
+                        f"\n\n🔎 *Based on your onboarding, I'd recommend starting with: "
+                        f"**{', '.join(svc_names)}**.*"
+                    )
             return reply
         if nl_intent == "plan_request":
-            return (
+            reply = (
                 "I can help you build an automation plan! Here's how to get started:\n\n"
                 "1. Type **start interview** so I can learn about your business\n"
                 "2. I'll recommend integrations and the API keys you'll need\n"
                 "3. Then we'll build an execution plan together\n\n"
                 "Or type **plan** for an overview of the two-plane execution model."
             )
+            if answers:
+                # Provide a more specific response since we know the user's goal
+                goal = answers.get("signup", "")
+                if goal:
+                    reply = (
+                        f"Based on your goal — *\"{goal[:80]}\"* — here's what I suggest:\n\n"
+                    )
+                    recs = self.infer_needed_integrations(answers)
+                    if recs:
+                        reply += "**Step 1 — Set up integrations:**\n"
+                        for r in recs[:4]:
+                            reply += f"  • **{r['name']}** — {r['reason']}\n"
+                        reply += "\n"
+                    reply += (
+                        "**Step 2 — Define your workflow:**\n"
+                        "  Describe the trigger → action → result you want automated.\n\n"
+                        "**Step 3 — Execute:**\n"
+                        "  Type **execute <your task>** and Murphy handles the rest.\n\n"
+                        "Would you like to start with step 1? Type **api keys** for signup links."
+                    )
+            return reply
         if nl_intent == "execution_request":
-            return (
+            reply = (
                 "Tell me what you'd like to run! Use **execute <task description>** "
                 "and I'll route it through the execution pipeline."
             )
+            if answers:
+                goal = answers.get("signup", "")
+                if goal:
+                    reply += (
+                        f"\n\n🔎 *Based on your setup for \"{goal[:60]}\" — "
+                        "try describing a specific task, like:*\n"
+                    )
+                    combined = " ".join(str(v) for v in answers.values()).lower()
+                    if any(w in combined for w in ("sales", "leads", "pipeline")):
+                        reply += "  • `execute Score incoming leads and send follow-up emails`\n"
+                        reply += "  • `execute Generate weekly sales pipeline report`"
+                    elif any(w in combined for w in ("email", "marketing")):
+                        reply += "  • `execute Send welcome email to new signups`\n"
+                        reply += "  • `execute Generate email campaign for product launch`"
+                    elif any(w in combined for w in ("devops", "deploy", "code")):
+                        reply += "  • `execute Run CI pipeline and deploy to staging`\n"
+                        reply += "  • `execute Create release notes from recent commits`"
+                    else:
+                        reply += "  • `execute Generate a report on last week's activity`\n"
+                        reply += "  • `execute Automate daily status update notifications`"
+            return reply
+
         # General / catch-all
-        return (
+        reply = (
             "I'm Murphy — your professional automation assistant. "
             "I can help with onboarding, integrations, execution plans, and more.\n\n"
+        )
+        if context_suffix:
+            reply += context_suffix + "\n\n"
+        reply += (
             "Try:\n"
             "• **start interview** — guided onboarding (I'll learn your needs)\n"
             "• **help** — see all commands\n"
@@ -12696,6 +12914,39 @@ class MurphySystem:
             "• **api keys** — see API signup links for integrations\n\n"
             "Or just describe what you'd like to accomplish and I'll guide you."
         )
+        return reply
+
+    def _build_inference_suggestions(self, answers: Dict[str, str], message: str) -> str:
+        """Build specific suggestion prompts based on inference from collected data.
+
+        Analyzes what the Librarian already knows about the user from onboarding
+        answers and generates targeted follow-up questions or action items.
+        """
+        parts: List[str] = []
+        combined = " ".join(str(v) for v in answers.values()).lower()
+        msg_lower = message.lower()
+
+        # If user seems to be asking about something we have data on
+        recs = self.infer_needed_integrations(answers)
+        if recs:
+            svc_names = [r["name"] for r in recs[:4]]
+            parts.append(
+                f"🔎 *Based on your profile, I recommend: **{', '.join(svc_names)}**.*"
+            )
+
+        # Identify what information is still missing
+        missing = []
+        if "automation_design" not in answers:
+            missing.append("your automation workflow (trigger → action → result)")
+        if "region" not in answers:
+            missing.append("your operating region for compliance")
+        if missing and len(missing) <= 2:
+            parts.append(
+                "To give you the best recommendations, I still need: "
+                + "; ".join(missing) + "."
+            )
+
+        return "\n".join(parts)
 
     def _format_api_links_reply(self, message: str) -> str:
         """Format an API-links response, optionally filtered by message content."""
