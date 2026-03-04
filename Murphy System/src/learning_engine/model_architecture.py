@@ -12,8 +12,34 @@ from uuid import UUID, uuid4
 import logging
 
 import numpy as np
+import pickle
 
 logger = logging.getLogger(__name__)
+
+# Allowed top-level modules for unpickling (numpy, sklearn, builtins only)
+_PICKLE_SAFE_MODULES = frozenset({
+    "numpy", "numpy.core", "numpy.core.multiarray", "numpy.core.numeric",
+    "numpy.random", "numpy.ma", "numpy.dtypes",
+    "sklearn", "builtins", "collections", "copy", "copyreg",
+    "_codecs", "encodings", "io",
+})
+
+
+class _RestrictedUnpickler(pickle.Unpickler):
+    """Unpickler that refuses to load arbitrary modules.
+
+    Only numpy, sklearn, and Python built-in types are allowed, which is
+    sufficient for the ML models stored by this module while blocking
+    code-execution exploits (CWE-502).
+    """
+
+    def find_class(self, module: str, name: str):
+        top = module.split(".")[0]
+        if top in _PICKLE_SAFE_MODULES:
+            return super().find_class(module, name)
+        raise pickle.UnpicklingError(
+            f"Restricted unpickler refused module {module!r}"
+        )
 
 
 class ModelType(str, Enum):
@@ -298,7 +324,8 @@ class ShadowAgentModel:
 
         if os.path.isfile(model_path):
             with open(model_path, 'rb') as f:
-                self.model = pickle.load(f)
+                unpickler = _RestrictedUnpickler(f)
+                self.model = unpickler.load()
             self.is_trained = True
         else:
             logger.warning("No model binary found at %s", model_path)
