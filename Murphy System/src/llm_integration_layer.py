@@ -186,9 +186,9 @@ class LLMIntegrationLayer:
             try:
                 from src.mock_compatible_local_llm import MockCompatibleLocalLLM
                 self.local_llm = MockCompatibleLocalLLM()
-                print("✅ Mock-Compatible Local LLM loaded successfully")
+                logger.info("✅ Mock-Compatible Local LLM loaded successfully")
             except ImportError as exc:
-                print(f"⚠️  Could not import Mock-Compatible Local LLM: {exc}")
+                logger.info(f"⚠️  Could not import Mock-Compatible Local LLM: {exc}")
                 self.use_local_fallback = False
 
     def _load_domain_routing(self) -> Dict[DomainType, Dict[str, Any]]:
@@ -316,19 +316,19 @@ class LLMIntegrationLayer:
             else:
                 raise ValueError(f"Unknown provider: {request.provider}")
         except Exception as exc:
-            print(f"⚠️  API call failed for {request.provider.value}: {exc}")
+            logger.info(f"⚠️  API call failed for {request.provider.value}: {exc}")
 
             # Fallback to Groq if primary fails
             if request.provider != LLMProvider.GROQ:
                 try:
-                    print("🔄 Fallback to Groq API...")
+                    logger.info("🔄 Fallback to Groq API...")
                     return self._call_groq(request)
                 except Exception as e2:
-                    print(f"⚠️  Groq fallback also failed: {e2}")
+                    logger.info(f"⚠️  Groq fallback also failed: {e2}")
 
             # Final fallback to Enhanced Local LLM
             if self.use_local_fallback and self.local_llm:
-                print("🔄 Fallback to Enhanced Local LLM...")
+                logger.info("🔄 Fallback to Enhanced Local LLM...")
                 return self._call_local_llm(request)
 
             # All fallbacks failed
@@ -737,59 +737,59 @@ if __name__ == "__main__":
     llm_layer = LLMIntegrationLayer()
 
     # Test 1: Mathematical domain (Aristotle + Wulfrum)
-    print("=== Test 1: Mathematical Domain ===")
+    logger.info("=== Test 1: Mathematical Domain ===")
     response = llm_layer.route_request(
         prompt="Calculate the structural load bearing capacity of a beam with given dimensions",
         domain=DomainType.MATHEMATICAL,
         context={"beam_width": 10, "beam_height": 20, "material": "steel"}
     )
-    print(f"Provider: {response.provider.value}")
-    print(f"Response: {response.response}")
-    print(f"Confidence: {response.confidence:.2f}")
+    logger.info(f"Provider: {response.provider.value}")
+    logger.info(f"Response: {response.response}")
+    logger.info(f"Confidence: {response.confidence:.2f}")
     if response.validation:
-        print(f"Validation: {response.validation['status']}")
-        print(f"Agreement: {response.validation['agreement']}")
+        logger.info(f"Validation: {response.validation['status']}")
+        logger.info(f"Agreement: {response.validation['agreement']}")
 
     # Test 2: Physics domain (Aristotle + Wulfrum)
-    print("\n=== Test 2: Physics Domain ===")
+    logger.info("\n=== Test 2: Physics Domain ===")
     response = llm_layer.route_request(
         prompt="Calculate the trajectory of a projectile with given initial velocity",
         domain=DomainType.PHYSICS,
         context={"velocity": 50, "angle": 45}
     )
-    print(f"Provider: {response.provider.value}")
-    print(f"Response: {response.response}")
+    logger.info(f"Provider: {response.provider.value}")
+    logger.info(f"Response: {response.response}")
 
     # Test 3: Creative domain (Groq)
-    print("\n=== Test 3: Creative Domain ===")
+    logger.info("\n=== Test 3: Creative Domain ===")
     response = llm_layer.route_request(
         prompt="Suggest innovative features for a mobile app",
         domain=DomainType.CREATIVE,
         context={"app_type": "fitness"}
     )
-    print(f"Provider: {response.provider.value}")
-    print(f"Response: {response.response}")
+    logger.info(f"Provider: {response.provider.value}")
+    logger.info(f"Response: {response.response}")
 
     # Test 4: Architectural domain (Groq + Wulfrum)
-    print("\n=== Test 4: Architectural Domain ===")
+    logger.info("\n=== Test 4: Architectural Domain ===")
     response = llm_layer.route_request(
         prompt="Design system architecture for a scalable web application",
         domain=DomainType.ARCHITECTURAL,
         context={"scale": "large", "users": "millions"}
     )
-    print(f"Provider: {response.provider.value}")
-    print(f"Response: {response.response}")
+    logger.info(f"Provider: {response.provider.value}")
+    logger.info(f"Response: {response.response}")
     if response.validation:
-        print(f"Validation: {response.validation['status']}")
+        logger.info(f"Validation: {response.validation['status']}")
 
     # Test 5: Check triggers
-    print("\n=== Test 5: Pending Triggers ===")
+    logger.info("\n=== Test 5: Pending Triggers ===")
     triggers = llm_layer.get_pending_triggers()
-    print(f"Pending triggers: {len(triggers)}")
+    logger.info(f"Pending triggers: {len(triggers)}")
     for trigger in triggers:
-        print(f"  - {trigger.trigger_id}: {trigger.message}")
+        logger.info(f"  - {trigger.trigger_id}: {trigger.message}")
 
     # Test 6: Generate report
-    print("\n=== Test 6: System Report ===")
+    logger.info("\n=== Test 6: System Report ===")
     report = llm_layer.generate_system_report()
-    print(json.dumps(report, indent=2))
+    logger.info(json.dumps(report, indent=2))

@@ -9,6 +9,9 @@ from enum import Enum
 import json
 from datetime import datetime
 
+import logging
+logger = logging.getLogger("dynamic_expert_generator")
+
 
 class ExpertLevel(Enum):
     """Expert seniority levels"""
@@ -721,7 +724,7 @@ if __name__ == "__main__":
     generator = DynamicExpertGenerator()
 
     # Test 1: Generate single expert
-    print("=== Test 1: Generate Single Expert ===")
+    logger.info("=== Test 1: Generate Single Expert ===")
     expert = generator.generate_expert(
         title="Software Architect",
         domain="software",
@@ -730,10 +733,10 @@ if __name__ == "__main__":
         regulatory_requirements=["gdpr"],
         architectural_requirements=["microservices", "event_driven"]
     )
-    print(json.dumps(expert.to_dict(), indent=2))
+    logger.info(json.dumps(expert.to_dict(), indent=2))
 
     # Test 2: Generate expert team
-    print("\n=== Test 2: Generate Expert Team ===")
+    logger.info("\n=== Test 2: Generate Expert Team ===")
     requirements = {
         "domain": "software",
         "complexity": "complex",
@@ -743,17 +746,17 @@ if __name__ == "__main__":
     }
 
     experts, analysis = generator.generate_expert_team(requirements, budget=1000)
-    print(f"Team Size: {analysis['total_experts']}")
-    print(f"Total Cost: ${analysis['total_cost_per_hour']}/hour")
-    print(f"Avg Confidence: {analysis['average_confidence']:.2%}")
-    print(f"Coverage: {analysis['coverage']}")
-    print(f"Budget Utilization: {analysis['budget_utilization']:.2%}" if analysis['budget_utilization'] else "No budget")
+    logger.info(f"Team Size: {analysis['total_experts']}")
+    logger.info(f"Total Cost: ${analysis['total_cost_per_hour']}/hour")
+    logger.info(f"Avg Confidence: {analysis['average_confidence']:.2%}")
+    logger.info(f"Coverage: {analysis['coverage']}")
+    logger.info(f"Budget Utilization: {analysis['budget_utilization']:.2%}" if analysis['budget_utilization'] else "No budget")
 
     # Test 3: Create from description
-    print("\n=== Test 3: Create Expert from Description ===")
+    logger.info("\n=== Test 3: Create Expert from Description ===")
     expert = create_expert_from_description(
         "I need a senior security specialist with cloud experience",
         domain="software",
         budget=200
     )
-    print(json.dumps(expert.to_dict(), indent=2))
+    logger.info(json.dumps(expert.to_dict(), indent=2))

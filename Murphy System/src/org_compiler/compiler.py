@@ -15,6 +15,9 @@ from typing import List, Dict, Optional, Set
 from collections import defaultdict
 import re
 
+import logging
+logger = logging.getLogger("org_compiler.compiler")
+
 from .schemas import (
     RoleTemplate,
     OrgChartNode,
@@ -429,7 +432,7 @@ class RoleTemplateCompiler:
                 template = self.compile(role_name)
                 templates.append(template)
             except Exception as exc:
-                print(f"Warning: Failed to compile template for {role_name}: {exc}")
+                logger.info(f"Warning: Failed to compile template for {role_name}: {exc}")
 
         return templates
 

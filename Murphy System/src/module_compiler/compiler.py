@@ -12,6 +12,9 @@ from .models.module_spec import ModuleSpec, SandboxProfile
 from .analyzers.static_analyzer import StaticAnalyzer, CodeStructure
 from .analyzers.capability_extractor import CapabilityExtractor
 
+import logging
+logger = logging.getLogger("module_compiler.compiler")
+
 
 class ModuleCompiler:
     """
@@ -164,7 +167,7 @@ class ModuleCompiler:
                 spec = self.compile_module(file_path)
                 module_specs.append(spec)
             except Exception as exc:
-                print(f"Failed to compile {file_path}: {exc}")
+                logger.info(f"Failed to compile {file_path}: {exc}")
                 continue
 
         return module_specs

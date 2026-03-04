@@ -6,6 +6,9 @@ NO LLM calls - pure template-based responses
 
 import os
 from typing import Optional
+
+import logging
+logger = logging.getLogger("response_composer")
 try:
     from state_machine import State, VerifiedFacts, SystemResponse
 except ImportError:
@@ -26,7 +29,7 @@ class ResponseComposer:
             use_templates: If True, uses template-based responses (recommended)
         """
         self.use_templates = use_templates
-        print("✓ Using template-based response generation (no LLM)")
+        logger.info("✓ Using template-based response generation (no LLM)")
 
     def compose_proceed_response(
         self,

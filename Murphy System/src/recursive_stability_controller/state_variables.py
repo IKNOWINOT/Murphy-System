@@ -15,6 +15,9 @@ from dataclasses import dataclass
 from typing import Dict, Optional
 import numpy as np
 
+import logging
+logger = logging.getLogger("recursive_stability_controller.state_variables")
+
 
 @dataclass
 class StateVariables:
@@ -213,7 +216,7 @@ class StateNormalizer:
             "message": message,
             "count": self.alert_count
         })
-        print(f"[ALERT] {message}")
+        logger.info(f"[ALERT] {message}")
 
     def get_alerts(self) -> list:
         """Get all alerts"""
@@ -309,7 +312,7 @@ class StateCollector:
             return state
 
         except Exception as exc:
-            print(f"[ERROR] Failed to collect state: {exc}")
+            logger.info(f"[ERROR] Failed to collect state: {exc}")
             return None
 
     def collect_mock(self) -> StateVariables:

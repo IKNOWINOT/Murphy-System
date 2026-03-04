@@ -5,6 +5,9 @@ Gathers information from multiple sources and synthesizes it
 
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
+
+import logging
+logger = logging.getLogger("research_engine")
 try:
     from verification_layer import VerificationOrchestrator
 except ImportError:
@@ -298,7 +301,7 @@ class CodeGenerator:
 # Example usage
 if __name__ == "__main__":
     result = calculate("25 * 4 + 10")
-    print(f"Result: {result}")
+    logger.info(f"Result: {result}")
 '''
             explanation = "Safe calculator using verified pattern: restricted eval with no builtins"
         else:
@@ -348,7 +351,7 @@ if __name__ == "__main__":
         {"id": 2, "value": "data"}
     ]
     result = process_data(data)
-    print(json.dumps(result, indent=2))
+    logger.info(json.dumps(result, indent=2))
 '''
             explanation = "Data processor using verified pattern: type checking and safe dict access"
         else:
@@ -403,7 +406,7 @@ class APIClient:
 if __name__ == "__main__":
     client = APIClient("https://api.example.com")
     result = client.get("/endpoint")
-    print(result)
+    logger.info(result)
 '''
             explanation = "API client using verified pattern: requests library with error handling"
         else:
@@ -432,7 +435,7 @@ def main():
     Main function
     """
     # TODO: Implement task logic
-    print("Task: {task}")
+    logger.info("Task: {task}")
 
     # Add your implementation here
     pass

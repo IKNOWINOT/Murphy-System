@@ -11,6 +11,9 @@ import json
 from datetime import datetime
 import random
 
+import logging
+logger = logging.getLogger("inquisitory_engine")
+
 
 class ChoiceType(Enum):
     """Types of choices/recommendations"""
@@ -676,7 +679,7 @@ if __name__ == "__main__":
     engine = InquisitoryEngine()
 
     # Test 1: Analyze tech stack choice
-    print("=== Test 1: Analyze Tech Stack Choice ===")
+    logger.info("=== Test 1: Analyze Tech Stack Choice ===")
     question = "Which technology stack should we use for our web application?"
     options = [
         {
@@ -724,13 +727,13 @@ if __name__ == "__main__":
         context=context
     )
 
-    print(f"Question: {recommendation.question}")
-    print(f"Recommended: {recommendation.options[0].name if recommendation.options else 'N/A'}")
-    print(f"Confidence: {recommendation.confidence.value} ({recommendation.confidence_score:.2f})")
-    print(f"Reasoning: {recommendation.reasoning}")
+    logger.info(f"Question: {recommendation.question}")
+    logger.info(f"Recommended: {recommendation.options[0].name if recommendation.options else 'N/A'}")
+    logger.info(f"Confidence: {recommendation.confidence.value} ({recommendation.confidence_score:.2f})")
+    logger.info(f"Reasoning: {recommendation.reasoning}")
 
     # Test 2: Navigate decision tree
-    print("\n=== Test 2: Navigate Decision Tree ===")
+    logger.info("\n=== Test 2: Navigate Decision Tree ===")
     answers = {
         "question_1": "web",
         "question_2": "medium"
@@ -738,18 +741,18 @@ if __name__ == "__main__":
 
     result = engine.navigate_decision_tree("tech_stack_selection", answers)
     if result:
-        print(f"Recommendation: {result.get('technology')}")
-        print(f"Justification: {result.get('justification')}")
+        logger.info(f"Recommendation: {result.get('technology')}")
+        logger.info(f"Justification: {result.get('justification')}")
 
     # Test 3: Get next question
-    print("\n=== Test 3: Get Next Question ===")
+    logger.info("\n=== Test 3: Get Next Question ===")
     next_question = engine.get_next_question("tech_stack_selection", {"question_1": "web"})
     if next_question and next_question.get("question"):
-        print(f"Question: {next_question['question']}")
-        print(f"Options: {list(next_question.get('options', {}).keys())}")
+        logger.info(f"Question: {next_question['question']}")
+        logger.info(f"Options: {list(next_question.get('options', {}).keys())}")
 
     # Test 4: Deductive reasoning
-    print("\n=== Test 4: Deductive Reasoning ===")
+    logger.info("\n=== Test 4: Deductive Reasoning ===")
     premises = [
         "The project has a tight deadline",
         "The budget is limited",
@@ -758,14 +761,14 @@ if __name__ == "__main__":
     ]
 
     result = engine.deductive_reasoning(premises, {})
-    print("Conclusions:")
+    logger.info("Conclusions:")
     for conclusion in result["conclusions"]:
-        print(f"  - {conclusion}")
-    print(f"Confidence: {result['confidence']:.2f}")
+        logger.info(f"  - {conclusion}")
+    logger.info(f"Confidence: {result['confidence']:.2f}")
 
     # Test 5: Generate report
-    print("\n=== Test 5: Generate Report ===")
+    logger.info("\n=== Test 5: Generate Report ===")
     report = engine.generate_choice_report([recommendation])
-    print(f"Total Recommendations: {report['total_recommendations']}")
-    print(f"Average Confidence: {report['average_confidence']:.2f}")
-    print(f"High Confidence: {report['high_confidence_count']}")
+    logger.info(f"Total Recommendations: {report['total_recommendations']}")
+    logger.info(f"Average Confidence: {report['average_confidence']:.2f}")
+    logger.info(f"High Confidence: {report['high_confidence_count']}")

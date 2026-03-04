@@ -8,6 +8,9 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+import logging
+logger = logging.getLogger("multi_source_research")
+
 
 class Source:
     """Represents a research source"""
@@ -107,7 +110,7 @@ class MultiSourceResearcher:
         }.get(depth, 3)
 
         # STEP 1: Query all available sources
-        print(f"[Research] Querying {target_sources} sources for: {topic}")
+        logger.info(f"[Research] Querying {target_sources} sources for: {topic}")
 
         # Query Wikipedia
         if self.sources_config['wikipedia']['enabled']:
@@ -132,16 +135,16 @@ class MultiSourceResearcher:
 
         # Check if we have enough sources
         if len(compiled.sources) < min_sources:
-            print(f"[Research] Warning: Only found {len(compiled.sources)} sources (minimum: {min_sources})")
+            logger.info(f"[Research] Warning: Only found {len(compiled.sources)} sources (minimum: {min_sources})")
 
         # STEP 2: Extract facts from all sources
-        print(f"[Research] Extracting facts from {len(compiled.sources)} sources")
+        logger.info(f"[Research] Extracting facts from {len(compiled.sources)} sources")
         for source in compiled.sources:
             facts = self._extract_facts(source.content, source.name)
             compiled.compiled_facts.extend(facts)
 
         # STEP 3: Synthesize information
-        print(f"[Research] Synthesizing {len(compiled.compiled_facts)} facts")
+        logger.info(f"[Research] Synthesizing {len(compiled.compiled_facts)} facts")
         compiled.synthesis = self._synthesize(compiled)
 
         # STEP 4: Calculate confidence
@@ -150,7 +153,7 @@ class MultiSourceResearcher:
         # STEP 5: Save compiled research
         self._save_compiled(compiled)
 
-        print(f"[Research] Complete. Confidence: {compiled.confidence:.1%}")
+        logger.info(f"[Research] Complete. Confidence: {compiled.confidence:.1%}")
 
         return compiled
 
@@ -188,7 +191,7 @@ class MultiSourceResearcher:
 
                 return source
         except Exception as exc:
-            print(f"[Research] Wikipedia query failed: {exc}")
+            logger.info(f"[Research] Wikipedia query failed: {exc}")
 
         return None
 
@@ -207,7 +210,7 @@ class MultiSourceResearcher:
             # For now, return empty list
             pass
         except Exception as exc:
-            print(f"[Research] Web search failed: {exc}")
+            logger.info(f"[Research] Web search failed: {exc}")
 
         return sources
 
@@ -323,7 +326,7 @@ class MultiSourceResearcher:
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(compiled.to_dict(), f, indent=2)
 
-        print(f"[Research] Saved to: {filepath}")
+        logger.info(f"[Research] Saved to: {filepath}")
 
     def generate_response(self, compiled: CompiledResearch) -> str:
         """
@@ -344,7 +347,7 @@ if __name__ == "__main__":
     # Generate response
     response = researcher.generate_response(compiled)
 
-    print("\n" + "="*60)
-    print("GENERATED RESPONSE:")
-    print("="*60)
-    print(response)
+    logger.info("\n" + "="*60)
+    logger.info("GENERATED RESPONSE:")
+    logger.info("="*60)
+    logger.info(response)

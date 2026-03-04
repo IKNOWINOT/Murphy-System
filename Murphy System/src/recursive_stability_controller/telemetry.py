@@ -20,6 +20,9 @@ import json
 import time
 from pathlib import Path
 
+import logging
+logger = logging.getLogger("recursive_stability_controller.telemetry")
+
 
 @dataclass
 class TelemetryRecord:
@@ -169,7 +172,7 @@ class StabilityTelemetry:
                 json.dump(record.to_dict(), f)
                 f.write('\n')
         except Exception as exc:
-            print(f"[ERROR] Failed to write telemetry: {exc}")
+            logger.info(f"[ERROR] Failed to write telemetry: {exc}")
 
     def get_recent(self, n: int = 10) -> List[TelemetryRecord]:
         """
@@ -328,9 +331,9 @@ class StabilityTelemetry:
     def rotate_log_file(self):
         """Rotate log file (start new file)"""
         self.current_log_file = self.log_dir / f"stability_{int(time.time())}.jsonl"
-        print(f"[INFO] Log file rotated: {self.current_log_file}")
+        logger.info(f"[INFO] Log file rotated: {self.current_log_file}")
 
     def clear_buffer(self):
         """Clear in-memory buffer (use with caution)"""
         self.buffer = []
-        print("[INFO] Telemetry buffer cleared")
+        logger.info("[INFO] Telemetry buffer cleared")

@@ -16,6 +16,9 @@ from datetime import datetime
 import json
 import os
 
+import logging
+logger = logging.getLogger("neuro_symbolic_models.training")
+
 from .models import NeuroSymbolicConfidenceModel, ModelConfig
 from .data import GraphDataset, TrainingExample
 
@@ -149,7 +152,7 @@ class ModelTrainer:
 
             # Log progress
             if batch_idx % self.config.log_interval == 0:
-                print(f"Epoch {epoch}, Batch {batch_idx}/{len(train_loader)}, "
+                logger.info(f"Epoch {epoch}, Batch {batch_idx}/{len(train_loader)}, "
                       f"Loss: {loss.item():.4f}")
 
         return {
@@ -242,11 +245,11 @@ class ModelTrainer:
         """
         Complete training loop with early stopping.
         """
-        print(f"Starting training on {self.device}")
-        print(f"Model parameters: {sum(p.numel() for p in self.model.parameters())}")
+        logger.info(f"Starting training on {self.device}")
+        logger.info(f"Model parameters: {sum(p.numel() for p in self.model.parameters())}")
 
         for epoch in range(self.config.num_epochs):
-            print(f"\nEpoch {epoch + 1}/{self.config.num_epochs}")
+            logger.info(f"\nEpoch {epoch + 1}/{self.config.num_epochs}")
 
             # Train
             train_metrics = self.train_epoch(train_loader, epoch)
@@ -268,9 +271,9 @@ class ModelTrainer:
             )
             self.history.append(metrics)
 
-            print(f"Train Loss: {train_metrics['total_loss']:.4f}, "
+            logger.info(f"Train Loss: {train_metrics['total_loss']:.4f}, "
                   f"Val Loss: {val_metrics['total_loss']:.4f}")
-            print(f"Val MAE - H: {val_metrics['mae_H']:.4f}, "
+            logger.info(f"Val MAE - H: {val_metrics['mae_H']:.4f}, "
                   f"D: {val_metrics['mae_D']:.4f}, "
                   f"R: {val_metrics['mae_R']:.4f}")
 
@@ -281,22 +284,22 @@ class ModelTrainer:
 
                 # Save best model
                 self.save_checkpoint(epoch, is_best=True)
-                print(f"New best model! Val loss: {self.best_val_loss:.4f}")
+                logger.info(f"New best model! Val loss: {self.best_val_loss:.4f}")
             else:
                 self.patience_counter += 1
-                print(f"No improvement. Patience: {self.patience_counter}/{self.config.patience}")
+                logger.info(f"No improvement. Patience: {self.patience_counter}/{self.config.patience}")
 
             # Early stopping
             if self.patience_counter >= self.config.patience:
-                print(f"Early stopping triggered at epoch {epoch}")
+                logger.info(f"Early stopping triggered at epoch {epoch}")
                 break
 
             # Save regular checkpoint
             if (epoch + 1) % 10 == 0:
                 self.save_checkpoint(epoch, is_best=False)
 
-        print("\nTraining complete!")
-        print(f"Best validation loss: {self.best_val_loss:.4f}")
+        logger.info("\nTraining complete!")
+        logger.info(f"Best validation loss: {self.best_val_loss:.4f}")
 
         return self.history
 
@@ -319,7 +322,7 @@ class ModelTrainer:
             path = f"{self.config.checkpoint_dir}/checkpoint_epoch_{epoch}.pt"
 
         torch.save(checkpoint, path)
-        print(f"Saved checkpoint: {path}")
+        logger.info(f"Saved checkpoint: {path}")
 
     def load_checkpoint(self, checkpoint_path: str):
         """Load model from checkpoint."""
@@ -331,8 +334,8 @@ class ModelTrainer:
         self.best_val_loss = checkpoint["best_val_loss"]
         self.history = checkpoint["history"]
 
-        print(f"Loaded checkpoint from {checkpoint_path}")
-        print(f"Best val loss: {self.best_val_loss:.4f}")
+        logger.info(f"Loaded checkpoint from {checkpoint_path}")
+        logger.info(f"Best val loss: {self.best_val_loss:.4f}")
 
 
 @dataclass
@@ -373,30 +376,30 @@ class ModelValidator:
         """
         Comprehensive model validation.
         """
-        print("Starting model validation...")
+        logger.info("Starting model validation...")
 
         model.to(self.device)
         model.eval()
 
         # Check accuracy
         accuracy = self._check_accuracy(model, test_loader)
-        print(f"Accuracy: {accuracy:.4f}")
+        logger.info(f"Accuracy: {accuracy:.4f}")
 
         # Check calibration
         calibration = self._check_calibration(model, test_loader)
-        print(f"Calibration: {calibration:.4f}")
+        logger.info(f"Calibration: {calibration:.4f}")
 
         # Check robustness
         robustness = self._check_robustness(model, test_loader)
-        print(f"Robustness: {robustness:.4f}")
+        logger.info(f"Robustness: {robustness:.4f}")
 
         # Check inference speed
         inference_speed = self._check_inference_speed(model, test_loader)
-        print(f"Inference speed: {inference_speed:.2f}ms")
+        logger.info(f"Inference speed: {inference_speed:.2f}ms")
 
         # Check safety properties
         safety = self._check_safety_properties(model, test_loader)
-        print(f"Safety check: {'PASSED' if safety.passed else 'FAILED'}")
+        logger.info(f"Safety check: {'PASSED' if safety.passed else 'FAILED'}")
 
         # Overall approval decision
         approved = (
@@ -417,7 +420,7 @@ class ModelValidator:
             timestamp=datetime.now().isoformat()
         )
 
-        print(f"\nValidation {'APPROVED' if approved else 'REJECTED'}")
+        logger.info(f"\nValidation {'APPROVED' if approved else 'REJECTED'}")
 
         return report
 
@@ -579,7 +582,7 @@ class ModelValidator:
         with open(path, 'w', encoding='utf-8') as f:
             json.dump(report_dict, f, indent=2)
 
-        print(f"Saved validation report to {path}")
+        logger.info(f"Saved validation report to {path}")
 
 
 # Example usage
@@ -588,7 +591,7 @@ if __name__ == "__main__":
     from .data import TrainingDataCollector, DataSplitter, create_dataloaders
 
     # Collect data
-    print("Collecting training data...")
+    logger.info("Collecting training data...")
     collector = TrainingDataCollector()
     examples = collector.collect_training_batch(batch_size=1000)
 

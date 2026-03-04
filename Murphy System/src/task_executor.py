@@ -6,6 +6,9 @@ from typing import Dict, List, Any, Optional, Callable
 import time
 import json
 
+import logging
+logger = logging.getLogger("task_executor")
+
 class TaskExecutor:
     """
     Executes tasks using the tools and modules that are available
@@ -269,5 +272,5 @@ class TaskExecutor:
 task_executor = TaskExecutor()
 
 if __name__ == "__main__":
-    print("Task Executor Module")
-    print("Executes tasks using available tools")
+    logger.info("Task Executor Module")
+    logger.info("Executes tasks using available tools")

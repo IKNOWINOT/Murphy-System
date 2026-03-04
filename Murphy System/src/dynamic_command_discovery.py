@@ -14,6 +14,9 @@ from typing import Dict, List, Optional, Any, Callable
 from dataclasses import dataclass
 from enum import Enum
 
+import logging
+logger = logging.getLogger("dynamic_command_discovery")
+
 
 class CommandCategory(Enum):
     """Command categories"""
@@ -272,7 +275,7 @@ class DynamicCommandDiscovery:
                         self.modules[module_name].commands.append(command.command_name)
 
         except Exception as exc:
-            print(f"Error discovering commands for module {module_name}: {exc}")
+            logger.info(f"Error discovering commands for module {module_name}: {exc}")
 
     def _create_command_from_function(self, func_name: str, func_obj: Callable,
                                       module_name: str, docstring: str) -> Optional[Command]:

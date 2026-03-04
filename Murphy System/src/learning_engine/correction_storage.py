@@ -8,6 +8,9 @@ from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 import json
 
+import logging
+logger = logging.getLogger("learning_engine.correction_storage")
+
 from .correction_models import (
     Correction, CorrectionType, CorrectionSeverity, CorrectionStatus,
     CorrectionQuery, CorrectionStatistics, CorrectionSummary,
@@ -537,7 +540,7 @@ class CorrectionStorageSystem:
                 correction_id = self.add_correction(correction)
                 imported_ids.append(correction_id)
             except Exception as exc:
-                print(f"Error importing correction: {exc}")
+                logger.info(f"Error importing correction: {exc}")
                 continue
 
         return imported_ids

@@ -14,6 +14,9 @@ from typing import Dict, List, Optional, Callable
 from threading import Thread, Event
 import requests
 
+import logging
+logger = logging.getLogger("adapter_framework.safety_hooks")
+
 
 class HeartbeatWatchdog:
     """
@@ -63,7 +66,7 @@ class HeartbeatWatchdog:
         self.thread = Thread(target=self._monitor, daemon=True)
         self.thread.start()
 
-        print(f"[WATCHDOG] Started for {self.adapter_id}")
+        logger.info(f"[WATCHDOG] Started for {self.adapter_id}")
 
     def stop(self):
         """Stop watchdog"""
@@ -72,7 +75,7 @@ class HeartbeatWatchdog:
         if self.thread:
             self.thread.join(timeout=1.0)
 
-        print(f"[WATCHDOG] Stopped for {self.adapter_id}")
+        logger.info(f"[WATCHDOG] Stopped for {self.adapter_id}")
 
     def _monitor(self):
         """Monitor heartbeat"""
@@ -83,7 +86,7 @@ class HeartbeatWatchdog:
             if time_since_heartbeat > self.timeout:
                 # TIMEOUT - trigger freeze
                 self.timeout_count += 1
-                print(f"[WATCHDOG] TIMEOUT for {self.adapter_id} ({time_since_heartbeat:.1f}s > {self.timeout}s)")
+                logger.info(f"[WATCHDOG] TIMEOUT for {self.adapter_id} ({time_since_heartbeat:.1f}s > {self.timeout}s)")
 
                 if self.on_timeout:
                     self.on_timeout(self.adapter_id, time_since_heartbeat)
@@ -133,7 +136,7 @@ class EmergencyStop:
         Returns:
             True if successful
         """
-        print(f"[EMERGENCY STOP] Adapter {adapter_id}: {reason}")
+        logger.info(f"[EMERGENCY STOP] Adapter {adapter_id}: {reason}")
 
         # Send freeze signal to orchestrator
         try:
@@ -158,7 +161,7 @@ class EmergencyStop:
             success = response.status_code == 200
 
         except Exception as exc:
-            print(f"[ERROR] Failed to send emergency stop signal: {exc}")
+            logger.info(f"[ERROR] Failed to send emergency stop signal: {exc}")
             success = False
 
         # Record
@@ -246,7 +249,7 @@ class ErrorCodeMapper:
             "authority_decay": authority_decay
         })
 
-        print(f"[ERROR MAPPING] {adapter_id}: {error_codes} -> Murphy +{murphy_increase:.2f}, Authority -{authority_decay:.2f}")
+        logger.info(f"[ERROR MAPPING] {adapter_id}: {error_codes} -> Murphy +{murphy_increase:.2f}, Authority -{authority_decay:.2f}")
 
         return {
             "murphy_increase": murphy_increase,
@@ -310,7 +313,7 @@ class SafetyHooks:
         self.watchdogs[adapter_id] = watchdog
         watchdog.start()
 
-        print(f"[SAFETY] Registered {adapter_id} for monitoring")
+        logger.info(f"[SAFETY] Registered {adapter_id} for monitoring")
 
     def heartbeat(self, adapter_id: str):
         """Record heartbeat for adapter"""
@@ -371,4 +374,4 @@ class SafetyHooks:
         for watchdog in self.watchdogs.values():
             watchdog.stop()
 
-        print("[SAFETY] All watchdogs stopped")
+        logger.info("[SAFETY] All watchdogs stopped")

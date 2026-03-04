@@ -372,7 +372,7 @@ class LLMController:
             )
 
         except Exception as exc:
-            print(f"Error querying Groq Mixtral: {exc}")
+            logger.info(f"Error querying Groq Mixtral: {exc}")
             return await self._query_fallback(request)
 
     async def _query_groq_llama(self, request: LLMRequest) -> LLMResponse:
@@ -414,7 +414,7 @@ class LLMController:
             )
 
         except Exception as exc:
-            print(f"Error querying Groq Llama: {exc}")
+            logger.info(f"Error querying Groq Llama: {exc}")
             return await self._query_fallback(request)
 
     async def _query_groq_gemma(self, request: LLMRequest) -> LLMResponse:
@@ -456,7 +456,7 @@ class LLMController:
             )
 
         except Exception as exc:
-            print(f"Error querying Groq Gemma: {exc}")
+            logger.info(f"Error querying Groq Gemma: {exc}")
             return await self._query_fallback(request)
 
     async def _query_local_small(self, request: LLMRequest) -> LLMResponse:

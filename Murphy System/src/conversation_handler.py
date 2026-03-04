@@ -6,6 +6,9 @@ Clearly marks Generated vs Verified responses
 from typing import Dict, Any, Optional
 import re
 
+import logging
+logger = logging.getLogger("conversation_handler")
+
 
 class ConversationHandler:
     """Handles natural conversation with clear G/V markers"""
@@ -256,6 +259,6 @@ if __name__ == "__main__":
     ]
 
     for test in tests:
-        print(f"\nInput: {test}")
+        logger.info(f"\nInput: {test}")
         result = handler.handle(test)
-        print(f"[{result['marker']}] {result['response'][:100]}...")
+        logger.info(f"[{result['marker']}] {result['response'][:100]}...")

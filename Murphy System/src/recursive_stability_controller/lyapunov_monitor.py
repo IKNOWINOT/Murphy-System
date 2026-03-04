@@ -20,6 +20,9 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional
 import numpy as np
 
+import logging
+logger = logging.getLogger("recursive_stability_controller.lyapunov_monitor")
+
 
 @dataclass
 class LyapunovState:
@@ -203,9 +206,9 @@ class LyapunovMonitor:
 
         self.violations.append(violation)
 
-        print(f"[VIOLATION] Lyapunov stability violated at cycle {cycle_id}")
-        print(f"  ΔVₜ = {delta_V:.6f} > 0 (severity: {severity})")
-        print(f"  Vₜ = {V_current:.6f}, Vₜ₋₁ = {V_previous:.6f}")
+        logger.info(f"[VIOLATION] Lyapunov stability violated at cycle {cycle_id}")
+        logger.info(f"  ΔVₜ = {delta_V:.6f} > 0 (severity: {severity})")
+        logger.info(f"  Vₜ = {V_current:.6f}, Vₜ₋₁ = {V_previous:.6f}")
 
     def _record_history(self, state: LyapunovState):
         """Record Lyapunov state in history"""
@@ -308,4 +311,4 @@ class LyapunovMonitor:
         """Reset monitor (use with caution)"""
         self.previous_V = None
         self.consecutive_violations = 0
-        print("[INFO] Lyapunov monitor reset")
+        logger.info("[INFO] Lyapunov monitor reset")

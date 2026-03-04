@@ -352,7 +352,7 @@ class CredentialRefreshManager:
             return result.is_valid
 
         except Exception as exc:
-            print(f"Error refreshing credential {credential_id}: {exc}")
+            logger.info(f"Error refreshing credential {credential_id}: {exc}")
             return False
 
     async def auto_refresh_expiring_credentials(self, hours_threshold: int = 24):

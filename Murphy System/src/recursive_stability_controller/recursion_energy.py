@@ -18,6 +18,9 @@ from typing import Dict
 import numpy as np
 from .state_variables import NormalizedState
 
+import logging
+logger = logging.getLogger("recursive_stability_controller.recursion_energy")
+
 
 @dataclass
 class RecursionEnergyCoefficients:
@@ -252,17 +255,17 @@ class RecursionEnergyEstimator:
         """
         # Validate new coefficients
         if not new_coefficients.validate():
-            print("[ERROR] Invalid coefficients: all must be positive")
+            logger.info("[ERROR] Invalid coefficients: all must be positive")
             return False
 
         # Check if update is allowed
         if not force:
-            print("[WARNING] Coefficient update requires force=True")
-            print("[WARNING] System should be in frozen state")
+            logger.info("[WARNING] Coefficient update requires force=True")
+            logger.info("[WARNING] System should be in frozen state")
             return False
 
         # Update coefficients
         self.coefficients = new_coefficients
-        print(f"[INFO] Coefficients updated: {new_coefficients.to_dict()}")
+        logger.info(f"[INFO] Coefficients updated: {new_coefficients.to_dict()}")
 
         return True

@@ -11,6 +11,9 @@ import time
 from .adapter_contract import AdapterAPI
 from .execution_packet_extension import DeviceExecutionPacket
 
+import logging
+logger = logging.getLogger("adapter_framework.adapter_runtime")
+
 
 class AdapterRuntime:
     """
@@ -158,7 +161,7 @@ class AdapterRuntime:
         Returns:
             True if successful
         """
-        print(f"[EMERGENCY STOP] {reason}")
+        logger.info(f"[EMERGENCY STOP] {reason}")
 
         # Stop adapter
         success = self.adapter.emergency_stop()
@@ -182,7 +185,7 @@ class AdapterRuntime:
             True if successful
         """
         # In production, validate authorization
-        print("[UNFREEZE] Runtime unfrozen")
+        logger.info("[UNFREEZE] Runtime unfrozen")
         self.is_frozen = False
         self.adapter.is_emergency_stopped = False
 
@@ -210,7 +213,7 @@ class AdapterRuntime:
 
     def _log_violation(self, reason: str, packet: DeviceExecutionPacket):
         """Log security violation"""
-        print(f"[VIOLATION] {reason}")
+        logger.info(f"[VIOLATION] {reason}")
 
         self.execution_log.append({
             "type": "violation",
@@ -391,7 +394,7 @@ class AdapterRegistry:
         self.adapters[adapter_id] = adapter
         self.runtimes[adapter_id] = runtime
 
-        print(f"[REGISTER] Adapter {adapter_id} registered")
+        logger.info(f"[REGISTER] Adapter {adapter_id} registered")
 
         return runtime
 

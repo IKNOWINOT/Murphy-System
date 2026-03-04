@@ -15,6 +15,9 @@ from dataclasses import dataclass
 import json
 from datetime import datetime
 
+import logging
+logger = logging.getLogger("neuro_symbolic_models.data")
+
 
 @dataclass
 class TrainingExample:
@@ -78,7 +81,7 @@ class TrainingDataCollector:
             )
 
             if response.status_code != 200:
-                print(f"Failed to collect data: {response.status_code}")
+                logger.info(f"Failed to collect data: {response.status_code}")
                 return examples
 
             failures = response.json().get("failures", [])
@@ -88,11 +91,11 @@ class TrainingDataCollector:
                     example = self._process_failure(failure)
                     examples.append(example)
                 except Exception as exc:
-                    print(f"Failed to process failure: {exc}")
+                    logger.info(f"Failed to process failure: {exc}")
                     continue
 
         except Exception as exc:
-            print(f"Failed to collect training batch: {exc}")
+            logger.info(f"Failed to collect training batch: {exc}")
 
         return examples
 
@@ -214,10 +217,10 @@ class TrainingDataCollector:
                     result = response.json()
                     # Process historical disaster result
                     # (simplified - in practice, extract full failure sequence)
-                    print(f"Collected historical disaster: {disaster}")
+                    logger.info(f"Collected historical disaster: {disaster}")
 
             except Exception as exc:
-                print(f"Failed to collect historical disaster {disaster}: {exc}")
+                logger.info(f"Failed to collect historical disaster {disaster}: {exc}")
 
         return examples
 
@@ -338,7 +341,7 @@ class DataCache:
         """Save examples to cache."""
         cache_path = f"{self.cache_dir}/{name}.pt"
         torch.save(examples, cache_path)
-        print(f"Saved {len(examples)} examples to {cache_path}")
+        logger.info(f"Saved {len(examples)} examples to {cache_path}")
 
     def load(self, name: str) -> Optional[List[TrainingExample]]:
         """Load examples from cache."""
@@ -346,10 +349,10 @@ class DataCache:
 
         try:
             examples = torch.load(cache_path)
-            print(f"Loaded {len(examples)} examples from {cache_path}")
+            logger.info(f"Loaded {len(examples)} examples from {cache_path}")
             return examples
         except FileNotFoundError:
-            print(f"Cache not found: {cache_path}")
+            logger.info(f"Cache not found: {cache_path}")
             return None
 
 
@@ -390,12 +393,12 @@ if __name__ == "__main__":
     collector = TrainingDataCollector()
     examples = collector.collect_training_batch(batch_size=100)
 
-    print(f"Collected {len(examples)} training examples")
+    logger.info(f"Collected {len(examples)} training examples")
 
     # Split data
     train, val, test = DataSplitter.split(examples)
-    print(f"Train: {len(train)}, Val: {len(val)}, Test: {len(test)}")
+    logger.info(f"Train: {len(train)}, Val: {len(val)}, Test: {len(test)}")
 
     # Create dataloaders
     train_loader, val_loader = create_dataloaders(train, val, batch_size=16)
-    print(f"Created dataloaders with {len(train_loader)} train batches")
+    logger.info(f"Created dataloaders with {len(train_loader)} train batches")

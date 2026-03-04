@@ -5,6 +5,9 @@ Reading level: High school student
 from typing import Dict, List, Any, Optional
 import json
 
+import logging
+logger = logging.getLogger("gate_builder")
+
 class GateBuilder:
     """
     Creates safety gates (protections) for systems
@@ -270,5 +273,5 @@ else:
 gate_builder = GateBuilder()
 
 if __name__ == "__main__":
-    print("Gate Builder Module")
-    print("Creates safety gates for any system")
+    logger.info("Gate Builder Module")
+    logger.info("Creates safety gates for any system")

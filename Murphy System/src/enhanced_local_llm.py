@@ -1192,7 +1192,7 @@ def process_data(data, options=None):
 
 def log_error(error):
     """Log errors for debugging"""
-    print(f"Error occurred: {error}")
+    logger.info(f"Error occurred: {error}")
 '''
         elif language == 'javascript':
             return '''

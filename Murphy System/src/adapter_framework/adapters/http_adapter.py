@@ -14,6 +14,9 @@ from typing import Dict
 from ..adapter_contract import AdapterAPI, AdapterManifest
 from ..execution_packet_extension import DeviceExecutionPacket
 
+import logging
+logger = logging.getLogger("adapter_framework.adapters.http_adapter")
+
 
 class HTTPAdapter(AdapterAPI):
     """
@@ -137,7 +140,7 @@ class HTTPAdapter(AdapterAPI):
             return True
 
         except Exception as exc:
-            print(f"[ERROR] Emergency stop failed: {exc}")
+            logger.info(f"[ERROR] Emergency stop failed: {exc}")
             return False
 
     def heartbeat(self) -> Dict:

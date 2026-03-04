@@ -6,6 +6,9 @@ NO API calls - runs entirely locally
 
 import os
 from typing import Optional
+
+import logging
+logger = logging.getLogger("probabilistic_layer")
 try:
     from state_machine import Hypothesis, QuestionType
 except ImportError:
@@ -37,14 +40,14 @@ class IntentParser:
             model_name = model_name or os.getenv("LOCAL_MODEL", "distilgpt2")
             try:
                 self.parser = LocalModelParser(model_name)
-                print(f"✓ Using local model: {model_name}")
+                logger.info(f"✓ Using local model: {model_name}")
             except Exception as exc:
-                print(f"⚠ Failed to load model, falling back to rules: {exc}")
+                logger.info(f"⚠ Failed to load model, falling back to rules: {exc}")
                 self.parser = None
                 self.use_local = False
         else:
             self.parser = None
-            print("✓ Using pure rule-based parsing (no model)")
+            logger.info("✓ Using pure rule-based parsing (no model)")
 
     def infer_intent(self, prompt: str) -> Hypothesis:
         """
@@ -64,7 +67,7 @@ class IntentParser:
 
         except Exception as exc:
             # If parsing fails, return low-confidence hypothesis
-            print(f"⚠ Parsing failed: {exc}, using fallback")
+            logger.info(f"⚠ Parsing failed: {exc}, using fallback")
             return RuleBasedFallback.parse_intent(prompt)
 
 

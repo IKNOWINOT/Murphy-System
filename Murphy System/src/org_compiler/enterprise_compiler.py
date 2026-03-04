@@ -382,7 +382,7 @@ class EnterpriseRoleTemplateCompiler:
                     results[role] = future.result()
                 except Exception as exc:
                     # Log error but continue
-                    print(f"Error compiling {role}: {exc}")
+                    logger.info(f"Error compiling {role}: {exc}")
                     results[role] = None
 
         return results
@@ -441,7 +441,7 @@ class EnterpriseRoleTemplateCompiler:
                 if template:
                     templates.append(template)
             except Exception as exc:
-                print(f"Error compiling {name}: {exc}")
+                logger.info(f"Error compiling {name}: {exc}")
 
         total_pages = (total + page_size - 1) // page_size
 
@@ -471,7 +471,7 @@ class EnterpriseRoleTemplateCompiler:
                 if template:
                     yield template
             except Exception as exc:
-                print(f"Error compiling {role_name}: {exc}")
+                logger.info(f"Error compiling {role_name}: {exc}")
                 yield None
 
     # ============================================================================
@@ -482,7 +482,7 @@ class EnterpriseRoleTemplateCompiler:
         """Build dependency graph for all roles"""
 
         if not NETWORKX_AVAILABLE:
-            print("NetworkX not available, dependency graph disabled")
+            logger.info("NetworkX not available, dependency graph disabled")
             return None
 
         graph = nx.DiGraph()

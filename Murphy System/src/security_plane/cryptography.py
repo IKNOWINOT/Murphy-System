@@ -47,6 +47,9 @@ import hmac
 import logging
 from enum import Enum
 
+import logging
+logger = logging.getLogger("security_plane.cryptography")
+
 from .schemas import (
     CryptographicKey,
     CryptographicAlgorithm,
@@ -567,7 +570,7 @@ class KeyManager:
                 rotated.append(key_id)
             except Exception as exc:
                 # Log error but continue rotating other keys
-                print(f"Error rotating key {key_id}: {exc}")
+                logger.info(f"Error rotating key {key_id}: {exc}")
 
         return rotated
 

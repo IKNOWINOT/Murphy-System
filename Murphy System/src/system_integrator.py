@@ -10,6 +10,9 @@ from dataclasses import dataclass, field
 import json
 from datetime import datetime
 
+import logging
+logger = logging.getLogger("system_integrator")
+
 # Import all system components
 from src.dynamic_expert_generator import DynamicExpertGenerator, GeneratedExpert
 from src.domain_gate_generator import DomainGateGenerator, DomainGate, GateType
@@ -1416,7 +1419,7 @@ if __name__ == "__main__":
     integrator = SystemIntegrator()
 
     # Test 1: Build system
-    print("=== Test 1: Build System ===")
+    logger.info("=== Test 1: Build System ===")
     response = integrator.process_user_request(
         "Build a complex web application with security focus",
         parameters={
@@ -1425,13 +1428,13 @@ if __name__ == "__main__":
             "architectural_requirements": ["microservices"]
         }
     )
-    print(f"Success: {response.success}")
-    print(f"Message: {response.message}")
-    print(f"Experts: {len(response.data.get('experts', []))}")
-    print(f"Gates: {len(response.data.get('gates', []))}")
+    logger.info(f"Success: {response.success}")
+    logger.info(f"Message: {response.message}")
+    logger.info(f"Experts: {len(response.data.get('experts', []))}")
+    logger.info(f"Gates: {len(response.data.get('gates', []))}")
 
     # Test 2: Generate experts
-    print("\n=== Test 2: Generate Experts ===")
+    logger.info("\n=== Test 2: Generate Experts ===")
     response = integrator.process_user_request(
         "I need a team of experts for my software project",
         parameters={
@@ -1441,11 +1444,11 @@ if __name__ == "__main__":
             "budget": 8000
         }
     )
-    print(f"Success: {response.success}")
-    print(f"Message: {response.message}")
+    logger.info(f"Success: {response.success}")
+    logger.info(f"Message: {response.message}")
 
     # Test 3: Create gates
-    print("\n=== Test 3: Create Gates ===")
+    logger.info("\n=== Test 3: Create Gates ===")
     response = integrator.process_user_request(
         "Create safety gates for my system",
         parameters={
@@ -1455,11 +1458,11 @@ if __name__ == "__main__":
             "regulatory_requirements": ["gdpr", "hipaa"]
         }
     )
-    print(f"Success: {response.success}")
-    print(f"Message: {response.message}")
+    logger.info(f"Success: {response.success}")
+    logger.info(f"Message: {response.message}")
 
     # Test 4: Analyze choice
-    print("\n=== Test 4: Analyze Choice ===")
+    logger.info("\n=== Test 4: Analyze Choice ===")
     response = integrator.process_user_request(
         "Which technology stack should I use?",
         parameters={
@@ -1468,20 +1471,20 @@ if __name__ == "__main__":
             "context": {"budget": 10000, "timeline": 180}
         }
     )
-    print(f"Success: {response.success}")
-    print(f"Message: {response.message}")
+    logger.info(f"Success: {response.success}")
+    logger.info(f"Message: {response.message}")
 
     # Test 5: Get system state
-    print("\n=== Test 5: System State ===")
+    logger.info("\n=== Test 5: System State ===")
     state = integrator.get_system_state()
-    print(f"System ID: {state.system_id}")
-    print(f"Experts: {len(state.experts)}")
-    print(f"Gates: {len(state.gates)}")
-    print(f"Constraints: {len(state.constraints)}")
-    print(f"Total Requests: {state.metrics['total_requests']}")
+    logger.info(f"System ID: {state.system_id}")
+    logger.info(f"Experts: {len(state.experts)}")
+    logger.info(f"Gates: {len(state.gates)}")
+    logger.info(f"Constraints: {len(state.constraints)}")
+    logger.info(f"Total Requests: {state.metrics['total_requests']}")
 
     # Test 6: Generate report
-    print("\n=== Test 6: System Report ===")
+    logger.info("\n=== Test 6: System Report ===")
     report = integrator.generate_system_report()
-    print(f"System initialized: {report['system_state']['initialized']}")
-    print(f"LLM requests: {report['llm_report']['total_requests']}")
+    logger.info(f"System initialized: {report['system_state']['initialized']}")
+    logger.info(f"LLM requests: {report['llm_report']['total_requests']}")

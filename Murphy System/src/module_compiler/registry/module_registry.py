@@ -92,7 +92,7 @@ class ModuleRegistry:
             return True
 
         except Exception as exc:
-            print(f"Failed to register module {module_spec.module_id}: {exc}")
+            logger.info(f"Failed to register module {module_spec.module_id}: {exc}")
             return False
 
     def get(self, module_id: str) -> Optional[ModuleSpec]:
@@ -116,7 +116,7 @@ class ModuleRegistry:
             return ModuleSpec.from_dict(data)
 
         except Exception as exc:
-            print(f"Failed to load module {module_id}: {exc}")
+            logger.info(f"Failed to load module {module_id}: {exc}")
             return None
 
     def list_modules(
@@ -258,7 +258,7 @@ class ModuleRegistry:
             return True
 
         except Exception as exc:
-            print(f"Failed to remove module {module_id}: {exc}")
+            logger.info(f"Failed to remove module {module_id}: {exc}")
             return False
 
     def get_stats(self) -> Dict[str, Any]:
@@ -316,4 +316,4 @@ class ModuleRegistry:
             with open(self.index_path, 'w', encoding='utf-8') as f:
                 json.dump(self.index, f, indent=2)
         except Exception as exc:
-            print(f"Failed to save index: {exc}")
+            logger.info(f"Failed to save index: {exc}")

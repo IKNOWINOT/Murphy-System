@@ -11,6 +11,9 @@ from dataclasses import dataclass, field
 import threading
 import json
 
+import logging
+logger = logging.getLogger("conversation_manager")
+
 
 @dataclass
 class ConversationMessage:
@@ -215,7 +218,7 @@ class ConversationManager:
             self.last_cleanup = now
 
             if to_remove:
-                print(f"🧹 Cleaned up {len(to_remove)} old conversations")
+                logger.info(f"🧹 Cleaned up {len(to_remove)} old conversations")
 
     def _should_archive_conversation(self, conv: Conversation) -> bool:
         """
@@ -250,9 +253,9 @@ class ConversationManager:
             # Create artifact from conversation
             # This would integrate with the existing MemoryArtifactSystem
             # For now, just log the archival
-            print(f"📦 Archived conversation {conv.conversation_id} ({len(conv.messages)} messages)")
+            logger.info(f"📦 Archived conversation {conv.conversation_id} ({len(conv.messages)} messages)")
         except Exception as exc:
-            print(f"⚠️  Failed to archive conversation {conv.conversation_id}: {exc}")
+            logger.info(f"⚠️  Failed to archive conversation {conv.conversation_id}: {exc}")
 
     def get_active_conversations(self) -> List[Dict]:
         """
@@ -329,7 +332,7 @@ class ConversationManager:
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(state, f, indent=2)
 
-            print(f"💾 Saved conversation state to {filepath}")
+            logger.info(f"💾 Saved conversation state to {filepath}")
 
     def load_state(self, filepath: str = "conversation_state.json"):
         """
@@ -368,12 +371,12 @@ class ConversationManager:
                 # Restore stats
                 self.stats.update(state.get('stats', {}))
 
-            print(f"📂 Loaded conversation state from {filepath}")
+            logger.info(f"📂 Loaded conversation state from {filepath}")
 
         except FileNotFoundError:
-            print(f"⚠️  No saved state found at {filepath}")
+            logger.info(f"⚠️  No saved state found at {filepath}")
         except Exception as exc:
-            print(f"❌ Failed to load conversation state: {exc}")
+            logger.info(f"❌ Failed to load conversation state: {exc}")
 
 
 # Global conversation manager instance

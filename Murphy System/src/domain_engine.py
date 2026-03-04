@@ -8,6 +8,9 @@ from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, asdict
 from enum import Enum
 
+import logging
+logger = logging.getLogger("domain_engine")
+
 class DomainType(Enum):
     BUSINESS = "business"
     ENGINEERING = "engineering"
@@ -907,13 +910,13 @@ if __name__ == "__main__":
     # Test request analysis
     request = "Build an AI-powered sustainable supply chain system"
     analysis = engine.analyze_request(request)
-    print(f"Analysis: {analysis}")
+    logger.info(f"Analysis: {analysis}")
 
     # Test template selection
     if analysis['needs_generative']:
         template = engine.select_template(request, analysis)
-        print(f"Selected template: {template.template_type}")
+        logger.info(f"Selected template: {template.template_type}")
 
         # Generate questions
         questions = engine.generate_questions(template, request)
-        print(f"Generated {len(questions)} questions")
+        logger.info(f"Generated {len(questions)} questions")

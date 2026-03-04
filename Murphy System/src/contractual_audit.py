@@ -11,6 +11,9 @@ import json
 from datetime import datetime
 import uuid
 
+import logging
+logger = logging.getLogger("contractual_audit")
+
 
 class GapType(Enum):
     """Types of productivity gaps"""
@@ -629,7 +632,7 @@ if __name__ == "__main__":
     audit_system = ContractualAuditSystem()
 
     # Test 1: Audit productivity
-    print("=== Test 1: Audit Productivity ===")
+    logger.info("=== Test 1: Audit Productivity ===")
     system_state = {
         "coordination_efficiency": 0.65,
         "concurrent_users": 500
@@ -649,13 +652,13 @@ if __name__ == "__main__":
     }
 
     gaps, summary = audit_system.audit_productivity(system_state, agent_metrics)
-    print(f"Gaps detected: {len(gaps)}")
-    print(f"Overall score: {summary['overall_score']:.2%}")
+    logger.info(f"Gaps detected: {len(gaps)}")
+    logger.info(f"Overall score: {summary['overall_score']:.2%}")
     for gap in gaps:
-        print(f"  - {gap.description} ({gap.severity})")
+        logger.info(f"  - {gap.description} ({gap.severity})")
 
     # Test 2: Detect gaps from requirements
-    print("\n=== Test 2: Detect Gaps ===")
+    logger.info("\n=== Test 2: Detect Gaps ===")
     requirements = [
         "System shall handle 1000 concurrent users",
         "System shall maintain 99.9% uptime"
@@ -671,25 +674,25 @@ if __name__ == "__main__":
     }
 
     gaps = audit_system.detect_gaps(system_state, requirements)
-    print(f"Gaps detected: {len(gaps)}")
+    logger.info(f"Gaps detected: {len(gaps)}")
     for gap in gaps:
-        print(f"  - {gap.description}")
+        logger.info(f"  - {gap.description}")
 
     # Test 3: Generate contract
-    print("\n=== Test 3: Generate Contract ===")
+    logger.info("\n=== Test 3: Generate Contract ===")
     if gaps:
         contract = audit_system.generate_contract(
             gaps[0].gap_id,
             ["agent_001", "agent_002"],
             "coordination"
         )
-        print(f"Contract generated: {contract.agreement_id}")
-        print(f"Type: {contract.agreement_type}")
-        print(f"Obligations: {len(contract.obligations)}")
-        print(f"Metrics: {contract.metrics}")
+        logger.info(f"Contract generated: {contract.agreement_id}")
+        logger.info(f"Type: {contract.agreement_type}")
+        logger.info(f"Obligations: {len(contract.obligations)}")
+        logger.info(f"Metrics: {contract.metrics}")
 
     # Test 4: Monitor agent drift
-    print("\n=== Test 4: Monitor Agent Drift ===")
+    logger.info("\n=== Test 4: Monitor Agent Drift ===")
     drift = audit_system.monitor_agent_drift(
         "agent_001",
         {
@@ -702,23 +705,23 @@ if __name__ == "__main__":
     )
 
     if drift:
-        print(f"Drift detected: {drift.drift_level.value}")
-        print(f"Type: {drift.drift_type}")
-        print(f"Action required: {drift.action_required}")
-        print(f"Description: {drift.drift_description}")
+        logger.info(f"Drift detected: {drift.drift_level.value}")
+        logger.info(f"Type: {drift.drift_type}")
+        logger.info(f"Action required: {drift.action_required}")
+        logger.info(f"Description: {drift.drift_description}")
 
     # Test 5: Handle drift
-    print("\n=== Test 5: Handle Drift ===")
+    logger.info("\n=== Test 5: Handle Drift ===")
     if drift:
         handled = audit_system.handle_drift(drift.drift_id, "recalibrate")
-        print(f"Drift handled: {handled}")
+        logger.info(f"Drift handled: {handled}")
 
     # Test 6: Generate audit report
-    print("\n=== Test 6: Audit Report ===")
+    logger.info("\n=== Test 6: Audit Report ===")
     report = audit_system.generate_audit_report()
-    print(f"Total gaps: {report['total_gaps']}")
-    print(f"Total agreements: {report['total_agreements']}")
-    print(f"Total drifts: {report['total_drifts']}")
-    print(f"Gaps by status: {report['gaps_by_status']}")
+    logger.info(f"Total gaps: {report['total_gaps']}")
+    logger.info(f"Total agreements: {report['total_agreements']}")
+    logger.info(f"Total drifts: {report['total_drifts']}")
+    logger.info(f"Gaps by status: {report['gaps_by_status']}")
 # Alias for backward compatibility
 ContractualAudit = ContractualAuditSystem

@@ -414,7 +414,7 @@ class ImageGenerationEngine:
             prompt="A futuristic AI control room",
             style=ImageStyle.DIGITAL_ART,
         ))
-        print(result.file_path)
+        logger.info(result.file_path)
     """
 
     # Maximum dimensions to prevent memory exhaustion

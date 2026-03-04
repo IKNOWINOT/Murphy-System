@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **35-category code-quality audit** (rounds 3–16) — systematic static analysis across all 583 source files:
+- **37-category code-quality audit** (rounds 3–17) — systematic static analysis across all 583 source files:
   - 01-bare_except, 02-http_timeout, 03-pickle, 04-eval, 05-yaml, 06-shell_true, 07-div_by_zero, 08-unbounded_append, 09-secrets, 10-syntax, 11-wildcard_imports, 12-asserts, 13-mutable_defaults, 14-silent_swallow, 15-sensitive_logs, 16-unreachable_code, 17-duplicate_methods, 18-nested_try, 19-exception_naming, 20-except_without_as, 21-write_encoding, 22-init_all, 23-unused_except_var, 24-read_encoding, 25-bool_eq, 26-todo_fixme, 27-shadowed_builtins, 28-empty_fstring, 29-is_with_literal, 30-specific_silent_pass, 31-del_method, 32-cmp_empty_collection, 33-exec_outside_repl, 34-inherit_object, 35-return_in_init
   - 126 gap-closure tests verifying all categories remain at zero
 - **`__all__` exports** in `eq/__init__.py`, `rosetta/__init__.py`, `comms_system/__init__.py`
@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **1 `__del__` method** in ComputeService → replaced with `close()` + context manager protocol
 - **3 comparisons to empty collections** (`== []`, `== {}`) → `isinstance` + `len` or `bool()`
 - **1 `exec()` in REPL** → annotated with `noqa: S102` (by-design for REPL module)
+- **589 `print()` in production code** → converted to `logger.info()` / `logger.debug()`
+- **2 missing `import logging`** in memory_management.py and rsc_integration.py → added
 
 ### Changed
 - **README.md** — updated stats (583 source files, 7,924 tests, 345 test files), added code-quality audit row to completion table, updated badges

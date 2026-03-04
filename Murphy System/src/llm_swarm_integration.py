@@ -110,7 +110,7 @@ class LLMSwarmController:
                 return self._rule_based_response(prompt)
 
         except Exception as exc:
-            print(f"LLM error: {exc}")
+            logger.info(f"LLM error: {exc}")
             return self._rule_based_response(prompt)
 
     def _rule_based_response(self, prompt: str) -> str:

@@ -18,6 +18,9 @@ from enum import Enum
 from collections import deque
 import uuid
 
+import logging
+logger = logging.getLogger("autonomous_systems.autonomous_scheduler")
+
 
 class TaskPriority(Enum):
     """Task priority levels"""
@@ -295,7 +298,7 @@ class AutonomousScheduler:
                 time.sleep(self.scheduling_interval)
             except Exception as exc:
                 # Log error but continue
-                print(f"Scheduler error: {exc}")
+                logger.info(f"Scheduler error: {exc}")
 
     def _schedule_next_task(self) -> None:
         """Schedule the next available task"""

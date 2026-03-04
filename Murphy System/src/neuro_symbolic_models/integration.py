@@ -363,4 +363,4 @@ if __name__ == "__main__":
     # if result.used_ml:
     #     print(f"ML signal: H={result.ml_signal.H_ml}, D={result.ml_signal.D_ml}")
 
-    print("Integration module loaded successfully")
+    logger.info("Integration module loaded successfully")

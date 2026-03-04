@@ -271,46 +271,46 @@ if __name__ == "__main__":
     manager = SecureKeyManager()
 
     if len(sys.argv) < 2:
-        print("Usage:")
-        print("  python secure_key_manager.py migrate <plaintext_file>")
-        print("  python secure_key_manager.py add <name> <key>")
-        print("  python secure_key_manager.py remove <name>")
-        print("  python secure_key_manager.py list")
-        print("  python secure_key_manager.py verify")
+        logger.info("Usage:")
+        logger.info("  python secure_key_manager.py migrate <plaintext_file>")
+        logger.info("  python secure_key_manager.py add <name> <key>")
+        logger.info("  python secure_key_manager.py remove <name>")
+        logger.info("  python secure_key_manager.py list")
+        logger.info("  python secure_key_manager.py verify")
         sys.exit(1)
 
     command = sys.argv[1]
 
     if command == "migrate":
         if len(sys.argv) < 3:
-            print("Error: Provide plaintext file path")
+            logger.info("Error: Provide plaintext file path")
             sys.exit(1)
         manager.migrate_from_plaintext(sys.argv[2])
 
     elif command == "add":
         if len(sys.argv) < 4:
-            print("Error: Provide name and key")
+            logger.info("Error: Provide name and key")
             sys.exit(1)
         manager.add_key(sys.argv[2], sys.argv[3])
 
     elif command == "remove":
         if len(sys.argv) < 3:
-            print("Error: Provide key name")
+            logger.info("Error: Provide key name")
             sys.exit(1)
         manager.remove_key(sys.argv[2])
 
     elif command == "list":
         keys = manager.list_keys()
-        print(f"Stored keys ({len(keys)}):")
+        logger.info(f"Stored keys ({len(keys)}):")
         for name in keys:
-            print(f"  - {name}")
+            logger.info(f"  - {name}")
 
     elif command == "verify":
         if manager.verify_encryption():
-            print("✅ Encryption is working correctly")
+            logger.info("✅ Encryption is working correctly")
         else:
-            print("❌ Encryption verification failed")
+            logger.info("❌ Encryption verification failed")
 
     else:
-        print(f"Unknown command: {command}")
+        logger.info(f"Unknown command: {command}")
         sys.exit(1)

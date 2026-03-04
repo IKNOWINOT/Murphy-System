@@ -11,6 +11,9 @@ import json
 from datetime import datetime
 import uuid
 
+import logging
+logger = logging.getLogger("domain_gate_generator")
+
 
 class GateType(Enum):
     """Types of gates"""
@@ -954,7 +957,7 @@ if __name__ == "__main__":
     generator = DomainGateGenerator()
 
     # Test 1: Generate single gate
-    print("=== Test 1: Generate Single Gate ===")
+    logger.info("=== Test 1: Generate Single Gate ===")
     gate = generator.generate_gate(
         name="code_review_gate",
         description="Code must be reviewed before merge",
@@ -963,10 +966,10 @@ if __name__ == "__main__":
         wired_function="validate_code_review",
         risk_reduction=0.7
     )
-    print(json.dumps(gate.to_dict(), indent=2))
+    logger.info(json.dumps(gate.to_dict(), indent=2))
 
     # Test 2: Generate gates for system
-    print("\n=== Test 2: Generate Gates for System ===")
+    logger.info("\n=== Test 2: Generate Gates for System ===")
     requirements = {
         "domain": "software",
         "complexity": "complex",
@@ -978,16 +981,16 @@ if __name__ == "__main__":
     }
 
     gates, analysis = generator.generate_gates_for_system(requirements)
-    print(f"Total Gates: {analysis['total_gates']}")
-    print(f"By Type: {analysis['by_type']}")
-    print(f"By Severity: {analysis['by_severity']}")
-    print(f"Avg Risk Reduction: {analysis['average_risk_reduction']:.2%}")
-    print(f"Gates with Wired Functions: {analysis['gates_with_wired_functions']}")
+    logger.info(f"Total Gates: {analysis['total_gates']}")
+    logger.info(f"By Type: {analysis['by_type']}")
+    logger.info(f"By Severity: {analysis['by_severity']}")
+    logger.info(f"Avg Risk Reduction: {analysis['average_risk_reduction']:.2%}")
+    logger.info(f"Gates with Wired Functions: {analysis['gates_with_wired_functions']}")
 
     # Test 3: Execute gate
-    print("\n=== Test 3: Execute Gate ===")
+    logger.info("\n=== Test 3: Execute Gate ===")
     result = generator.execute_gate(
         gate,
         data={"score": 0.85, "reviewers": ["alice", "bob"]}
     )
-    print(json.dumps(result, indent=2))
+    logger.info(json.dumps(result, indent=2))

@@ -10,6 +10,9 @@ import json
 from datetime import datetime
 import uuid
 
+import logging
+logger = logging.getLogger("bot_inventory_library")
+
 
 class BotStatus(Enum):
     """Bot lifecycle status"""
@@ -721,57 +724,57 @@ if __name__ == "__main__":
     library = BotInventoryLibrary()
 
     # Test 1: Spawn expert bot
-    print("=== Test 1: Spawn Expert Bot ===")
+    logger.info("=== Test 1: Spawn Expert Bot ===")
     expert_bot = library.spawn_bot(
         name="Architecture Expert",
         role="expert",
         expert_id="expert_001"
     )
-    print(f"Spawned: {expert_bot.name} ({expert_bot.role.value})")
-    print(f"Capabilities: {len(expert_bot.capabilities)}")
-    print(f"Status: {expert_bot.status.value}")
+    logger.info(f"Spawned: {expert_bot.name} ({expert_bot.role.value})")
+    logger.info(f"Capabilities: {len(expert_bot.capabilities)}")
+    logger.info(f"Status: {expert_bot.status.value}")
 
     # Test 2: Spawn validator bot
-    print("\n=== Test 2: Spawn Validator Bot ===")
+    logger.info("\n=== Test 2: Spawn Validator Bot ===")
     validator_bot = library.spawn_bot(
         name="Security Validator",
         role="validator"
     )
-    print(f"Spawned: {validator_bot.name} ({validator_bot.role.value})")
-    print(f"Capabilities: {len(validator_bot.capabilities)}")
+    logger.info(f"Spawned: {validator_bot.name} ({validator_bot.role.value})")
+    logger.info(f"Capabilities: {len(validator_bot.capabilities)}")
 
     # Test 3: Spawn monitor bot
-    print("\n=== Test 3: Spawn Monitor Bot ===")
+    logger.info("\n=== Test 3: Spawn Monitor Bot ===")
     monitor_bot = library.spawn_bot(
         name="Performance Monitor",
         role="monitor"
     )
-    print(f"Spawned: {monitor_bot.name} ({monitor_bot.role.value})")
+    logger.info(f"Spawned: {monitor_bot.name} ({monitor_bot.role.value})")
 
     # Test 4: Assign tasks
-    print("\n=== Test 4: Assign Tasks ===")
+    logger.info("\n=== Test 4: Assign Tasks ===")
     library.assign_task(expert_bot.agent_id, "task_001")
     library.assign_task(validator_bot.agent_id, "task_002")
-    print(f"Expert bot tasks: {expert_bot.assigned_tasks}")
-    print(f"Validator bot tasks: {validator_bot.assigned_tasks}")
+    logger.info(f"Expert bot tasks: {expert_bot.assigned_tasks}")
+    logger.info(f"Validator bot tasks: {validator_bot.assigned_tasks}")
 
     # Test 5: Get bot inventory
-    print("\n=== Test 5: Bot Inventory ===")
+    logger.info("\n=== Test 5: Bot Inventory ===")
     inventory = library.get_bot_inventory()
-    print(f"Total bots: {inventory['total_bots']}")
-    print(f"Spawned: {inventory['spawned_count']}")
-    print(f"By role: {list(inventory['by_role'].keys())}")
-    print(f"Available capabilities: {len(inventory['available_capabilities'])}")
+    logger.info(f"Total bots: {inventory['total_bots']}")
+    logger.info(f"Spawned: {inventory['spawned_count']}")
+    logger.info(f"By role: {list(inventory['by_role'].keys())}")
+    logger.info(f"Available capabilities: {len(inventory['available_capabilities'])}")
 
     # Test 6: Despawn bot
-    print("\n=== Test 6: Despawn Bot ===")
+    logger.info("\n=== Test 6: Despawn Bot ===")
     despawned = library.despawn_bot(monitor_bot.agent_id)
-    print(f"Despawned: {despawned}")
-    print(f"Active bots: {len(library.get_active_bots())}")
+    logger.info(f"Despawned: {despawned}")
+    logger.info(f"Active bots: {len(library.get_active_bots())}")
 
     # Test 7: Generate runtime spreadsheet
-    print("\n=== Test 7: Runtime Spreadsheet ===")
+    logger.info("\n=== Test 7: Runtime Spreadsheet ===")
     spreadsheet = library.generate_runtime_spreadsheet()
-    print(f"System modules: {len(spreadsheet['system_modules'])}")
-    print(f"Module functions: {sum(len(funcs) for funcs in spreadsheet['module_functions'].values())}")
-    print(f"Bot capabilities: {len(spreadsheet['bot_capabilities'])}")
+    logger.info(f"System modules: {len(spreadsheet['system_modules'])}")
+    logger.info(f"Module functions: {sum(len(funcs) for funcs in spreadsheet['module_functions'].values())}")
+    logger.info(f"Bot capabilities: {len(spreadsheet['bot_capabilities'])}")

@@ -13,6 +13,9 @@ import time
 import hashlib
 import json
 
+import logging
+logger = logging.getLogger("adapter_framework.telemetry_artifact")
+
 
 @dataclass
 class TelemetryArtifact:
@@ -118,14 +121,14 @@ class TelemetryIngestionPipeline:
         """
         device_id = telemetry.get('device_id')
         if not device_id:
-            print("[REJECT] Missing device_id")
+            logger.info("[REJECT] Missing device_id")
             return None
 
         # Validate required fields
         required = ['timestamp', 'state_vector', 'error_codes', 'health', 'checksum']
         for field in required:
             if field not in telemetry:
-                print(f"[REJECT] Missing required field: {field}")
+                logger.info(f"[REJECT] Missing required field: {field}")
                 return None
 
         # Get sequence number
@@ -134,7 +137,7 @@ class TelemetryIngestionPipeline:
         # Check sequence (must be monotonically increasing)
         if device_id in self.last_sequence:
             if sequence_number <= self.last_sequence[device_id]:
-                print(f"[REJECT] Sequence number not increasing: {sequence_number} <= {self.last_sequence[device_id]}")
+                logger.info(f"[REJECT] Sequence number not increasing: {sequence_number} <= {self.last_sequence[device_id]}")
                 return None
 
         # Create artifact
@@ -153,13 +156,13 @@ class TelemetryIngestionPipeline:
                 previous_checksum=self.last_checksum.get(device_id)
             )
         except ValueError as exc:
-            print(f"[REJECT] Invalid artifact: {exc}")
+            logger.info(f"[REJECT] Invalid artifact: {exc}")
             return None
 
         # Check for duplicates
         if device_id in self.last_checksum:
             if artifact.checksum == self.last_checksum[device_id]:
-                print(f"[DEDUP] Duplicate telemetry from {device_id}")
+                logger.info(f"[DEDUP] Duplicate telemetry from {device_id}")
                 return None
 
         # Ingest
@@ -172,7 +175,7 @@ class TelemetryIngestionPipeline:
         if len(self.artifacts) > self.max_artifacts:
             self.artifacts = self.artifacts[-self.max_artifacts:]
 
-        print(f"[INGEST] Telemetry from {device_id} (seq={sequence_number}, health={artifact.health})")
+        logger.info(f"[INGEST] Telemetry from {device_id} (seq={sequence_number}, health={artifact.health})")
 
         return artifact
 

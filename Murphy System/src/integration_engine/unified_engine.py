@@ -17,6 +17,9 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime, timezone
 import json
 
+import logging
+logger = logging.getLogger("integration_engine.unified_engine")
+
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
@@ -141,13 +144,13 @@ class UnifiedIntegrationEngine:
         8. If rejected: rollback and cleanup
         """
 
-        print(f"\n{'='*80}")
-        print(f"🚀 STARTING INTEGRATION: {source}")
-        print(f"{'='*80}\n")
+        logger.info(f"\n{'='*80}")
+        logger.info(f"🚀 STARTING INTEGRATION: {source}")
+        logger.info(f"{'='*80}\n")
 
         try:
             # Step 1: Analyze with SwissKiss
-            print("📊 Step 1: Analyzing repository with SwissKiss...")
+            logger.info("📊 Step 1: Analyzing repository with SwissKiss...")
             swisskiss_result = self.swisskiss.manual_load(
                 url=source,
                 category=category,
@@ -158,65 +161,65 @@ class UnifiedIntegrationEngine:
             audit = swisskiss_result['audit']
             module_name = module_yaml['module_name']
 
-            print(f"✓ Analysis complete: {module_name}")
-            print(f"  - License: {audit['license']} ({'✓ OK' if audit['license_ok'] else '✗ NOT OK'})")
-            print(f"  - Languages: {', '.join(audit['languages'].keys())}")
-            print(f"  - Risk issues: {audit['risk_scan']['count']}")
+            logger.info(f"✓ Analysis complete: {module_name}")
+            logger.info(f"  - License: {audit['license']} ({'✓ OK' if audit['license_ok'] else '✗ NOT OK'})")
+            logger.info(f"  - Languages: {', '.join(audit['languages'].keys())}")
+            logger.info(f"  - Risk issues: {audit['risk_scan']['count']}")
 
             # Step 2: Extract capabilities
-            print("\n🔍 Step 2: Extracting capabilities...")
+            logger.info("\n🔍 Step 2: Extracting capabilities...")
             capabilities = self.capability_extractor.extract_from_swisskiss(
                 module_yaml=module_yaml,
                 audit=audit
             )
 
-            print(f"✓ Extracted {len(capabilities)} capabilities:")
+            logger.info(f"✓ Extracted {len(capabilities)} capabilities:")
             for cap in capabilities[:5]:  # Show first 5
-                print(f"  - {cap}")
+                logger.info(f"  - {cap}")
             if len(capabilities) > 5:
-                print(f"  ... and {len(capabilities) - 5} more")
+                logger.info(f"  ... and {len(capabilities) - 5} more")
 
             # Step 3: Generate module
-            print("\n🏗️  Step 3: Generating Murphy module...")
+            logger.info("\n🏗️  Step 3: Generating Murphy module...")
             module = self.module_generator.generate_from_swisskiss(
                 module_yaml=module_yaml,
                 audit=audit,
                 capabilities=capabilities
             )
 
-            print(f"✓ Module generated: {module['name']}")
-            print(f"  - Entry point: {module['entry_point']}")
-            print(f"  - Commands: {len(module['commands'])}")
+            logger.info(f"✓ Module generated: {module['name']}")
+            logger.info(f"  - Entry point: {module['entry_point']}")
+            logger.info(f"  - Commands: {len(module['commands'])}")
 
             # Step 4: Generate agent (if requested)
             agent = None
             if generate_agent:
-                print("\n🤖 Step 4: Generating Murphy agent...")
+                logger.info("\n🤖 Step 4: Generating Murphy agent...")
                 agent = self.agent_generator.generate_from_swisskiss(
                     module_yaml=module_yaml,
                     audit=audit,
                     capabilities=capabilities
                 )
-                print(f"✓ Agent generated: {agent['name']}")
+                logger.info(f"✓ Agent generated: {agent['name']}")
             else:
-                print("\n⏭️  Step 4: Skipping agent generation (not requested)")
+                logger.info("\n⏭️  Step 4: Skipping agent generation (not requested)")
 
             # Step 5: Safety testing
-            print("\n🛡️  Step 5: Running safety tests...")
+            logger.info("\n🛡️  Step 5: Running safety tests...")
             test_results = self.safety_tester.test_integration(
                 module=module,
                 agent=agent,
                 audit=audit
             )
 
-            print("✓ Safety tests complete:")
-            print(f"  - Tests passed: {test_results['passed']}/{test_results['total']}")
-            print(f"  - Critical issues: {len(test_results['critical_issues'])}")
-            print(f"  - Warnings: {len(test_results['warnings'])}")
-            print(f"  - Safety score: {test_results['safety_score']:.2f}/1.0")
+            logger.info("✓ Safety tests complete:")
+            logger.info(f"  - Tests passed: {test_results['passed']}/{test_results['total']}")
+            logger.info(f"  - Critical issues: {len(test_results['critical_issues'])}")
+            logger.info(f"  - Warnings: {len(test_results['warnings'])}")
+            logger.info(f"  - Safety score: {test_results['safety_score']:.2f}/1.0")
 
             # Step 6: Create HITL approval request
-            print("\n👤 Step 6: Creating human approval request...")
+            logger.info("\n👤 Step 6: Creating human approval request...")
 
             approval_request = self.hitl_approval.create_approval_request(
                 integration_name=module_name,
@@ -238,19 +241,19 @@ class UnifiedIntegrationEngine:
                 'test_results': test_results
             }
 
-            print(f"✓ Approval request created: {approval_request.request_id}")
+            logger.info(f"✓ Approval request created: {approval_request.request_id}")
 
             # Auto-approve if requested (testing only)
             if auto_approve:
-                print("\n⚠️  AUTO-APPROVE ENABLED (testing mode)")
+                logger.info("\n⚠️  AUTO-APPROVE ENABLED (testing mode)")
                 approval_request.status = ApprovalStatus.APPROVED
                 approval_request.approved_by = "auto_approve"
                 approval_request.approved_at = datetime.now(timezone.utc)
             else:
                 # Display approval request to user
-                print("\n" + "="*80)
-                print(self.hitl_approval.format_approval_request(approval_request))
-                print("="*80)
+                logger.info("\n" + "="*80)
+                logger.info(self.hitl_approval.format_approval_request(approval_request))
+                logger.info("="*80)
 
                 # Return result with pending status
                 return IntegrationResult(
@@ -270,7 +273,7 @@ class UnifiedIntegrationEngine:
 
             # Step 7: If approved, commit and load
             if approval_request.status == ApprovalStatus.APPROVED:
-                print("\n✅ Step 7: APPROVED - Committing integration...")
+                logger.info("\n✅ Step 7: APPROVED - Committing integration...")
 
                 # Register module with Module Manager
                 module_manager.register_module(
@@ -287,17 +290,17 @@ class UnifiedIntegrationEngine:
                 if agent:
                     self._register_swarm_agent(agent)
                     self._register_agent_with_swarm(agent, capabilities)
-                    print(f"✓ Agent registered: {agent['name']}")
+                    logger.info(f"✓ Agent registered: {agent['name']}")
 
                 # Move to committed integrations
                 self.committed_integrations[module_name] = self.pending_integrations.pop(approval_request.request_id)
 
-                print(f"\n{'='*80}")
-                print(f"🎉 INTEGRATION COMPLETE: {module_name}")
-                print(f"{'='*80}")
-                print("✓ Module loaded and ready to use")
-                print(f"✓ Available commands: {len(module['commands'])}")
-                print(f"✓ Capabilities: {', '.join(capabilities[:3])}...")
+                logger.info(f"\n{'='*80}")
+                logger.info(f"🎉 INTEGRATION COMPLETE: {module_name}")
+                logger.info(f"{'='*80}")
+                logger.info("✓ Module loaded and ready to use")
+                logger.info(f"✓ Available commands: {len(module['commands'])}")
+                logger.info(f"✓ Capabilities: {', '.join(capabilities[:3])}...")
 
                 return IntegrationResult(
                     success=True,
@@ -314,7 +317,7 @@ class UnifiedIntegrationEngine:
                 )
 
         except Exception as exc:
-            print(f"\n❌ ERROR: {str(exc)}")
+            logger.info(f"\n❌ ERROR: {str(exc)}")
             import traceback
             traceback.print_exc()
 
@@ -349,9 +352,9 @@ class UnifiedIntegrationEngine:
         capabilities = pending['capabilities']
         test_results = pending['test_results']
 
-        print(f"\n{'='*80}")
-        print(f"✅ APPROVING INTEGRATION: {module['name']}")
-        print(f"{'='*80}\n")
+        logger.info(f"\n{'='*80}")
+        logger.info(f"✅ APPROVING INTEGRATION: {module['name']}")
+        logger.info(f"{'='*80}\n")
 
         # Update approval status
         approval_request.status = ApprovalStatus.APPROVED
@@ -359,7 +362,7 @@ class UnifiedIntegrationEngine:
         approval_request.approved_at = datetime.now(timezone.utc)
 
         # Register module with Module Manager
-        print("📦 Registering module with Module Manager...")
+        logger.info("📦 Registering module with Module Manager...")
         module_manager.register_module(
             name=module['name'],
             module_path=module['module_path'],
@@ -368,24 +371,24 @@ class UnifiedIntegrationEngine:
         )
 
         # Load module
-        print("🔄 Loading module...")
+        logger.info("🔄 Loading module...")
         module_manager.load_module(module['name'])
 
         # Register agent if generated
         if agent:
             self._register_swarm_agent(agent)
-            print(f"🤖 Registering agent: {agent['name']}")
+            logger.info(f"🤖 Registering agent: {agent['name']}")
             self._register_agent_with_swarm(agent, capabilities)
 
         # Move to committed integrations
         self.committed_integrations[module['name']] = self.pending_integrations.pop(request_id)
 
-        print(f"\n{'='*80}")
-        print(f"🎉 INTEGRATION COMMITTED: {module['name']}")
-        print(f"{'='*80}")
-        print("✓ Module loaded and ready to use")
-        print(f"✓ Available commands: {len(module['commands'])}")
-        print(f"✓ Capabilities: {', '.join(capabilities[:3])}...")
+        logger.info(f"\n{'='*80}")
+        logger.info(f"🎉 INTEGRATION COMMITTED: {module['name']}")
+        logger.info(f"{'='*80}")
+        logger.info("✓ Module loaded and ready to use")
+        logger.info(f"✓ Available commands: {len(module['commands'])}")
+        logger.info(f"✓ Capabilities: {', '.join(capabilities[:3])}...")
 
         return IntegrationResult(
             success=True,
@@ -423,10 +426,10 @@ class UnifiedIntegrationEngine:
         approval_request = pending['request']
         module = pending['module']
 
-        print(f"\n{'='*80}")
-        print(f"❌ REJECTING INTEGRATION: {module['name']}")
-        print(f"{'='*80}\n")
-        print(f"Reason: {reason}")
+        logger.info(f"\n{'='*80}")
+        logger.info(f"❌ REJECTING INTEGRATION: {module['name']}")
+        logger.info(f"{'='*80}\n")
+        logger.info(f"Reason: {reason}")
 
         # Update approval status
         approval_request.status = ApprovalStatus.REJECTED
@@ -440,7 +443,7 @@ class UnifiedIntegrationEngine:
         # Remove from pending
         self.pending_integrations.pop(request_id)
 
-        print("✓ Integration rejected and cleaned up")
+        logger.info("✓ Integration rejected and cleaned up")
 
         return IntegrationResult(
             success=True,
@@ -541,10 +544,10 @@ class UnifiedIntegrationEngine:
                     'phase': None,
                 }
             )
-            print(f"✓ Agent '{agent['name']}' registered with TrueSwarmSystem")
+            logger.info(f"✓ Agent '{agent['name']}' registered with TrueSwarmSystem")
         except Exception as exc:
             # Non-fatal: the integration itself still succeeds
-            print(f"⚠ TrueSwarmSystem registration skipped: {exc}")
+            logger.info(f"⚠ TrueSwarmSystem registration skipped: {exc}")
 
     # ------------------------------------------------------------------
     # Rejected-integration clean-up
@@ -563,11 +566,11 @@ class UnifiedIntegrationEngine:
         if generated_path and os.path.isdir(generated_path):
             try:
                 shutil.rmtree(generated_path)
-                print(f"✓ Cleaned up generated artefacts at {generated_path}")
+                logger.info(f"✓ Cleaned up generated artefacts at {generated_path}")
             except OSError as exc:
-                print(f"⚠ Could not remove {generated_path}: {exc}")
+                logger.info(f"⚠ Could not remove {generated_path}: {exc}")
         else:
-            print("✓ No generated artefacts to clean up")
+            logger.info("✓ No generated artefacts to clean up")
     # TrueSwarmSystem integration helpers
     # ------------------------------------------------------------------
 
@@ -618,9 +621,9 @@ class UnifiedIntegrationEngine:
                 'registered_at': datetime.now(timezone.utc).isoformat(),
             }
 
-            print(f"   ✓ Agent registered with TrueSwarmSystem as {profession.value}")
+            logger.info(f"   ✓ Agent registered with TrueSwarmSystem as {profession.value}")
         except Exception as exc:
-            print(f"   ⚠ Could not register agent with TrueSwarmSystem: {exc}")
+            logger.info(f"   ⚠ Could not register agent with TrueSwarmSystem: {exc}")
 
     def _cleanup_rejected_integration(self, module: Dict[str, Any]) -> None:
         """Remove generated files for a rejected integration.
@@ -644,12 +647,12 @@ class UnifiedIntegrationEngine:
             try:
                 if target.is_file():
                     target.unlink()
-                    print(f"   ✓ Removed generated file: {target.name}")
+                    logger.info(f"   ✓ Removed generated file: {target.name}")
                 elif target.is_dir():
                     shutil.rmtree(target)
-                    print(f"   ✓ Removed generated directory: {target.name}")
+                    logger.info(f"   ✓ Removed generated directory: {target.name}")
             except OSError as exc:
-                print(f"   ⚠ Could not remove {target}: {exc}")
+                logger.info(f"   ⚠ Could not remove {target}: {exc}")
 
 
 # Convenience function
