@@ -89,27 +89,27 @@ class RiskPattern(BaseModel):
     impact_score: float = Field(ge=0.0, le=10.0)
     probability_score: float = Field(ge=0.0, le=1.0)
     risk_score: float = Field(ge=0.0, le=10.0)
-    
+
     # Pattern matching
     keywords: Set[str] = Field(default_factory=set)
     context_patterns: List[str] = Field(default_factory=list)
-    
+
     # Mitigation
     mitigation_strategies: List[MitigationStrategy] = Field(default_factory=list)
-    
+
     # Indicators
     indicators: List[RiskIndicator] = Field(default_factory=list)
-    
+
     # Historical data
     occurrence_count: int = 0
     last_occurred: Optional[datetime] = None
-    
+
     # Metadata
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     tags: List[str] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
-    
+
     def calculate_risk_score(self) -> float:
         """Calculate overall risk score."""
         # Risk Score = Impact × Probability
@@ -125,21 +125,21 @@ class RiskIncident(BaseModel):
     occurred_at: datetime
     detected_at: datetime
     resolved_at: Optional[datetime] = None
-    
+
     # Impact
     actual_impact: float = Field(ge=0.0, le=10.0)
     affected_systems: List[str] = Field(default_factory=list)
     affected_users: int = 0
     financial_impact: Optional[float] = None
-    
+
     # Response
     mitigation_applied: Optional[str] = None
     mitigation_effectiveness: Optional[float] = None
     lessons_learned: List[str] = Field(default_factory=list)
-    
+
     # Status
     status: str = "open"
-    
+
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
@@ -148,18 +148,18 @@ class RiskAssessment(BaseModel):
     id: str
     context: str
     assessed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    
+
     # Identified risks
     identified_risks: List[str] = Field(default_factory=list)  # Risk pattern IDs
-    
+
     # Scores
     overall_risk_score: float = Field(ge=0.0, le=10.0)
     uncertainty_score: float = Field(ge=0.0, le=1.0)
-    
+
     # Recommendations
     recommended_mitigations: List[str] = Field(default_factory=list)
     required_actions: List[str] = Field(default_factory=list)
-    
+
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
@@ -168,7 +168,7 @@ class RiskDatabaseSchema:
     Schema definition for the risk database.
     In production, this would map to actual database tables.
     """
-    
+
     @staticmethod
     def get_schema() -> Dict[str, Any]:
         """Get the complete database schema."""
@@ -293,23 +293,23 @@ class RiskDatabase:
     In-memory risk database implementation.
     In production, this would use a real database (PostgreSQL, MongoDB, etc.).
     """
-    
+
     def __init__(self):
         self.risk_patterns: Dict[str, RiskPattern] = {}
         self.risk_incidents: Dict[str, RiskIncident] = {}
         self.mitigation_strategies: Dict[str, MitigationStrategy] = {}
         self.risk_assessments: Dict[str, RiskAssessment] = {}
         self.risk_indicators: Dict[str, RiskIndicator] = {}
-        
+
         # Indexes for fast lookup
         self.category_index: Dict[RiskCategory, List[str]] = {}
         self.severity_index: Dict[RiskSeverity, List[str]] = {}
         self.keyword_index: Dict[str, List[str]] = {}
         self.tag_index: Dict[str, List[str]] = {}
-        
+
         # Initialize with default risk patterns
         self._initialize_default_patterns()
-    
+
     def _initialize_default_patterns(self):
         """Initialize database with common risk patterns."""
         default_patterns = [
@@ -384,39 +384,39 @@ class RiskDatabase:
                 tags=["api", "external"]
             )
         ]
-        
+
         for pattern in default_patterns:
             self.add_risk_pattern(pattern)
-    
+
     def add_risk_pattern(self, pattern: RiskPattern) -> str:
         """Add a risk pattern to the database."""
         self.risk_patterns[pattern.id] = pattern
-        
+
         # Update indexes
         if pattern.category not in self.category_index:
             self.category_index[pattern.category] = []
         self.category_index[pattern.category].append(pattern.id)
-        
+
         if pattern.severity not in self.severity_index:
             self.severity_index[pattern.severity] = []
         self.severity_index[pattern.severity].append(pattern.id)
-        
+
         for keyword in pattern.keywords:
             if keyword not in self.keyword_index:
                 self.keyword_index[keyword] = []
             self.keyword_index[keyword].append(pattern.id)
-        
+
         for tag in pattern.tags:
             if tag not in self.tag_index:
                 self.tag_index[tag] = []
             self.tag_index[tag].append(pattern.id)
-        
+
         return pattern.id
-    
+
     def get_risk_pattern(self, pattern_id: str) -> Optional[RiskPattern]:
         """Get a risk pattern by ID."""
         return self.risk_patterns.get(pattern_id)
-    
+
     def search_risk_patterns(
         self,
         category: Optional[RiskCategory] = None,
@@ -427,44 +427,44 @@ class RiskDatabase:
     ) -> List[RiskPattern]:
         """Search for risk patterns matching criteria."""
         patterns = list(self.risk_patterns.values())
-        
+
         if category:
             pattern_ids = self.category_index.get(category, [])
             patterns = [p for p in patterns if p.id in pattern_ids]
-        
+
         if severity:
             pattern_ids = self.severity_index.get(severity, [])
             patterns = [p for p in patterns if p.id in pattern_ids]
-        
+
         if keywords:
             matching_ids = set()
             for keyword in keywords:
                 matching_ids.update(self.keyword_index.get(keyword.lower(), []))
             patterns = [p for p in patterns if p.id in matching_ids]
-        
+
         if tags:
             matching_ids = set()
             for tag in tags:
                 matching_ids.update(self.tag_index.get(tag, []))
             patterns = [p for p in patterns if p.id in matching_ids]
-        
+
         if min_risk_score is not None:
             patterns = [p for p in patterns if p.risk_score >= min_risk_score]
-        
+
         return patterns
-    
+
     def add_risk_incident(self, incident: RiskIncident) -> str:
         """Record a risk incident."""
         self.risk_incidents[incident.id] = incident
-        
+
         # Update pattern occurrence count
         pattern = self.risk_patterns.get(incident.risk_pattern_id)
         if pattern:
             pattern.occurrence_count += 1
             pattern.last_occurred = incident.occurred_at
-        
+
         return incident.id
-    
+
     def get_risk_incidents(
         self,
         pattern_id: Optional[str] = None,
@@ -474,54 +474,54 @@ class RiskDatabase:
     ) -> List[RiskIncident]:
         """Get risk incidents with filters."""
         incidents = list(self.risk_incidents.values())
-        
+
         if pattern_id:
             incidents = [i for i in incidents if i.risk_pattern_id == pattern_id]
-        
+
         if status:
             incidents = [i for i in incidents if i.status == status]
-        
+
         if start_date:
             incidents = [i for i in incidents if i.occurred_at >= start_date]
-        
+
         if end_date:
             incidents = [i for i in incidents if i.occurred_at <= end_date]
-        
+
         return incidents
-    
+
     def add_mitigation_strategy(self, strategy: MitigationStrategy) -> str:
         """Add a mitigation strategy."""
         self.mitigation_strategies[strategy.id] = strategy
         return strategy.id
-    
+
     def get_mitigation_strategy(self, strategy_id: str) -> Optional[MitigationStrategy]:
         """Get a mitigation strategy by ID."""
         return self.mitigation_strategies.get(strategy_id)
-    
+
     def add_risk_assessment(self, assessment: RiskAssessment) -> str:
         """Record a risk assessment."""
         self.risk_assessments[assessment.id] = assessment
         return assessment.id
-    
+
     def get_risk_statistics(self) -> Dict[str, Any]:
         """Get overall risk statistics."""
         total_patterns = len(self.risk_patterns)
         total_incidents = len(self.risk_incidents)
-        
+
         # Category breakdown
         category_counts = {}
         for category in RiskCategory:
             category_counts[category.value] = len(self.category_index.get(category, []))
-        
+
         # Severity breakdown
         severity_counts = {}
         for severity in RiskSeverity:
             severity_counts[severity.value] = len(self.severity_index.get(severity, []))
-        
+
         # Average risk score
         risk_scores = [p.risk_score for p in self.risk_patterns.values()]
         avg_risk_score = sum(risk_scores) / (len(risk_scores) or 1) if risk_scores else 0.0
-        
+
         return {
             "total_patterns": total_patterns,
             "total_incidents": total_incidents,
@@ -534,7 +534,7 @@ class RiskDatabase:
                 reverse=True
             )[:5]
         }
-    
+
     def export_to_json(self, filepath: str):
         """Export database to JSON file."""
         data = {
@@ -543,27 +543,27 @@ class RiskDatabase:
             "mitigation_strategies": [s.model_dump() for s in self.mitigation_strategies.values()],
             "risk_assessments": [a.model_dump() for a in self.risk_assessments.values()]
         }
-        
+
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2, default=str)
-    
+
     def import_from_json(self, filepath: str):
         """Import database from JSON file."""
         with open(filepath, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        
+
         for pattern_data in data.get("risk_patterns", []):
             pattern = RiskPattern(**pattern_data)
             self.add_risk_pattern(pattern)
-        
+
         for incident_data in data.get("risk_incidents", []):
             incident = RiskIncident(**incident_data)
             self.add_risk_incident(incident)
-        
+
         for strategy_data in data.get("mitigation_strategies", []):
             strategy = MitigationStrategy(**strategy_data)
             self.add_mitigation_strategy(strategy)
-        
+
         for assessment_data in data.get("risk_assessments", []):
             assessment = RiskAssessment(**assessment_data)
             self.add_risk_assessment(assessment)

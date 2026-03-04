@@ -21,25 +21,25 @@ logger = logging.getLogger(__name__)
 class LearningSystem:
     """
     Learning system for Murphy correction pipeline.
-    
+
     Receives correction data and feeds it into the learning pipeline
     for gate policy improvement and confidence weight adjustment.
     """
-    
+
     def __init__(self):
         self._corrections: List[Dict[str, Any]] = []
         self._patterns_learned: int = 0
         logger.info("LearningSystem initialized")
-    
+
     def learn_from_correction(self, correction_data: Dict[str, Any]) -> None:
         """
         Learn from a correction event.
-        
+
         Processes correction data to improve:
         - Gate placement probability
         - Confidence weight schedules
         - Phase transition thresholds
-        
+
         Args:
             correction_data: Dictionary containing correction details
         """
@@ -50,12 +50,12 @@ class LearningSystem:
         }
         capped_append(self._corrections, entry)
         self._patterns_learned += 1
-        
+
         logger.info(
             f"Learned from correction: task={correction_data.get('task_id', 'unknown')}, "
             f"total_patterns={self._patterns_learned}"
         )
-    
+
     def get_statistics(self) -> Dict[str, Any]:
         """Get learning system statistics."""
         return {

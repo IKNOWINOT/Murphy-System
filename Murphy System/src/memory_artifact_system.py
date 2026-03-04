@@ -46,7 +46,7 @@ class VerificationSource(Enum):
 class Artifact:
     """
     Typed artifact with full provenance
-    
+
     Artifacts move through explicit states:
     Draft → Structured → Verified → Bound → Executed
     """
@@ -62,7 +62,7 @@ class Artifact:
     memory_plane: MemoryPlane
     timestamp: float
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -103,7 +103,7 @@ class ControlState:
     murphy_index: float
     trust_scores: Dict[str, float]
     timestamp: float
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -126,7 +126,7 @@ class ExecutionRecord:
     signature: str  # Cryptographic signature
     timestamp: float
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     def compute_signature(self) -> str:
         """Compute cryptographic signature"""
         data = json.dumps({
@@ -141,48 +141,48 @@ class ExecutionRecord:
 class SandboxMemory:
     """
     PLANE 1: Sandbox Memory
-    
+
     Purpose: Free exploration, no consequences
     Properties: high-volume, low-cost, auto-expiring, never authoritative
-    
+
     Access Rules:
     - Writable by all agents
     - Readable by all swarms
     - Never read by execution
-    
+
     Authority Impact:
     - Contributes only to G(x) (generative adequacy)
     - Cannot increase confidence directly
     """
-    
+
     def __init__(self, max_size: int = 10000, ttl_seconds: float = 3600):
         self.artifacts: Dict[str, Artifact] = {}
         self.max_size = max_size
         self.ttl_seconds = ttl_seconds
-    
+
     def write(self, artifact: Artifact) -> str:
         """Write to sandbox (always allowed)"""
         artifact.memory_plane = MemoryPlane.SANDBOX
         artifact.state = ArtifactState.DRAFT
         self.artifacts[artifact.id] = artifact
-        
+
         # Auto-expire old artifacts
         self._expire_old()
-        
+
         # Enforce size limit
         if len(self.artifacts) > self.max_size:
             self._evict_oldest()
-        
+
         return artifact.id
-    
+
     def read(self, artifact_id: str) -> Optional[Artifact]:
         """Read from sandbox"""
         return self.artifacts.get(artifact_id)
-    
+
     def read_all(self) -> List[Artifact]:
         """Read all sandbox artifacts"""
         return list(self.artifacts.values())
-    
+
     def _expire_old(self):
         """Remove expired artifacts"""
         current_time = datetime.now().timestamp()
@@ -192,7 +192,7 @@ class SandboxMemory:
         ]
         for aid in expired:
             del self.artifacts[aid]
-    
+
     def _evict_oldest(self):
         """Evict oldest artifacts to maintain size limit"""
         sorted_artifacts = sorted(
@@ -202,7 +202,7 @@ class SandboxMemory:
         to_remove = len(self.artifacts) - self.max_size
         for aid, _ in sorted_artifacts[:to_remove]:
             del self.artifacts[aid]
-    
+
     def reset(self):
         """Reset sandbox (for new tasks)"""
         self.artifacts.clear()
@@ -211,29 +211,29 @@ class SandboxMemory:
 class WorkingArtifactMemory:
     """
     PLANE 2: Working Artifact Memory
-    
+
     Purpose: Structured candidate outputs
-    
+
     Promotion Rule:
     Artifacts enter WAM only after:
     - Phase legality
     - Basic coherence checks
-    
+
     Access Rules:
     - Writable by agents
     - Readable by control layer
     - Eligible for verification
-    
+
     Authority Impact:
     - Can increase G(x)
     - Can increase D(x) only after verification
     """
-    
+
     def __init__(self):
         self.artifacts: Dict[str, Artifact] = {}
         self.by_phase: Dict[str, List[str]] = {}
         self.by_type: Dict[str, List[str]] = {}
-    
+
     def promote_from_sandbox(
         self,
         artifact: Artifact,
@@ -242,7 +242,7 @@ class WorkingArtifactMemory:
     ) -> Optional[str]:
         """
         Promote artifact from sandbox to working memory
-        
+
         Requires:
         - Phase legality
         - Basic coherence
@@ -251,40 +251,40 @@ class WorkingArtifactMemory:
             return None
         if not coherent:
             return None
-        
+
         # Update state and plane
         artifact.memory_plane = MemoryPlane.WORKING
         artifact.state = ArtifactState.STRUCTURED
-        
+
         # Store
         self.artifacts[artifact.id] = artifact
-        
+
         # Index by phase
         if artifact.phase not in self.by_phase:
             self.by_phase[artifact.phase] = []
         self.by_phase[artifact.phase].append(artifact.id)
-        
+
         # Index by type
         if artifact.artifact_type not in self.by_type:
             self.by_type[artifact.artifact_type] = []
         self.by_type[artifact.artifact_type].append(artifact.id)
-        
+
         return artifact.id
-    
+
     def read(self, artifact_id: str) -> Optional[Artifact]:
         """Read artifact"""
         return self.artifacts.get(artifact_id)
-    
+
     def read_by_phase(self, phase: str) -> List[Artifact]:
         """Read artifacts by phase"""
         artifact_ids = self.by_phase.get(phase, [])
         return [self.artifacts[aid] for aid in artifact_ids if aid in self.artifacts]
-    
+
     def read_by_type(self, artifact_type: str) -> List[Artifact]:
         """Read artifacts by type"""
         artifact_ids = self.by_type.get(artifact_type, [])
         return [self.artifacts[aid] for aid in artifact_ids if aid in self.artifacts]
-    
+
     def mark_verified(self, artifact_id: str, verification: VerificationResult):
         """Mark artifact as verified"""
         if artifact_id in self.artifacts:
@@ -297,7 +297,7 @@ class WorkingArtifactMemory:
                 'score': verification.trust_weighted_score,
                 'timestamp': verification.timestamp
             }
-    
+
     def invalidate(self, artifact_id: str):
         """Invalidate artifact (control layer command)"""
         if artifact_id in self.artifacts:
@@ -309,18 +309,18 @@ class WorkingArtifactMemory:
 class ControlMemory:
     """
     PLANE 3: Control Memory
-    
+
     Purpose: Governance state and safety guarantees
-    
+
     Access Rules:
     - Writable only by Gate Compiler + Confidence Engine
     - Readable by agents (for constraint awareness)
     - Immutable to sandbox
-    
+
     Authority Impact:
     - Fully authoritative for what may proceed
     """
-    
+
     def __init__(self):
         self.current_state: Optional[ControlState] = None
         self.state_history: List[ControlState] = []
@@ -329,7 +329,7 @@ class ControlMemory:
         self.murphy_history: List[float] = []
         self.authority_history: List[float] = []
         self.trust_scores: Dict[str, float] = {}
-        
+
         # Invariant sets (protected)
         self.invariants: Set[str] = {
             'confidence_equation',
@@ -337,7 +337,7 @@ class ControlMemory:
             'gate_compiler',
             'verification_channels'
         }
-    
+
     def write_state(
         self,
         writer: str,
@@ -345,53 +345,53 @@ class ControlMemory:
     ) -> bool:
         """
         Write control state
-        
+
         Only allowed by:
         - Gate Compiler
         - Confidence Engine
         """
         allowed_writers = {'gate_compiler', 'confidence_engine', 'authority_controller'}
-        
+
         if writer not in allowed_writers:
             return False
-        
+
         # Store current state
         self.current_state = state
         self.state_history.append(state)
-        
+
         # Update histories
         self.confidence_history.append(state.confidence)
         self.murphy_history.append(state.murphy_index)
         self.authority_history.append(state.authority_band)
-        
+
         # Update active gates
         self.active_gates = set(state.active_gates)
-        
+
         # Update trust scores
         self.trust_scores = state.trust_scores.copy()
-        
+
         return True
-    
+
     def read_state(self) -> Optional[ControlState]:
         """Read current control state"""
         return self.current_state
-    
+
     def read_gates(self) -> Set[str]:
         """Read active gates"""
         return self.active_gates.copy()
-    
+
     def read_confidence(self) -> float:
         """Read current confidence"""
         return self.current_state.confidence if self.current_state else 0.0
-    
+
     def read_murphy_index(self) -> float:
         """Read current Murphy index"""
         return self.current_state.murphy_index if self.current_state else 0.0
-    
+
     def read_authority(self) -> float:
         """Read current authority band"""
         return self.current_state.authority_band if self.current_state else 0.0
-    
+
     def check_invariant_protection(self, target: str) -> bool:
         """Check if target is a protected invariant"""
         return any(inv in target.lower() for inv in self.invariants)
@@ -400,30 +400,30 @@ class ControlMemory:
 class ExecutionMemory:
     """
     PLANE 4: Execution Memory
-    
+
     Purpose: Irreversible commitments and system outputs
-    
+
     Properties:
     - Append-only
     - Cryptographically signed
     - Legally binding if applicable
-    
+
     Promotion Rule:
     Only allowed when:
     - a_t >= Bind threshold
     - M_t minimal
-    
+
     Access Rules:
     - Writable only by execution layer
     - Readable by control + audit
     """
-    
+
     def __init__(self, bind_threshold: float = 0.8, murphy_threshold: float = 0.3):
         self.records: List[ExecutionRecord] = []
         self.by_id: Dict[str, ExecutionRecord] = {}
         self.bind_threshold = bind_threshold
         self.murphy_threshold = murphy_threshold
-    
+
     def commit(
         self,
         artifact_ids: List[str],
@@ -434,7 +434,7 @@ class ExecutionMemory:
     ) -> Optional[ExecutionRecord]:
         """
         Commit to execution memory
-        
+
         Requires:
         - authority >= bind_threshold
         - murphy_index <= murphy_threshold
@@ -444,7 +444,7 @@ class ExecutionMemory:
             return None
         if murphy_index > self.murphy_threshold:
             return None
-        
+
         # Create record
         record = ExecutionRecord(
             id=f"exec_{len(self.records)}_{datetime.now().timestamp()}",
@@ -454,30 +454,30 @@ class ExecutionMemory:
             timestamp=datetime.now().timestamp(),
             metadata=metadata or {}
         )
-        
+
         # Compute signature
         record.signature = record.compute_signature()
-        
+
         # Append (immutable)
         self.records.append(record)
         self.by_id[record.id] = record
-        
+
         return record
-    
+
     def read(self, record_id: str) -> Optional[ExecutionRecord]:
         """Read execution record"""
         return self.by_id.get(record_id)
-    
+
     def read_all(self) -> List[ExecutionRecord]:
         """Read all execution records"""
         return self.records.copy()
-    
+
     def verify_signature(self, record_id: str) -> bool:
         """Verify record signature"""
         record = self.by_id.get(record_id)
         if not record:
             return False
-        
+
         expected_signature = record.compute_signature()
         return record.signature == expected_signature
 
@@ -485,10 +485,10 @@ class ExecutionMemory:
 class VerificationInterfaceLayer:
     """
     Bridge between memory and reality
-    
+
     Inputs: Artifacts from WAM
     Outputs: Verification results to Control Memory
-    
+
     Sources:
     - APIs
     - Static KB
@@ -496,7 +496,7 @@ class VerificationInterfaceLayer:
     - Regulatory DBs
     - User confirmations
     """
-    
+
     def __init__(self):
         self.verification_history: List[VerificationResult] = []
         self.trust_weights = {
@@ -507,7 +507,7 @@ class VerificationInterfaceLayer:
             VerificationSource.LEDGER: 0.85,
             VerificationSource.USER_CONFIRMATION: 0.7
         }
-    
+
     def verify_artifact(
         self,
         artifact: Artifact,
@@ -516,21 +516,21 @@ class VerificationInterfaceLayer:
     ) -> VerificationResult:
         """
         Verify artifact against source
-        
+
         Returns verification result with trust-weighted score
         """
         # Perform verification (simplified)
         trust_weight = self.trust_weights.get(source, 0.5)
-        
+
         # Check for contradictions
         contradictions = self._check_contradictions(artifact, evidence or {})
-        
+
         # Compute confidence delta
         if contradictions:
             confidence_delta = -0.2 * len(contradictions)
         else:
             confidence_delta = 0.1 * trust_weight
-        
+
         # Create result
         result = VerificationResult(
             artifact_id=artifact.id,
@@ -541,10 +541,10 @@ class VerificationInterfaceLayer:
             timestamp=datetime.now().timestamp(),
             evidence=evidence or {}
         )
-        
+
         self.verification_history.append(result)
         return result
-    
+
     def _check_contradictions(
         self,
         artifact: Artifact,
@@ -553,29 +553,29 @@ class VerificationInterfaceLayer:
         """Check for contradictions"""
         # Simplified contradiction detection
         contradictions = []
-        
+
         # Check if content contradicts evidence
         if 'expected' in evidence and 'actual' in evidence:
             if evidence['expected'] != evidence['actual']:
                 contradictions.append(f"Expected {evidence['expected']}, got {evidence['actual']}")
-        
+
         return contradictions
 
 
 class DeliverableCompiler:
     """
     Formatting & Deliverable Assembly Layer
-    
+
     Final outputs are not written directly by agents.
     They are assembled by Deliverable Compiler.
-    
+
     Rule: Formatting is downstream of authority, not part of reasoning.
     This prevents "pretty lies".
     """
-    
+
     def __init__(self):
         self.compiled_deliverables: List[Dict[str, Any]] = []
-    
+
     def compile_deliverable(
         self,
         bound_artifacts: List[Artifact],
@@ -584,12 +584,12 @@ class DeliverableCompiler:
     ) -> Dict[str, Any]:
         """
         Compile deliverable from bound artifacts and execution outputs
-        
+
         Inputs:
         - Bound artifacts
         - Execution outputs
         - Customer format requirements
-        
+
         Outputs:
         - PDF specs
         - Contracts
@@ -612,7 +612,7 @@ class DeliverableCompiler:
             'format': format_requirements,
             'compiled': True
         }
-        
+
         self.compiled_deliverables.append(deliverable)
         return deliverable
 
@@ -620,9 +620,9 @@ class DeliverableCompiler:
 class MemoryArtifactSystem:
     """
     Complete Memory & Artifact Subsystem
-    
+
     Integrates all four memory planes with verification and compilation
-    
+
     Memory Invariants (NON-NEGOTIABLE):
     1. Sandbox data can never influence execution directly
     2. Execution memory is append-only
@@ -630,25 +630,25 @@ class MemoryArtifactSystem:
     4. Verification always increases determinism or blocks progress
     5. Formatting cannot bypass binding phase
     """
-    
+
     def __init__(self):
         # Four memory planes
         self.sandbox = SandboxMemory()
         self.working = WorkingArtifactMemory()
         self.control = ControlMemory()
         self.execution = ExecutionMemory()
-        
+
         # Verification and compilation
         self.verification = VerificationInterfaceLayer()
         self.compiler = DeliverableCompiler()
-        
+
         # Transition tracking
         self.transition_log: List[Dict[str, Any]] = []
-    
+
     def write_sandbox(self, artifact: Artifact) -> str:
         """Write to sandbox (always allowed)"""
         return self.sandbox.write(artifact)
-    
+
     def promote_to_working(
         self,
         artifact_id: str,
@@ -657,16 +657,16 @@ class MemoryArtifactSystem:
     ) -> Optional[str]:
         """
         Promote artifact from sandbox to working memory
-        
+
         Transition: Draft → Structured
         Requires: phase legality, basic coherence
         """
         artifact = self.sandbox.read(artifact_id)
         if not artifact:
             return None
-        
+
         result = self.working.promote_from_sandbox(artifact, phase_legal, coherent)
-        
+
         if result:
             self.transition_log.append({
                 'artifact_id': artifact_id,
@@ -675,9 +675,9 @@ class MemoryArtifactSystem:
                 'timestamp': datetime.now().timestamp(),
                 'transition': 'draft_to_structured'
             })
-        
+
         return result
-    
+
     def verify_artifact(
         self,
         artifact_id: str,
@@ -686,20 +686,20 @@ class MemoryArtifactSystem:
     ) -> Optional[VerificationResult]:
         """
         Verify artifact
-        
+
         Transition: Structured → Verified
         Requires: deterministic checks
         """
         artifact = self.working.read(artifact_id)
         if not artifact:
             return None
-        
+
         # Perform verification
         result = self.verification.verify_artifact(artifact, source, evidence)
-        
+
         # Update artifact
         self.working.mark_verified(artifact_id, result)
-        
+
         # Log transition
         self.transition_log.append({
             'artifact_id': artifact_id,
@@ -709,9 +709,9 @@ class MemoryArtifactSystem:
             'transition': 'structured_to_verified',
             'verification': result.trust_weighted_score
         })
-        
+
         return result
-    
+
     def bind_artifact(
         self,
         artifact_id: str,
@@ -719,23 +719,23 @@ class MemoryArtifactSystem:
     ) -> bool:
         """
         Bind artifact
-        
+
         Transition: Verified → Bound
         Requires: authority threshold
         """
         artifact = self.working.read(artifact_id)
         if not artifact:
             return False
-        
+
         if artifact.state != ArtifactState.VERIFIED:
             return False
-        
+
         if authority < 0.7:  # Bind threshold
             return False
-        
+
         # Update state
         artifact.state = ArtifactState.BOUND
-        
+
         # Log transition
         self.transition_log.append({
             'artifact_id': artifact_id,
@@ -745,9 +745,9 @@ class MemoryArtifactSystem:
             'transition': 'verified_to_bound',
             'authority': authority
         })
-        
+
         return True
-    
+
     def execute_artifacts(
         self,
         artifact_ids: List[str],
@@ -758,7 +758,7 @@ class MemoryArtifactSystem:
     ) -> Optional[ExecutionRecord]:
         """
         Execute artifacts (commit to execution memory)
-        
+
         Transition: Bound → Executed
         Requires: authority >= bind threshold, murphy_index minimal
         """
@@ -766,7 +766,7 @@ class MemoryArtifactSystem:
         artifacts = [self.working.read(aid) for aid in artifact_ids]
         if not all(a and a.state == ArtifactState.BOUND for a in artifacts):
             return None
-        
+
         # Commit to execution memory
         record = self.execution.commit(
             artifact_ids=artifact_ids,
@@ -775,13 +775,13 @@ class MemoryArtifactSystem:
             murphy_index=murphy_index,
             metadata=metadata
         )
-        
+
         if record:
             # Update artifact states
             for artifact in artifacts:
                 if artifact:
                     artifact.state = ArtifactState.EXECUTED
-            
+
             # Log transitions
             for artifact_id in artifact_ids:
                 self.transition_log.append({
@@ -792,9 +792,9 @@ class MemoryArtifactSystem:
                     'transition': 'bound_to_executed',
                     'execution_id': record.id
                 })
-        
+
         return record
-    
+
     def compile_deliverable(
         self,
         artifact_ids: List[str],
@@ -805,20 +805,20 @@ class MemoryArtifactSystem:
         # Get bound artifacts
         artifacts = [self.working.read(aid) for aid in artifact_ids]
         bound_artifacts = [a for a in artifacts if a and a.state == ArtifactState.BOUND]
-        
+
         # Get execution records
         executions = [self.execution.read(eid) for eid in execution_ids]
         execution_records = [e for e in executions if e]
-        
+
         if not bound_artifacts and not execution_records:
             return None
-        
+
         return self.compiler.compile_deliverable(
             bound_artifacts=bound_artifacts,
             execution_outputs=execution_records,
             format_requirements=format_requirements
         )
-    
+
     def get_memory_stats(self) -> Dict[str, Any]:
         """Get memory system statistics"""
         return {

@@ -14,11 +14,11 @@ from .governance_runtime_complete import GovernanceRuntime, RuntimeConfig
 
 class GovernanceAPI:
     """REST API for governance operations"""
-    
+
     def __init__(self, runtime: GovernanceRuntime):
         self.runtime = runtime
         self.logger = logging.getLogger(__name__)
-    
+
     def get_system_status(self) -> Dict[str, Any]:
         """Get comprehensive system status"""
         try:
@@ -32,7 +32,7 @@ class GovernanceAPI:
                 "success": False,
                 "error": str(exc)
             }
-    
+
     def initialize_system(self) -> Dict[str, Any]:
         """Initialize the governance runtime"""
         try:
@@ -52,7 +52,7 @@ class GovernanceAPI:
                 "success": False,
                 "error": str(exc)
             }
-    
+
     def activate_system(self) -> Dict[str, Any]:
         """Activate system with governance validation"""
         try:
@@ -66,7 +66,7 @@ class GovernanceAPI:
                 "success": False,
                 "error": str(exc)
             }
-    
+
     def get_validation_output(self) -> Dict[str, Any]:
         """Get complete validation output"""
         try:
@@ -80,7 +80,7 @@ class GovernanceAPI:
                 "success": False,
                 "error": str(exc)
             }
-    
+
     def list_presets(self) -> Dict[str, Any]:
         """List all available presets"""
         try:
@@ -96,7 +96,7 @@ class GovernanceAPI:
                     "jurisdiction": preset.jurisdiction,
                     "enabled": preset.preset_id in self.runtime.preset_manager.enabled_presets
                 })
-            
+
             return {
                 "success": True,
                 "data": preset_data
@@ -106,7 +106,7 @@ class GovernanceAPI:
                 "success": False,
                 "error": str(exc)
             }
-    
+
     def handle_preset_selection(self, preset_id: str) -> Dict[str, Any]:
         """Handle preset selection with gap analysis"""
         try:

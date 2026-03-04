@@ -24,38 +24,38 @@ from src.compute_plane.service import ComputeService
 
 class TestExpressionParser(unittest.TestCase):
     """Test expression parsing"""
-    
+
     def setUp(self):
         self.parser = ExpressionParser()
-    
+
     def test_parse_simple_sympy(self):
         """Test parsing simple SymPy expression"""
         if not self.parser.sympy_available:
             self.skipTest("SymPy not available")
-        
+
         parsed = self.parser.parse("x**2 + 2*x + 1", "sympy")
         self.assertIsNotNone(parsed.parsed)
         self.assertEqual(parsed.language, "sympy")
         self.assertLessEqual(parsed.uncertainty, 0.5)
-    
+
     def test_parse_with_cleaning(self):
         """Test parsing with expression cleaning"""
         if not self.parser.sympy_available:
             self.skipTest("SymPy not available")
-        
+
         parsed = self.parser.parse("x times 2 plus 3", "sympy")
         self.assertIsNotNone(parsed.parsed)
         self.assertGreater(len(parsed.warnings), 0)
-    
+
     def test_validate_syntax_valid(self):
         """Test syntax validation for valid expression"""
         if not self.parser.sympy_available:
             self.skipTest("SymPy not available")
-        
+
         validation = self.parser.validate_syntax("x**2 + 1", "sympy")
         self.assertTrue(validation.is_valid)
         self.assertEqual(len(validation.errors), 0)
-    
+
     def test_validate_syntax_invalid(self):
         """Test syntax validation for invalid expression"""
         validation = self.parser.validate_syntax("", "sympy")
@@ -65,55 +65,55 @@ class TestExpressionParser(unittest.TestCase):
 
 class TestSymbolicSolver(unittest.TestCase):
     """Test symbolic solving"""
-    
+
     def setUp(self):
         self.parser = ExpressionParser()
         self.solver = SymbolicSolver()
-    
+
     def test_simplify(self):
         """Test symbolic simplification"""
         if not self.solver.sympy_available:
             self.skipTest("SymPy not available")
-        
+
         parsed = self.parser.parse("x**2 + 2*x + 1", "sympy")
         normalized = self.parser.normalize(parsed)
-        
+
         result = self.solver.solve_sympy(normalized, "simplify")
         self.assertIsNotNone(result.result)
         self.assertEqual(result.solver, "sympy")
         self.assertGreater(len(result.derivation_steps), 0)
-    
+
     def test_expand(self):
         """Test symbolic expansion"""
         if not self.solver.sympy_available:
             self.skipTest("SymPy not available")
-        
+
         parsed = self.parser.parse("(x + 1)**2", "sympy")
         normalized = self.parser.normalize(parsed)
-        
+
         result = self.solver.solve_sympy(normalized, "expand")
         self.assertIsNotNone(result.result)
-    
+
     def test_integrate(self):
         """Test symbolic integration"""
         if not self.solver.sympy_available:
             self.skipTest("SymPy not available")
-        
+
         parsed = self.parser.parse("x**2", "sympy")
         normalized = self.parser.normalize(parsed)
-        
+
         result = self.solver.solve_sympy(normalized, "integrate:x")
         self.assertIsNotNone(result.result)
         self.assertIn("Integrated", result.derivation_steps[1])
-    
+
     def test_differentiate(self):
         """Test symbolic differentiation"""
         if not self.solver.sympy_available:
             self.skipTest("SymPy not available")
-        
+
         parsed = self.parser.parse("x**3", "sympy")
         normalized = self.parser.normalize(parsed)
-        
+
         result = self.solver.solve_sympy(normalized, "diff:x")
         self.assertIsNotNone(result.result)
         self.assertIn("Differentiated", result.derivation_steps[1])
@@ -121,44 +121,44 @@ class TestSymbolicSolver(unittest.TestCase):
 
 class TestNumericSolver(unittest.TestCase):
     """Test numeric solving"""
-    
+
     def setUp(self):
         self.parser = ExpressionParser()
         self.solver = NumericSolver()
-    
+
     def test_evaluate(self):
         """Test numeric evaluation"""
         if not self.solver.sympy_available:
             self.skipTest("SymPy not available")
-        
+
         parsed = self.parser.parse("x**2 + 1", "sympy")
         normalized = self.parser.normalize(parsed)
-        
+
         result = self.solver.evaluate(normalized, substitutions={'x': 2.0})
         self.assertIsNotNone(result['result'])
         self.assertEqual(result['result'], 5.0)
-    
+
     def test_compute_bounds(self):
         """Test bounds computation"""
         if not self.solver.sympy_available:
             self.skipTest("SymPy not available")
-        
+
         parsed = self.parser.parse("x**2", "sympy")
         normalized = self.parser.normalize(parsed)
-        
+
         bounds = self.solver.compute_bounds(normalized, {'x': (0, 10)})
         self.assertIsInstance(bounds, tuple)
         self.assertEqual(len(bounds), 2)
         self.assertLessEqual(bounds[0], bounds[1])
-    
+
     def test_sensitivity_analysis(self):
         """Test sensitivity analysis"""
         if not self.solver.sympy_available:
             self.skipTest("SymPy not available")
-        
+
         parsed = self.parser.parse("x**2 + y", "sympy")
         normalized = self.parser.normalize(parsed)
-        
+
         sensitivity = self.solver.sensitivity_analysis(
             normalized,
             {'x': 2.0, 'y': 1.0}
@@ -170,25 +170,25 @@ class TestNumericSolver(unittest.TestCase):
 
 class TestDeterminismAnalyzer(unittest.TestCase):
     """Test determinism analysis"""
-    
+
     def setUp(self):
         self.analyzer = DeterminismAnalyzer()
-    
+
     def test_compute_stability_high(self):
         """Test stability computation for stable result"""
         stability = self.analyzer.compute_stability(5.0, {'x': 0.1})
         self.assertGreater(stability, 0.5)
-    
+
     def test_compute_stability_low(self):
         """Test stability computation for unstable result"""
         stability = self.analyzer.compute_stability(5.0, {'x': 100.0})
         self.assertLess(stability, 0.5)
-    
+
     def test_compute_confidence(self):
         """Test confidence computation"""
         confidence = self.analyzer.compute_confidence(5.0, 0.9)
         self.assertGreater(confidence, 0.5)
-    
+
     def test_analyze_result(self):
         """Test complete result analysis"""
         analysis = self.analyzer.analyze_result(
@@ -203,7 +203,7 @@ class TestDeterminismAnalyzer(unittest.TestCase):
 
 class TestComputeService(unittest.TestCase):
     """Test compute service"""
-    
+
     def setUp(self):
         self.service = ComputeService(enable_caching=True)
 
@@ -215,24 +215,24 @@ class TestComputeService(unittest.TestCase):
                 return result
             time.sleep(interval)
         return result
-    
+
     def test_submit_and_get_result(self):
         """Test submitting request and getting result"""
         if not self.service.parser.sympy_available:
             self.skipTest("SymPy not available")
-        
+
         request = ComputeRequest(
             expression="x**2 + 1",
             language="sympy",
             metadata={'operation': 'simplify'}
         )
-        
+
         request_id = self.service.submit_request(request)
         self.assertIsNotNone(request_id)
-        
+
         # Wait for computation
         time.sleep(1)
-        
+
         result = self.service.get_result(request_id)
         self.assertIsNotNone(result)
         self.assertEqual(result.status, ComputeStatus.SUCCESS)
@@ -612,7 +612,7 @@ class TestComputeService(unittest.TestCase):
             self.assertEqual(second_result.result, "second-pass-result")
         finally:
             service.shutdown()
-    
+
     def test_validate_expression(self):
         """Test expression validation"""
         validation = self.service.validate_expression("x**2 + 1", "sympy")
@@ -845,7 +845,7 @@ class TestComputeService(unittest.TestCase):
             self.assertEqual(result.status, ComputeStatus.FAIL)
             self.assertIn("Failed to start compute worker", result.error_message)
             self.assertNotIn(request_id, self.service.pending_requests)
-    
+
     def test_get_statistics(self):
         """Test getting service statistics"""
         stats = self.service.get_statistics()
@@ -855,15 +855,15 @@ class TestComputeService(unittest.TestCase):
 
 class TestComputePlaneIntegration(unittest.TestCase):
     """Integration tests for complete compute plane"""
-    
+
     def setUp(self):
         self.service = ComputeService(enable_caching=True)
-    
+
     def test_end_to_end_symbolic(self):
         """Test end-to-end symbolic computation"""
         if not self.service.parser.sympy_available:
             self.skipTest("SymPy not available")
-        
+
         # Submit request
         request = ComputeRequest(
             expression="(x + 1)**2",
@@ -871,27 +871,27 @@ class TestComputePlaneIntegration(unittest.TestCase):
             assumptions={'x': 'real'},
             metadata={'operation': 'expand'}
         )
-        
+
         request_id = self.service.submit_request(request)
-        
+
         # Wait for result
         time.sleep(1)
-        
+
         # Get result
         result = self.service.get_result(request_id)
-        
+
         # Verify result
         self.assertEqual(result.status, ComputeStatus.SUCCESS)
         self.assertIsNotNone(result.result)
         self.assertGreater(len(result.derivation_steps), 0)
         self.assertGreater(result.confidence_score, 0.0)
         self.assertGreater(result.stability_estimate, 0.0)
-    
+
     def test_end_to_end_with_sensitivity(self):
         """Test end-to-end with sensitivity analysis"""
         if not self.service.parser.sympy_available:
             self.skipTest("SymPy not available")
-        
+
         # Submit request with base point for sensitivity
         request = ComputeRequest(
             expression="x**2 + y",
@@ -902,15 +902,15 @@ class TestComputePlaneIntegration(unittest.TestCase):
                 'base_point': {'x': 2.0, 'y': 1.0}
             }
         )
-        
+
         request_id = self.service.submit_request(request)
-        
+
         # Wait for result
         time.sleep(1)
-        
+
         # Get result
         result = self.service.get_result(request_id)
-        
+
         # Verify sensitivity analysis
         self.assertEqual(result.status, ComputeStatus.SUCCESS)
         self.assertGreater(len(result.sensitivity_to_assumptions), 0)

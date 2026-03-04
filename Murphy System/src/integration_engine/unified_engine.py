@@ -32,7 +32,7 @@ from .hitl_approval import HITLApprovalSystem, ApprovalRequest, ApprovalStatus
 
 class IntegrationResult:
     """Result of integration process"""
-    
+
     def __init__(
         self,
         success: bool,
@@ -53,7 +53,7 @@ class IntegrationResult:
         self.warnings = warnings or []
         self.metadata = metadata or {}
         self.timestamp = datetime.now(timezone.utc)
-    
+
     def to_dict(self) -> Dict:
         """Convert to dictionary"""
         return {
@@ -72,7 +72,7 @@ class IntegrationResult:
 class UnifiedIntegrationEngine:
     """
     Unified Integration Engine - Main orchestrator for all integrations
-    
+
     This engine coordinates:
     - SwissKiss Loader (repository analysis)
     - Capability Extractor (what can it do?)
@@ -80,7 +80,7 @@ class UnifiedIntegrationEngine:
     - Agent Generator (create Murphy agent)
     - Safety Tester (test before committing)
     - HITL Approval (human approval required)
-    
+
     Workflow:
     1. User: "Add Stripe integration"
     2. Engine: Analyze repository
@@ -91,7 +91,7 @@ class UnifiedIntegrationEngine:
     7. Human: "Yes" or "No"
     8. Engine: If yes, commit and load. If no, rollback.
     """
-    
+
     def __init__(self):
         self.swisskiss = SwissKissLoader()
         self.capability_extractor = CapabilityExtractor()
@@ -100,13 +100,13 @@ class UnifiedIntegrationEngine:
         self.safety_tester = SafetyTester()
         self.hitl_approval = HITLApprovalSystem()
         self.integration_framework = IntegrationFramework()
-        
+
         # Track pending integrations (not yet approved)
         self.pending_integrations: Dict[str, Dict] = {}
-        
+
         # Track committed integrations (approved and loaded)
         self.committed_integrations: Dict[str, Dict] = {}
-    
+
     def add_integration(
         self,
         source: str,
@@ -118,7 +118,7 @@ class UnifiedIntegrationEngine:
     ) -> IntegrationResult:
         """
         Add an integration from any source with HITL approval.
-        
+
         Args:
             source: GitHub URL, local path, or API endpoint
             integration_type: 'repository', 'api', 'hardware'
@@ -126,10 +126,10 @@ class UnifiedIntegrationEngine:
             entry_script: Optional entry script path
             generate_agent: Whether to generate an agent (in addition to module)
             auto_approve: Skip HITL approval (dangerous, only for testing)
-        
+
         Returns:
             IntegrationResult with status and details
-        
+
         Workflow:
         1. Analyze source (SwissKiss)
         2. Extract capabilities
@@ -140,11 +140,11 @@ class UnifiedIntegrationEngine:
         7. If approved: commit and load
         8. If rejected: rollback and cleanup
         """
-        
+
         print(f"\n{'='*80}")
         print(f"🚀 STARTING INTEGRATION: {source}")
         print(f"{'='*80}\n")
-        
+
         try:
             # Step 1: Analyze with SwissKiss
             print("📊 Step 1: Analyzing repository with SwissKiss...")
@@ -153,29 +153,29 @@ class UnifiedIntegrationEngine:
                 category=category,
                 entry_script=entry_script
             )
-            
+
             module_yaml = swisskiss_result['module']
             audit = swisskiss_result['audit']
             module_name = module_yaml['module_name']
-            
+
             print(f"✓ Analysis complete: {module_name}")
             print(f"  - License: {audit['license']} ({'✓ OK' if audit['license_ok'] else '✗ NOT OK'})")
             print(f"  - Languages: {', '.join(audit['languages'].keys())}")
             print(f"  - Risk issues: {audit['risk_scan']['count']}")
-            
+
             # Step 2: Extract capabilities
             print("\n🔍 Step 2: Extracting capabilities...")
             capabilities = self.capability_extractor.extract_from_swisskiss(
                 module_yaml=module_yaml,
                 audit=audit
             )
-            
+
             print(f"✓ Extracted {len(capabilities)} capabilities:")
             for cap in capabilities[:5]:  # Show first 5
                 print(f"  - {cap}")
             if len(capabilities) > 5:
                 print(f"  ... and {len(capabilities) - 5} more")
-            
+
             # Step 3: Generate module
             print("\n🏗️  Step 3: Generating Murphy module...")
             module = self.module_generator.generate_from_swisskiss(
@@ -183,11 +183,11 @@ class UnifiedIntegrationEngine:
                 audit=audit,
                 capabilities=capabilities
             )
-            
+
             print(f"✓ Module generated: {module['name']}")
             print(f"  - Entry point: {module['entry_point']}")
             print(f"  - Commands: {len(module['commands'])}")
-            
+
             # Step 4: Generate agent (if requested)
             agent = None
             if generate_agent:
@@ -200,7 +200,7 @@ class UnifiedIntegrationEngine:
                 print(f"✓ Agent generated: {agent['name']}")
             else:
                 print("\n⏭️  Step 4: Skipping agent generation (not requested)")
-            
+
             # Step 5: Safety testing
             print("\n🛡️  Step 5: Running safety tests...")
             test_results = self.safety_tester.test_integration(
@@ -208,16 +208,16 @@ class UnifiedIntegrationEngine:
                 agent=agent,
                 audit=audit
             )
-            
+
             print("✓ Safety tests complete:")
             print(f"  - Tests passed: {test_results['passed']}/{test_results['total']}")
             print(f"  - Critical issues: {len(test_results['critical_issues'])}")
             print(f"  - Warnings: {len(test_results['warnings'])}")
             print(f"  - Safety score: {test_results['safety_score']:.2f}/1.0")
-            
+
             # Step 6: Create HITL approval request
             print("\n👤 Step 6: Creating human approval request...")
-            
+
             approval_request = self.hitl_approval.create_approval_request(
                 integration_name=module_name,
                 source=source,
@@ -227,7 +227,7 @@ class UnifiedIntegrationEngine:
                 audit=audit,
                 test_results=test_results
             )
-            
+
             # Store as pending
             self.pending_integrations[approval_request.request_id] = {
                 'request': approval_request,
@@ -237,9 +237,9 @@ class UnifiedIntegrationEngine:
                 'audit': audit,
                 'test_results': test_results
             }
-            
+
             print(f"✓ Approval request created: {approval_request.request_id}")
-            
+
             # Auto-approve if requested (testing only)
             if auto_approve:
                 print("\n⚠️  AUTO-APPROVE ENABLED (testing mode)")
@@ -251,7 +251,7 @@ class UnifiedIntegrationEngine:
                 print("\n" + "="*80)
                 print(self.hitl_approval.format_approval_request(approval_request))
                 print("="*80)
-                
+
                 # Return result with pending status
                 return IntegrationResult(
                     success=False,  # Not yet successful (pending approval)
@@ -267,11 +267,11 @@ class UnifiedIntegrationEngine:
                         'critical_issues': test_results['critical_issues']
                     }
                 )
-            
+
             # Step 7: If approved, commit and load
             if approval_request.status == ApprovalStatus.APPROVED:
                 print("\n✅ Step 7: APPROVED - Committing integration...")
-                
+
                 # Register module with Module Manager
                 module_manager.register_module(
                     name=module['name'],
@@ -279,26 +279,26 @@ class UnifiedIntegrationEngine:
                     description=module['description'],
                     capabilities=capabilities
                 )
-                
+
                 # Load module
                 module_manager.load_module(module['name'])
-                
+
                 # Register agent if generated
                 if agent:
                     self._register_swarm_agent(agent)
                     self._register_agent_with_swarm(agent, capabilities)
                     print(f"✓ Agent registered: {agent['name']}")
-                
+
                 # Move to committed integrations
                 self.committed_integrations[module_name] = self.pending_integrations.pop(approval_request.request_id)
-                
+
                 print(f"\n{'='*80}")
                 print(f"🎉 INTEGRATION COMPLETE: {module_name}")
                 print(f"{'='*80}")
                 print("✓ Module loaded and ready to use")
                 print(f"✓ Available commands: {len(module['commands'])}")
                 print(f"✓ Capabilities: {', '.join(capabilities[:3])}...")
-                
+
                 return IntegrationResult(
                     success=True,
                     integration_id=approval_request.request_id,
@@ -312,52 +312,52 @@ class UnifiedIntegrationEngine:
                         'approved_by': approval_request.approved_by
                     }
                 )
-        
+
         except Exception as exc:
             print(f"\n❌ ERROR: {str(exc)}")
             import traceback
             traceback.print_exc()
-            
+
             return IntegrationResult(
                 success=False,
                 errors=[str(exc)],
                 metadata={'status': 'failed'}
             )
-    
+
     def approve_integration(self, request_id: str, approved_by: str = "user") -> IntegrationResult:
         """
         Approve a pending integration and commit it.
-        
+
         Args:
             request_id: The approval request ID
             approved_by: Who approved it
-        
+
         Returns:
             IntegrationResult with final status
         """
-        
+
         if request_id not in self.pending_integrations:
             return IntegrationResult(
                 success=False,
                 errors=[f"Integration request not found: {request_id}"]
             )
-        
+
         pending = self.pending_integrations[request_id]
         approval_request = pending['request']
         module = pending['module']
         agent = pending['agent']
         capabilities = pending['capabilities']
         test_results = pending['test_results']
-        
+
         print(f"\n{'='*80}")
         print(f"✅ APPROVING INTEGRATION: {module['name']}")
         print(f"{'='*80}\n")
-        
+
         # Update approval status
         approval_request.status = ApprovalStatus.APPROVED
         approval_request.approved_by = approved_by
         approval_request.approved_at = datetime.now(timezone.utc)
-        
+
         # Register module with Module Manager
         print("📦 Registering module with Module Manager...")
         module_manager.register_module(
@@ -366,27 +366,27 @@ class UnifiedIntegrationEngine:
             description=module['description'],
             capabilities=capabilities
         )
-        
+
         # Load module
         print("🔄 Loading module...")
         module_manager.load_module(module['name'])
-        
+
         # Register agent if generated
         if agent:
             self._register_swarm_agent(agent)
             print(f"🤖 Registering agent: {agent['name']}")
             self._register_agent_with_swarm(agent, capabilities)
-        
+
         # Move to committed integrations
         self.committed_integrations[module['name']] = self.pending_integrations.pop(request_id)
-        
+
         print(f"\n{'='*80}")
         print(f"🎉 INTEGRATION COMMITTED: {module['name']}")
         print(f"{'='*80}")
         print("✓ Module loaded and ready to use")
         print(f"✓ Available commands: {len(module['commands'])}")
         print(f"✓ Capabilities: {', '.join(capabilities[:3])}...")
-        
+
         return IntegrationResult(
             success=True,
             integration_id=request_id,
@@ -400,48 +400,48 @@ class UnifiedIntegrationEngine:
                 'approved_by': approved_by
             }
         )
-    
+
     def reject_integration(self, request_id: str, reason: str = "User rejected") -> IntegrationResult:
         """
         Reject a pending integration and clean up.
-        
+
         Args:
             request_id: The approval request ID
             reason: Why it was rejected
-        
+
         Returns:
             IntegrationResult with rejection status
         """
-        
+
         if request_id not in self.pending_integrations:
             return IntegrationResult(
                 success=False,
                 errors=[f"Integration request not found: {request_id}"]
             )
-        
+
         pending = self.pending_integrations[request_id]
         approval_request = pending['request']
         module = pending['module']
-        
+
         print(f"\n{'='*80}")
         print(f"❌ REJECTING INTEGRATION: {module['name']}")
         print(f"{'='*80}\n")
         print(f"Reason: {reason}")
-        
+
         # Update approval status
         approval_request.status = ApprovalStatus.REJECTED
         approval_request.rejection_reason = reason
-        
+
         # Clean up (remove generated artefacts for the rejected integration)
         self._cleanup_rejected(module)
         # Clean up (remove generated files, etc.)
         self._cleanup_rejected_integration(module)
-        
+
         # Remove from pending
         self.pending_integrations.pop(request_id)
-        
+
         print("✓ Integration rejected and cleaned up")
-        
+
         return IntegrationResult(
             success=True,
             integration_id=request_id,
@@ -451,7 +451,7 @@ class UnifiedIntegrationEngine:
                 'reason': reason
             }
         )
-    
+
     def list_pending_integrations(self) -> List[Dict]:
         """List all pending integrations awaiting approval"""
         return [
@@ -466,7 +466,7 @@ class UnifiedIntegrationEngine:
             }
             for req_id, data in self.pending_integrations.items()
         ]
-    
+
     def list_committed_integrations(self) -> List[Dict]:
         """List all committed integrations"""
         return [
@@ -479,18 +479,18 @@ class UnifiedIntegrationEngine:
             }
             for name, data in self.committed_integrations.items()
         ]
-    
+
     def get_integration_status(self, identifier: str) -> Optional[Dict]:
         """
         Get status of an integration (by request_id or module_name)
-        
+
         Args:
             identifier: Request ID or module name
-        
+
         Returns:
             Status dictionary or None if not found
         """
-        
+
         # Check pending
         if identifier in self.pending_integrations:
             data = self.pending_integrations[identifier]
@@ -502,7 +502,7 @@ class UnifiedIntegrationEngine:
                 'critical_issues': data['test_results']['critical_issues'],
                 'warnings': data['test_results']['warnings']
             }
-        
+
         # Check committed
         if identifier in self.committed_integrations:
             data = self.committed_integrations[identifier]
@@ -513,7 +513,7 @@ class UnifiedIntegrationEngine:
                 'safety_score': data['test_results']['safety_score'],
                 'approved_by': data['request'].approved_by
             }
-        
+
         return None
 
     # ------------------------------------------------------------------

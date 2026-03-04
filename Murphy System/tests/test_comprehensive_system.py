@@ -18,14 +18,14 @@ import re
 
 class ComprehensiveSystemTest:
     """500 comprehensive tests of the unified system"""
-    
+
     def __init__(self):
         self.system = UnifiedMFGC()
         self.passed = 0
         self.failed = 0
         self.results = []
         self.start_time = time.time()
-    
+
     def fuzzy_match(self, text: str, keywords: list, min_matches: int = 1) -> bool:
         """
         Fuzzy match: Check if text contains information related to keywords.
@@ -33,7 +33,7 @@ class ComprehensiveSystemTest:
         """
         text_lower = text.lower()
         matches = 0
-        
+
         for keyword in keywords:
             # Check for keyword or related terms
             if keyword.lower() in text_lower:
@@ -41,59 +41,59 @@ class ComprehensiveSystemTest:
             # Check for word stems (simple version)
             elif any(keyword.lower()[:4] in word for word in text_lower.split() if len(word) > 4):
                 matches += 1
-        
+
         return matches >= min_matches
-    
+
     def verify_response_quality(self, response: str, min_length: int = 20) -> bool:
         """Verify response is substantive, not empty or error"""
         if not response or len(response) < min_length:
             return False
-        
+
         # Check it's not an error message
         error_indicators = ['error', 'exception', 'failed', 'traceback']
         if any(indicator in response.lower() for indicator in error_indicators):
             return False
-        
+
         return True
-    
+
     def verify_band_consistency(self, result: dict) -> bool:
         """Verify the system maintains consistent structure across bands"""
         required_keys = ['response', 'confidence', 'band', 'domain', 'complexity']
         return all(key in result for key in required_keys)
-    
-    def run_test(self, test_num: int, name: str, message: str, 
+
+    def run_test(self, test_num: int, name: str, message: str,
                  expected_keywords: list, expected_band: str = None,
                  min_confidence: float = 0.0) -> bool:
         """Run a single test with fuzzy matching"""
         try:
             result = self.system.process_message(message)
-            
+
             # Test 1: Response quality
             if not self.verify_response_quality(result.get('response', '')):
                 return False
-            
+
             # Test 2: Band consistency (structure)
             if not self.verify_band_consistency(result):
                 return False
-            
+
             # Test 3: Fuzzy match for content relevance
             if not self.fuzzy_match(result['response'], expected_keywords, min_matches=1):
                 return False
-            
+
             # Test 4: Expected band (if specified)
             if expected_band and result['band'] != expected_band:
                 return False
-            
+
             # Test 5: Minimum confidence
             if result['confidence'] < min_confidence:
                 return False
-            
+
             return True
-            
+
         except Exception as e:
             print(f"   Test {test_num} ERROR: {str(e)}")
             return False
-    
+
     def run_all_tests(self):
         """Run all 500 tests"""
         print("\n" + "="*80)
@@ -102,15 +102,15 @@ class ComprehensiveSystemTest:
         print("\nTest Criteria: Fuzzy match verification")
         print("Verifying: ONE unified system, not separate modes")
         print("="*80 + "\n")
-        
+
         test_num = 0
-        
+
         # ====================================================================
         # CATEGORY 1: INTRODUCTORY BAND (100 tests)
         # ====================================================================
         print("\n[1/5] INTRODUCTORY BAND TESTS (100 tests)")
         print("-" * 80)
-        
+
         # Greetings (20 tests)
         greetings = [
             ("hi", ["hello", "mfgc", "system", "layer"]),
@@ -134,7 +134,7 @@ class ComprehensiveSystemTest:
             ("how's it going", ["hello", "hi", "system"]),
             ("nice to meet you", ["hello", "meet", "system"]),
         ]
-        
+
         for msg, keywords in greetings:
             test_num += 1
             if self.run_test(test_num, f"Greeting: {msg}", msg, keywords, "introductory", 0.7):
@@ -143,7 +143,7 @@ class ComprehensiveSystemTest:
             else:
                 self.failed += 1
                 print(f"❌ Test {test_num}: {msg}")
-        
+
         # Capabilities questions (20 tests)
         capabilities = [
             ("what can you do", ["capabilit", "swarm", "mode", "band"]),
@@ -167,7 +167,7 @@ class ComprehensiveSystemTest:
             ("what's your function", ["function", "capabilit", "system"]),
             ("describe your capabilities", ["capabilit", "feature", "swarm"]),
         ]
-        
+
         for msg, keywords in capabilities:
             test_num += 1
             if self.run_test(test_num, f"Capability: {msg}", msg, keywords, "introductory", 0.7):
@@ -176,7 +176,7 @@ class ComprehensiveSystemTest:
             else:
                 self.failed += 1
                 print(f"❌ Test {test_num}: {msg}")
-        
+
         # Help requests (20 tests)
         help_requests = [
             ("help", ["help", "capabilit", "system"]),
@@ -200,7 +200,7 @@ class ComprehensiveSystemTest:
             ("guide", ["guide", "help", "assist"]),
             ("walkthrough", ["walk", "help", "guide"]),
         ]
-        
+
         for msg, keywords in help_requests:
             test_num += 1
             if self.run_test(test_num, f"Help: {msg}", msg, keywords, "introductory", 0.7):
@@ -209,7 +209,7 @@ class ComprehensiveSystemTest:
             else:
                 self.failed += 1
                 print(f"❌ Test {test_num}: {msg}")
-        
+
         # Status checks (20 tests)
         status_checks = [
             ("status", ["status", "system", "state"]),
@@ -233,7 +233,7 @@ class ComprehensiveSystemTest:
             ("is this working", ["work", "status", "system"]),
             ("can you hear me", ["hear", "status", "system"]),
         ]
-        
+
         for msg, keywords in status_checks:
             test_num += 1
             if self.run_test(test_num, f"Status: {msg}", msg, keywords, "introductory", 0.7):
@@ -242,7 +242,7 @@ class ComprehensiveSystemTest:
             else:
                 self.failed += 1
                 print(f"❌ Test {test_num}: {msg}")
-        
+
         # Thanks/acknowledgments (20 tests)
         thanks = [
             ("thanks", ["thank", "welcome", "help"]),
@@ -266,7 +266,7 @@ class ComprehensiveSystemTest:
             ("okay", ["okay", "good", "understand"]),
             ("got it", ["got", "understand", "good"]),
         ]
-        
+
         for msg, keywords in thanks:
             test_num += 1
             if self.run_test(test_num, f"Thanks: {msg}", msg, keywords, "introductory", 0.7):
@@ -275,13 +275,13 @@ class ComprehensiveSystemTest:
             else:
                 self.failed += 1
                 print(f"❌ Test {test_num}: {msg}")
-        
+
         # ====================================================================
         # CATEGORY 2: CONVERSATIONAL BAND - SOFTWARE (100 tests)
         # ====================================================================
         print("\n[2/5] CONVERSATIONAL BAND - SOFTWARE (100 tests)")
         print("-" * 80)
-        
+
         # Web development (25 tests)
         web_dev = [
             ("design a website", ["web", "design", "frontend", "backend"]),
@@ -310,7 +310,7 @@ class ComprehensiveSystemTest:
             ("create a documentation site", ["documentation", "docs", "site", "web"]),
             ("build a wiki", ["wiki", "knowledge", "base", "web"]),
         ]
-        
+
         for msg, keywords in web_dev:
             test_num += 1
             if self.run_test(test_num, f"Web Dev: {msg}", msg, keywords, "conversational"):
@@ -319,7 +319,7 @@ class ComprehensiveSystemTest:
             else:
                 self.failed += 1
                 print(f"❌ Test {test_num}: {msg}")
-        
+
         # API development (25 tests)
         api_dev = [
             ("create an API", ["api", "backend", "endpoint", "rest"]),
@@ -348,7 +348,7 @@ class ComprehensiveSystemTest:
             ("develop a logging API", ["log", "api", "audit", "track"]),
             ("create a configuration API", ["config", "api", "settings", "manage"]),
         ]
-        
+
         for msg, keywords in api_dev:
             test_num += 1
             if self.run_test(test_num, f"API Dev: {msg}", msg, keywords, "conversational"):
@@ -357,7 +357,7 @@ class ComprehensiveSystemTest:
             else:
                 self.failed += 1
                 print(f"❌ Test {test_num}: {msg}")
-        
+
         # Database design (25 tests)
         db_design = [
             ("design a database", ["database", "schema", "table", "design"]),
@@ -386,7 +386,7 @@ class ComprehensiveSystemTest:
             ("build cache layer", ["cache", "layer", "redis", "database"]),
             ("design data warehouse", ["warehouse", "data", "analytics", "database"]),
         ]
-        
+
         for msg, keywords in db_design:
             test_num += 1
             if self.run_test(test_num, f"DB Design: {msg}", msg, keywords, "conversational"):
@@ -395,7 +395,7 @@ class ComprehensiveSystemTest:
             else:
                 self.failed += 1
                 print(f"❌ Test {test_num}: {msg}")
-        
+
         # Mobile development (25 tests)
         mobile_dev = [
             ("create a mobile app", ["mobile", "app", "ios", "android"]),
@@ -424,7 +424,7 @@ class ComprehensiveSystemTest:
             ("create a dating app", ["dating", "app", "social", "mobile"]),
             ("build a utility app", ["utility", "app", "tool", "mobile"]),
         ]
-        
+
         for msg, keywords in mobile_dev:
             test_num += 1
             if self.run_test(test_num, f"Mobile Dev: {msg}", msg, keywords, "conversational"):
@@ -433,13 +433,13 @@ class ComprehensiveSystemTest:
             else:
                 self.failed += 1
                 print(f"❌ Test {test_num}: {msg}")
-        
+
         # ====================================================================
         # CATEGORY 3: CONVERSATIONAL BAND - BUSINESS (100 tests)
         # ====================================================================
         print("\n[3/5] CONVERSATIONAL BAND - BUSINESS (100 tests)")
         print("-" * 80)
-        
+
         # Business strategy (25 tests)
         business_strategy = [
             ("create a business plan", ["business", "plan", "strategy", "market"]),
@@ -468,7 +468,7 @@ class ComprehensiveSystemTest:
             ("build a compliance strategy", ["compliance", "strategy", "regulatory", "legal"]),
             ("create an exit strategy", ["exit", "strategy", "acquisition", "ipo"]),
         ]
-        
+
         for msg, keywords in business_strategy:
             test_num += 1
             if self.run_test(test_num, f"Business Strategy: {msg}", msg, keywords, "conversational"):
@@ -477,7 +477,7 @@ class ComprehensiveSystemTest:
             else:
                 self.failed += 1
                 print(f"❌ Test {test_num}: {msg}")
-        
+
         # Market analysis (25 tests)
         market_analysis = [
             ("analyze the market", ["market", "analysis", "research", "data"]),
@@ -506,7 +506,7 @@ class ComprehensiveSystemTest:
             ("study market saturation", ["market", "saturation", "study", "competition"]),
             ("analyze growth potential", ["growth", "potential", "analysis", "forecast"]),
         ]
-        
+
         for msg, keywords in market_analysis:
             test_num += 1
             if self.run_test(test_num, f"Market Analysis: {msg}", msg, keywords, "conversational"):
@@ -515,7 +515,7 @@ class ComprehensiveSystemTest:
             else:
                 self.failed += 1
                 print(f"❌ Test {test_num}: {msg}")
-        
+
         # Financial planning (25 tests)
         financial_planning = [
             ("create a budget", ["budget", "financial", "plan", "cost"]),
@@ -544,7 +544,7 @@ class ComprehensiveSystemTest:
             ("build a financial dashboard", ["financial", "dashboard", "metrics", "kpi"]),
             ("create a scenario analysis", ["scenario", "analysis", "financial", "forecast"]),
         ]
-        
+
         for msg, keywords in financial_planning:
             test_num += 1
             if self.run_test(test_num, f"Financial Planning: {msg}", msg, keywords, "conversational"):
@@ -553,7 +553,7 @@ class ComprehensiveSystemTest:
             else:
                 self.failed += 1
                 print(f"❌ Test {test_num}: {msg}")
-        
+
         # Operations management (25 tests)
         operations = [
             ("optimize operations", ["optimize", "operation", "efficiency", "process"]),
@@ -582,7 +582,7 @@ class ComprehensiveSystemTest:
             ("reduce defects", ["reduce", "defect", "quality", "error"]),
             ("increase automation", ["increase", "automation", "automate", "efficiency"]),
         ]
-        
+
         for msg, keywords in operations:
             test_num += 1
             if self.run_test(test_num, f"Operations: {msg}", msg, keywords, "conversational"):
@@ -591,13 +591,13 @@ class ComprehensiveSystemTest:
             else:
                 self.failed += 1
                 print(f"❌ Test {test_num}: {msg}")
-        
+
         # ====================================================================
         # CATEGORY 4: CONVERSATIONAL BAND - RESEARCH (100 tests)
         # ====================================================================
         print("\n[4/5] CONVERSATIONAL BAND - RESEARCH (100 tests)")
         print("-" * 80)
-        
+
         # Data analysis (50 tests)
         data_analysis = [
             ("analyze data", ["analyze", "data", "insight", "pattern"]),
@@ -651,7 +651,7 @@ class ComprehensiveSystemTest:
             ("investigate techniques", ["investigate", "technique", "method", "data"]),
             ("examine approaches", ["examine", "approach", "method", "data"]),
         ]
-        
+
         for msg, keywords in data_analysis:
             test_num += 1
             if self.run_test(test_num, f"Data Analysis: {msg}", msg, keywords, "conversational"):
@@ -660,7 +660,7 @@ class ComprehensiveSystemTest:
             else:
                 self.failed += 1
                 print(f"❌ Test {test_num}: {msg}")
-        
+
         # Problem solving (50 tests)
         problem_solving = [
             ("solve this problem", ["solve", "problem", "solution", "approach"]),
@@ -714,7 +714,7 @@ class ComprehensiveSystemTest:
             ("audit alterations", ["audit", "alteration", "review", "check"]),
             ("inspect adjustments", ["inspect", "adjustment", "review", "check"]),
         ]
-        
+
         for msg, keywords in problem_solving:
             test_num += 1
             if self.run_test(test_num, f"Problem Solving: {msg}", msg, keywords, "conversational"):
@@ -723,13 +723,13 @@ class ComprehensiveSystemTest:
             else:
                 self.failed += 1
                 print(f"❌ Test {test_num}: {msg}")
-        
+
         # ====================================================================
         # CATEGORY 5: EXPLORATORY BAND - SWARM COMMANDS (100 tests)
         # ====================================================================
         print("\n[5/5] EXPLORATORY BAND - SWARM COMMANDS (100 tests)")
         print("-" * 80)
-        
+
         # Complex system design (50 tests)
         complex_systems = [
             ("/swarmauto design a distributed system", ["distributed", "system", "design", "swarm"]),
@@ -783,7 +783,7 @@ class ComprehensiveSystemTest:
             ("/swarmauto design an alerting system", ["alerting", "system", "design", "swarm"]),
             ("/swarmauto build an incident management system", ["incident", "management", "system", "swarm"]),
         ]
-        
+
         for msg, keywords in complex_systems:
             test_num += 1
             if self.run_test(test_num, f"Complex System: {msg}", msg, keywords, "exploratory"):
@@ -792,7 +792,7 @@ class ComprehensiveSystemTest:
             else:
                 self.failed += 1
                 print(f"❌ Test {test_num}: {msg}")
-        
+
         # Complex analysis (50 tests)
         complex_analysis = [
             ("/swarmauto analyze market opportunities", ["analyze", "market", "opportunity", "swarm"]),
@@ -846,7 +846,7 @@ class ComprehensiveSystemTest:
             ("/swarmauto investigate performance metrics", ["investigate", "performance", "metric", "swarm"]),
             ("/swarmauto examine productivity factors", ["examine", "productivity", "factor", "swarm"]),
         ]
-        
+
         for msg, keywords in complex_analysis:
             test_num += 1
             if self.run_test(test_num, f"Complex Analysis: {msg}", msg, keywords, "exploratory"):
@@ -855,28 +855,28 @@ class ComprehensiveSystemTest:
             else:
                 self.failed += 1
                 print(f"❌ Test {test_num}: {msg}")
-        
+
         # Print final summary
         self.print_summary()
-    
+
     def print_summary(self):
         """Print comprehensive test summary"""
         duration = time.time() - self.start_time
-        
+
         print("\n" + "="*80)
         print("COMPREHENSIVE SYSTEM TEST SUMMARY")
         print("="*80)
-        
+
         total = self.passed + self.failed
         pass_rate = (self.passed / total * 100) if total > 0 else 0
-        
+
         print(f"\nTotal Tests: {total}")
         print(f"Passed: {self.passed} ✅")
         print(f"Failed: {self.failed} ❌")
         print(f"Pass Rate: {pass_rate:.1f}%")
         print(f"Duration: {duration:.1f} seconds")
         print(f"Tests per second: {total/duration:.1f}")
-        
+
         print("\n" + "="*80)
         print("TEST BREAKDOWN BY CATEGORY")
         print("="*80)
@@ -886,27 +886,27 @@ class ComprehensiveSystemTest:
         print("    - Help requests: 20 tests")
         print("    - Status checks: 20 tests")
         print("    - Thanks/acknowledgments: 20 tests")
-        
+
         print("\n[2] Conversational Band - Software (100 tests)")
         print("    - Web development: 25 tests")
         print("    - API development: 25 tests")
         print("    - Database design: 25 tests")
         print("    - Mobile development: 25 tests")
-        
+
         print("\n[3] Conversational Band - Business (100 tests)")
         print("    - Business strategy: 25 tests")
         print("    - Market analysis: 25 tests")
         print("    - Financial planning: 25 tests")
         print("    - Operations management: 25 tests")
-        
+
         print("\n[4] Conversational Band - Research (100 tests)")
         print("    - Data analysis: 50 tests")
         print("    - Problem solving: 50 tests")
-        
+
         print("\n[5] Exploratory Band - Swarm Commands (100 tests)")
         print("    - Complex system design: 50 tests")
         print("    - Complex analysis: 50 tests")
-        
+
         print("\n" + "="*80)
         print("TEST CRITERIA")
         print("="*80)
@@ -916,7 +916,7 @@ class ComprehensiveSystemTest:
         print("  ✓ Band consistency verified (structure intact)")
         print("  ✓ Confidence thresholds met")
         print("  ✓ Expected band routing (when specified)")
-        
+
         print("\n" + "="*80)
         print("SYSTEM VERIFICATION")
         print("="*80)
@@ -925,7 +925,7 @@ class ComprehensiveSystemTest:
         print("  ✓ Smooth transitions between bands")
         print("  ✓ No separate modes - confidence-based routing")
         print("  ✓ All bands use same core system")
-        
+
         if pass_rate >= 95:
             print("\n" + "="*80)
             print("🎉 EXCELLENT: System performing at high quality")
@@ -942,7 +942,7 @@ class ComprehensiveSystemTest:
             print("\n" + "="*80)
             print("❌ NEEDS IMPROVEMENT: Significant issues detected")
             print("="*80)
-        
+
         print("\n" + "="*80)
 
 
@@ -951,12 +951,12 @@ if __name__ == "__main__":
     print("This will test 500 scenarios across all three confidence bands")
     print("Using fuzzy match verification (semantic relevance, not exact strings)")
     print("\nPress Ctrl+C to cancel...\n")
-    
+
     time.sleep(2)
-    
+
     suite = ComprehensiveSystemTest()
     suite.run_all_tests()
-    
+
     # Exit with error code if pass rate < 90%
     pass_rate = (suite.passed / (suite.passed + suite.failed) * 100) if (suite.passed + suite.failed) > 0 else 0
     sys.exit(0 if pass_rate >= 90 else 1)

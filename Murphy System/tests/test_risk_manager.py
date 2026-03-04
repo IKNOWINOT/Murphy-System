@@ -25,10 +25,10 @@ from src.autonomous_systems import (
 
 class TestRiskAssessment(unittest.TestCase):
     """Test RiskAssessment functionality"""
-    
+
     def setUp(self):
         self.assessment = RiskAssessment()
-    
+
     def test_assess_risk_critical(self):
         """Test assessing a critical risk"""
         risk_factor = self.assessment.assess_risk(
@@ -40,12 +40,12 @@ class TestRiskAssessment(unittest.TestCase):
             impact=0.9,
             affected_components=["auth", "database"]
         )
-        
+
         self.assertEqual(risk_factor.factor_id, "risk_1")
         self.assertEqual(risk_factor.severity, RiskSeverity.CRITICAL)
         self.assertEqual(risk_factor.risk_score, 0.81)  # 0.9 * 0.9
         self.assertEqual(risk_factor.mitigation_status, "none")
-    
+
     def test_assess_risk_high(self):
         """Test assessing a high risk"""
         risk_factor = self.assessment.assess_risk(
@@ -56,10 +56,10 @@ class TestRiskAssessment(unittest.TestCase):
             probability=0.7,
             impact=0.9
         )
-        
+
         self.assertEqual(risk_factor.severity, RiskSeverity.HIGH)
         self.assertEqual(risk_factor.risk_score, 0.63)  # 0.7 * 0.9 = 0.63 (>= 0.6)
-    
+
     def test_assess_risk_medium(self):
         """Test assessing a medium risk"""
         risk_factor = self.assessment.assess_risk(
@@ -70,10 +70,10 @@ class TestRiskAssessment(unittest.TestCase):
             probability=0.6,
             impact=0.7
         )
-        
+
         self.assertEqual(risk_factor.severity, RiskSeverity.MEDIUM)
         self.assertEqual(risk_factor.risk_score, 0.42)  # 0.6 * 0.7 = 0.42 (>= 0.4)
-    
+
     def test_assess_risk_low(self):
         """Test assessing a low risk"""
         risk_factor = self.assessment.assess_risk(
@@ -84,10 +84,10 @@ class TestRiskAssessment(unittest.TestCase):
             probability=0.3,
             impact=0.7
         )
-        
+
         self.assertEqual(risk_factor.severity, RiskSeverity.LOW)
         self.assertEqual(risk_factor.risk_score, 0.21)  # 0.3 * 0.7 = 0.21 (>= 0.2)
-    
+
     def test_update_risk_probability(self):
         """Test updating risk probability"""
         # Create initial risk
@@ -99,16 +99,16 @@ class TestRiskAssessment(unittest.TestCase):
             probability=0.5,
             impact=0.8
         )
-        
+
         # Update probability
         updated = self.assessment.update_risk(
             factor_id="risk_1",
             probability=0.3
         )
-        
+
         self.assertEqual(updated.probability, 0.3)
         self.assertEqual(updated.risk_score, 0.24)  # 0.3 * 0.8
-    
+
     def test_update_risk_mitigation_status(self):
         """Test updating risk mitigation status"""
         # Create initial risk
@@ -120,17 +120,17 @@ class TestRiskAssessment(unittest.TestCase):
             probability=0.5,
             impact=0.8
         )
-        
+
         # Update mitigation status
         updated = self.assessment.update_risk(
             factor_id="risk_1",
             mitigation_status="in_progress",
             mitigation_actions=["Implement patch", "Monitor system"]
         )
-        
+
         self.assertEqual(updated.mitigation_status, "in_progress")
         self.assertEqual(len(updated.mitigation_actions), 2)
-    
+
     def test_get_risk_factor(self):
         """Test retrieving a risk factor"""
         self.assessment.assess_risk(
@@ -141,12 +141,12 @@ class TestRiskAssessment(unittest.TestCase):
             probability=0.5,
             impact=0.8
         )
-        
+
         risk_factor = self.assessment.get_risk_factor("risk_1")
-        
+
         self.assertIsNotNone(risk_factor)
         self.assertEqual(risk_factor.factor_id, "risk_1")
-    
+
     def test_get_risks_by_severity(self):
         """Test retrieving risks by severity"""
         # Create risks of different severities
@@ -158,7 +158,7 @@ class TestRiskAssessment(unittest.TestCase):
             probability=0.9,
             impact=0.9
         )
-        
+
         self.assessment.assess_risk(
             factor_id="risk_2",
             factor_name="High Risk",
@@ -167,7 +167,7 @@ class TestRiskAssessment(unittest.TestCase):
             probability=0.7,
             impact=0.9
         )
-        
+
         self.assessment.assess_risk(
             factor_id="risk_3",
             factor_name="Medium Risk",
@@ -176,13 +176,13 @@ class TestRiskAssessment(unittest.TestCase):
             probability=0.6,
             impact=0.7
         )
-        
+
         critical_risks = self.assessment.get_risks_by_severity(RiskSeverity.CRITICAL)
         high_risks = self.assessment.get_risks_by_severity(RiskSeverity.HIGH)
-        
+
         self.assertEqual(len(critical_risks), 1)
         self.assertEqual(len(high_risks), 1)
-    
+
     def test_get_high_priority_risks(self):
         """Test retrieving high priority risks"""
         # Create critical and high risks
@@ -194,7 +194,7 @@ class TestRiskAssessment(unittest.TestCase):
             probability=0.9,
             impact=0.9
         )
-        
+
         self.assessment.assess_risk(
             factor_id="risk_2",
             factor_name="High Risk",
@@ -203,7 +203,7 @@ class TestRiskAssessment(unittest.TestCase):
             probability=0.7,
             impact=0.9
         )
-        
+
         self.assessment.assess_risk(
             factor_id="risk_3",
             factor_name="Low Risk",
@@ -212,19 +212,19 @@ class TestRiskAssessment(unittest.TestCase):
             probability=0.2,
             impact=0.3
         )
-        
+
         high_priority = self.assessment.get_high_priority_risks()
-        
+
         self.assertEqual(len(high_priority), 2)
 
 
 class TestRiskMonitor(unittest.TestCase):
     """Test RiskMonitor functionality"""
-    
+
     def setUp(self):
         self.assessment = RiskAssessment()
         self.monitor = RiskMonitor(self.assessment)
-    
+
     def test_monitor_critical_risk(self):
         """Test monitoring critical risk generates alert"""
         # Assess critical risk
@@ -236,14 +236,14 @@ class TestRiskMonitor(unittest.TestCase):
             probability=0.9,
             impact=0.9
         )
-        
+
         # Monitor risks
         alerts = self.monitor.monitor_risks()
-        
+
         # Should generate alert for critical risk
         self.assertGreater(len(alerts), 0)
         self.assertEqual(alerts[0].severity, RiskSeverity.CRITICAL)
-    
+
     def test_monitor_high_risk_no_mitigation(self):
         """Test monitoring high risk with no mitigation generates alert"""
         # Assess high risk
@@ -255,13 +255,13 @@ class TestRiskMonitor(unittest.TestCase):
             probability=0.7,
             impact=0.9
         )
-        
+
         # Monitor risks
         alerts = self.monitor.monitor_risks()
-        
+
         # Should generate alert for high risk
         self.assertGreater(len(alerts), 0)
-    
+
     def test_acknowledge_alert(self):
         """Test acknowledging an alert"""
         # Create risk
@@ -273,18 +273,18 @@ class TestRiskMonitor(unittest.TestCase):
             probability=0.9,
             impact=0.9
         )
-        
+
         # Generate alerts
         alerts = self.monitor.monitor_risks()
-        
+
         if alerts:
             # Acknowledge alert
             success = self.monitor.acknowledge_alert(alerts[0].alert_id, "admin")
-            
+
             self.assertTrue(success)
             self.assertTrue(alerts[0].acknowledged)
             self.assertEqual(alerts[0].acknowledged_by, "admin")
-    
+
     def test_resolve_alert(self):
         """Test resolving an alert"""
         # Create risk
@@ -296,17 +296,17 @@ class TestRiskMonitor(unittest.TestCase):
             probability=0.9,
             impact=0.9
         )
-        
+
         # Generate alerts
         alerts = self.monitor.monitor_risks()
-        
+
         if alerts:
             # Resolve alert
             success = self.monitor.resolve_alert(alerts[0].alert_id, "Risk mitigated")
-            
+
             self.assertTrue(success)
             self.assertIsNotNone(alerts[0].resolved_at)
-    
+
     def test_get_active_alerts(self):
         """Test getting active alerts"""
         # Create critical risk
@@ -318,22 +318,22 @@ class TestRiskMonitor(unittest.TestCase):
             probability=0.9,
             impact=0.9
         )
-        
+
         # Generate alerts
         self.monitor.monitor_risks()
-        
+
         # Get active alerts
         active = self.monitor.get_active_alerts()
-        
+
         self.assertGreater(len(active), 0)
 
 
 class TestMitigationPlanner(unittest.TestCase):
     """Test MitigationPlanner functionality"""
-    
+
     def setUp(self):
         self.planner = MitigationPlanner()
-    
+
     def test_create_mitigation_action(self):
         """Test creating a mitigation action"""
         action = self.planner.create_mitigation_action(
@@ -345,11 +345,11 @@ class TestMitigationPlanner(unittest.TestCase):
             estimated_cost=0.5,
             estimated_benefit=0.9
         )
-        
+
         self.assertEqual(action.risk_factor_id, "risk_1")
         self.assertEqual(action.action_type, "prevent")
         self.assertEqual(action.status, "proposed")
-    
+
     def test_get_actions_for_risk(self):
         """Test getting mitigation actions for a risk"""
         # Create multiple actions for same risk
@@ -359,19 +359,19 @@ class TestMitigationPlanner(unittest.TestCase):
             action_name="Action 1",
             description="First action"
         )
-        
+
         action2 = self.planner.create_mitigation_action(
             risk_factor_id="risk_1",
             action_type="reduce",
             action_name="Action 2",
             description="Second action"
         )
-        
+
         # Get actions for risk
         actions = self.planner.get_actions_for_risk("risk_1")
-        
+
         self.assertEqual(len(actions), 2)
-    
+
     def test_approve_action(self):
         """Test approving a mitigation action"""
         action = self.planner.create_mitigation_action(
@@ -380,16 +380,16 @@ class TestMitigationPlanner(unittest.TestCase):
             action_name="Test Action",
             description="Test"
         )
-        
+
         # Approve action
         success = self.planner.approve_action(action.action_id)
-        
+
         self.assertTrue(success)
-        
+
         # Check status
         status = self.planner.get_action_status(action.action_id)
         self.assertEqual(status['status'], 'approved')
-    
+
     def test_start_action(self):
         """Test starting a mitigation action"""
         action = self.planner.create_mitigation_action(
@@ -398,17 +398,17 @@ class TestMitigationPlanner(unittest.TestCase):
             action_name="Test Action",
             description="Test"
         )
-        
+
         # Start action
         success = self.planner.start_action(action.action_id, "developer_1")
-        
+
         self.assertTrue(success)
-        
+
         # Check status
         status = self.planner.get_action_status(action.action_id)
         self.assertEqual(status['status'], 'in_progress')
         self.assertEqual(status['assigned_to'], 'developer_1')
-    
+
     def test_complete_action(self):
         """Test completing a mitigation action"""
         action = self.planner.create_mitigation_action(
@@ -417,12 +417,12 @@ class TestMitigationPlanner(unittest.TestCase):
             action_name="Test Action",
             description="Test"
         )
-        
+
         # Complete action
         success = self.planner.complete_action(action.action_id, 0.9)
-        
+
         self.assertTrue(success)
-        
+
         # Check status
         status = self.planner.get_action_status(action.action_id)
         self.assertEqual(status['status'], 'completed')
@@ -431,10 +431,10 @@ class TestMitigationPlanner(unittest.TestCase):
 
 class TestRiskManager(unittest.TestCase):
     """Test RiskManager functionality"""
-    
+
     def setUp(self):
         self.manager = RiskManager(enable_risk_management=True)
-    
+
     def test_assess_risk(self):
         """Test assessing a risk through manager"""
         risk_factor = self.manager.assess_risk(
@@ -445,10 +445,10 @@ class TestRiskManager(unittest.TestCase):
             probability=0.9,
             impact=0.9
         )
-        
+
         self.assertIsNotNone(risk_factor)
         self.assertEqual(risk_factor.severity, RiskSeverity.CRITICAL)
-    
+
     def test_get_risk_summary(self):
         """Test getting risk summary"""
         # Create multiple risks
@@ -460,7 +460,7 @@ class TestRiskManager(unittest.TestCase):
             probability=0.9,
             impact=0.9
         )
-        
+
         self.manager.assess_risk(
             factor_id="risk_2",
             factor_name="High Risk",
@@ -469,14 +469,14 @@ class TestRiskManager(unittest.TestCase):
             probability=0.7,
             impact=0.8
         )
-        
+
         summary = self.manager.get_risk_summary()
-        
+
         self.assertEqual(summary['total_risks'], 2)
         self.assertIn('average_risk_score', summary)
         self.assertIn('by_severity', summary)
         self.assertIn('by_category', summary)
-    
+
     def test_get_risk_matrix(self):
         """Test getting risk matrix"""
         # Create risks
@@ -488,7 +488,7 @@ class TestRiskManager(unittest.TestCase):
             probability=0.8,
             impact=0.9
         )
-        
+
         self.manager.assess_risk(
             factor_id="risk_2",
             factor_name="Low Risk",
@@ -497,16 +497,16 @@ class TestRiskManager(unittest.TestCase):
             probability=0.2,
             impact=0.3
         )
-        
+
         matrix = self.manager.get_risk_matrix()
-        
+
         self.assertIn('critical', matrix)
         self.assertIn('high', matrix)
         self.assertIn('medium', matrix)
         self.assertIn('low', matrix)
         self.assertEqual(matrix['critical'], 1)  # One critical risk
         self.assertEqual(matrix['low'], 1)  # One low risk
-    
+
     def test_create_mitigation_action(self):
         """Test creating mitigation action through manager"""
         # First create a risk
@@ -518,7 +518,7 @@ class TestRiskManager(unittest.TestCase):
             probability=0.8,
             impact=0.9
         )
-        
+
         # Create mitigation action
         action = self.manager.create_mitigation_action(
             risk_factor_id="risk_1",
@@ -526,10 +526,10 @@ class TestRiskManager(unittest.TestCase):
             action_name="Apply Patch",
             description="Apply security patch"
         )
-        
+
         self.assertIsNotNone(action)
         self.assertEqual(action.risk_factor_id, "risk_1")
-    
+
     def test_export_risk_data(self):
         """Test exporting risk data"""
         # Create risk
@@ -541,10 +541,10 @@ class TestRiskManager(unittest.TestCase):
             probability=0.8,
             impact=0.9
         )
-        
+
         # Export data
         exported = self.manager.export_risk_data()
-        
+
         self.assertIn('summary', exported)
         self.assertIn('risk_factors', exported)
         self.assertIn('alerts', exported)

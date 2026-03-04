@@ -53,7 +53,7 @@ __all__ = [
     'TaskStatus',
     'ResourcePool',
     'DependencyGraph',
-    
+
     # Risk Manager
     'RiskManager',
     'RiskAssessment',
@@ -64,7 +64,7 @@ __all__ = [
     'RiskCategory',
     'RiskAlert',
     'MitigationAction',
-    
+
     # Human Oversight System
     'HumanOversightSystem',
     'ApprovalQueue',

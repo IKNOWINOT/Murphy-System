@@ -73,26 +73,26 @@ __all__ = [
     "ConfidenceTrend",
     "MurphyIndexTrend",
     "ValidationEvidence",
-    
+
     # Assumption Management
     "AssumptionRegistry",
     "AssumptionValidator",
     "AssumptionBindingManager",
     "AssumptionLifecycleManager",
-    
+
     # Supervisor Loop
     "SupervisorInterface",
     "FeedbackProcessor",
     "FeedbackRouter",
     "SupervisorAuditLogger",
-    
+
     # Correction Loop
     "InvalidationDetector",
     "ConfidenceDecayer",
     "AuthorityDecayer",
     "ExecutionFreezer",
     "ReExpansionTrigger",
-    
+
     # Anti-Recursion
     "ValidationSourceTracker",
     "SelfValidationBlocker",

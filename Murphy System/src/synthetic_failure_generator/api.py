@@ -82,9 +82,9 @@ def generate_semantic():
     data = request.json
     artifact_graph = data.get('artifact_graph', {})
     count = data.get('count', 10)
-    
+
     failures = semantic_gen.generate_batch(artifact_graph, count)
-    
+
     return jsonify({
         'failures': [f.to_dict() for f in failures],
         'count': len(failures)
@@ -97,9 +97,9 @@ def generate_control():
     data = request.json
     gate_library = data.get('gate_library', [])
     count = data.get('count', 10)
-    
+
     failures = control_gen.generate_batch(gate_library, count)
-    
+
     return jsonify({
         'failures': [f.to_dict() for f in failures],
         'count': len(failures)
@@ -111,9 +111,9 @@ def generate_interface():
     """Generate interface failures"""
     data = request.json
     count = data.get('count', 10)
-    
+
     failures = interface_gen.generate_batch(count)
-    
+
     return jsonify({
         'failures': [f.to_dict() for f in failures],
         'count': len(failures)
@@ -125,9 +125,9 @@ def generate_organizational():
     """Generate organizational failures"""
     data = request.json
     count = data.get('count', 10)
-    
+
     failures = organizational_gen.generate_batch(count)
-    
+
     return jsonify({
         'failures': [f.to_dict() for f in failures],
         'count': len(failures)
@@ -139,15 +139,15 @@ def generate_batch():
     """Generate batch of all failure types"""
     data = request.json
     count_per_type = data.get('count_per_type', 5)
-    
+
     all_failures = []
-    
+
     # Generate each type
     all_failures.extend(semantic_gen.generate_batch({}, count_per_type))
     all_failures.extend(control_gen.generate_batch([], count_per_type))
     all_failures.extend(interface_gen.generate_batch(count_per_type))
     all_failures.extend(organizational_gen.generate_batch(count_per_type))
-    
+
     return jsonify({
         'failures': [f.to_dict() for f in all_failures],
         'total_count': len(all_failures),
@@ -164,7 +164,7 @@ def generate_batch():
 def run_pipeline():
     """Run injection pipeline"""
     data = request.json
-    
+
     # Create base scenario
     base_scenario = pipeline.create_base_scenario(
         scenario_name=data.get('scenario_name', 'test_scenario'),
@@ -174,20 +174,20 @@ def run_pipeline():
         initial_confidence=data.get('initial_confidence', 0.8),
         initial_risk=data.get('initial_risk', 0.1)
     )
-    
+
     # Get failure types
     failure_type_names = data.get('failure_types', ['UNIT_MISMATCH'])
     failure_types = [FailureType[name] for name in failure_type_names]
-    
+
     count_per_type = data.get('count_per_type', 5)
-    
+
     # Run pipeline
     results = pipeline.run_pipeline(
         base_scenario,
         failure_types,
         count_per_type
     )
-    
+
     return jsonify({
         'results': [r.to_dict() for r in results],
         'count': len(results)
@@ -198,15 +198,15 @@ def run_pipeline():
 def simulate():
     """Simulate failure execution"""
     data = request.json
-    
+
     synthetic_packet = data.get('synthetic_packet', {})
     failure_case_data = data.get('failure_case', {})
-    
+
     # Validate safety
     is_valid, error = safety_enforcer.validate_packet(synthetic_packet)
     if not is_valid:
         return jsonify({'error': error}), 400
-    
+
     # Note: Would need to reconstruct FailureCase from data
     # For now, return placeholder
     return jsonify({
@@ -219,11 +219,11 @@ def simulate():
 def generate_confidence_training():
     """Generate confidence model training data"""
     data = request.json
-    
+
     # Would need simulation results
     # For now, return statistics
     stats = training_gen.get_statistics()
-    
+
     return jsonify({
         'message': 'Confidence training data generation',
         'statistics': stats
@@ -234,9 +234,9 @@ def generate_confidence_training():
 def generate_gate_policy_training():
     """Generate gate policy training data"""
     data = request.json
-    
+
     stats = training_gen.get_statistics()
-    
+
     return jsonify({
         'message': 'Gate policy training data generation',
         'statistics': stats
@@ -247,7 +247,7 @@ def generate_gate_policy_training():
 def run_monte_carlo():
     """Run Monte Carlo simulation"""
     data = request.json
-    
+
     # Create base scenario
     base_scenario = pipeline.create_base_scenario(
         scenario_name='monte_carlo_test',
@@ -255,14 +255,14 @@ def run_monte_carlo():
         interface_definitions=data.get('interface_definitions', {}),
         gate_library=data.get('gate_library', [])
     )
-    
+
     num_iterations = data.get('num_iterations', 100)
-    
+
     results = test_executor.monte_carlo_simulation(
         base_scenario,
         num_iterations
     )
-    
+
     return jsonify({
         'results': [r.to_dict() for r in results],
         'count': len(results),
@@ -274,23 +274,23 @@ def run_monte_carlo():
 def run_adversarial():
     """Run adversarial swarm generation"""
     data = request.json
-    
+
     base_scenario = pipeline.create_base_scenario(
         scenario_name='adversarial_test',
         artifact_graph=data.get('artifact_graph', {}),
         interface_definitions=data.get('interface_definitions', {}),
         gate_library=data.get('gate_library', [])
     )
-    
+
     swarm_size = data.get('swarm_size', 50)
     optimization_target = data.get('optimization_target', 'maximize_loss')
-    
+
     results = test_executor.adversarial_swarm_generation(
         base_scenario,
         swarm_size,
         optimization_target
     )
-    
+
     return jsonify({
         'results': [r.to_dict() for r in results],
         'count': len(results),
@@ -303,21 +303,21 @@ def run_adversarial():
 def replay_historical():
     """Replay historical disaster"""
     data = request.json
-    
+
     disaster_name = data.get('disaster_name', 'Boeing 737 MAX MCAS')
-    
+
     base_scenario = pipeline.create_base_scenario(
         scenario_name=f'historical_{disaster_name}',
         artifact_graph=data.get('artifact_graph', {}),
         interface_definitions=data.get('interface_definitions', {}),
         gate_library=data.get('gate_library', [])
     )
-    
+
     result = test_executor.historical_disaster_replay(
         disaster_name,
         base_scenario
     )
-    
+
     return jsonify({
         'result': result.to_dict(),
         'disaster_name': disaster_name
@@ -328,7 +328,7 @@ def replay_historical():
 def get_disasters():
     """Get historical disasters"""
     disasters = test_executor.historical_disasters
-    
+
     return jsonify({
         'disasters': [d.to_dict() for d in disasters],
         'count': len(disasters)
@@ -339,7 +339,7 @@ def get_disasters():
 def get_statistics():
     """Get generation statistics"""
     stats = training_gen.get_statistics()
-    
+
     return jsonify(stats)
 
 
@@ -347,7 +347,7 @@ def get_statistics():
 def get_safety_report():
     """Get safety enforcement report"""
     report = safety_enforcer.get_safety_report()
-    
+
     return jsonify(report)
 
 

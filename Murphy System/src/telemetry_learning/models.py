@@ -54,7 +54,7 @@ class OperationalTelemetry:
     failure_reason: Optional[str] = None
     phase: Optional[str] = None
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "task_id": self.task_id,
@@ -77,7 +77,7 @@ class HumanTelemetry:
     override_reason: Optional[str] = None
     correction_details: Optional[Dict[str, Any]] = None
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "event_type": self.event_type,
@@ -101,7 +101,7 @@ class ControlTelemetry:
     murphy_index: Optional[float] = None
     blocking_reason: Optional[str] = None
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "event_type": self.event_type,
@@ -125,7 +125,7 @@ class SafetyTelemetry:
     near_miss_details: Optional[Dict[str, Any]] = None
     recovery_action: Optional[str] = None
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "event_type": self.event_type,
@@ -146,7 +146,7 @@ class MarketTelemetry:
     content: Dict[str, Any]
     relevance_score: float  # [0, 1]
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "signal_type": self.signal_type,
@@ -161,7 +161,7 @@ class MarketTelemetry:
 class TelemetryArtifact:
     """
     Immutable telemetry record with provenance and integrity verification.
-    
+
     Every telemetry item becomes an artifact in the artifact graph with:
     - Cryptographic integrity hash
     - Full provenance chain
@@ -174,7 +174,7 @@ class TelemetryArtifact:
     timestamp: datetime
     provenance: Dict[str, Any]  # Parent artifacts, lineage
     integrity_hash: str  # SHA-256 of canonical representation
-    
+
     @staticmethod
     def create(
         domain: TelemetryDomain,
@@ -185,10 +185,10 @@ class TelemetryArtifact:
         """Create a new telemetry artifact with integrity hash"""
         timestamp = datetime.now(timezone.utc)
         artifact_id = f"telemetry_{domain.value}_{timestamp.timestamp()}_{source_id}"
-        
+
         if provenance is None:
             provenance = {}
-        
+
         # Compute integrity hash
         canonical = json.dumps({
             "artifact_id": artifact_id,
@@ -198,9 +198,9 @@ class TelemetryArtifact:
             "timestamp": timestamp.isoformat(),
             "provenance": provenance,
         }, sort_keys=True)
-        
+
         integrity_hash = hashlib.sha256(canonical.encode()).hexdigest()
-        
+
         return TelemetryArtifact(
             artifact_id=artifact_id,
             domain=domain,
@@ -210,7 +210,7 @@ class TelemetryArtifact:
             provenance=provenance,
             integrity_hash=integrity_hash,
         )
-    
+
     def verify_integrity(self) -> bool:
         """Verify integrity hash matches current state"""
         canonical = json.dumps({
@@ -221,10 +221,10 @@ class TelemetryArtifact:
             "timestamp": self.timestamp.isoformat(),
             "provenance": self.provenance,
         }, sort_keys=True)
-        
+
         expected_hash = hashlib.sha256(canonical.encode()).hexdigest()
         return expected_hash == self.integrity_hash
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "artifact_id": self.artifact_id,
@@ -241,7 +241,7 @@ class TelemetryArtifact:
 class GateEvolutionArtifact:
     """
     Record of gate parameter changes with full audit trail.
-    
+
     Every gate evolution includes:
     - Reason codes with telemetry evidence
     - Parameter diffs (before/after)
@@ -257,7 +257,7 @@ class GateEvolutionArtifact:
     authorized: bool
     authorized_by: Optional[str]
     timestamp: datetime
-    
+
     @staticmethod
     def create(
         gate_id: str,
@@ -269,7 +269,7 @@ class GateEvolutionArtifact:
         """Create a new gate evolution record (unauthorized by default)"""
         timestamp = datetime.now(timezone.utc)
         evolution_id = f"gate_evolution_{gate_id}_{timestamp.timestamp()}"
-        
+
         return GateEvolutionArtifact(
             evolution_id=evolution_id,
             gate_id=gate_id,
@@ -281,12 +281,12 @@ class GateEvolutionArtifact:
             authorized_by=None,
             timestamp=timestamp,
         )
-    
+
     def authorize(self, authorized_by: str) -> None:
         """Authorize this gate evolution (Control Plane only)"""
         self.authorized = True
         self.authorized_by = authorized_by
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "evolution_id": self.evolution_id,
@@ -305,7 +305,7 @@ class GateEvolutionArtifact:
 class InsightArtifact:
     """
     Learning loop insight/recommendation.
-    
+
     Insights are hypotheses and recommendations, NOT execution policies.
     They require Control Plane authorization before enforcement.
     """
@@ -318,7 +318,7 @@ class InsightArtifact:
     recommendation: Dict[str, Any]
     confidence: float  # [0, 1]
     timestamp: datetime
-    
+
     @staticmethod
     def create(
         insight_type: InsightType,
@@ -332,7 +332,7 @@ class InsightArtifact:
         """Create a new insight artifact"""
         timestamp = datetime.now(timezone.utc)
         insight_id = f"insight_{insight_type.value}_{timestamp.timestamp()}"
-        
+
         return InsightArtifact(
             insight_id=insight_id,
             insight_type=insight_type,
@@ -344,7 +344,7 @@ class InsightArtifact:
             confidence=confidence,
             timestamp=timestamp,
         )
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "insight_id": self.insight_id,

@@ -15,17 +15,17 @@ import json
 class ModuleGenerator:
     """
     Generate Murphy modules from SwissKiss analysis.
-    
+
     Takes SwissKiss output and creates:
     - Module wrapper code
     - Module metadata
     - Registration information
     """
-    
+
     def __init__(self):
         self.modules_dir = Path("./modules")
         self.modules_dir.mkdir(parents=True, exist_ok=True)
-    
+
     def generate_from_swisskiss(
         self,
         module_yaml: Dict,
@@ -34,28 +34,28 @@ class ModuleGenerator:
     ) -> Dict:
         """
         Generate Murphy module from SwissKiss analysis.
-        
+
         Args:
             module_yaml: The module.yaml from SwissKiss
             audit: The audit.json from SwissKiss
             capabilities: Extracted capabilities
-        
+
         Returns:
             Module dictionary with all metadata
         """
-        
+
         module_name = module_yaml['module_name']
         category = module_yaml['category']
         description = module_yaml['description']
         entry_script = module_yaml.get('entry_script', '<define-entry-script>')
-        
+
         # Determine module path
         module_path = f"modules.{module_name}"
-        
+
         # Extract commands (functions) from the module
         # For now, we'll create placeholder commands
         commands = self._extract_commands(module_yaml, audit)
-        
+
         # Create module structure
         module = {
             'name': module_name,
@@ -75,24 +75,24 @@ class ModuleGenerator:
                 'version': '1.0.0'
             }
         }
-        
+
         return module
-    
+
     def _extract_commands(self, module_yaml: Dict, audit: Dict) -> List[Dict]:
         """
         Extract commands from module.
-        
+
         For now, creates placeholder commands based on capabilities.
         In future, could parse actual Python code to extract functions.
-        
+
         Args:
             module_yaml: Module YAML
             audit: Audit data
-        
+
         Returns:
             List of command dictionaries
         """
-        
+
         # Placeholder commands
         commands = [
             {
@@ -108,23 +108,23 @@ class ModuleGenerator:
                 'returns': 'Help text'
             }
         ]
-        
+
         return commands
-    
+
     def create_wrapper_code(self, module: Dict) -> str:
         """
         Create wrapper code for the module.
-        
+
         This generates Python code that wraps the original module
         and makes it compatible with Murphy's module system.
-        
+
         Args:
             module: Module dictionary
-        
+
         Returns:
             Python code as string
         """
-        
+
         code_lines = [
             '"""',
             f"Murphy Module Wrapper: {module['name']}",
@@ -146,7 +146,7 @@ class ModuleGenerator:
             f'        self.capabilities = {module["capabilities"]}',
             '',
         ]
-        
+
         # Add command methods
         for command in module['commands']:
             params_str = ", ".join(
@@ -184,39 +184,39 @@ class ModuleGenerator:
                 f'        return {{"status": "not_implemented", "command": "{command["name"]}", "args": kwargs}}',
                 '',
             ])
-        
+
         # Add module instance
         code_lines.extend([
             '',
             '# Create module instance',
             f'module = {module["name"].replace("-", "_").title()}Module()',
         ])
-        
+
         return '\n'.join(code_lines)
-    
+
     def save_module(self, module: Dict) -> Path:
         """
         Save module to disk.
-        
+
         Args:
             module: Module dictionary
-        
+
         Returns:
             Path to saved module
         """
-        
+
         module_dir = self.modules_dir / module['name']
         module_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Save module metadata
         metadata_path = module_dir / 'module_metadata.json'
         with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump(module, f, indent=2)
-        
+
         # Save wrapper code
         wrapper_path = module_dir / '__init__.py'
         wrapper_code = self.create_wrapper_code(module)
         with open(wrapper_path, 'w', encoding='utf-8') as f:
             f.write(wrapper_code)
-        
+
         return module_dir

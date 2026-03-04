@@ -18,10 +18,10 @@ import requests
 class HeartbeatWatchdog:
     """
     Monitors adapter heartbeats and triggers freeze on timeout.
-    
+
     CRITICAL: If heartbeat missed, system MUST freeze execution.
     """
-    
+
     def __init__(
         self,
         adapter_id: str,
@@ -31,7 +31,7 @@ class HeartbeatWatchdog:
     ):
         """
         Initialize watchdog.
-        
+
         Args:
             adapter_id: Adapter ID to monitor
             heartbeat_interval_seconds: Expected heartbeat interval
@@ -42,58 +42,58 @@ class HeartbeatWatchdog:
         self.heartbeat_interval = heartbeat_interval_seconds
         self.timeout = timeout_seconds
         self.on_timeout = on_timeout
-        
+
         self.last_heartbeat = time.time()
         self.is_running = False
         self.stop_event = Event()
         self.thread = None
         self.timeout_count = 0
-    
+
     def heartbeat(self):
         """Record heartbeat"""
         self.last_heartbeat = time.time()
-    
+
     def start(self):
         """Start watchdog"""
         if self.is_running:
             return
-        
+
         self.is_running = True
         self.stop_event.clear()
         self.thread = Thread(target=self._monitor, daemon=True)
         self.thread.start()
-        
+
         print(f"[WATCHDOG] Started for {self.adapter_id}")
-    
+
     def stop(self):
         """Stop watchdog"""
         self.is_running = False
         self.stop_event.set()
         if self.thread:
             self.thread.join(timeout=1.0)
-        
+
         print(f"[WATCHDOG] Stopped for {self.adapter_id}")
-    
+
     def _monitor(self):
         """Monitor heartbeat"""
         while self.is_running and not self.stop_event.is_set():
             # Check time since last heartbeat
             time_since_heartbeat = time.time() - self.last_heartbeat
-            
+
             if time_since_heartbeat > self.timeout:
                 # TIMEOUT - trigger freeze
                 self.timeout_count += 1
                 print(f"[WATCHDOG] TIMEOUT for {self.adapter_id} ({time_since_heartbeat:.1f}s > {self.timeout}s)")
-                
+
                 if self.on_timeout:
                     self.on_timeout(self.adapter_id, time_since_heartbeat)
-                
+
                 # Reset to avoid repeated triggers
                 self.last_heartbeat = time.time()
-            
+
             # Sleep
             self.stop_event.wait(self.heartbeat_interval)
-    
+
     def get_status(self) -> Dict:
         """Get watchdog status"""
         return {
@@ -108,33 +108,33 @@ class HeartbeatWatchdog:
 class EmergencyStop:
     """
     Emergency stop coordinator.
-    
+
     Sends immediate freeze signal to Execution Orchestrator.
     """
-    
+
     def __init__(self, orchestrator_url: str = "http://localhost:8058"):
         """
         Initialize emergency stop.
-        
+
         Args:
             orchestrator_url: Execution Orchestrator URL
         """
         self.orchestrator_url = orchestrator_url
         self.stop_history = []
-    
+
     def trigger(self, adapter_id: str, reason: str) -> bool:
         """
         Trigger emergency stop.
-        
+
         Args:
             adapter_id: Adapter ID
             reason: Reason for stop
-            
+
         Returns:
             True if successful
         """
         print(f"[EMERGENCY STOP] Adapter {adapter_id}: {reason}")
-        
+
         # Send freeze signal to orchestrator
         try:
             response = requests.post(
@@ -154,13 +154,13 @@ class EmergencyStop:
                 },
                 timeout=5.0
             )
-            
+
             success = response.status_code == 200
-            
+
         except Exception as exc:
             print(f"[ERROR] Failed to send emergency stop signal: {exc}")
             success = False
-        
+
         # Record
         self.stop_history.append({
             "timestamp": time.time(),
@@ -168,9 +168,9 @@ class EmergencyStop:
             "reason": reason,
             "success": success
         })
-        
+
         return success
-    
+
     def get_history(self) -> List[Dict]:
         """Get emergency stop history"""
         return self.stop_history
@@ -179,10 +179,10 @@ class EmergencyStop:
 class ErrorCodeMapper:
     """
     Maps device error codes to Murphy index increases and authority decay.
-    
+
     Couples adapter errors to Control Plane stability metrics.
     """
-    
+
     # Error severity levels
     ERROR_SEVERITY = {
         "communication_lost": 0.5,
@@ -197,25 +197,25 @@ class ErrorCodeMapper:
         "emergency_stop": 0.9,
         "unknown_error": 0.3
     }
-    
+
     def __init__(self, confidence_engine_url: str = "http://localhost:8055"):
         """
         Initialize error mapper.
-        
+
         Args:
             confidence_engine_url: Confidence Engine URL
         """
         self.confidence_engine_url = confidence_engine_url
         self.error_history = []
-    
+
     def map_error(self, adapter_id: str, error_codes: List[str]) -> Dict:
         """
         Map error codes to Murphy index increase.
-        
+
         Args:
             adapter_id: Adapter ID
             error_codes: List of error codes
-            
+
         Returns:
             Mapping result with murphy_increase and authority_decay
         """
@@ -224,19 +224,19 @@ class ErrorCodeMapper:
                 "murphy_increase": 0.0,
                 "authority_decay": 0.0
             }
-        
+
         # Calculate Murphy index increase
         murphy_increase = 0.0
         for error_code in error_codes:
             severity = self.ERROR_SEVERITY.get(error_code, self.ERROR_SEVERITY["unknown_error"])
             murphy_increase += severity
-        
+
         # Cap at 1.0
         murphy_increase = min(murphy_increase, 1.0)
-        
+
         # Authority decay proportional to Murphy increase
         authority_decay = murphy_increase * 0.5  # 50% of Murphy increase
-        
+
         # Record
         self.error_history.append({
             "timestamp": time.time(),
@@ -245,14 +245,14 @@ class ErrorCodeMapper:
             "murphy_increase": murphy_increase,
             "authority_decay": authority_decay
         })
-        
+
         print(f"[ERROR MAPPING] {adapter_id}: {error_codes} -> Murphy +{murphy_increase:.2f}, Authority -{authority_decay:.2f}")
-        
+
         return {
             "murphy_increase": murphy_increase,
             "authority_decay": authority_decay
         }
-    
+
     def get_history(self) -> List[Dict]:
         """Get error mapping history"""
         return self.error_history
@@ -261,14 +261,14 @@ class ErrorCodeMapper:
 class SafetyHooks:
     """
     Integrates all safety hooks for adapter framework.
-    
+
     Coordinates:
     - Heartbeat monitoring
     - Emergency stops
     - Error code mapping
     - Murphy coupling
     """
-    
+
     def __init__(
         self,
         orchestrator_url: str = "http://localhost:8058",
@@ -276,7 +276,7 @@ class SafetyHooks:
     ):
         """
         Initialize safety hooks.
-        
+
         Args:
             orchestrator_url: Execution Orchestrator URL
             confidence_engine_url: Confidence Engine URL
@@ -284,7 +284,7 @@ class SafetyHooks:
         self.watchdogs: Dict[str, HeartbeatWatchdog] = {}
         self.emergency_stop = EmergencyStop(orchestrator_url)
         self.error_mapper = ErrorCodeMapper(confidence_engine_url)
-    
+
     def register_adapter(
         self,
         adapter_id: str,
@@ -293,7 +293,7 @@ class SafetyHooks:
     ):
         """
         Register adapter for monitoring.
-        
+
         Args:
             adapter_id: Adapter ID
             heartbeat_interval: Expected heartbeat interval
@@ -306,31 +306,31 @@ class SafetyHooks:
             timeout,
             on_timeout=self._on_heartbeat_timeout
         )
-        
+
         self.watchdogs[adapter_id] = watchdog
         watchdog.start()
-        
+
         print(f"[SAFETY] Registered {adapter_id} for monitoring")
-    
+
     def heartbeat(self, adapter_id: str):
         """Record heartbeat for adapter"""
         if adapter_id in self.watchdogs:
             self.watchdogs[adapter_id].heartbeat()
-    
+
     def handle_error(self, adapter_id: str, error_codes: List[str]) -> Dict:
         """
         Handle adapter errors.
-        
+
         Args:
             adapter_id: Adapter ID
             error_codes: Error codes
-            
+
         Returns:
             Mapping result
         """
         # Map errors to Murphy/authority
         mapping = self.error_mapper.map_error(adapter_id, error_codes)
-        
+
         # Check for critical errors
         critical_errors = [
             "communication_lost",
@@ -338,15 +338,15 @@ class SafetyHooks:
             "emergency_stop",
             "actuator_failure"
         ]
-        
+
         has_critical = any(e in error_codes for e in critical_errors)
-        
+
         if has_critical:
             # Trigger emergency stop
             self.emergency_stop.trigger(adapter_id, f"Critical errors: {error_codes}")
-        
+
         return mapping
-    
+
     def _on_heartbeat_timeout(self, adapter_id: str, time_since: float):
         """Handle heartbeat timeout"""
         # Trigger emergency stop
@@ -354,7 +354,7 @@ class SafetyHooks:
             adapter_id,
             f"Heartbeat timeout ({time_since:.1f}s)"
         )
-    
+
     def get_status(self) -> Dict:
         """Get safety hooks status"""
         return {
@@ -365,10 +365,10 @@ class SafetyHooks:
             "emergency_stops": len(self.emergency_stop.get_history()),
             "error_mappings": len(self.error_mapper.get_history())
         }
-    
+
     def shutdown(self):
         """Shutdown all safety hooks"""
         for watchdog in self.watchdogs.values():
             watchdog.stop()
-        
+
         print("[SAFETY] All watchdogs stopped")

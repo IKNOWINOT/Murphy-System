@@ -56,18 +56,18 @@ try:
         "TelemetryArtifact",
         "GateEvolutionArtifact",
         "InsightArtifact",
-        
+
         # Ingestion
         "TelemetryBus",
         "TelemetryIngester",
-        
+
         # Learning
         "GateStrengtheningEngine",
         "PhaseTuningEngine",
         "BottleneckDetector",
         "AssumptionInvalidator",
         "HardeningPolicyEngine",
-        
+
         # Shadow Mode
         "ShadowModeController",
         "AuthorizationInterface",
@@ -86,12 +86,12 @@ except ImportError as exc:
     # Fall back to simple wrapper without external dependencies
     import logging
     logging.warning(f"Using simplified telemetry learning engine due to missing dependencies: {exc}")
-    
+
     from .simple_wrapper import (
         SimpleTelemetryLearningEngine,
         TelemetryLearningEngine
     )
-    
+
     __all__ = [
         "TelemetryLearningEngine",
         "SimpleTelemetryLearningEngine"

@@ -29,10 +29,10 @@ from .schemas import (
 class OrgChartParser:
     """
     Parse organizational chart data from CSV or JSON
-    
+
     CSV Format:
     node_id,role_name,reports_to,team,department,authority_level
-    
+
     JSON Format:
     [
         {
@@ -45,12 +45,12 @@ class OrgChartParser:
         }
     ]
     """
-    
+
     @staticmethod
     def parse_csv(file_path: str) -> List[OrgChartNode]:
         """Parse org chart from CSV file"""
         nodes = []
-        
+
         with open(file_path, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
@@ -64,18 +64,18 @@ class OrgChartParser:
                     metadata={}
                 )
                 nodes.append(node)
-        
+
         # Build direct_reports relationships
         OrgChartParser._build_relationships(nodes)
-        
+
         return nodes
-    
+
     @staticmethod
     def parse_json(file_path: str) -> List[OrgChartNode]:
         """Parse org chart from JSON file"""
         with open(file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        
+
         nodes = []
         for item in data:
             node = OrgChartNode(
@@ -88,17 +88,17 @@ class OrgChartParser:
                 metadata=item.get('metadata', {})
             )
             nodes.append(node)
-        
+
         # Build direct_reports relationships
         OrgChartParser._build_relationships(nodes)
-        
+
         return nodes
-    
+
     @staticmethod
     def _build_relationships(nodes: List[OrgChartNode]):
         """Build direct_reports relationships"""
         node_map = {n.node_id: n for n in nodes}
-        
+
         for node in nodes:
             if node.reports_to and node.reports_to in node_map:
                 manager = node_map[node.reports_to]
@@ -109,7 +109,7 @@ class OrgChartParser:
 class ProcessFlowParser:
     """
     Parse process flow diagrams from JSON or tagged text
-    
+
     JSON Format:
     {
         "flow_id": "...",
@@ -129,13 +129,13 @@ class ProcessFlowParser:
         "compliance_checkpoints": [...]
     }
     """
-    
+
     @staticmethod
     def parse_json(file_path: str) -> ProcessFlow:
         """Parse process flow from JSON file"""
         with open(file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        
+
         return ProcessFlow(
             flow_id=data['flow_id'],
             flow_name=data['flow_name'],
@@ -145,12 +145,12 @@ class ProcessFlowParser:
             sla_targets=data.get('sla_targets', {}),
             compliance_checkpoints=data.get('compliance_checkpoints', [])
         )
-    
+
     @staticmethod
     def parse_tagged_text(text: str) -> ProcessFlow:
         """
         Parse process flow from tagged text format
-        
+
         Format:
         FLOW: flow_name
         STEP: step_id | role | action | inputs | outputs
@@ -160,7 +160,7 @@ class ProcessFlowParser:
         COMPLIANCE: checkpoint_name
         """
         lines = text.strip().split('\n')
-        
+
         flow_id = None
         flow_name = None
         steps = []
@@ -168,16 +168,16 @@ class ProcessFlowParser:
         handoffs = []
         sla_targets = {}
         compliance_checkpoints = []
-        
+
         for line in lines:
             line = line.strip()
             if not line or line.startswith('#'):
                 continue
-            
+
             if line.startswith('FLOW:'):
                 flow_name = line.split(':', 1)[1].strip()
                 flow_id = flow_name.lower().replace(' ', '_')
-            
+
             elif line.startswith('STEP:'):
                 parts = [p.strip() for p in line.split(':', 1)[1].split('|')]
                 if len(parts) >= 3:
@@ -188,7 +188,7 @@ class ProcessFlowParser:
                         'inputs': parts[3].split(',') if len(parts) > 3 else [],
                         'outputs': parts[4].split(',') if len(parts) > 4 else []
                     })
-            
+
             elif line.startswith('DECISION:'):
                 parts = [p.strip() for p in line.split(':', 1)[1].split('|')]
                 if len(parts) >= 3:
@@ -198,7 +198,7 @@ class ProcessFlowParser:
                         'true_path': parts[2],
                         'false_path': parts[3] if len(parts) > 3 else None
                     })
-            
+
             elif line.startswith('HANDOFF:'):
                 parts = line.split(':', 1)[1].strip().split('|')
                 roles = parts[0].strip().split('->')
@@ -208,19 +208,19 @@ class ProcessFlowParser:
                         'to_role': roles[1].strip(),
                         'artifact': parts[1].strip() if len(parts) > 1 else None
                     })
-            
+
             elif line.startswith('SLA:'):
                 parts = line.split(':', 1)[1].strip().split('=')
                 if len(parts) == 2:
                     sla_targets[parts[0].strip()] = float(parts[1].strip())
-            
+
             elif line.startswith('COMPLIANCE:'):
                 checkpoint = line.split(':', 1)[1].strip()
                 compliance_checkpoints.append(checkpoint)
-        
+
         if not flow_id or not flow_name:
             raise ValueError("Process flow must have FLOW: declaration")
-        
+
         return ProcessFlow(
             flow_id=flow_id,
             flow_name=flow_name,
@@ -235,7 +235,7 @@ class ProcessFlowParser:
 class SOPDocumentParser:
     """
     Parse Standard Operating Procedure documents
-    
+
     Extracts:
     - Responsibilities
     - Decision points
@@ -243,12 +243,12 @@ class SOPDocumentParser:
     - Compliance requirements
     - Escalation procedures
     """
-    
+
     @staticmethod
     def parse(text: str) -> Dict[str, any]:
         """
         Parse SOP document and extract structured information
-        
+
         Returns:
             Dict with keys: responsibilities, decisions, approvals, compliance, escalations
         """
@@ -259,79 +259,79 @@ class SOPDocumentParser:
             'compliance': [],
             'escalations': []
         }
-        
+
         # Extract responsibilities (lines starting with "Responsible for", "Must", "Shall")
         responsibility_patterns = [
             r'(?:Responsible for|Must|Shall)\s+(.+?)(?:\.|$)',
             r'(?:The role|This position)\s+(?:is responsible for|must|shall)\s+(.+?)(?:\.|$)'
         ]
-        
+
         for pattern in responsibility_patterns:
             matches = re.finditer(pattern, text, re.IGNORECASE | re.MULTILINE)
             for match in matches:
                 responsibility = match.group(1).strip()
                 if responsibility and responsibility not in result['responsibilities']:
                     result['responsibilities'].append(responsibility)
-        
+
         # Extract decision points (lines with "decide", "determine", "approve")
         decision_patterns = [
             r'(?:Decide|Determine|Approve)\s+(.+?)(?:\.|$)',
             r'(?:Decision|Approval)\s+(?:required|needed)\s+for\s+(.+?)(?:\.|$)'
         ]
-        
+
         for pattern in decision_patterns:
             matches = re.finditer(pattern, text, re.IGNORECASE | re.MULTILINE)
             for match in matches:
                 decision = match.group(1).strip()
                 if decision and decision not in result['decisions']:
                     result['decisions'].append(decision)
-        
+
         # Extract approval requirements
         approval_patterns = [
             r'(?:Requires|Needs)\s+approval\s+(?:from|by)\s+(.+?)(?:\.|$)',
             r'(?:Must be approved by)\s+(.+?)(?:\.|$)'
         ]
-        
+
         for pattern in approval_patterns:
             matches = re.finditer(pattern, text, re.IGNORECASE | re.MULTILINE)
             for match in matches:
                 approval = match.group(1).strip()
                 if approval and approval not in result['approvals']:
                     result['approvals'].append(approval)
-        
+
         # Extract compliance requirements (SOX, HIPAA, GDPR, etc.)
         compliance_patterns = [
             r'(SOX|HIPAA|GDPR|PCI-DSS|ISO\s+\d+)\s+(?:compliance|requirement|regulation)',
             r'(?:Comply with|Must comply with|Subject to)\s+(.+?)\s+(?:regulation|requirement)'
         ]
-        
+
         for pattern in compliance_patterns:
             matches = re.finditer(pattern, text, re.IGNORECASE | re.MULTILINE)
             for match in matches:
                 compliance = match.group(1).strip()
                 if compliance and compliance not in result['compliance']:
                     result['compliance'].append(compliance)
-        
+
         # Extract escalation procedures
         escalation_patterns = [
             r'Escalate\s+to\s+(.+?)(?:\.|$)',
             r'(?:If|When)\s+.+?\s+escalate\s+to\s+(.+?)(?:\.|$)'
         ]
-        
+
         for pattern in escalation_patterns:
             matches = re.finditer(pattern, text, re.IGNORECASE | re.MULTILINE)
             for match in matches:
                 escalation = match.group(1).strip()
                 if escalation and escalation not in result['escalations']:
                     result['escalations'].append(escalation)
-        
+
         return result
 
 
 class TicketEventIngestor:
     """
     Ingest ticket/task events and convert to HandoffEvent artifacts
-    
+
     Expected format:
     {
         "ticket_id": "...",
@@ -345,13 +345,13 @@ class TicketEventIngestor:
         "notes": "..."
     }
     """
-    
+
     @staticmethod
     def ingest_json(file_path: str) -> List[HandoffEvent]:
         """Ingest ticket events from JSON file"""
         with open(file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        
+
         events = []
         for item in data:
             # Create work artifact
@@ -363,7 +363,7 @@ class TicketEventIngestor:
                 content_hash=item.get('content_hash', ''),
                 metadata={'action': item.get('action', '')}
             )
-            
+
             # Create handoff event
             event = HandoffEvent(
                 event_id=f"{item['ticket_id']}_handoff",
@@ -377,14 +377,14 @@ class TicketEventIngestor:
                 notes=item.get('notes')
             )
             events.append(event)
-        
+
         return events
-    
+
     @staticmethod
     def ingest_csv(file_path: str) -> List[HandoffEvent]:
         """Ingest ticket events from CSV file"""
         events = []
-        
+
         with open(file_path, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
@@ -397,7 +397,7 @@ class TicketEventIngestor:
                     content_hash=row.get('content_hash', ''),
                     metadata={'action': row.get('action', '')}
                 )
-                
+
                 # Create handoff event
                 event = HandoffEvent(
                     event_id=f"{row['ticket_id']}_handoff",
@@ -411,14 +411,14 @@ class TicketEventIngestor:
                     notes=row.get('notes')
                 )
                 events.append(event)
-        
+
         return events
 
 
 class EmailThreadIngestor:
     """
     Ingest email/thread summaries and extract work patterns
-    
+
     Expected format:
     {
         "thread_id": "...",
@@ -430,13 +430,13 @@ class EmailThreadIngestor:
         "approvals": [...]
     }
     """
-    
+
     @staticmethod
     def ingest_json(file_path: str) -> List[WorkArtifact]:
         """Ingest email threads from JSON file"""
         with open(file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        
+
         artifacts = []
         for item in data:
             artifact = WorkArtifact(
@@ -454,30 +454,30 @@ class EmailThreadIngestor:
                 created_at=datetime.fromisoformat(item['timestamp'])
             )
             artifacts.append(artifact)
-        
+
         return artifacts
 
 
 class DocumentIngestor:
     """
     Generic document ingestor for employment contracts, position descriptions, etc.
-    
+
     Extracts:
     - Role responsibilities
     - Authority levels
     - Reporting structure
     - Compliance requirements
     """
-    
+
     @staticmethod
     def ingest_text(text: str, doc_type: str = "employment_contract") -> Dict[str, any]:
         """
         Ingest document text and extract structured information
-        
+
         Args:
             text: Document text
             doc_type: Type of document (employment_contract, position_description, etc.)
-        
+
         Returns:
             Dict with extracted information
         """
@@ -490,20 +490,20 @@ class DocumentIngestor:
             'decision_authority': [],
             'escalation_paths': []
         }
-        
+
         # Use SOP parser for responsibilities
         sop_data = SOPDocumentParser.parse(text)
         result['responsibilities'] = sop_data['responsibilities']
         result['compliance_requirements'] = sop_data['compliance']
         result['escalation_paths'] = sop_data['escalations']
         result['decision_authority'] = sop_data['decisions']
-        
+
         # Extract reporting structure
         reports_to_pattern = r'(?:Reports to|Reporting to)\s+(.+?)(?:\.|$)'
         match = re.search(reports_to_pattern, text, re.IGNORECASE)
         if match:
             result['reports_to'] = match.group(1).strip()
-        
+
         # Extract authority level
         authority_patterns = [
             r'(?:Authority level|Decision authority):\s*(\w+)',
@@ -515,5 +515,5 @@ class DocumentIngestor:
                 authority = match.group(1).strip().lower()
                 result['authority_level'] = authority
                 break
-        
+
         return result

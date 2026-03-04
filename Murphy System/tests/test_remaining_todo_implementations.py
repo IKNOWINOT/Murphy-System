@@ -89,7 +89,7 @@ class TestCriticalPathMethod:
         """
         A(2) -> B(8) -> D(1)
         A(2) -> C(3) -> D(1)
-        
+
         Critical path should go through B (longer).
         """
         plan = self._make_plan(

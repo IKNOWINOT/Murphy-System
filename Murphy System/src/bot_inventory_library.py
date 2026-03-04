@@ -43,7 +43,7 @@ class BotCapability:
     parameters: Dict[str, Any]
     enabled: bool = True
     version: str = "1.0"
-    
+
     def to_dict(self) -> Dict:
         return {
             "capability_id": self.capability_id,
@@ -69,7 +69,7 @@ class BotAgent:
     metrics: Dict[str, Any] = field(default_factory=dict)
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
     last_active: str = field(default_factory=lambda: datetime.now().isoformat())
-    
+
     def to_dict(self) -> Dict:
         return {
             "agent_id": self.agent_id,
@@ -90,16 +90,16 @@ class BotInventoryLibrary:
     Complete bot inventory library
     Manages spawning, despawning, and lifecycle of system agents
     """
-    
+
     def __init__(self):
         self.bots: Dict[str, BotAgent] = {}
         self.bot_templates: Dict[str, Dict] = self._load_bot_templates()
         self.spawn_count = 0
         self.despawn_count = 0
-        
+
         # Register all system capabilities
         self.capability_registry = self._initialize_capability_registry()
-    
+
     def _load_bot_templates(self) -> Dict[str, Dict]:
         """Load bot templates for common roles"""
         return {
@@ -149,7 +149,7 @@ class BotInventoryLibrary:
                 ]
             }
         }
-    
+
     def _initialize_capability_registry(self) -> Dict[str, Dict]:
         """Initialize registry of all system capabilities"""
         return {
@@ -195,7 +195,7 @@ class BotInventoryLibrary:
                 },
                 "module": "inquisitory_engine"
             },
-            
+
             # Validator capabilities
             "validate_constraints": {
                 "name": "Validate Constraints",
@@ -236,7 +236,7 @@ class BotInventoryLibrary:
                 },
                 "module": "contractual_audit"
             },
-            
+
             # Monitor capabilities
             "monitor_performance": {
                 "name": "Monitor Performance",
@@ -278,7 +278,7 @@ class BotInventoryLibrary:
                 },
                 "module": "system_integrator"
             },
-            
+
             # Orchestrator capabilities
             "coordinate_tasks": {
                 "name": "Coordinate Tasks",
@@ -319,7 +319,7 @@ class BotInventoryLibrary:
                 },
                 "module": "system_integrator"
             },
-            
+
             # Auditor capabilities
             "audit_productivity": {
                 "name": "Audit Productivity",
@@ -361,7 +361,7 @@ class BotInventoryLibrary:
                 "module": "constraint_system"
             }
         }
-    
+
     def spawn_bot(
         self,
         name: str,
@@ -371,22 +371,22 @@ class BotInventoryLibrary:
     ) -> BotAgent:
         """
         Spawn a new bot agent
-        
+
         Args:
             name: Bot name
             role: Bot role (expert, validator, monitor, etc.)
             capabilities: List of capability names
             expert_id: Link to expert from DynamicExpertGenerator
-            
+
         Returns:
             BotAgent object
         """
         self.spawn_count += 1
         agent_id = f"agent_{uuid.uuid4().hex[:8]}"
-        
+
         # Get role enum
         role_enum = BotRole(role.lower())
-        
+
         # Get capabilities
         bot_capabilities = []
         if capabilities:
@@ -418,7 +418,7 @@ class BotInventoryLibrary:
                         enabled=True
                     )
                     bot_capabilities.append(capability)
-        
+
         # Create bot agent
         bot = BotAgent(
             agent_id=agent_id,
@@ -428,97 +428,97 @@ class BotInventoryLibrary:
             capabilities=bot_capabilities,
             expert_id=expert_id
         )
-        
+
         # Mark as active
         bot.status = BotStatus.ACTIVE
-        
+
         self.bots[agent_id] = bot
         return bot
-    
+
     def despawn_bot(self, agent_id: str) -> bool:
         """
         Despawn a bot agent
-        
+
         Args:
             agent_id: ID of bot to despawn
-            
+
         Returns:
             True if despawned, False if not found
         """
         if agent_id not in self.bots:
             return False
-        
+
         bot = self.bots[agent_id]
         bot.status = BotStatus.DESPAWNING
-        
+
         # Clean up assigned tasks
         bot.assigned_tasks.clear()
-        
+
         # Mark as terminated
         bot.status = BotStatus.TERMINATED
-        
+
         # Remove from active bots
         del self.bots[agent_id]
-        
+
         self.despawn_count += 1
         return True
-    
+
     def get_bot(self, agent_id: str) -> Optional[BotAgent]:
         """Get bot by ID"""
         return self.bots.get(agent_id)
-    
+
     def get_bots_by_role(self, role: str) -> List[BotAgent]:
         """Get all bots of a specific role"""
         role_enum = BotRole(role.lower())
         return [bot for bot in self.bots.values() if bot.role == role_enum]
-    
+
     def get_bots_by_status(self, status: str) -> List[BotAgent]:
         """Get all bots with specific status"""
         status_enum = BotStatus(status.lower())
         return [bot for bot in self.bots.values() if bot.status == status_enum]
-    
+
     def get_active_bots(self) -> List[BotAgent]:
         """Get all active bots"""
         return self.get_bots_by_status("active")
-    
+
     def assign_task(self, agent_id: str, task_id: str) -> bool:
         """Assign a task to a bot"""
         bot = self.bots.get(agent_id)
         if not bot:
             return False
-        
+
         bot.assigned_tasks.append(task_id)
         bot.last_active = datetime.now().isoformat()
         return True
-    
+
     def complete_task(self, agent_id: str, task_id: str) -> bool:
         """Mark a task as complete for a bot"""
         bot = self.bots.get(agent_id)
         if not bot:
             return False
-        
+
         if task_id in bot.assigned_tasks:
             bot.assigned_tasks.remove(task_id)
             bot.last_active = datetime.now().isoformat()
             return True
-        
+
         return False
-    
+
     def update_bot_metrics(self, agent_id: str, metrics: Dict[str, Any]):
         """Update bot metrics"""
         bot = self.bots.get(agent_id)
         if bot:
             bot.metrics.update(metrics)
             bot.last_active = datetime.now().isoformat()
-    
+
     def get_capability_function(self, capability_name: str) -> Optional[Dict]:
         """Get capability function details"""
         return self.capability_registry.get(capability_name)
-    
+
     def get_all_capabilities(self) -> List[Dict]:
         """Get all available capabilities"""
         return list(self.capability_registry.values())
-    
+
     def get_bot_inventory(self) -> Dict[str, Any]:
         """Get complete bot inventory"""
         by_role = {}
@@ -527,14 +527,14 @@ class BotInventoryLibrary:
             if role not in by_role:
                 by_role[role] = []
             by_role[role].append(bot.to_dict())
-        
+
         by_status = {}
         for bot in self.bots.values():
             status = bot.status.value
             if status not in by_status:
                 by_status[status] = []
             by_status[status].append(bot.to_dict())
-        
+
         return {
             "total_bots": len(self.bots),
             "spawned_count": self.spawn_count,
@@ -576,7 +576,7 @@ class BotInventoryLibrary:
         if capability:
             results = [b for b in results if capability in b.capabilities]
         return [b.to_dict() for b in results]
-    
+
     def generate_runtime_spreadsheet(self) -> Dict[str, Any]:
         """
         Generate complete runtime spreadsheet
@@ -592,7 +592,7 @@ class BotInventoryLibrary:
             "wired_functions": {},
             "librarian_knowledge": {}
         }
-        
+
         # System modules
         spreadsheet["system_modules"] = {
             "dynamic_expert_generator": {
@@ -686,7 +686,7 @@ class BotInventoryLibrary:
                 "decoupled_commands": []
             }
         }
-        
+
         # Module functions with full details
         for module_name, module_data in spreadsheet["system_modules"].items():
             spreadsheet["module_functions"][module_name] = {
@@ -700,7 +700,7 @@ class BotInventoryLibrary:
                 }
                 for func_name in module_data["functions"]
             }
-        
+
         # Bot capabilities
         for cap_name, cap_data in self.capability_registry.items():
             spreadsheet["bot_capabilities"][cap_name] = {
@@ -712,14 +712,14 @@ class BotInventoryLibrary:
                 "available": True,
                 "help_visible": True
             }
-        
+
         return spreadsheet
 
 
 if __name__ == "__main__":
     # Test bot inventory library
     library = BotInventoryLibrary()
-    
+
     # Test 1: Spawn expert bot
     print("=== Test 1: Spawn Expert Bot ===")
     expert_bot = library.spawn_bot(
@@ -730,7 +730,7 @@ if __name__ == "__main__":
     print(f"Spawned: {expert_bot.name} ({expert_bot.role.value})")
     print(f"Capabilities: {len(expert_bot.capabilities)}")
     print(f"Status: {expert_bot.status.value}")
-    
+
     # Test 2: Spawn validator bot
     print("\n=== Test 2: Spawn Validator Bot ===")
     validator_bot = library.spawn_bot(
@@ -739,7 +739,7 @@ if __name__ == "__main__":
     )
     print(f"Spawned: {validator_bot.name} ({validator_bot.role.value})")
     print(f"Capabilities: {len(validator_bot.capabilities)}")
-    
+
     # Test 3: Spawn monitor bot
     print("\n=== Test 3: Spawn Monitor Bot ===")
     monitor_bot = library.spawn_bot(
@@ -747,14 +747,14 @@ if __name__ == "__main__":
         role="monitor"
     )
     print(f"Spawned: {monitor_bot.name} ({monitor_bot.role.value})")
-    
+
     # Test 4: Assign tasks
     print("\n=== Test 4: Assign Tasks ===")
     library.assign_task(expert_bot.agent_id, "task_001")
     library.assign_task(validator_bot.agent_id, "task_002")
     print(f"Expert bot tasks: {expert_bot.assigned_tasks}")
     print(f"Validator bot tasks: {validator_bot.assigned_tasks}")
-    
+
     # Test 5: Get bot inventory
     print("\n=== Test 5: Bot Inventory ===")
     inventory = library.get_bot_inventory()
@@ -762,13 +762,13 @@ if __name__ == "__main__":
     print(f"Spawned: {inventory['spawned_count']}")
     print(f"By role: {list(inventory['by_role'].keys())}")
     print(f"Available capabilities: {len(inventory['available_capabilities'])}")
-    
+
     # Test 6: Despawn bot
     print("\n=== Test 6: Despawn Bot ===")
     despawned = library.despawn_bot(monitor_bot.agent_id)
     print(f"Despawned: {despawned}")
     print(f"Active bots: {len(library.get_active_bots())}")
-    
+
     # Test 7: Generate runtime spreadsheet
     print("\n=== Test 7: Runtime Spreadsheet ===")
     spreadsheet = library.generate_runtime_spreadsheet()

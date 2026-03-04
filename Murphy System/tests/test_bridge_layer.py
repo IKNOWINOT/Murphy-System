@@ -92,7 +92,7 @@ def test_hypothesis_sandbox_constraints():
         risk_flags=[],
         proposed_actions=[{"action": "test"}],
     )
-    
+
     assert hyp.status == "sandbox"
     assert hyp.confidence is None
     assert hyp.execution_rights is False
@@ -154,9 +154,9 @@ def test_intake_rejects_missing_assumptions(intake_service):
         risk_flags=[],
         proposed_actions=[{"action": "test"}],
     )
-    
+
     result = intake_service.intake_hypothesis(hyp)
-    
+
     assert not result.admitted
     # Schema validation catches empty assumptions
     assert any("should be non-empty" in reason or "No explicit assumptions" in reason or "too short" in reason
@@ -167,7 +167,7 @@ def test_intake_rejects_missing_assumptions(intake_service):
 def test_intake_validates_schema(intake_service, valid_hypothesis):
     """Test that intake validates hypothesis schema"""
     result = intake_service.intake_hypothesis(valid_hypothesis)
-    
+
     assert result.admitted
     assert len(result.extracted_assumptions) == 3
     assert len(result.verification_requests) > 0
@@ -178,7 +178,7 @@ def test_claim_extraction(valid_hypothesis):
     """Test claim extraction from hypothesis"""
     extractor = ClaimExtractor()
     claims = extractor.extract_claims(valid_hypothesis)
-    
+
     # Should extract claims from plan summary
     assert len(claims) > 0
 
@@ -187,16 +187,16 @@ def test_claim_extraction(valid_hypothesis):
 def test_verification_request_generation(valid_hypothesis):
     """Test verification request generation"""
     generator = VerificationRequestGenerator()
-    
+
     claims = ["Traffic is normal"]
     assumptions = ["Weather is clear"]
-    
+
     requests = generator.generate_requests(
         hypothesis=valid_hypothesis,
         claims=claims,
         assumptions=assumptions,
     )
-    
+
     assert len(requests) >= 2  # At least claims + assumptions
 
 
@@ -215,7 +215,7 @@ def test_compilation_fails_without_verification(packet_compiler, valid_hypothesi
             verified_by="system",
         )
     ]
-    
+
     result = packet_compiler.attempt_compilation(
         hypothesis=valid_hypothesis,
         verifications=verifications,
@@ -225,7 +225,7 @@ def test_compilation_fails_without_verification(packet_compiler, valid_hypothesi
         gates_satisfied=[],
         gates_required=["gate_001"],
     )
-    
+
     assert not result.success
     assert BlockingReason.VERIFICATION_INCOMPLETE in result.blocking_reasons
 
@@ -245,7 +245,7 @@ def test_compilation_fails_without_gates(packet_compiler, valid_hypothesis):
             verified_by="system",
         )
     ]
-    
+
     result = packet_compiler.attempt_compilation(
         hypothesis=valid_hypothesis,
         verifications=verifications,
@@ -255,7 +255,7 @@ def test_compilation_fails_without_gates(packet_compiler, valid_hypothesis):
         gates_satisfied=[],  # NO GATES SATISFIED
         gates_required=["gate_001", "gate_002"],
     )
-    
+
     assert not result.success
     assert BlockingReason.GATES_NOT_SATISFIED in result.blocking_reasons
     assert len(result.gates_blocking) == 2
@@ -275,7 +275,7 @@ def test_compilation_fails_low_confidence(packet_compiler, valid_hypothesis):
             verified_by="system",
         )
     ]
-    
+
     result = packet_compiler.attempt_compilation(
         hypothesis=valid_hypothesis,
         verifications=verifications,
@@ -285,7 +285,7 @@ def test_compilation_fails_low_confidence(packet_compiler, valid_hypothesis):
         gates_satisfied=["gate_001"],
         gates_required=["gate_001"],
     )
-    
+
     assert not result.success
     assert BlockingReason.CONFIDENCE_TOO_LOW in result.blocking_reasons
 
@@ -304,7 +304,7 @@ def test_compilation_fails_high_contradictions(packet_compiler, valid_hypothesis
             verified_by="system",
         )
     ]
-    
+
     result = packet_compiler.attempt_compilation(
         hypothesis=valid_hypothesis,
         verifications=verifications,
@@ -314,7 +314,7 @@ def test_compilation_fails_high_contradictions(packet_compiler, valid_hypothesis
         gates_satisfied=["gate_001"],
         gates_required=["gate_001"],
     )
-    
+
     assert not result.success
     assert BlockingReason.CONTRADICTIONS_TOO_HIGH in result.blocking_reasons
 
@@ -333,7 +333,7 @@ def test_compilation_succeeds_all_criteria_met(packet_compiler, valid_hypothesis
             verified_by="system",
         )
     ]
-    
+
     result = packet_compiler.attempt_compilation(
         hypothesis=valid_hypothesis,
         verifications=verifications,
@@ -343,7 +343,7 @@ def test_compilation_succeeds_all_criteria_met(packet_compiler, valid_hypothesis
         gates_satisfied=["gate_001"],
         gates_required=["gate_001"],
     )
-    
+
     assert result.success
     assert result.execution_packet is not None
     assert result.execution_packet["execution_rights"] is True
@@ -364,7 +364,7 @@ def test_execution_packet_has_signature(packet_compiler, valid_hypothesis):
             verified_by="system",
         )
     ]
-    
+
     result = packet_compiler.attempt_compilation(
         hypothesis=valid_hypothesis,
         verifications=verifications,
@@ -374,10 +374,10 @@ def test_execution_packet_has_signature(packet_compiler, valid_hypothesis):
         gates_satisfied=["gate_001"],
         gates_required=["gate_001"],
     )
-    
+
     assert result.success
     packet = result.execution_packet
-    
+
     assert "signature" in packet
     assert len(packet["signature"]) == 64  # SHA-256
     assert "nonce" in packet
@@ -403,13 +403,13 @@ def test_executability_explainer(executability_explainer, valid_hypothesis):
         verifications_pending=["ver_001"],
         required_evidence=["Increase confidence", "Satisfy gates"],
     )
-    
+
     feedback = executability_explainer.explain(
         hypothesis=valid_hypothesis,
         compilation_result=compilation_result,
         verifications=[],
     )
-    
+
     assert feedback.hypothesis_id == valid_hypothesis.hypothesis_id
     assert len(feedback.blocking_reasons) == 2
     assert len(feedback.gates_blocking) == 2
@@ -432,15 +432,15 @@ def test_terminal_output_formatting(executability_explainer, valid_hypothesis):
         verifications_pending=["ver_001"],
         required_evidence=["Increase confidence"],
     )
-    
+
     feedback = executability_explainer.explain(
         hypothesis=valid_hypothesis,
         compilation_result=compilation_result,
         verifications=[],
     )
-    
+
     terminal_output = feedback.to_terminal_output()
-    
+
     # Check for ANSI color codes (neon green)
     assert "\033[92m" in terminal_output  # Green
     assert "\033[91m" in terminal_output  # Red
@@ -453,10 +453,10 @@ def test_end_to_end_workflow(intake_service, packet_compiler, executability_expl
     """Test complete workflow from hypothesis to compilation"""
     # Step 1: Intake hypothesis
     intake_result = intake_service.intake_hypothesis(valid_hypothesis)
-    
+
     assert intake_result.admitted
     assert len(intake_result.verification_requests) > 0
-    
+
     # Step 2: Create verifications (simulate completion)
     verifications = []
     for req in intake_result.verification_requests:
@@ -470,7 +470,7 @@ def test_end_to_end_workflow(intake_service, packet_compiler, executability_expl
             verified_by="system",
         )
         verifications.append(verification)
-    
+
     # Step 3: Attempt compilation (should fail - gates not satisfied)
     result = packet_compiler.attempt_compilation(
         hypothesis=valid_hypothesis,
@@ -481,17 +481,17 @@ def test_end_to_end_workflow(intake_service, packet_compiler, executability_expl
         gates_satisfied=[],
         gates_required=intake_result.gate_proposals,
     )
-    
+
     assert not result.success
     assert BlockingReason.GATES_NOT_SATISFIED in result.blocking_reasons
-    
+
     # Step 4: Get feedback
     feedback = executability_explainer.explain(
         hypothesis=valid_hypothesis,
         compilation_result=result,
         verifications=verifications,
     )
-    
+
     assert len(feedback.gates_blocking) > 0
     assert len(feedback.required_evidence) > 0
 
@@ -500,10 +500,10 @@ def test_end_to_end_workflow(intake_service, packet_compiler, executability_expl
 def test_hypothesis_integrity_verification(valid_hypothesis):
     """Test hypothesis integrity verification"""
     assert valid_hypothesis.verify_integrity()
-    
+
     # Tamper with hypothesis
     valid_hypothesis.plan_summary = "Tampered plan"
-    
+
     # Should fail verification
     assert not valid_hypothesis.verify_integrity()
 
@@ -521,7 +521,7 @@ def test_verification_artifact_provenance():
         verified_by="system",
         provenance={"parent": "hyp_001"},
     )
-    
+
     assert verification.provenance == {"parent": "hyp_001"}
     assert len(verification.integrity_hash) == 64
 
@@ -530,13 +530,13 @@ def test_verification_artifact_provenance():
 def test_gate_proposals_generated(intake_service, valid_hypothesis):
     """Test that intake generates gate proposals"""
     result = intake_service.intake_hypothesis(valid_hypothesis)
-    
+
     assert result.admitted
     assert len(result.gate_proposals) > 0
-    
+
     # Should have verification gate
     assert any("verification_gate" in gate for gate in result.gate_proposals)
-    
+
     # Should have assumption gate
     assert any("assumption_gate" in gate for gate in result.gate_proposals)
 
@@ -549,7 +549,7 @@ def test_compilation_gate_multi_criteria():
         max_contradictions=0,
         min_authority="medium",
     )
-    
+
     # All criteria met
     can_compile, reasons = gate.check(
         confidence=0.8,
@@ -561,10 +561,10 @@ def test_compilation_gate_multi_criteria():
         verifications_required=["ver_001"],
         risk_flags=[],
     )
-    
+
     assert can_compile
     assert len(reasons) == 0
-    
+
     # Confidence too low
     can_compile, reasons = gate.check(
         confidence=0.5,
@@ -576,7 +576,7 @@ def test_compilation_gate_multi_criteria():
         verifications_required=["ver_001"],
         risk_flags=[],
     )
-    
+
     assert not can_compile
     assert BlockingReason.CONFIDENCE_TOO_LOW in reasons
 
@@ -586,7 +586,7 @@ def test_risk_flags_block_compilation(packet_compiler, valid_hypothesis):
     """Test that risk flags block compilation"""
     # Add risk flags
     valid_hypothesis.risk_flags = ["High latency risk", "Data loss risk"]
-    
+
     verifications = [
         VerificationArtifact.create(
             request_id="req_001",
@@ -598,7 +598,7 @@ def test_risk_flags_block_compilation(packet_compiler, valid_hypothesis):
             verified_by="system",
         )
     ]
-    
+
     result = packet_compiler.attempt_compilation(
         hypothesis=valid_hypothesis,
         verifications=verifications,
@@ -608,7 +608,7 @@ def test_risk_flags_block_compilation(packet_compiler, valid_hypothesis):
         gates_satisfied=["gate_001"],
         gates_required=["gate_001"],
     )
-    
+
     assert not result.success
     assert BlockingReason.RISK_FLAGS_PRESENT in result.blocking_reasons
 
@@ -619,7 +619,7 @@ def test_statistics_tracking(intake_service, packet_compiler):
     # Initial stats
     intake_stats = intake_service.get_stats()
     assert intake_stats["hypotheses_received"] == 0
-    
+
     # Intake hypothesis
     hyp = HypothesisArtifact(
         hypothesis_id="hyp_stats",
@@ -629,9 +629,9 @@ def test_statistics_tracking(intake_service, packet_compiler):
         risk_flags=[],
         proposed_actions=[{"action": "test"}],
     )
-    
+
     intake_service.intake_hypothesis(hyp)
-    
+
     # Check stats updated
     intake_stats = intake_service.get_stats()
     assert intake_stats["hypotheses_received"] == 1

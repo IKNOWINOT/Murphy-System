@@ -40,11 +40,11 @@ class BlockingReason(str, Enum):
 class HypothesisArtifact:
     """
     System A sandbox output with ZERO execution rights.
-    
+
     This is a pure hypothesis/plan that CANNOT execute anything.
     It must be evaluated, verified, and gated by System B before
     any ExecutionPacket can be compiled.
-    
+
     CRITICAL CONSTRAINTS:
     - status: MUST be "sandbox"
     - confidence: MUST be null (computed by System B)
@@ -56,36 +56,36 @@ class HypothesisArtifact:
     dependencies: List[str]  # Data sources, external APIs, etc.
     risk_flags: List[str]  # Self-reported risks
     proposed_actions: List[Dict[str, Any]]  # High-level, NOT executable
-    
+
     # MANDATORY SANDBOX CONSTRAINTS
     status: Literal["sandbox"] = "sandbox"
     confidence: None = None  # Computed by System B only
     execution_rights: Literal[False] = False
-    
+
     # Metadata
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     source_system: str = "system_a"
     provenance: Dict[str, Any] = field(default_factory=dict)
     integrity_hash: str = ""
-    
+
     def __post_init__(self):
         """Enforce sandbox constraints"""
         # CRITICAL: Enforce sandbox status
         if self.status != "sandbox":
             raise ValueError("HypothesisArtifact status MUST be 'sandbox'")
-        
+
         # CRITICAL: Enforce null confidence
         if self.confidence is not None:
             raise ValueError("HypothesisArtifact confidence MUST be null")
-        
+
         # CRITICAL: Enforce zero execution rights
         if self.execution_rights is not False:
             raise ValueError("HypothesisArtifact execution_rights MUST be false")
-        
+
         # Compute integrity hash
         if not self.integrity_hash:
             self.integrity_hash = self._compute_hash()
-    
+
     def _compute_hash(self) -> str:
         """Compute SHA-256 integrity hash"""
         canonical = json.dumps({
@@ -97,14 +97,14 @@ class HypothesisArtifact:
             "proposed_actions": self.proposed_actions,
             "created_at": self.created_at.isoformat(),
         }, sort_keys=True)
-        
+
         return hashlib.sha256(canonical.encode()).hexdigest()
-    
+
     def verify_integrity(self) -> bool:
         """Verify integrity hash matches current state"""
         expected_hash = self._compute_hash()
         return expected_hash == self.integrity_hash
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "hypothesis_id": self.hypothesis_id,
@@ -127,7 +127,7 @@ class HypothesisArtifact:
 class VerificationRequest:
     """
     Request for verification of hypothesis claims/assumptions.
-    
+
     Types:
     - deterministic: Mathematical/logical verification
     - external_api: Query external data source
@@ -140,7 +140,7 @@ class VerificationRequest:
     context: Dict[str, Any]
     priority: Literal["low", "medium", "high", "critical"]
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "request_id": self.request_id,
@@ -157,7 +157,7 @@ class VerificationRequest:
 class VerificationArtifact:
     """
     Verification result with full provenance.
-    
+
     All verification results become artifacts in the artifact graph
     with complete provenance chain.
     """
@@ -172,7 +172,7 @@ class VerificationArtifact:
     timestamp: datetime
     provenance: Dict[str, Any]
     integrity_hash: str
-    
+
     @staticmethod
     def create(
         request_id: str,
@@ -187,10 +187,10 @@ class VerificationArtifact:
         """Create a new verification artifact"""
         timestamp = datetime.now(timezone.utc)
         verification_id = f"verification_{hypothesis_id}_{timestamp.timestamp()}"
-        
+
         if provenance is None:
             provenance = {}
-        
+
         # Compute integrity hash
         canonical = json.dumps({
             "verification_id": verification_id,
@@ -204,9 +204,9 @@ class VerificationArtifact:
             "timestamp": timestamp.isoformat(),
             "provenance": provenance,
         }, sort_keys=True)
-        
+
         integrity_hash = hashlib.sha256(canonical.encode()).hexdigest()
-        
+
         return VerificationArtifact(
             verification_id=verification_id,
             request_id=request_id,
@@ -220,7 +220,7 @@ class VerificationArtifact:
             provenance=provenance,
             integrity_hash=integrity_hash,
         )
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "verification_id": self.verification_id,
@@ -241,7 +241,7 @@ class VerificationArtifact:
 class CompilationResult:
     """
     Result of ExecutionPacket compilation attempt.
-    
+
     Success: Contains compiled ExecutionPacket
     Failure: Contains blocking reasons and required evidence
     """
@@ -257,7 +257,7 @@ class CompilationResult:
     verifications_pending: List[str]
     required_evidence: List[str]
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "hypothesis_id": self.hypothesis_id,
@@ -279,7 +279,7 @@ class CompilationResult:
 class IntakeResult:
     """
     Result of hypothesis intake by System B.
-    
+
     Contains:
     - Extracted claims and assumptions
     - Generated verification requests
@@ -296,7 +296,7 @@ class IntakeResult:
     admissible_scope: str  # Description of what can be done
     rejection_reasons: List[str]  # If not admitted
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "hypothesis_id": self.hypothesis_id,

@@ -34,7 +34,7 @@ class TranscriptEntry:
     actor: str  # user or bot_id
     success: bool
     duration_ms: Optional[int] = None
-    
+
     def to_dict(self) -> Dict:
         return {
             "entry_id": self.entry_id,
@@ -60,7 +60,7 @@ class SystemKnowledge:
     references: List[str]
     created_at: str
     updated_at: str = field(default_factory=lambda: datetime.now().isoformat())
-    
+
     def to_dict(self) -> Dict:
         return {
             "knowledge_id": self.knowledge_id,
@@ -86,7 +86,7 @@ class GeneratedDocument:
     metadata: Dict[str, Any]
     created_at: str
     version: str = "1.0"
-    
+
     def to_dict(self) -> Dict:
         return {
             "doc_id": self.doc_id,
@@ -106,25 +106,25 @@ class SystemLibrarian:
     Maintains complete transcript logs and generates documentation
     Provides system understanding from any module's perspective
     """
-    
+
     def __init__(self):
         self.transcripts: List[TranscriptEntry] = []
         self.knowledge_base: Dict[str, SystemKnowledge] = {}
         self.documents: Dict[str, GeneratedDocument] = {}
-        
+
         self.entry_count = 0
         self.knowledge_count = 0
         self.doc_count = 0
-        
+
         # Initialize system knowledge
         self._initialize_system_knowledge()
-        
+
         # Module function mappings
         self.module_functions = self._load_module_functions()
-        
+
         # Module capabilities
         self.module_capabilities = self._load_module_capabilities()
-    
+
     def _initialize_system_knowledge(self):
         """Initialize system knowledge base"""
         knowledge_entries = [
@@ -201,7 +201,7 @@ class SystemLibrarian:
                 "references": ["org_statistics", "gap_thresholds"]
             }
         ]
-        
+
         for entry in knowledge_entries:
             self.knowledge_count += 1
             knowledge = SystemKnowledge(
@@ -215,7 +215,7 @@ class SystemLibrarian:
                 created_at=datetime.now().isoformat()
             )
             self.knowledge_base[knowledge.knowledge_id] = knowledge
-    
+
     def _load_module_functions(self) -> Dict[str, Dict]:
         """Load all module functions"""
         return {
@@ -350,7 +350,7 @@ class SystemLibrarian:
                 }
             }
         }
-    
+
     def _load_module_capabilities(self) -> Dict[str, List[str]]:
         """Load capabilities for each module"""
         return {
@@ -409,7 +409,7 @@ class SystemLibrarian:
                 "Monitor agent drift"
             ]
         }
-    
+
     def log_transcript(
         self,
         module: str,
@@ -421,7 +421,7 @@ class SystemLibrarian:
     ):
         """
         Log an entry to system transcript
-        
+
         Args:
             module: Module performing action
             action: Action performed
@@ -442,7 +442,7 @@ class SystemLibrarian:
             duration_ms=duration_ms
         )
         self.transcripts.append(entry)
-    
+
     def get_transcripts(
         self,
         module: Optional[str] = None,
@@ -451,53 +451,53 @@ class SystemLibrarian:
     ) -> List[TranscriptEntry]:
         """
         Get transcripts filtered by criteria
-        
+
         Args:
             module: Filter by module
             actor: Filter by actor
             limit: Limit number of entries
-            
+
         Returns:
             List of transcript entries
         """
         filtered = self.transcripts
-        
+
         if module:
             filtered = [t for t in filtered if t.module == module]
-        
+
         if actor:
             filtered = [t for t in filtered if t.actor == actor]
-        
+
         if limit:
             filtered = filtered[-limit:]
-        
+
         return filtered
-    
+
     def get_module_documentation(self, module_name: str) -> Dict[str, Any]:
         """
         Get complete documentation for a module
-        
+
         Args:
             module_name: Name of module
-            
+
         Returns:
             Module documentation
         """
         # Get module functions
         functions = self.module_functions.get(module_name, {})
-        
+
         # Get module capabilities
         capabilities = self.module_capabilities.get(module_name, [])
-        
+
         # Get related knowledge
         related_knowledge = [
             k.to_dict() for k in self.knowledge_base.values()
             if module_name in k.related_modules
         ]
-        
+
         # Get module transcripts
         module_transcripts = self.get_transcripts(module=module_name, limit=50)
-        
+
         return {
             "module_name": module_name,
             "functions": functions,
@@ -507,52 +507,52 @@ class SystemLibrarian:
             "coupled": True,
             "help_visible": True
         }
-    
+
     def get_function_documentation(self, module_name: str, function_name: str) -> Optional[Dict]:
         """
         Get documentation for a specific function
-        
+
         Args:
             module_name: Name of module
             function_name: Name of function
-            
+
         Returns:
             Function documentation
         """
         module_functions = self.module_functions.get(module_name, {})
         return module_functions.get(function_name)
-    
+
     def generate_module_guide(self, module_name: str) -> GeneratedDocument:
         """
         Generate comprehensive module guide
-        
+
         Args:
             module_name: Name of module
-            
+
         Returns:
             GeneratedDocument object
         """
         doc = self.get_module_documentation(module_name)
-        
+
         # Build markdown content
         content = f"# {module_name.title()} Module Guide\n\n"
-        
+
         content += "## Overview\n\n"
         content += f"The {module_name} module provides the following capabilities:\n\n"
         for capability in doc["capabilities"]:
             content += f"- {capability}\n"
-        
+
         content += "\n## Functions\n\n"
         for func_name, func_data in doc["functions"].items():
             content += f"### {func_name}\n\n"
             content += f"**Description**: {func_data['description']}\n\n"
             content += f"**Parameters**: {', '.join(func_data['parameters'])}\n\n"
             content += f"**Returns**: {func_data['returns']}\n\n"
-        
+
         content += "\n## Recent Activity\n\n"
         for transcript in doc["recent_activity"][-10:]:
             content += f"- {transcript['timestamp']}: {transcript['action']} ({'✓' if transcript['success'] else '✗'})\n"
-        
+
         self.doc_count += 1
         document = GeneratedDocument(
             doc_id=f"doc_{self.doc_count}",
@@ -567,23 +567,23 @@ class SystemLibrarian:
             },
             created_at=datetime.now().isoformat()
         )
-        
+
         self.documents[document.doc_id] = document
         return document
-    
+
     def generate_complete_transcript(self) -> GeneratedDocument:
         """Generate complete system transcript document"""
         content = "# Complete System Transcript\n\n"
         content += f"Generated at: {datetime.now().isoformat()}\n\n"
         content += f"Total entries: {len(self.transcripts)}\n\n"
-        
+
         # Group by module
         by_module = {}
         for entry in self.transcripts:
             if entry.module not in by_module:
                 by_module[entry.module] = []
             by_module[entry.module].append(entry)
-        
+
         for module, entries in by_module.items():
             content += f"\n## {module}\n\n"
             for entry in entries[-20:]:  # Last 20 entries per module
@@ -591,7 +591,7 @@ class SystemLibrarian:
                 content += f"- [{entry.timestamp}] {entry.action} by {entry.actor} {status}\n"
                 if entry.details:
                     content += f"  Details: {json.dumps(entry.details, indent=2)}\n"
-        
+
         self.doc_count += 1
         document = GeneratedDocument(
             doc_id=f"doc_{self.doc_count}",
@@ -606,32 +606,32 @@ class SystemLibrarian:
             },
             created_at=datetime.now().isoformat()
         )
-        
+
         self.documents[document.doc_id] = document
         return document
-    
+
     def search_knowledge(self, query: str) -> List[SystemKnowledge]:
         """
         Search knowledge base
-        
+
         Args:
             query: Search query
-            
+
         Returns:
             List of matching knowledge entries
         """
         query_lower = query.lower()
         results = []
-        
+
         for knowledge in self.knowledge_base.values():
             # Search in topic, description, category
             if (query_lower in knowledge.topic.lower() or
                 query_lower in knowledge.description.lower() or
                 query_lower in knowledge.category.lower()):
                 results.append(knowledge)
-        
+
         return results
-    
+
     def get_system_overview(self) -> Dict[str, Any]:
         """Get complete system overview from librarian perspective"""
         return {
@@ -681,7 +681,7 @@ class SystemLibrarian:
 if __name__ == "__main__":
     # Test system librarian
     librarian = SystemLibrarian()
-    
+
     # Test 1: Log transcripts
     print("=== Test 1: Log Transcripts ===")
     librarian.log_transcript(
@@ -692,7 +692,7 @@ if __name__ == "__main__":
         success=True,
         duration_ms=150
     )
-    
+
     librarian.log_transcript(
         module="domain_gate_generator",
         action="generate_gate",
@@ -701,9 +701,9 @@ if __name__ == "__main__":
         success=True,
         duration_ms=200
     )
-    
+
     print(f"Transcript entries: {len(librarian.transcripts)}")
-    
+
     # Test 2: Get module documentation
     print("\n=== Test 2: Get Module Documentation ===")
     doc = librarian.get_module_documentation("dynamic_expert_generator")
@@ -711,7 +711,7 @@ if __name__ == "__main__":
     print(f"Functions: {len(doc['functions'])}")
     print(f"Capabilities: {doc['capabilities']}")
     print(f"Related knowledge: {len(doc['related_knowledge'])}")
-    
+
     # Test 3: Get function documentation
     print("\n=== Test 3: Get Function Documentation ===")
     func_doc = librarian.get_function_documentation(
@@ -722,20 +722,20 @@ if __name__ == "__main__":
         print("Function: generate_expert")
         print(f"Description: {func_doc['description']}")
         print(f"Parameters: {func_doc['parameters']}")
-    
+
     # Test 4: Generate module guide
     print("\n=== Test 4: Generate Module Guide ===")
     guide = librarian.generate_module_guide("system_integrator")
     print(f"Guide generated: {guide.title}")
     print(f"Content length: {len(guide.content)}")
-    
+
     # Test 5: Search knowledge
     print("\n=== Test 5: Search Knowledge ===")
     results = librarian.search_knowledge("gate")
     print(f"Results: {len(results)}")
     for result in results:
         print(f"  - {result.topic}")
-    
+
     # Test 6: Get system overview
     print("\n=== Test 6: System Overview ===")
     overview = librarian.get_system_overview()
@@ -743,7 +743,7 @@ if __name__ == "__main__":
     print(f"Total functions: {overview['total_functions']}")
     print(f"Total transcripts: {overview['total_transcripts']}")
     print(f"Total knowledge: {overview['total_knowledge']}")
-    
+
     # Test 7: Generate complete transcript
     print("\n=== Test 7: Generate Complete Transcript ===")
     transcript_doc = librarian.generate_complete_transcript()

@@ -43,29 +43,29 @@ class ValidationResult(BaseModel):
 
 class ExternalValidator(ABC):
     """Abstract base class for external validators."""
-    
+
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         self.config = config or {}
         self.validation_cache: Dict[str, ValidationResult] = {}
-    
+
     @abstractmethod
     async def validate(self, target: str, context: Dict[str, Any]) -> ValidationResult:
         """
         Validate a target using external service.
-        
+
         Args:
             target: The item to validate (credential, endpoint, etc.)
             context: Additional context for validation
-            
+
         Returns:
             ValidationResult with status and confidence
         """
         pass
-    
+
     def get_cached_result(self, cache_key: str) -> Optional[ValidationResult]:
         """Get cached validation result if available."""
         return self.validation_cache.get(cache_key)
-    
+
     def cache_result(self, cache_key: str, result: ValidationResult):
         """Cache validation result."""
         self.validation_cache[cache_key] = result
@@ -73,32 +73,32 @@ class ExternalValidator(ABC):
 
 class CredentialValidator(ExternalValidator):
     """Validates credentials (API keys, tokens, etc.)."""
-    
+
     async def validate(self, target: str, context: Dict[str, Any]) -> ValidationResult:
         """
         Validate a credential.
-        
+
         Args:
             target: Credential string (API key, token, etc.)
             context: Contains credential_type, service_name, etc.
-            
+
         Returns:
             ValidationResult indicating if credential is valid
         """
         credential_type = context.get("credential_type", "api_key")
         service_name = context.get("service_name", "unknown")
-        
+
         # Check cache first
         cache_key = f"{service_name}:{credential_type}:{target[:10]}"
         cached = self.get_cached_result(cache_key)
         if cached:
             return cached
-        
+
         try:
             # Simulate credential validation
             # In production, this would call actual service APIs
             is_valid = await self._check_credential(target, credential_type, service_name)
-            
+
             result = ValidationResult(
                 validation_type=ValidationType.CREDENTIAL,
                 status=ValidationStatus.VALID if is_valid else ValidationStatus.INVALID,
@@ -109,10 +109,10 @@ class CredentialValidator(ExternalValidator):
                     "checked_at": datetime.now(timezone.utc).isoformat()
                 }
             )
-            
+
             self.cache_result(cache_key, result)
             return result
-            
+
         except Exception as exc:
             return ValidationResult(
                 validation_type=ValidationType.CREDENTIAL,
@@ -120,7 +120,7 @@ class CredentialValidator(ExternalValidator):
                 confidence=0.0,
                 error_message=str(exc)
             )
-    
+
     async def _check_credential(self, credential: str, cred_type: str, service: str) -> bool:
         """
         Check if credential is valid.
@@ -133,23 +133,23 @@ class CredentialValidator(ExternalValidator):
 
 class DataSourceValidator(ExternalValidator):
     """Validates data sources (databases, APIs, files)."""
-    
+
     async def validate(self, target: str, context: Dict[str, Any]) -> ValidationResult:
         """
         Validate a data source.
-        
+
         Args:
             target: Data source identifier (URL, connection string, etc.)
             context: Contains source_type, required_fields, etc.
-            
+
         Returns:
             ValidationResult indicating if data source is accessible
         """
         source_type = context.get("source_type", "api")
-        
+
         try:
             is_available = await self._check_data_source(target, source_type)
-            
+
             return ValidationResult(
                 validation_type=ValidationType.DATA_SOURCE,
                 status=ValidationStatus.VALID if is_available else ValidationStatus.UNAVAILABLE,
@@ -160,7 +160,7 @@ class DataSourceValidator(ExternalValidator):
                     "checked_at": datetime.now(timezone.utc).isoformat()
                 }
             )
-            
+
         except Exception as exc:
             return ValidationResult(
                 validation_type=ValidationType.DATA_SOURCE,
@@ -168,7 +168,7 @@ class DataSourceValidator(ExternalValidator):
                 confidence=0.0,
                 error_message=str(exc)
             )
-    
+
     async def _check_data_source(self, source: str, source_type: str) -> bool:
         """
         Check if data source is available.
@@ -180,23 +180,23 @@ class DataSourceValidator(ExternalValidator):
 
 class DomainExpertValidator(ExternalValidator):
     """Validates using domain expert knowledge bases."""
-    
+
     async def validate(self, target: str, context: Dict[str, Any]) -> ValidationResult:
         """
         Validate using domain expertise.
-        
+
         Args:
             target: Query or statement to validate
             context: Contains domain, expertise_level, etc.
-            
+
         Returns:
             ValidationResult with expert confidence score
         """
         domain = context.get("domain", "general")
-        
+
         try:
             expertise_score = await self._query_expert_system(target, domain)
-            
+
             return ValidationResult(
                 validation_type=ValidationType.DOMAIN_EXPERT,
                 status=ValidationStatus.VALID if expertise_score > 0.7 else ValidationStatus.INVALID,
@@ -207,7 +207,7 @@ class DomainExpertValidator(ExternalValidator):
                     "expertise_score": expertise_score
                 }
             )
-            
+
         except Exception as exc:
             return ValidationResult(
                 validation_type=ValidationType.DOMAIN_EXPERT,
@@ -215,7 +215,7 @@ class DomainExpertValidator(ExternalValidator):
                 confidence=0.0,
                 error_message=str(exc)
             )
-    
+
     async def _query_expert_system(self, query: str, domain: str) -> float:
         """
         Query domain expert system.
@@ -231,18 +231,18 @@ class ExternalValidationService:
     Orchestrates multiple external validators.
     Provides unified interface for all validation types.
     """
-    
+
     def __init__(self):
         self.validators: Dict[ValidationType, ExternalValidator] = {
             ValidationType.CREDENTIAL: CredentialValidator(),
             ValidationType.DATA_SOURCE: DataSourceValidator(),
             ValidationType.DOMAIN_EXPERT: DomainExpertValidator()
         }
-    
+
     def register_validator(self, validation_type: ValidationType, validator: ExternalValidator):
         """Register a custom validator."""
         self.validators[validation_type] = validator
-    
+
     async def validate(
         self,
         validation_type: ValidationType,
@@ -251,12 +251,12 @@ class ExternalValidationService:
     ) -> ValidationResult:
         """
         Perform validation using appropriate validator.
-        
+
         Args:
             validation_type: Type of validation to perform
             target: Item to validate
             context: Additional context
-            
+
         Returns:
             ValidationResult
         """
@@ -268,48 +268,48 @@ class ExternalValidationService:
                 confidence=0.0,
                 error_message=f"No validator registered for {validation_type}"
             )
-        
+
         return await validator.validate(target, context)
-    
+
     async def validate_multiple(
         self,
         validations: List[tuple[ValidationType, str, Dict[str, Any]]]
     ) -> List[ValidationResult]:
         """
         Perform multiple validations in parallel.
-        
+
         Args:
             validations: List of (validation_type, target, context) tuples
-            
+
         Returns:
             List of ValidationResults
         """
         import asyncio
-        
+
         tasks = [
             self.validate(val_type, target, context)
             for val_type, target, context in validations
         ]
-        
+
         return await asyncio.gather(*tasks)
-    
+
     def get_overall_confidence(self, results: List[ValidationResult]) -> float:
         """
         Calculate overall confidence from multiple validation results.
-        
+
         Args:
             results: List of validation results
-            
+
         Returns:
             Overall confidence score (0.0 to 1.0)
         """
         if not results:
             return 0.0
-        
+
         valid_results = [r for r in results if r.status == ValidationStatus.VALID]
         if not valid_results:
             return 0.0
-        
+
         # Weighted average of confidence scores
         total_confidence = sum(r.confidence for r in valid_results)
         return total_confidence / (len(results) or 1)

@@ -65,12 +65,12 @@ class DataClassification:
     encryption_required: bool
     retention_days: Optional[int]  # None = indefinite
     access_restrictions: List[str]  # Who can access
-    
+
     def __post_init__(self):
         """Validate classification"""
         if not 0.0 <= self.classification_confidence <= 1.0:
             raise ValueError("Classification confidence must be 0.0-1.0")
-        
+
         # High sensitivity requires encryption
         if self.sensitivity_level in [DataSensitivityLevel.SECRET, DataSensitivityLevel.TOP_SECRET]:
             if not self.encryption_required:
@@ -79,7 +79,7 @@ class DataClassification:
 
 class SensitiveDataClassifier:
     """Classifies data based on content patterns"""
-    
+
     def __init__(self):
         # Regex patterns for sensitive data detection
         self.patterns = {
@@ -108,13 +108,13 @@ class SensitiveDataClassifier:
                 (r'-----BEGIN CERTIFICATE-----', 'Certificate'),
             ],
         }
-    
+
     def classify(self, data: str, data_id: str) -> DataClassification:
         """Classify data based on content"""
         detected_categories = set()
         detected_patterns = []
         max_confidence = 0.0
-        
+
         # Check all patterns
         for category, patterns in self.patterns.items():
             for pattern, name in patterns:
@@ -122,7 +122,7 @@ class SensitiveDataClassifier:
                     detected_categories.add(category)
                     detected_patterns.append(name)
                     max_confidence = max(max_confidence, 0.9)  # High confidence for pattern match
-        
+
         # Determine sensitivity level
         if DataCategory.CREDENTIALS in detected_categories or DataCategory.CRYPTOGRAPHIC in detected_categories:
             sensitivity = DataSensitivityLevel.TOP_SECRET
@@ -139,7 +139,7 @@ class SensitiveDataClassifier:
         else:
             sensitivity = DataSensitivityLevel.PUBLIC
             retention_days = None
-        
+
         return DataClassification(
             data_id=data_id,
             sensitivity_level=sensitivity,
@@ -152,7 +152,7 @@ class SensitiveDataClassifier:
             retention_days=retention_days,
             access_restrictions=self._get_access_restrictions(sensitivity)
         )
-    
+
     def _get_access_restrictions(self, sensitivity: DataSensitivityLevel) -> List[str]:
         """Get access restrictions for sensitivity level"""
         restrictions = {
@@ -188,7 +188,7 @@ class DataTransfer:
 
 class ExfiltrationDetector:
     """Detects and blocks unauthorized data exfiltration"""
-    
+
     def __init__(self):
         self.transfer_history: List[DataTransfer] = []
         self.blocked_destinations: Set[str] = {
@@ -201,7 +201,7 @@ class ExfiltrationDetector:
             DataSensitivityLevel.SECRET: 100,
             DataSensitivityLevel.CONFIDENTIAL: 1000,
         }
-    
+
     def check_transfer(
         self,
         data_id: str,
@@ -216,23 +216,23 @@ class ExfiltrationDetector:
         transfer_id = hashlib.sha256(
             f"{data_id}{source}{destination}{datetime.now().isoformat()}".encode()
         ).hexdigest()[:16]
-        
+
         blocked = False
         block_reason = None
         authorized = True
-        
+
         # Check 1: Encryption required for sensitive data
         if classification.encryption_required and not encrypted:
             blocked = True
             block_reason = f"Unencrypted transfer of {classification.sensitivity_level.value} data"
             authorized = False
-        
+
         # Check 2: Blocked destinations
         if destination in self.blocked_destinations:
             blocked = True
             block_reason = f"Transfer to blocked destination: {destination}"
             authorized = False
-        
+
         # Check 3: Rate limiting
         if not blocked:
             rate_limit_mb = self.rate_limits.get(classification.sensitivity_level)
@@ -240,18 +240,18 @@ class ExfiltrationDetector:
                 recent_transfers = self._get_recent_transfers(data_id, hours=1)
                 total_bytes = sum(t.size_bytes for t in recent_transfers) + size_bytes
                 total_mb = total_bytes / (1024 * 1024)
-                
+
                 if total_mb > rate_limit_mb:
                     blocked = True
                     block_reason = f"Rate limit exceeded: {total_mb:.1f}MB > {rate_limit_mb}MB/hour"
                     authorized = False
-        
+
         # Check 4: Access restrictions
         if not blocked and classification.access_restrictions:
             # In production, check actual user permissions
             # For now, just log the requirement
             pass
-        
+
         transfer = DataTransfer(
             transfer_id=transfer_id,
             data_id=data_id,
@@ -266,10 +266,10 @@ class ExfiltrationDetector:
             blocked=blocked,
             block_reason=block_reason
         )
-        
+
         self.transfer_history.append(transfer)
         return transfer
-    
+
     def _get_recent_transfers(self, data_id: str, hours: int) -> List[DataTransfer]:
         """Get recent transfers for rate limiting"""
         cutoff = datetime.now() - timedelta(hours=hours)
@@ -277,7 +277,7 @@ class ExfiltrationDetector:
             t for t in self.transfer_history
             if t.data_id == data_id and t.initiated_at >= cutoff and not t.blocked
         ]
-    
+
     def get_blocked_transfers(self) -> List[DataTransfer]:
         """Get all blocked transfers"""
         return [t for t in self.transfer_history if t.blocked]
@@ -301,10 +301,10 @@ class EncryptionPolicy:
 
 class EncryptionEnforcer:
     """Enforces encryption policies"""
-    
+
     def __init__(self):
         self.policies = self._create_default_policies()
-    
+
     def _create_default_policies(self) -> Dict[DataSensitivityLevel, EncryptionPolicy]:
         """Create default encryption policies"""
         return {
@@ -354,11 +354,11 @@ class EncryptionEnforcer:
                 created_at=datetime.now()
             ),
         }
-    
+
     def get_policy(self, sensitivity_level: DataSensitivityLevel) -> EncryptionPolicy:
         """Get encryption policy for sensitivity level"""
         return self.policies[sensitivity_level]
-    
+
     def validate_encryption(
         self,
         classification: DataClassification,
@@ -367,13 +367,13 @@ class EncryptionEnforcer:
     ) -> tuple[bool, Optional[str]]:
         """Validate encryption meets policy requirements"""
         policy = self.get_policy(classification.sensitivity_level)
-        
+
         if policy.encryption_at_rest_required and not encrypted_at_rest:
             return False, f"Encryption at rest required for {classification.sensitivity_level.value} data"
-        
+
         if policy.encryption_in_transit_required and not encrypted_in_transit:
             return False, f"Encryption in transit required for {classification.sensitivity_level.value} data"
-        
+
         return True, None
 
 
@@ -394,7 +394,7 @@ class DataAccessLog:
     user_agent: Optional[str]
     authorized: bool
     denial_reason: Optional[str]
-    
+
     def to_audit_entry(self) -> str:
         """Convert to audit log entry"""
         return json.dumps({
@@ -413,11 +413,11 @@ class DataAccessLog:
 
 class DataAccessLogger:
     """Logs all access to sensitive data"""
-    
+
     def __init__(self, log_file: Optional[Path] = None):
         self.log_file = log_file or Path("/tmp/data_access.log")
         self.access_logs: List[DataAccessLog] = []
-    
+
     def log_access(
         self,
         data_id: str,
@@ -433,7 +433,7 @@ class DataAccessLogger:
         log_id = hashlib.sha256(
             f"{data_id}{accessed_by}{access_type}{datetime.now().isoformat()}".encode()
         ).hexdigest()[:16]
-        
+
         log_entry = DataAccessLog(
             log_id=log_id,
             data_id=data_id,
@@ -446,15 +446,15 @@ class DataAccessLogger:
             authorized=authorized,
             denial_reason=denial_reason
         )
-        
+
         self.access_logs.append(log_entry)
-        
+
         # Write to file
         with open(self.log_file, 'a', encoding='utf-8') as f:
             f.write(log_entry.to_audit_entry() + '\n')
-        
+
         return log_entry
-    
+
     def get_access_logs(
         self,
         data_id: Optional[str] = None,
@@ -463,18 +463,18 @@ class DataAccessLogger:
     ) -> List[DataAccessLog]:
         """Query access logs"""
         logs = self.access_logs
-        
+
         if data_id:
             logs = [log for log in logs if log.data_id == data_id]
-        
+
         if accessed_by:
             logs = [log for log in logs if log.accessed_by == accessed_by]
-        
+
         if since:
             logs = [log for log in logs if log.accessed_at >= since]
-        
+
         return logs
-    
+
     def get_unauthorized_access_attempts(self) -> List[DataAccessLog]:
         """Get all unauthorized access attempts"""
         return [log for log in self.access_logs if not log.authorized]
@@ -498,11 +498,11 @@ class RetentionPolicy:
 
 class DataRetentionManager:
     """Manages data lifecycle and retention"""
-    
+
     def __init__(self):
         self.policies = self._create_default_policies()
         self.legal_holds: Set[str] = set()  # Data IDs under legal hold
-    
+
     def _create_default_policies(self) -> Dict[DataSensitivityLevel, RetentionPolicy]:
         """Create default retention policies"""
         return {
@@ -552,11 +552,11 @@ class DataRetentionManager:
                 created_at=datetime.now()
             ),
         }
-    
+
     def get_policy(self, sensitivity_level: DataSensitivityLevel) -> RetentionPolicy:
         """Get retention policy for sensitivity level"""
         return self.policies[sensitivity_level]
-    
+
     def should_delete(
         self,
         data_id: str,
@@ -565,30 +565,30 @@ class DataRetentionManager:
     ) -> tuple[bool, Optional[str]]:
         """Check if data should be deleted"""
         policy = self.get_policy(classification.sensitivity_level)
-        
+
         # Check legal hold
         if data_id in self.legal_holds:
             if policy.legal_hold_override:
                 return False, "Data under legal hold"
             # Continue to check retention
-        
+
         # Check retention period
         if policy.retention_days is None:
             return False, "Indefinite retention"
-        
+
         age_days = (datetime.now() - created_at).days
         if age_days < policy.retention_days:
             return False, f"Retention period not expired ({age_days}/{policy.retention_days} days)"
-        
+
         if not policy.auto_delete:
             return False, "Auto-delete disabled"
-        
+
         return True, None
-    
+
     def add_legal_hold(self, data_id: str):
         """Add legal hold to prevent deletion"""
         self.legal_holds.add(data_id)
-    
+
     def remove_legal_hold(self, data_id: str):
         """Remove legal hold"""
         self.legal_holds.discard(data_id)
@@ -600,7 +600,7 @@ class DataRetentionManager:
 
 class DataLeakPreventionSystem:
     """Integrated Data Leak Prevention system"""
-    
+
     def __init__(self, log_file: Optional[Path] = None):
         self.classifier = SensitiveDataClassifier()
         self.exfiltration_detector = ExfiltrationDetector()
@@ -608,13 +608,13 @@ class DataLeakPreventionSystem:
         self.access_logger = DataAccessLogger(log_file)
         self.retention_manager = DataRetentionManager()
         self.classified_data: Dict[str, DataClassification] = {}
-    
+
     def classify_and_protect(self, data: str, data_id: str) -> DataClassification:
         """Classify data and apply protection"""
         classification = self.classifier.classify(data, data_id)
         self.classified_data[data_id] = classification
         return classification
-    
+
     def authorize_transfer(
         self,
         data_id: str,
@@ -627,9 +627,9 @@ class DataLeakPreventionSystem:
         """Authorize data transfer"""
         if data_id not in self.classified_data:
             return False, "Data not classified"
-        
+
         classification = self.classified_data[data_id]
-        
+
         # Check exfiltration
         transfer = self.exfiltration_detector.check_transfer(
             data_id=data_id,
@@ -640,7 +640,7 @@ class DataLeakPreventionSystem:
             initiated_by=initiated_by,
             encrypted=encrypted
         )
-        
+
         # Log access
         self.access_logger.log_access(
             data_id=data_id,
@@ -650,12 +650,12 @@ class DataLeakPreventionSystem:
             authorized=not transfer.blocked,
             denial_reason=transfer.block_reason
         )
-        
+
         if transfer.blocked:
             return False, transfer.block_reason
-        
+
         return True, None
-    
+
     def validate_storage(
         self,
         data_id: str,
@@ -665,14 +665,14 @@ class DataLeakPreventionSystem:
         """Validate data storage meets encryption requirements"""
         if data_id not in self.classified_data:
             return False, "Data not classified"
-        
+
         classification = self.classified_data[data_id]
         return self.encryption_enforcer.validate_encryption(
             classification=classification,
             encrypted_at_rest=encrypted_at_rest,
             encrypted_in_transit=encrypted_in_transit
         )
-    
+
     def check_retention(
         self,
         data_id: str,
@@ -681,14 +681,14 @@ class DataLeakPreventionSystem:
         """Check if data should be deleted per retention policy"""
         if data_id not in self.classified_data:
             return False, "Data not classified"
-        
+
         classification = self.classified_data[data_id]
         return self.retention_manager.should_delete(
             data_id=data_id,
             classification=classification,
             created_at=created_at
         )
-    
+
     def get_statistics(self) -> Dict[str, Any]:
         """Get DLP statistics"""
         return {

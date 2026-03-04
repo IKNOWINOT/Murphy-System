@@ -31,37 +31,37 @@ class ExecutionStatus(Enum):
 class ExecutionOrchestrator:
     """
     Core execution orchestrator for Murphy System.
-    
+
     Manages the lifecycle of task execution including:
     - Task queuing and prioritization
     - Execution with confidence-gated safety
     - Status tracking and result storage
     - Integration with phase controller
     """
-    
+
     def __init__(self):
         self._tasks: Dict[str, Dict[str, Any]] = {}
         self._results: Dict[str, Any] = {}
         logger.info("ExecutionOrchestrator initialized")
-    
+
     async def execute(self, task: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute a task through the orchestration pipeline.
-        
+
         Args:
             task: Task specification dictionary
-            
+
         Returns:
             Execution result dictionary
         """
         task_id = task.get('id', str(uuid.uuid4()))
-        
+
         self._tasks[task_id] = {
             'task': task,
             'status': ExecutionStatus.RUNNING.value,
             'started_at': datetime.now(timezone.utc).isoformat(),
         }
-        
+
         try:
             result = {
                 'task_id': task_id,
@@ -69,25 +69,25 @@ class ExecutionOrchestrator:
                 'output': task.get('description', 'Task executed'),
                 'completed_at': datetime.now(timezone.utc).isoformat(),
             }
-            
+
             self._tasks[task_id]['status'] = ExecutionStatus.COMPLETED.value
             self._results[task_id] = result
-            
+
             logger.info(f"Task {task_id} completed successfully")
             return result
-            
+
         except Exception as exc:
             self._tasks[task_id]['status'] = ExecutionStatus.FAILED.value
             logger.error(f"Task {task_id} failed: {exc}")
             raise
-    
+
     def get_status(self, task_id: str) -> Optional[Dict[str, Any]]:
         """
         Get the status of a task.
-        
+
         Args:
             task_id: Task identifier
-            
+
         Returns:
             Status dictionary or None if not found
         """
@@ -99,7 +99,7 @@ class ExecutionOrchestrator:
                 'started_at': task_info.get('started_at'),
             }
         return None
-    
+
     def get_statistics(self) -> Dict[str, Any]:
         """Get orchestrator statistics."""
         statuses = [t['status'] for t in self._tasks.values()]

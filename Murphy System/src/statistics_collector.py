@@ -13,7 +13,7 @@ from thread_safe_operations import capped_append
 
 class StatisticsSnapshot:
     """Snapshot of statistics at a point in time."""
-    
+
     def __init__(
         self,
         timestamp: float,
@@ -25,7 +25,7 @@ class StatisticsSnapshot:
         self.counters = counters.copy()
         self.gauges = gauges.copy()
         self.histograms = {k: v.copy() for k, v in histograms.items()}
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -38,7 +38,7 @@ class StatisticsSnapshot:
 
 class ThreadSafeStatisticsCollector:
     """Thread-safe statistics collector with atomic operations."""
-    
+
     def __init__(self):
         self._counters = ThreadSafeDict()
         self._gauges = ThreadSafeDict()
@@ -46,7 +46,7 @@ class ThreadSafeStatisticsCollector:
         self._snapshots: List[StatisticsSnapshot] = []
         self._snapshot_lock = threading.Lock()
         self._start_time = time.time()
-    
+
     def increment_counter(
         self,
         name: str,
@@ -59,7 +59,7 @@ class ThreadSafeStatisticsCollector:
         new_value = current + value
         self._counters.set(key, new_value)
         return new_value
-    
+
     def decrement_counter(
         self,
         name: str,
@@ -72,7 +72,7 @@ class ThreadSafeStatisticsCollector:
         new_value = max(0, current - value)
         self._counters.set(key, new_value)
         return new_value
-    
+
     def set_gauge(
         self,
         name: str,
@@ -82,7 +82,7 @@ class ThreadSafeStatisticsCollector:
         """Atomically set a gauge value."""
         key = self._make_key(name, labels)
         self._gauges.set(key, value)
-    
+
     def increment_gauge(
         self,
         name: str,
@@ -95,7 +95,7 @@ class ThreadSafeStatisticsCollector:
         new_value = current + value
         self._gauges.set(key, new_value)
         return new_value
-    
+
     def record_histogram(
         self,
         name: str,
@@ -107,7 +107,7 @@ class ThreadSafeStatisticsCollector:
         histogram = self._histograms.get(key, [])
         histogram.append(value)
         self._histograms.set(key, histogram)
-    
+
     def get_counter(
         self,
         name: str,
@@ -116,7 +116,7 @@ class ThreadSafeStatisticsCollector:
         """Get counter value."""
         key = self._make_key(name, labels)
         return self._counters.get(key, 0)
-    
+
     def get_gauge(
         self,
         name: str,
@@ -125,7 +125,7 @@ class ThreadSafeStatisticsCollector:
         """Get gauge value."""
         key = self._make_key(name, labels)
         return self._gauges.get(key, 0.0)
-    
+
     def get_histogram(
         self,
         name: str,
@@ -134,7 +134,7 @@ class ThreadSafeStatisticsCollector:
         """Get histogram values."""
         key = self._make_key(name, labels)
         return self._histograms.get(key, [])
-    
+
     def get_histogram_stats(
         self,
         name: str,
@@ -153,10 +153,10 @@ class ThreadSafeStatisticsCollector:
                 'p95': 0.0,
                 'p99': 0.0
             }
-        
+
         values_sorted = sorted(values)
         count = len(values_sorted)
-        
+
         return {
             'count': count,
             'min': values_sorted[0],
@@ -167,7 +167,7 @@ class ThreadSafeStatisticsCollector:
             'p95': values_sorted[int(count * 0.95)],
             'p99': values_sorted[int(count * 0.99)]
         }
-    
+
     def take_snapshot(self) -> StatisticsSnapshot:
         """Take a snapshot of current statistics."""
         return StatisticsSnapshot(
@@ -176,13 +176,13 @@ class ThreadSafeStatisticsCollector:
             gauges=self._gauges.get_dict(),
             histograms=self._histograms.get_dict()
         )
-    
+
     def save_snapshot(self) -> None:
         """Save a snapshot for later retrieval."""
         snapshot = self.take_snapshot()
         with self._snapshot_lock:
             capped_append(self._snapshots, snapshot)
-    
+
     def get_snapshots(
         self,
         limit: Optional[int] = None
@@ -192,35 +192,35 @@ class ThreadSafeStatisticsCollector:
             if limit is None:
                 return self._snapshots.copy()
             return self._snapshots[-limit:]
-    
+
     def clear_snapshots(self) -> None:
         """Clear all saved snapshots."""
         with self._snapshot_lock:
             self._snapshots.clear()
-    
+
     def get_all_counters(self) -> Dict[str, int]:
         """Get all counters."""
         return self._counters.get_dict()
-    
+
     def get_all_gauges(self) -> Dict[str, float]:
         """Get all gauges."""
         return self._gauges.get_dict()
-    
+
     def get_all_histograms(self) -> Dict[str, List[float]]:
         """Get all histograms."""
         return self._histograms.get_dict()
-    
+
     def reset(self) -> None:
         """Reset all statistics."""
         self._counters.clear()
         self._gauges.clear()
         self._histograms.clear()
         self._snapshots.clear()
-    
+
     def get_uptime(self) -> float:
         """Get uptime in seconds."""
         return time.time() - self._start_time
-    
+
     def _make_key(
         self,
         name: str,
@@ -235,16 +235,16 @@ class ThreadSafeStatisticsCollector:
 
 class OperationTimer:
     """Context manager for timing operations."""
-    
+
     def __init__(self, collector: ThreadSafeStatisticsCollector, name: str):
         self.collector = collector
         self.name = name
         self.start_time: Optional[float] = None
-    
+
     def __enter__(self):
         self.start_time = time.time()
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.start_time is not None:
             duration = time.time() - self.start_time
@@ -254,12 +254,12 @@ class OperationTimer:
 
 class ErrorTracker:
     """Track errors with thread-safe operations."""
-    
+
     def __init__(self):
         self._error_counts = ThreadSafeDict()
         self._error_types = ThreadSafeDict()
         self._lock = threading.Lock()
-    
+
     def record_error(
         self,
         error_type: str,
@@ -271,11 +271,11 @@ class ErrorTracker:
         key = f"{error_type}:{error_message}"
         current = self._error_counts.get(key, 0)
         self._error_counts.set(key, current + 1)
-        
+
         # Track error types
         type_count = self._error_types.get(error_type, 0)
         self._error_types.set(error_type, type_count + 1)
-    
+
     def get_error_count(
         self,
         error_type: Optional[str] = None,
@@ -289,13 +289,13 @@ class ErrorTracker:
             return self._error_types.get(error_type, 0)
         else:
             return sum(self._error_counts.values())
-    
+
     def get_top_errors(self, limit: int = 10) -> List[tuple]:
         """Get top errors by count."""
         items = self._error_counts.items()
         sorted_items = sorted(items, key=lambda x: x[1], reverse=True)
         return sorted_items[:limit]
-    
+
     def reset(self) -> None:
         """Reset all error tracking."""
         self._error_counts.clear()

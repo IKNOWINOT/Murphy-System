@@ -94,60 +94,60 @@ class Severity(str, Enum):
 class PlanUploadForm(BaseModel):
     """
     Form for uploading existing plans for expansion and validation
-    
+
     User uploads a plan document, system expands it with additional detail,
     validates assumptions, and creates executable task breakdown.
     """
-    
+
     form_type: FormType = Field(
         default=FormType.PLAN_UPLOAD,
         description="Form type identifier"
     )
-    
+
     plan_document: str = Field(
         ...,
         description="Path to uploaded plan document (PDF, DOCX, TXT, MD)",
         min_length=1
     )
-    
+
     plan_context: str = Field(
         ...,
         description="What is this plan for? Provide business context.",
         min_length=10,
         max_length=5000
     )
-    
+
     expansion_level: ExpansionLevel = Field(
         default=ExpansionLevel.MODERATE,
         description="How much detail should Murphy add?"
     )
-    
+
     constraints: List[str] = Field(
         default_factory=list,
         description="Any constraints or requirements (budget, timeline, resources, etc.)"
     )
-    
+
     validation_criteria: List[str] = Field(
         ...,
         description="How will you know the plan is executed correctly?",
         min_length=1
     )
-    
+
     human_checkpoints: List[CheckpointType] = Field(
         default_factory=lambda: [CheckpointType.BEFORE_EXECUTION, CheckpointType.FINAL_REVIEW],
         description="When should humans review progress?"
     )
-    
+
     submitted_at: datetime = Field(
         default_factory=datetime.now,
         description="Form submission timestamp"
     )
-    
+
     submitted_by: Optional[str] = Field(
         None,
         description="User ID who submitted the form"
     )
-    
+
     @field_validator('plan_document')
     @classmethod
     def validate_document_format(cls, v):
@@ -156,7 +156,7 @@ class PlanUploadForm(BaseModel):
         if not any(v.lower().endswith(ext) for ext in allowed_extensions):
             raise ValueError(f"Document must be one of: {', '.join(allowed_extensions)}")
         return v
-    
+
     @field_validator('validation_criteria')
     @classmethod
     def validate_criteria_not_empty(cls, v):
@@ -164,7 +164,7 @@ class PlanUploadForm(BaseModel):
         if any(not criterion.strip() for criterion in v):
             raise ValueError("Validation criteria cannot be empty")
         return v
-    
+
     model_config = ConfigDict(json_schema_extra={
         "examples": [{
             "form_type": "plan_upload",
@@ -194,72 +194,72 @@ class PlanUploadForm(BaseModel):
 class PlanGenerationForm(BaseModel):
     """
     Form for generating new plans from goals
-    
+
     User describes a goal, system generates complete plan with tasks,
     dependencies, risks, and validation criteria.
     """
-    
+
     form_type: FormType = Field(
         default=FormType.PLAN_GENERATION,
         description="Form type identifier"
     )
-    
+
     goal: str = Field(
         ...,
         description="What do you want to accomplish?",
         min_length=50,
         max_length=10000
     )
-    
+
     domain: DomainType = Field(
         ...,
         description="What domain does this goal belong to?"
     )
-    
+
     timeline: str = Field(
         ...,
         description="When does this need to be done? (e.g., '30 days', '3 months', '2025-06-30')",
         min_length=1
     )
-    
+
     budget: Optional[float] = Field(
         None,
         description="Budget in USD (optional)",
         ge=0
     )
-    
+
     team_size: Optional[int] = Field(
         None,
         description="How many people are available?",
         ge=1
     )
-    
+
     success_criteria: List[str] = Field(
         ...,
         description="How will you measure success?",
         min_length=1
     )
-    
+
     known_constraints: List[str] = Field(
         default_factory=list,
         description="Any known limitations or requirements?"
     )
-    
+
     risk_tolerance: RiskTolerance = Field(
         default=RiskTolerance.MEDIUM,
         description="How much risk can you accept?"
     )
-    
+
     submitted_at: datetime = Field(
         default_factory=datetime.now,
         description="Form submission timestamp"
     )
-    
+
     submitted_by: Optional[str] = Field(
         None,
         description="User ID who submitted the form"
     )
-    
+
     @field_validator('goal')
     @classmethod
     def validate_goal_substance(cls, v):
@@ -267,7 +267,7 @@ class PlanGenerationForm(BaseModel):
         if len(v.split()) < 10:
             raise ValueError("Goal must be at least 10 words to provide sufficient context")
         return v
-    
+
     @field_validator('success_criteria')
     @classmethod
     def validate_criteria_measurable(cls, v):
@@ -275,7 +275,7 @@ class PlanGenerationForm(BaseModel):
         if any(not criterion.strip() for criterion in v):
             raise ValueError("Success criteria cannot be empty")
         return v
-    
+
     model_config = ConfigDict(json_schema_extra={
         "examples": [{
             "form_type": "plan_generation",
@@ -307,56 +307,56 @@ class PlanGenerationForm(BaseModel):
 class TaskExecutionForm(BaseModel):
     """
     Form for executing specific tasks from a plan
-    
+
     Executes a task through Murphy's phase-based execution with
     validation and human-in-the-loop checkpoints.
     """
-    
+
     form_type: FormType = Field(
         default=FormType.TASK_EXECUTION,
         description="Form type identifier"
     )
-    
+
     plan_id: str = Field(
         ...,
         description="ID of the plan this task belongs to",
         min_length=1
     )
-    
+
     task_id: str = Field(
         ...,
         description="ID of the task to execute",
         min_length=1
     )
-    
+
     execution_mode: ExecutionMode = Field(
         default=ExecutionMode.SUPERVISED,
         description="How should Murphy execute this task?"
     )
-    
+
     confidence_threshold: float = Field(
         default=0.7,
         description="Minimum confidence to proceed automatically",
         ge=0.0,
         le=1.0
     )
-    
+
     additional_context: Optional[str] = Field(
         None,
         description="Any additional information for this task?",
         max_length=5000
     )
-    
+
     submitted_at: datetime = Field(
         default_factory=datetime.now,
         description="Form submission timestamp"
     )
-    
+
     submitted_by: Optional[str] = Field(
         None,
         description="User ID who submitted the form"
     )
-    
+
     model_config = ConfigDict(json_schema_extra={
         "examples": [{
             "form_type": "task_execution",
@@ -376,62 +376,62 @@ class TaskExecutionForm(BaseModel):
 class ValidationForm(BaseModel):
     """
     Form for human validation of Murphy's outputs
-    
+
     Human reviews Murphy's output and provides quality score,
     feedback, and any corrections needed.
     """
-    
+
     form_type: FormType = Field(
         default=FormType.VALIDATION,
         description="Form type identifier"
     )
-    
+
     task_id: str = Field(
         ...,
         description="ID of the task being validated",
         min_length=1
     )
-    
+
     output_id: str = Field(
         ...,
         description="ID of the output to validate",
         min_length=1
     )
-    
+
     validation_result: ValidationResult = Field(
         ...,
         description="Validation outcome"
     )
-    
+
     quality_score: int = Field(
         ...,
         description="Rate the quality (0-10)",
         ge=0,
         le=10
     )
-    
+
     feedback: str = Field(
         ...,
         description="What was good? What needs improvement?",
         min_length=10,
         max_length=5000
     )
-    
+
     corrections: Optional[Dict[str, Any]] = Field(
         None,
         description="Specific corrections made (if any)"
     )
-    
+
     submitted_at: datetime = Field(
         default_factory=datetime.now,
         description="Form submission timestamp"
     )
-    
+
     submitted_by: Optional[str] = Field(
         None,
         description="User ID who submitted the form"
     )
-    
+
     @field_validator('feedback')
     @classmethod
     def validate_feedback_substance(cls, v):
@@ -439,7 +439,7 @@ class ValidationForm(BaseModel):
         if len(v.split()) < 5:
             raise ValueError("Feedback must be at least 5 words")
         return v
-    
+
     model_config = ConfigDict(json_schema_extra={
         "examples": [{
             "form_type": "validation",
@@ -468,66 +468,66 @@ class ValidationForm(BaseModel):
 class CorrectionForm(BaseModel):
     """
     Form for capturing human corrections for training
-    
+
     When human corrects Murphy's output, this form captures the
     before/after for shadow agent training.
     """
-    
+
     form_type: FormType = Field(
         default=FormType.CORRECTION,
         description="Form type identifier"
     )
-    
+
     task_id: str = Field(
         ...,
         description="ID of the task being corrected",
         min_length=1
     )
-    
+
     output_id: str = Field(
         ...,
         description="ID of the output being corrected",
         min_length=1
     )
-    
+
     correction_type: List[CorrectionType] = Field(
         ...,
         description="Types of corrections being made",
         min_length=1
     )
-    
+
     original_output: Dict[str, Any] = Field(
         ...,
         description="Murphy's original output (auto-filled, read-only)"
     )
-    
+
     corrected_output: Dict[str, Any] = Field(
         ...,
         description="Your corrected version"
     )
-    
+
     correction_rationale: str = Field(
         ...,
         description="Why did you make these changes?",
         min_length=20,
         max_length=5000
     )
-    
+
     severity: Severity = Field(
         ...,
         description="How serious was the error?"
     )
-    
+
     submitted_at: datetime = Field(
         default_factory=datetime.now,
         description="Form submission timestamp"
     )
-    
+
     submitted_by: Optional[str] = Field(
         None,
         description="User ID who submitted the form"
     )
-    
+
     @field_validator('correction_rationale')
     @classmethod
     def validate_rationale_substance(cls, v):
@@ -535,7 +535,7 @@ class CorrectionForm(BaseModel):
         if len(v.split()) < 10:
             raise ValueError("Correction rationale must be at least 10 words to provide learning context")
         return v
-    
+
     model_config = ConfigDict(json_schema_extra={
         "examples": [{
             "form_type": "correction",
@@ -579,14 +579,14 @@ def get_form_class(form_type: FormType) -> type:
 def validate_form(form_type: FormType, form_data: Dict[str, Any]) -> BaseModel:
     """
     Validate form data against schema
-    
+
     Args:
         form_type: Type of form to validate
         form_data: Form data to validate
-        
+
     Returns:
         Validated form instance
-        
+
     Raises:
         ValidationError: If form data is invalid
     """

@@ -75,7 +75,7 @@ class LLMResponse:
 class LLMController:
     """
     Master LLM Controller for Murphy System
-    
+
     Features:
     - Automatic model selection based on confidence and capabilities
     - Groq API integration for fast inference
@@ -85,14 +85,14 @@ class LLMController:
     - Safety gate integration
     - Cost tracking and optimization
     """
-    
+
     def __init__(self):
         self.models: Dict[LLMModel, LLMModelInfo] = self._initialize_models()
         self.request_count = 0
         self.total_cost = 0.0
         self.total_tokens = 0
         self.confidence_history = []
-        
+
     def _initialize_models(self) -> Dict[LLMModel, LLMModelInfo]:
         """Initialize available LLM models"""
         return {
@@ -166,7 +166,7 @@ class LLMController:
                 available=True
             ),
         }
-    
+
     def select_model(self, request: LLMRequest, required_confidence: float = 0.8) -> LLMModel:
         """
         Select the best model for the request based on:
@@ -176,52 +176,52 @@ class LLMController:
         - Cost optimization
         """
         available_models = [
-            model for model, info in self.models.items() 
+            model for model, info in self.models.items()
             if info.available and info.confidence_threshold >= required_confidence
         ]
-        
+
         if not available_models:
             # Fall back to any available model
             available_models = [
-                model for model, info in self.models.items() 
+                model for model, info in self.models.items()
                 if info.available
             ]
-        
+
         if not available_models:
             raise RuntimeError("No LLM models available")
-        
+
         # Filter by required capabilities
         if request.require_capabilities:
             capable_models = [
                 model for model in available_models
-                if all(cap in self.models[model].capabilities 
+                if all(cap in self.models[model].capabilities
                       for cap in request.require_capabilities)
             ]
             if capable_models:
                 available_models = capable_models
-        
+
         # Check context length requirements
         context_length = len(request.context) if request.context else len(request.prompt)
         suitable_models = [
             model for model in available_models
             if self.models[model].max_context >= context_length
         ]
-        
+
         if suitable_models:
             available_models = suitable_models
-        
+
         # Sort by confidence threshold (prefer higher confidence)
         available_models.sort(
             key=lambda m: self.models[m].confidence_threshold,
             reverse=True
         )
-        
+
         # Respect user preference if available
         if request.model_preference in available_models:
             return request.model_preference
-        
+
         return available_models[0]
-    
+
     def estimate_confidence(self, request: LLMRequest, model: LLMModel) -> float:
         """
         Estimate confidence level for a request
@@ -232,22 +232,22 @@ class LLMController:
         """
         model_info = self.models[model]
         base_confidence = model_info.confidence_threshold
-        
+
         # Adjust for context usage
         context_length = len(request.context) if request.context else len(request.prompt)
         context_ratio = context_length / model_info.max_context
         context_factor = 1.0 - (context_ratio * 0.2)  # Penalty for long contexts
-        
+
         # Adjust for task complexity (heuristic based on prompt length and complexity)
         complexity_factor = 1.0
         if len(request.prompt) > 500:
             complexity_factor -= 0.05
         if len(request.prompt) > 1000:
             complexity_factor -= 0.05
-        
+
         estimated_confidence = base_confidence * context_factor * complexity_factor
         return min(estimated_confidence, 1.0)
-    
+
     def chunk_context(self, context: str, model: LLMModel) -> List[str]:
         """
         Chunk context to fit within model's context window
@@ -255,12 +255,12 @@ class LLMController:
         """
         model_info = self.models[model]
         max_chunk_size = model_info.max_context // 2  # Leave room for prompt
-        
+
         if len(context) <= max_chunk_size:
             return [context]
-        
+
         chunks = []
-        
+
         # Try to chunk at natural boundaries
         # 1. Markdown headers
         if '\n## ' in context:
@@ -271,11 +271,11 @@ class LLMController:
         # 3. Sentences
         else:
             chunks = re.split(r'(?<=[.!?])\s+', context)
-        
+
         # Merge chunks to optimal size
         merged_chunks = []
         current_chunk = ""
-        
+
         for chunk in chunks:
             if len(current_chunk) + len(chunk) <= max_chunk_size:
                 current_chunk += chunk + "\n"
@@ -283,30 +283,30 @@ class LLMController:
                 if current_chunk:
                     merged_chunks.append(current_chunk.strip())
                 current_chunk = chunk + "\n"
-        
+
         if current_chunk:
             merged_chunks.append(current_chunk.strip())
-        
+
         return merged_chunks
-    
+
     async def query_llm(self, request: LLMRequest) -> LLMResponse:
         """
         Main query method - routes to appropriate LLM
         """
         self.request_count += 1
-        
+
         # Select best model
         model = self.select_model(request)
-        
+
         # Estimate confidence
         confidence = self.estimate_confidence(request, model)
-        
+
         # Record confidence for tracking
         self.confidence_history.append(confidence)
-        
+
         # Route to appropriate backend
         start_time = datetime.now()
-        
+
         if model == LLMModel.GROQ_MIXTRAL:
             response = await self._query_groq_mixtral(request)
         elif model == LLMModel.GROQ_LLAMA:
@@ -319,48 +319,48 @@ class LLMController:
             response = await self._query_local_medium(request)
         else:
             response = await self._query_fallback(request)
-        
+
         latency = (datetime.now() - start_time).total_seconds()
-        
+
         # Update tracking
         self.total_cost += response.cost
         self.total_tokens += response.tokens_used
-        
+
         # Update response metadata
         response.model_used = model
         response.confidence = confidence
         response.latency = latency
-        
+
         return response
-    
+
     async def _query_groq_mixtral(self, request: LLMRequest) -> LLMResponse:
         """Query Groq Mixtral model"""
         try:
             from groq import Groq
-            
+
             client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-            
+
             messages = [{"role": "system", "content": "You are Murphy, an AI system builder assistant."}]
-            
+
             if request.context:
                 messages.append({
                     "role": "system",
                     "content": f"Context: {request.context}"
                 })
-            
+
             messages.append({"role": "user", "content": request.prompt})
-            
+
             response = client.chat.completions.create(
                 model="mixtral-8x7b-32768",
                 messages=messages,
                 temperature=request.temperature,
                 max_tokens=request.max_tokens
             )
-            
+
             content = response.choices[0].message.content
             tokens_used = response.usage.total_tokens
             cost = (tokens_used / 1000) * self.models[LLMModel.GROQ_MIXTRAL].cost_per_1k_tokens
-            
+
             return LLMResponse(
                 content=content,
                 model_used=LLMModel.GROQ_MIXTRAL,
@@ -370,39 +370,39 @@ class LLMController:
                 latency=0.0,  # Will be set by caller
                 metadata={"provider": "groq", "model": "mixtral-8x7b-32768"}
             )
-            
+
         except Exception as exc:
             print(f"Error querying Groq Mixtral: {exc}")
             return await self._query_fallback(request)
-    
+
     async def _query_groq_llama(self, request: LLMRequest) -> LLMResponse:
         """Query Groq Llama model"""
         try:
             from groq import Groq
-            
+
             client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-            
+
             messages = [{"role": "system", "content": "You are Murphy, an AI system builder assistant."}]
-            
+
             if request.context:
                 messages.append({
                     "role": "system",
                     "content": f"Context: {request.context}"
                 })
-            
+
             messages.append({"role": "user", "content": request.prompt})
-            
+
             response = client.chat.completions.create(
                 model="llama3-70b-8192",
                 messages=messages,
                 temperature=request.temperature,
                 max_tokens=request.max_tokens
             )
-            
+
             content = response.choices[0].message.content
             tokens_used = response.usage.total_tokens
             cost = (tokens_used / 1000) * self.models[LLMModel.GROQ_LLAMA].cost_per_1k_tokens
-            
+
             return LLMResponse(
                 content=content,
                 model_used=LLMModel.GROQ_LLAMA,
@@ -412,39 +412,39 @@ class LLMController:
                 latency=0.0,
                 metadata={"provider": "groq", "model": "llama3-70b-8192"}
             )
-            
+
         except Exception as exc:
             print(f"Error querying Groq Llama: {exc}")
             return await self._query_fallback(request)
-    
+
     async def _query_groq_gemma(self, request: LLMRequest) -> LLMResponse:
         """Query Groq Gemma model"""
         try:
             from groq import Groq
-            
+
             client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-            
+
             messages = [{"role": "system", "content": "You are Murphy, a code generation assistant."}]
-            
+
             if request.context:
                 messages.append({
                     "role": "system",
                     "content": f"Context: {request.context}"
                 })
-            
+
             messages.append({"role": "user", "content": request.prompt})
-            
+
             response = client.chat.completions.create(
                 model="gemma-7b-it",
                 messages=messages,
                 temperature=request.temperature,
                 max_tokens=request.max_tokens
             )
-            
+
             content = response.choices[0].message.content
             tokens_used = response.usage.total_tokens
             cost = (tokens_used / 1000) * self.models[LLMModel.GROQ_GEMMA].cost_per_1k_tokens
-            
+
             return LLMResponse(
                 content=content,
                 model_used=LLMModel.GROQ_GEMMA,
@@ -454,11 +454,11 @@ class LLMController:
                 latency=0.0,
                 metadata={"provider": "groq", "model": "gemma-7b-it"}
             )
-            
+
         except Exception as exc:
             print(f"Error querying Groq Gemma: {exc}")
             return await self._query_fallback(request)
-    
+
     async def _query_local_small(self, request: LLMRequest) -> LLMResponse:
         """Query local small model — tries Ollama first, then placeholder."""
         try:
@@ -482,7 +482,7 @@ class LLMController:
         content = f"[Local Small Model] I understand you need help with: {request.prompt[:100]}..."
         if request.context:
             content += f" Context length: {len(request.context)} chars"
-        
+
         return LLMResponse(
             content=content,
             model_used=LLMModel.LOCAL_SMALL,
@@ -492,7 +492,7 @@ class LLMController:
             latency=0.0,
             metadata={"provider": "local", "model": "phi-2"}
         )
-    
+
     async def _query_local_medium(self, request: LLMRequest) -> LLMResponse:
         """Query local medium model — tries Ollama first, then placeholder."""
         try:
@@ -515,7 +515,7 @@ class LLMController:
             pass
 
         content = f"[Local Medium Model] Analyzing request: {request.prompt[:100]}..."
-        
+
         return LLMResponse(
             content=content,
             model_used=LLMModel.LOCAL_MEDIUM,
@@ -525,11 +525,11 @@ class LLMController:
             latency=0.0,
             metadata={"provider": "local", "model": "local-medium"}
         )
-    
+
     async def _query_fallback(self, request: LLMRequest) -> LLMResponse:
         """Fallback response when all backends fail"""
         content = "I'm sorry, but I'm experiencing technical difficulties with my language models. Please try again later."
-        
+
         return LLMResponse(
             content=content,
             model_used=LLMModel.LOCAL_SMALL,
@@ -539,7 +539,7 @@ class LLMController:
             latency=0.0,
             metadata={"provider": "fallback", "error": "All backends failed"}
         )
-    
+
     async def recursive_query(
         self,
         base_request: LLMRequest,
@@ -552,24 +552,24 @@ class LLMController:
         """
         if current_depth >= max_depth:
             return await self.query_llm(base_request)
-        
+
         # First, get an initial response
         initial_response = await self.query_llm(base_request)
-        
+
         # Check if response contains sub-tasks or needs decomposition
         # Simple heuristic: look for markers like "First,", "Next,", "Then,"
         decomposition_markers = ["First,", "Next,", "Then,", "After that,", "Step"]
         needs_decomposition = any(
-            marker in initial_response.content 
+            marker in initial_response.content
             for marker in decomposition_markers
         )
-        
+
         if not needs_decomposition:
             return initial_response
-        
+
         # Decompose task and process recursively
         sub_tasks = self._decompose_response(initial_response.content)
-        
+
         sub_results = []
         for task in sub_tasks:
             sub_request = LLMRequest(
@@ -584,26 +584,26 @@ class LLMController:
                 current_depth + 1
             )
             sub_results.append(sub_result)
-        
+
         # Aggregate sub-results
         aggregated_content = self._aggregate_sub_results(
             initial_response.content,
             sub_results
         )
-        
+
         # Update response with aggregated content
         initial_response.content = aggregated_content
         initial_response.metadata["recursive_depth"] = current_depth + 1
         initial_response.metadata["sub_tasks"] = len(sub_results)
-        
+
         return initial_response
-    
+
     def _decompose_response(self, response: str) -> List[str]:
         """Decompose response into sub-tasks"""
         # Simple implementation - split by common markers
         sub_tasks = []
         lines = response.split('\n')
-        
+
         current_task = ""
         for line in lines:
             if any(marker in line for marker in ["First,", "Next,", "Then,", "After that,", "Step"]):
@@ -612,24 +612,24 @@ class LLMController:
                 current_task = line
             else:
                 current_task += "\n" + line
-        
+
         if current_task:
             sub_tasks.append(current_task.strip())
-        
+
         return sub_tasks
-    
+
     def _aggregate_sub_results(self, base_content: str, sub_results: List[LLMResponse]) -> str:
         """Aggregate sub-task results into final response"""
         # Simple aggregation - replace markers with actual results
         aggregated = base_content
-        
+
         for i, result in enumerate(sub_results):
             marker = f"[Sub-task {i+1}]"
             if marker in aggregated:
                 aggregated = aggregated.replace(marker, result.content)
-        
+
         return aggregated
-    
+
     def get_statistics(self) -> Dict[str, Any]:
         """Get usage statistics"""
         return {

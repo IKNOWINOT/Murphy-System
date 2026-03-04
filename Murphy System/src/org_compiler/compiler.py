@@ -33,42 +33,42 @@ class RoleTemplateCompiler:
     """
     Compiles RoleTemplate objects from organizational data sources
     """
-    
+
     def __init__(self):
         self.org_nodes: Dict[str, OrgChartNode] = {}
         self.process_flows: List[ProcessFlow] = []
         self.sop_data: Dict[str, Dict] = {}  # role_name -> SOP data
         self.handoff_events: List[HandoffEvent] = []
         self.work_artifacts: List[WorkArtifact] = []
-        
+
     def add_org_chart(self, nodes: List[OrgChartNode]):
         """Add organizational chart data"""
         for node in nodes:
             self.org_nodes[node.role_name] = node
-    
+
     def add_process_flow(self, flow: ProcessFlow):
         """Add process flow data"""
         self.process_flows.append(flow)
-    
+
     def add_sop_data(self, role_name: str, sop_data: Dict):
         """Add SOP data for a role"""
         self.sop_data[role_name] = sop_data
-    
+
     def add_handoff_events(self, events: List[HandoffEvent]):
         """Add handoff event data"""
         self.handoff_events.extend(events)
-    
+
     def add_work_artifacts(self, artifacts: List[WorkArtifact]):
         """Add work artifact data"""
         self.work_artifacts.extend(artifacts)
-    
+
     def compile(self, role_name: str) -> RoleTemplate:
         """
         Compile a RoleTemplate for the specified role
-        
+
         Args:
             role_name: Name of the role to compile
-        
+
         Returns:
             RoleTemplate object
         """
@@ -76,31 +76,31 @@ class RoleTemplateCompiler:
         org_node = self.org_nodes.get(role_name)
         if not org_node:
             raise ValueError(f"Role '{role_name}' not found in org chart")
-        
+
         # Extract responsibilities
         responsibilities = self._extract_responsibilities(role_name)
-        
+
         # Calculate decision authority
         decision_authority = self._calculate_authority(role_name)
-        
+
         # Analyze artifact flows
         input_artifacts, output_artifacts = self._analyze_artifact_flows(role_name)
-        
+
         # Map escalation paths
         escalation_paths = self._map_escalation_paths(role_name)
-        
+
         # Detect compliance constraints
         compliance_constraints = self._detect_compliance_constraints(role_name)
-        
+
         # Identify human signoff requirements
         requires_human_signoff = self._identify_signoff_requirements(role_name)
-        
+
         # Calculate metrics
         metrics = self._calculate_metrics(role_name)
-        
+
         # Collect source documents
         source_documents = self._collect_source_documents(role_name)
-        
+
         # Create role template
         template = RoleTemplate(
             role_id=org_node.node_id,
@@ -115,18 +115,18 @@ class RoleTemplateCompiler:
             metrics=metrics,
             source_documents=source_documents
         )
-        
+
         return template
-    
+
     def _extract_responsibilities(self, role_name: str) -> List[str]:
         """Extract responsibilities from all sources"""
         responsibilities = set()
-        
+
         # From SOP data
         if role_name in self.sop_data:
             sop = self.sop_data[role_name]
             responsibilities.update(sop.get('responsibilities', []))
-        
+
         # From process flows
         for flow in self.process_flows:
             for step in flow.steps:
@@ -134,14 +134,14 @@ class RoleTemplateCompiler:
                     action = step.get('action', '')
                     if action:
                         responsibilities.add(action)
-        
+
         # From handoff events (what this role produces)
         for event in self.handoff_events:
             if event.from_role == role_name:
                 responsibilities.add(f"Produce {event.artifact.artifact_type.value}")
-        
+
         return sorted(list(responsibilities))
-    
+
     def _calculate_authority(self, role_name: str) -> AuthorityLevel:
         """Calculate decision authority level"""
         # Start with org chart authority
@@ -150,7 +150,7 @@ class RoleTemplateCompiler:
             authority = org_node.authority_level
         else:
             authority = AuthorityLevel.LOW
-        
+
         # Adjust based on decision-making in process flows
         decision_count = 0
         for flow in self.process_flows:
@@ -159,13 +159,13 @@ class RoleTemplateCompiler:
                 for step in flow.steps:
                     if step.get('role') == role_name and 'decision' in step.get('action', '').lower():
                         decision_count += 1
-        
+
         # Adjust based on SOP data
         if role_name in self.sop_data:
             sop = self.sop_data[role_name]
             decisions = sop.get('decisions', [])
             decision_count += len(decisions)
-        
+
         # Authority adjustment based on decision-making
         if decision_count > 10:
             # High decision-making role
@@ -175,14 +175,14 @@ class RoleTemplateCompiler:
             # Medium decision-making role
             if authority == AuthorityLevel.LOW:
                 authority = AuthorityLevel.MEDIUM
-        
+
         return authority
-    
+
     def _analyze_artifact_flows(self, role_name: str) -> tuple[List[ArtifactType], List[ArtifactType]]:
         """Analyze input and output artifact flows"""
         input_types = set()
         output_types = set()
-        
+
         # From process flows
         for flow in self.process_flows:
             for step in flow.steps:
@@ -192,33 +192,33 @@ class RoleTemplateCompiler:
                         artifact_type = self._infer_artifact_type(inp)
                         if artifact_type:
                             input_types.add(artifact_type)
-                    
+
                     # Outputs
                     for out in step.get('outputs', []):
                         artifact_type = self._infer_artifact_type(out)
                         if artifact_type:
                             output_types.add(artifact_type)
-        
+
         # From handoff events
         for event in self.handoff_events:
             if event.to_role == role_name:
                 input_types.add(event.artifact.artifact_type)
             if event.from_role == role_name:
                 output_types.add(event.artifact.artifact_type)
-        
+
         # From work artifacts
         for artifact in self.work_artifacts:
             if role_name in artifact.consumer_roles:
                 input_types.add(artifact.artifact_type)
             if artifact.producer_role == role_name:
                 output_types.add(artifact.artifact_type)
-        
+
         return sorted(list(input_types), key=lambda x: x.value), sorted(list(output_types), key=lambda x: x.value)
-    
+
     def _infer_artifact_type(self, artifact_name: str) -> Optional[ArtifactType]:
         """Infer artifact type from name"""
         artifact_name_lower = artifact_name.lower()
-        
+
         if any(word in artifact_name_lower for word in ['doc', 'document', 'report', 'spec']):
             return ArtifactType.DOCUMENT
         elif any(word in artifact_name_lower for word in ['code', 'script', 'program']):
@@ -233,13 +233,13 @@ class RoleTemplateCompiler:
             return ArtifactType.EMAIL
         elif any(word in artifact_name_lower for word in ['meeting', 'notes', 'minutes']):
             return ArtifactType.MEETING_NOTES
-        
+
         return None
-    
+
     def _map_escalation_paths(self, role_name: str) -> List[EscalationPath]:
         """Map escalation paths for this role"""
         paths = []
-        
+
         # From org chart (escalate to manager)
         org_node = self.org_nodes.get(role_name)
         if org_node and org_node.reports_to:
@@ -255,7 +255,7 @@ class RoleTemplateCompiler:
                     immutable=True
                 )
                 paths.append(path)
-        
+
         # From SOP data
         if role_name in self.sop_data:
             sop = self.sop_data[role_name]
@@ -275,7 +275,7 @@ class RoleTemplateCompiler:
                         immutable=True
                     )
                     paths.append(path)
-        
+
         # From process flows
         for flow in self.process_flows:
             for handoff in flow.handoffs:
@@ -292,14 +292,14 @@ class RoleTemplateCompiler:
                             immutable=True
                         )
                         paths.append(path)
-        
+
         return paths
-    
+
     def _detect_compliance_constraints(self, role_name: str) -> List[ComplianceConstraint]:
         """Detect compliance constraints for this role"""
         constraints = []
         constraint_map = {}  # regulation -> constraint
-        
+
         # From SOP data
         if role_name in self.sop_data:
             sop = self.sop_data[role_name]
@@ -316,7 +316,7 @@ class RoleTemplateCompiler:
                         immutable=True
                     )
                     constraint_map[regulation] = constraint
-        
+
         # From process flows
         for flow in self.process_flows:
             for checkpoint in flow.compliance_checkpoints:
@@ -333,23 +333,23 @@ class RoleTemplateCompiler:
                         immutable=True
                     )
                     constraint_map[regulation] = constraint
-        
+
         return list(constraint_map.values())
-    
+
     def _identify_signoff_requirements(self, role_name: str) -> List[str]:
         """Identify actions requiring human signoff"""
         signoff_actions = set()
-        
+
         # From SOP data
         if role_name in self.sop_data:
             sop = self.sop_data[role_name]
             signoff_actions.update(sop.get('approvals', []))
-        
+
         # From handoff events with approval required
         for event in self.handoff_events:
             if event.from_role == role_name and event.approval_required:
                 signoff_actions.add(f"Handoff to {event.to_role}")
-        
+
         # From process flows
         for flow in self.process_flows:
             for step in flow.steps:
@@ -357,70 +357,70 @@ class RoleTemplateCompiler:
                     action = step.get('action', '')
                     if any(word in action.lower() for word in ['approve', 'sign-off', 'authorize', 'validate']):
                         signoff_actions.add(action)
-        
+
         return sorted(list(signoff_actions))
-    
+
     def _calculate_metrics(self, role_name: str) -> RoleMetrics:
         """Calculate performance metrics for this role"""
         sla_targets = {}
         quality_gates = []
-        
+
         # From process flows
         for flow in self.process_flows:
             # Check if role participates in this flow
             participates = any(step.get('role') == role_name for step in flow.steps)
             if participates:
                 sla_targets.update(flow.sla_targets)
-        
+
         # From handoff events (calculate average duration)
         role_handoffs = [e for e in self.handoff_events if e.from_role == role_name and e.duration_hours is not None]
         if role_handoffs:
             avg_duration = sum(e.duration_hours for e in role_handoffs) / (len(role_handoffs) or 1)
             sla_targets['avg_handoff_hours'] = avg_duration
-        
+
         # Quality gates from SOP
         if role_name in self.sop_data:
             sop = self.sop_data[role_name]
             quality_gates.extend(sop.get('decisions', []))
-        
+
         # Default metrics if none found
         if not sla_targets:
             sla_targets = {'response_time_hours': 24.0, 'quality_score': 0.95}
-        
+
         if not quality_gates:
             quality_gates = ['Output quality check', 'Compliance verification']
-        
+
         return RoleMetrics(
             sla_targets=sla_targets,
             quality_gates=quality_gates,
             throughput_target=None,
             error_rate_max=0.05
         )
-    
+
     def _collect_source_documents(self, role_name: str) -> List[str]:
         """Collect source document references"""
         sources = set()
-        
+
         # Org chart
         if role_name in self.org_nodes:
             sources.add("org_chart")
-        
+
         # SOP
         if role_name in self.sop_data:
             sources.add("sop_document")
-        
+
         # Process flows
         for flow in self.process_flows:
             participates = any(step.get('role') == role_name for step in flow.steps)
             if participates:
                 sources.add(f"process_flow:{flow.flow_id}")
-        
+
         # Handoff events
         if any(e.from_role == role_name or e.to_role == role_name for e in self.handoff_events):
             sources.add("handoff_events")
-        
+
         return sorted(list(sources))
-    
+
     def compile_all(self) -> List[RoleTemplate]:
         """Compile RoleTemplates for all roles in org chart"""
         templates = []
@@ -430,7 +430,7 @@ class RoleTemplateCompiler:
                 templates.append(template)
             except Exception as exc:
                 print(f"Warning: Failed to compile template for {role_name}: {exc}")
-        
+
         return templates
 
     # ------------------------------------------------------------------

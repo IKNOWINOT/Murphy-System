@@ -25,7 +25,7 @@ try:
     from .data import GraphDataset, TrainingDataCollector
     from .inference import MLInferenceService
     from .training import ModelTrainer, ModelValidator
-    
+
     __all__ = [
         "NeuroSymbolicConfidenceModel",
         "GraphDataset",
@@ -38,12 +38,12 @@ except ImportError as exc:
     # Fall back to simple wrapper without external dependencies
     import logging
     logging.warning(f"Using simplified neuro-symbolic model due to missing dependencies: {exc}")
-    
+
     from .simple_wrapper import (
         SimpleNeuroSymbolicModel,
         NeuroSymbolicConfidenceModel
     )
-    
+
     __all__ = [
         "NeuroSymbolicConfidenceModel",
         "SimpleNeuroSymbolicModel"

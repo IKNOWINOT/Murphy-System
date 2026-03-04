@@ -40,24 +40,24 @@ class ControlTheoryResearcher:
     """
     Specialized researcher for Control Theory topics
     """
-    
+
     def __init__(self):
         self.verifier = VerificationOrchestrator()
         self.base_researcher = ResearchEngine()
-    
+
     def research(self, topic: str) -> AdvancedResearchResult:
         """
         Research control theory topics with domain expertise
         """
         # Base research
         base_result = self.base_researcher.research_topic(topic, depth="deep")
-        
+
         # Extract control theory concepts
         concepts = self._extract_control_concepts(topic)
         equations = self._extract_equations(topic)
         applications = self._find_applications(topic)
         related = self._find_related_topics(topic)
-        
+
         # Enhanced synthesis
         synthesis = {
             **base_result.synthesis,
@@ -66,7 +66,7 @@ class ControlTheoryResearcher:
             "equations": equations,
             "applications": applications
         }
-        
+
         return AdvancedResearchResult(
             topic=topic,
             domain="control_theory",
@@ -78,11 +78,11 @@ class ControlTheoryResearcher:
             synthesis=synthesis,
             confidence=base_result.confidence
         )
-    
+
     def _extract_control_concepts(self, topic: str) -> List[str]:
         """Extract control theory concepts"""
         concepts = []
-        
+
         # Common control theory concepts
         control_concepts = {
             "pid": ["PID Controller", "Proportional-Integral-Derivative"],
@@ -96,35 +96,35 @@ class ControlTheoryResearcher:
             "robust": ["Robust Control", "H-infinity"],
             "nonlinear": ["Nonlinear Control", "Linearization"]
         }
-        
+
         topic_lower = topic.lower()
         for key, concept_list in control_concepts.items():
             if key in topic_lower:
                 concepts.extend(concept_list)
-        
+
         return concepts if concepts else ["General Control Theory"]
-    
+
     def _extract_equations(self, topic: str) -> List[str]:
         """Extract relevant equations"""
         equations = []
-        
+
         topic_lower = topic.lower()
-        
+
         if "pid" in topic_lower:
             equations.append("u(t) = Kp*e(t) + Ki*∫e(τ)dτ + Kd*de(t)/dt")
-        
+
         if "transfer" in topic_lower:
             equations.append("G(s) = Y(s)/U(s)")
-        
+
         if "state space" in topic_lower:
             equations.append("ẋ = Ax + Bu")
             equations.append("y = Cx + Du")
-        
+
         if "lyapunov" in topic_lower or "stability" in topic_lower:
             equations.append("V̇(x) < 0 for stability")
-        
+
         return equations if equations else ["Domain-specific equations"]
-    
+
     def _find_applications(self, topic: str) -> List[str]:
         """Find real-world applications"""
         return [
@@ -134,7 +134,7 @@ class ControlTheoryResearcher:
             "Automotive systems",
             "Power systems"
         ]
-    
+
     def _find_related_topics(self, topic: str) -> List[str]:
         """Find related topics"""
         return [
@@ -150,20 +150,20 @@ class ProbabilityResearcher:
     """
     Specialized researcher for Probability Theory
     """
-    
+
     def __init__(self):
         self.verifier = VerificationOrchestrator()
         self.base_researcher = ResearchEngine()
-    
+
     def research(self, topic: str) -> AdvancedResearchResult:
         """Research probability theory topics"""
         base_result = self.base_researcher.research_topic(topic, depth="deep")
-        
+
         concepts = self._extract_probability_concepts(topic)
         equations = self._extract_equations(topic)
         applications = self._find_applications(topic)
         related = self._find_related_topics(topic)
-        
+
         synthesis = {
             **base_result.synthesis,
             "domain": "probability",
@@ -171,7 +171,7 @@ class ProbabilityResearcher:
             "equations": equations,
             "applications": applications
         }
-        
+
         return AdvancedResearchResult(
             topic=topic,
             domain="probability",
@@ -183,11 +183,11 @@ class ProbabilityResearcher:
             synthesis=synthesis,
             confidence=base_result.confidence
         )
-    
+
     def _extract_probability_concepts(self, topic: str) -> List[str]:
         """Extract probability concepts"""
         concepts = []
-        
+
         probability_concepts = {
             "bayes": ["Bayes' Theorem", "Conditional Probability", "Prior/Posterior"],
             "distribution": ["Probability Distribution", "PDF", "CDF"],
@@ -200,34 +200,34 @@ class ProbabilityResearcher:
             "entropy": ["Information Entropy", "Shannon Entropy"],
             "stochastic": ["Stochastic Process", "Random Process"]
         }
-        
+
         topic_lower = topic.lower()
         for key, concept_list in probability_concepts.items():
             if key in topic_lower:
                 concepts.extend(concept_list)
-        
+
         return concepts if concepts else ["General Probability Theory"]
-    
+
     def _extract_equations(self, topic: str) -> List[str]:
         """Extract relevant equations"""
         equations = []
-        
+
         topic_lower = topic.lower()
-        
+
         if "bayes" in topic_lower:
             equations.append("P(A|B) = P(B|A)P(A)/P(B)")
-        
+
         if "expected" in topic_lower or "mean" in topic_lower:
             equations.append("E[X] = ∫x·f(x)dx")
-        
+
         if "variance" in topic_lower:
             equations.append("Var(X) = E[(X-μ)²]")
-        
+
         if "entropy" in topic_lower:
             equations.append("H(X) = -Σ P(x)log₂P(x)")
-        
+
         return equations if equations else ["Domain-specific equations"]
-    
+
     def _find_applications(self, topic: str) -> List[str]:
         """Find applications"""
         return [
@@ -237,7 +237,7 @@ class ProbabilityResearcher:
             "Signal Processing",
             "Decision Theory"
         ]
-    
+
     def _find_related_topics(self, topic: str) -> List[str]:
         """Find related topics"""
         return [
@@ -253,20 +253,20 @@ class QuantumMechanicsResearcher:
     """
     Specialized researcher for Quantum Mechanics
     """
-    
+
     def __init__(self):
         self.verifier = VerificationOrchestrator()
         self.base_researcher = ResearchEngine()
-    
+
     def research(self, topic: str) -> AdvancedResearchResult:
         """Research quantum mechanics topics"""
         base_result = self.base_researcher.research_topic(topic, depth="deep")
-        
+
         concepts = self._extract_quantum_concepts(topic)
         equations = self._extract_equations(topic)
         applications = self._find_applications(topic)
         related = self._find_related_topics(topic)
-        
+
         synthesis = {
             **base_result.synthesis,
             "domain": "quantum_mechanics",
@@ -274,7 +274,7 @@ class QuantumMechanicsResearcher:
             "equations": equations,
             "applications": applications
         }
-        
+
         return AdvancedResearchResult(
             topic=topic,
             domain="quantum_mechanics",
@@ -286,11 +286,11 @@ class QuantumMechanicsResearcher:
             synthesis=synthesis,
             confidence=base_result.confidence
         )
-    
+
     def _extract_quantum_concepts(self, topic: str) -> List[str]:
         """Extract quantum concepts"""
         concepts = []
-        
+
         quantum_concepts = {
             "schrodinger": ["Schrödinger Equation", "Wave Function", "Hamiltonian"],
             "superposition": ["Quantum Superposition", "Wave-Particle Duality"],
@@ -303,34 +303,34 @@ class QuantumMechanicsResearcher:
             "field": ["Quantum Field Theory", "Second Quantization"],
             "computing": ["Quantum Computing", "Qubits", "Quantum Gates"]
         }
-        
+
         topic_lower = topic.lower()
         for key, concept_list in quantum_concepts.items():
             if key in topic_lower:
                 concepts.extend(concept_list)
-        
+
         return concepts if concepts else ["General Quantum Mechanics"]
-    
+
     def _extract_equations(self, topic: str) -> List[str]:
         """Extract relevant equations"""
         equations = []
-        
+
         topic_lower = topic.lower()
-        
+
         if "schrodinger" in topic_lower or "wave" in topic_lower:
             equations.append("iℏ∂ψ/∂t = Ĥψ")
-        
+
         if "uncertainty" in topic_lower:
             equations.append("ΔxΔp ≥ ℏ/2")
-        
+
         if "energy" in topic_lower:
             equations.append("E = hν")
-        
+
         if "commutator" in topic_lower:
             equations.append("[x̂,p̂] = iℏ")
-        
+
         return equations if equations else ["Domain-specific equations"]
-    
+
     def _find_applications(self, topic: str) -> List[str]:
         """Find applications"""
         return [
@@ -340,7 +340,7 @@ class QuantumMechanicsResearcher:
             "Laser Technology",
             "Quantum Sensors"
         ]
-    
+
     def _find_related_topics(self, topic: str) -> List[str]:
         """Find related topics"""
         return [
@@ -356,20 +356,20 @@ class StatisticsResearcher:
     """
     Specialized researcher for Statistics
     """
-    
+
     def __init__(self):
         self.verifier = VerificationOrchestrator()
         self.base_researcher = ResearchEngine()
-    
+
     def research(self, topic: str) -> AdvancedResearchResult:
         """Research statistics topics"""
         base_result = self.base_researcher.research_topic(topic, depth="deep")
-        
+
         concepts = self._extract_statistics_concepts(topic)
         equations = self._extract_equations(topic)
         applications = self._find_applications(topic)
         related = self._find_related_topics(topic)
-        
+
         synthesis = {
             **base_result.synthesis,
             "domain": "statistics",
@@ -377,7 +377,7 @@ class StatisticsResearcher:
             "equations": equations,
             "applications": applications
         }
-        
+
         return AdvancedResearchResult(
             topic=topic,
             domain="statistics",
@@ -389,11 +389,11 @@ class StatisticsResearcher:
             synthesis=synthesis,
             confidence=base_result.confidence
         )
-    
+
     def _extract_statistics_concepts(self, topic: str) -> List[str]:
         """Extract statistics concepts"""
         concepts = []
-        
+
         statistics_concepts = {
             "regression": ["Linear Regression", "Multiple Regression", "Least Squares"],
             "hypothesis": ["Hypothesis Testing", "p-value", "Significance"],
@@ -406,34 +406,34 @@ class StatisticsResearcher:
             "time series": ["Time Series Analysis", "ARIMA", "Forecasting"],
             "multivariate": ["Multivariate Analysis", "PCA", "Factor Analysis"]
         }
-        
+
         topic_lower = topic.lower()
         for key, concept_list in statistics_concepts.items():
             if key in topic_lower:
                 concepts.extend(concept_list)
-        
+
         return concepts if concepts else ["General Statistics"]
-    
+
     def _extract_equations(self, topic: str) -> List[str]:
         """Extract relevant equations"""
         equations = []
-        
+
         topic_lower = topic.lower()
-        
+
         if "regression" in topic_lower:
             equations.append("y = β₀ + β₁x + ε")
-        
+
         if "correlation" in topic_lower:
             equations.append("r = Σ(x-x̄)(y-ȳ)/√[Σ(x-x̄)²Σ(y-ȳ)²]")
-        
+
         if "variance" in topic_lower:
             equations.append("s² = Σ(xᵢ-x̄)²/(n-1)")
-        
+
         if "confidence" in topic_lower:
             equations.append("CI = x̄ ± t*s/√n")
-        
+
         return equations if equations else ["Domain-specific equations"]
-    
+
     def _find_applications(self, topic: str) -> List[str]:
         """Find applications"""
         return [
@@ -443,7 +443,7 @@ class StatisticsResearcher:
             "Quality Control",
             "Econometrics"
         ]
-    
+
     def _find_related_topics(self, topic: str) -> List[str]:
         """Find related topics"""
         return [
@@ -459,29 +459,29 @@ class AdvancedResearchEngine:
     """
     Unified engine for advanced research across domains
     """
-    
+
     def __init__(self):
         self.control_researcher = ControlTheoryResearcher()
         self.probability_researcher = ProbabilityResearcher()
         self.quantum_researcher = QuantumMechanicsResearcher()
         self.statistics_researcher = StatisticsResearcher()
-    
+
     def research(self, topic: str, domain: Optional[str] = None) -> AdvancedResearchResult:
         """
         Research a topic with domain-specific expertise
-        
+
         Args:
             topic: Topic to research
             domain: Optional domain hint ("control", "probability", "quantum", "statistics")
-        
+
         Returns:
             AdvancedResearchResult with domain-specific analysis
         """
-        
+
         # Auto-detect domain if not specified
         if domain is None:
             domain = self._detect_domain(topic)
-        
+
         # Route to appropriate researcher
         if domain == "control":
             return self.control_researcher.research(topic)
@@ -506,35 +506,35 @@ class AdvancedResearchEngine:
                 synthesis=base_result.synthesis,
                 confidence=base_result.confidence
             )
-    
+
     def _detect_domain(self, topic: str) -> str:
         """
         Auto-detect research domain from topic
         """
         topic_lower = topic.lower()
-        
+
         # Control theory keywords
-        control_keywords = ["control", "pid", "feedback", "stability", "transfer function", 
+        control_keywords = ["control", "pid", "feedback", "stability", "transfer function",
                            "state space", "lyapunov", "controller"]
         if any(kw in topic_lower for kw in control_keywords):
             return "control"
-        
+
         # Probability keywords
         prob_keywords = ["probability", "bayes", "random", "stochastic", "distribution",
                         "markov", "monte carlo", "expected value"]
         if any(kw in topic_lower for kw in prob_keywords):
             return "probability"
-        
+
         # Quantum keywords
         quantum_keywords = ["quantum", "schrodinger", "wave function", "entanglement",
                            "superposition", "qubit", "uncertainty principle"]
         if any(kw in topic_lower for kw in quantum_keywords):
             return "quantum"
-        
+
         # Statistics keywords
         stats_keywords = ["statistics", "regression", "hypothesis test", "anova",
                          "correlation", "confidence interval", "sampling"]
         if any(kw in topic_lower for kw in stats_keywords):
             return "statistics"
-        
+
         return "general"

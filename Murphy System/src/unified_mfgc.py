@@ -72,15 +72,15 @@ class SystemState:
 class UnifiedMFGC:
     """
     ONE system that operates across a confidence spectrum
-    
+
     Not separate modes - continuous confidence-based behavior
     """
-    
+
     def __init__(self, groq_api_key: str = None, use_key_rotation: bool = True):
         # Initialize key rotation system
         self.use_key_rotation = use_key_rotation
         self.key_rotator = None
-        
+
         if use_key_rotation and GROQ_AVAILABLE:
             try:
                 self.key_rotator = get_rotator()
@@ -90,7 +90,7 @@ class UnifiedMFGC:
             except Exception as exc:
                 print(f"Key rotation failed: {exc}, falling back to single key mode")
                 self.key_rotator = None
-        
+
         # Fallback to single key mode
         if self.key_rotator is None:
             self.groq_api_key = groq_api_key or os.environ.get("GROQ_API_KEY")
@@ -102,19 +102,19 @@ class UnifiedMFGC:
                 self.groq_client = None
                 self.llm_available = True
                 self.llm_mode = "offline"
-        
+
         # Initialize local fallback LLM
         self.fallback_llm = get_fallback_llm()
-        
+
         # Initialize response formatter
         self.formatter = get_formatter()
-        
+
         self.swarm_system = TrueSwarmSystem()
         self.memory_system = MemoryArtifactSystem()
         self.expansion_engine = InfinityExpansionEngine()
         self.learning_pipeline = LearningPipeline()
         self.domain_generalization = MultiDeploymentGeneralization()
-        
+
         # Task confidence tracking (builds over time)
         self.task_confidence = {
             'greeting': 0.9,  # Known responses
@@ -132,7 +132,7 @@ class UnifiedMFGC:
             'writing': 0.1,  # Writing queries
             'planning': 0.1  # Planning queries
         }
-        
+
         # Conversation history with full context
         self.history = []
         self.conversation_context = {
@@ -142,15 +142,15 @@ class UnifiedMFGC:
             'previous_tasks': [],
             'accumulated_knowledge': []
         }
-        
+
         # Initialize command parser and question manager
         self.command_parser = CommandParser(self)
         self.question_manager = QuestionManager()
-    
+
     def _check_llm(self) -> bool:
         """Check if LLM is available"""
         return self.llm_available
-    
+
     def get_key_statistics(self) -> Dict[str, Any]:
         """Get API key usage statistics"""
         if self.key_rotator:
@@ -161,19 +161,19 @@ class UnifiedMFGC:
                 "rotation_enabled": False,
                 "message": "Key rotation not enabled"
             }
-    
+
     def analyze_message(self, message: str) -> Tuple[float, str]:
         """
         Analyze message to determine complexity and domain
         Returns: (complexity: 0.0-1.0, domain: str)
         """
         message_lower = message.lower()
-        
+
         # Check for swarm commands first (highest priority)
         if "/swarmauto" in message_lower:
             # Force exploratory band - ANY /swarmauto command is complex
             return 0.9, 'software'  # Always high complexity for swarm commands
-        
+
         # Detect domain
         # Expanded greeting detection
         greeting_words = ["hi", "hello", "hey", "greetings", "hiya", "heya", "howdy", "yo", "sup",
@@ -183,23 +183,23 @@ class UnifiedMFGC:
                          "nice to meet you", "pleased to meet you", "good to see you",
                          "long time no see", "welcome back", "back again",
                          "hola", "bonjour", "ciao", "namaste", "aloha"]
-        
+
         # Check for standalone time-of-day greetings
         standalone_greetings = ["morning", "afternoon", "evening", "night"]
         if message_lower.strip() in standalone_greetings:
             return 0.1, 'greeting'
-        
+
         # Check for greetings with buddy/pal/mate/dude/bro
         if len(message.split()) < 10 and any(re.search(r'\b' + re.escape(greeting) + r'\b', message_lower) for greeting in greeting_words):
             return 0.1, 'greeting'
-        
+
         # Check for "hi/hello/hey" + buddy/pal/mate/dude/bro patterns
         casual_suffixes = ["buddy", "pal", "mate", "dude", "bro", "friend", "bot", "ai", "system", "there", "again"]
         for prefix in ["hi", "hello", "hey", "sup", "yo"]:
             for suffix in casual_suffixes:
                 if f"{prefix} {suffix}" in message_lower and len(message.split()) < 10:
                     return 0.1, 'greeting'
-        
+
         # Capabilities detection
         # Only match if asking about the system itself, not general "what is" questions
         capabilities_words = ["what can you", "capabilities", "what do you do", "what are you",
@@ -210,28 +210,28 @@ class UnifiedMFGC:
                             "what features", "what services", "what tasks"]
         if any(cap in message_lower for cap in capabilities_words):
             return 0.2, 'capabilities'
-        
+
         # Help detection
         help_words = ["help", "assist", "support", "guide", "show me", "teach me",
                      "how do i", "how to", "instructions", "tutorial", "documentation",
                      "manual", "walkthrough"]
         if any(help_word in message_lower for help_word in help_words) and len(message.split()) < 10:
             return 0.2, 'capabilities'
-        
+
         # Status detection
         status_words = ["status", "are you working", "are you online", "are you available",
                        "are you ready", "are you operational", "are you there", "ping",
                        "test", "check", "verify", "confirm", "is this working"]
         if any(status in message_lower for status in status_words) and len(message.split()) < 10:
             return 0.2, 'capabilities'
-        
+
         # Thanks detection
         thanks_words = ["thanks", "thank you", "appreciated", "great", "awesome", "perfect",
                        "excellent", "wonderful", "fantastic", "amazing", "brilliant",
                        "nice", "cool", "ok", "okay", "got it"]
         if any(thanks in message_lower for thanks in thanks_words) and len(message.split()) < 10:
             return 0.2, 'capabilities'
-        
+
         if any(word in message_lower for word in ["code", "program", "software", "api", "database", "web", "app"]):
             domain = 'software'
         elif any(word in message_lower for word in ["business", "strategy", "market", "revenue", "customer", "sales"]):
@@ -250,10 +250,10 @@ class UnifiedMFGC:
             domain = 'problem'
         else:
             domain = 'general'
-        
+
         # Determine complexity
         word_count = len(message.split())
-        
+
         # Simple questions (what is, define, explain)
         if any(word in message_lower for word in ["what is", "define", "explain", "tell me about"]):
             complexity = 0.3
@@ -282,26 +282,26 @@ class UnifiedMFGC:
                 complexity = 0.6
             else:
                 complexity = 0.8
-        
+
         return complexity, domain
     def determine_band(self, complexity: float, domain_confidence: float) -> ConfidenceBand:
         """
         Determine which confidence band to operate in
-        
+
         This is the KEY routing decision
         """
         # High confidence + low complexity = Introductory
         if complexity < 0.3 and domain_confidence > 0.7:
             return ConfidenceBand.INTRODUCTORY
-        
+
         # Medium complexity or medium confidence = Conversational
         elif complexity < 0.6 or domain_confidence > 0.25:
             return ConfidenceBand.CONVERSATIONAL
-        
+
         # High complexity or low confidence = Exploratory
         else:
             return ConfidenceBand.EXPLORATORY
-    
+
     def process_message(self, message: str) -> Dict[str, Any]:
         """
         UNIFIED message processing with conversation context
@@ -312,12 +312,12 @@ class UnifiedMFGC:
         if is_command:
             # Commands bypass normal processing
             return cmd_result
-        
+
         # 2. CHECK IF WE'RE IN QUESTIONING MODE
         if self.question_manager.has_unanswered():
             # User is answering a question
             self.question_manager.answer_current(message)
-            
+
             # Get next question or proceed
             next_question = self.question_manager.format_next_question()
             if next_question:
@@ -333,37 +333,37 @@ class UnifiedMFGC:
                 # All questions answered - proceed with task
                 context_summary = self.question_manager.get_context_summary()
                 all_answers = self.question_manager.get_all_answers()
-                
+
                 # Clear questions for next task
                 self.question_manager.clear()
-                
+
                 # Now process with full context
                 return self._process_with_context(message, all_answers, context_summary)
-        
+
         # 3. NORMAL PROCESSING
         # Update conversation context
         self._update_context(message)
-        
+
         # Analyze message with context
         complexity, domain = self.analyze_message(message)
         domain_confidence = self.task_confidence.get(domain, 0.1)
-        
+
         # Determine confidence band
         band = self.determine_band(complexity, domain_confidence)
-        
+
         # Build context-aware prompt
         context_prompt = self._build_context_prompt(message, domain)
-        
+
         # Route to appropriate confidence band
         if band == ConfidenceBand.INTRODUCTORY:
             result = self._introductory_band(context_prompt, domain, domain_confidence)
-        
+
         elif band == ConfidenceBand.CONVERSATIONAL:
             result = self._conversational_band(context_prompt, domain, domain_confidence)
-        
+
         else:  # EXPLORATORY
             result = self._exploratory_band(context_prompt, domain, domain_confidence)
-        
+
         # Store in history with context
         self.history.append({
             'message': message,
@@ -372,22 +372,22 @@ class UnifiedMFGC:
             'domain': domain,
             'response': result.get('content', result.get('response', ''))[:200]  # Store preview
         })
-        
+
         # Update accumulated knowledge
         self._extract_knowledge(message, result)
-        
+
         # Format response for clean display
         formatted = self.formatter.format_response(result)
         clean_display = self.formatter.format_for_display(formatted)
-        
+
         # Add formatted display to result
         result['formatted_response'] = clean_display
         result['questions'] = formatted['questions']
         result['gates'] = formatted['gates']
         result['commands'] = formatted['commands']
-        
+
         return result
-    
+
     def _introductory_band(self, message: str, domain: str, confidence: float) -> Dict[str, Any]:
         """
         Confidence Band: 0.7-1.0
@@ -395,7 +395,7 @@ class UnifiedMFGC:
         Fast, deterministic, minimal artifacts
         """
         message_lower = message.lower()
-        
+
         # Greeting responses
         if domain == 'greeting':
             response = """Hello! I'm the MFGC system - a confidence-building AI that operates across three layers:
@@ -405,9 +405,9 @@ class UnifiedMFGC:
 **Exploratory Layer**: Full swarm orchestration for complex, undefined problems
 
 Try asking "what can you do?" or use /swarmauto [task] for complex tasks!"""
-            
+
             target_words = 50
-        
+
         # Capabilities
         elif domain == 'capabilities':
             response = """## My Capabilities
@@ -437,16 +437,16 @@ I start with low confidence (exploratory) and build confidence through:
 5. Confidence accumulation (toward execution)
 
 The system never "triggers" - it explores and gates down from infinity."""
-            
+
             target_words = 200
-        
+
         else:
             response = "I'm ready to help! Use /swarmauto [task] for complex tasks, or just chat naturally."
             target_words = 20
-        
+
         # Minimal memory activity
         memory_state = self._get_memory_counts()
-        
+
         return {
             'content': response,
             'response': response,  # Keep for backward compatibility
@@ -460,7 +460,7 @@ The system never "triggers" - it explores and gates down from infinity."""
             'memory_state': memory_state,
             'swarms_active': 0
         }
-    
+
     def _conversational_band(self, message: str, domain: str, confidence: float) -> Dict[str, Any]:
         """
         Confidence Band: 0.3-0.7
@@ -469,20 +469,20 @@ The system never "triggers" - it explores and gates down from infinity."""
         """
         # Call LLM with bounded output and context
         max_tokens = int(500 + (2000 - 500) * confidence)
-        
+
         if self.llm_available:
             # Build context-aware prompt
             context_info = []
             if self.conversation_context['topics_discussed']:
                 context_info.append(f"Topics we've discussed: {', '.join(self.conversation_context['topics_discussed'][-3:])}")
-            
+
             if self.conversation_context['previous_tasks']:
                 recent_tasks = [t['task'] for t in self.conversation_context['previous_tasks'][-2:]]
                 if recent_tasks:
                     context_info.append(f"Recent tasks: {'; '.join(recent_tasks)}")
-            
+
             context_str = "\n".join(context_info) if context_info else "No prior context."
-            
+
             # For offline mode, use simpler prompt (just the user message)
             if self.llm_mode == "offline":
                 prompt = message
@@ -497,7 +497,7 @@ DOMAIN: {domain}
 CONFIDENCE: {confidence:.2f}
 
 Provide a helpful, context-aware response. Reference previous topics if relevant. Be concise but informative."""
-            
+
             try:
                 response_text = self._call_llm(prompt, max_tokens)
             except Exception as exc:
@@ -505,13 +505,13 @@ Provide a helpful, context-aware response. Reference previous topics if relevant
                 response_text = f"I understand you're asking about {domain}. Based on our conversation about {', '.join(self.conversation_context['topics_discussed'][-2:]) if self.conversation_context['topics_discussed'] else 'this topic'}, let me help with that."
         else:
             response_text = self._generate_intelligent_response(message, domain, confidence)
-        
+
         # Light memory activity
         memory_state = self._get_memory_counts()
-        
+
         # Calculate target words based on confidence
         target_words = int(500 + (2000 - 500) * confidence)
-        
+
         return {
             'content': response_text,
             'response': response_text,  # Keep for backward compatibility
@@ -525,7 +525,7 @@ Provide a helpful, context-aware response. Reference previous topics if relevant
             'memory_state': memory_state,
             'swarms_active': 0
         }
-    
+
     def _exploratory_band(self, message: str, domain: str, confidence: float) -> Dict[str, Any]:
         """
         Confidence Band: 0.0-0.3
@@ -539,13 +539,13 @@ Provide a helpful, context-aware response. Reference previous topics if relevant
             task = message[idx + len("/swarmauto"):].strip()
         else:
             task = message
-        
+
         # Step 1: INFINITY EXPANSION - Carve scope from infinity
         expansion_result = self.expansion_engine.expand_task(task, max_iterations=5)
-        
+
         # Step 2: Generate intake questions (scope carving)
         intake_questions = self._generate_intake_questions(task, domain)
-        
+
         # Step 3: Execute swarms with expansion context
         swarm_result = self.swarm_system.execute_full_cycle(
             task=task,
@@ -554,10 +554,10 @@ Provide a helpful, context-aware response. Reference previous topics if relevant
                 'domain': domain
             }
         )
-        
+
         # Step 4: Store artifacts in memory (including expansion results)
         artifacts_created = 0
-        
+
         # Store expansion unknowns as artifacts
         for i, unknown in enumerate(expansion_result.remaining_unknowns):
             artifact_obj = Artifact(
@@ -576,7 +576,7 @@ Provide a helpful, context-aware response. Reference previous topics if relevant
             )
             self.memory_system.write_sandbox(artifact_obj)
             artifacts_created += 1
-        
+
         # Store swarm artifacts
         for i, artifact in enumerate(swarm_result.get('artifacts', [])):
             artifact_obj = Artifact(
@@ -595,17 +595,17 @@ Provide a helpful, context-aware response. Reference previous topics if relevant
             )
             self.memory_system.write_sandbox(artifact_obj)
             artifacts_created += 1
-        
+
         # Step 5: Synthesize gates from risks (both expansion and swarm)
         gates = []
-        
+
         # Get learned gates for this domain
         learned_gates = self.learning_pipeline.gate_learner.get_active_gates(
             domain=domain,
             phase='expand',
             context={'task': task}
         )
-        
+
         # Gates from expansion risk clusters
         for risk_cluster in expansion_result.risk_clusters:
             for risk in risk_cluster['risks']:
@@ -617,7 +617,7 @@ Provide a helpful, context-aware response. Reference previous topics if relevant
                     'source': 'expansion_engine'
                 }
                 gates.append(gate)
-        
+
         # Gates from swarm risks
         for artifact in swarm_result.get('artifacts', []):
             if artifact['type'] == ArtifactType.RISK:
@@ -628,7 +628,7 @@ Provide a helpful, context-aware response. Reference previous topics if relevant
                     'source': 'swarm'
                 }
                 gates.append(gate)
-        
+
         # Add learned gates
         for learned_gate in learned_gates:
             gate = {
@@ -641,11 +641,11 @@ Provide a helpful, context-aware response. Reference previous topics if relevant
                 'historical_effectiveness': learned_gate.historical_risk_reduction
             }
             gates.append(gate)
-        
+
         # Step 6: Calculate confidence (builds through expansion + swarms + learned weights)
         expansion_confidence = expansion_result.confidence_contribution
         gate_confidence = len(gates) * 0.05
-        
+
         # Apply learned confidence weights if available
         domain_profile = self.domain_generalization.get_profile(domain)
         if domain_profile:
@@ -657,22 +657,22 @@ Provide a helpful, context-aware response. Reference previous topics if relevant
             )
         else:
             final_confidence = min(confidence + expansion_confidence + gate_confidence, 0.9)
-        
+
         # Step 7: Update domain confidence
         self.task_confidence[domain] = min(self.task_confidence[domain] + 0.1, 1.0)
-        
+
         # Step 8: Generate comprehensive response
         target_words = int(100 + (10000 - 100) * final_confidence)
         response = self._generate_exploratory_response(
             task, swarm_result, gates, intake_questions, target_words, expansion_result
         )
-        
+
         # Step 9: Get memory state
         memory_state = self._get_memory_counts()
-        
+
         # Step 10: Get expansion summary
         expansion_summary = self.expansion_engine.get_expansion_summary()
-        
+
         # Step 11: Log execution for learning
         execution_log = ExecutionLog(
             timestamp=time.time(),
@@ -688,14 +688,14 @@ Provide a helpful, context-aware response. Reference previous topics if relevant
             phase_durations={'expand': time.time()}
         )
         self.learning_pipeline.gate_learner.log_execution(execution_log)
-        
+
         # Step 12: Log deployment for domain learning
         self.domain_generalization.log_deployment(
             domain=domain,
             constraints=expansion_result.remaining_unknowns,
             outcome={'success': True, 'gates_used': [g.get('template_id', '') for g in gates]}
         )
-        
+
         return {
             'content': response,
             'response': response,  # Keep for backward compatibility
@@ -716,7 +716,7 @@ Provide a helpful, context-aware response. Reference previous topics if relevant
             'learned_gates_active': len(learned_gates),
             'domain_profile_active': domain_profile is not None
         }
-    
+
     def _generate_intake_questions(self, task: str, domain: str) -> str:
         """Generate intake questions for scope carving - ONE at a time"""
         if self.llm_available and self.llm_mode != "offline":
@@ -726,49 +726,49 @@ Domain: {domain}
 Generate 3 brief clarifying questions to build confidence in understanding this task.
 Keep questions specific and actionable.
 Format as a numbered list."""
-            
+
             try:
                 questions_text = self._call_llm(prompt, max_tokens=200)
-                
+
                 # Extract questions and add to question manager
                 questions = self.question_manager.extract_questions_from_text(questions_text)
                 if questions:
                     self.question_manager.add_questions(questions, category=domain, priority=1)
                     # Return ONLY the first question
                     return self.question_manager.format_next_question()
-                
+
                 return questions_text
             except Exception as exc:
                 logger.debug("Suppressed exception: %s", exc)
                 pass
-        
+
         # Fallback questions for offline mode
         fallback_questions = [
             "What are the key constraints or requirements?",
             "What is the expected outcome or deliverable?",
             "What are the critical success factors?"
         ]
-        
+
         # Format as numbered list
         formatted = "\n".join([f"{i}. {q}" for i, q in enumerate(fallback_questions, 1)])
         return formatted
     def _generate_exploratory_response(
-        self, 
-        task: str, 
-        swarm_result: Dict, 
-        gates: List, 
+        self,
+        task: str,
+        swarm_result: Dict,
+        gates: List,
         intake_questions: str,
         target_words: int,
         expansion_result: ExpansionResult
     ) -> str:
         """Generate comprehensive exploratory response with expansion data"""
-        
+
         # Collect artifacts by type
         hypotheses = []
         risks = []
         constraints = []
         solutions = []
-        
+
         for artifact in swarm_result.get('artifacts', []):
             if artifact['type'] == ArtifactType.HYPOTHESIS:
                 hypotheses.append(artifact['content'])
@@ -778,10 +778,10 @@ Format as a numbered list."""
                 constraints.append(artifact['content'])
             elif artifact['type'] == ArtifactType.SOLUTION_CANDIDATE:
                 solutions.append(artifact['content'])
-        
+
         # Build response
         parts = []
-        
+
         parts.append(f"## Exploratory Analysis: {task}\n")
         parts.append("**INFINITY → DATA EXPANSION ACTIVE**\n")
         parts.append("**Process:** Progressive problem crystallization from underspecified task\n")
@@ -791,25 +791,25 @@ Format as a numbered list."""
         parts.append("**Swarms:** Exploration + Control running in parallel")
         parts.append(f"**Artifacts Generated:** {len(swarm_result.get('artifacts', []))}")
         parts.append(f"**Gates Synthesized:** {len(gates)}\n")
-        
+
         parts.append("## Expansion Phase (Carving Scope from Infinity)\n")
         parts.append("**Exploration Axes:**")
         for axis in ExpansionAxis:
             parts.append(f"  • {axis.value}")
         parts.append("")
-        
+
         if expansion_result.remaining_unknowns:
             parts.append("**Unknowns Surfaced (Not Conclusions):**")
             for i, unknown in enumerate(expansion_result.remaining_unknowns[:5], 1):
                 parts.append(f"{i}. {unknown}")
             parts.append("")
-        
+
         if expansion_result.candidate_data_sources:
             parts.append("**Candidate Verification Sources:**")
             for source in set(expansion_result.candidate_data_sources[:5]):
                 parts.append(f"  • {source}")
             parts.append("")
-        
+
         if expansion_result.risk_clusters:
             parts.append("**Risk Clusters Identified:**")
             for cluster in expansion_result.risk_clusters:
@@ -817,41 +817,41 @@ Format as a numbered list."""
                 for risk in cluster['risks'][:3]:
                     parts.append(f"  ⚠️ {risk}")
             parts.append("")
-        
+
         parts.append("## Scope Carving (Intake Questions)\n")
         parts.append(intake_questions)
         parts.append("")
-        
+
         if hypotheses:
             parts.append("## Exploration Phase (What Could Work)\n")
             for i, hyp in enumerate(hypotheses[:5], 1):
                 parts.append(f"{i}. {hyp}")
             parts.append("")
-        
+
         if solutions:
             parts.append("## Solution Candidates\n")
             for i, sol in enumerate(solutions[:3], 1):
                 parts.append(f"**Option {i}:** {sol}")
             parts.append("")
-        
+
         if risks:
             parts.append("## Control Phase (What Could Fail)\n")
             for i, risk in enumerate(risks[:5], 1):
                 parts.append(f"⚠️ Risk {i}: {risk}")
             parts.append("")
-        
+
         if gates:
             parts.append("## Gates Synthesized (Dynamic Safety)\n")
             for i, gate in enumerate(gates[:5], 1):
                 parts.append(f"🛡️ Gate {i}: {gate['condition']}")
             parts.append("")
-        
+
         if constraints:
             parts.append("## Constraints Identified\n")
             for i, constraint in enumerate(constraints[:3], 1):
                 parts.append(f"• {constraint}")
             parts.append("")
-        
+
         parts.append("## Expansion Control Law Status\n")
         parts.append(f"**Expansion Complete:** {expansion_result.expansion_complete}")
         parts.append(f"**Grounding Level:** {expansion_result.confidence_contribution:.2%}")
@@ -862,7 +862,7 @@ Format as a numbered list."""
         parts.append("  • V(X) = uncertainty volume (decreases as unknowns surface)")
         parts.append("  • Expansion stops when questions stop yielding new bindings")
         parts.append("")
-        
+
         parts.append("## Confidence Status\n")
         parts.append("Current confidence is building through:")
         parts.append("1. ✓ Infinity expansion (scope carved from underspecified task)")
@@ -882,21 +882,21 @@ Format as a numbered list."""
         parts.append("• Gate down from infinite possibilities to executable solution")
         parts.append("")
         parts.append("**This is not search. This is progressive problem crystallization.**")
-        
+
         return "\n".join(parts)
-    
+
     def _call_llm(self, prompt: str, max_tokens: int = 500) -> str:
         """Call LLM with safety bounds - uses Groq with key rotation or offline fallback"""
-        
+
         # Try Groq with key rotation
         if self.key_rotator and self.llm_mode == "groq_rotation":
             try:
                 # Get next key from rotator
                 key_name, api_key = self.key_rotator.get_next_key()
-                
+
                 # Create client with rotated key
                 client = Groq(api_key=api_key)
-                
+
                 # Make API call
                 chat_completion = client.chat.completions.create(
                     messages=[
@@ -909,21 +909,21 @@ Format as a numbered list."""
                     temperature=0.7,
                     max_tokens=max_tokens,
                 )
-                
+
                 # Report success
                 self.key_rotator.report_success(api_key)
-                
+
                 return chat_completion.choices[0].message.content.strip()
-                
+
             except Exception as exc:
                 # Report failure
                 if self.key_rotator:
                     self.key_rotator.report_failure(api_key, str(exc))
-                
+
                 # Fall back to offline mode if Groq fails
                 print(f"Groq failed (key: {key_name}), using offline fallback: {str(exc)}")
                 return self.fallback_llm.generate(prompt, max_tokens)
-        
+
         # Try single key Groq mode
         elif hasattr(self, 'groq_client') and self.groq_client and self.llm_mode == "groq":
             try:
@@ -938,20 +938,20 @@ Format as a numbered list."""
                     temperature=0.7,
                     max_tokens=max_tokens,
                 )
-                
+
                 return chat_completion.choices[0].message.content.strip()
             except Exception as exc:
                 # Fall back to offline mode if Groq fails
                 print(f"Groq failed, using offline fallback: {str(exc)}")
                 return self.fallback_llm.generate(prompt, max_tokens)
-        
+
         # Use offline fallback
         return self.fallback_llm.generate(prompt, max_tokens)
-    
+
     def _generate_intelligent_response(self, message: str, domain: str, confidence: float) -> str:
         """Generate intelligent response without LLM based on domain and message analysis"""
         message_lower = message.lower()
-        
+
         # Software/Tech domain
         if domain == "software" or "design" in message_lower or "build" in message_lower or "create" in message_lower:
             if "web" in message_lower or "website" in message_lower or "application" in message_lower:
@@ -978,7 +978,7 @@ For a more detailed design with architecture diagrams and implementation plan, u
 This will activate the full swarm system to explore the solution space comprehensively.
 
 What aspect would you like to focus on first?"""
-            
+
             elif "api" in message_lower or "backend" in message_lower:
                 return """## API/Backend Design Approach
 
@@ -1007,7 +1007,7 @@ For comprehensive architecture with code examples, use:
 `/swarmauto design [detailed backend requirements]`
 
 What's your primary concern: performance, security, or scalability?"""
-            
+
             elif "database" in message_lower or "data" in message_lower:
                 return """## Database Design Approach
 
@@ -1035,7 +1035,7 @@ For detailed schema design with migrations, use:
 `/swarmauto design database for [your use case]`
 
 What's your data access pattern?"""
-        
+
         # Business/Strategy domain
         elif domain == "business" or "strategy" in message_lower or "plan" in message_lower:
             return """## Business Strategy Approach
@@ -1065,7 +1065,7 @@ For comprehensive strategic analysis with multiple scenarios, use:
 `/swarmauto analyze [your strategic challenge]`
 
 What's the most critical aspect to address first?"""
-        
+
         # Research/Analysis domain
         elif domain == "research" or "analyze" in message_lower or "study" in message_lower:
             return """## Research & Analysis Approach
@@ -1095,7 +1095,7 @@ For deep research with multiple sources and synthesis, use:
 `/swarmauto research [your research question]`
 
 What's your primary research objective?"""
-        
+
         # Problem-solving domain
         elif domain == "problem" or "solve" in message_lower or "fix" in message_lower or "issue" in message_lower:
             return """## Problem-Solving Approach
@@ -1126,7 +1126,7 @@ For comprehensive problem analysis with multiple solution paths, use:
 `/swarmauto solve [detailed problem description]`
 
 What's the most critical aspect of this problem?"""
-        
+
         # General/Unknown domain
         else:
             return f"""## Understanding Your Request
@@ -1153,7 +1153,7 @@ I'm analyzing your request about **{domain}**. To provide the most helpful respo
 - Data analysis and visualization
 
 What additional information would help me assist you better?"""
-    
+
     def _get_memory_counts(self) -> Dict[str, int]:
         """Get counts from all memory planes"""
         return {
@@ -1162,11 +1162,11 @@ What additional information would help me assist you better?"""
             'control': 1 if self.memory_system.control.read_state() else 0,
             'execution': len(self.memory_system.execution.read_all())
         }
-    
+
     def _update_context(self, message: str):
         """Update conversation context from message"""
         message_lower = message.lower()
-        
+
         # Extract topics
         topics = []
         if 'web' in message_lower or 'app' in message_lower:
@@ -1177,11 +1177,11 @@ What additional information would help me assist you better?"""
             topics.append('healthcare')
         if 'finance' in message_lower or 'trading' in message_lower:
             topics.append('finance')
-        
+
         for topic in topics:
             if topic not in self.conversation_context['topics_discussed']:
                 self.conversation_context['topics_discussed'].append(topic)
-        
+
         # Track previous tasks
         if '/swarmauto' in message_lower:
             task = message.replace('/swarmauto', '').strip()
@@ -1189,25 +1189,25 @@ What additional information would help me assist you better?"""
                 'task': task[:100],
                 'timestamp': time.time()
             })
-    
+
     def _build_context_prompt(self, message: str, domain: str) -> str:
         """Build context-aware prompt from conversation history"""
         if not self.history:
             return message
-        
+
         # Build context from recent history (last 5 messages)
         recent_history = self.history[-5:]
-        
+
         context_parts = []
-        
+
         # Add conversation context
         if self.conversation_context['topics_discussed']:
             context_parts.append(f"Topics discussed: {', '.join(self.conversation_context['topics_discussed'])}")
-        
+
         if self.conversation_context['previous_tasks']:
             recent_tasks = [t['task'] for t in self.conversation_context['previous_tasks'][-3:]]
             context_parts.append(f"Previous tasks: {'; '.join(recent_tasks)}")
-        
+
         # Add recent exchanges
         if len(recent_history) > 1:
             context_parts.append("Recent conversation:")
@@ -1215,7 +1215,7 @@ What additional information would help me assist you better?"""
                 context_parts.append(f"- User: {entry['message'][:50]}...")
                 if entry.get('response'):
                     context_parts.append(f"  Response: {entry['response'][:50]}...")
-        
+
         # Combine context with current message
         if context_parts:
             full_prompt = "\n".join([
@@ -1226,21 +1226,21 @@ What additional information would help me assist you better?"""
                 message
             ])
             return full_prompt
-        
+
         return message
-    
+
     def _process_with_context(self, message: str, answers: Dict[str, str], context_summary: str) -> Dict[str, Any]:
         """Process message with full context - use GATE SYSTEM to determine execution"""
-        
+
         # Re-run expansion with accumulated context to get updated unknowns
         enriched_task = f"{message}\n\nContext gathered:\n{context_summary}"
-        
+
         # Get domain
         _, domain = self.analyze_message(message)
-        
+
         # Run expansion to get current unknowns and gates
         expansion_result = self.expansion_engine.expand_task(enriched_task, max_iterations=3)
-        
+
         # Synthesize gates from current state
         gates = []
         for risk_cluster in expansion_result.risk_clusters:
@@ -1251,7 +1251,7 @@ What additional information would help me assist you better?"""
                     'category': risk_cluster['category'],
                     'satisfied': False  # Will check against answers
                 })
-        
+
         # Check which gates are satisfied by our answers
         satisfied_gates = 0
         for gate in gates:
@@ -1261,31 +1261,31 @@ What additional information would help me assist you better?"""
                     gate['satisfied'] = True
                     satisfied_gates += 1
                     break
-        
+
         # Calculate gate satisfaction ratio
         total_gates = len(gates)
         gate_satisfaction = satisfied_gates / total_gates if total_gates > 0 else 0
-        
+
         # Calculate confidence from gates + unknowns
         unknowns_count = len(expansion_result.remaining_unknowns)
         unknowns_resolved = max(0, 6 - unknowns_count)  # Assume started with ~6 unknowns
-        
+
         # Confidence formula: gate satisfaction + unknown resolution
         confidence = min(
             (gate_satisfaction * 0.5) + (unknowns_resolved / 6 * 0.5),
             0.9
         )
-        
+
         # FORCE EXECUTION if we've hit max questions
         force_execute = self.question_manager.force_execution()
-        
+
         # EXECUTION CRITERIA: High gate satisfaction OR critical unknowns resolved OR forced
         should_execute = (
             gate_satisfaction >= 0.7 or  # 70% of gates satisfied
             unknowns_count <= 2 or       # Only 2 or fewer unknowns left
             force_execute                # Hit max questions
         )
-        
+
         if should_execute:
             # HIGH CONFIDENCE - EXECUTE THE TASK
             execution_prompt = f"""You have gathered sufficient information. Now EXECUTE the task.
@@ -1303,11 +1303,11 @@ CRITICAL INSTRUCTIONS:
 6. Be specific and actionable
 
 EXECUTE NOW and provide the complete deliverable."""
-            
+
             if self.llm_available:
                 try:
                     response = self._call_llm(execution_prompt, max_tokens=4000)
-                    
+
                     return {
                         'content': response,
                         'response': response,
@@ -1329,14 +1329,14 @@ EXECUTE NOW and provide the complete deliverable."""
                         'band': 'exploratory',
                         'error': str(exc)
                     }
-        
+
         else:
             # GATES NOT SATISFIED - ASK TARGETED QUESTIONS ABOUT UNKNOWNS
-            
+
             # Build targeted prompt based on remaining unknowns and unsatisfied gates
             unknowns_list = "\n".join([f"• {u}" for u in expansion_result.remaining_unknowns[:5]])
             unsatisfied_gates_list = "\n".join([f"• {g['risk']}" for g in gates if not g.get('satisfied', False)][:5])
-            
+
             more_questions_prompt = f"""Based on the information gathered, we still have gaps that need to be filled.
 
 Original Request: {message}
@@ -1358,16 +1358,16 @@ Generate 2-3 TARGETED questions that specifically address:
 3. Critical details needed to proceed safely
 
 Make questions specific and actionable."""
-            
+
             if self.llm_available:
                 try:
                     questions_text = self._call_llm(more_questions_prompt, max_tokens=400)
-                    
+
                     # Extract and add new questions
                     new_questions = self.question_manager.extract_questions_from_text(questions_text)
                     if new_questions:
                         self.question_manager.add_questions(new_questions, category='gate_resolution', priority=2)
-                        
+
                         # Show status with gate info
                         status_msg = f"""## Gathering More Information
 
@@ -1376,7 +1376,7 @@ Make questions specific and actionable."""
 **Questions Answered:** {len(answers)}
 
 {self.question_manager.format_next_question()}"""
-                        
+
                         return {
                             'content': status_msg,
                             'confidence': confidence,
@@ -1387,7 +1387,7 @@ Make questions specific and actionable."""
                             'gate_satisfaction': gate_satisfaction,
                             'unknowns_count': unknowns_count
                         }
-                    
+
                     return {
                         'content': questions_text,
                         'confidence': confidence,
@@ -1400,13 +1400,13 @@ Make questions specific and actionable."""
                         'band': 'conversational',
                         'error': str(exc)
                     }
-        
+
         return {
             'content': "Unable to process with context",
             'confidence': 0.1,
             'band': 'exploratory'
         }
-    
+
     def get_active_gates(self) -> List[str]:
         """Get list of active safety gates"""
         # Return common gates - can be enhanced to track actual gates
@@ -1419,12 +1419,12 @@ Make questions specific and actionable."""
             "Test coverage required",
             "Documentation completeness verified"
         ]
-    
+
     def get_system_state(self) -> Dict[str, Any]:
         """Get current system state"""
         # Get latest from history
         latest = self.history[-1] if self.history else {}
-        
+
         return {
             'confidence': latest.get('confidence', 0.5),
             'band': latest.get('band', 'conversational'),
@@ -1433,7 +1433,7 @@ Make questions specific and actionable."""
             'gates_count': len(self.get_active_gates()),
             'memory_state': self.get_memory_status()
         }
-    
+
     def get_swarm_status(self) -> Dict[str, Any]:
         """Get swarm system status"""
         return {
@@ -1444,7 +1444,7 @@ Make questions specific and actionable."""
             'control_active': False,
             'recent_activity': 'No recent swarm activity'
         }
-    
+
     def get_memory_status(self) -> Dict[str, int]:
         """Get memory system status"""
         try:
@@ -1453,7 +1453,7 @@ Make questions specific and actionable."""
             working_count = len(self.memory_system.working.artifacts) if hasattr(self.memory_system.working, 'artifacts') else 0
             control_count = len(self.memory_system.control.artifacts) if hasattr(self.memory_system.control, 'artifacts') else 0
             execution_count = len(self.memory_system.execution.artifacts) if hasattr(self.memory_system.execution, 'artifacts') else 0
-            
+
             return {
                 'sandbox': sandbox_count,
                 'working': working_count,
@@ -1469,7 +1469,7 @@ Make questions specific and actionable."""
                 'control': 0,
                 'execution': 0
             }
-    
+
     def reset_context(self):
         """Reset conversation context"""
         self.history = []
@@ -1481,7 +1481,7 @@ Make questions specific and actionable."""
             'accumulated_knowledge': []
         }
         self.question_manager.clear()
-    
+
     def _extract_knowledge(self, message: str, result: Dict):
         """Extract and store knowledge from interaction"""
         # Extract key information
@@ -1494,7 +1494,7 @@ Make questions specific and actionable."""
                 'timestamp': time.time()
             }
             self.conversation_context['accumulated_knowledge'].append(knowledge)
-    
+
     def clear_state(self):
         """Clear system state"""
         self.history = []

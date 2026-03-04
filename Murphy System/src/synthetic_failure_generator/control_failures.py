@@ -27,13 +27,13 @@ from .models import (
 class ControlPlaneFailureGenerator:
     """
     Generates control plane failures
-    
+
     Injects failures into:
     - Gate compiler
     - Phase scheduler
     - Confidence engine
     """
-    
+
     def __init__(self):
         self.verification_types = [
             'mathematical_proof',
@@ -42,14 +42,14 @@ class ControlPlaneFailureGenerator:
             'security_audit',
             'performance_benchmark'
         ]
-        
+
         self.gate_categories = [
             'semantic_stability',
             'verification',
             'authority_decay',
             'isolation'
         ]
-    
+
     def generate_delayed_verification(
         self,
         gate_library: List[Dict[str, Any]],
@@ -57,18 +57,18 @@ class ControlPlaneFailureGenerator:
     ) -> FailureCase:
         """
         Generate delayed verification failure
-        
+
         Example: Verification happens after execution instead of before
         """
         failure_id = self._generate_failure_id('delayed_verification')
-        
+
         verification_type = random.choice(self.verification_types)
         delay_steps = random.randint(3, 10)
-        
+
         # Calculate impact
         expected_loss = 0.6 + (delay_steps * 0.05)  # Loss increases with delay
         murphy_probability = 0.75
-        
+
         # Create confidence drift profile
         confidence_profile = ConfidenceProfile(
             initial_confidence=0.80,
@@ -78,7 +78,7 @@ class ControlPlaneFailureGenerator:
             final_confidence=0.35,
             drift_rate=-0.1125
         )
-        
+
         return FailureCase(
             failure_id=failure_id,
             failure_type=FailureType.DELAYED_VERIFICATION,
@@ -110,7 +110,7 @@ class ControlPlaneFailureGenerator:
             expected_loss=expected_loss,
             murphy_probability=murphy_probability
         )
-    
+
     def generate_skipped_gate(
         self,
         gate_library: List[Dict[str, Any]],
@@ -118,14 +118,14 @@ class ControlPlaneFailureGenerator:
     ) -> FailureCase:
         """
         Generate skipped gate failure
-        
+
         Example: Critical safety gate bypassed
         """
         failure_id = self._generate_failure_id('skipped_gate')
-        
+
         gate_category = random.choice(self.gate_categories)
         gate_name = f"{gate_category}_gate_{random.randint(1, 100)}"
-        
+
         # Calculate impact based on gate category
         impact_map = {
             'semantic_stability': 0.6,
@@ -133,10 +133,10 @@ class ControlPlaneFailureGenerator:
             'authority_decay': 0.7,
             'isolation': 0.9
         }
-        
+
         expected_loss = impact_map.get(gate_category, 0.7)
         murphy_probability = 0.9  # Very high probability
-        
+
         # Create confidence drift profile
         confidence_profile = ConfidenceProfile(
             initial_confidence=0.85,
@@ -146,7 +146,7 @@ class ControlPlaneFailureGenerator:
             final_confidence=0.15,
             drift_rate=-0.175
         )
-        
+
         return FailureCase(
             failure_id=failure_id,
             failure_type=FailureType.SKIPPED_GATE,
@@ -178,7 +178,7 @@ class ControlPlaneFailureGenerator:
             expected_loss=expected_loss,
             murphy_probability=murphy_probability
         )
-    
+
     def generate_false_confidence(
         self,
         confidence_state: Dict[str, Any],
@@ -186,20 +186,20 @@ class ControlPlaneFailureGenerator:
     ) -> FailureCase:
         """
         Generate false confidence inflation failure
-        
+
         Example: Confidence artificially inflated without grounding
         """
         failure_id = self._generate_failure_id('false_confidence')
-        
+
         # Simulate confidence inflation
         true_confidence = random.uniform(0.3, 0.5)
         inflated_confidence = random.uniform(0.8, 0.95)
         inflation_amount = inflated_confidence - true_confidence
-        
+
         # Calculate impact
         expected_loss = 0.85  # Very high impact
         murphy_probability = 0.95  # Almost certain failure
-        
+
         # Create confidence drift profile showing false inflation
         confidence_profile = ConfidenceProfile(
             initial_confidence=true_confidence,
@@ -215,7 +215,7 @@ class ControlPlaneFailureGenerator:
             final_confidence=true_confidence,
             drift_rate=0.0  # No real improvement
         )
-        
+
         return FailureCase(
             failure_id=failure_id,
             failure_type=FailureType.FALSE_CONFIDENCE,
@@ -247,7 +247,7 @@ class ControlPlaneFailureGenerator:
             expected_loss=expected_loss,
             murphy_probability=murphy_probability
         )
-    
+
     def generate_missing_rollback(
         self,
         execution_plan: Dict[str, Any],
@@ -255,11 +255,11 @@ class ControlPlaneFailureGenerator:
     ) -> FailureCase:
         """
         Generate missing rollback failure
-        
+
         Example: No rollback plan for critical operation
         """
         failure_id = self._generate_failure_id('missing_rollback')
-        
+
         operation_types = [
             'database_write',
             'file_system_change',
@@ -267,13 +267,13 @@ class ControlPlaneFailureGenerator:
             'actuator_command',
             'state_transition'
         ]
-        
+
         operation_type = random.choice(operation_types)
-        
+
         # Calculate impact
         expected_loss = 0.75  # High impact
         murphy_probability = 0.8
-        
+
         # Create confidence drift profile
         confidence_profile = ConfidenceProfile(
             initial_confidence=0.75,
@@ -283,7 +283,7 @@ class ControlPlaneFailureGenerator:
             final_confidence=0.25,
             drift_rate=-0.125
         )
-        
+
         return FailureCase(
             failure_id=failure_id,
             failure_type=FailureType.MISSING_ROLLBACK,
@@ -315,7 +315,7 @@ class ControlPlaneFailureGenerator:
             expected_loss=expected_loss,
             murphy_probability=murphy_probability
         )
-    
+
     def generate_batch(
         self,
         gate_library: List[Dict[str, Any]],
@@ -323,7 +323,7 @@ class ControlPlaneFailureGenerator:
     ) -> List[FailureCase]:
         """Generate batch of control plane failures"""
         failures = []
-        
+
         for _ in range(count):
             failure_type = random.choice([
                 'delayed_verification',
@@ -331,7 +331,7 @@ class ControlPlaneFailureGenerator:
                 'false_confidence',
                 'missing_rollback'
             ])
-            
+
             if failure_type == 'delayed_verification':
                 failures.append(self.generate_delayed_verification(gate_library))
             elif failure_type == 'skipped_gate':
@@ -340,9 +340,9 @@ class ControlPlaneFailureGenerator:
                 failures.append(self.generate_false_confidence({}))
             else:
                 failures.append(self.generate_missing_rollback({}))
-        
+
         return failures
-    
+
     def _generate_failure_id(self, failure_type: str) -> str:
         """Generate unique failure ID"""
         timestamp = datetime.now().isoformat()

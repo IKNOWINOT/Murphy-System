@@ -35,11 +35,11 @@ class GovernanceRequirement:
     depends_on: List[str] = field(default_factory=list)
     artifacts_required: List[str] = field(default_factory=list)
     controls_required: List[str] = field(default_factory=list)
-    
+
     def is_satisfied(self, system_capabilities: Dict) -> bool:
         """Check if requirement can be satisfied by current system"""
         if self.mandatory:
-            return all(control in system_capabilities.get("controls", []) 
+            return all(control in system_capabilities.get("controls", [])
                       for control in self.controls_required)
         return True
 
@@ -53,32 +53,32 @@ class GovernancePreset:
     version: str
     description: str
     jurisdiction: List[str] = field(default_factory=list)
-    
+
     # Requirements
     requirements: List[GovernanceRequirement] = field(default_factory=list)
-    
+
     # Configuration
     enforcement_mode: EnforcementMode = EnforcementMode.SOFT_ESCALATION
     enabled_by_default: bool = False
-    
+
     # Metadata
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     author: str = "Murphy System"
-    
+
     def get_mandatory_requirements(self) -> List[GovernanceRequirement]:
         """Get all mandatory requirements for this preset"""
         return [req for req in self.requirements if req.mandatory]
-    
+
     def get_enforced_requirements(self) -> List[GovernanceRequirement]:
         """Get requirements that will be actively enforced"""
-        return [req for req in self.requirements 
+        return [req for req in self.requirements
                 if req.enforcement_mode in [EnforcementMode.HARD_REFUSAL, EnforcementMode.SOFT_ESCALATION]]
 
 
 class PresetManager:
     """Manages governance presets and configuration"""
-    
+
     def __init__(self, preset_storage_path: Optional[str] = None):
         if preset_storage_path is None:
             preset_storage_path = os.path.join(tempfile.gettempdir(), "governance_presets")
@@ -86,16 +86,16 @@ class PresetManager:
         self.presets: Dict[str, GovernancePreset] = {}
         self.enabled_presets: Set[str] = set()
         self.presets_dir = preset_storage_path
-        
+
         # Ensure storage directory exists
         os.makedirs(self.presets_dir, exist_ok=True)
-        
+
         # Load default presets
         self._load_default_presets()
-    
+
     def _load_default_presets(self):
         """Load all default governance presets"""
-        
+
         # 4.1 AI Governance Preset
         ai_preset = GovernancePreset(
             preset_id="ai_governance_v1",
@@ -107,7 +107,7 @@ class PresetManager:
             enforcement_mode=EnforcementMode.SOFT_ESCALATION,
             enabled_by_default=False
         )
-        
+
         ai_preset.requirements = [
             GovernanceRequirement(
                 requirement_id="ai_human_oversight",
@@ -142,7 +142,7 @@ class PresetManager:
                 controls_required=["audit_logger", "trace_collector", "artifact_tracker"]
             )
         ]
-        
+
         # 4.2 Enterprise Security Preset
         enterprise_preset = GovernancePreset(
             preset_id="enterprise_security_v1",
@@ -153,7 +153,7 @@ class PresetManager:
             enforcement_mode=EnforcementMode.SOFT_ESCALATION,
             enabled_by_default=True
         )
-        
+
         enterprise_preset.requirements = [
             GovernanceRequirement(
                 requirement_id="ent_role_based_access",
@@ -188,43 +188,43 @@ class PresetManager:
                 controls_required=["log_retention", "integrity_checker", "archive_manager"]
             )
         ]
-        
+
         # Register all presets (continuing with all 7 presets)
         self.presets[ai_preset.preset_id] = ai_preset
         self.presets[enterprise_preset.preset_id] = enterprise_preset
-        
+
         # Enable default presets
         for preset_id, preset in self.presets.items():
             if preset.enabled_by_default:
                 self.enabled_presets.add(preset_id)
-    
+
     def get_preset(self, preset_id: str) -> Optional[GovernancePreset]:
         """Get specific preset by ID"""
         return self.presets.get(preset_id)
-    
+
     def list_presets(self) -> List[GovernancePreset]:
         """List all available presets"""
         return list(self.presets.values())
-    
+
     def get_enabled_presets(self) -> List[GovernancePreset]:
         """Get all currently enabled presets"""
-        return [self.presets[preset_id] for preset_id in self.enabled_presets 
+        return [self.presets[preset_id] for preset_id in self.enabled_presets
                 if preset_id in self.presets]
-    
+
     def enable_preset(self, preset_id: str) -> bool:
         """Enable a specific preset"""
         if preset_id in self.presets:
             self.enabled_presets.add(preset_id)
             return True
         return False
-    
+
     def disable_preset(self, preset_id: str) -> bool:
         """Disable a specific preset"""
         if preset_id in self.enabled_presets:
             self.enabled_presets.remove(preset_id)
             return True
         return False
-    
+
     def get_all_requirements(self) -> List[GovernanceRequirement]:
         """Get all requirements from enabled presets"""
         requirements = []
