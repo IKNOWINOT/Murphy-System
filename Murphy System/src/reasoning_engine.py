@@ -242,7 +242,7 @@ class ReasoningEngine:
     def _general_comprehension(self, query: str, context: Dict) -> Dict[str, Any]:
         """Handle general comprehension tasks"""
         return {
-            'response': f"I can help with comprehension tasks like summarizing, paraphrasing, rewriting, and extracting key points. Please specify what you'd like me to do with the text.",
+            'response': "I can help with comprehension tasks like summarizing, paraphrasing, rewriting, and extracting key points. Please specify what you'd like me to do with the text.",
             'confidence': 0.6
         }
     

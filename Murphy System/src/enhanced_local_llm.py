@@ -210,7 +210,7 @@ class EnhancedLocalLLM:
             if derivative_result:
                 steps = [
                     f"Step 1: Identify the function to differentiate: f(x) = {expression}",
-                    f"Step 2: Apply differentiation rules",
+                    "Step 2: Apply differentiation rules",
                 ]
                 steps.extend(derivative_result['steps'])
                 

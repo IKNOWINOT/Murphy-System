@@ -989,7 +989,7 @@ class TrueSwarmSystem:
         print(f"{'='*60}")
         
         # 1. Spawn exploration swarm
-        print(f"\n🟢 Spawning EXPLORATION swarm...")
+        print("\n🟢 Spawning EXPLORATION swarm...")
         exploration_agents = self.spawner.spawn_swarm(
             mode=SwarmMode.EXPLORATION,
             phase=phase,
@@ -1000,7 +1000,7 @@ class TrueSwarmSystem:
         print(f"   Spawned {len(exploration_agents)} agents: {[a.instance.profession.value for a in exploration_agents]}")
         
         # 2. Exploration agents generate artifacts (parallel)
-        print(f"\n   Generating solution candidates...")
+        print("\n   Generating solution candidates...")
         exploration_artifacts = []
         for agent in exploration_agents:
             artifacts = agent.generate_artifacts(task, self.workspace, context)
@@ -1010,7 +1010,7 @@ class TrueSwarmSystem:
         print(f"   Generated {len(exploration_artifacts)} artifacts")
         
         # 3. Spawn control swarm
-        print(f"\n🔴 Spawning CONTROL swarm...")
+        print("\n🔴 Spawning CONTROL swarm...")
         control_agents = self.spawner.spawn_swarm(
             mode=SwarmMode.CONTROL,
             phase=phase,
@@ -1021,7 +1021,7 @@ class TrueSwarmSystem:
         print(f"   Spawned {len(control_agents)} agents: {[a.instance.profession.value for a in control_agents]}")
         
         # 4. Control agents analyze risks and propose gates (parallel)
-        print(f"\n   Analyzing risks and proposing gates...")
+        print("\n   Analyzing risks and proposing gates...")
         control_artifacts = []
         for agent in control_agents:
             artifacts = agent.estimate_risks(self.workspace, context)
@@ -1032,7 +1032,7 @@ class TrueSwarmSystem:
         print(f"   Proposed {len(self.workspace.gate_proposals)} gates")
         
         # 5. Compile gates
-        print(f"\n   Compiling gates...")
+        print("\n   Compiling gates...")
         activated_gates = self.gate_compiler.compile_gates(self.workspace, phase)
         print(f"   Activated {len(activated_gates)} gates")
         
@@ -1045,7 +1045,7 @@ class TrueSwarmSystem:
         risks = self.workspace.get_artifacts_by_type(ArtifactType.RISK, phase)
         murphy_risk = sum(r.content.get('severity', 0.5) for r in risks) / max(len(risks), 1)
         
-        print(f"\n📊 Phase Results:")
+        print("\n📊 Phase Results:")
         print(f"   Exploration artifacts: {len(exploration_artifacts)}")
         print(f"   Control artifacts: {len(control_artifacts)}")
         print(f"   Active gates: {len(activated_gates)}")
@@ -1076,7 +1076,7 @@ class TrueSwarmSystem:
             context = {}
         
         print(f"\n{'='*60}")
-        print(f"TRUE SWARM SYSTEM - FULL CYCLE")
+        print("TRUE SWARM SYSTEM - FULL CYCLE")
         print(f"Task: {task}")
         print(f"{'='*60}")
         
@@ -1092,7 +1092,7 @@ class TrueSwarmSystem:
         avg_murphy_risk = sum(r['murphy_risk'] for r in results) / (len(results) or 1)
         
         print(f"\n{'='*60}")
-        print(f"CYCLE COMPLETE")
+        print("CYCLE COMPLETE")
         print(f"{'='*60}")
         print(f"Total artifacts generated: {total_artifacts}")
         print(f"Total gates activated: {total_gates}")

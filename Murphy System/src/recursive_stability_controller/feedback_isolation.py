@@ -333,7 +333,7 @@ class FeedbackIsolationRouter:
         """Record isolation violation"""
         self.violations.append(violation)
         
-        print(f"[VIOLATION] Feedback isolation violated!")
+        print("[VIOLATION] Feedback isolation violated!")
         print(f"  Type: {violation.violation_type}")
         print(f"  Evaluator: {violation.evaluator_id}")
         print(f"  Artifact: {violation.artifact_id}")

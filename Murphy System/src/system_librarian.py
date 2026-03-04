@@ -719,7 +719,7 @@ if __name__ == "__main__":
         "generate_expert"
     )
     if func_doc:
-        print(f"Function: generate_expert")
+        print("Function: generate_expert")
         print(f"Description: {func_doc['description']}")
         print(f"Parameters: {func_doc['parameters']}")
     

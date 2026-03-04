@@ -209,7 +209,7 @@ class UnifiedIntegrationEngine:
                 audit=audit
             )
             
-            print(f"✓ Safety tests complete:")
+            print("✓ Safety tests complete:")
             print(f"  - Tests passed: {test_results['passed']}/{test_results['total']}")
             print(f"  - Critical issues: {len(test_results['critical_issues'])}")
             print(f"  - Warnings: {len(test_results['warnings'])}")
@@ -295,7 +295,7 @@ class UnifiedIntegrationEngine:
                 print(f"\n{'='*80}")
                 print(f"🎉 INTEGRATION COMPLETE: {module_name}")
                 print(f"{'='*80}")
-                print(f"✓ Module loaded and ready to use")
+                print("✓ Module loaded and ready to use")
                 print(f"✓ Available commands: {len(module['commands'])}")
                 print(f"✓ Capabilities: {', '.join(capabilities[:3])}...")
                 
@@ -383,7 +383,7 @@ class UnifiedIntegrationEngine:
         print(f"\n{'='*80}")
         print(f"🎉 INTEGRATION COMMITTED: {module['name']}")
         print(f"{'='*80}")
-        print(f"✓ Module loaded and ready to use")
+        print("✓ Module loaded and ready to use")
         print(f"✓ Available commands: {len(module['commands'])}")
         print(f"✓ Capabilities: {', '.join(capabilities[:3])}...")
         
@@ -440,7 +440,7 @@ class UnifiedIntegrationEngine:
         # Remove from pending
         self.pending_integrations.pop(request_id)
         
-        print(f"✓ Integration rejected and cleaned up")
+        print("✓ Integration rejected and cleaned up")
         
         return IntegrationResult(
             success=True,

@@ -479,7 +479,7 @@ class ReExpansionTrigger:
             action_type=CorrectionActionType.TRIGGER_REEXPANSION,
             triggered_by="correction_complete",
             timestamp=datetime.now(),
-            rationale=f"Re-expansion triggered: all criteria met",
+            rationale="Re-expansion triggered: all criteria met",
             affected_artifacts=[artifact_id]
         )
         

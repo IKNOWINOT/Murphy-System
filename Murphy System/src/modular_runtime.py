@@ -286,7 +286,7 @@ class ModularRuntime:
             System architecture and plan
         """
         print(f"\n{'='*60}")
-        print(f"Building system from request:")
+        print("Building system from request:")
         print(f"'{user_request}'")
         print(f"{'='*60}\n")
         
