@@ -70,7 +70,7 @@ We ran all 4 storyboard test suites (test_storyline_actuals.py, test_storyline_a
 
 ## Scenario Comparison Soft-Failures (Low Priority)
 
-These 10 "failures" are due to strict equality comparison where the actual behavior is correct but the comparison format differs:
+These 10 comparison mismatches (across 8 categories below; SF-003 and SF-004 each cover 2 comparison points) are due to strict equality comparison where the actual behavior is correct but the comparison format differs:
 
 ### SF-001: Chapter 7 — Gate Count Comparison
 
