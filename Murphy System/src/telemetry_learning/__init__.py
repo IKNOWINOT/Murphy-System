@@ -85,7 +85,9 @@ try:
 except ImportError as exc:
     # Fall back to simple wrapper without external dependencies
     import logging
-    logging.warning(f"Using simplified telemetry learning engine due to missing dependencies: {exc}")
+    logging.getLogger(__name__).warning(
+        "Using simplified telemetry learning engine due to missing dependencies: %s", exc,
+    )
 
     from .simple_wrapper import (
         SimpleTelemetryLearningEngine,
