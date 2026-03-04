@@ -50,7 +50,7 @@ This directory contains visual screenshots for the Murphy System setup process.
 ## Usage
 
 These screenshots are referenced in:
-- [VISUAL_SETUP_GUIDE_WITH_SCREENSHOTS.md](../../VISUAL_SETUP_GUIDE_WITH_SCREENSHOTS.md)
+- [GETTING_STARTED.md](../../GETTING_STARTED.md)
 
 Each screenshot shows the actual terminal output or browser view that users should expect to see during the setup process.
 
