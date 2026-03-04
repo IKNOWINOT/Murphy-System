@@ -312,21 +312,21 @@ class CompletionCertifier:
     def export_certificate(
         self,
         certificate: CompletionCertificate,
-        format: str = 'json'
+        output_format: str = 'json'
     ) -> str:
         """
-        Export certificate to file format
+        Export certificate to file output_format
         
         Args:
             certificate: Certificate to export
-            format: Export format ('json', 'text')
+            output_format: Export format ('json', 'text')
             
         Returns:
             Exported certificate as string
         """
-        if format == 'json':
+        if output_format == 'json':
             return json.dumps(certificate.to_dict(), indent=2)
-        elif format == 'text':
+        elif output_format == 'text':
             lines = [
                 "=" * 60,
                 "EXECUTION COMPLETION CERTIFICATE",
@@ -360,4 +360,4 @@ class CompletionCertifier:
             ]
             return '\n'.join(lines)
         else:
-            raise ValueError(f"Unsupported export format: {format}")
+            raise ValueError(f"Unsupported export output_format: {output_format}")

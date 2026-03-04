@@ -428,13 +428,13 @@ class TelemetryStreamer:
                 except Exception as exc:
                     print(f"Error notifying subscriber: {exc}")
     
-    def export_stream(self, packet_id: str, format: str = 'json') -> str:
+    def export_stream(self, packet_id: str, output_format: str = 'json') -> str:
         """
-        Export telemetry stream to file format
+        Export telemetry stream to file output_format
         
         Args:
             packet_id: Packet ID
-            format: Export format ('json', 'csv')
+            output_format: Export format ('json', 'csv')
             
         Returns:
             Exported data as string
@@ -443,9 +443,9 @@ class TelemetryStreamer:
         if not stream:
             return ""
         
-        if format == 'json':
+        if output_format == 'json':
             return json.dumps(stream.to_dict(), indent=2)
-        elif format == 'csv':
+        elif output_format == 'csv':
             # CSV export
             lines = ['timestamp,event_type,step_id,risk_score,confidence_score']
             for event in stream.events:
@@ -458,4 +458,4 @@ class TelemetryStreamer:
                 )
             return '\n'.join(lines)
         else:
-            raise ValueError(f"Unsupported export format: {format}")
+            raise ValueError(f"Unsupported export output_format: {output_format}")

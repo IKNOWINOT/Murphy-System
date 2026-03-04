@@ -276,7 +276,7 @@ class NoSQLDatabaseConnector(DatabaseConnector):
     def query_documents(
         self,
         collection: str,
-        filter: Optional[Dict] = None,
+        doc_filter: Optional[Dict] = None,
         limit: int = 100
     ) -> IntegrationResult:
         """Query documents from collection"""
@@ -289,11 +289,11 @@ class NoSQLDatabaseConnector(DatabaseConnector):
         try:
             documents = self.collections.get(collection, [])
             
-            if filter:
+            if doc_filter:
                 filtered_documents = []
                 for doc in documents:
                     match = True
-                    for key, value in filter.items():
+                    for key, value in doc_filter.items():
                         if doc.get(key) != value:
                             match = False
                             break
