@@ -14,8 +14,11 @@ import os
 import time
 import unittest
 
+import pytest
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
+pytest.importorskip("fastapi", reason="fastapi not installed")
 from fastapi_security import _FastAPIRateLimiter
 
 
