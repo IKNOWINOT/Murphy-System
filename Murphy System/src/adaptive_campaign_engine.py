@@ -48,6 +48,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+from unit_economics_analyzer import _DEFAULT_TIER_REVENUES
+
 from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
@@ -549,12 +551,8 @@ class AdaptiveCampaignEngine:
             projected_new_leads = int(proposed_budget_usd * 0.5)  # ~$2/lead
             projected_conversions = max(1, int(projected_new_leads * max(conv_rate, 0.02)))
 
-            # Revenue lookup per tier
-            tier_monthly_revenue = {
-                "community": 0.0, "pro": 99.0, "enterprise": 750.0,
-                "creator_starter": 20.0, "creator_pro": 99.0,
-            }
-            revenue_per_conversion = tier_monthly_revenue.get(tier, 50.0) * 12  # Annual
+            # Revenue lookup per tier (single source of truth)
+            revenue_per_conversion = _DEFAULT_TIER_REVENUES.get(tier, 50.0) * 12  # Annual
             projected_revenue = projected_conversions * revenue_per_conversion
             projected_roi = (
                 projected_revenue / proposed_budget_usd
