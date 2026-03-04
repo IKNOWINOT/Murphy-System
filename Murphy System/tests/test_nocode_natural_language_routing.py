@@ -53,24 +53,24 @@ class TestNaturalLanguageRouting:
         html = _read_terminal_html()
         assert 'async function handleNaturalLanguage' in html
 
-    def test_natural_language_sends_to_execute_api(self):
-        """NL handler posts to /execute endpoint."""
+    def test_natural_language_sends_to_chat_api(self):
+        """NL handler posts to /chat endpoint for conversational routing."""
         html = _read_terminal_html()
         # Extract a generous window from the function declaration
         idx = html.index('async function handleNaturalLanguage')
         func_window = html[idx:idx + 5000]
-        assert '/execute' in func_window, \
-            "handleNaturalLanguage should POST to /execute"
-        assert 'task_description' in func_window, \
-            "Should send task_description field"
-        assert 'natural_language' in func_window, \
-            "Should mark task_type as natural_language"
+        assert '/chat' in func_window, \
+            "handleNaturalLanguage should POST to /chat for conversational routing"
+        assert 'message' in func_window, \
+            "Should send message field to chat endpoint"
 
-    def test_confidence_follow_up_questions(self):
-        """Low confidence triggers follow-up questions."""
+    def test_execution_error_shows_clarifying_questions(self):
+        """Blocked execution shows clarifying questions via shared helper."""
         html = _read_terminal_html()
-        assert 'showFollowUpQuestions' in html, \
-            "Should have showFollowUpQuestions function"
+        assert 'showExecutionError' in html, \
+            "Should have showExecutionError function for blocked execution"
+        assert 'clarifying_questions' in html, \
+            "Should show clarifying questions when execution is blocked"
         assert 'confidence' in html.lower(), \
             "Should reference confidence scoring"
 

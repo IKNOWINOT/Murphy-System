@@ -428,7 +428,7 @@ Type 'help' for all commands · Type 'api' for endpoint reference
                     await showTrainingData();
                     break;
                 case 'execute':
-                    await _executeTaskJSON(args);
+                    await handleExecuteCommand(args);
                     break;
                 case 'integrate':
                     await addIntegration(args);
@@ -1054,7 +1054,20 @@ Type 'help' for all commands · Type 'api' for endpoint reference
             }
         }
 
-        async function _executeTaskJSON(argsStr) {
+        function showExecutionError(result) {
+            addOutput('☠ Execution blocked: ' + (result.error || result.reason || 'Unknown error'), 'error');
+            if (result.clarifying_questions && result.clarifying_questions.length > 0) {
+                addOutput('', '');
+                addOutput('⚠ Murphy needs more information to proceed:', 'warning');
+                result.clarifying_questions.forEach(function(q) {
+                    addOutput('  → ' + q.question, 'warning');
+                });
+                addOutput('', '');
+                addOutput('Provide answers to raise confidence above the threshold.', 'info');
+            }
+        }
+
+        async function handleExecuteCommand(argsStr) {
             if (!argsStr) {
                 addOutput('Usage: execute <JSON>', 'info');
                 addOutput('Example: execute {"task_description":"Analyze Q4 sales","task_type":"analysis"}', 'info');
@@ -1088,17 +1101,7 @@ Type 'help' for all commands · Type 'api' for endpoint reference
                         }
                     }
                 } else {
-                    addOutput('✗ Execution blocked: ' + (result.error || result.reason || 'Unknown error'), 'error');
-                    // Show clarifying questions
-                    if (result.clarifying_questions && result.clarifying_questions.length > 0) {
-                        addOutput('', '');
-                        addOutput('⚠ Murphy needs more information to proceed:', 'warning');
-                        result.clarifying_questions.forEach(function(q) {
-                            addOutput('  → ' + q.question, 'warning');
-                        });
-                        addOutput('', '');
-                        addOutput('Provide answers to raise confidence above the threshold.', 'info');
-                    }
+                    showExecutionError(result);
                 }
             } catch (error) {
                 addOutput('✗ Error: ' + error.message, 'error');
@@ -1565,17 +1568,7 @@ Type 'help' for all commands · Type 'api' for endpoint reference
                         addOutput(JSON.stringify(result.result, null, 2), 'json');
                     }
                 } else {
-                    addOutput('☠ Execution blocked: ' + (result.error || result.reason || 'Unknown'), 'error');
-                    // Show clarifying questions if available
-                    if (result.clarifying_questions && result.clarifying_questions.length > 0) {
-                        addOutput('', '');
-                        addOutput('⚠ Murphy needs more information to proceed:', 'warning');
-                        result.clarifying_questions.forEach(function(q) {
-                            addOutput('  → ' + q.question, 'warning');
-                        });
-                        addOutput('', '');
-                        addOutput('Provide answers to raise confidence above the threshold.', 'info');
-                    }
+                    showExecutionError(result);
                 }
             } catch (error) {
                 addOutput('☠ Error: ' + error.message, 'error');
