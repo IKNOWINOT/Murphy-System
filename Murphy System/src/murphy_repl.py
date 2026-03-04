@@ -169,7 +169,7 @@ class SafeREPL:
             
             # Execute code with restricted environment
             with redirect_stdout(stdout_capture), redirect_stderr(stderr_capture):
-                exec(code, exec_globals, exec_locals)
+                exec(code, exec_globals, exec_locals)  # noqa: S102 — REPL requires exec
             
             # Update globals and locals
             self.globals.update(exec_globals)

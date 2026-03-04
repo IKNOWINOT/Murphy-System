@@ -322,11 +322,11 @@ class TestVectorGenerator:
         """Describe edge value"""
         if value is None:
             return "None"
-        elif value == "":
+        elif isinstance(value, str) and len(value) == 0:
             return "empty string"
-        elif value == []:
+        elif isinstance(value, list) and len(value) == 0:
             return "empty list"
-        elif value == {}:
+        elif isinstance(value, dict) and len(value) == 0:
             return "empty dict"
         elif isinstance(value, (int, float)) and value == 0:
             return "zero"

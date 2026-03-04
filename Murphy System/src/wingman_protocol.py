@@ -86,7 +86,7 @@ class BuiltinChecks:
     def check_has_output(output: Dict[str, Any]) -> ValidationResult:
         """Output dict must have a non-empty 'result' key."""
         result_val = output.get("result")
-        passed = result_val is not None and result_val != "" and result_val != []
+        passed = bool(result_val)
         return ValidationResult(
             rule_id="check_has_output",
             passed=passed,
