@@ -73,6 +73,7 @@ class GovernanceKernel:
 
     _MAX_AUDIT_ENTRIES = 10_000
     _MAX_EXECUTIONS = 10_000
+    _RETENTION_FRACTION = 10  # keep 1/N entries on trim
 
     def __init__(self, strict_mode: bool = False) -> None:
         self._lock = threading.Lock()
@@ -219,7 +220,7 @@ class GovernanceKernel:
         """
         with self._lock:
             if len(self._executions) >= self._MAX_EXECUTIONS:
-                self._executions = self._executions[self._MAX_EXECUTIONS // 10:]
+                self._executions = self._executions[self._MAX_EXECUTIONS // self._RETENTION_FRACTION:]
             record = {
                 "record_id": uuid.uuid4().hex[:12],
                 "caller_id": caller_id,
@@ -447,7 +448,7 @@ class GovernanceKernel:
     ) -> None:
         """Append an audit entry. Must be called under lock."""
         if len(self._audit_log) >= self._MAX_AUDIT_ENTRIES:
-            self._audit_log = self._audit_log[self._MAX_AUDIT_ENTRIES // 10:]
+            self._audit_log = self._audit_log[self._MAX_AUDIT_ENTRIES // self._RETENTION_FRACTION:]
         self._audit_log.append({
             "event": "enforcement",
             "caller_id": caller_id,
