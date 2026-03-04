@@ -556,7 +556,7 @@ class FeatureAnalyzer:
 
 @dataclass
 class ABTestResult:
-    """A b test result."""
+    """AB test result."""
     test_name: str
     variant_a_mean: float
     variant_b_mean: float

@@ -61,7 +61,7 @@ class EndpointStatus(enum.Enum):
 
 
 class APIVersion(enum.Enum):
-    """A p i version (Enum subclass)."""
+    """API version (Enum subclass)."""
     V1 = "v1"
     V2 = "v2"
     V3 = "v3"

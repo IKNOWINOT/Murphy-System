@@ -53,7 +53,7 @@ class CombatArchetype(Enum):
 
 
 class ProtectorAIType(Enum):
-    """Protector a i type (Enum subclass)."""
+    """Protector AI type (Enum subclass)."""
     FULL_AI = "full_ai"
     PET_AI = "pet_ai"
 

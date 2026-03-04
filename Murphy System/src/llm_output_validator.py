@@ -114,7 +114,7 @@ except ImportError:
 
     @dataclass
     class LLMOutputEnvelope(BaseModel):  # type: ignore[no-redef]
-        """L l m output envelope."""
+        """LLM output envelope."""
         output_type: str = ""
         raw_output: str = ""
         parsed_output: Dict[str, Any] = dc_field(default_factory=dict)
@@ -124,7 +124,7 @@ except ImportError:
 
     @dataclass
     class LLMExpansionResult(BaseModel):  # type: ignore[no-redef]
-        """L l m expansion result."""
+        """LLM expansion result."""
         new_dimension: str = ""
         initial_value: float = 0.0
         uncertainty: float = 0.5
@@ -132,7 +132,7 @@ except ImportError:
 
     @dataclass
     class LLMGeneratedExpert(BaseModel):  # type: ignore[no-redef]
-        """L l m generated expert."""
+        """LLM generated expert."""
         name: str = ""
         domain: str = ""
         capabilities: List[str] = dc_field(default_factory=list)
@@ -140,7 +140,7 @@ except ImportError:
 
     @dataclass
     class LLMGeneratedGate(BaseModel):  # type: ignore[no-redef]
-        """L l m generated gate."""
+        """LLM generated gate."""
         gate_type: str = ""
         target: str = ""
         trigger_condition: str = ""
@@ -148,7 +148,7 @@ except ImportError:
 
     @dataclass
     class LLMGeneratedConstraint(BaseModel):  # type: ignore[no-redef]
-        """L l m generated constraint."""
+        """LLM generated constraint."""
         parameter: str = ""
         operator: str = ""
         threshold: float = 0.0
