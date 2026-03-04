@@ -7,11 +7,14 @@ Implements RECOMMENDATIONS.md Section 6.2.4.
 """
 
 import hashlib
+import logging
 import threading
 import time
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class SyncDirection(Enum):
@@ -282,8 +285,8 @@ class CrossPlatformDataSync:
             if mapping.transform:
                 try:
                     mapped = mapping.transform(mapped)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.error("Transform failed for record: %s", exc)
             mapped_records.append(mapped)
             records_synced += 1
 
@@ -292,8 +295,8 @@ class CrossPlatformDataSync:
         if write_fn and mapped_records:
             try:
                 write_fn(mapping.entity_type, mapped_records)
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.error("Write failed for %s: %s", mapping.entity_type, exc)
 
         with self._lock:
             tracker = self._change_trackers.get(mapping.source_platform, {})
