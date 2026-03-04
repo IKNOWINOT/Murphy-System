@@ -311,12 +311,13 @@ class TestComputeService(unittest.TestCase):
             self.assertEqual(submitted_request.expression, "x + 1")
             self.assertEqual(submitted_request.metadata.get("operation"), "simplify")
 
-            self.service._process_request(submitted_request)
+        # Process outside mock context so ThreadPoolExecutor can spawn workers.
+        self.service._process_request(submitted_request)
 
-            result = self.service.get_result(request_id)
-            self.assertIsNotNone(result)
-            self.assertEqual(result.status, ComputeStatus.SUCCESS)
-            self.assertEqual(str(result.result), "x + 1")
+        result = self.service.get_result(request_id)
+        self.assertIsNotNone(result)
+        self.assertEqual(result.status, ComputeStatus.SUCCESS)
+        self.assertEqual(str(result.result), "x + 1")
 
     def test_submit_request_respects_timeout(self):
         """Test that long-running computations return TIMEOUT"""
