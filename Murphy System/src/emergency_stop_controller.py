@@ -307,7 +307,7 @@ class EmergencyStopController:
             try:
                 self._pm.save_document(doc_id=evt.event_id, document=evt.to_dict())
             except Exception as exc:
-                logger.debug("Persistence skipped: %s", exc)
+                logger.error("Emergency stop event NOT persisted: %s", exc)
 
         # Publish
         if self._backbone is not None:

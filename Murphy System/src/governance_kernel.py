@@ -240,11 +240,19 @@ class GovernanceKernel:
                     budget.spent += cost
             else:
                 # Legacy fallback: first budget with sufficient pending
+                debited = False
                 for budget in self._budgets.values():
                     if budget.pending >= cost:
                         budget.pending -= cost
                         budget.spent += cost
+                        debited = True
                         break
+                if not debited and cost > 0:
+                    logger.error(
+                        "Cost %.4f could not be debited from any budget "
+                        "(caller=%s, tool=%s)",
+                        cost, caller_id, tool_name,
+                    )
 
         logger.info(
             "Recorded execution: caller=%s tool=%s cost=%.4f success=%s",

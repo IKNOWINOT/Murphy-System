@@ -77,6 +77,9 @@ class SelfImprovementEngine:
     # Persistence document IDs
     _PERSIST_DOC_ID = "self_improvement_engine_state"
 
+    _MAX_OUTCOMES = 10_000
+    _MAX_CORRECTIONS = 5_000
+
     def __init__(self, persistence_manager=None) -> None:
         self._lock = threading.Lock()
         self._outcomes: List[ExecutionOutcome] = []
@@ -187,6 +190,8 @@ class SelfImprovementEngine:
     def record_outcome(self, outcome: ExecutionOutcome) -> str:
         """Record an execution outcome and return its task_id."""
         with self._lock:
+            if len(self._outcomes) >= self._MAX_OUTCOMES:
+                self._outcomes = self._outcomes[self._MAX_OUTCOMES // 10:]
             self._outcomes.append(outcome)
         logger.info("Recorded outcome for task %s: %s", outcome.task_id, outcome.outcome.value)
         return outcome.task_id
@@ -329,6 +334,8 @@ class SelfImprovementEngine:
                 logger.warning("Proposal %s not found", proposal_id)
                 return False
             proposal.status = "applied"
+            if len(self._corrections_applied) >= self._MAX_CORRECTIONS:
+                self._corrections_applied = self._corrections_applied[self._MAX_CORRECTIONS // 10:]
             self._corrections_applied.append({
                 "proposal_id": proposal_id,
                 "result": result,

@@ -28,7 +28,7 @@ class TestSettingsDefaults(unittest.TestCase):
         cfg_mod._settings_instance = None
 
         env = {
-            "API_HOST": "0.0.0.0",
+            "API_HOST": "127.0.0.1",
             "API_PORT": "8052",
         }
         env.update(env_overrides)
@@ -56,7 +56,7 @@ class TestSettingsDefaults(unittest.TestCase):
 
     def test_default_api_host(self):
         s = self._make_settings()
-        self.assertEqual(s.api_host, "0.0.0.0")
+        self.assertEqual(s.api_host, "127.0.0.1")
 
     def test_default_api_port(self):
         s = self._make_settings()
