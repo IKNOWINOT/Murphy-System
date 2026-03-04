@@ -30,6 +30,7 @@ import hashlib
 import math
 from uuid import uuid4
 from typing import Dict, List, Optional, Any, Tuple
+from thread_safe_operations import capped_append
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from collections import defaultdict
@@ -170,7 +171,7 @@ class ModelSelectionMatrix:
                 "task_type": task_type,
                 "status": "selected",
             }
-            self._selection_history.append(result)
+            capped_append(self._selection_history, result)
             return result
 
     def list_models(self) -> List[Dict[str, Any]]:
@@ -285,7 +286,7 @@ class PromptOptimizationPipeline:
                 "context_injected": bool(context_block),
                 "status": "optimised",
             }
-            self._optimisation_log.append({
+            capped_append(self._optimisation_log, {
                 "template_id": tmpl.template_id,
                 "task_type": task_type,
                 "estimated_tokens": estimated_tokens,
@@ -491,7 +492,7 @@ class ContextAwareRouter:
                 "timestamp": _now(),
                 "status": "routed",
             }
-            self._routing_log.append(entry)
+            capped_append(self._routing_log, entry)
             return entry
 
     def get_conversation_history(self, session_id: str) -> List[Dict[str, Any]]:
@@ -801,7 +802,7 @@ class RoutingParityValidator:
                 "timestamp": _now(),
                 "status": "pass" if is_parity else "fail",
             }
-            self._validation_log.append(report)
+            capped_append(self._validation_log, report)
             return report
 
     def bulk_validate(

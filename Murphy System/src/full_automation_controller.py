@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
 from enum import Enum
 from typing import Dict, List, Optional, Any, Tuple, Callable
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -198,7 +199,7 @@ class FullAutomationController:
                 current_state.last_transition = datetime.now(timezone.utc)
             
             # Log audit
-            self._audit_log.append({
+            capped_append(self._audit_log, {
                 "event": "automation_mode_changed",
                 "tenant_id": tenant_id,
                 "agent_id": agent_id,

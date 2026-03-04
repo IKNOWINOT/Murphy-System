@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -192,7 +193,7 @@ class ExecutionAnalytics:
             metadata=metadata or {},
         )
         with self._lock:
-            self._executions.append(execution)
+            capped_append(self._executions, execution)
             self._counts_by_type[task_type] += 1
             if success:
                 self._success_by_type[task_type] += 1
@@ -306,7 +307,7 @@ class ComplianceAnalytics:
             remediation_time=remediation_time,
         )
         with self._lock:
-            self._records.append(record)
+            capped_append(self._records, record)
         logger.debug("Recorded compliance assessment %s category=%s score=%.1f",
                       record.record_id, category, score)
         return record.to_dict()
@@ -472,7 +473,7 @@ class BusinessIntelligence:
             "timestamp": time.time(),
         }
         with self._lock:
-            self._task_costs.append(entry)
+            capped_append(self._task_costs, entry)
         return entry.copy()
 
     def set_manual_baseline(self, task_type: str, cost_per_task: float) -> Dict[str, Any]:
@@ -752,13 +753,13 @@ class AlertRulesEngine:
                             rule.state = AlertState.FIRING
                             rule.last_triggered = now
                             alert = self._create_alert_event(rule, value, now)
-                            self._alerts_history.append(alert)
+                            capped_append(self._alerts_history, alert)
                             fired.append(alert)
                 else:
                     if rule.state == AlertState.FIRING:
                         rule.state = AlertState.RESOLVED
                         event = self._create_resolve_event(rule, value, now)
-                        self._alerts_history.append(event)
+                        capped_append(self._alerts_history, event)
                         resolved.append(event)
             callbacks = list(self._notification_callbacks)
 
