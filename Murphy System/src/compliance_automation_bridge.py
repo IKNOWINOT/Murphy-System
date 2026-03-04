@@ -204,7 +204,7 @@ class ComplianceAutomationBridge:
                         release_ready = ready_result
                     else:
                         release_ready = bool(ready_result)
-                except Exception:
+                except Exception as exc:
                     release_ready = non_compliant_count == 0
 
             except Exception as exc:

@@ -308,7 +308,7 @@ class DocumentManager:
                     json_data = json.loads(content_str) if isinstance(content_str, str) else content
                     metadata['json_keys'] = list(json_data.keys()) if isinstance(json_data, dict) else []
                     metadata['is_json_valid'] = True
-                except Exception:
+                except Exception as exc:
                     metadata['is_json_valid'] = False
             
             elif document_type == 'text':
@@ -348,7 +348,7 @@ class DocumentManager:
                 elif isinstance(content, dict):
                     return content
                 return content
-            except Exception:
+            except Exception as exc:
                 return content
         
         # Register pipelines

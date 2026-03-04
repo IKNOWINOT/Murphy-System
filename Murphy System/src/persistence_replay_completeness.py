@@ -162,7 +162,7 @@ class WriteAheadLog:
             with open(tmp, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, default=str)
             tmp.replace(self._wal_file())
-        except Exception:
+        except Exception as exc:
             if tmp.exists():
                 tmp.unlink()
             raise
@@ -318,7 +318,7 @@ class SnapshotManager:
             with open(tmp, "w", encoding="utf-8") as f:
                 json.dump(snapshot.to_dict(), f, indent=2, default=str)
             tmp.replace(filepath)
-        except Exception:
+        except Exception as exc:
             if tmp.exists():
                 tmp.unlink()
             raise
@@ -888,7 +888,7 @@ class PersistenceReplayCompleteness:
             result = executor(data)
             self.wal.commit(entry_id, result)
             return result
-        except Exception:
+        except Exception as exc:
             self.wal.rollback(entry_id)
             raise
 

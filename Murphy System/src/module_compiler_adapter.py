@@ -15,6 +15,8 @@ Capabilities:
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 import os
+import logging
+logger = logging.getLogger(__name__)
 
 # Import from module_compiler
 try:
@@ -110,7 +112,8 @@ class ModuleCompilerAdapter:
             if self.registry and hasattr(self.registry, 'register_module'):
                 try:
                     self.registry.register_module(spec)
-                except Exception:
+                except Exception as exc:
+                    logger.debug("Suppressed exception: %s", exc)
                     pass  # Registry registration is optional
             
             # Store compiled module
@@ -171,6 +174,7 @@ class ModuleCompilerAdapter:
                     specs.append(spec)
                 except Exception as e:
                     # Continue with other files even if one fails
+                    logger.debug("Suppressed exception: %s", e)
                     continue
             
             # Convert all specs to dicts
@@ -192,7 +196,8 @@ class ModuleCompilerAdapter:
                 if self.registry and hasattr(self.registry, 'register_module'):
                     try:
                         self.registry.register_module(spec)
-                    except Exception:
+                    except Exception as exc:
+                        logger.debug("Suppressed exception: %s", exc)
                         pass  # Registry registration is optional
                 
                 self.compiled_modules[spec.module_id] = result

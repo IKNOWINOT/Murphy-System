@@ -679,31 +679,6 @@ class DocumentProcessor:
         reqs = [r.to_dict() for r in self.requirements.values()
                 if metadata.document_id in r.source]
         return reqs
-        # Count by category
-        by_category = {}
-        for req in self.requirements.values():
-            category = req.category
-            by_category[category] = by_category.get(category, 0) + 1
-        
-        # Count by priority
-        by_priority = {}
-        for req in self.requirements.values():
-            priority = req.priority
-            by_priority[priority] = by_priority.get(priority, 0) + 1
-        
-        # Calculate total cost
-        total_equipment_cost = sum(e.cost * e.quantity for e in self.equipment.values())
-        
-        return {
-            "total_documents": len(self.documents),
-            "total_requirements": len(self.requirements),
-            "by_category": by_category,
-            "by_priority": by_priority,
-            "total_equipment": len(self.equipment),
-            "total_equipment_cost": total_equipment_cost,
-            "total_triggers": len(self.triggers),
-            "equipment_by_type": self._count_equipment_by_type()
-        }
     
     def _count_equipment_by_type(self) -> Dict[str, int]:
         """Count equipment by type"""

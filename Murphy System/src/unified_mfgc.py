@@ -46,6 +46,8 @@ from response_formatter import get_formatter
 # Import command parser and question manager
 from command_parser import CommandParser
 from question_manager import QuestionManager
+import logging
+logger = logging.getLogger(__name__)
 
 
 class ConfidenceBand(Enum):
@@ -498,7 +500,7 @@ Provide a helpful, context-aware response. Reference previous topics if relevant
             
             try:
                 response_text = self._call_llm(prompt, max_tokens)
-            except Exception:
+            except Exception as exc:
                 response_text = f"I understand you're asking about {domain}. Based on our conversation about {', '.join(self.conversation_context['topics_discussed'][-2:]) if self.conversation_context['topics_discussed'] else 'this topic'}, let me help with that."
         else:
             response_text = self._generate_intelligent_response(message, domain, confidence)
@@ -735,7 +737,8 @@ Format as a numbered list."""
                     return self.question_manager.format_next_question()
                 
                 return questions_text
-            except Exception:
+            except Exception as exc:
+                logger.debug("Suppressed exception: %s", exc)
                 pass
         
         # Fallback questions for offline mode
@@ -748,10 +751,6 @@ Format as a numbered list."""
         # Format as numbered list
         formatted = "\n".join([f"{i}. {q}" for i, q in enumerate(fallback_questions, 1)])
         return formatted
-        
-        self.question_manager.add_questions(fallback_questions, category=domain, priority=1)
-        return self.question_manager.format_next_question()
-    
     def _generate_exploratory_response(
         self, 
         task: str, 
@@ -1163,32 +1162,6 @@ What additional information would help me assist you better?"""
             'execution': len(self.memory_system.execution.read_all())
         }
     
-    def get_system_state(self) -> SystemState:
-        """Get current system state"""
-        if not self.history:
-            return SystemState(
-                confidence=0.1,
-                band=ConfidenceBand.INTRODUCTORY,
-                domain='unknown',
-                complexity=0.0,
-                artifacts_count=0,
-                gates_count=0,
-                memory_state={'sandbox': 0, 'working': 0, 'control': 0, 'execution': 0}
-            )
-        
-        last = self.history[-1]
-        memory = self._get_memory_counts()
-        
-        return SystemState(
-            confidence=last['confidence'],
-            band=ConfidenceBand(last['band']),
-            domain=last['domain'],
-            complexity=0.5,
-            artifacts_count=memory['sandbox'] + memory['working'],
-            gates_count=0,
-            memory_state=memory
-        )
-    
     def _update_context(self, message: str):
         """Update conversation context from message"""
         message_lower = message.lower()
@@ -1486,7 +1459,7 @@ Make questions specific and actionable."""
                 'control': control_count,
                 'execution': execution_count
             }
-        except Exception:
+        except Exception as exc:
             # Fallback to zero counts
             return {
                 'sandbox': 0,

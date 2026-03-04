@@ -644,7 +644,7 @@ class PathTraversalPreventer:
                     continue
             
             return False
-        except Exception:
+        except Exception as exc:
             return False
     
     def sanitize_path(self, path: str) -> Path:

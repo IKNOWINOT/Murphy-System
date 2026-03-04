@@ -10,6 +10,8 @@ import json
 import operator
 from typing import Dict, Any, List, Tuple, Optional
 from datetime import datetime
+import logging
+logger = logging.getLogger(__name__)
 
 
 class EnhancedLocalLLM:
@@ -191,7 +193,8 @@ class EnhancedLocalLLM:
                     result = solver(match, prompt)
                     if result:
                         return result
-                except Exception:
+                except Exception as exc:
+                    logger.debug("Suppressed exception: %s", exc)
                     pass
         
         return None
@@ -435,7 +438,7 @@ class EnhancedLocalLLM:
                     "result_type": type(result).__name__
                 }
             }
-        except Exception:
+        except Exception as exc:
             return None
 
     # -- Safe arithmetic evaluator (replaces eval) ---------------------------

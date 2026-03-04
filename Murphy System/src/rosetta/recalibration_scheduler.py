@@ -150,6 +150,6 @@ class RecalibrationScheduler:
         while not self._stop_event.is_set():
             try:
                 self.run_all()
-            except Exception:
+            except Exception as exc:
                 logger.exception("Recalibration loop error")
             self._stop_event.wait(timeout=self._interval)

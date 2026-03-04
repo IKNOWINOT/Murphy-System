@@ -192,7 +192,7 @@ class ObservationModel:
                     else {}
                 )
                 prior_uncertainty = uncertainty_dict.get(dim, 1.0)
-            except Exception:
+            except Exception as exc:
                 prior_uncertainty = 1.0
 
         # Kalman-style information gain approximation:

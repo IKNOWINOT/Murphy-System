@@ -231,7 +231,8 @@ class ClassicalCryptography:
             try:
                 _priv = serialization.load_der_private_key(private_key, password=None)
                 return _priv.sign(data, ec.ECDSA(hashes.SHA256()))
-            except Exception:
+            except Exception as exc:
+                _log.debug("Suppressed exception: %s", exc)
                 pass  # fall through to simulation
         return hmac.new(private_key, data, hashlib.sha256).digest()
 
@@ -247,7 +248,7 @@ class ClassicalCryptography:
                 _pub = serialization.load_der_public_key(public_key)
                 _pub.verify(signature, data, ec.ECDSA(hashes.SHA256()))
                 return True
-            except Exception:
+            except Exception as exc:
                 return False
         expected_signature = hmac.new(private_key, data, hashlib.sha256).digest()
         return CryptographicPrimitives.constant_time_compare(signature, expected_signature)
@@ -334,7 +335,8 @@ class PostQuantumCryptography:
             try:
                 sig = oqs.Signature("Dilithium2", private_key)
                 return sig.sign(data)
-            except Exception:
+            except Exception as exc:
+                _log.debug("Suppressed exception: %s", exc)
                 pass
         return hmac.new(private_key, data, hashlib.sha3_256).digest()
 
@@ -349,7 +351,7 @@ class PostQuantumCryptography:
             try:
                 verifier = oqs.Signature("Dilithium2")
                 return verifier.verify(data, signature, public_key)
-            except Exception:
+            except Exception as exc:
                 return False
         expected_signature = hmac.new(private_key, data, hashlib.sha3_256).digest()
         return CryptographicPrimitives.constant_time_compare(signature, expected_signature)

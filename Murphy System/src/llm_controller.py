@@ -14,6 +14,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 import re
 from datetime import datetime
+import logging
+logger = logging.getLogger(__name__)
 
 
 class LLMModel(Enum):
@@ -473,7 +475,8 @@ class LLMController:
                         latency=0.0,
                         metadata={"provider": "ollama", "model": "phi3"}
                     )
-        except Exception:
+        except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             pass
 
         content = f"[Local Small Model] I understand you need help with: {request.prompt[:100]}..."
@@ -507,7 +510,8 @@ class LLMController:
                             latency=0.0,
                             metadata={"provider": "ollama", "model": model}
                         )
-        except Exception:
+        except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             pass
 
         content = f"[Local Medium Model] Analyzing request: {request.prompt[:100]}..."

@@ -246,7 +246,7 @@ class ResponseFormatter:
         try:
             from src.cli_art import render_section
             _section = render_section
-        except Exception:
+        except Exception as exc:
             def _section(title: str, **_kw: object) -> str:
                 return f"\n\n═══ {title} ═══"
 

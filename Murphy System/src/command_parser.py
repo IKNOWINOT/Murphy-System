@@ -48,47 +48,6 @@ class CommandParser:
         
         return False, None
     
-        """Show current confidence levels"""
-        state = self.system.get_system_state()
-        
-        # Handle both dict and SystemState object
-        if hasattr(state, 'confidence'):
-            confidence = state.confidence
-            band = state.band if hasattr(state, 'band') else 'introductory'
-            domain = state.domain if hasattr(state, 'domain') else 'general'
-            complexity = state.complexity if hasattr(state, 'complexity') else 0.0
-            memory_state = state.memory_state if hasattr(state, 'memory_state') else {}
-        else:
-            # It's already a dict
-            confidence = state.get('confidence', 0.0)
-            band = state.get('band', 'introductory')
-            domain = state.get('domain', 'general')
-            complexity = state.get('complexity', 0.0)
-            memory_state = state.get('memory_state', {})
-        
-        response = f"""## System Confidence Status
-
-**Current Confidence:** {confidence:.2f}
-**Active Band:** {band.upper()}
-**Domain:** {domain}
-**Complexity:** {complexity:.2f}
-
-**Memory Status:**
-• Sandbox: {memory_state.get('sandbox', 0)} artifacts
-• Working: {memory_state.get('working', 0)} artifacts
-• Control: {state['memory_state'].get('control', 0)} artifacts
-• Execution: {state['memory_state'].get('execution', 0)} artifacts
-
-**Gates Active:** {state['gates_count']}
-"""
-        
-        return {
-            'content': response,
-            'band': 'introductory',
-            'confidence': 1.0,
-            'is_command': True,
-            'command': 'confidence'
-        }
     
     def cmd_swarmmonitor(self, args: str) -> Dict[str, Any]:
         """Monitor swarm status"""

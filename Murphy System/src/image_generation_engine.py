@@ -325,7 +325,8 @@ class _StableDiffusionBackend:
             if device == "cuda":
                 try:
                     pipe.enable_xformers_memory_efficient_attention()
-                except Exception:
+                except Exception as exc:
+                    logger.debug("Suppressed exception: %s", exc)
                     pass
 
             cls._pipe = pipe

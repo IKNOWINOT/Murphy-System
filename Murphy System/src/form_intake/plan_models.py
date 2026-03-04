@@ -400,70 +400,8 @@ class Plan(BaseModel):
             if abs(lf[tid] - ef[tid]) < _FLOAT_TOLERANCE
         ]
         return critical_path
-        task_map: Dict[str, 'Task'] = {t.task_id: t for t in self.tasks}
 
         # Build adjacency list from finish-to-start dependencies.
-        successors: Dict[str, List[str]] = {t.task_id: [] for t in self.tasks}
-        predecessors: Dict[str, List[str]] = {t.task_id: [] for t in self.tasks}
-        for dep in self.dependencies:
-            if dep.dependency_type == DependencyType.FINISH_TO_START:
-                successors[dep.from_task_id].append(dep.to_task_id)
-                predecessors[dep.to_task_id].append(dep.from_task_id)
-
-        def _duration(tid: str) -> float:
-            t = task_map.get(tid)
-            return (t.estimated_hours or 8.0) if t else 8.0
-
-        # Forward pass – compute earliest finish for every task.
-        earliest_finish: Dict[str, float] = {}
-
-        def _ef(tid: str) -> float:
-            if tid in earliest_finish:
-                return earliest_finish[tid]
-            preds = predecessors.get(tid, [])
-            es = max((_ef(p) for p in preds), default=0.0)
-            earliest_finish[tid] = es + _duration(tid)
-            return earliest_finish[tid]
-
-        for t in self.tasks:
-            _ef(t.task_id)
-
-        if not earliest_finish:
-            return []
-
-        # The project finishes at the maximum earliest-finish.
-        project_end = max(earliest_finish.values())
-
-        # Backward pass – compute latest finish for every task.
-        latest_finish: Dict[str, float] = {}
-
-        def _lf(tid: str) -> float:
-            if tid in latest_finish:
-                return latest_finish[tid]
-            succs = successors.get(tid, [])
-            if not succs:
-                latest_finish[tid] = project_end
-            else:
-                # Latest finish = earliest possible latest start of any successor
-                # LS(successor) = LF(successor) - duration(successor)
-                # LF(task) = min(LS(successor) for each successor)
-                latest_start_of_succs = min(
-                    _lf(s) - _duration(s) for s in succs
-                )
-                latest_finish[tid] = latest_start_of_succs
-            return latest_finish[tid]
-
-        for t in self.tasks:
-            _lf(t.task_id)
-
-        # Critical tasks have zero total float (EF == LF).
-        critical_ids = {
-            tid for tid in earliest_finish
-            if abs(earliest_finish[tid] - latest_finish.get(tid, 0)) < 1e-9
-        }
-
-        # Return the critical tasks ordered by earliest finish.
-        return sorted(critical_ids, key=lambda tid: earliest_finish[tid])
     
     def get_completion_percentage(self) -> float:
         """Get plan completion percentage"""

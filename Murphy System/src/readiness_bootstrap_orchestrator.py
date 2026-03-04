@@ -290,7 +290,8 @@ class ReadinessBootstrapOrchestrator:
                         role,
                     )
                     count += 1
-                except Exception:
+                except Exception as exc:
+                    logger.debug("Suppressed exception: %s", exc)
                     pass
             task.status = BootstrapTaskStatus.COMPLETED
             task.message = f"Assigned {count} roles"
@@ -320,7 +321,8 @@ class ReadinessBootstrapOrchestrator:
                     rl = ResourceLimits(tenant_id=tenant_id, **limits)
                     self._tenant.set_limits(rl)
                     count += 1
-                except Exception:
+                except Exception as exc:
+                    logger.debug("Suppressed exception: %s", exc)
                     pass
             task.status = BootstrapTaskStatus.COMPLETED
             task.message = f"Configured {count} tenants"

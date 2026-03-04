@@ -696,27 +696,6 @@ class SystemIntegrator:
             }
         ]
     
-    def get_system_state(self) -> SystemState:
-        """Get current system state"""
-        return SystemState(
-            system_id=self.system_id,
-            initialized=True,
-            experts=self.experts,
-            gates=self.gates,
-            constraints=self.constraint_system.constraints,
-            requirements=self.requirements,
-            recommendations=self.recommendations,
-            last_updated=datetime.now().isoformat(),
-            metrics={
-                "total_requests": self.request_count,
-                "total_experts": len(self.experts),
-                "total_gates": len(self.gates),
-                "total_constraints": len(self.constraint_system.constraints),
-                "total_recommendations": len(self.recommendations),
-                "llm_stats": self.llm_layer.generate_system_report()
-            }
-        )
-    
     def get_system_state_dict(self) -> Dict[str, Any]:
         """Get current system state as a dictionary"""
         return self.get_system_state().to_dict()

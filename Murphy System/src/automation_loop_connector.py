@@ -225,12 +225,14 @@ class AutomationLoopConnector:
             # 5. Persist
             try:
                 self._engine.save_state()
-            except Exception:
+            except Exception as exc:
+                logger.debug("Suppressed exception: %s", exc)
                 pass
             if self._orchestrator is not None:
                 try:
                     self._orchestrator.save_state()
-                except Exception:
+                except Exception as exc:
+                    logger.debug("Suppressed exception: %s", exc)
                     pass
 
         result = LoopCycleResult(

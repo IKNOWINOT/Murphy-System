@@ -77,7 +77,7 @@ class LLMSwarmController:
         try:
             response = requests.get(f"{self.ollama_url}/api/tags", timeout=2)
             return response.status_code == 200
-        except Exception:
+        except Exception as exc:
             return False
     
     def _call_llm(self, prompt: str, max_tokens: int = 500) -> str:

@@ -308,7 +308,7 @@ class SecurityDashboard:
         for cb in callbacks:
             try:
                 cb(event)
-            except Exception:
+            except Exception as exc:
                 logger.exception("Escalation callback failed for event %s",
                                  event.event_id)
 
