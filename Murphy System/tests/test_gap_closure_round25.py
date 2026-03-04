@@ -41,7 +41,8 @@ class TestLoggingUsesGetLogger:
         for fpath in _walk_py():
             if "/tests/" in fpath:
                 continue
-            content = open(fpath, encoding="utf-8").read()
+            with open(fpath, encoding="utf-8") as fh:
+                content = fh.read()
             lines = content.split("\n")
             if "import logging" in content and "getLogger" not in content:
                 if len(lines) > 30:
@@ -74,7 +75,8 @@ class TestAllTestsCollectable:
                 if f.endswith(".py") and f.startswith("test_"):
                     fpath = os.path.join(root, f)
                     try:
-                        ast.parse(open(fpath, encoding="utf-8").read())
+                        with open(fpath, encoding="utf-8") as fh:
+                            ast.parse(fh.read())
                     except SyntaxError as exc:
                         errors.append(f"{f}: {exc}")
         assert errors == [], f"Test file syntax errors: {errors}"
