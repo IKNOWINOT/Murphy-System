@@ -58,10 +58,10 @@ class CommandModule:
         filepath = self.temp_dir / filename
         
         if isinstance(data, (dict, list)):
-            with open(filepath, 'w') as f:
+            with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2)
         else:
-            with open(filepath, 'w') as f:
+            with open(filepath, 'w', encoding='utf-8') as f:
                 f.write(str(data))
         
         return str(filepath)

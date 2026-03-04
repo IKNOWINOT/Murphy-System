@@ -213,7 +213,7 @@ class RollbackEnforcer:
             file_path = rollback_step.get('file_path', '')
             original_content = rollback_step.get('original_content', '')
             try:
-                with open(file_path, 'w') as f:
+                with open(file_path, 'w', encoding='utf-8') as f:
                     f.write(original_content)
                 return True, None
             except Exception as exc:
@@ -224,7 +224,7 @@ class RollbackEnforcer:
             file_path = rollback_step.get('file_path', '')
             backup_content = rollback_step.get('backup_content', '')
             try:
-                with open(file_path, 'w') as f:
+                with open(file_path, 'w', encoding='utf-8') as f:
                     f.write(backup_content)
                 return True, None
             except Exception as exc:

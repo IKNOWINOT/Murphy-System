@@ -219,11 +219,11 @@ class StepwiseExecutor:
             with open(path, 'r') as f:
                 return f.read()
         elif operation == 'write':
-            with open(path, 'w') as f:
+            with open(path, 'w', encoding='utf-8') as f:
                 f.write(content)
             return f"Written to {path}"
         elif operation == 'append':
-            with open(path, 'a') as f:
+            with open(path, 'a', encoding='utf-8') as f:
                 f.write(content)
             return f"Appended to {path}"
         elif operation == 'delete':

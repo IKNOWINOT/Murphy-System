@@ -544,7 +544,7 @@ class RiskDatabase:
             "risk_assessments": [a.model_dump() for a in self.risk_assessments.values()]
         }
         
-        with open(filepath, 'w') as f:
+        with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2, default=str)
     
     def import_from_json(self, filepath: str):

@@ -15,3 +15,18 @@ from src.comms.pipeline import (  # noqa: F401
     ThreadManager,
     MessagePipeline,
 )
+
+__all__ = [
+    "BaseConnector",
+    "EmailConnector",
+    "SlackConnector",
+    "TeamsConnector",
+    "SMSConnector",
+    "TicketConnector",
+    "MessageIngestor",
+    "IntentClassifier",
+    "RedactionPipeline",
+    "MessageStorage",
+    "ThreadManager",
+    "MessagePipeline",
+]

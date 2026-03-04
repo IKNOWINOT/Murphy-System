@@ -326,7 +326,7 @@ class ConversationManager:
                 'saved_at': datetime.now().isoformat()
             }
             
-            with open(filepath, 'w') as f:
+            with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(state, f, indent=2)
             
             print(f"💾 Saved conversation state to {filepath}")

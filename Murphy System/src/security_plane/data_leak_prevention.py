@@ -450,7 +450,7 @@ class DataAccessLogger:
         self.access_logs.append(log_entry)
         
         # Write to file
-        with open(self.log_file, 'a') as f:
+        with open(self.log_file, 'a', encoding='utf-8') as f:
             f.write(log_entry.to_audit_entry() + '\n')
         
         return log_entry

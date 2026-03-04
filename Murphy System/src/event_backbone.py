@@ -439,7 +439,7 @@ class EventBackbone:
         path = os.path.join(self._persistence_dir, "event_backbone_state.json")
         tmp_path = path + ".tmp"
         try:
-            with open(tmp_path, "w") as f:
+            with open(tmp_path, "w", encoding='utf-8') as f:
                 json.dump(state, f)
             os.replace(tmp_path, path)
         except OSError:

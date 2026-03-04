@@ -59,7 +59,7 @@ class ModuleRegistry:
         try:
             # Save module spec to file
             module_file = os.path.join(self.modules_path, f"{module_spec.module_id}.json")
-            with open(module_file, 'w') as f:
+            with open(module_file, 'w', encoding='utf-8') as f:
                 f.write(module_spec.to_json())
             
             # Update index
@@ -313,7 +313,7 @@ class ModuleRegistry:
     def _save_index(self):
         """Save index to file"""
         try:
-            with open(self.index_path, 'w') as f:
+            with open(self.index_path, 'w', encoding='utf-8') as f:
                 json.dump(self.index, f, indent=2)
         except Exception as exc:
             print(f"Failed to save index: {exc}")

@@ -234,7 +234,7 @@ class StateManager:
             return False
         
         try:
-            with open(file_path, 'w') as f:
+            with open(file_path, 'w', encoding='utf-8') as f:
                 json.dump(state.to_dict(), f, indent=2)
             logger.info(f"State persisted: {state_id} to {file_path}")
             return True
