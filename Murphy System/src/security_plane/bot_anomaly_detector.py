@@ -1,5 +1,5 @@
+"""Behavioral anomaly detection for bots in the Murphy System."""
 # Copyright © 2020 Inoni Limited Liability Company
-# Bot Anomaly Detector — behavioral anomaly detection for bots in the Murphy System.
 
 from __future__ import annotations
 

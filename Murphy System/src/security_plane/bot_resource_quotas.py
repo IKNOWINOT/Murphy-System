@@ -1,7 +1,5 @@
-# bot_resource_quotas.py
+"""Bot-specific and swarm-level resource quota enforcement."""
 # Copyright © 2020 Inoni Limited Liability Company
-#
-# Bot-specific and swarm-level resource quota enforcement.
 
 from __future__ import annotations
 

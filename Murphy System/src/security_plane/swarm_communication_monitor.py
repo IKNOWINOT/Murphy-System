@@ -1,7 +1,5 @@
-# swarm_communication_monitor.py
+"""Communication loop detection for inter-bot messaging in swarms."""
 # Copyright © 2020 Inoni Limited Liability Company
-#
-# Communication loop detection for inter-bot messaging in swarms.
 
 from __future__ import annotations
 

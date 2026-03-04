@@ -1,5 +1,5 @@
+"""PII detection and sanitization for the Murphy System logging pipeline."""
 # Copyright © 2020 Inoni Limited Liability Company
-# Murphy System — PII detection and sanitization for the logging pipeline.
 
 from __future__ import annotations
 
