@@ -831,10 +831,9 @@ class InoniOrgBootstrap:
                     "options:\n\n"
                     "• Free tier — trade services for a marketing "
                     "mention\n"
-                    "• Starter — 5% rev-share on annual subscriber "
-                    "revenue\n"
+                    "• Starter — $20/mo flat rate\n"
                     "• Pro — $99/mo flat rate\n"
-                    "• Agency — custom pricing for 10+ creators\n\n"
+                    "• Agency — $750/mo per seat for 10+ creators\n\n"
                     "Which sounds closest to what you need?"
                 ),
                 "status": "pricing_inquiry",

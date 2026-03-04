@@ -79,7 +79,7 @@ DEFAULT_EDITIONS = [
     },
     {
         "name": "enterprise",
-        "price": "Annual Agreement",
+        "price": "$750/mo per seat",
         "description": "On-premise, 24/7 support, compliance, custom modules",
     },
 ]
