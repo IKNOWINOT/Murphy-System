@@ -415,10 +415,16 @@ class ContentEngine(BaseEngine):
         if self._llm is not None:
             try:
                 result = self._llm.query(prompt)
+                llm_content = result.get('response', '')
+                # Apply type-specific formatting so structured content types
+                # always meet their format contract (e.g., social_media must
+                # contain the 🚀 prefix).
+                content = self._apply_type_format(llm_content, content_type, prompt)
                 return {
                     'prompt': prompt,
                     'content_type': content_type,
-                    'content': result.get('response', ''),
+                    'content': content,
+                    'word_count': len(content.split()),
                     'confidence': result.get('confidence', 0.0),
                     'timestamp': datetime.now().isoformat(),
                     'source': 'enhanced_local_llm',
@@ -459,6 +465,16 @@ class ContentEngine(BaseEngine):
             'timestamp': datetime.now().isoformat(),
             'source': 'template_fallback',
         }
+
+    def _apply_type_format(self, llm_content: str, content_type: str, prompt: str) -> str:
+        """Ensure type-specific formatting invariants are met on LLM output."""
+        if content_type == 'social_media':
+            if '🚀' not in llm_content:
+                return f"🚀 {prompt} — {llm_content}"
+        elif content_type == 'blog_post':
+            if prompt not in llm_content:
+                return f"# {prompt}\n\n{llm_content}"
+        return llm_content
 
 
 class CommandEngine(BaseEngine):

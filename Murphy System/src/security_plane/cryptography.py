@@ -623,7 +623,9 @@ class PacketSigner:
                 classical_kp.private_key,
                 pqc_kp.private_key
             )
-            signature = classical_sig + pqc_sig
+            # Prefix with 4-byte little-endian classical sig length so verify
+            # can split at the correct position regardless of ECDSA DER length.
+            signature = len(classical_sig).to_bytes(4, 'little') + classical_sig + pqc_sig
         elif signing_key.algorithm == CryptographicAlgorithm.POST_QUANTUM:
             signature = PostQuantumCryptography.sign_dilithium(
                 payload,
@@ -727,10 +729,13 @@ class PacketSigner:
         
         try:
             if packet_signature.algorithm == CryptographicAlgorithm.HYBRID and pqc_kp:
-                # Split signature
-                sig_len = len(packet_signature.signature) // 2
-                classical_sig = packet_signature.signature[:sig_len]
-                pqc_sig = packet_signature.signature[sig_len:]
+                # Decode 4-byte prefix that encodes the classical sig length.
+                raw = packet_signature.signature
+                if len(raw) < 4:
+                    raise ValueError("Hybrid signature too short to contain length prefix")
+                classical_sig_len = int.from_bytes(raw[:4], 'little')
+                classical_sig = raw[4:4 + classical_sig_len]
+                pqc_sig = raw[4 + classical_sig_len:]
                 
                 valid = HybridCryptography.verify_hybrid(
                     payload,
