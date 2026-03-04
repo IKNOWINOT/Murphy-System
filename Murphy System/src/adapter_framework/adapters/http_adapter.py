@@ -63,13 +63,13 @@ class HTTPAdapter(AdapterAPI):
             
             return telemetry
             
-        except Exception as e:
+        except Exception as exc:
             # Return error telemetry
             return {
                 "timestamp": time.time(),
                 "device_id": self.manifest.adapter_id,
                 "state_vector": {},
-                "error_codes": [f"telemetry_read_failed: {e}"],
+                "error_codes": [f"telemetry_read_failed: {exc}"],
                 "health": "failed",
                 "checksum": hashlib.sha256(b"{}").hexdigest(),
                 "sequence_number": 0
@@ -117,10 +117,10 @@ class HTTPAdapter(AdapterAPI):
                 "error": result.get('error')
             }
             
-        except Exception as e:
+        except Exception as exc:
             return {
                 "success": False,
-                "error": f"Command execution failed: {e}"
+                "error": f"Command execution failed: {exc}"
             }
     
     def emergency_stop(self) -> bool:
@@ -136,8 +136,8 @@ class HTTPAdapter(AdapterAPI):
             
             return True
             
-        except Exception as e:
-            print(f"[ERROR] Emergency stop failed: {e}")
+        except Exception as exc:
+            print(f"[ERROR] Emergency stop failed: {exc}")
             return False
     
     def heartbeat(self) -> Dict:
@@ -151,8 +151,8 @@ class HTTPAdapter(AdapterAPI):
             
             return response.json()
             
-        except Exception as e:
+        except Exception as exc:
             return {
                 "alive": False,
-                "error": str(e)
+                "error": str(exc)
             }

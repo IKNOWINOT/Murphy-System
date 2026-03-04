@@ -267,16 +267,16 @@ class CrossPlatformDataSync:
             if read_fn:
                 try:
                     source_data = read_fn(mapping.entity_type)
-                except Exception as e:
+                except Exception as exc:
                     log_entry = {
                         "mapping_id": mapping.mapping_id,
                         "status": "error",
-                        "error": str(e),
+                        "error": str(exc),
                         "timestamp": datetime.now(timezone.utc).isoformat(),
                     }
                     with self._lock:
                         capped_append(self._sync_log, log_entry)
-                    return {"mapping_id": mapping.mapping_id, "status": "error", "error": str(e)}
+                    return {"mapping_id": mapping.mapping_id, "status": "error", "error": str(exc)}
             else:
                 source_data = []
 

@@ -302,7 +302,7 @@ class ModuleSpec:
         try:
             with open(source_path, 'rb') as f:
                 return hashlib.sha256(f.read()).hexdigest()
-        except Exception as e:
+        except Exception as exc:
             # If file can't be read, use path hash
             return hashlib.sha256(source_path.encode()).hexdigest()
     

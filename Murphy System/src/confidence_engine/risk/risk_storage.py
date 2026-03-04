@@ -522,8 +522,8 @@ class RiskPatternStorage:
                 pattern = RiskPattern(**data)
                 pattern_id = self.database.add_risk_pattern(pattern)
                 imported_ids.append(pattern_id)
-            except Exception as e:
-                print(f"Error importing pattern: {e}")
+            except Exception as exc:
+                print(f"Error importing pattern: {exc}")
                 continue
         
         return imported_ids

@@ -308,8 +308,8 @@ class StateCollector:
             
             return state
             
-        except Exception as e:
-            print(f"[ERROR] Failed to collect state: {e}")
+        except Exception as exc:
+            print(f"[ERROR] Failed to collect state: {exc}")
             return None
     
     def collect_mock(self) -> StateVariables:

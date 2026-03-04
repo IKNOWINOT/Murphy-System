@@ -136,11 +136,11 @@ class NeuroSymbolicAdapter:
             
             return result
             
-        except Exception as e:
-            logger.error(f"Error in perform_inference: {e}")
+        except Exception as exc:
+            logger.error(f"Error in perform_inference: {exc}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': str(exc),
                 'inference_result': None,
                 'reasoning_trace': [],
                 'confidence': 0.0,
@@ -195,11 +195,11 @@ class NeuroSymbolicAdapter:
             
             return result
             
-        except Exception as e:
-            logger.error(f"Error in validate_constraints: {e}")
+        except Exception as exc:
+            logger.error(f"Error in validate_constraints: {exc}")
             return {
                 'valid': False,
-                'error': str(e),
+                'error': str(exc),
                 'constraint_results': [],
                 'violations': [],
                 'warnings': [],
@@ -244,11 +244,11 @@ class NeuroSymbolicAdapter:
             
             return result
             
-        except Exception as e:
-            logger.error(f"Error in perform_hybrid_reasoning: {e}")
+        except Exception as exc:
+            logger.error(f"Error in perform_hybrid_reasoning: {exc}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': str(exc),
                 'neural_result': None,
                 'symbolic_result': None,
                 'integrated_result': None,
@@ -292,11 +292,11 @@ class NeuroSymbolicAdapter:
             
             return result
             
-        except Exception as e:
-            logger.error(f"Error in create_knowledge_graph: {e}")
+        except Exception as exc:
+            logger.error(f"Error in create_knowledge_graph: {exc}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': str(exc),
                 'graph': {},
                 'entities': [],
                 'relationships': [],
@@ -353,8 +353,8 @@ class NeuroSymbolicAdapter:
                 'enabled': self.enabled
             }
             
-        except Exception as e:
-            logger.error(f"Error in get_reasoning_statistics: {e}")
+        except Exception as exc:
+            logger.error(f"Error in get_reasoning_statistics: {exc}")
             return {
                 'total_inferences': 0,
                 'successful_inferences': 0,
@@ -365,7 +365,7 @@ class NeuroSymbolicAdapter:
                 'cache_hits': 0,
                 'cache_misses': 0,
                 'enabled': self.enabled,
-                'error': str(e)
+                'error': str(exc)
             }
     
     def get_inference_history(self, limit: int = 20) -> List[Dict]:
@@ -380,8 +380,8 @@ class NeuroSymbolicAdapter:
         """
         try:
             return self.inference_history[-limit:]
-        except Exception as e:
-            logger.error(f"Error in get_inference_history: {e}")
+        except Exception as exc:
+            logger.error(f"Error in get_inference_history: {exc}")
             return []
     
     def clear_cache(self) -> Dict:

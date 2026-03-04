@@ -203,8 +203,8 @@ class ParallelProcessor:
             return True, result
         except asyncio.TimeoutError:
             return False, None
-        except Exception as e:
-            return False, str(e)
+        except Exception as exc:
+            return False, str(exc)
 
 
 # ============================================================================
@@ -484,9 +484,9 @@ class PerformanceBenchmark:
                     await func(*args, **kwargs)
                 else:
                     func(*args, **kwargs)
-        except Exception as e:
+        except Exception as exc:
             success = False
-            error = str(e)
+            error = str(exc)
         
         end_time = time.time()
         duration_ms = (end_time - start_time) * 1000

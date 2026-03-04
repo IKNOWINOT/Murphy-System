@@ -1069,8 +1069,8 @@ class WebhookEventProcessor:
             for handler in handlers:
                 try:
                     handler(event)
-                except Exception as e:
-                    event.error = str(e)
+                except Exception as exc:
+                    event.error = str(exc)
                     event.status = WebhookStatus.FAILED
                     with self._lock:
                         capped_append(self._events, event)

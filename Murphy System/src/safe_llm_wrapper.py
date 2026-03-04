@@ -183,8 +183,8 @@ class SafeLLMWrapper:
                     temperature=0.7,
                     max_tokens=max_tokens
                 )
-            except Exception as e:
-                return self._fallback_response(prompt, str(e))
+            except Exception as exc:
+                return self._fallback_response(prompt, str(exc))
         else:
             return self._fallback_response(prompt, "No LLM backend")
         
@@ -204,8 +204,8 @@ class SafeLLMWrapper:
                 else:
                     gates_failed.append(gate.name)
                     murphy_risk += gate.severity
-            except Exception as e:
-                gates_failed.append(f"{gate.name} (error: {e})")
+            except Exception as exc:
+                gates_failed.append(f"{gate.name} (error: {exc})")
                 murphy_risk += gate.severity
         
         # Determine status

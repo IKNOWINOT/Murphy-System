@@ -268,7 +268,7 @@ class CompilationCache:
                 version=data['version'],
                 created_at=datetime.fromisoformat(data['created_at']),
             )
-        except (KeyError, ValueError) as e:
+        except (KeyError, ValueError) as exc:
             return None
 
 
@@ -377,9 +377,9 @@ class EnterpriseRoleTemplateCompiler:
                 role = future_to_role[future]
                 try:
                     results[role] = future.result()
-                except Exception as e:
+                except Exception as exc:
                     # Log error but continue
-                    print(f"Error compiling {role}: {e}")
+                    print(f"Error compiling {role}: {exc}")
                     results[role] = None
         
         return results
@@ -437,8 +437,8 @@ class EnterpriseRoleTemplateCompiler:
                 template = self.compile(name)
                 if template:
                     templates.append(template)
-            except Exception as e:
-                print(f"Error compiling {name}: {e}")
+            except Exception as exc:
+                print(f"Error compiling {name}: {exc}")
         
         total_pages = (total + page_size - 1) // page_size
         
@@ -467,8 +467,8 @@ class EnterpriseRoleTemplateCompiler:
                 template = self.compile(role_name)
                 if template:
                     yield template
-            except Exception as e:
-                print(f"Error compiling {role_name}: {e}")
+            except Exception as exc:
+                print(f"Error compiling {role_name}: {exc}")
                 yield None
     
     # ============================================================================

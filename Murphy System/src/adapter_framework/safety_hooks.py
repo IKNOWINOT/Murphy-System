@@ -157,8 +157,8 @@ class EmergencyStop:
             
             success = response.status_code == 200
             
-        except Exception as e:
-            print(f"[ERROR] Failed to send emergency stop signal: {e}")
+        except Exception as exc:
+            print(f"[ERROR] Failed to send emergency stop signal: {exc}")
             success = False
         
         # Record

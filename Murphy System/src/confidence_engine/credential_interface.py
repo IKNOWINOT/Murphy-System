@@ -184,10 +184,10 @@ class BaseCredentialVerifier(ABC):
                     failed_methods.append(method)
                     is_valid = False
             
-            except Exception as e:
+            except Exception as exc:
                 failed_methods.append(method)
                 is_valid = False
-                error_details = str(e)
+                error_details = str(exc)
         
         # Check permissions if required
         permissions = []

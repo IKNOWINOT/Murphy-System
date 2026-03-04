@@ -224,13 +224,13 @@ class CredentialVerifier:
             self.verification_history.append(result)
             return result
             
-        except Exception as e:
+        except Exception as exc:
             return CredentialVerificationResult(
                 credential_id=credential_id,
                 is_valid=False,
                 status=CredentialStatus.INVALID,
                 confidence=0.0,
-                error_message=str(e)
+                error_message=str(exc)
             )
     
     async def _verify_credential_value(self, credential: Credential) -> bool:
@@ -348,8 +348,8 @@ class CredentialRefreshManager:
             result = await self.verifier.verify_credential(credential_id, force_refresh=True)
             return result.is_valid
             
-        except Exception as e:
-            print(f"Error refreshing credential {credential_id}: {e}")
+        except Exception as exc:
+            print(f"Error refreshing credential {credential_id}: {exc}")
             return False
     
     async def auto_refresh_expiring_credentials(self, hours_threshold: int = 24):

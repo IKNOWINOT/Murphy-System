@@ -194,7 +194,7 @@ class LoggingDatabase:
         try:
             yield conn
             conn.commit()
-        except Exception as e:
+        except Exception as exc:
             conn.rollback()
             raise
         finally:

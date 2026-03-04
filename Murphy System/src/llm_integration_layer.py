@@ -187,8 +187,8 @@ class LLMIntegrationLayer:
                 from src.mock_compatible_local_llm import MockCompatibleLocalLLM
                 self.local_llm = MockCompatibleLocalLLM()
                 print("✅ Mock-Compatible Local LLM loaded successfully")
-            except ImportError as e:
-                print(f"⚠️  Could not import Mock-Compatible Local LLM: {e}")
+            except ImportError as exc:
+                print(f"⚠️  Could not import Mock-Compatible Local LLM: {exc}")
                 self.use_local_fallback = False
     
     def _load_domain_routing(self) -> Dict[DomainType, Dict[str, Any]]:
@@ -315,8 +315,8 @@ class LLMIntegrationLayer:
                 return self._call_groq(request)
             else:
                 raise ValueError(f"Unknown provider: {request.provider}")
-        except Exception as e:
-            print(f"⚠️  API call failed for {request.provider.value}: {e}")
+        except Exception as exc:
+            print(f"⚠️  API call failed for {request.provider.value}: {exc}")
             
             # Fallback to Groq if primary fails
             if request.provider != LLMProvider.GROQ:
@@ -332,7 +332,7 @@ class LLMIntegrationLayer:
                 return self._call_local_llm(request)
             
             # All fallbacks failed
-            raise Exception(f"All LLM providers failed. Last error: {e}")
+            raise Exception(f"All LLM providers failed. Last error: {exc}")
     
     def _call_aristotle(self, request: LLMRequest) -> LLMResponse:
         """Call Aristotle API for deterministic/mathematical processing.

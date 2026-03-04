@@ -924,8 +924,8 @@ class DomainGateGenerator:
                 result["wired_function_result"] = func_result
                 if not func_result.get("passed", True):
                     result["passed"] = False
-            except Exception as e:
-                result["wired_function_error"] = str(e)
+            except Exception as exc:
+                result["wired_function_error"] = str(exc)
                 result["passed"] = False
         
         # Execute actions

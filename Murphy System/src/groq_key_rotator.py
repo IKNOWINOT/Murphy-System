@@ -216,8 +216,8 @@ def load_keys_from_secure_storage() -> List[tuple]:
         
         return keys
     
-    except Exception as e:
-        print(f"Failed to load keys from secure storage: {e}")
+    except Exception as exc:
+        print(f"Failed to load keys from secure storage: {exc}")
         raise
 
 

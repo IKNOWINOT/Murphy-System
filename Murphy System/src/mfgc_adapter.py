@@ -124,10 +124,10 @@ class MFGCAdapter:
                     user_input=user_input,
                     parameters=parameters
                 )
-            except Exception as e:
+            except Exception as exc:
                 if self.config.audit_trail:
                     mfgc_state.log_event("integrator_error", {
-                        "error": str(e),
+                        "error": str(exc),
                         "user_input": user_input
                     })
         

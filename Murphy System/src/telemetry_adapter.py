@@ -141,11 +141,11 @@ class TelemetryAdapter:
                 'timestamp': timestamp
             }
             
-        except Exception as e:
-            logger.error(f"Error in collect_metric: {e}")
+        except Exception as exc:
+            logger.error(f"Error in collect_metric: {exc}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': str(exc),
                 'timestamp': timestamp
             }
     
@@ -202,11 +202,11 @@ class TelemetryAdapter:
                 'count': len(filtered)
             }
             
-        except Exception as e:
-            logger.error(f"Error in get_metrics: {e}")
+        except Exception as exc:
+            logger.error(f"Error in get_metrics: {exc}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': str(exc),
                 'metrics': [],
                 'count': 0
             }
@@ -303,11 +303,11 @@ class TelemetryAdapter:
                 'threshold_used': threshold
             }
             
-        except Exception as e:
-            logger.error(f"Error in detect_anomalies: {e}")
+        except Exception as exc:
+            logger.error(f"Error in detect_anomalies: {exc}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': str(exc),
                 'anomalies': [],
                 'count': 0
             }
@@ -354,11 +354,11 @@ class TelemetryAdapter:
                 'min_confidence_used': min_confidence
             }
             
-        except Exception as e:
-            logger.error(f"Error in discover_patterns: {e}")
+        except Exception as exc:
+            logger.error(f"Error in discover_patterns: {exc}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': str(exc),
                 'patterns': [],
                 'count': 0
             }
@@ -404,11 +404,11 @@ class TelemetryAdapter:
                 'focus_area': focus_area or 'all'
             }
             
-        except Exception as e:
-            logger.error(f"Error in generate_recommendations: {e}")
+        except Exception as exc:
+            logger.error(f"Error in generate_recommendations: {exc}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': str(exc),
                 'recommendations': [],
                 'count': 0
             }
@@ -442,10 +442,10 @@ class TelemetryAdapter:
             
             return summary
             
-        except Exception as e:
-            logger.error(f"Error in get_telemetry_summary: {e}")
+        except Exception as exc:
+            logger.error(f"Error in get_telemetry_summary: {exc}")
             return {
-                'error': str(e),
+                'error': str(exc),
                 'enabled': self.enabled
             }
     
@@ -466,11 +466,11 @@ class TelemetryAdapter:
                 'config': self.config.copy(),
                 'message': 'Configuration updated successfully'
             }
-        except Exception as e:
-            logger.error(f"Error in update_config: {e}")
+        except Exception as exc:
+            logger.error(f"Error in update_config: {exc}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': str(exc),
                 'config': self.config.copy()
             }
     
@@ -508,11 +508,11 @@ class TelemetryAdapter:
                     'message': f'Cleared {total} metrics',
                     'cleared_count': total
                 }
-        except Exception as e:
-            logger.error(f"Error in clear_metrics: {e}")
+        except Exception as exc:
+            logger.error(f"Error in clear_metrics: {exc}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': str(exc),
                 'cleared_count': 0
             }
     
@@ -606,8 +606,8 @@ class TelemetryAdapter:
                 
                 patterns.append(pattern)
             
-        except Exception as e:
-            logger.error(f"Error in _analyze_performance_patterns: {e}")
+        except Exception as exc:
+            logger.error(f"Error in _analyze_performance_patterns: {exc}")
         
         return patterns
     
@@ -643,8 +643,8 @@ class TelemetryAdapter:
                     }
                     patterns.append(pattern)
             
-        except Exception as e:
-            logger.error(f"Error in _analyze_error_patterns: {e}")
+        except Exception as exc:
+            logger.error(f"Error in _analyze_error_patterns: {exc}")
         
         return patterns
     
@@ -665,8 +665,8 @@ class TelemetryAdapter:
                         'action': 'Analyze recent changes and optimize affected components'
                     })
             
-        except Exception as e:
-            logger.error(f"Error in _generate_performance_recommendations: {e}")
+        except Exception as exc:
+            logger.error(f"Error in _generate_performance_recommendations: {exc}")
         
         return recommendations
     
@@ -698,8 +698,8 @@ class TelemetryAdapter:
                     'action': 'Review anomalies and adjust system behavior'
                 })
             
-        except Exception as e:
-            logger.error(f"Error in _generate_reliability_recommendations: {e}")
+        except Exception as exc:
+            logger.error(f"Error in _generate_reliability_recommendations: {exc}")
         
         return recommendations
     
@@ -725,7 +725,7 @@ class TelemetryAdapter:
                     'action': 'Investigate security errors and implement fixes'
                 })
             
-        except Exception as e:
-            logger.error(f"Error in _generate_security_recommendations: {e}")
+        except Exception as exc:
+            logger.error(f"Error in _generate_security_recommendations: {exc}")
         
         return recommendations

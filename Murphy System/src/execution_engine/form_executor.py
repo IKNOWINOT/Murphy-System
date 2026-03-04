@@ -159,10 +159,10 @@ class FormDrivenExecutor:
                 result.final_output = context.final_output or context.phase_outputs
                 result.final_confidence = context.confidence
             
-        except Exception as e:
-            logger.error(f"Execution failed: {str(e)}", exc_info=True)
+        except Exception as exc:
+            logger.error(f"Execution failed: {str(exc)}", exc_info=True)
             result.status = ExecutionStatus.FAILED
-            result.error_message = str(e)
+            result.error_message = str(exc)
         
         finally:
             # Finalize result
@@ -286,8 +286,8 @@ class FormDrivenExecutor:
             # Use existing phase controller if available
             try:
                 return self._execute_with_phase_controller(phase, task, context)
-            except Exception as e:
-                logger.warning(f"Phase controller execution failed: {e}")
+            except Exception as exc:
+                logger.warning(f"Phase controller execution failed: {exc}")
         
         # Fallback to simple phase execution
         return self._execute_phase_simple(phase, task, context)

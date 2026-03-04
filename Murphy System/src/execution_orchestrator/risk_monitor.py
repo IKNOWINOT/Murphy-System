@@ -193,8 +193,8 @@ class RuntimeRiskMonitor:
         for callback in self.pause_callbacks:
             try:
                 callback(packet_id, conditions)
-            except Exception as e:
-                print(f"Error notifying pause callback: {e}")
+            except Exception as exc:
+                print(f"Error notifying pause callback: {exc}")
     
     def calculate_risk_projection(self, packet_id: str, remaining_steps: int) -> float:
         """

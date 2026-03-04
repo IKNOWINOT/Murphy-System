@@ -70,8 +70,8 @@ class ShutdownManager:
                 logger.info(f"Executing cleanup handler: {name}")
                 self._run_with_timeout(handler, name, self._CLEANUP_TIMEOUT)
                 logger.info(f"✅ Cleanup handler completed: {name}")
-            except Exception as e:
-                logger.error(f"❌ Cleanup handler failed: {name} - {e}", exc_info=True)
+            except Exception as exc:
+                logger.error(f"❌ Cleanup handler failed: {name} - {exc}", exc_info=True)
         
         logger.info("✅ Murphy System shutdown complete")
 
@@ -84,8 +84,8 @@ class ShutdownManager:
         def target():
             try:
                 handler()
-            except Exception as e:
-                exc_holder[0] = e
+            except Exception as exc:
+                exc_holder[0] = exc
 
         t = threading.Thread(target=target, daemon=True)
         t.start()

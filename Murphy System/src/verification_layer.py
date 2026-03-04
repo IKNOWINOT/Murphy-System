@@ -108,12 +108,12 @@ class WikipediaVerifier:
                 "categories": page.categories[:10] if hasattr(page, 'categories') else []
             }
             
-        except wikipedia.exceptions.DisambiguationError as e:
+        except wikipedia.exceptions.DisambiguationError as exc:
             # Return disambiguation options
             return {
                 "title": entity,
                 "disambiguation": True,
-                "options": e.options[:5]
+                "options": exc.options[:5]
             }
         except Exception as exc:
             return None

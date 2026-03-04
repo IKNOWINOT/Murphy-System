@@ -145,8 +145,8 @@ class PersistenceManager:
                 return None
             try:
                 return self._read_json(filepath)
-            except (json.JSONDecodeError, OSError) as e:
-                logger.error("Failed to load document %s: %s", doc_id, e)
+            except (json.JSONDecodeError, OSError) as exc:
+                logger.error("Failed to load document %s: %s", doc_id, exc)
                 return None
 
     def list_documents(self) -> List[str]:
@@ -189,8 +189,8 @@ class PersistenceManager:
             if filepath.exists():
                 try:
                     history = self._read_json(filepath)
-                except (json.JSONDecodeError, OSError) as e:
-                    logger.warning("Resetting corrupt gate history for %s: %s", session_id, e)
+                except (json.JSONDecodeError, OSError) as exc:
+                    logger.warning("Resetting corrupt gate history for %s: %s", session_id, exc)
             history.append(record.to_dict())
             self._write_json(filepath, history)
         logger.info("Saved gate event %s for session %s", event_id, session_id)
@@ -210,8 +210,8 @@ class PersistenceManager:
             try:
                 history = self._read_json(filepath)
                 return sorted(history, key=lambda e: e.get("timestamp", 0))
-            except (json.JSONDecodeError, OSError) as e:
-                logger.error("Failed to load gate history for %s: %s", session_id, e)
+            except (json.JSONDecodeError, OSError) as exc:
+                logger.error("Failed to load gate history for %s: %s", session_id, exc)
                 return []
 
     # ==================== Librarian Context ====================
@@ -252,8 +252,8 @@ class PersistenceManager:
                 return None
             try:
                 return self._read_json(filepath)
-            except (json.JSONDecodeError, OSError) as e:
-                logger.error("Failed to load librarian context %s: %s", request_id, e)
+            except (json.JSONDecodeError, OSError) as exc:
+                logger.error("Failed to load librarian context %s: %s", request_id, exc)
                 return None
 
     # ==================== Audit Trail ====================
@@ -284,8 +284,8 @@ class PersistenceManager:
             if filepath.exists():
                 try:
                     trail = self._read_json(filepath)
-                except (json.JSONDecodeError, OSError) as e:
-                    logger.warning("Resetting corrupt audit trail: %s", e)
+                except (json.JSONDecodeError, OSError) as exc:
+                    logger.warning("Resetting corrupt audit trail: %s", exc)
             trail.append(record.to_dict())
             self._write_json(filepath, trail)
         logger.info("Appended audit event %s", event_id)
@@ -310,8 +310,8 @@ class PersistenceManager:
                 return []
             try:
                 trail = self._read_json(filepath)
-            except (json.JSONDecodeError, OSError) as e:
-                logger.error("Failed to load audit trail: %s", e)
+            except (json.JSONDecodeError, OSError) as exc:
+                logger.error("Failed to load audit trail: %s", exc)
                 return []
 
         if session_id is not None:
@@ -367,8 +367,8 @@ class PersistenceManager:
                 return None
             try:
                 return self._read_json(filepath)
-            except (json.JSONDecodeError, OSError) as e:
-                logger.error("Failed to load rosetta state %s: %s", agent_id, e)
+            except (json.JSONDecodeError, OSError) as exc:
+                logger.error("Failed to load rosetta state %s: %s", agent_id, exc)
                 return None
 
     def list_rosetta_agents(self) -> List[str]:

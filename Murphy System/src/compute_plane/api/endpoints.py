@@ -82,8 +82,8 @@ def create_app(compute_service: ComputeService = None) -> Flask:
                 'status': 'pending'
             }), 202
         
-        except Exception as e:
-            return jsonify({'error': str(e)}), 400
+        except Exception as exc:
+            return jsonify({'error': str(exc)}), 400
     
     @app.route('/compute/<request_id>', methods=['GET'])
     def get_computation_result(request_id: str):
@@ -161,8 +161,8 @@ def create_app(compute_service: ComputeService = None) -> Flask:
             
             return jsonify(validation), 200
         
-        except Exception as e:
-            return jsonify({'error': str(e)}), 400
+        except Exception as exc:
+            return jsonify({'error': str(exc)}), 400
     
     @app.route('/statistics', methods=['GET'])
     def get_statistics():

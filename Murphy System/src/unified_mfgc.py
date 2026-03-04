@@ -87,8 +87,8 @@ class UnifiedMFGC:
                 self.llm_available = True
                 self.llm_mode = "groq_rotation"
                 print(f"Groq key rotation enabled with {len(self.key_rotator.keys)} keys")
-            except Exception as e:
-                print(f"Key rotation failed: {e}, falling back to single key mode")
+            except Exception as exc:
+                print(f"Key rotation failed: {exc}, falling back to single key mode")
                 self.key_rotator = None
         
         # Fallback to single key mode
@@ -914,13 +914,13 @@ Format as a numbered list."""
                 
                 return chat_completion.choices[0].message.content.strip()
                 
-            except Exception as e:
+            except Exception as exc:
                 # Report failure
                 if self.key_rotator:
-                    self.key_rotator.report_failure(api_key, str(e))
+                    self.key_rotator.report_failure(api_key, str(exc))
                 
                 # Fall back to offline mode if Groq fails
-                print(f"Groq failed (key: {key_name}), using offline fallback: {str(e)}")
+                print(f"Groq failed (key: {key_name}), using offline fallback: {str(exc)}")
                 return self.fallback_llm.generate(prompt, max_tokens)
         
         # Try single key Groq mode
@@ -939,9 +939,9 @@ Format as a numbered list."""
                 )
                 
                 return chat_completion.choices[0].message.content.strip()
-            except Exception as e:
+            except Exception as exc:
                 # Fall back to offline mode if Groq fails
-                print(f"Groq failed, using offline fallback: {str(e)}")
+                print(f"Groq failed, using offline fallback: {str(exc)}")
                 return self.fallback_llm.generate(prompt, max_tokens)
         
         # Use offline fallback
@@ -1321,12 +1321,12 @@ EXECUTE NOW and provide the complete deliverable."""
                         'total_gates': total_gates,
                         'unknowns_remaining': unknowns_count
                     }
-                except Exception as e:
+                except Exception as exc:
                     return {
-                        'content': f"Error executing task: {str(e)}",
+                        'content': f"Error executing task: {str(exc)}",
                         'confidence': 0.3,
                         'band': 'exploratory',
-                        'error': str(e)
+                        'error': str(exc)
                     }
         
         else:
@@ -1392,12 +1392,12 @@ Make questions specific and actionable."""
                         'confidence': confidence,
                         'band': 'conversational'
                     }
-                except Exception as e:
+                except Exception as exc:
                     return {
-                        'content': f"Error generating questions: {str(e)}",
+                        'content': f"Error generating questions: {str(exc)}",
                         'confidence': confidence,
                         'band': 'conversational',
-                        'error': str(e)
+                        'error': str(exc)
                     }
         
         return {

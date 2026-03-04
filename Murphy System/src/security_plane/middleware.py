@@ -776,10 +776,10 @@ class SecurityMiddleware:
             
             return result
             
-        except Exception as e:
+        except Exception as exc:
             # Audit logging (failure)
             self.audit.log_response(
-                {'error': str(e), 'component': component},
+                {'error': str(exc), 'component': component},
                 context,
                 success=False
             )

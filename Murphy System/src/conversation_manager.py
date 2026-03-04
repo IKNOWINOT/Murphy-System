@@ -251,8 +251,8 @@ class ConversationManager:
             # This would integrate with the existing MemoryArtifactSystem
             # For now, just log the archival
             print(f"📦 Archived conversation {conv.conversation_id} ({len(conv.messages)} messages)")
-        except Exception as e:
-            print(f"⚠️  Failed to archive conversation {conv.conversation_id}: {e}")
+        except Exception as exc:
+            print(f"⚠️  Failed to archive conversation {conv.conversation_id}: {exc}")
     
     def get_active_conversations(self) -> List[Dict]:
         """
@@ -372,8 +372,8 @@ class ConversationManager:
         
         except FileNotFoundError:
             print(f"⚠️  No saved state found at {filepath}")
-        except Exception as e:
-            print(f"❌ Failed to load conversation state: {e}")
+        except Exception as exc:
+            print(f"❌ Failed to load conversation state: {exc}")
 
 
 # Global conversation manager instance

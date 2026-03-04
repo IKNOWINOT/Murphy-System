@@ -76,9 +76,9 @@ class ExecutionOrchestrator:
             logger.info(f"Task {task_id} completed successfully")
             return result
             
-        except Exception as e:
+        except Exception as exc:
             self._tasks[task_id]['status'] = ExecutionStatus.FAILED.value
-            logger.error(f"Task {task_id} failed: {e}")
+            logger.error(f"Task {task_id} failed: {exc}")
             raise
     
     def get_status(self, task_id: str) -> Optional[Dict[str, Any]]:

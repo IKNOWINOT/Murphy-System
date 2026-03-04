@@ -293,9 +293,9 @@ class AutonomousScheduler:
                 self._schedule_next_task()
                 self._check_task_status()
                 time.sleep(self.scheduling_interval)
-            except Exception as e:
+            except Exception as exc:
                 # Log error but continue
-                print(f"Scheduler error: {e}")
+                print(f"Scheduler error: {exc}")
     
     def _schedule_next_task(self) -> None:
         """Schedule the next available task"""
@@ -384,11 +384,11 @@ class AutonomousScheduler:
             resource_requirements = task.metadata.get('resource_requirements', {})
             self.resource_pool.release(resource_requirements)
             
-        except Exception as e:
+        except Exception as exc:
             # Record failure
             task.status = TaskStatus.FAILED
             task.completed_at = datetime.now()
-            task.error = str(e)
+            task.error = str(exc)
             
             # Update metrics
             with self.lock:

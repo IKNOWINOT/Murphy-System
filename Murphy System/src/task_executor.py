@@ -178,19 +178,19 @@ class TaskExecutor:
                 "result": result
             }
             
-        except Exception as e:
+        except Exception as exc:
             # Record failure
             self._record_task({
                 "success": False,
                 "tool_used": best_tool,
-                "error": str(e),
+                "error": str(exc),
                 "task": task
             }, start_time)
             
             return {
                 "success": False,
                 "tool_used": best_tool,
-                "error": str(e)
+                "error": str(exc)
             }
     
     def _execute_with_timeout(self, func: Callable, parameters: Dict, 

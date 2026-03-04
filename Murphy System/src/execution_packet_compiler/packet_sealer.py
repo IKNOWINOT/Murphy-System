@@ -105,8 +105,8 @@ class PacketSealer:
             
             return True, signature, []
         
-        except Exception as e:
-            errors.append(f"Failed to seal packet: {str(e)}")
+        except Exception as exc:
+            errors.append(f"Failed to seal packet: {str(exc)}")
             return False, "", errors
     
     def verify_packet(

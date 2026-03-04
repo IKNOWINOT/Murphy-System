@@ -153,8 +153,8 @@ class ShadowAgent:
             
             return shadow_prediction
         
-        except Exception as e:
-            logger.error(f"Prediction failed: {e}")
+        except Exception as exc:
+            logger.error(f"Prediction failed: {exc}")
             return self._default_prediction(input_features, task_id)
     
     def predict_with_fallback(

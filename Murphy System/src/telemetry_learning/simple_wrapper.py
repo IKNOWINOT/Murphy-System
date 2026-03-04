@@ -111,9 +111,9 @@ class SimpleTelemetryLearningEngine:
             logger.info(f"Processed {results['processed_count']} metrics")
             return results
             
-        except Exception as e:
-            logger.error(f"Error processing metrics: {e}")
-            return {'error': str(e)}
+        except Exception as exc:
+            logger.error(f"Error processing metrics: {exc}")
+            return {'error': str(exc)}
     
     def _update_baseline(self, metric_name: str, value: float):
         """

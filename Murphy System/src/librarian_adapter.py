@@ -157,11 +157,11 @@ class LibrarianAdapter:
             result['timestamp'] = timestamp
             return result
             
-        except Exception as e:
-            logger.error(f"Error in ask_question: {e}")
+        except Exception as exc:
+            logger.error(f"Error in ask_question: {exc}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': str(exc),
                 'answer': None,
                 'confidence': 0.0,
                 'timestamp': timestamp
@@ -202,11 +202,11 @@ class LibrarianAdapter:
                 # Use actual librarian module
                 return self._actual_get_topics()
             
-        except Exception as e:
-            logger.error(f"Error in get_topics: {e}")
+        except Exception as exc:
+            logger.error(f"Error in get_topics: {exc}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': str(exc),
                 'topics': [],
                 'count': 0
             }
@@ -254,11 +254,11 @@ class LibrarianAdapter:
                 # Use actual librarian module
                 return self._actual_get_health_status()
             
-        except Exception as e:
-            logger.error(f"Error in get_health_status: {e}")
+        except Exception as exc:
+            logger.error(f"Error in get_health_status: {exc}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': str(exc),
                 'status': 'unknown',
                 'components': {},
                 'overall_health': 'unknown'
@@ -297,11 +297,11 @@ class LibrarianAdapter:
             
             return result
             
-        except Exception as e:
-            logger.error(f"Error in get_troubleshooting_guide: {e}")
+        except Exception as exc:
+            logger.error(f"Error in get_troubleshooting_guide: {exc}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': str(exc),
                 'issue': issue,
                 'causes': [],
                 'solutions': []
@@ -334,11 +334,11 @@ class LibrarianAdapter:
             
             return result
             
-        except Exception as e:
-            logger.error(f"Error in get_documentation: {e}")
+        except Exception as exc:
+            logger.error(f"Error in get_documentation: {exc}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': str(exc),
                 'topic': topic,
                 'documentation': None,
                 'examples': []
@@ -374,11 +374,11 @@ class LibrarianAdapter:
             
             return result
             
-        except Exception as e:
-            logger.error(f"Error in search_knowledge_base: {e}")
+        except Exception as exc:
+            logger.error(f"Error in search_knowledge_base: {exc}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': str(exc),
                 'query': query,
                 'results': [],
                 'count': 0,
@@ -409,11 +409,11 @@ class LibrarianAdapter:
                 'troubleshooting_accessed': self.usage_stats['troubleshooting_accessed'],
                 'enabled': self.enabled
             }
-        except Exception as e:
-            logger.error(f"Error in get_librarian_statistics: {e}")
+        except Exception as exc:
+            logger.error(f"Error in get_librarian_statistics: {exc}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': str(exc),
                 'enabled': self.enabled
             }
     

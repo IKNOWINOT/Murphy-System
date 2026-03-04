@@ -76,8 +76,8 @@ class ModuleManager:
             print(f"✓ Loaded module: {name}")
             return True
             
-        except Exception as e:
-            print(f"✗ Failed to load module {name}: {e}")
+        except Exception as exc:
+            print(f"✗ Failed to load module {name}: {exc}")
             return False
     
     def unload_module(self, name: str) -> bool:
@@ -102,8 +102,8 @@ class ModuleManager:
             print(f"✗ Unloaded module: {name}")
             return True
             
-        except Exception as e:
-            print(f"✗ Failed to unload module {name}: {e}")
+        except Exception as exc:
+            print(f"✗ Failed to unload module {name}: {exc}")
             return False
     
     def find_modules_for_capability(self, capability: str) -> List[str]:

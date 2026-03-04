@@ -321,8 +321,8 @@ class HypothesisIntakeService:
                 instance=hypothesis.to_dict(),
                 schema=HYPOTHESIS_ARTIFACT_SCHEMA,
             )
-        except jsonschema.ValidationError as e:
-            errors.append(f"Schema validation failed: {e.message}")
+        except jsonschema.ValidationError as exc:
+            errors.append(f"Schema validation failed: {exc.message}")
         
         return errors
     

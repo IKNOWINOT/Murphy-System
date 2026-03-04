@@ -350,3 +350,31 @@ class TestNoDeeplyNestedTry:
         assert violations == [], (
             f"Deeply nested try: {violations}"
         )
+
+
+# ===================================================================
+# Gap 39 — consistent exception variable naming (exc, not e)
+# ===================================================================
+class TestConsistentExceptionNaming:
+    """All except handlers should use 'exc' as the variable name."""
+
+    def test_no_except_as_e(self):
+        violations = []
+        for root, _dirs, files in os.walk(SRC_DIR):
+            for fname in files:
+                if not fname.endswith(".py"):
+                    continue
+                fpath = os.path.join(root, fname)
+                try:
+                    with open(fpath) as f:
+                        tree = ast.parse(f.read())
+                except SyntaxError:
+                    continue
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.ExceptHandler):
+                        if node.name == "e":
+                            rel = os.path.relpath(fpath, SRC_DIR)
+                            violations.append(f"{rel}:{node.lineno}")
+        assert violations == [], (
+            f"'except ... as e:' should use 'exc': {violations[:10]}"
+        )

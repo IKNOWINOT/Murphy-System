@@ -89,8 +89,8 @@ class SemanticSearchEngine:
             logger.info(f"Semantic search returned {len(final_results)} results")
             return final_results
             
-        except Exception as e:
-            logger.error(f"Error in semantic search: {e}")
+        except Exception as exc:
+            logger.error(f"Error in semantic search: {exc}")
             return []
     
     def _process_query(self, query: str) -> Dict:
@@ -285,8 +285,8 @@ class SemanticSearchEngine:
             
             return suggestions[:limit]
             
-        except Exception as e:
-            logger.error(f"Error generating query suggestions: {e}")
+        except Exception as exc:
+            logger.error(f"Error generating query suggestions: {exc}")
             return []
     
     def _extract_context(self, text: str, term: str, window: int = 20) -> str:
@@ -313,8 +313,8 @@ class SemanticSearchEngine:
             
             return ""
             
-        except Exception as e:
-            logger.error(f"Error extracting context: {e}")
+        except Exception as exc:
+            logger.error(f"Error extracting context: {exc}")
             return ""
     
     def _log_query(self, query: str, processed_query: Dict, result_count: int):

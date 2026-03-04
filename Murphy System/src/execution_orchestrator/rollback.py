@@ -132,13 +132,13 @@ class RollbackEnforcer:
                         'error': error,
                         'timestamp': datetime.now().isoformat()
                     })
-            except Exception as e:
-                errors.append(f"Exception during rollback of step {step_id}: {str(e)}")
+            except Exception as exc:
+                errors.append(f"Exception during rollback of step {step_id}: {str(exc)}")
                 rollback_steps.append({
                     'step_id': step_id,
                     'action': rollback_step['rollback_action'],
                     'success': False,
-                    'error': str(e),
+                    'error': str(exc),
                     'timestamp': datetime.now().isoformat()
                 })
         
@@ -186,8 +186,8 @@ class RollbackEnforcer:
             else:
                 # Some step types don't need rollback (e.g., read operations)
                 return True, None
-        except Exception as e:
-            return False, str(e)
+        except Exception as exc:
+            return False, str(exc)
     
     def _rollback_filesystem_op(
         self,
@@ -205,8 +205,8 @@ class RollbackEnforcer:
                 if os.path.exists(file_path):
                     os.remove(file_path)
                 return True, None
-            except Exception as e:
-                return False, str(e)
+            except Exception as exc:
+                return False, str(exc)
         
         elif action == 'restore_original_content':
             # Restore original file content
@@ -216,8 +216,8 @@ class RollbackEnforcer:
                 with open(file_path, 'w') as f:
                     f.write(original_content)
                 return True, None
-            except Exception as e:
-                return False, str(e)
+            except Exception as exc:
+                return False, str(exc)
         
         elif action == 'restore_deleted_file':
             # Restore file from backup
@@ -227,8 +227,8 @@ class RollbackEnforcer:
                 with open(file_path, 'w') as f:
                     f.write(backup_content)
                 return True, None
-            except Exception as e:
-                return False, str(e)
+            except Exception as exc:
+                return False, str(exc)
         
         else:
             return False, f"Unknown filesystem rollback action: {action}"
@@ -249,8 +249,8 @@ class RollbackEnforcer:
                 response = requests.delete(url, timeout=30)
                 response.raise_for_status()
                 return True, None
-            except Exception as e:
-                return False, str(e)
+            except Exception as exc:
+                return False, str(exc)
         
         elif action == 'restore_original_state':
             # Restore original state via PUT/PATCH
@@ -261,8 +261,8 @@ class RollbackEnforcer:
                 response = requests.put(url, json=original_state, timeout=30)
                 response.raise_for_status()
                 return True, None
-            except Exception as e:
-                return False, str(e)
+            except Exception as exc:
+                return False, str(exc)
         
         else:
             return False, f"Unknown REST rollback action: {action}"

@@ -318,8 +318,8 @@ class TestModeExecutor:
                     base_scenario
                 )
                 results['historical'].append(result)
-            except Exception as e:
-                print(f"Error replaying {disaster.disaster_name}: {e}")
+            except Exception as exc:
+                print(f"Error replaying {disaster.disaster_name}: {exc}")
         
         return results
     

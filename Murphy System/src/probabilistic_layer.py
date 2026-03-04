@@ -38,8 +38,8 @@ class IntentParser:
             try:
                 self.parser = LocalModelParser(model_name)
                 print(f"✓ Using local model: {model_name}")
-            except Exception as e:
-                print(f"⚠ Failed to load model, falling back to rules: {e}")
+            except Exception as exc:
+                print(f"⚠ Failed to load model, falling back to rules: {exc}")
                 self.parser = None
                 self.use_local = False
         else:
@@ -62,9 +62,9 @@ class IntentParser:
             
             return hypothesis
             
-        except Exception as e:
+        except Exception as exc:
             # If parsing fails, return low-confidence hypothesis
-            print(f"⚠ Parsing failed: {e}, using fallback")
+            print(f"⚠ Parsing failed: {exc}, using fallback")
             return RuleBasedFallback.parse_intent(prompt)
 
 

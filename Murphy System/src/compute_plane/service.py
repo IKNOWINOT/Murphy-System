@@ -341,11 +341,11 @@ class ComputeService:
 
             result.execution_time = time.time() - start_time
             
-        except Exception as e:
+        except Exception as exc:
             result = ComputeResult(
                 request_id=request.request_id,
                 status=ComputeStatus.FAIL,
-                error_message=str(e),
+                error_message=str(exc),
                 execution_time=time.time() - start_time
             )
         

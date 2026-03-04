@@ -100,7 +100,7 @@ class StepwiseExecutor:
                 confidence_delta=step.get('confidence_delta', 0.0)
             )
             
-        except Exception as e:
+        except Exception as exc:
             end_time = datetime.now()
             duration_ms = (end_time - start_time).total_seconds() * 1000
             
@@ -114,7 +114,7 @@ class StepwiseExecutor:
                 duration_ms=duration_ms,
                 risk_delta=step.get('risk_delta', 0.0),
                 confidence_delta=step.get('confidence_delta', 0.0),
-                error=str(e)
+                error=str(exc)
             )
     
     def _execute_rest_call(self, step: Dict, context: Dict) -> Any:
@@ -192,12 +192,12 @@ class StepwiseExecutor:
             
             response.raise_for_status()
             return response.json()
-        except Exception as e:
+        except Exception as exc:
             # Fallback to simple evaluation for basic expressions
             return {
                 'expression': expression,
                 'result': 'Compute plane unavailable',
-                'error': str(e)
+                'error': str(exc)
             }
     
     def _execute_filesystem_op(self, step: Dict, context: Dict) -> Any:

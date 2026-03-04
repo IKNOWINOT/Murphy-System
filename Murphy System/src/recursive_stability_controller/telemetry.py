@@ -168,8 +168,8 @@ class StabilityTelemetry:
             with open(self.current_log_file, 'a') as f:
                 json.dump(record.to_dict(), f)
                 f.write('\n')
-        except Exception as e:
-            print(f"[ERROR] Failed to write telemetry: {e}")
+        except Exception as exc:
+            print(f"[ERROR] Failed to write telemetry: {exc}")
     
     def get_recent(self, n: int = 10) -> List[TelemetryRecord]:
         """

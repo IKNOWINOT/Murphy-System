@@ -271,8 +271,8 @@ class DynamicCommandDiscovery:
                     if module_name in self.modules:
                         self.modules[module_name].commands.append(command.command_name)
         
-        except Exception as e:
-            print(f"Error discovering commands for module {module_name}: {e}")
+        except Exception as exc:
+            print(f"Error discovering commands for module {module_name}: {exc}")
     
     def _create_command_from_function(self, func_name: str, func_obj: Callable,
                                       module_name: str, docstring: str) -> Optional[Command]:

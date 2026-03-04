@@ -428,8 +428,8 @@ class RoleTemplateCompiler:
             try:
                 template = self.compile(role_name)
                 templates.append(template)
-            except Exception as e:
-                print(f"Warning: Failed to compile template for {role_name}: {e}")
+            except Exception as exc:
+                print(f"Warning: Failed to compile template for {role_name}: {exc}")
         
         return templates
 

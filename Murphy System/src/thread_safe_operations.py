@@ -174,9 +174,9 @@ class CircuitBreaker:
             result = func(*args, **kwargs)
             self._on_success()
             return result
-        except self.expected_exception as e:
+        except self.expected_exception as exc:
             self._on_failure()
-            raise e
+            raise exc
     
     def _should_attempt_reset(self) -> bool:
         """Check if enough time has passed to attempt reset."""
@@ -232,8 +232,8 @@ def retry_on_failure(
             for attempt in range(max_retries + 1):
                 try:
                     return func(*args, **kwargs)
-                except exceptions as e:
-                    last_exception = e
+                except exceptions as exc:
+                    last_exception = exc
                     if attempt < max_retries:
                         time.sleep(current_delay)
                         current_delay *= backoff_factor

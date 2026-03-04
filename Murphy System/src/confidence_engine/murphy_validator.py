@@ -90,8 +90,8 @@ class MurphyValidator:
         if self.has_v1_calculator:
             try:
                 confidence_v1 = self._compute_confidence_v1(task, context)
-            except Exception as e:
-                logger.warning(f"Could not compute v1 confidence: {e}")
+            except Exception as exc:
+                logger.warning(f"Could not compute v1 confidence: {exc}")
         
         # Use higher confidence (conservative approach)
         final_confidence = max(confidence, confidence_v1) if confidence_v1 else confidence

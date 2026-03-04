@@ -125,8 +125,8 @@ class IntegratedCorrectionSystem:
         if self.learning_system:
             try:
                 self._feed_to_learning_system(correction, patterns)
-            except Exception as e:
-                logger.error(f"Error feeding to learning system: {e}")
+            except Exception as exc:
+                logger.error(f"Error feeding to learning system: {exc}")
         
         return correction
     
@@ -264,8 +264,8 @@ class IntegratedCorrectionSystem:
         try:
             self.learning_system.learn_from_correction(learning_data)
             logger.info(f"Fed correction to learning system: {correction.task_id}")
-        except Exception as e:
-            logger.error(f"Error feeding to learning system: {e}")
+        except Exception as exc:
+            logger.error(f"Error feeding to learning system: {exc}")
     
     def get_statistics(self) -> Dict[str, Any]:
         """

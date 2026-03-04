@@ -397,10 +397,10 @@ class AutomatedTestSuite:
                 "message": "Basic functionality working"
             }
         
-        except Exception as e:
+        except Exception as exc:
             return {
                 "passed": False,
-                "message": f"Basic functionality failed: {e}"
+                "message": f"Basic functionality failed: {exc}"
             }
     
     def _test_edge_cases(
@@ -420,10 +420,10 @@ class AutomatedTestSuite:
                 "message": "Edge cases handled correctly"
             }
         
-        except Exception as e:
+        except Exception as exc:
             return {
                 "passed": False,
-                "message": f"Edge case handling failed: {e}"
+                "message": f"Edge case handling failed: {exc}"
             }
     
     def _test_performance(
@@ -452,10 +452,10 @@ class AutomatedTestSuite:
                 "avg_time_ms": avg_time_ms
             }
         
-        except Exception as e:
+        except Exception as exc:
             return {
                 "passed": False,
-                "message": f"Performance test failed: {e}"
+                "message": f"Performance test failed: {exc}"
             }
     
     def _test_consistency(
@@ -480,10 +480,10 @@ class AutomatedTestSuite:
                 "message": "Predictions are consistent" if consistent else "Predictions vary"
             }
         
-        except Exception as e:
+        except Exception as exc:
             return {
                 "passed": False,
-                "message": f"Consistency test failed: {e}"
+                "message": f"Consistency test failed: {exc}"
             }
     
     def _test_robustness(
@@ -503,10 +503,10 @@ class AutomatedTestSuite:
                 "message": "Model is robust to perturbations"
             }
         
-        except Exception as e:
+        except Exception as exc:
             return {
                 "passed": False,
-                "message": f"Robustness test failed: {e}"
+                "message": f"Robustness test failed: {exc}"
             }
     
     def _get_sample_data(self, dataset: TrainingDataset, n: int = 10):

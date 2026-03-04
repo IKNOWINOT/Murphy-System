@@ -57,8 +57,8 @@ class MLInferenceService:
             self.model.eval()
             self.model_loaded = True
             logger.info(f"Loaded model from {model_path}")
-        except Exception as e:
-            logger.error(f"Failed to load model: {e}")
+        except Exception as exc:
+            logger.error(f"Failed to load model: {exc}")
             self.model_loaded = False
     
     def is_healthy(self) -> bool:
@@ -138,8 +138,8 @@ class MLInferenceService:
             
             return result
         
-        except Exception as e:
-            logger.error(f"Prediction failed: {e}")
+        except Exception as exc:
+            logger.error(f"Prediction failed: {exc}")
             raise
     
     def _prepare_input(
@@ -256,8 +256,8 @@ class MLInferenceService:
                     current_phase=scenario.get("current_phase")
                 )
                 predictions.append(pred)
-            except Exception as e:
-                logger.error(f"Batch prediction failed for scenario: {e}")
+            except Exception as exc:
+                logger.error(f"Batch prediction failed for scenario: {exc}")
                 predictions.append(None)
         
         # Compute batch confidence
@@ -327,10 +327,10 @@ def predict_confidence():
         
         return jsonify(result)
     
-    except Exception as e:
-        logger.error(f"Prediction endpoint error: {e}")
+    except Exception as exc:
+        logger.error(f"Prediction endpoint error: {exc}")
         return jsonify({
-            "error": str(e),
+            "error": str(exc),
             "status": "failed"
         }), 500
 
@@ -356,10 +356,10 @@ def predict_batch():
         
         return jsonify(result)
     
-    except Exception as e:
-        logger.error(f"Batch prediction endpoint error: {e}")
+    except Exception as exc:
+        logger.error(f"Batch prediction endpoint error: {exc}")
         return jsonify({
-            "error": str(e),
+            "error": str(exc),
             "status": "failed"
         }), 500
 
@@ -414,10 +414,10 @@ def load_model_endpoint():
             "model_version": ml_service.model_version
         })
     
-    except Exception as e:
-        logger.error(f"Model load error: {e}")
+    except Exception as exc:
+        logger.error(f"Model load error: {exc}")
         return jsonify({
-            "error": str(e),
+            "error": str(exc),
             "status": "failed"
         }), 500
 

@@ -670,8 +670,8 @@ class RiskScoringSystem:
                     incidents,
                     context
                 )
-            except Exception as e:
-                print(f"Error calculating {method.value} score: {e}")
+            except Exception as exc:
+                print(f"Error calculating {method.value} score: {exc}")
                 continue
         
         return results

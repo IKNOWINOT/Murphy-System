@@ -408,8 +408,8 @@ class AgentDescriptorValidator:
             try:
                 rule_errors = rule(descriptor)
                 errors.extend(rule_errors)
-            except Exception as e:
-                errors.append(f"Validation rule error: {str(e)}")
+            except Exception as exc:
+                errors.append(f"Validation rule error: {str(exc)}")
         
         is_valid = len(errors) == 0
         return is_valid, errors

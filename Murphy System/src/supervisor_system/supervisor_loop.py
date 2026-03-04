@@ -366,8 +366,8 @@ class FeedbackRouter:
         
         try:
             return handler(feedback)
-        except Exception as e:
-            logger.error(f"Error processing feedback {feedback.feedback_id}: {e}")
+        except Exception as exc:
+            logger.error(f"Error processing feedback {feedback.feedback_id}: {exc}")
             return False
 
 

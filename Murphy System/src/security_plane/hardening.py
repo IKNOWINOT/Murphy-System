@@ -270,8 +270,8 @@ class ValidationRule:
         # Use shlex to safely parse
         try:
             shlex.split(value)
-        except ValueError as e:
-            raise ValidationError(f"{field_name} is not a valid command: {e}")
+        except ValueError as exc:
+            raise ValidationError(f"{field_name} is not a valid command: {exc}")
         
         return value
     
@@ -285,8 +285,8 @@ class ValidationRule:
         
         try:
             return json.loads(value)
-        except json.JSONDecodeError as e:
-            raise ValidationError(f"{field_name} is not valid JSON: {e}")
+        except json.JSONDecodeError as exc:
+            raise ValidationError(f"{field_name} is not valid JSON: {exc}")
     
     def _validate_base64(self, value: Any, field_name: str) -> bytes:
         """Validate base64 input"""
@@ -295,8 +295,8 @@ class ValidationRule:
         
         try:
             return base64.b64decode(value, validate=True)
-        except Exception as e:
-            raise ValidationError(f"{field_name} is not valid base64: {e}")
+        except Exception as exc:
+            raise ValidationError(f"{field_name} is not valid base64: {exc}")
     
     def _validate_uuid(self, value: Any, field_name: str) -> str:
         """Validate UUID"""
@@ -366,8 +366,8 @@ class InputValidator:
             try:
                 value = data.get(field_name)
                 validated[field_name] = rule.validate(value, field_name)
-            except (ValidationError, InjectionAttemptError) as e:
-                errors.append(str(e))
+            except (ValidationError, InjectionAttemptError) as exc:
+                errors.append(str(exc))
         
         # Check for unexpected fields
         unexpected = set(data.keys()) - set(self.rules.keys())

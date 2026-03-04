@@ -228,8 +228,8 @@ class HyperparameterTuner:
             # Return validation accuracy as score
             return trained_model.metadata.validation_accuracy
         
-        except Exception as e:
-            logger.warning(f"Evaluation failed for params {params}: {e}")
+        except Exception as exc:
+            logger.warning(f"Evaluation failed for params {params}: {exc}")
             return 0.0
     
     def _create_model_config(self, model_type: ModelType, params: Dict[str, Any]) -> Any:

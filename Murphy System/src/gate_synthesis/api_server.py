@@ -116,9 +116,9 @@ def enumerate_failure_modes():
             'count': len(failure_modes)
         })
     
-    except Exception as e:
-        logger.error(f"Error enumerating failure modes: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error enumerating failure modes: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================
@@ -150,9 +150,9 @@ def estimate_murphy_probability():
             'risk_vector': risk_vector.to_dict()
         })
     
-    except Exception as e:
-        logger.error(f"Error estimating Murphy probability: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error estimating Murphy probability: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/gate-synthesis/murphy/analyze-exposure', methods=['POST'])
@@ -176,9 +176,9 @@ def analyze_exposure():
             'analysis': analysis
         })
     
-    except Exception as e:
-        logger.error(f"Error analyzing exposure: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error analyzing exposure: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================
@@ -242,9 +242,9 @@ def generate_gates():
             'count': len(gates)
         })
     
-    except Exception as e:
-        logger.error(f"Error generating gates: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error generating gates: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================
@@ -269,9 +269,9 @@ def activate_gate(gate_id: str):
                 'error': 'Gate not found or cannot be activated'
             }), 404
     
-    except Exception as e:
-        logger.error(f"Error activating gate: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error activating gate: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/gate-synthesis/gates/activate-all', methods=['POST'])
@@ -286,9 +286,9 @@ def activate_all_gates():
             'count': len(activated)
         })
     
-    except Exception as e:
-        logger.error(f"Error activating gates: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error activating gates: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/gate-synthesis/gates/retire/<gate_id>', methods=['POST'])
@@ -312,9 +312,9 @@ def retire_gate(gate_id: str):
                 'error': 'Gate not found or cannot be retired'
             }), 404
     
-    except Exception as e:
-        logger.error(f"Error retiring gate: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error retiring gate: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/gate-synthesis/gates/check-expiry', methods=['POST'])
@@ -329,9 +329,9 @@ def check_expiry():
             'count': len(expired)
         })
     
-    except Exception as e:
-        logger.error(f"Error checking expiry: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error checking expiry: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/gate-synthesis/gates/update-retirement-conditions', methods=['POST'])
@@ -350,9 +350,9 @@ def update_retirement_conditions():
             'count': len(retired)
         })
     
-    except Exception as e:
-        logger.error(f"Error updating retirement conditions: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error updating retirement conditions: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================
@@ -383,9 +383,9 @@ def list_gates():
             'count': len(gates)
         })
     
-    except Exception as e:
-        logger.error(f"Error listing gates: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error listing gates: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/gate-synthesis/gates/<gate_id>', methods=['GET'])
@@ -405,9 +405,9 @@ def get_gate(gate_id: str):
                 'error': 'Gate not found'
             }), 404
     
-    except Exception as e:
-        logger.error(f"Error getting gate: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error getting gate: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/gate-synthesis/gates/active', methods=['GET'])
@@ -422,9 +422,9 @@ def get_active_gates():
             'count': len(active_gates)
         })
     
-    except Exception as e:
-        logger.error(f"Error getting active gates: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error getting active gates: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/gate-synthesis/gates/by-target/<target>', methods=['GET'])
@@ -440,9 +440,9 @@ def get_gates_by_target(target: str):
             'count': len(gates)
         })
     
-    except Exception as e:
-        logger.error(f"Error getting gates by target: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error getting gates by target: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================
@@ -460,9 +460,9 @@ def get_statistics():
             'statistics': stats
         })
     
-    except Exception as e:
-        logger.error(f"Error getting statistics: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error getting statistics: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/gate-synthesis/logs/activation', methods=['GET'])
@@ -478,9 +478,9 @@ def get_activation_log():
             'count': len(log)
         })
     
-    except Exception as e:
-        logger.error(f"Error getting activation log: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error getting activation log: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/gate-synthesis/logs/retirement', methods=['GET'])
@@ -496,9 +496,9 @@ def get_retirement_log():
             'count': len(log)
         })
     
-    except Exception as e:
-        logger.error(f"Error getting retirement log: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error getting retirement log: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================
@@ -527,9 +527,9 @@ def add_artifact():
             'artifact_id': node.id
         })
     
-    except Exception as e:
-        logger.error(f"Error adding artifact: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error adding artifact: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================

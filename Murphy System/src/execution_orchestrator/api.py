@@ -335,14 +335,14 @@ def _execute_packet_async(packet: Dict, execution_state: ExecutionState):
             final_confidence
         )
         
-    except Exception as e:
+    except Exception as exc:
         execution_state.status = ExecutionStatus.FAILED
-        execution_state.error = str(e)
+        execution_state.error = str(exc)
         execution_state.end_time = datetime.now()
         
         telemetry.emit_execution_failed(
             packet_id,
-            str(e),
+            str(exc),
             risk_monitor.get_safety_state(packet_id).current_risk if packet_id in risk_monitor.safety_states else 0.0,
             risk_monitor.get_safety_state(packet_id).current_confidence if packet_id in risk_monitor.safety_states else 0.0
         )

@@ -238,8 +238,8 @@ class StateManager:
                 json.dump(state.to_dict(), f, indent=2)
             logger.info(f"State persisted: {state_id} to {file_path}")
             return True
-        except Exception as e:
-            logger.error(f"Error persisting state: {e}")
+        except Exception as exc:
+            logger.error(f"Error persisting state: {exc}")
             return False
     
     def restore_state(self, state_id: str, file_path: str) -> bool:
@@ -260,8 +260,8 @@ class StateManager:
             
             logger.info(f"State restored: {state_id} from {file_path}")
             return True
-        except Exception as e:
-            logger.error(f"Error restoring state: {e}")
+        except Exception as exc:
+            logger.error(f"Error restoring state: {exc}")
             return False
     
     def verify_state(self, state_id: str, expected_hash: str) -> bool:

@@ -184,9 +184,9 @@ def compile_packet():
             'state': packet.state.value
         })
     
-    except Exception as e:
-        logger.error(f"Error compiling packet: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error compiling packet: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/epc/packets/<packet_id>/seal', methods=['POST'])
@@ -235,9 +235,9 @@ def seal_packet(packet_id: str):
             'state': packet.state.value
         })
     
-    except Exception as e:
-        logger.error(f"Error sealing packet: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error sealing packet: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/epc/packets/<packet_id>/verify', methods=['POST'])
@@ -262,9 +262,9 @@ def verify_packet(packet_id: str):
             'signature': packet.signature
         })
     
-    except Exception as e:
-        logger.error(f"Error verifying packet: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error verifying packet: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/epc/packets/<packet_id>/invalidate', methods=['POST'])
@@ -293,9 +293,9 @@ def invalidate_packet(packet_id: str):
             'state': packet.state.value
         })
     
-    except Exception as e:
-        logger.error(f"Error invalidating packet: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error invalidating packet: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================
@@ -319,9 +319,9 @@ def get_packet(packet_id: str):
             'packet': packet.to_dict()
         })
     
-    except Exception as e:
-        logger.error(f"Error getting packet: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error getting packet: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/epc/packets/list', methods=['GET'])
@@ -347,9 +347,9 @@ def list_packets():
             'count': len(packets)
         })
     
-    except Exception as e:
-        logger.error(f"Error listing packets: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error listing packets: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/epc/packets/<packet_id>/can-execute', methods=['GET'])
@@ -373,9 +373,9 @@ def can_execute(packet_id: str):
             'blockers': blockers
         })
     
-    except Exception as e:
-        logger.error(f"Error checking execution: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error checking execution: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/epc/packets/<packet_id>/lock-status', methods=['GET'])
@@ -389,9 +389,9 @@ def get_lock_status(packet_id: str):
             'lock_status': status
         })
     
-    except Exception as e:
-        logger.error(f"Error getting lock status: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error getting lock status: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================
@@ -420,9 +420,9 @@ def add_artifact():
             'artifact_id': node.id
         })
     
-    except Exception as e:
-        logger.error(f"Error adding artifact: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error adding artifact: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/epc/gates/add', methods=['POST'])
@@ -437,9 +437,9 @@ def add_gate():
             'gate_count': len(active_gates)
         })
     
-    except Exception as e:
-        logger.error(f"Error adding gate: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error adding gate: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================

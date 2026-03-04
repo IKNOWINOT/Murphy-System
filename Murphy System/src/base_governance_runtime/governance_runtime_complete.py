@@ -117,9 +117,9 @@ class GovernanceRuntime:
             
             return initial_validation
             
-        except Exception as e:
+        except Exception as exc:
             self.status = RuntimeStatus.ERROR
-            self.logger.error(f"Runtime initialization failed: {e}")
+            self.logger.error(f"Runtime initialization failed: {exc}")
             raise
     
     def activate_system(self) -> Dict[str, Any]:

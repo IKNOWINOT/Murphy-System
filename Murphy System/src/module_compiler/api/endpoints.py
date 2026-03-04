@@ -106,10 +106,10 @@ def create_api() -> Blueprint:
                 'compiled_at': module_spec.compiled_at
             }), 200
         
-        except Exception as e:
+        except Exception as exc:
             return jsonify({
                 'status': 'error',
-                'message': str(e)
+                'message': str(exc)
             }), 500
     
     
@@ -183,10 +183,10 @@ def create_api() -> Blueprint:
                 ]
             }), 200
         
-        except Exception as e:
+        except Exception as exc:
             return jsonify({
                 'status': 'error',
-                'message': str(e)
+                'message': str(exc)
             }), 500
     
     
@@ -229,10 +229,10 @@ def create_api() -> Blueprint:
                 'modules': modules
             }), 200
         
-        except Exception as e:
+        except Exception as exc:
             return jsonify({
                 'status': 'error',
-                'message': str(e)
+                'message': str(exc)
             }), 500
     
     
@@ -263,10 +263,10 @@ def create_api() -> Blueprint:
                 'module': module_spec.to_dict()
             }), 200
         
-        except Exception as e:
+        except Exception as exc:
             return jsonify({
                 'status': 'error',
-                'message': str(e)
+                'message': str(exc)
             }), 500
     
     
@@ -297,10 +297,10 @@ def create_api() -> Blueprint:
                 'message': f'Module removed: {module_id}'
             }), 200
         
-        except Exception as e:
+        except Exception as exc:
             return jsonify({
                 'status': 'error',
-                'message': str(e)
+                'message': str(exc)
             }), 500
     
     
@@ -341,10 +341,10 @@ def create_api() -> Blueprint:
                 'capabilities': results
             }), 200
         
-        except Exception as e:
+        except Exception as exc:
             return jsonify({
                 'status': 'error',
-                'message': str(e)
+                'message': str(exc)
             }), 500
     
     
@@ -375,10 +375,10 @@ def create_api() -> Blueprint:
                 'capability': capability.to_dict()
             }), 200
         
-        except Exception as e:
+        except Exception as exc:
             return jsonify({
                 'status': 'error',
-                'message': str(e)
+                'message': str(exc)
             }), 500
     
     
@@ -403,10 +403,10 @@ def create_api() -> Blueprint:
                 'stats': stats
             }), 200
         
-        except Exception as e:
+        except Exception as exc:
             return jsonify({
                 'status': 'error',
-                'message': str(e)
+                'message': str(exc)
             }), 500
     
     
@@ -434,10 +434,10 @@ def create_api() -> Blueprint:
                 'registry_capabilities': stats['total_capabilities']
             }), 200
         
-        except Exception as e:
+        except Exception as exc:
             return jsonify({
                 'status': 'unhealthy',
-                'error': str(e)
+                'error': str(exc)
             }), 500
     
     

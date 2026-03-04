@@ -536,8 +536,8 @@ class CorrectionStorageSystem:
                 correction = Correction(**data)
                 correction_id = self.add_correction(correction)
                 imported_ids.append(correction_id)
-            except Exception as e:
-                print(f"Error importing correction: {e}")
+            except Exception as exc:
+                print(f"Error importing correction: {exc}")
                 continue
         
         return imported_ids

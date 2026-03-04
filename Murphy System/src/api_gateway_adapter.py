@@ -271,12 +271,12 @@ class APIGatewayAdapter:
                     body=result,
                     latency_ms=(time.time() - start) * 1000,
                 )
-            except Exception as e:
+            except Exception as exc:
                 self._record_failure(route_state)
                 response = GatewayResponse(
                     request_id=request.request_id,
                     status_code=500,
-                    error=str(e),
+                    error=str(exc),
                     latency_ms=(time.time() - start) * 1000,
                 )
         else:

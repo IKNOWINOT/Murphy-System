@@ -193,10 +193,10 @@ class MockAdapter(AdapterAPI):
                 "error": None
             }
             
-        except Exception as e:
+        except Exception as exc:
             return {
                 "success": False,
-                "error": str(e)
+                "error": str(exc)
             }
     
     def emergency_stop(self) -> bool:

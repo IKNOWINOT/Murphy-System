@@ -258,15 +258,15 @@ class DecisionEngine:
                 
                 return self._apply_rule(matching_rule, context)
         
-        except Exception as e:
-            logger.error(f"Error making decision: {e}")
+        except Exception as exc:
+            logger.error(f"Error making decision: {exc}")
             decision = Decision(
                 decision_type=decision_type,
                 confidence=0.0,
                 context=context
             )
             decision.success = False
-            decision.error = str(e)
+            decision.error = str(exc)
             return decision
     
     def _find_matching_rule(self, context: Dict) -> Optional[Rule]:

@@ -125,11 +125,11 @@ class ModuleCompiler:
             
             return module_spec
         
-        except Exception as e:
+        except Exception as exc:
             # Return partial spec on error
             return self._create_partial_spec(
                 module_id, source_path, version_hash,
-                error=str(e)
+                error=str(exc)
             )
     
     def compile_directory(
@@ -163,8 +163,8 @@ class ModuleCompiler:
             try:
                 spec = self.compile_module(file_path)
                 module_specs.append(spec)
-            except Exception as e:
-                print(f"Failed to compile {file_path}: {e}")
+            except Exception as exc:
+                print(f"Failed to compile {file_path}: {exc}")
                 continue
         
         return module_specs

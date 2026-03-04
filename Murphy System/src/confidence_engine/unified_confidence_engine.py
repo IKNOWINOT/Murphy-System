@@ -104,8 +104,8 @@ class UnifiedConfidenceEngine:
             try:
                 gdh_confidence = self.confidence_calculator.calculate(task)
                 logger.debug(f"G/D/H confidence: {gdh_confidence}")
-            except Exception as e:
-                logger.error(f"Error calculating G/D/H confidence: {e}")
+            except Exception as exc:
+                logger.error(f"Error calculating G/D/H confidence: {exc}")
         
         # Calculate new uncertainty scores
         uncertainty_scores = self.uncertainty_calculator.compute_all_uncertainties(task, context or {})
@@ -192,8 +192,8 @@ class UnifiedConfidenceEngine:
         if self.phase_controller:
             try:
                 return self.phase_controller.get_next_phase(task, current_phase)
-            except Exception as e:
-                logger.error(f"Error getting phase recommendation: {e}")
+            except Exception as exc:
+                logger.error(f"Error getting phase recommendation: {exc}")
         
         # Fallback to simple phase progression
         phases = ['EXPAND', 'TYPE', 'ENUMERATE', 'CONSTRAIN', 'COLLAPSE', 'BIND', 'EXECUTE']

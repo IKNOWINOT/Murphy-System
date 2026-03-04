@@ -191,10 +191,10 @@ class IntegrationFramework:
                 logger.error(f"Failed to connect to integration: {integration_id}")
                 return False
         
-        except Exception as e:
+        except Exception as exc:
             integration.status = IntegrationStatus.ERROR
-            integration.last_error = str(e)
-            logger.error(f"Error connecting to integration {integration_id}: {e}")
+            integration.last_error = str(exc)
+            logger.error(f"Error connecting to integration {integration_id}: {exc}")
             return False
     
     def disconnect(self, integration_id: str) -> bool:
@@ -252,13 +252,13 @@ class IntegrationFramework:
             
             return result
         
-        except Exception as e:
+        except Exception as exc:
             integration.failed_calls += 1
-            integration.last_error = str(e)
+            integration.last_error = str(exc)
             
             error_result = IntegrationResult(
                 success=False,
-                error=str(e)
+                error=str(exc)
             )
             
             # Log failed call
@@ -354,8 +354,8 @@ class IntegrationFramework:
                             if not result.success:
                                 logger.warning(f"Integration health check failed: {integration_id}")
                         
-                        except Exception as e:
-                            logger.error(f"Error monitoring integration {integration_id}: {e}")
+                        except Exception as exc:
+                            logger.error(f"Error monitoring integration {integration_id}: {exc}")
                 
                 time.sleep(interval)
         

@@ -140,9 +140,9 @@ def add_artifact():
             }
         })
     
-    except Exception as e:
-        logger.error(f"Error adding artifact: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error adding artifact: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/confidence-engine/artifacts/graph', methods=['GET'])
@@ -155,9 +155,9 @@ def get_graph():
             'success': True,
             'graph': current_graph.to_dict()
         })
-    except Exception as e:
-        logger.error(f"Error getting graph: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error getting graph: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/confidence-engine/artifacts/analyze', methods=['GET'])
@@ -188,9 +188,9 @@ def analyze_graph():
                 'dependencies': dep_analysis
             }
         })
-    except Exception as e:
-        logger.error(f"Error analyzing graph: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error analyzing graph: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================
@@ -222,9 +222,9 @@ def add_verification():
             'evidence_count': len(verification_evidence_store)
         })
     
-    except Exception as e:
-        logger.error(f"Error adding verification: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error adding verification: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/confidence-engine/verification/list', methods=['GET'])
@@ -238,9 +238,9 @@ def list_verification():
             'evidence': [e.to_dict() for e in verification_evidence_store],
             'count': len(verification_evidence_store)
         })
-    except Exception as e:
-        logger.error(f"Error listing verification: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error listing verification: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================
@@ -272,9 +272,9 @@ def add_trust_source():
             'trust_weight': source.trust_weight
         })
     
-    except Exception as e:
-        logger.error(f"Error adding trust source: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error adding trust source: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/confidence-engine/trust/update', methods=['POST'])
@@ -297,9 +297,9 @@ def update_trust():
             'new_trust': current_trust_model.get_trust(source_id)
         })
     
-    except Exception as e:
-        logger.error(f"Error updating trust: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error updating trust: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/confidence-engine/trust/model', methods=['GET'])
@@ -312,9 +312,9 @@ def get_trust_model():
             'success': True,
             'trust_model': current_trust_model.to_dict()
         })
-    except Exception as e:
-        logger.error(f"Error getting trust model: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error getting trust model: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================
@@ -347,9 +347,9 @@ def compute_confidence():
             'confidence_state': confidence_state.to_dict()
         })
     
-    except Exception as e:
-        logger.error(f"Error computing confidence: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error computing confidence: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================
@@ -398,9 +398,9 @@ def compute_murphy():
             'confidence': confidence_state.confidence
         })
     
-    except Exception as e:
-        logger.error(f"Error computing Murphy index: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error computing Murphy index: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================
@@ -460,9 +460,9 @@ def compute_authority():
             'execution_blockers': blockers
         })
     
-    except Exception as e:
-        logger.error(f"Error computing authority: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error computing authority: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================
@@ -506,9 +506,9 @@ def check_phase_transition():
             'threshold': current_phase.confidence_threshold
         })
     
-    except Exception as e:
-        logger.error(f"Error checking phase transition: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error checking phase transition: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/confidence-engine/phase/progress', methods=['GET'])
@@ -525,9 +525,9 @@ def get_phase_progress():
             'progress': progress
         })
     
-    except Exception as e:
-        logger.error(f"Error getting phase progress: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error getting phase progress: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/confidence-engine/phase/history', methods=['GET'])
@@ -542,9 +542,9 @@ def get_phase_history():
             'transition_count': len(history)
         })
     
-    except Exception as e:
-        logger.error(f"Error getting phase history: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error getting phase history: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================
@@ -603,9 +603,9 @@ def get_complete_state():
             }
         })
     
-    except Exception as e:
-        logger.error(f"Error getting complete state: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except Exception as exc:
+        logger.error(f"Error getting complete state: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 # ============================================================================

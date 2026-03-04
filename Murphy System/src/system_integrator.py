@@ -280,12 +280,12 @@ class SystemIntegrator:
             
             return response
             
-        except Exception as e:
+        except Exception as exc:
             return SystemResponse(
                 request_id=request_id,
                 success=False,
                 data={},
-                message=f"Error processing request: {str(e)}",
+                message=f"Error processing request: {str(exc)}",
                 warnings=[],
                 triggers=[],
                 timestamp=datetime.now().isoformat()
