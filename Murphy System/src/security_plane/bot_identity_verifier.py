@@ -1,6 +1,5 @@
-# bot_identity_verifier.py
+"""Cryptographic identity verification for bots in the Murphy System."""
 # Copyright © 2020 Inoni Limited Liability Company
-# Cryptographic identity verification for bots in the Murphy System.
 
 from __future__ import annotations
 

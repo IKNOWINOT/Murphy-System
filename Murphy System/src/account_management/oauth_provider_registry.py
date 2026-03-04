@@ -358,8 +358,8 @@ class OAuthProviderRegistry:
                 expires_at = (
                     datetime.now(timezone.utc) + timedelta(seconds=int(tok_resp["expires_in"]))
                 ).isoformat()
-            except (ValueError, TypeError):
-                pass
+            except (ValueError, TypeError) as exc:
+                logger.debug("Could not parse expires_in: %s", exc)
 
         token = OAuthToken(
             provider=pending.provider,

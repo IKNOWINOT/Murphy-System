@@ -1,9 +1,5 @@
-# security_dashboard.py — Unified Security Dashboard
+"""Unified Security Dashboard — aggregate events from all security modules."""
 # Copyright © 2020 Inoni Limited Liability Company
-#
-# Aggregates events from all security enhancement modules into a single
-# operational view with real-time correlation, compliance reporting, and
-# severity-based escalation.
 
 from __future__ import annotations
 
