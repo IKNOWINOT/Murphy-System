@@ -15,6 +15,10 @@ from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
 from enum import Enum
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 # Import from security plane
 try:
     from security_plane.hardening import (

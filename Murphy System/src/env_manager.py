@@ -9,6 +9,10 @@ import os
 import re
 from typing import Dict, List, Optional, Tuple
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # Supported providers and their key format patterns
 API_KEY_FORMATS: Dict[str, Dict[str, str]] = {

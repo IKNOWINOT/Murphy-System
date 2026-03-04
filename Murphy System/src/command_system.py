@@ -10,6 +10,10 @@ import os
 from datetime import datetime
 from pathlib import Path
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class CommandResult:
     """Result from command execution"""

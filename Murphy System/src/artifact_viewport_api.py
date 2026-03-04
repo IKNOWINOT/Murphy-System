@@ -45,6 +45,10 @@ from artifact_viewport import (
     MAX_VIEWPORT_LINES,
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 # Create blueprint (stub when Flask is absent)
 viewport_bp = Blueprint('viewport', __name__, url_prefix='/viewport') if _HAS_FLASK else Blueprint()
 

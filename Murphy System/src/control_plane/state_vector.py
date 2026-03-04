@@ -16,6 +16,10 @@ from typing import Any, Dict, List
 
 from pydantic import BaseModel, Field, model_validator
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class StateVector(BaseModel):
     """Formal typed state vector x_t for the MFGC control plane.

@@ -25,6 +25,10 @@ import json
 import secrets
 import time
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class PacketStatus(Enum):
     """Execution packet status"""

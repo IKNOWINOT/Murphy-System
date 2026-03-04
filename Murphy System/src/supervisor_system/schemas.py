@@ -14,6 +14,10 @@ from typing import List, Optional
 from datetime import datetime
 from enum import Enum
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class AssumptionStatus(Enum):
     """Status of an assumption."""

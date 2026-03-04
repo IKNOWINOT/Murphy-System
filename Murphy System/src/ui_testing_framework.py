@@ -32,6 +32,10 @@ import time
 import uuid
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # 1. VISUAL REGRESSION TESTING

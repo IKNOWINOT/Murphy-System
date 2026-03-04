@@ -20,6 +20,10 @@ from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 from thread_safe_operations import capped_append
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ---------------------------------------------------------------------------
 # Trigger Types (modeled on classic MQ2/E3/EQEmu bot commands)

@@ -17,6 +17,10 @@ import json
 
 from dataclasses import dataclass, field
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ArtifactType(Enum):
     """Types of governance artifacts"""

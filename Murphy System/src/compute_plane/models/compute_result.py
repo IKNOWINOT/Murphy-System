@@ -9,6 +9,10 @@ from typing import Any, List, Dict, Tuple, Literal
 from datetime import datetime
 from enum import Enum
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ComputeStatus(str, Enum):
     """Status of computation"""

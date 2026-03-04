@@ -16,8 +16,6 @@ import time
 
 from .execution_context import ExecutionContext
 from .form_execution_models import ExecutionResult, ExecutionStatus, PhaseResult
-import sys
-import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from confidence_engine.murphy_validator import MurphyValidator

@@ -6,6 +6,10 @@ from typing import Dict, Any, List
 from datetime import datetime
 from thread_safe_operations import capped_append
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class TelemetryCollector:
     """Collects Murphy System telemetry, metrics, and logs."""

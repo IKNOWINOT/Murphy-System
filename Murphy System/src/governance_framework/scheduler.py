@@ -20,6 +20,10 @@ from dataclasses import dataclass, field
 from .agent_descriptor_complete import AgentDescriptor, AuthorityBand, ActionType, PriorityLevel
 from .stability_controller import ExecutionOutcome
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class SchedulingDecision(Enum):
     """Scheduler decision types"""

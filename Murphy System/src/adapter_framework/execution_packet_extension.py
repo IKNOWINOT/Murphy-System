@@ -12,6 +12,10 @@ import time
 import hashlib
 import secrets
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class DeviceExecutionPacket:

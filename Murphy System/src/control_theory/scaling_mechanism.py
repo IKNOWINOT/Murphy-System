@@ -25,6 +25,10 @@ import numpy as np
 
 from .state_model import StateDimension, StateVector
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ------------------------------------------------------------------ #
 # Dimension expander

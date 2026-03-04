@@ -7,6 +7,10 @@ Represents parsed and normalized mathematical expressions.
 from dataclasses import dataclass, field
 from typing import Dict, Any, List
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class ParsedExpression:

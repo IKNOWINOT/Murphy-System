@@ -7,6 +7,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 from typing import Optional
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class Settings(BaseSettings):
     """

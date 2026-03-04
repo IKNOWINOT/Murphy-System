@@ -25,6 +25,10 @@ from .schemas import (
     ArtifactType,
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class OrgChartParser:
     """

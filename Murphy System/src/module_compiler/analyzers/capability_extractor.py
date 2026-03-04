@@ -17,6 +17,10 @@ from ..models.module_spec import (
 from .static_analyzer import CodeStructure, FunctionInfo, ClassInfo
 from .determinism_classifier import AdvancedDeterminismClassifier
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class CapabilityExtractor:
     """

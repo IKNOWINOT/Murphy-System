@@ -14,6 +14,10 @@ from enum import Enum
 from typing import Dict, List, Optional, Any
 import json
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ApprovalStatus(Enum):
     """Status of approval request"""

@@ -19,6 +19,10 @@ from dataclasses import dataclass, field
 
 from .stability_controller import ExecutionOutcome
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class RefusalRecord:

@@ -16,6 +16,10 @@ from src.mfgc_core import (
 )
 from src.system_integrator import SystemIntegrator, SystemState, SystemResponse, UserRequest
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class MFGCConfig:

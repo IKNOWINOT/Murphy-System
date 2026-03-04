@@ -17,6 +17,10 @@ from datetime import datetime, timedelta
 from enum import Enum
 import hashlib
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class TrustLevel(Enum):
     """Trust level for an identity."""

@@ -8,6 +8,10 @@ from dataclasses import dataclass
 from enum import Enum
 import time
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class OrganizationalPressure(Enum):
     """Types of organizational pressure"""

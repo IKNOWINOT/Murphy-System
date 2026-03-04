@@ -22,6 +22,10 @@ from .models import (
     RewardSignal
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class TrainingOutputGenerator:
     """

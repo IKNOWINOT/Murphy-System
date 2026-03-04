@@ -14,6 +14,10 @@ except ImportError:
     from src.advanced_research import AdvancedResearchEngine, AdvancedResearchResult
 from datetime import datetime
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class AdvancedReportGenerator:
     """

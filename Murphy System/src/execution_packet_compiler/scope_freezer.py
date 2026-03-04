@@ -21,6 +21,10 @@ from confidence_engine.models import (
     ArtifactType
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ScopeFreezer:
     """

@@ -11,6 +11,10 @@ from dataclasses import dataclass, field
 
 from mfgc_core import MFGCController, MFGCSystemState, ConfidenceEngine
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ---------------------------------------------------------------------------
 # Trust-Weighted Grounding

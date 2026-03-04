@@ -7,6 +7,10 @@ Analyzes determinism properties of computation results.
 from typing import Dict, Any
 import math
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class DeterminismAnalyzer:
     """

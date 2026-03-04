@@ -17,6 +17,10 @@ from datetime import datetime, timedelta
 from collections import defaultdict, deque
 import statistics
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class PerformanceMetric:

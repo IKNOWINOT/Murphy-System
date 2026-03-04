@@ -12,6 +12,10 @@ from typing import Dict, List, Optional, Any, Literal
 import hashlib
 import json
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class TelemetryDomain(str, Enum):
     """Telemetry collection domains"""

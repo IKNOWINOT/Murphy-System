@@ -25,6 +25,10 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 import numpy as np
 from thread_safe_operations import capped_append
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ------------------------------------------------------------------ #
 # Differential entropy

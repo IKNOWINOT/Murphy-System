@@ -13,6 +13,10 @@ from .correction_models import (
     Correction, CorrectionType, CorrectionSeverity
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class MetadataCategory(str, Enum):
     """Categories of metadata."""

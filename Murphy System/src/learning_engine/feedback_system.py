@@ -13,6 +13,10 @@ from collections import defaultdict
 import statistics
 from thread_safe_operations import capped_append
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ============================================================================
 # TASK 2.1: FEEDBACK COLLECTION INTERFACE

@@ -28,6 +28,10 @@ from .control_failures import ControlPlaneFailureGenerator
 from .interface_failures import InterfaceFailureGenerator
 from .organizational_failures import OrganizationalFailureGenerator
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class FailureInjectionPipeline:
     """

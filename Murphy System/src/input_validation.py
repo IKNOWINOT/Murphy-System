@@ -7,6 +7,10 @@ from pydantic import BaseModel, Field, validator, field_validator
 from typing import Optional, List
 import re
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ConstraintInput(BaseModel):
     """

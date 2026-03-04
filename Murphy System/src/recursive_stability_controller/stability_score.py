@@ -17,6 +17,10 @@ from dataclasses import dataclass
 from typing import Dict, List
 import numpy as np
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class StabilityScore:

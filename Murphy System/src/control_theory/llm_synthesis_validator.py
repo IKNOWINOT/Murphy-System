@@ -23,6 +23,10 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Type
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ------------------------------------------------------------------ #
 # Synthesis schemas — Pydantic models for LLM-generated structures

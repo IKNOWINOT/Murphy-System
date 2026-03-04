@@ -13,6 +13,10 @@ from typing import Dict, List, Optional
 
 from state_schema import StateVariable, TypedStateVector
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class FeedbackSignal:

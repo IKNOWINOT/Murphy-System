@@ -33,6 +33,10 @@ from .npc_card_effects import (
 from .soul_engine import SoulDocument, SoulEngine
 from .spawner_registry import SpawnerEntry, SpawnerRegistry
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ---------------------------------------------------------------------------
 # NPC role classification

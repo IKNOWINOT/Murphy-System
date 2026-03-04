@@ -12,6 +12,10 @@ When risk data (loss/probability pairs) is available, the canonical
 
 from enum import Enum
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 try:
     from ..mfgc_core import ConfidenceEngine as _CoreConfidenceEngine
 except ImportError:

@@ -19,6 +19,10 @@ except ImportError:
     from src.research_engine import ResearchEngine, ResearchResult
 import re
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class AdvancedResearchResult:

@@ -12,6 +12,10 @@ from .models import (
     StepType
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class DeterminismEnforcer:
     """

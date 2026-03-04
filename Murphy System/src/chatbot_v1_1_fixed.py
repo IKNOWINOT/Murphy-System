@@ -6,6 +6,10 @@ complexity routing, and proper response markers.
 import re
 from typing import Dict, Any, Optional
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ChatbotV1_1Fixed:
     """Chatbot with MFGC v1.1 safety integration."""

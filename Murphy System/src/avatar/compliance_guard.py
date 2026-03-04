@@ -8,6 +8,10 @@ from typing import Any, Dict, List, Optional
 
 from .avatar_models import ComplianceViolation
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ComplianceGuard:
     """Enforces compliance rules on avatar interactions."""

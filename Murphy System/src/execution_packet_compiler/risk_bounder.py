@@ -12,6 +12,10 @@ from .models import (
     ExecutionScope
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class RiskBounder:
     """

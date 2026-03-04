@@ -18,6 +18,10 @@ from .models import (
     PacketState
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class PacketSealer:
     """

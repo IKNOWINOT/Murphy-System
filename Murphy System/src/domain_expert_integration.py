@@ -19,6 +19,10 @@ from organization_chart_system import (
     Department
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class SwarmExecutionPlan:

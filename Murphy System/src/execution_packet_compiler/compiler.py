@@ -9,6 +9,10 @@ import hashlib
 import json
 from typing import Dict, Any
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ExecutionPacketCompiler:
     """Simplified execution packet compiler for integration tests."""

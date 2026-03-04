@@ -13,6 +13,10 @@ from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from thread_safe_operations import capped_append
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # Keywords mapped to automation step types
 STEP_KEYWORDS = {

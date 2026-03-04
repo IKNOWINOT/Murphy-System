@@ -15,6 +15,10 @@ from src.confidence_engine.risk.risk_storage import (
     RiskPatternStorage, PatternMatchResult, RiskPatternQuery, PatternMatchType
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class LookupContext(BaseModel):
     """Context for risk lookup."""

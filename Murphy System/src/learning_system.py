@@ -21,6 +21,10 @@ from enum import Enum
 import time
 import json
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class TrainingSignal(Enum):
     """Training signals from control outcomes (not success/failure)"""

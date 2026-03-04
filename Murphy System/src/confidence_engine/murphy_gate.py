@@ -9,8 +9,7 @@ from typing import Optional
 from datetime import datetime
 import logging
 
-from .murphy_models import GateResult, Phase
-from .murphy_models import GateAction, GateResult, UncertaintyScores
+from .murphy_models import GateAction, GateResult, Phase, UncertaintyScores
 
 logger = logging.getLogger(__name__)
 

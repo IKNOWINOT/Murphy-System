@@ -12,6 +12,10 @@ from src.confidence_engine.risk.risk_database import (
     RiskPattern, MitigationStrategy, RiskCategory, RiskSeverity
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class MitigationPriority(str, Enum):
     """Priority levels for mitigation."""

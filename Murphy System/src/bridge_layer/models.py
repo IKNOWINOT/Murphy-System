@@ -14,6 +14,10 @@ from typing import Dict, List, Optional, Any, Literal
 import hashlib
 import json
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class VerificationStatus(str, Enum):
     """Verification status for hypotheses"""

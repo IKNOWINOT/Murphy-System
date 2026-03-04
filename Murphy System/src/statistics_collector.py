@@ -10,6 +10,10 @@ import threading
 from .thread_safe_operations import ThreadSafeCounter, ThreadSafeDict
 from thread_safe_operations import capped_append
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class StatisticsSnapshot:
     """Snapshot of statistics at a point in time."""

@@ -12,6 +12,10 @@ from typing import ClassVar, List, Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 from thread_safe_operations import capped_append
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # Ordered list of numeric dimension names — ORDER IS CANONICAL and must not change.
 _DIMENSION_NAMES: List[str] = [

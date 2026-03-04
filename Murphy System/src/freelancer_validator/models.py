@@ -14,6 +14,10 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def _utcnow() -> datetime:
     """Return a timezone-aware UTC datetime."""

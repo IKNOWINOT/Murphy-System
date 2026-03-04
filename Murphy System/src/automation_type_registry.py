@@ -14,6 +14,10 @@ from enum import Enum
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class AutomationCategory(Enum):
     """Automation category (Enum subclass)."""

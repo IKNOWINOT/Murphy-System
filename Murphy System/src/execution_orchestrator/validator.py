@@ -19,6 +19,10 @@ from datetime import datetime
 
 from .models import InterfaceHealth, InterfaceStatus
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class PreExecutionValidator:
     """

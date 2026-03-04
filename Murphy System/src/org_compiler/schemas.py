@@ -15,6 +15,10 @@ from enum import Enum
 import hashlib
 import json
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class AuthorityLevel(Enum):
     """Authority levels for decision-making"""

@@ -19,6 +19,10 @@ import numpy as np
 
 from .canonical_state import CanonicalStateVector, _DIMENSION_NAMES
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ------------------------------------------------------------------ #
 # Observation channels

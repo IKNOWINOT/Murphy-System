@@ -14,6 +14,10 @@ from datetime import datetime
 import hashlib
 import json
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class MemoryPlane(Enum):
     """Four memory planes with unidirectional promotion"""
