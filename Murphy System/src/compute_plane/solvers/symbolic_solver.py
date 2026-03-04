@@ -185,7 +185,7 @@ class SymbolicSolver:
                         else:
                             validation['difference'] = numeric_diff
                             validation['notes'].append(f"Results differ by: {numeric_diff}")
-                    except:
+                    except Exception:
                         validation['notes'].append(f"Results differ symbolically: {diff}")
         
         except Exception as e:

@@ -336,7 +336,7 @@ class RollbackEnforcer:
                         actual_content = f.read()
                     if actual_content != expected_content:
                         return False
-                except:
+                except Exception:
                     return False
         
         return True

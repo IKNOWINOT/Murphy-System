@@ -146,7 +146,7 @@ class StepwiseExecutor:
         # Return response data
         try:
             return response.json()
-        except:
+        except Exception:
             return response.text
     
     def _execute_rpc_call(self, step: Dict, context: Dict) -> Any:
