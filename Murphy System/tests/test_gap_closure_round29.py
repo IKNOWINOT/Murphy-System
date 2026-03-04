@@ -13,6 +13,7 @@ Validates that all identified gaps from the Round 29 audit have been closed:
 import ast
 import configparser
 import os
+import re
 import subprocess
 import sys
 
@@ -38,7 +39,7 @@ class TestGapClosureRound29:
         # Check for collection errors (shown as "N errors during collection")
         assert result.returncode == 0, (
             f"Test collection failed (rc={result.returncode}):\n"
-            f"{result.stderr[-500:]}"
+            f"{result.stderr[:500]}"
         )
         # Verify no "errors during collection" message in output
         for line in result.stdout.splitlines():
@@ -47,7 +48,11 @@ class TestGapClosureRound29:
             )
 
     def test_no_deprecated_utcnow_in_source(self):
-        """Production source must not use datetime.utcnow() directly."""
+        """Production source must not call datetime.utcnow() directly.
+
+        Uses AST analysis to detect actual attribute calls, ignoring
+        wrapper function definitions and comments.
+        """
         violations = []
         for root, _dirs, files in os.walk(SRC_DIR):
             if "__pycache__" in root:
@@ -57,17 +62,21 @@ class TestGapClosureRound29:
                     continue
                 path = os.path.join(root, fn)
                 with open(path, encoding="utf-8") as f:
-                    for lineno, line in enumerate(f, 1):
-                        # Match direct calls, not wrapper function definitions
-                        stripped = line.strip()
-                        if (
-                            "datetime.utcnow()" in stripped
-                            and not stripped.startswith("#")
-                            and not stripped.startswith("def ")
-                        ):
-                            violations.append(f"{path}:{lineno}: {stripped}")
+                    source = f.read()
+                try:
+                    tree = ast.parse(source, path)
+                except SyntaxError:
+                    continue  # caught by test_zero_syntax_errors_in_source
+                for node in ast.walk(tree):
+                    if (
+                        isinstance(node, ast.Call)
+                        and isinstance(node.func, ast.Attribute)
+                        and node.func.attr == "utcnow"
+                    ):
+                        violations.append(f"{path}:{node.lineno}")
         assert violations == [], (
-            f"Deprecated datetime.utcnow() found:\n" + "\n".join(violations)
+            f"Deprecated datetime.utcnow() calls found:\n"
+            + "\n".join(violations)
         )
 
     def test_pytest_ini_has_testpaths(self):
@@ -96,6 +105,7 @@ class TestGapClosureRound29:
 
     def test_no_bare_except_in_source(self):
         """Production source must not use bare 'except:' clauses."""
+        bare_except_re = re.compile(r"^\s*except\s*:\s*(?:#.*)?$")
         violations = []
         for root, _dirs, files in os.walk(SRC_DIR):
             if "__pycache__" in root:
@@ -106,8 +116,7 @@ class TestGapClosureRound29:
                 path = os.path.join(root, fn)
                 with open(path, encoding="utf-8") as f:
                     for lineno, line in enumerate(f, 1):
-                        stripped = line.strip()
-                        if stripped == "except:":
+                        if bare_except_re.match(line):
                             violations.append(f"{path}:{lineno}")
         assert violations == [], (
             f"Bare 'except:' found:\n" + "\n".join(violations)
