@@ -125,30 +125,30 @@ class TestCriticalPathMethod:
 # ============================================================================
 
 class TestSubmissionStatusTracking:
-    """Tests for submission status tracking via _submission_store"""
+    """Tests for submission status tracking via _SUBMISSION_LEDGER"""
 
     def test_record_submission_creates_entry(self):
-        from form_intake.handlers import _submission_store, _record_submission
-        _record_submission('test-sub-001', 'plan_upload')
-        assert 'test-sub-001' in _submission_store
-        entry = _submission_store['test-sub-001']
+        from form_intake.handlers import _SUBMISSION_LEDGER, _record_submission
+        _record_submission('test-sub-001', 'plan_upload', 'queued')
+        assert 'test-sub-001' in _SUBMISSION_LEDGER
+        entry = _SUBMISSION_LEDGER['test-sub-001']
         assert entry['status'] == 'queued'
         assert entry['form_type'] == 'plan_upload'
-        assert entry['submitted_at'] is not None
+        assert entry['created_at'] is not None
         # Cleanup
-        del _submission_store['test-sub-001']
+        del _SUBMISSION_LEDGER['test-sub-001']
 
     def test_record_submission_with_extra(self):
-        from form_intake.handlers import _submission_store, _record_submission
-        _record_submission('test-sub-002', 'task_execution', {'custom': 'value'})
-        entry = _submission_store['test-sub-002']
-        assert entry['custom'] == 'value'
+        from form_intake.handlers import _SUBMISSION_LEDGER, _record_submission
+        _record_submission('test-sub-002', 'task_execution', 'queued', {'custom': 'value'})
+        entry = _SUBMISSION_LEDGER['test-sub-002']
+        assert entry['data']['custom'] == 'value'
         assert entry['status'] == 'queued'
-        del _submission_store['test-sub-002']
+        del _SUBMISSION_LEDGER['test-sub-002']
 
     def test_status_not_found_returns_none(self):
-        from form_intake.handlers import _submission_store
-        assert _submission_store.get('nonexistent-id') is None
+        from form_intake.handlers import _SUBMISSION_LEDGER
+        assert _SUBMISSION_LEDGER.get('nonexistent-id') is None
 
 
 # ============================================================================
