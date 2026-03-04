@@ -1,7 +1,7 @@
 # Murphy System — Runtime Directory
 
 This is the primary runtime directory for the Murphy System. It contains the
-FastAPI server, 583 source modules across 54 packages in `src/`, web interfaces,
+FastAPI server, 584 source modules across 54 packages in `src/`, web interfaces,
 tests, and deployment configuration.
 
 ---
@@ -111,7 +111,7 @@ kubectl apply -f k8s/
 Murphy System/
 ├── murphy_system_1.0_runtime.py   # Entry point — FastAPI server
 ├── murphy_terminal.py             # Optional Textual TUI
-├── src/                           # 583 modules, 54 packages
+├── src/                           # 584 modules, 54 packages
 │   ├── config.py                  # Pydantic settings
 │   ├── confidence_engine/         # Murphy Formula / Gate / Confidence
 │   ├── execution_engine/          # Task execution
