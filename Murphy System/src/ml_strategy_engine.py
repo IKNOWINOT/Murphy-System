@@ -638,8 +638,13 @@ class EnsemblePredictor:
         self._weights: List[float] = []
 
     def add_member(self, classifier: NaiveBayesClassifier, weight: float = 1.0) -> None:
-        capped_append(self._classifiers, classifier)
-        capped_append(self._weights, weight)
+        cap = 10_000
+        if len(self._classifiers) >= cap:
+            trim = cap // 10
+            del self._classifiers[:trim]
+            del self._weights[:trim]
+        self._classifiers.append(classifier)
+        self._weights.append(weight)
 
     def predict(self, features: Sequence[str]) -> EnsemblePrediction:
         if not self._classifiers:

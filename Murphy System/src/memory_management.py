@@ -146,7 +146,7 @@ class DataCache:
             if key in self._cache:
                 # Update access order
                 self._access_order.remove(key)
-                capped_append(self._access_order, key)
+                self._access_order.append(key)  # LRU: bounded by cache eviction
                 return self._cache[key]
             return None
     
@@ -167,7 +167,7 @@ class DataCache:
             
             # Add new value
             self._cache[key] = value
-            capped_append(self._access_order, key)
+            self._access_order.append(key)  # LRU: bounded by cache eviction
             self._current_size_mb += size_mb
             
             return True
