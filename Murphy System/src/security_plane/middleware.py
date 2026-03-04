@@ -65,33 +65,33 @@ from src.security_plane.anti_surveillance import (
 @dataclass
 class SecurityMiddlewareConfig:
     """Configuration for security middleware"""
-    
+
     # Authentication
     require_authentication: bool = True
     allow_human_auth: bool = True
     allow_machine_auth: bool = True
-    
+
     # Encryption
     require_encryption: bool = True
     use_hybrid_pqc: bool = True
-    
+
     # Audit logging
     enable_audit_logging: bool = True
     log_all_requests: bool = True
     log_all_responses: bool = True
-    
+
     # Timing normalization
     enable_timing_normalization: bool = True
     target_time_ms: float = 100.0
-    
+
     # Data leak prevention
     enable_dlp: bool = True
     block_sensitive_data: bool = True
-    
+
     # Anti-surveillance
     enable_anti_surveillance: bool = True
     scrub_metadata: bool = True
-    
+
     # Performance
     max_overhead_percent: float = 30.0
     cache_enabled: bool = True
@@ -102,30 +102,30 @@ class SecurityContext:
     """Security context for a request"""
     request_id: str
     timestamp: datetime
-    
+
     # Authentication
     authenticated: bool = False
     identity: Optional[str] = None
     trust_score: Optional[TrustScore] = None
-    
+
     # Encryption
     encrypted: bool = False
     encryption_algorithm: Optional[str] = None
-    
+
     # Audit
     audit_log_id: Optional[str] = None
-    
+
     # Timing
     start_time: float = field(default_factory=time.time)
     normalized_time_ms: Optional[float] = None
-    
+
     # DLP
     sensitive_data_detected: bool = False
     data_classification: Optional[str] = None
-    
+
     # Anti-surveillance
     metadata_scrubbed: bool = False
-    
+
     def get_elapsed_time_ms(self) -> float:
         """Get elapsed time in milliseconds"""
         return (time.time() - self.start_time) * 1000
@@ -137,7 +137,7 @@ class SecurityContext:
 
 class AuthenticationMiddleware:
     """Middleware for authentication"""
-    
+
     def __init__(self, config: SecurityMiddlewareConfig):
         self.config = config
         # Initialize key manager for authenticators
@@ -145,7 +145,7 @@ class AuthenticationMiddleware:
         self.human_auth = HumanAuthenticator(self.key_manager)
         self.machine_auth = MachineAuthenticator(self.key_manager)
         self.identity_verifier = IdentityVerifier()
-    
+
     def authenticate_request(
         self,
         request_data: Dict[str, Any],
@@ -155,28 +155,28 @@ class AuthenticationMiddleware:
         if not self.config.require_authentication:
             context.authenticated = True
             return True
-        
+
         # Check for authentication credentials
         auth_type = request_data.get('auth_type')
         credentials = request_data.get('credentials')
-        
+
         if not auth_type or not credentials:
             context.authenticated = False
             return False
-        
+
         # Simplified authentication for middleware
         # In production, would use actual passkey/mTLS verification
         if auth_type == 'human' and self.config.allow_human_auth:
             context.authenticated = True
             context.identity = credentials.get('user_id')
-            
+
         elif auth_type == 'machine' and self.config.allow_machine_auth:
             context.authenticated = True
             context.identity = credentials.get('machine_id')
-        
+
         else:
             context.authenticated = False
-        
+
         # Verify identity (simplified)
         if context.authenticated and context.identity:
             # In production, would verify with IdentityVerifier
@@ -193,9 +193,9 @@ class AuthenticationMiddleware:
                 gate_history_clean=True,
                 telemetry_coherent=True
             )
-        
+
         return context.authenticated
-    
+
     def require_authentication(self, func: Callable) -> Callable:
         """Decorator to require authentication"""
         @functools.wraps(func)
@@ -203,21 +203,21 @@ class AuthenticationMiddleware:
             # Extract request data and context
             request_data = kwargs.get('request_data', {})
             context = kwargs.get('context')
-            
+
             if not context:
                 context = SecurityContext(
                     request_id=secrets.token_hex(16),
                     timestamp=datetime.now()
                 )
                 kwargs['context'] = context
-            
+
             # Authenticate
             if not self.authenticate_request(request_data, context):
                 raise PermissionError("Authentication required")
-            
+
             # Call original function
             return func(*args, **kwargs)
-        
+
         return wrapper
 
 
@@ -434,11 +434,11 @@ class EncryptionMiddleware:
 
 class AuditLoggingMiddleware:
     """Middleware for audit logging"""
-    
+
     def __init__(self, config: SecurityMiddlewareConfig):
         self.config = config
         self.audit_logs: List[AuditLogEntry] = []
-    
+
     def log_request(
         self,
         request_data: Dict[str, Any],
@@ -447,10 +447,10 @@ class AuditLoggingMiddleware:
         """Log a request"""
         if not self.config.enable_audit_logging:
             return
-        
+
         if not self.config.log_all_requests:
             return
-        
+
         # Create audit log entry
         log_entry = AuditLogEntry(
             log_id=secrets.token_hex(16),
@@ -467,10 +467,10 @@ class AuditLoggingMiddleware:
                 'encrypted': context.encrypted
             }
         )
-        
+
         self.audit_logs.append(log_entry)
         context.audit_log_id = log_entry.log_id
-    
+
     def log_response(
         self,
         response_data: Dict[str, Any],
@@ -480,10 +480,10 @@ class AuditLoggingMiddleware:
         """Log a response"""
         if not self.config.enable_audit_logging:
             return
-        
+
         if not self.config.log_all_responses:
             return
-        
+
         # Create audit log entry
         log_entry = AuditLogEntry(
             log_id=secrets.token_hex(16),
@@ -500,9 +500,9 @@ class AuditLoggingMiddleware:
                 'sensitive_data_detected': context.sensitive_data_detected
             }
         )
-        
+
         self.audit_logs.append(log_entry)
-    
+
     def get_audit_logs(
         self,
         start_time: Optional[datetime] = None,
@@ -511,16 +511,16 @@ class AuditLoggingMiddleware:
     ) -> List[AuditLogEntry]:
         """Get audit logs"""
         logs = self.audit_logs
-        
+
         if start_time:
             logs = [log for log in logs if log.timestamp >= start_time]
-        
+
         if end_time:
             logs = [log for log in logs if log.timestamp <= end_time]
-        
+
         if identity:
             logs = [log for log in logs if log.identity == identity]
-        
+
         return logs
 
 
@@ -530,7 +530,7 @@ class AuditLoggingMiddleware:
 
 class TimingNormalizationMiddleware:
     """Middleware for timing normalization"""
-    
+
     def __init__(self, config: SecurityMiddlewareConfig):
         self.config = config
         self.normalizer = ExecutionTimeNormalizer(
@@ -539,7 +539,7 @@ class TimingNormalizationMiddleware:
                 'execution_time_bucket_ms': int(config.target_time_ms)
             })()
         )
-    
+
     def normalize_timing(
         self,
         func: Callable,
@@ -548,22 +548,22 @@ class TimingNormalizationMiddleware:
         """Normalize timing of a function"""
         if not self.config.enable_timing_normalization:
             return func()
-        
+
         # Execute function
         start_time = time.time()
         result = func()
         execution_time_ms = (time.time() - start_time) * 1000
-        
+
         # Calculate delay needed
         delay_ms = self.normalizer.add_normalization_delay(execution_time_ms)
-        
+
         # Add delay
         if delay_ms > 0:
             time.sleep(delay_ms / 1000)
-        
+
         # Update context
         context.normalized_time_ms = execution_time_ms + delay_ms
-        
+
         return result
 
 
@@ -573,12 +573,12 @@ class TimingNormalizationMiddleware:
 
 class DLPMiddleware:
     """Middleware for data leak prevention"""
-    
+
     def __init__(self, config: SecurityMiddlewareConfig):
         self.config = config
         self.classifier = SensitiveDataClassifier()
         self.exfiltration_detector = ExfiltrationDetector()
-    
+
     def classify_data(
         self,
         data: Dict[str, Any],
@@ -587,22 +587,22 @@ class DLPMiddleware:
         """Classify data sensitivity"""
         if not self.config.enable_dlp:
             return "PUBLIC"
-        
+
         # Convert data to text for classification
         text = str(data)
-        
+
         # Classify using actual method
         data_id = context.request_id
         classification = self.classifier.classify(text, data_id)
-        
+
         # Update context
         context.data_classification = classification.sensitivity_level.value
         context.sensitive_data_detected = classification.sensitivity_level.value in [
             "CONFIDENTIAL", "SECRET", "TOP_SECRET"
         ]
-        
+
         return classification.sensitivity_level.value
-    
+
     def prevent_exfiltration(
         self,
         data: Dict[str, Any],
@@ -612,20 +612,20 @@ class DLPMiddleware:
         """Prevent data exfiltration"""
         if not self.config.enable_dlp:
             return True
-        
+
         if not self.config.block_sensitive_data:
             return True
-        
+
         # Check if sensitive data is being sent to untrusted destination
         if context.sensitive_data_detected:
             # Check destination trust
             is_trusted = self._is_trusted_destination(destination)
-            
+
             if not is_trusted:
                 return False  # Block exfiltration
-        
+
         return True
-    
+
     def _is_trusted_destination(self, destination: str) -> bool:
         """Check if destination is trusted"""
         # Simplified - real implementation would check against whitelist
@@ -634,7 +634,7 @@ class DLPMiddleware:
             '127.0.0.1',
             'murphy-system.internal'
         ]
-        
+
         return any(domain in destination for domain in trusted_domains)
 
 
@@ -644,12 +644,12 @@ class DLPMiddleware:
 
 class AntiSurveillanceMiddleware:
     """Middleware for anti-surveillance"""
-    
+
     def __init__(self, config: SecurityMiddlewareConfig):
         self.config = config
         self.anti_surveillance = AntiSurveillanceSystem()
         self.metadata_scrubber = MetadataScrubber(self.anti_surveillance.config)
-    
+
     def scrub_metadata(
         self,
         metadata: Dict[str, Any],
@@ -658,16 +658,16 @@ class AntiSurveillanceMiddleware:
         """Scrub sensitive metadata"""
         if not self.config.enable_anti_surveillance:
             return metadata
-        
+
         if not self.config.scrub_metadata:
             return metadata
-        
+
         # Scrub metadata
         scrubbed = self.metadata_scrubber.scrub_metadata(metadata)
-        
+
         # Update context
         context.metadata_scrubbed = True
-        
+
         return scrubbed
 
 
@@ -677,10 +677,10 @@ class AntiSurveillanceMiddleware:
 
 class SecurityMiddleware:
     """Unified security middleware for Murphy System"""
-    
+
     def __init__(self, config: Optional[SecurityMiddlewareConfig] = None):
         self.config = config or SecurityMiddlewareConfig()
-        
+
         # Initialize middleware components
         self.auth = AuthenticationMiddleware(self.config)
         self.encryption = EncryptionMiddleware(self.config)
@@ -688,13 +688,13 @@ class SecurityMiddleware:
         self.timing = TimingNormalizationMiddleware(self.config)
         self.dlp = DLPMiddleware(self.config)
         self.anti_surveillance = AntiSurveillanceMiddleware(self.config)
-        
+
         # Statistics
         self.total_requests = 0
         self.authenticated_requests = 0
         self.encrypted_requests = 0
         self.blocked_requests = 0
-    
+
     def process_request(
         self,
         request_data: Dict[str, Any],
@@ -702,15 +702,15 @@ class SecurityMiddleware:
         component: str
     ) -> Dict[str, Any]:
         """Process a request with full security middleware"""
-        
+
         # Create security context
         context = SecurityContext(
             request_id=secrets.token_hex(16),
             timestamp=datetime.now()
         )
-        
+
         self.total_requests += 1
-        
+
         try:
             # 1. Authentication
             if self.config.require_authentication:
@@ -721,26 +721,26 @@ class SecurityMiddleware:
             else:
                 # If authentication not required, mark as authenticated
                 context.authenticated = True
-            
+
             # 2. Audit logging (request)
             self.audit.log_request(request_data, context)
-            
+
             # 3. DLP classification
             classification = self.dlp.classify_data(request_data, context)
-            
+
             # 4. Anti-surveillance (scrub request metadata)
             if 'metadata' in request_data:
                 request_data['metadata'] = self.anti_surveillance.scrub_metadata(
                     request_data['metadata'],
                     context
                 )
-            
+
             # 5. Execute operation with timing normalization
             result = self.timing.normalize_timing(
                 lambda: operation(request_data, context),
                 context
             )
-            
+
             # 6. DLP exfiltration prevention
             if not self.dlp.prevent_exfiltration(
                 result,
@@ -749,22 +749,22 @@ class SecurityMiddleware:
             ):
                 self.blocked_requests += 1
                 raise PermissionError("Data exfiltration blocked")
-            
+
             # 7. Encryption (if result contains sensitive data)
             if context.sensitive_data_detected and self.config.require_encryption:
                 # Note: In real implementation, would encrypt result
                 self.encrypted_requests += 1
-            
+
             # 8. Anti-surveillance (scrub response metadata)
             if 'metadata' in result:
                 result['metadata'] = self.anti_surveillance.scrub_metadata(
                     result['metadata'],
                     context
                 )
-            
+
             # 9. Audit logging (response)
             self.audit.log_response(result, context, success=True)
-            
+
             # Add security context to result
             result['security_context'] = {
                 'request_id': context.request_id,
@@ -773,9 +773,9 @@ class SecurityMiddleware:
                 'data_classification': context.data_classification,
                 'normalized_time_ms': context.normalized_time_ms
             }
-            
+
             return result
-            
+
         except Exception as exc:
             # Audit logging (failure)
             self.audit.log_response(
@@ -784,7 +784,7 @@ class SecurityMiddleware:
                 success=False
             )
             raise
-    
+
     def secure_endpoint(self, component: str):
         """Decorator to secure an endpoint"""
         def decorator(func: Callable) -> Callable:
@@ -797,7 +797,7 @@ class SecurityMiddleware:
                 )
             return wrapper
         return decorator
-    
+
     def get_statistics(self) -> Dict[str, Any]:
         """Get middleware statistics"""
         return {
@@ -827,7 +827,7 @@ class SecurityMiddleware:
 
 class ConfidenceEngineMiddleware(SecurityMiddleware):
     """Security middleware for Confidence Engine"""
-    
+
     def __init__(self, config: Optional[SecurityMiddlewareConfig] = None):
         super().__init__(config)
         self.component_name = "confidence_engine"
@@ -835,7 +835,7 @@ class ConfidenceEngineMiddleware(SecurityMiddleware):
 
 class GateSynthesisMiddleware(SecurityMiddleware):
     """Security middleware for Gate Synthesis Engine"""
-    
+
     def __init__(self, config: Optional[SecurityMiddlewareConfig] = None):
         super().__init__(config)
         self.component_name = "gate_synthesis"
@@ -843,7 +843,7 @@ class GateSynthesisMiddleware(SecurityMiddleware):
 
 class ExecutionOrchestratorMiddleware(SecurityMiddleware):
     """Security middleware for Execution Orchestrator"""
-    
+
     def __init__(self, config: Optional[SecurityMiddlewareConfig] = None):
         super().__init__(config)
         self.component_name = "execution_orchestrator"

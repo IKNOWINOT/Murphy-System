@@ -123,20 +123,20 @@ async def submit_telemetry(submission: TelemetrySubmission):
             status_code=400,
             detail=f"Invalid domain: {submission.domain}",
         )
-    
+
     success = telemetry_bus.publish(
         domain=domain,
         source_id=submission.source_id,
         data=submission.data,
         provenance=submission.provenance,
     )
-    
+
     if not success:
         raise HTTPException(
             status_code=409,
             detail="Event deduplicated or buffer full",
         )
-    
+
     return {
         "status": "accepted",
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -147,7 +147,7 @@ async def submit_telemetry(submission: TelemetrySubmission):
 async def ingest_telemetry(batch_size: int = 100):
     """Ingest telemetry from bus to artifact store"""
     ingested = telemetry_ingester.ingest_batch(batch_size)
-    
+
     return {
         "ingested": ingested,
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -171,18 +171,18 @@ async def query_telemetry(
                 status_code=400,
                 detail=f"Invalid domain: {domain}",
             )
-    
+
     since = None
     if since_hours:
         since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
-    
+
     artifacts = telemetry_ingester.get_artifacts(
         domain=domain_enum,
         source_id=source_id,
         since=since,
         limit=limit,
     )
-    
+
     return {
         "count": len(artifacts),
         "artifacts": [a.to_dict() for a in artifacts],
@@ -202,32 +202,32 @@ async def analyze_telemetry(
 ):
     """Run learning loops on recent telemetry"""
     since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
-    
+
     # Get recent telemetry
     artifacts = telemetry_ingester.get_artifacts(since=since, limit=10000)
-    
+
     if not artifacts:
         return {
             "gate_proposals": [],
             "insights": [],
             "message": "No telemetry available for analysis",
         }
-    
+
     # Run learning loops
     gate_proposals, insights = hardening_engine.analyze_all(artifacts)
-    
+
     # Log in shadow mode
     for proposal in gate_proposals:
         should_enforce = shadow_controller.should_enforce(proposal.evolution_id)
         shadow_controller.log_proposal(proposal, enforced=should_enforce)
-        
+
         # Submit for authorization if not in shadow mode
         if shadow_controller.mode != OperationMode.SHADOW:
             authorization_interface.submit_proposal(proposal)
-    
+
     for insight in insights:
         shadow_controller.log_insight(insight)
-    
+
     return {
         "gate_proposals": [p.to_dict() for p in gate_proposals],
         "insights": [i.to_dict() for i in insights],
@@ -246,15 +246,15 @@ async def get_insights(
     since = None
     if since_hours:
         since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
-    
+
     log = shadow_controller.get_shadow_log(since=since, limit=limit)
-    
+
     # Filter for insights only
     insights = [
         entry for entry in log
         if "insight_id" in entry
     ]
-    
+
     return {
         "count": len(insights),
         "insights": insights,
@@ -271,15 +271,15 @@ async def get_gate_proposals(
     since = None
     if since_hours:
         since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
-    
+
     log = shadow_controller.get_shadow_log(since=since, limit=limit)
-    
+
     # Filter for proposals only
     proposals = [
         entry for entry in log
         if "evolution_id" in entry
     ]
-    
+
     return {
         "count": len(proposals),
         "proposals": proposals,
@@ -290,7 +290,7 @@ async def get_gate_proposals(
 async def get_pending_proposals():
     """Get pending authorization proposals"""
     proposals = authorization_interface.get_pending_proposals()
-    
+
     return {
         "count": len(proposals),
         "proposals": [p.to_dict() for p in proposals],
@@ -305,13 +305,13 @@ async def authorize_proposal(request: AuthorizationRequest):
         authorized_by=request.authorized_by,
         notes=request.notes,
     )
-    
+
     if not success:
         raise HTTPException(
             status_code=404,
             detail=f"Proposal {request.evolution_id} not found",
         )
-    
+
     return {
         "status": "authorized",
         "evolution_id": request.evolution_id,
@@ -328,13 +328,13 @@ async def reject_proposal(request: RejectionRequest):
         rejected_by=request.rejected_by,
         reason=request.reason,
     )
-    
+
     if not success:
         raise HTTPException(
             status_code=404,
             detail=f"Proposal {request.evolution_id} not found",
         )
-    
+
     return {
         "status": "rejected",
         "evolution_id": request.evolution_id,
@@ -351,13 +351,13 @@ async def rollback_evolution(request: RollbackRequest):
         rolled_back_by=request.rolled_back_by,
         reason=request.reason,
     )
-    
+
     if not rollback_state:
         raise HTTPException(
             status_code=404,
             detail=f"Evolution {request.evolution_id} not found or not authorized",
         )
-    
+
     return {
         "status": "rolled_back",
         "rollback_state": rollback_state,
@@ -375,7 +375,7 @@ async def get_authorization_log(
     since = None
     if since_hours:
         since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
-    
+
     from .shadow_mode import AuthorizationStatus
     status_enum = None
     if status:
@@ -386,13 +386,13 @@ async def get_authorization_log(
                 status_code=400,
                 detail=f"Invalid status: {status}",
             )
-    
+
     log = authorization_interface.get_authorization_log(
         since=since,
         status=status_enum,
         limit=limit,
     )
-    
+
     return {
         "count": len(log),
         "log": log,
@@ -408,12 +408,12 @@ async def get_rollback_history(
     since = None
     if since_hours:
         since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
-    
+
     history = authorization_interface.get_rollback_history(
         since=since,
         limit=limit,
     )
-    
+
     return {
         "count": len(history),
         "history": history,
@@ -441,12 +441,12 @@ async def set_shadow_mode(request: ModeChangeRequest):
             status_code=400,
             detail=f"Invalid mode: {request.mode}",
         )
-    
+
     shadow_controller.set_mode(mode)
-    
+
     if request.enforcement_percentage is not None:
         shadow_controller.set_enforcement_percentage(request.enforcement_percentage)
-    
+
     return {
         "status": "updated",
         "mode": shadow_controller.mode.value,
@@ -464,9 +464,9 @@ async def get_shadow_log(
     since = None
     if since_hours:
         since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
-    
+
     log = shadow_controller.get_shadow_log(since=since, limit=limit)
-    
+
     return {
         "count": len(log),
         "log": log,
@@ -482,9 +482,9 @@ async def get_safety_violations(
     since = None
     if since_hours:
         since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
-    
+
     violations = safety_enforcer.get_violations(since=since)
-    
+
     return {
         "count": len(violations),
         "violations": violations,
@@ -499,9 +499,9 @@ async def get_blocked_actions(
     since = None
     if since_hours:
         since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
-    
+
     blocked = safety_enforcer.get_blocked_actions(since=since)
-    
+
     return {
         "count": len(blocked),
         "blocked_actions": blocked,

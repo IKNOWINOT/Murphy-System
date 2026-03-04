@@ -39,53 +39,53 @@ from .schemas import (
 class BaseConnector(ABC):
     """
     Abstract base class for communication connectors
-    
+
     All connectors must implement:
     - receive_messages(): Poll for inbound messages
     - send_message(): Send authorized outbound message
     """
-    
+
     def __init__(self, config: ConnectorConfig):
         self.config = config
         self.channel = config.channel
         self._last_poll = None
         self._message_count = 0
-    
+
     @abstractmethod
     def receive_messages(self) -> List[MessageArtifact]:
         """
         Poll for inbound messages and convert to MessageArtifacts
-        
+
         CRITICAL: This method ONLY creates artifacts. It NEVER triggers execution.
-        
+
         Returns:
             List of MessageArtifact objects
         """
         pass
-    
+
     @abstractmethod
     def send_message(self, packet: CommunicationPacket) -> bool:
         """
         Send authorized outbound message
-        
+
         CRITICAL: This method REQUIRES a CommunicationPacket with authorization.
         It CANNOT send messages without proper authorization.
-        
+
         Args:
             packet: Authorized CommunicationPacket
-        
+
         Returns:
             True if sent successfully, False otherwise
         """
         pass
-    
+
     def _check_rate_limit(self) -> bool:
         """Check if rate limit allows sending"""
         # Simple rate limiting (production would use token bucket)
         if self._message_count >= self.config.max_messages_per_minute:
             return False
         return True
-    
+
     def _increment_message_count(self):
         """Increment message count for rate limiting"""
         self._message_count += 1
@@ -94,65 +94,65 @@ class BaseConnector(ABC):
 class EmailConnector(BaseConnector):
     """
     Email connector supporting SMTP and Microsoft Graph
-    
+
     Supports:
     - SMTP for sending
     - IMAP for receiving
     - Microsoft Graph API (optional)
     """
-    
+
     def __init__(self, config: ConnectorConfig):
         super().__init__(config)
-        
+
         # SMTP configuration
         self.smtp_host = config.connection_params.get('smtp_host')
         self.smtp_port = config.connection_params.get('smtp_port', 587)
         self.smtp_username = config.connection_params.get('smtp_username')
         self.smtp_password = config.connection_params.get('smtp_password')
-        
+
         # IMAP configuration
         self.imap_host = config.connection_params.get('imap_host')
         self.imap_port = config.connection_params.get('imap_port', 993)
         self.imap_username = config.connection_params.get('imap_username')
         self.imap_password = config.connection_params.get('imap_password')
-        
+
         # Microsoft Graph configuration (optional)
         self.use_graph = config.connection_params.get('use_graph', False)
         self.graph_token = config.connection_params.get('graph_token')
         self.graph_endpoint = config.connection_params.get('graph_endpoint', 'https://graph.microsoft.com/v1.0')
-    
+
     def receive_messages(self) -> List[MessageArtifact]:
         """Receive emails via IMAP or Microsoft Graph"""
         if self.use_graph:
             return self._receive_via_graph()
         else:
             return self._receive_via_imap()
-    
+
     def _receive_via_imap(self) -> List[MessageArtifact]:
         """Receive emails via IMAP"""
         messages = []
-        
+
         try:
             # Connect to IMAP server
             if self.config.require_tls:
                 imap = imaplib.IMAP4_SSL(self.imap_host, self.imap_port)
             else:
                 imap = imaplib.IMAP4(self.imap_host, self.imap_port)
-            
+
             imap.login(self.imap_username, self.imap_password)
             imap.select('INBOX')
-            
+
             # Search for unread messages
             _, message_numbers = imap.search(None, 'UNSEEN')
-            
+
             for num in message_numbers[0].split():
                 _, msg_data = imap.fetch(num, '(RFC822)')
                 email_body = msg_data[0][1]
                 email_message = email.message_from_bytes(email_body)
-                
+
                 # Extract content
                 content = self._extract_email_content(email_message)
-                
+
                 # Create MessageArtifact
                 artifact = MessageArtifact(
                     message_id=email_message.get('Message-ID', f'email_{num}'),
@@ -169,34 +169,34 @@ class EmailConnector(BaseConnector):
                     source_system='email_imap',
                     triggers_execution=False  # CRITICAL: Never triggers execution
                 )
-                
+
                 messages.append(artifact)
-            
+
             imap.close()
             imap.logout()
-        
+
         except Exception as exc:
             logger.exception("Error receiving emails via IMAP: %s", exc)
-        
+
         return messages
-    
+
     def _receive_via_graph(self) -> List[MessageArtifact]:
         """Receive emails via Microsoft Graph API"""
         messages = []
-        
+
         try:
             headers = {
                 'Authorization': f'Bearer {self.graph_token}',
                 'Content-Type': 'application/json'
             }
-            
+
             # Get unread messages
             url = f'{self.graph_endpoint}/me/messages?$filter=isRead eq false'
             response = requests.get(url, headers=headers, timeout=30)
-            
+
             if response.status_code == 200:
                 data = response.json()
-                
+
                 for msg in data.get('value', []):
                     # Create MessageArtifact
                     artifact = MessageArtifact(
@@ -214,35 +214,35 @@ class EmailConnector(BaseConnector):
                         source_system='email_graph',
                         triggers_execution=False
                     )
-                    
+
                     messages.append(artifact)
-        
+
         except Exception as exc:
             logger.exception("Error receiving emails via Graph: %s", exc)
-        
+
         return messages
-    
+
     def send_message(self, packet: CommunicationPacket) -> bool:
         """Send email via SMTP or Microsoft Graph"""
         # Verify packet can be sent
         if not packet.can_send():
             raise ValueError("CommunicationPacket cannot be sent (authorization or signoff missing)")
-        
+
         # Check rate limit
         if not self._check_rate_limit():
             return False
-        
+
         if self.use_graph:
             success = self._send_via_graph(packet)
         else:
             success = self._send_via_smtp(packet)
-        
+
         if success:
             self._increment_message_count()
             packet.sent_at = datetime.now(timezone.utc)
-        
+
         return success
-    
+
     def _send_via_smtp(self, packet: CommunicationPacket) -> bool:
         """Send email via SMTP"""
         try:
@@ -251,27 +251,27 @@ class EmailConnector(BaseConnector):
             msg['Subject'] = f"Thread: {packet.thread_id}"
             msg['From'] = self.smtp_username
             msg['To'] = ', '.join([f'recipient_{i}@example.com' for i in range(len(packet.recipient_hashes))])
-            
+
             # Add body
             msg.attach(MIMEText(packet.content, 'plain'))
-            
+
             # Send via SMTP
             if self.config.require_tls:
                 server = smtplib.SMTP(self.smtp_host, self.smtp_port)
                 server.starttls()
             else:
                 server = smtplib.SMTP(self.smtp_host, self.smtp_port)
-            
+
             server.login(self.smtp_username, self.smtp_password)
             server.send_message(msg)
             server.quit()
-            
+
             return True
-        
+
         except Exception as exc:
             logger.exception("Error sending email via SMTP: %s", exc)
             return False
-    
+
     def _send_via_graph(self, packet: CommunicationPacket) -> bool:
         """Send email via Microsoft Graph API"""
         try:
@@ -279,7 +279,7 @@ class EmailConnector(BaseConnector):
                 'Authorization': f'Bearer {self.graph_token}',
                 'Content-Type': 'application/json'
             }
-            
+
             # Create message payload
             payload = {
                 'message': {
@@ -294,16 +294,16 @@ class EmailConnector(BaseConnector):
                     ]
                 }
             }
-            
+
             url = f'{self.graph_endpoint}/me/sendMail'
             response = requests.post(url, headers=headers, json=payload, timeout=30)
-            
+
             return response.status_code == 202
-        
+
         except Exception as exc:
             logger.exception("Error sending email via Graph: %s", exc)
             return False
-    
+
     def _extract_email_content(self, email_message) -> str:
         """Extract text content from email message"""
         if email_message.is_multipart():
@@ -319,33 +319,33 @@ class SlackConnector(BaseConnector):
     """
     Slack connector supporting webhooks and polling
     """
-    
+
     def __init__(self, config: ConnectorConfig):
         super().__init__(config)
-        
+
         self.bot_token = config.connection_params.get('bot_token')
         self.webhook_url = config.connection_params.get('webhook_url')
         self.api_base = config.connection_params.get('api_base', 'https://slack.com/api')
-    
+
     def receive_messages(self) -> List[MessageArtifact]:
         """Poll for Slack messages"""
         messages = []
-        
+
         try:
             headers = {
                 'Authorization': f'Bearer {self.bot_token}',
                 'Content-Type': 'application/json'
             }
-            
+
             # Get conversations
             url = f'{self.api_base}/conversations.history'
             params = {'limit': 100}
-            
+
             response = requests.get(url, headers=headers, params=params, timeout=30)
-            
+
             if response.status_code == 200:
                 data = response.json()
-                
+
                 for msg in data.get('messages', []):
                     # Create MessageArtifact
                     artifact = MessageArtifact(
@@ -363,22 +363,22 @@ class SlackConnector(BaseConnector):
                         source_system='slack',
                         triggers_execution=False
                     )
-                    
+
                     messages.append(artifact)
-        
+
         except Exception as exc:
             logger.exception("Error receiving Slack messages: %s", exc)
-        
+
         return messages
-    
+
     def send_message(self, packet: CommunicationPacket) -> bool:
         """Send Slack message via webhook or API"""
         if not packet.can_send():
             raise ValueError("CommunicationPacket cannot be sent")
-        
+
         if not self._check_rate_limit():
             return False
-        
+
         try:
             if self.webhook_url:
                 # Send via webhook
@@ -391,22 +391,22 @@ class SlackConnector(BaseConnector):
                     'Authorization': f'Bearer {self.bot_token}',
                     'Content-Type': 'application/json'
                 }
-                
+
                 payload = {
                     'channel': packet.thread_id,
                     'text': packet.content
                 }
-                
+
                 url = f'{self.api_base}/chat.postMessage'
                 response = requests.post(url, headers=headers, json=payload, timeout=30)
                 success = response.status_code == 200
-            
+
             if success:
                 self._increment_message_count()
                 packet.sent_at = datetime.now(timezone.utc)
-            
+
             return success
-        
+
         except Exception as exc:
             logger.exception("Error sending Slack message: %s", exc)
             return False
@@ -416,31 +416,31 @@ class TeamsConnector(BaseConnector):
     """
     Microsoft Teams connector supporting webhooks and polling
     """
-    
+
     def __init__(self, config: ConnectorConfig):
         super().__init__(config)
-        
+
         self.webhook_url = config.connection_params.get('webhook_url')
         self.graph_token = config.connection_params.get('graph_token')
         self.graph_endpoint = config.connection_params.get('graph_endpoint', 'https://graph.microsoft.com/v1.0')
-    
+
     def receive_messages(self) -> List[MessageArtifact]:
         """Poll for Teams messages via Microsoft Graph"""
         messages = []
-        
+
         try:
             headers = {
                 'Authorization': f'Bearer {self.graph_token}',
                 'Content-Type': 'application/json'
             }
-            
+
             # Get chat messages
             url = f'{self.graph_endpoint}/me/chats/getAllMessages'
             response = requests.get(url, headers=headers, timeout=30)
-            
+
             if response.status_code == 200:
                 data = response.json()
-                
+
                 for msg in data.get('value', []):
                     artifact = MessageArtifact(
                         message_id=msg.get('id'),
@@ -457,22 +457,22 @@ class TeamsConnector(BaseConnector):
                         source_system='teams',
                         triggers_execution=False
                     )
-                    
+
                     messages.append(artifact)
-        
+
         except Exception as exc:
             logger.exception("Error receiving Teams messages: %s", exc)
-        
+
         return messages
-    
+
     def send_message(self, packet: CommunicationPacket) -> bool:
         """Send Teams message via webhook or Graph API"""
         if not packet.can_send():
             raise ValueError("CommunicationPacket cannot be sent")
-        
+
         if not self._check_rate_limit():
             return False
-        
+
         try:
             if self.webhook_url:
                 # Send via webhook
@@ -487,23 +487,23 @@ class TeamsConnector(BaseConnector):
                     'Authorization': f'Bearer {self.graph_token}',
                     'Content-Type': 'application/json'
                 }
-                
+
                 payload = {
                     'body': {
                         'content': packet.content
                     }
                 }
-                
+
                 url = f'{self.graph_endpoint}/chats/{packet.thread_id}/messages'
                 response = requests.post(url, headers=headers, json=payload, timeout=30)
                 success = response.status_code == 201
-            
+
             if success:
                 self._increment_message_count()
                 packet.sent_at = datetime.now(timezone.utc)
-            
+
             return success
-        
+
         except Exception as exc:
             logger.exception("Error sending Teams message: %s", exc)
             return False
@@ -512,39 +512,39 @@ class TeamsConnector(BaseConnector):
 class SMSConnector(BaseConnector):
     """
     SMS connector with pluggable provider interface
-    
+
     Supports:
     - Twilio
     - AWS SNS
     - Custom providers
     """
-    
+
     def __init__(self, config: ConnectorConfig):
         super().__init__(config)
-        
+
         self.provider = config.connection_params.get('provider', 'twilio')
         self.api_key = config.connection_params.get('api_key')
         self.api_secret = config.connection_params.get('api_secret')
         self.from_number = config.connection_params.get('from_number')
-    
+
     def receive_messages(self) -> List[MessageArtifact]:
         """
         Receive SMS messages (typically via webhook callback)
-        
+
         Note: SMS is usually push-based (webhook), not poll-based.
         This method is a stub for consistency.
         """
         # In production, this would be called by webhook handler
         return []
-    
+
     def send_message(self, packet: CommunicationPacket) -> bool:
         """Send SMS via configured provider"""
         if not packet.can_send():
             raise ValueError("CommunicationPacket cannot be sent")
-        
+
         if not self._check_rate_limit():
             return False
-        
+
         if self.provider == 'twilio':
             return self._send_via_twilio(packet)
         elif self.provider == 'aws_sns':
@@ -552,7 +552,7 @@ class SMSConnector(BaseConnector):
         else:
             logger.error("Unknown SMS provider: %s", self.provider)
             return False
-    
+
     def _send_via_twilio(self, packet: CommunicationPacket) -> bool:
         """Send SMS via Twilio REST API."""
         if _requests is None:
@@ -583,7 +583,7 @@ class SMSConnector(BaseConnector):
         except Exception as exc:
             logger.exception("Twilio send failed: %s", exc)
             return False
-    
+
     def _send_via_sns(self, packet: CommunicationPacket) -> bool:
         """Send SMS via AWS SNS using HTTP signing."""
         try:
@@ -608,26 +608,26 @@ class SMSConnector(BaseConnector):
 class TicketConnector(BaseConnector):
     """
     Generic ticket system connector
-    
+
     Supports:
     - Jira
     - ServiceNow
     - Zendesk
     - Custom ticket systems
     """
-    
+
     def __init__(self, config: ConnectorConfig):
         super().__init__(config)
-        
+
         self.system = config.connection_params.get('system', 'jira')
         self.api_base = config.connection_params.get('api_base')
         self.api_token = config.connection_params.get('api_token')
         self.username = config.connection_params.get('username')
-    
+
     def receive_messages(self) -> List[MessageArtifact]:
         """Poll for ticket updates/comments"""
         messages = []
-        
+
         try:
             if self.system == 'jira':
                 messages = self._receive_jira_comments()
@@ -635,12 +635,12 @@ class TicketConnector(BaseConnector):
                 messages = self._receive_servicenow_comments()
             elif self.system == 'zendesk':
                 messages = self._receive_zendesk_comments()
-        
+
         except Exception as exc:
             logger.exception("Error receiving ticket messages: %s", exc)
-        
+
         return messages
-    
+
     def _receive_jira_comments(self) -> List[MessageArtifact]:
         """Receive recent Jira issue comments via REST API."""
         if _requests is None or not self.api_base or not self.api_token:
@@ -670,7 +670,7 @@ class TicketConnector(BaseConnector):
         except Exception as exc:
             logger.exception("Jira receive failed: %s", exc)
             return []
-    
+
     def _receive_servicenow_comments(self) -> List[MessageArtifact]:
         """Receive recent ServiceNow incident comments via REST API."""
         if _requests is None or not self.api_base or not self.api_token:
@@ -701,7 +701,7 @@ class TicketConnector(BaseConnector):
         except Exception as exc:
             logger.exception("ServiceNow receive failed: %s", exc)
             return []
-    
+
     def _receive_zendesk_comments(self) -> List[MessageArtifact]:
         """Receive recent Zendesk ticket comments via REST API."""
         if _requests is None or not self.api_base or not self.api_token:
@@ -730,15 +730,15 @@ class TicketConnector(BaseConnector):
         except Exception as exc:
             logger.exception("Zendesk receive failed: %s", exc)
             return []
-    
+
     def send_message(self, packet: CommunicationPacket) -> bool:
         """Send ticket comment/update"""
         if not packet.can_send():
             raise ValueError("CommunicationPacket cannot be sent")
-        
+
         if not self._check_rate_limit():
             return False
-        
+
         try:
             if self.system == 'jira':
                 success = self._send_jira_comment(packet)
@@ -748,17 +748,17 @@ class TicketConnector(BaseConnector):
                 success = self._send_zendesk_comment(packet)
             else:
                 success = False
-            
+
             if success:
                 self._increment_message_count()
                 packet.sent_at = datetime.now(timezone.utc)
-            
+
             return success
-        
+
         except Exception as exc:
             print(f"Error sending ticket message: {exc}")
             return False
-    
+
     def _send_jira_comment(self, packet: CommunicationPacket) -> bool:
         """Send a comment to a Jira issue via REST API."""
         if _requests is None or not self.api_base or not self.api_token:
@@ -782,7 +782,7 @@ class TicketConnector(BaseConnector):
         except Exception as exc:
             logger.exception("Jira send failed: %s", exc)
             return False
-    
+
     def _send_servicenow_comment(self, packet: CommunicationPacket) -> bool:
         """Add a work note to a ServiceNow incident via REST API."""
         if _requests is None or not self.api_base or not self.api_token:
@@ -806,7 +806,7 @@ class TicketConnector(BaseConnector):
         except Exception as exc:
             logger.exception("ServiceNow send failed: %s", exc)
             return False
-    
+
     def _send_zendesk_comment(self, packet: CommunicationPacket) -> bool:
         """Add a comment to a Zendesk ticket via REST API."""
         if _requests is None or not self.api_base or not self.api_token:

@@ -29,20 +29,20 @@ from confidence_engine.models import Phase, AuthorityBand
 class GateGenerator:
     """
     Generates gates based on failure modes
-    
+
     Gate Categories:
     1. Semantic Stability Gates - Prevent interpretation drift
     2. Verification Gates - Force deterministic checks
     3. Authority Decay Gates - Downgrade authority
     4. Isolation Gates - Enforce sandboxing
-    
+
     DESIGN LAW: No gate may authorize action.
     Gates may only restrict or require more evidence.
     """
-    
+
     def __init__(self):
         self.default_gate_duration = timedelta(hours=24)
-    
+
     def generate_gates(
         self,
         failure_modes=None,
@@ -52,13 +52,13 @@ class GateGenerator:
     ) -> List[Gate]:
         """
         Generate gates for all failure modes
-        
+
         Args:
             failure_modes: List of FailureMode objects, or a dict with params (e2e test style)
             current_phase: Current phase
             current_authority: Current authority band
             murphy_probabilities: Murphy probabilities for each failure mode
-        
+
         Returns:
             List of generated gates
         """
@@ -98,10 +98,10 @@ class GateGenerator:
             return []
 
         gates = []
-        
+
         for failure_mode in failure_modes:
             murphy_prob = murphy_probabilities.get(failure_mode.id, 0.0)
-            
+
             # Generate appropriate gate based on failure mode type
             if failure_mode.type == FailureModeType.SEMANTIC_DRIFT:
                 gate = self.generate_semantic_stability_gate(
@@ -109,21 +109,21 @@ class GateGenerator:
                     current_phase,
                     murphy_prob
                 )
-            
+
             elif failure_mode.type == FailureModeType.VERIFICATION_INSUFFICIENT:
                 gate = self.generate_verification_gate(
                     failure_mode,
                     current_phase,
                     murphy_prob
                 )
-            
+
             elif failure_mode.type == FailureModeType.AUTHORITY_MISUSE:
                 gate = self.generate_authority_decay_gate(
                     failure_mode,
                     current_authority,
                     murphy_prob
                 )
-            
+
             elif failure_mode.type in [
                 FailureModeType.IRREVERSIBLE_ACTION,
                 FailureModeType.BLAST_RADIUS_EXCEEDED
@@ -132,13 +132,13 @@ class GateGenerator:
                     failure_mode,
                     murphy_prob
                 )
-            
+
             elif failure_mode.type == FailureModeType.CONSTRAINT_VIOLATION:
                 gate = self.generate_constraint_gate(
                     failure_mode,
                     murphy_prob
                 )
-            
+
             else:
                 # Default: verification gate
                 gate = self.generate_verification_gate(
@@ -146,12 +146,12 @@ class GateGenerator:
                     current_phase,
                     murphy_prob
                 )
-            
+
             if gate:
                 gates.append(gate)
-        
+
         return gates
-    
+
     def generate_semantic_stability_gate(
         self,
         failure_mode: FailureMode,
@@ -160,24 +160,24 @@ class GateGenerator:
     ) -> Gate:
         """
         Generate semantic stability gate
-        
+
         Triggered when:
         - Multiple incompatible interpretations
         - Unresolved assumptions
-        
+
         Effect:
         - Block phase advancement
         - Require clarification artifacts
         """
         gate_id = self._generate_gate_id("semantic_stability", failure_mode.id)
-        
+
         # Trigger condition: epistemic instability too high
         trigger_condition = {
             'type': 'epistemic_instability',
             'threshold': 0.4,
             'current_value': failure_mode.risk_vector.H
         }
-        
+
         # Enforcement effect: block phase advancement
         enforcement_effect = {
             'action': 'block_phase_advancement',
@@ -189,7 +189,7 @@ class GateGenerator:
                 'Verify assumptions'
             ]
         }
-        
+
         # Retirement conditions
         retirement_conditions = [
             RetirementCondition(
@@ -203,10 +203,10 @@ class GateGenerator:
                 current_value=0.0
             )
         ]
-        
+
         priority = self._calculate_priority(murphy_probability, failure_mode.impact)
         expires_at = datetime.now() + self.default_gate_duration
-        
+
         gate = Gate(
             id=gate_id,
             type=GateType.CONSTRAINT,
@@ -220,9 +220,9 @@ class GateGenerator:
             priority=priority,
             expires_at=expires_at
         )
-        
+
         return gate
-    
+
     def generate_verification_gate(
         self,
         failure_mode: FailureMode,
@@ -231,13 +231,13 @@ class GateGenerator:
     ) -> Gate:
         """Generate verification gate"""
         gate_id = self._generate_gate_id("verification", failure_mode.id)
-        
+
         trigger_condition = {
             'type': 'deterministic_grounding',
             'threshold': 0.6,
             'current_value': 1.0 - failure_mode.risk_vector.one_minus_D
         }
-        
+
         enforcement_effect = {
             'action': 'require_verification',
             'phase': current_phase.value,
@@ -249,7 +249,7 @@ class GateGenerator:
             ],
             'minimum_verified_ratio': 0.7
         }
-        
+
         retirement_conditions = [
             RetirementCondition(
                 condition_type='verification_success',
@@ -257,10 +257,10 @@ class GateGenerator:
                 current_value=1.0 - failure_mode.risk_vector.one_minus_D
             )
         ]
-        
+
         priority = self._calculate_priority(murphy_probability, failure_mode.impact)
         expires_at = datetime.now() + self.default_gate_duration
-        
+
         gate = Gate(
             id=gate_id,
             type=GateType.VERIFICATION,
@@ -274,9 +274,9 @@ class GateGenerator:
             priority=priority,
             expires_at=expires_at
         )
-        
+
         return gate
-    
+
     def generate_authority_decay_gate(
         self,
         failure_mode: FailureMode,
@@ -285,13 +285,13 @@ class GateGenerator:
     ) -> Gate:
         """Generate authority decay gate"""
         gate_id = self._generate_gate_id("authority_decay", failure_mode.id)
-        
+
         trigger_condition = {
             'type': 'authority_risk',
             'threshold': 0.5,
             'current_value': failure_mode.risk_vector.authority_risk
         }
-        
+
         authority_levels = [
             AuthorityBand.ASK_ONLY,
             AuthorityBand.GENERATE,
@@ -299,17 +299,17 @@ class GateGenerator:
             AuthorityBand.NEGOTIATE,
             AuthorityBand.EXECUTE
         ]
-        
+
         current_idx = authority_levels.index(current_authority)
         target_authority = authority_levels[max(0, current_idx - 1)]
-        
+
         enforcement_effect = {
             'action': 'downgrade_authority',
             'from_authority': current_authority.value,
             'to_authority': target_authority.value,
             'reason': 'Authority too high for confidence level'
         }
-        
+
         retirement_conditions = [
             RetirementCondition(
                 condition_type='confidence_recovery',
@@ -317,10 +317,10 @@ class GateGenerator:
                 current_value=0.0
             )
         ]
-        
+
         priority = self._calculate_priority(murphy_probability, failure_mode.impact)
         expires_at = datetime.now() + self.default_gate_duration
-        
+
         gate = Gate(
             id=gate_id,
             type=GateType.AUTHORITY,
@@ -334,9 +334,9 @@ class GateGenerator:
             priority=priority,
             expires_at=expires_at
         )
-        
+
         return gate
-    
+
     def generate_isolation_gate(
         self,
         failure_mode: FailureMode,
@@ -344,20 +344,20 @@ class GateGenerator:
     ) -> Gate:
         """Generate isolation gate"""
         gate_id = self._generate_gate_id("isolation", failure_mode.id)
-        
+
         trigger_condition = {
             'type': 'exposure',
             'threshold': 0.5,
             'current_value': failure_mode.risk_vector.exposure
         }
-        
+
         enforcement_effect = {
             'action': 'enforce_isolation',
             'reason': 'Blast radius or irreversibility too high',
             'allowed_interfaces': ['sandbox', 'simulation'],
             'blocked_interfaces': ['production', 'external_api']
         }
-        
+
         retirement_conditions = [
             RetirementCondition(
                 condition_type='risk_reduction',
@@ -365,12 +365,12 @@ class GateGenerator:
                 current_value=failure_mode.risk_vector.exposure
             )
         ]
-        
+
         priority = self._calculate_priority(murphy_probability, failure_mode.impact)
         priority = min(10, priority + 2)
-        
+
         expires_at = datetime.now() + self.default_gate_duration
-        
+
         gate = Gate(
             id=gate_id,
             type=GateType.ISOLATION,
@@ -384,9 +384,9 @@ class GateGenerator:
             priority=priority,
             expires_at=expires_at
         )
-        
+
         return gate
-    
+
     def generate_constraint_gate(
         self,
         failure_mode: FailureMode,
@@ -394,18 +394,18 @@ class GateGenerator:
     ) -> Gate:
         """Generate constraint gate"""
         gate_id = self._generate_gate_id("constraint", failure_mode.id)
-        
+
         trigger_condition = {
             'type': 'constraint_check',
             'threshold': 1.0,
             'current_value': 0.0
         }
-        
+
         enforcement_effect = {
             'action': 'enforce_constraints',
             'reason': 'Potential constraint violation detected'
         }
-        
+
         retirement_conditions = [
             RetirementCondition(
                 condition_type='verification_success',
@@ -413,10 +413,10 @@ class GateGenerator:
                 current_value=0.0
             )
         ]
-        
+
         priority = self._calculate_priority(murphy_probability, failure_mode.impact)
         expires_at = datetime.now() + self.default_gate_duration
-        
+
         gate = Gate(
             id=gate_id,
             type=GateType.CONSTRAINT,
@@ -430,16 +430,16 @@ class GateGenerator:
             priority=priority,
             expires_at=expires_at
         )
-        
+
         return gate
-    
+
     def _calculate_priority(self, murphy_probability: float, impact: float) -> int:
         """Calculate gate priority"""
         base_priority = int(murphy_probability * 10)
         impact_adjustment = int(impact * 3)
         priority = base_priority + impact_adjustment
         return max(1, min(10, priority))
-    
+
     def _generate_gate_id(self, gate_type: str, failure_mode_id: str) -> str:
         """Generate unique gate ID"""
         content = f"{gate_type}_{failure_mode_id}_{datetime.now().isoformat()}"

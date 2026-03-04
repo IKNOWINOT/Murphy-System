@@ -36,22 +36,22 @@ class ProfessionAtom(Enum):
     SOFTWARE_ENGINEER = "software_engineer"
     MECHANICAL_ENGINEER = "mechanical_engineer"
     SYSTEMS_ENGINEER = "systems_engineer"
-    
+
     # Compliance &amp; Safety
     COMPLIANCE_OFFICER = "compliance_officer"
     SAFETY_ENGINEER = "safety_engineer"
     SECURITY_ANALYST = "security_analyst"
     RISK_MANAGER = "risk_manager"
-    
+
     # Domain Experts
     DATA_SCIENTIST = "data_scientist"
     DOMAIN_EXPERT = "domain_expert"
     ARCHITECT = "architect"
-    
+
     # Adversarial
     RED_TEAM = "red_team"
     PENETRATION_TESTER = "penetration_tester"
-    
+
     # Synthesis
     INTEGRATOR = "integrator"
     OPTIMIZER = "optimizer"
@@ -74,7 +74,7 @@ class ArtifactType(Enum):
 class Artifact:
     """
     Artifact in Typed Generative Workspace
-    
+
     Agents coordinate by writing artifacts, not messaging
     """
     id: str
@@ -93,7 +93,7 @@ class Artifact:
 class GateProposal:
     """
     Gate proposal from control swarm
-    
+
     Gates are discovered, not predefined
     """
     id: str
@@ -112,7 +112,7 @@ class GateProposal:
 class AgentInstance:
     """
     Atomic unit of swarm
-    
+
     Agent = instantiated ProfessionAtom
     Agents are inference operators, not actors
     """
@@ -124,7 +124,7 @@ class AgentInstance:
     risk_models: List[str]  # Known failure patterns
     regulatory_knowledge: List[str]  # If applicable
     gate_proposal_history: List[str] = field(default_factory=list)
-    
+
     def __post_init__(self):
         """Agents never have execution authority"""
         if self.authority_band not in ['propose', 'analyze', 'verify']:
@@ -134,29 +134,29 @@ class AgentInstance:
 class TypedGenerativeWorkspace:
     """
     Shared artifact space for coordination
-    
+
     Agents write artifacts here
     Coordination happens via verification pruning, gate activation, phase legality
     NOT negotiation
     """
-    
+
     def __init__(self):
         self.artifacts: Dict[str, Artifact] = {}
         self.gate_proposals: Dict[str, GateProposal] = {}
         self.active_gates: List[str] = []
         self.phase_artifacts: Dict[Phase, List[str]] = {p: [] for p in Phase}
-    
+
     def write_artifact(self, artifact: Artifact) -> str:
         """Write artifact to workspace"""
         self.artifacts[artifact.id] = artifact
         self.phase_artifacts[artifact.phase].append(artifact.id)
         return artifact.id
-    
+
     def write_gate_proposal(self, proposal: GateProposal) -> str:
         """Write gate proposal to workspace"""
         self.gate_proposals[proposal.id] = proposal
         return proposal.id
-    
+
     def get_artifacts_by_type(
         self,
         artifact_type: ArtifactType,
@@ -167,20 +167,20 @@ class TypedGenerativeWorkspace:
         if phase:
             artifacts = [a for a in artifacts if a.phase == phase]
         return artifacts
-    
+
     def get_artifacts_by_phase(self, phase: Phase) -> List[Artifact]:
         """Get all artifacts for a phase"""
         artifact_ids = self.phase_artifacts.get(phase, [])
         return [self.artifacts[aid] for aid in artifact_ids if aid in self.artifacts]
-    
+
     def activate_gate(self, gate_id: str):
         """Activate a gate"""
         if gate_id in self.gate_proposals and gate_id not in self.active_gates:
             self.active_gates.append(gate_id)
-    
+
     def get_active_gates(self) -> List[GateProposal]:
         """Get all active gates"""
-        return [self.gate_proposals[gid] for gid in self.active_gates 
+        return [self.gate_proposals[gid] for gid in self.active_gates
                 if gid in self.gate_proposals]
 
 
@@ -193,19 +193,19 @@ class SwarmMode(Enum):
 class BaseSwarmAgent(ABC):
     """
     Base class for swarm agents
-    
+
     Agents are inference operators that transform inputs into:
     - hypotheses
     - constraints
     - risks
     - gates
-    
+
     Never actions.
     """
-    
+
     def __init__(self, instance: AgentInstance):
         self.instance = instance
-    
+
     @abstractmethod
     def generate_artifacts(
         self,
@@ -215,7 +215,7 @@ class BaseSwarmAgent(ABC):
     ) -> List[Artifact]:
         """Generate artifacts based on profession and phase"""
         pass
-    
+
     @abstractmethod
     def estimate_risks(
         self,
@@ -224,7 +224,7 @@ class BaseSwarmAgent(ABC):
     ) -> List[Artifact]:
         """Estimate risks for control swarm"""
         pass
-    
+
     def create_artifact(
         self,
         content: Any,
@@ -248,12 +248,12 @@ class BaseSwarmAgent(ABC):
 class ExplorationAgent(BaseSwarmAgent):
     """
     Exploration swarm agent
-    
+
     Purpose: Find what could work
     Produces: solution candidates, decompositions, interpretations
     Optimizes for: generative adequacy G(x), coverage of decision space
     """
-    
+
     def generate_artifacts(
         self,
         task: str,
@@ -262,7 +262,7 @@ class ExplorationAgent(BaseSwarmAgent):
     ) -> List[Artifact]:
         """Generate solution candidates"""
         artifacts = []
-        
+
         # Generate based on profession
         if self.instance.profession == ProfessionAtom.SOFTWARE_ENGINEER:
             artifacts.extend(self._generate_software_solutions(task, workspace, context))
@@ -274,9 +274,9 @@ class ExplorationAgent(BaseSwarmAgent):
             artifacts.extend(self._generate_synthesis(task, workspace, context))
         elif self.instance.profession == ProfessionAtom.OPTIMIZER:
             artifacts.extend(self._generate_optimizations(task, workspace, context))
-        
+
         return artifacts
-    
+
     def estimate_risks(
         self,
         workspace: TypedGenerativeWorkspace,
@@ -284,7 +284,7 @@ class ExplorationAgent(BaseSwarmAgent):
     ) -> List[Artifact]:
         """Exploration agents don't estimate risks"""
         return []
-    
+
     def _generate_software_solutions(
         self,
         task: str,
@@ -293,7 +293,7 @@ class ExplorationAgent(BaseSwarmAgent):
     ) -> List[Artifact]:
         """Generate software solution candidates"""
         solutions = []
-        
+
         # Phase-specific generation
         if self.instance.phase == Phase.EXPAND:
             # Broad architectural options
@@ -309,7 +309,7 @@ class ExplorationAgent(BaseSwarmAgent):
                     confidence_impact=0.1
                 )
                 solutions.append(artifact)
-        
+
         elif self.instance.phase == Phase.ENUMERATE:
             # Specific tech stacks
             stacks = [
@@ -328,9 +328,9 @@ class ExplorationAgent(BaseSwarmAgent):
                     confidence_impact=0.15
                 )
                 solutions.append(artifact)
-        
+
         return solutions
-    
+
     def _generate_system_architectures(
         self,
         task: str,
@@ -339,7 +339,7 @@ class ExplorationAgent(BaseSwarmAgent):
     ) -> List[Artifact]:
         """Generate system architecture candidates"""
         architectures = []
-        
+
         if self.instance.phase == Phase.EXPAND:
             patterns = ['layered', 'hexagonal', 'clean', 'onion']
             for pattern in patterns:
@@ -353,9 +353,9 @@ class ExplorationAgent(BaseSwarmAgent):
                     confidence_impact=0.12
                 )
                 architectures.append(artifact)
-        
+
         return architectures
-    
+
     def _generate_data_solutions(
         self,
         task: str,
@@ -364,7 +364,7 @@ class ExplorationAgent(BaseSwarmAgent):
     ) -> List[Artifact]:
         """Generate data processing solutions"""
         solutions = []
-        
+
         if self.instance.phase == Phase.EXPAND:
             approaches = ['batch', 'streaming', 'hybrid', 'lambda_architecture']
             for approach in approaches:
@@ -378,9 +378,9 @@ class ExplorationAgent(BaseSwarmAgent):
                     confidence_impact=0.1
                 )
                 solutions.append(artifact)
-        
+
         return solutions
-    
+
     def _generate_synthesis(
         self,
         task: str,
@@ -389,13 +389,13 @@ class ExplorationAgent(BaseSwarmAgent):
     ) -> List[Artifact]:
         """Synthesize existing candidates"""
         syntheses = []
-        
+
         # Get existing candidates
         candidates = workspace.get_artifacts_by_type(
             ArtifactType.SOLUTION_CANDIDATE,
             self.instance.phase
         )
-        
+
         if len(candidates) >= 2:
             # Combine top candidates
             artifact = self.create_artifact(
@@ -409,9 +409,9 @@ class ExplorationAgent(BaseSwarmAgent):
                 deterministic_bindings={'synthesized': True}
             )
             syntheses.append(artifact)
-        
+
         return syntheses
-    
+
     def _generate_optimizations(
         self,
         task: str,
@@ -420,7 +420,7 @@ class ExplorationAgent(BaseSwarmAgent):
     ) -> List[Artifact]:
         """Generate optimization candidates"""
         optimizations = []
-        
+
         dimensions = ['performance', 'cost', 'reliability', 'maintainability']
         for dim in dimensions:
             artifact = self.create_artifact(
@@ -433,9 +433,9 @@ class ExplorationAgent(BaseSwarmAgent):
                 confidence_impact=0.08
             )
             optimizations.append(artifact)
-        
+
         return optimizations
-    
+
     def _get_architecture_tradeoffs(self, arch: str) -> Dict[str, List[str]]:
         """Get architecture trade-offs"""
         tradeoffs = {
@@ -457,7 +457,7 @@ class ExplorationAgent(BaseSwarmAgent):
             }
         }
         return tradeoffs.get(arch, {'pros': [], 'cons': []})
-    
+
     def _get_pattern_benefits(self, pattern: str) -> List[str]:
         """Get pattern benefits"""
         benefits = {
@@ -467,7 +467,7 @@ class ExplorationAgent(BaseSwarmAgent):
             'onion': ['Dependency inversion', 'Flexible']
         }
         return benefits.get(pattern, ['Proven pattern'])
-    
+
     def _assess_scalability(self, approach: str) -> str:
         """Assess scalability"""
         scalability = {
@@ -482,12 +482,12 @@ class ExplorationAgent(BaseSwarmAgent):
 class ControlAgent(BaseSwarmAgent):
     """
     Control (Risk) swarm agent
-    
+
     Purpose: Find what could fail
     Produces: failure hypotheses, constraint proposals, gate definitions
     Optimizes for: minimizing Murphy index M_t, minimizing instability H(x)
     """
-    
+
     def generate_artifacts(
         self,
         task: str,
@@ -496,7 +496,7 @@ class ControlAgent(BaseSwarmAgent):
     ) -> List[Artifact]:
         """Control agents generate risks and constraints"""
         return self.estimate_risks(workspace, context)
-    
+
     def estimate_risks(
         self,
         workspace: TypedGenerativeWorkspace,
@@ -504,13 +504,13 @@ class ControlAgent(BaseSwarmAgent):
     ) -> List[Artifact]:
         """Estimate risks and propose gates"""
         artifacts = []
-        
+
         # Get solution candidates to analyze
         candidates = workspace.get_artifacts_by_type(
             ArtifactType.SOLUTION_CANDIDATE,
             self.instance.phase
         )
-        
+
         # Generate risks based on profession
         if self.instance.profession == ProfessionAtom.SECURITY_ANALYST:
             artifacts.extend(self._analyze_security_risks(candidates, workspace))
@@ -522,9 +522,9 @@ class ControlAgent(BaseSwarmAgent):
             artifacts.extend(self._analyze_general_risks(candidates, workspace))
         elif self.instance.profession == ProfessionAtom.RED_TEAM:
             artifacts.extend(self._analyze_adversarial_risks(candidates, workspace))
-        
+
         return artifacts
-    
+
     def _analyze_security_risks(
         self,
         candidates: List[Artifact],
@@ -532,7 +532,7 @@ class ControlAgent(BaseSwarmAgent):
     ) -> List[Artifact]:
         """Analyze security risks"""
         risks = []
-        
+
         for candidate in candidates:
             # Identify security risks
             risk_artifact = self.create_artifact(
@@ -547,7 +547,7 @@ class ControlAgent(BaseSwarmAgent):
                 confidence_impact=-0.1
             )
             risks.append(risk_artifact)
-            
+
             # Propose gate
             gate_proposal = self._create_gate_proposal(
                 target=candidate.id,
@@ -557,9 +557,9 @@ class ControlAgent(BaseSwarmAgent):
                 rationale='Ensure security baseline met'
             )
             workspace.write_gate_proposal(gate_proposal)
-        
+
         return risks
-    
+
     def _analyze_compliance_risks(
         self,
         candidates: List[Artifact],
@@ -567,7 +567,7 @@ class ControlAgent(BaseSwarmAgent):
     ) -> List[Artifact]:
         """Analyze compliance risks"""
         risks = []
-        
+
         for candidate in candidates:
             risk_artifact = self.create_artifact(
                 content={
@@ -581,7 +581,7 @@ class ControlAgent(BaseSwarmAgent):
                 confidence_impact=-0.15
             )
             risks.append(risk_artifact)
-            
+
             gate_proposal = self._create_gate_proposal(
                 target=candidate.id,
                 trigger='compliance_check_required',
@@ -590,9 +590,9 @@ class ControlAgent(BaseSwarmAgent):
                 rationale='Ensure regulatory compliance'
             )
             workspace.write_gate_proposal(gate_proposal)
-        
+
         return risks
-    
+
     def _analyze_safety_risks(
         self,
         candidates: List[Artifact],
@@ -600,7 +600,7 @@ class ControlAgent(BaseSwarmAgent):
     ) -> List[Artifact]:
         """Analyze safety risks"""
         risks = []
-        
+
         for candidate in candidates:
             risk_artifact = self.create_artifact(
                 content={
@@ -614,7 +614,7 @@ class ControlAgent(BaseSwarmAgent):
                 confidence_impact=-0.2
             )
             risks.append(risk_artifact)
-            
+
             gate_proposal = self._create_gate_proposal(
                 target=candidate.id,
                 trigger='safety_validation_required',
@@ -623,9 +623,9 @@ class ControlAgent(BaseSwarmAgent):
                 rationale='Ensure safety standards met'
             )
             workspace.write_gate_proposal(gate_proposal)
-        
+
         return risks
-    
+
     def _analyze_general_risks(
         self,
         candidates: List[Artifact],
@@ -633,7 +633,7 @@ class ControlAgent(BaseSwarmAgent):
     ) -> List[Artifact]:
         """Analyze general project risks"""
         risks = []
-        
+
         # Scope creep risk
         if len(candidates) > 10:
             risk_artifact = self.create_artifact(
@@ -647,7 +647,7 @@ class ControlAgent(BaseSwarmAgent):
                 confidence_impact=-0.1
             )
             risks.append(risk_artifact)
-            
+
             gate_proposal = self._create_gate_proposal(
                 target='all_candidates',
                 trigger='candidate_count > 10',
@@ -656,9 +656,9 @@ class ControlAgent(BaseSwarmAgent):
                 rationale='Prevent scope creep'
             )
             workspace.write_gate_proposal(gate_proposal)
-        
+
         return risks
-    
+
     def _analyze_adversarial_risks(
         self,
         candidates: List[Artifact],
@@ -666,14 +666,14 @@ class ControlAgent(BaseSwarmAgent):
     ) -> List[Artifact]:
         """Analyze adversarial attack vectors"""
         risks = []
-        
+
         attack_vectors = [
             'edge_cases',
             'race_conditions',
             'resource_exhaustion',
             'malicious_input'
         ]
-        
+
         for vector in attack_vectors:
             risk_artifact = self.create_artifact(
                 content={
@@ -686,7 +686,7 @@ class ControlAgent(BaseSwarmAgent):
                 confidence_impact=-0.12
             )
             risks.append(risk_artifact)
-            
+
             gate_proposal = self._create_gate_proposal(
                 target='all_candidates',
                 trigger=f'{vector}_detected',
@@ -695,9 +695,9 @@ class ControlAgent(BaseSwarmAgent):
                 rationale=f'Mitigate {vector} attacks'
             )
             workspace.write_gate_proposal(gate_proposal)
-        
+
         return risks
-    
+
     def _create_gate_proposal(
         self,
         target: str,
@@ -723,7 +723,7 @@ class ControlAgent(BaseSwarmAgent):
 class SwarmSpawner:
     """
     Spawns swarms dynamically based on conditions
-    
+
     Swarms are spawned when:
     - confidence drops
     - instability rises
@@ -731,11 +731,11 @@ class SwarmSpawner:
     - failure occurs
     - incentive pressure spikes
     """
-    
+
     def __init__(self):
         self.active_agents: Dict[str, BaseSwarmAgent] = {}
         self.spawn_history: List[Dict[str, Any]] = []
-    
+
     def spawn_swarm(
         self,
         mode: SwarmMode,
@@ -746,17 +746,17 @@ class SwarmSpawner:
     ) -> List[BaseSwarmAgent]:
         """
         Spawn a swarm based on mode and context
-        
+
         Spawner selects ProfessionAtoms based on:
         - domain classification
         - regulatory context
         - artifact types present
         """
         agents = []
-        
+
         # Determine which professions to spawn
         professions = self._select_professions(mode, phase, task, context, workspace)
-        
+
         # Instantiate agents
         for profession in professions:
             instance = AgentInstance(
@@ -768,16 +768,16 @@ class SwarmSpawner:
                 risk_models=self._get_risk_models(profession),
                 regulatory_knowledge=self._get_regulatory_knowledge(profession)
             )
-            
+
             # Create agent based on mode
             if mode == SwarmMode.EXPLORATION:
                 agent = ExplorationAgent(instance)
             else:  # CONTROL
                 agent = ControlAgent(instance)
-            
+
             agents.append(agent)
             self.active_agents[instance.id] = agent
-        
+
         # Record spawn
         self.spawn_history.append({
             'timestamp': time.time(),
@@ -786,9 +786,9 @@ class SwarmSpawner:
             'professions': [p.value for p in professions],
             'count': len(agents)
         })
-        
+
         return agents
-    
+
     def _select_professions(
         self,
         mode: SwarmMode,
@@ -799,49 +799,49 @@ class SwarmSpawner:
     ) -> List[ProfessionAtom]:
         """Select professions based on context"""
         professions = []
-        
+
         if mode == SwarmMode.EXPLORATION:
             # Always include core professions
             professions.extend([
                 ProfessionAtom.SOFTWARE_ENGINEER,
                 ProfessionAtom.SYSTEMS_ENGINEER
             ])
-            
+
             # Add based on task
             if 'data' in task.lower():
                 professions.append(ProfessionAtom.DATA_SCIENTIST)
-            
+
             # Add synthesis/optimization in later phases
             if phase in [Phase.COLLAPSE, Phase.BIND]:
                 professions.append(ProfessionAtom.INTEGRATOR)
                 professions.append(ProfessionAtom.OPTIMIZER)
-        
+
         else:  # CONTROL
             # Always include risk management
             professions.extend([
                 ProfessionAtom.RISK_MANAGER,
                 ProfessionAtom.SECURITY_ANALYST
             ])
-            
+
             # Add based on context
             if context.get('regulatory', False):
                 professions.append(ProfessionAtom.COMPLIANCE_OFFICER)
-            
+
             if context.get('safety_critical', False):
                 professions.append(ProfessionAtom.SAFETY_ENGINEER)
-            
+
             # Add adversarial in early phases
             if phase in [Phase.EXPAND, Phase.TYPE, Phase.ENUMERATE]:
                 professions.append(ProfessionAtom.RED_TEAM)
-        
+
         return professions
-    
+
     def _get_domain_scope(self, profession: ProfessionAtom, task: str) -> Set[str]:
         """Get domain scope for profession"""
         # Simplified domain detection
         domains = set()
         task_lower = task.lower()
-        
+
         if 'software' in task_lower or 'code' in task_lower:
             domains.add('software')
         if 'data' in task_lower:
@@ -850,9 +850,9 @@ class SwarmSpawner:
             domains.add('systems')
         if 'security' in task_lower:
             domains.add('security')
-        
+
         return domains if domains else {'general'}
-    
+
     def _get_risk_models(self, profession: ProfessionAtom) -> List[str]:
         """Get risk models for profession"""
         risk_models = {
@@ -863,7 +863,7 @@ class SwarmSpawner:
             ProfessionAtom.RED_TEAM: ['MITRE_ATT&amp;CK', 'Kill_Chain']
         }
         return risk_models.get(profession, [])
-    
+
     def _get_regulatory_knowledge(self, profession: ProfessionAtom) -> List[str]:
         """Get regulatory knowledge for profession"""
         regulatory = {
@@ -877,13 +877,13 @@ class SwarmSpawner:
 class GateCompiler:
     """
     Compiles gate proposals into active gates
-    
+
     Enforces:
     - invariant protection
     - phase legality
     - non-contradiction
     """
-    
+
     def __init__(self):
         self.protected_invariants = [
             'confidence_equation',
@@ -891,7 +891,7 @@ class GateCompiler:
             'gate_compiler',
             'verification_channels'
         ]
-    
+
     def compile_gates(
         self,
         workspace: TypedGenerativeWorkspace,
@@ -899,27 +899,27 @@ class GateCompiler:
     ) -> List[str]:
         """
         Compile gate proposals into active gates
-        
+
         Returns list of activated gate IDs
         """
         activated = []
-        
+
         # Get gate proposals for this phase
-        proposals = [gp for gp in workspace.gate_proposals.values() 
+        proposals = [gp for gp in workspace.gate_proposals.values()
                     if gp.phase == phase]
-        
+
         # Sort by risk reduction (highest first)
         proposals.sort(key=lambda gp: gp.risk_reduction_estimate, reverse=True)
-        
+
         for proposal in proposals:
             # Check if gate is legal
             if self._is_legal_gate(proposal, workspace):
                 # Activate gate
                 workspace.activate_gate(proposal.id)
                 activated.append(proposal.id)
-        
+
         return activated
-    
+
     def _is_legal_gate(
         self,
         proposal: GateProposal,
@@ -929,19 +929,19 @@ class GateCompiler:
         # Check invariant protection
         if any(inv in proposal.target.lower() for inv in self.protected_invariants):
             return False  # Cannot modify protected invariants
-        
+
         # Check phase legality
         if proposal.phase not in Phase:
             return False
-        
+
         # Check non-contradiction with existing gates
         active_gates = workspace.get_active_gates()
         for gate in active_gates:
             if self._gates_contradict(proposal, gate):
                 return False
-        
+
         return True
-    
+
     def _gates_contradict(self, gate1: GateProposal, gate2: GateProposal) -> bool:
         """Check if two gates contradict"""
         # Simplified: gates contradict if they have same target but opposite effects
@@ -955,20 +955,20 @@ class GateCompiler:
 class TrueSwarmSystem:
     """
     Complete true swarm system
-    
+
     Coordinates:
     - Exploration swarm (find what could work)
     - Control swarm (find what could fail)
     - Typed Generative Workspace (coordination)
     - Gate compilation (governance synthesis)
     """
-    
+
     def __init__(self):
         self.workspace = TypedGenerativeWorkspace()
         self.spawner = SwarmSpawner()
         self.gate_compiler = GateCompiler()
         self.execution_history: List[Dict[str, Any]] = []
-    
+
     def execute_phase(
         self,
         phase: Phase,
@@ -977,7 +977,7 @@ class TrueSwarmSystem:
     ) -> Dict[str, Any]:
         """
         Execute a phase with dual swarms
-        
+
         Returns:
         - artifacts generated
         - gates synthesized
@@ -987,7 +987,7 @@ class TrueSwarmSystem:
         print(f"\n{'='*60}")
         print(f"PHASE: {phase.value.upper()}")
         print(f"{'='*60}")
-        
+
         # 1. Spawn exploration swarm
         print("\n🟢 Spawning EXPLORATION swarm...")
         exploration_agents = self.spawner.spawn_swarm(
@@ -998,7 +998,7 @@ class TrueSwarmSystem:
             workspace=self.workspace
         )
         print(f"   Spawned {len(exploration_agents)} agents: {[a.instance.profession.value for a in exploration_agents]}")
-        
+
         # 2. Exploration agents generate artifacts (parallel)
         print("\n   Generating solution candidates...")
         exploration_artifacts = []
@@ -1008,7 +1008,7 @@ class TrueSwarmSystem:
                 self.workspace.write_artifact(artifact)
                 exploration_artifacts.append(artifact)
         print(f"   Generated {len(exploration_artifacts)} artifacts")
-        
+
         # 3. Spawn control swarm
         print("\n🔴 Spawning CONTROL swarm...")
         control_agents = self.spawner.spawn_swarm(
@@ -1019,7 +1019,7 @@ class TrueSwarmSystem:
             workspace=self.workspace
         )
         print(f"   Spawned {len(control_agents)} agents: {[a.instance.profession.value for a in control_agents]}")
-        
+
         # 4. Control agents analyze risks and propose gates (parallel)
         print("\n   Analyzing risks and proposing gates...")
         control_artifacts = []
@@ -1030,28 +1030,28 @@ class TrueSwarmSystem:
                 control_artifacts.append(artifact)
         print(f"   Generated {len(control_artifacts)} risk artifacts")
         print(f"   Proposed {len(self.workspace.gate_proposals)} gates")
-        
+
         # 5. Compile gates
         print("\n   Compiling gates...")
         activated_gates = self.gate_compiler.compile_gates(self.workspace, phase)
         print(f"   Activated {len(activated_gates)} gates")
-        
+
         # 6. Compute confidence impact
         total_confidence_impact = sum(a.confidence_impact for a in exploration_artifacts)
         risk_impact = sum(a.confidence_impact for a in control_artifacts)
         net_confidence = total_confidence_impact + risk_impact
-        
+
         # 7. Compute Murphy risk
         risks = self.workspace.get_artifacts_by_type(ArtifactType.RISK, phase)
         murphy_risk = sum(r.content.get('severity', 0.5) for r in risks) / max(len(risks), 1)
-        
+
         print("\n📊 Phase Results:")
         print(f"   Exploration artifacts: {len(exploration_artifacts)}")
         print(f"   Control artifacts: {len(control_artifacts)}")
         print(f"   Active gates: {len(activated_gates)}")
         print(f"   Net confidence impact: {net_confidence:+.2f}")
         print(f"   Murphy risk: {murphy_risk:.2f}")
-        
+
         result = {
             'phase': phase.value,
             'exploration_artifacts': len(exploration_artifacts),
@@ -1062,10 +1062,10 @@ class TrueSwarmSystem:
             'exploration_agents': [a.instance.profession.value for a in exploration_agents],
             'control_agents': [a.instance.profession.value for a in control_agents]
         }
-        
+
         self.execution_history.append(result)
         return result
-    
+
     def execute_full_cycle(
         self,
         task: str,
@@ -1074,23 +1074,23 @@ class TrueSwarmSystem:
         """Execute full 7-phase cycle"""
         if context is None:
             context = {}
-        
+
         print(f"\n{'='*60}")
         print("TRUE SWARM SYSTEM - FULL CYCLE")
         print(f"Task: {task}")
         print(f"{'='*60}")
-        
+
         results = []
         for phase in Phase:
             result = self.execute_phase(phase, task, context)
             results.append(result)
-        
+
         # Summary
         total_artifacts = sum(r['exploration_artifacts'] + r['control_artifacts'] for r in results)
         total_gates = sum(r['gates_activated'] for r in results)
         final_confidence = sum(r['confidence_impact'] for r in results)
         avg_murphy_risk = sum(r['murphy_risk'] for r in results) / (len(results) or 1)
-        
+
         print(f"\n{'='*60}")
         print("CYCLE COMPLETE")
         print(f"{'='*60}")
@@ -1099,7 +1099,7 @@ class TrueSwarmSystem:
         print(f"Final confidence: {final_confidence:.2f}")
         print(f"Average Murphy risk: {avg_murphy_risk:.2f}")
         print(f"{'='*60}\n")
-        
+
         return {
             'task': task,
             'phases': results,

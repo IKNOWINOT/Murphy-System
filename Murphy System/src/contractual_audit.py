@@ -43,7 +43,7 @@ class ProductivityGap:
     root_cause: Optional[str] = None
     suggested_solution: Optional[str] = None
     resolution_status: str = "open"  # open, in_progress, resolved
-    
+
     def to_dict(self) -> Dict:
         return {
             "gap_id": self.gap_id,
@@ -72,7 +72,7 @@ class ContractualAgreement:
     created_at: str
     status: str = "active"  # active, suspended, terminated
     review_date: Optional[str] = None
-    
+
     def to_dict(self) -> Dict:
         return {
             "agreement_id": self.agreement_id,
@@ -103,7 +103,7 @@ class AgentDrift:
     action_required: str  # recalibrate, expand_knowledge, retrain, no_action
     action_taken: Optional[str] = None
     action_timestamp: Optional[str] = None
-    
+
     def to_dict(self) -> Dict:
         return {
             "drift_id": self.drift_id,
@@ -126,20 +126,20 @@ class ContractualAuditSystem:
     Creates and manages contractual agreements between agents
     Monitors and handles agent drift
     """
-    
+
     def __init__(self):
         self.gaps: Dict[str, ProductivityGap] = {}
         self.agreements: Dict[str, ContractualAgreement] = {}
         self.drifts: Dict[str, AgentDrift] = {}
         self.agent_baselines: Dict[str, Dict[str, Any]] = {}
-        
+
         self.gap_count = 0
         self.agreement_count = 0
         self.drift_count = 0
-        
+
         # Statistical knowledge of organization operations
         self.org_statistics = self._load_organization_statistics()
-    
+
     def _load_organization_statistics(self) -> Dict[str, Any]:
         """Load statistical knowledge of typical organization operations"""
         return {
@@ -162,7 +162,7 @@ class ContractualAuditSystem:
                 "error_rate": 0.10
             }
         }
-    
+
     def audit_productivity(
         self,
         system_state: Dict[str, Any],
@@ -171,12 +171,12 @@ class ContractualAuditSystem:
     ) -> Tuple[List[ProductivityGap], Dict[str, Any]]:
         """
         Audit system productivity and detect gaps
-        
+
         Args:
             system_state: Current system state
             agent_metrics: Metrics for each agent
             timeframe: Timeframe for audit (hourly, daily, weekly)
-            
+
         Returns:
             Tuple of (detected_gaps, audit_summary)
         """
@@ -188,13 +188,13 @@ class ContractualAuditSystem:
             "by_type": {},
             "overall_score": 0.0
         }
-        
+
         # Check task completion rates
         for agent_id, metrics in agent_metrics.items():
             if "task_completion_rate" in metrics:
                 completion_rate = metrics["task_completion_rate"]
                 threshold = self.org_statistics["gap_thresholds"]["task_completion_rate"]
-                
+
                 if completion_rate < threshold:
                     self.gap_count += 1
                     gap = ProductivityGap(
@@ -209,12 +209,12 @@ class ContractualAuditSystem:
                     )
                     detected_gaps.append(gap)
                     self.gaps[gap.gap_id] = gap
-        
+
         # Check coordination efficiency
         if "coordination_efficiency" in system_state:
             coord_efficiency = system_state["coordination_efficiency"]
             threshold = self.org_statistics["gap_thresholds"]["coordination_efficiency"]
-            
+
             if coord_efficiency < threshold:
                 self.gap_count += 1
                 gap = ProductivityGap(
@@ -229,13 +229,13 @@ class ContractualAuditSystem:
                 )
                 detected_gaps.append(gap)
                 self.gaps[gap.gap_id] = gap
-        
+
         # Check communication patterns
         for agent_id, metrics in agent_metrics.items():
             if "communication_frequency" in metrics:
                 comm_freq = metrics["communication_frequency"]
                 threshold = self.org_statistics["gap_thresholds"]["communication_frequency"]
-                
+
                 if comm_freq < threshold:
                     self.gap_count += 1
                     gap = ProductivityGap(
@@ -250,19 +250,19 @@ class ContractualAuditSystem:
                     )
                     detected_gaps.append(gap)
                     self.gaps[gap.gap_id] = gap
-        
+
         # Update audit summary
         audit_summary["total_gaps_detected"] = len(detected_gaps)
-        
+
         for gap in detected_gaps:
             # Count by severity
             severity = gap.severity
             audit_summary["by_severity"][severity] = audit_summary["by_severity"].get(severity, 0) + 1
-            
+
             # Count by type
             gap_type = gap.gap_type.value
             audit_summary["by_type"][gap_type] = audit_summary["by_type"].get(gap_type, 0) + 1
-        
+
         # Calculate overall score
         if detected_gaps:
             avg_severity_score = {
@@ -275,9 +275,9 @@ class ContractualAuditSystem:
             audit_summary["overall_score"] = 1.0 - (total_severity / (len(detected_gaps) or 1))
         else:
             audit_summary["overall_score"] = 1.0
-        
+
         return detected_gaps, audit_summary
-    
+
     def detect_gaps(
         self,
         system_state: Dict[str, Any],
@@ -285,16 +285,16 @@ class ContractualAuditSystem:
     ) -> List[ProductivityGap]:
         """
         Detect productivity flow gaps
-        
+
         Args:
             system_state: Current system state
             requirements: System requirements
-            
+
         Returns:
             List of detected gaps
         """
         gaps = []
-        
+
         # Check if system meets requirements
         for requirement in requirements:
             # Parse requirement
@@ -305,7 +305,7 @@ class ContractualAuditSystem:
                 if match:
                     required_users = int(match.group(1))
                     current_users = system_state.get("concurrent_users", 0)
-                    
+
                     if current_users < required_users:
                         self.gap_count += 1
                         gap = ProductivityGap(
@@ -320,12 +320,12 @@ class ContractualAuditSystem:
                         )
                         gaps.append(gap)
                         self.gaps[gap.gap_id] = gap
-        
+
         # Check coordination gaps between agents
         if "agent_interactions" in system_state:
             interactions = system_state["agent_interactions"]
             expected_interaction = self.org_statistics["collaboration_patterns"]["expert_validator_interaction"]
-            
+
             for agent_pair, interaction_rate in interactions.items():
                 if interaction_rate < expected_interaction["expected"] - expected_interaction["tolerance"]:
                     self.gap_count += 1
@@ -341,9 +341,9 @@ class ContractualAuditSystem:
                     )
                     gaps.append(gap)
                     self.gaps[gap.gap_id] = gap
-        
+
         return gaps
-    
+
     def generate_contract(
         self,
         gap_id: str,
@@ -352,22 +352,22 @@ class ContractualAuditSystem:
     ) -> Optional[ContractualAgreement]:
         """
         Generate contractual agreement to close a gap
-        
+
         Args:
             gap_id: ID of gap to close
             agents: Agents involved in agreement
             agreement_type: Type of agreement
-            
+
         Returns:
             ContractualAgreement object or None if gap not found
         """
         if gap_id not in self.gaps:
             return None
-        
+
         gap = self.gaps[gap_id]
         self.agreement_count += 1
         agreement_id = f"agreement_{self.agreement_count}"
-        
+
         # Define agreement terms based on gap type
         if gap.gap_type == GapType.COMMUNICATION:
             terms = {
@@ -405,7 +405,7 @@ class ContractualAuditSystem:
         else:
             terms = {}
             obligations = []
-        
+
         # Define responsibilities
         responsibilities = {}
         for agent in agents:
@@ -414,7 +414,7 @@ class ContractualAuditSystem:
                 "Report progress on gap closure",
                 "Participate in agreement reviews"
             ]
-        
+
         # Define metrics
         metrics = [
             "gap_closure_rate",
@@ -422,7 +422,7 @@ class ContractualAuditSystem:
             "coordination_efficiency",
             "communication_frequency"
         ]
-        
+
         # Create agreement
         agreement = ContractualAgreement(
             agreement_id=agreement_id,
@@ -436,15 +436,15 @@ class ContractualAuditSystem:
             created_at=datetime.now().isoformat(),
             status="active"
         )
-        
+
         self.agreements[agreement_id] = agreement
-        
+
         # Update gap status
         gap.resolution_status = "in_progress"
         gap.suggested_solution = f"Addressed by contractual agreement {agreement_id}"
-        
+
         return agreement
-    
+
     def monitor_agent_drift(
         self,
         agent_id: str,
@@ -452,11 +452,11 @@ class ContractualAuditSystem:
     ) -> Optional[AgentDrift]:
         """
         Monitor agent for drift from baseline
-        
+
         Args:
             agent_id: ID of agent to monitor
             current_metrics: Current metrics for agent
-            
+
         Returns:
             AgentDrift object if drift detected, None otherwise
         """
@@ -470,37 +470,37 @@ class ContractualAuditSystem:
                 "error_rate": current_metrics.get("error_rate", 0.05)
             }
             return None
-        
+
         baseline = self.agent_baselines[agent_id]
         drift_detected = False
         drift_type = "performance"
         drift_level = DriftLevel.NONE
         drift_description = ""
         action_required = "no_action"
-        
+
         # Check each metric for drift
         metric_baselines = self.org_statistics["productivity_metrics"]
-        
+
         for metric_name, current_value in current_metrics.items():
             if metric_name not in baseline:
                 continue
-            
+
             baseline_value = baseline[metric_name]
             metric_config = metric_baselines.get(metric_name)
-            
+
             if not metric_config:
                 continue
-            
+
             baseline_expected = metric_config["baseline"]
             tolerance = metric_config["tolerance"]
-            
+
             # For metrics where higher is better
             if metric_name in ["task_completion_rate", "coordination_efficiency", "communication_frequency"]:
                 if current_value < baseline_expected - tolerance:
                     drift_detected = True
                     drift_type = metric_name
                     drift_description = f"{metric_name} drifted from {baseline_value:.2%} to {current_value:.2%}"
-                    
+
                     # Determine drift level
                     if current_value < baseline_expected - 2 * tolerance:
                         drift_level = DriftLevel.CRITICAL
@@ -511,16 +511,16 @@ class ContractualAuditSystem:
                     else:
                         drift_level = DriftLevel.MEDIUM
                         action_required = "expand_knowledge"
-                    
+
                     break
-            
+
             # For metrics where lower is better
             elif metric_name in ["response_time", "error_rate"]:
                 if current_value > baseline_expected + tolerance:
                     drift_detected = True
                     drift_type = metric_name
                     drift_description = f"{metric_name} drifted from {baseline_value} to {current_value}"
-                    
+
                     # Determine drift level
                     if current_value > baseline_expected + 2 * tolerance:
                         drift_level = DriftLevel.CRITICAL
@@ -531,13 +531,13 @@ class ContractualAuditSystem:
                     else:
                         drift_level = DriftLevel.MEDIUM
                         action_required = "expand_knowledge"
-                    
+
                     break
-        
+
         if drift_detected:
             self.drift_count += 1
             drift_id = f"drift_{self.drift_count}"
-            
+
             drift = AgentDrift(
                 drift_id=drift_id,
                 agent_id=agent_id,
@@ -549,49 +549,49 @@ class ContractualAuditSystem:
                 detected_at=datetime.now().isoformat(),
                 action_required=action_required
             )
-            
+
             self.drifts[drift_id] = drift
             return drift
-        
+
         return None
-    
+
     def handle_drift(self, drift_id: str, action: str) -> bool:
         """
         Handle detected agent drift
-        
+
         Args:
             drift_id: ID of drift to handle
             action: Action taken (recalibrate, expand_knowledge, retrain)
-            
+
         Returns:
             True if handled, False if not found
         """
         if drift_id not in self.drifts:
             return False
-        
+
         drift = self.drifts[drift_id]
         drift.action_taken = action
         drift.action_timestamp = datetime.now().isoformat()
-        
+
         # Update baseline if action was successful
         if action in ["recalibrate", "expand_knowledge"]:
             # Update baseline to current metrics
             self.agent_baselines[drift.agent_id] = drift.current_metrics.copy()
-        
+
         return True
-    
+
     def get_active_gaps(self) -> List[ProductivityGap]:
         """Get all active gaps"""
         return [gap for gap in self.gaps.values() if gap.resolution_status == "open"]
-    
+
     def get_active_agreements(self) -> List[ContractualAgreement]:
         """Get all active agreements"""
         return [agreement for agreement in self.agreements.values() if agreement.status == "active"]
-    
+
     def get_pending_drifts(self) -> List[AgentDrift]:
         """Get all drifts awaiting action"""
         return [drift for drift in self.drifts.values() if drift.action_taken is None]
-    
+
     def generate_audit_report(self) -> Dict[str, Any]:
         """Generate comprehensive audit report"""
         # Count gaps by status
@@ -599,19 +599,19 @@ class ContractualAuditSystem:
         for gap in self.gaps.values():
             status = gap.resolution_status
             gaps_by_status[status] = gaps_by_status.get(status, 0) + 1
-        
+
         # Count agreements by status
         agreements_by_status = {}
         for agreement in self.agreements.values():
             status = agreement.status
             agreements_by_status[status] = agreements_by_status.get(status, 0) + 1
-        
+
         # Count drifts by level
         drifts_by_level = {}
         for drift in self.drifts.values():
             level = drift.drift_level.value
             drifts_by_level[level] = drifts_by_level.get(level, 0) + 1
-        
+
         return {
             "total_gaps": len(self.gaps),
             "gaps_by_status": gaps_by_status,
@@ -627,14 +627,14 @@ class ContractualAuditSystem:
 if __name__ == "__main__":
     # Test contractual audit system
     audit_system = ContractualAuditSystem()
-    
+
     # Test 1: Audit productivity
     print("=== Test 1: Audit Productivity ===")
     system_state = {
         "coordination_efficiency": 0.65,
         "concurrent_users": 500
     }
-    
+
     agent_metrics = {
         "agent_001": {
             "task_completion_rate": 0.65,
@@ -647,20 +647,20 @@ if __name__ == "__main__":
             "communication_frequency": 12.0
         }
     }
-    
+
     gaps, summary = audit_system.audit_productivity(system_state, agent_metrics)
     print(f"Gaps detected: {len(gaps)}")
     print(f"Overall score: {summary['overall_score']:.2%}")
     for gap in gaps:
         print(f"  - {gap.description} ({gap.severity})")
-    
+
     # Test 2: Detect gaps from requirements
     print("\n=== Test 2: Detect Gaps ===")
     requirements = [
         "System shall handle 1000 concurrent users",
         "System shall maintain 99.9% uptime"
     ]
-    
+
     system_state = {
         "concurrent_users": 750,
         "uptime_percentage": 99.5,
@@ -669,12 +669,12 @@ if __name__ == "__main__":
             "agent_002_agent_003": 0.85
         }
     }
-    
+
     gaps = audit_system.detect_gaps(system_state, requirements)
     print(f"Gaps detected: {len(gaps)}")
     for gap in gaps:
         print(f"  - {gap.description}")
-    
+
     # Test 3: Generate contract
     print("\n=== Test 3: Generate Contract ===")
     if gaps:
@@ -687,7 +687,7 @@ if __name__ == "__main__":
         print(f"Type: {contract.agreement_type}")
         print(f"Obligations: {len(contract.obligations)}")
         print(f"Metrics: {contract.metrics}")
-    
+
     # Test 4: Monitor agent drift
     print("\n=== Test 4: Monitor Agent Drift ===")
     drift = audit_system.monitor_agent_drift(
@@ -700,19 +700,19 @@ if __name__ == "__main__":
             "error_rate": 0.08
         }
     )
-    
+
     if drift:
         print(f"Drift detected: {drift.drift_level.value}")
         print(f"Type: {drift.drift_type}")
         print(f"Action required: {drift.action_required}")
         print(f"Description: {drift.drift_description}")
-    
+
     # Test 5: Handle drift
     print("\n=== Test 5: Handle Drift ===")
     if drift:
         handled = audit_system.handle_drift(drift.drift_id, "recalibrate")
         print(f"Drift handled: {handled}")
-    
+
     # Test 6: Generate audit report
     print("\n=== Test 6: Audit Report ===")
     report = audit_system.generate_audit_report()

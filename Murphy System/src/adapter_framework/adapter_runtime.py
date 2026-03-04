@@ -15,7 +15,7 @@ from .execution_packet_extension import DeviceExecutionPacket
 class AdapterRuntime:
     """
     Runtime for executing device commands.
-    
+
     ENFORCEMENT BOUNDARY:
     - Validates packet signatures
     - Validates authority + gate clearance
@@ -24,11 +24,11 @@ class AdapterRuntime:
     - Emits audit logs
     - Rejects non-packet commands
     """
-    
+
     def __init__(self, adapter: AdapterAPI = None, public_key: str = ""):
         """
         Initialize runtime.
-        
+
         Args:
             adapter: Adapter instance (optional for simplified test usage)
             public_key: Public key for signature verification
@@ -39,14 +39,14 @@ class AdapterRuntime:
         self.execution_log = []
         self.max_log_size = 1000
         self.is_frozen = False
-    
+
     def execute(self, packet: DeviceExecutionPacket) -> Dict:
         """
         Execute DeviceExecutionPacket.
-        
+
         Args:
             packet: Device execution packet
-            
+
         Returns:
             Execution result
         """
@@ -56,14 +56,14 @@ class AdapterRuntime:
                 "success": False,
                 "error": "Runtime is frozen (emergency stop or safety violation)"
             }
-        
+
         # Check if emergency stopped
         if self.adapter.is_emergency_stopped:
             return {
                 "success": False,
                 "error": "Adapter is emergency stopped"
             }
-        
+
         # Step 1: Validate packet signature
         if not packet.verify_signature(self.public_key):
             self._log_violation("Invalid signature", packet)
@@ -71,7 +71,7 @@ class AdapterRuntime:
                 "success": False,
                 "error": "Invalid packet signature"
             }
-        
+
         # Step 2: Check replay protection
         if not packet.check_replay(self.seen_nonces, self.adapter.manifest.replay_window_seconds):
             self._log_violation("Replay detected", packet)
@@ -79,7 +79,7 @@ class AdapterRuntime:
                 "success": False,
                 "error": "Replay attack detected"
             }
-        
+
         # Step 3: Validate target
         if packet.target_adapter_id != self.adapter.manifest.adapter_id:
             self._log_violation("Wrong adapter", packet)
@@ -87,7 +87,7 @@ class AdapterRuntime:
                 "success": False,
                 "error": f"Packet for {packet.target_adapter_id}, not {self.adapter.manifest.adapter_id}"
             }
-        
+
         # Step 4: Validate authority level
         if packet.authority_level == "none":
             self._log_violation("No authority", packet)
@@ -95,7 +95,7 @@ class AdapterRuntime:
                 "success": False,
                 "error": "Packet has no authority"
             }
-        
+
         # Step 5: Validate command against schema
         if self.adapter.manifest.command_schema:
             is_valid, errors = self.adapter.manifest.command_schema.validate(packet.command)
@@ -105,7 +105,7 @@ class AdapterRuntime:
                     "success": False,
                     "error": f"Command validation failed: {errors}"
                 }
-        
+
         # Step 6: Check rate limits
         allowed, reason = self.adapter.check_rate_limit()
         if not allowed:
@@ -114,7 +114,7 @@ class AdapterRuntime:
                 "success": False,
                 "error": reason
             }
-        
+
         # Step 7: Validate safety limits
         is_safe, violations = self.adapter.validate_safety_limits(packet.command)
         if not is_safe:
@@ -123,61 +123,61 @@ class AdapterRuntime:
                 "success": False,
                 "error": f"Safety limit violated: {violations}"
             }
-        
+
         # Step 8: Execute command
         try:
             result = self.adapter.execute_command(packet)
-            
+
             # Record nonce
             self.seen_nonces.add(packet.nonce)
-            
+
             # Trim nonce set if too large
             if len(self.seen_nonces) > 10000:
                 # Keep only recent nonces (simple approach)
                 self.seen_nonces = set(list(self.seen_nonces)[-5000:])
-            
+
             # Log execution
             self._log_execution(packet, result)
-            
+
             return result
-            
+
         except Exception as exc:
             self._log_violation(f"Execution error: {exc}", packet)
             return {
                 "success": False,
                 "error": f"Execution failed: {exc}"
             }
-    
+
     def emergency_stop(self, reason: str = "Manual trigger") -> bool:
         """
         Execute emergency stop.
-        
+
         Args:
             reason: Reason for emergency stop
-            
+
         Returns:
             True if successful
         """
         print(f"[EMERGENCY STOP] {reason}")
-        
+
         # Stop adapter
         success = self.adapter.emergency_stop()
-        
+
         # Freeze runtime
         self.is_frozen = True
-        
+
         # Log
         self._log_event("emergency_stop", {"reason": reason, "success": success})
-        
+
         return success
-    
+
     def unfreeze(self, authorization: str) -> bool:
         """
         Unfreeze runtime after emergency stop.
-        
+
         Args:
             authorization: Authorization token
-            
+
         Returns:
             True if successful
         """
@@ -185,11 +185,11 @@ class AdapterRuntime:
         print("[UNFREEZE] Runtime unfrozen")
         self.is_frozen = False
         self.adapter.is_emergency_stopped = False
-        
+
         self._log_event("unfreeze", {"authorization": authorization})
-        
+
         return True
-    
+
     def _log_execution(self, packet: DeviceExecutionPacket, result: Dict):
         """Log successful execution"""
         self.execution_log.append({
@@ -203,15 +203,15 @@ class AdapterRuntime:
             "success": result.get('success', False),
             "error": result.get('error')
         })
-        
+
         # Trim log
         if len(self.execution_log) > self.max_log_size:
             self.execution_log = self.execution_log[-self.max_log_size:]
-    
+
     def _log_violation(self, reason: str, packet: DeviceExecutionPacket):
         """Log security violation"""
         print(f"[VIOLATION] {reason}")
-        
+
         self.execution_log.append({
             "type": "violation",
             "timestamp": time.time(),
@@ -220,11 +220,11 @@ class AdapterRuntime:
             "adapter_id": packet.target_adapter_id,
             "device_id": packet.target_device_id
         })
-        
+
         # Trim log
         if len(self.execution_log) > self.max_log_size:
             self.execution_log = self.execution_log[-self.max_log_size:]
-    
+
     def _log_event(self, event_type: str, data: Dict):
         """Log runtime event"""
         self.execution_log.append({
@@ -232,12 +232,12 @@ class AdapterRuntime:
             "timestamp": time.time(),
             "data": data
         })
-    
+
     def get_statistics(self) -> Dict:
         """Get runtime statistics"""
         executions = [e for e in self.execution_log if e['type'] == 'execution']
         violations = [e for e in self.execution_log if e['type'] == 'violation']
-        
+
         return {
             "total_executions": len(executions),
             "successful_executions": sum(1 for e in executions if e.get('success')),
@@ -359,72 +359,72 @@ class AdapterRuntime:
 class AdapterRegistry:
     """
     Registry of all adapters in the system.
-    
+
     Provides centralized management and lookup.
     """
-    
+
     def __init__(self):
         """Initialize registry"""
         self.adapters: Dict[str, AdapterAPI] = {}
         self.runtimes: Dict[str, AdapterRuntime] = {}
-    
+
     def register(self, adapter: AdapterAPI, public_key: str) -> AdapterRuntime:
         """
         Register adapter.
-        
+
         Args:
             adapter: Adapter instance
             public_key: Public key for signature verification
-            
+
         Returns:
             AdapterRuntime
         """
         adapter_id = adapter.manifest.adapter_id
-        
+
         if adapter_id in self.adapters:
             raise ValueError(f"Adapter {adapter_id} already registered")
-        
+
         # Create runtime
         runtime = AdapterRuntime(adapter, public_key)
-        
+
         # Register
         self.adapters[adapter_id] = adapter
         self.runtimes[adapter_id] = runtime
-        
+
         print(f"[REGISTER] Adapter {adapter_id} registered")
-        
+
         return runtime
-    
+
     def get_adapter(self, adapter_id: str) -> Optional[AdapterAPI]:
         """Get adapter by ID"""
         return self.adapters.get(adapter_id)
-    
+
     def get_runtime(self, adapter_id: str) -> Optional[AdapterRuntime]:
         """Get runtime by adapter ID"""
         return self.runtimes.get(adapter_id)
-    
+
     def list_adapters(self) -> List[str]:
         """List all registered adapter IDs"""
         return list(self.adapters.keys())
-    
+
     def emergency_stop_all(self, reason: str = "System-wide emergency") -> Dict[str, bool]:
         """
         Emergency stop all adapters.
-        
+
         Args:
             reason: Reason for emergency stop
-            
+
         Returns:
             Dictionary of adapter_id -> success
         """
         results = {}
-        
+
         for adapter_id, runtime in self.runtimes.items():
             success = runtime.emergency_stop(reason)
             results[adapter_id] = success
-        
+
         return results
-    
+
     def get_system_status(self) -> Dict:
         """Get system-wide status"""
         return {

@@ -17,7 +17,7 @@ from .refusal_handler import RefusalHandler as RefusalHandlerImpl, RefusalRecord
 __version__ = "1.0.0"
 __all__ = [
     "AgentDescriptor",
-    "AgentDescriptorValidator", 
+    "AgentDescriptorValidator",
     "AuthorityBand",
     "ActionType",
     "GovernanceArtifact",

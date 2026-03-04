@@ -47,16 +47,16 @@ __all__ = [
     "VerificationStatus",
     "CompilationResult",
     "BlockingReason",
-    
+
     # Intake
     "HypothesisIntakeService",
     "ClaimExtractor",
     "VerificationRequestGenerator",
-    
+
     # Compilation
     "ExecutionPacketCompiler",
     "CompilationGate",
-    
+
     # UX
     "ExecutabilityExplainer",
     "BlockingFeedback",

@@ -52,20 +52,20 @@ __all__ = [
     'LearningEngine',
     'FeedbackSystem',
     'AdaptiveDecisionEngine',
-    
+
     # Learning engine components
     'PerformanceTracker',
     'PatternRecognizer',
     'FeedbackCollector',
     'LearnedPattern',
     'LearningInsight',
-    
+
     # Feedback system components
     'FeedbackStorage',
     'FeedbackAnalyzer',
     'FeedbackEntry',
     'FeedbackAnalysis',
-    
+
     # Adaptive decision engine components
     'DecisionHistory',
     'PolicyManager',

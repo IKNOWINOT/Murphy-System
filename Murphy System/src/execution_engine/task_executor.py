@@ -34,7 +34,7 @@ class TaskState(Enum):
 
 class Task:
     """Task definition and state"""
-    
+
     def __init__(
         self,
         task_id: Optional[str] = None,
@@ -56,7 +56,7 @@ class Task:
         self.max_retries = max_retries
         self.retry_delay = retry_delay
         self.metadata = metadata or {}
-        
+
         # Execution state
         self.state = TaskState.PENDING
         self.retry_count = 0
@@ -66,7 +66,7 @@ class Task:
         self.started_at: Optional[datetime] = None
         self.completed_at: Optional[datetime] = None
         self.execution_time: Optional[float] = None
-        
+
     def to_dict(self) -> Dict:
         """Convert task to dictionary"""
         return {
@@ -90,21 +90,21 @@ class Task:
 
 class TaskScheduler:
     """Schedule tasks based on dependencies and priorities"""
-    
+
     def __init__(self, max_workers: int = 10):
         self.max_workers = max_workers
         self.tasks: ThreadSafeDict = ThreadSafeDict()
         self.task_queue = []
         self._lock = threading.Lock()
         self.form_executor = ThreadPoolExecutor(max_workers=max_workers)
-        
+
     def schedule_task(self, task: Task) -> str:
         """Schedule a task for execution"""
         with self._lock:
             self.tasks.set(task.task_id, task)
             self.task_queue.append(task.task_id)
             return task.task_id
-    
+
     def get_ready_tasks(self) -> List[Task]:
         """Get tasks that are ready to execute"""
         ready_tasks = []
@@ -117,7 +117,7 @@ class TaskScheduler:
                     if dependencies_met:
                         ready_tasks.append(task)
         return ready_tasks
-    
+
     def _check_dependencies(self, task: Task) -> bool:
         """Check if task dependencies are met"""
         for dep_id in task.dependencies:
@@ -125,22 +125,22 @@ class TaskScheduler:
             if not dep_task or dep_task.state != TaskState.COMPLETED:
                 return False
         return True
-    
+
     def update_task_state(self, task_id: str, new_state: TaskState) -> None:
         """Update task state"""
         task = self.tasks.get(task_id)
         if task:
             task.state = new_state
             self.tasks.set(task_id, task)
-    
+
     def get_task(self, task_id: str) -> Optional[Task]:
         """Get task by ID"""
         return self.tasks.get(task_id)
-    
+
     def get_all_tasks(self) -> List[Task]:
         """Get all tasks"""
         return list(self.tasks.values())
-    
+
     def clear(self) -> None:
         """Clear all tasks"""
         with self._lock:
@@ -150,7 +150,7 @@ class TaskScheduler:
 
 class TaskExecutor:
     """Core task execution engine with retry and timeout"""
-    
+
     def __init__(self, max_workers: int = 10):
         self.scheduler = TaskScheduler(max_workers=max_workers)
         self.task_history: ThreadSafeDict = ThreadSafeDict()
@@ -163,13 +163,13 @@ class TaskExecutor:
         )
         self._running = False
         self._worker_thread: Optional[threading.Thread] = None
-        
+
     def schedule_task(self, task: Task) -> str:
         """Schedule a task for execution"""
         task_id = self.scheduler.schedule_task(task)
         logger.info(f"Task scheduled: {task_id} (type: {task.task_type})")
         return task_id
-    
+
     def start(self) -> None:
         """Start the task executor"""
         if not self._running:
@@ -177,95 +177,95 @@ class TaskExecutor:
             self._worker_thread = threading.Thread(target=self._run_executor, daemon=True)
             self._worker_thread.start()
             logger.info("Task executor started")
-    
+
     def stop(self) -> None:
         """Stop the task executor"""
         self._running = False
         if self._worker_thread:
             self._worker_thread.join(timeout=5.0)
         logger.info("Task executor stopped")
-    
+
     def _run_executor(self) -> None:
         """Main executor loop"""
         while self._running:
             try:
                 # Get ready tasks
                 ready_tasks = self.scheduler.get_ready_tasks()
-                
+
                 # Execute ready tasks
                 for task in ready_tasks:
                     if not self._running:
                         break
-                    
+
                     # Submit task to thread pool
                     future = self.scheduler.form_executor.submit(self._execute_task, task)
-                    
+
                     # Update task state
                     self.scheduler.update_task_state(task.task_id, TaskState.RUNNING)
                     self.active_tasks.increment()
-                
+
                 # Sleep briefly to avoid busy waiting
                 time.sleep(0.1)
-                
+
             except Exception as exc:
                 logger.error(f"Error in executor loop: {exc}")
-    
+
     def _execute_task(self, task: Task) -> None:
         """Execute a single task"""
         task.started_at = datetime.now(timezone.utc)
         self.scheduler.update_task_state(task.task_id, TaskState.RUNNING)
-        
+
         try:
             # Use circuit breaker to prevent cascading failures
             result = self.circuit_breaker.call(
                 self._execute_with_retry, task
             )
-            
+
             # Task completed successfully
             task.result = result
             task.state = TaskState.COMPLETED
             task.completed_at = datetime.now(timezone.utc)
             task.execution_time = (task.completed_at - task.started_at).total_seconds()
-            
+
             logger.info(f"Task completed: {task.task_id} in {task.execution_time:.2f}s")
-            
+
         except Exception as exc:
             # Task failed
             task.error = exc
             task.state = TaskState.FAILED
             task.completed_at = datetime.now(timezone.utc)
             task.execution_time = (task.completed_at - task.started_at).total_seconds()
-            
+
             logger.error(f"Task failed: {task.task_id} - {exc}")
-        
+
         finally:
             # Update scheduler and decrement active count
             self.scheduler.update_task_state(task.task_id, task.state)
             self.task_history.set(task.task_id, task.to_dict())
             self.active_tasks.decrement()
-    
+
     def _execute_with_retry(self, task: Task) -> Any:
         """Execute task with retry logic"""
         last_error = None
-        
+
         for attempt in range(task.max_retries + 1):
             try:
                 # Check timeout
                 if task.started_at and (datetime.now(timezone.utc) - task.started_at).total_seconds() > task.timeout:
                     raise TimeoutError(f"Task timeout after {task.timeout}s")
-                
+
                 # Execute the task action
                 if task.action:
                     result = task.action(**task.parameters)
                 else:
                     result = self._default_action(task)
-                
+
                 return result
-                
+
             except Exception as exc:
                 last_error = exc
                 task.retry_count = attempt + 1
-                
+
                 if attempt < task.max_retries:
                     # Retry with exponential backoff
                     delay = task.retry_delay * (2 ** attempt)
@@ -276,10 +276,10 @@ class TaskExecutor:
                     # Max retries reached
                     logger.error(f"Task {task.task_id} failed after {task.max_retries} retries")
                     raise
-        
+
         # Should not reach here
         raise last_error or Exception("Task execution failed")
-    
+
     def _default_action(self, task: Task) -> Any:
         """Default action when no action is provided"""
         return {
@@ -288,7 +288,7 @@ class TaskExecutor:
             'parameters': task.parameters,
             'executed_at': datetime.now(timezone.utc).isoformat()
         }
-    
+
     def cancel_task(self, task_id: str) -> bool:
         """Cancel a task"""
         task = self.scheduler.get_task(task_id)
@@ -298,31 +298,31 @@ class TaskExecutor:
             logger.info(f"Task cancelled: {task_id}")
             return True
         return False
-    
+
     def get_task_status(self, task_id: str) -> Optional[Dict]:
         """Get task status"""
         task = self.scheduler.get_task(task_id)
         if task:
             return task.to_dict()
         return None
-    
+
     def get_all_task_statuses(self) -> List[Dict]:
         """Get all task statuses"""
         tasks = self.scheduler.get_all_tasks()
         return [task.to_dict() for task in tasks]
-    
+
     def get_active_task_count(self) -> int:
         """Get number of active tasks"""
         return self.active_tasks.get()
-    
+
     def get_task_history(self, task_id: str) -> Optional[Dict]:
         """Get task execution history"""
         return self.task_history.get(task_id)
-    
+
     def get_statistics(self) -> Dict:
         """Get executor statistics"""
         tasks = self.scheduler.get_all_tasks()
-        
+
         stats = {
             'total_tasks': len(tasks),
             'active_tasks': self.active_tasks.get(),
@@ -333,9 +333,9 @@ class TaskExecutor:
             'retrying_tasks': len([t for t in tasks if t.state == TaskState.RETRYING]),
             'average_execution_time': self._calculate_average_execution_time(tasks)
         }
-        
+
         return stats
-    
+
     def _calculate_average_execution_time(self, tasks: List[Task]) -> float:
         """Calculate average execution time for completed tasks"""
         completed_tasks = [t for t in tasks if t.execution_time is not None]
@@ -373,18 +373,18 @@ def execute_task(
         parameters=parameters,
         **kwargs
     )
-    
+
     executor = TaskExecutor(max_workers=1)
     executor.start()
     task_id = executor.schedule_task(task)
-    
+
     # Wait for task completion
     while executor.get_task_status(task_id)['state'] == 'running':
         time.sleep(0.1)
-    
+
     task_status = executor.get_task_status(task_id)
     executor.stop()
-    
+
     if task_status['state'] == 'completed':
         return task_status['result']
     else:

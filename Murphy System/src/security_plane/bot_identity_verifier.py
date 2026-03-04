@@ -160,7 +160,7 @@ class BotIdentityVerifier:
 
             identity.status = IdentityStatus.REVOKED
             identity.revoked_at = datetime.now(timezone.utc)
-            capped_append(self._revocation_log, 
+            capped_append(self._revocation_log,
                 {"bot_id": bot_id, "reason": reason, "at": identity.revoked_at.isoformat()}
             )
             logger.info("Revoked identity for bot '%s' (reason: %s)", bot_id, reason)

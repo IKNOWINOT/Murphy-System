@@ -16,7 +16,7 @@ def test_hypothesis_confidence():
         intent="lookup standard",
         parameters={}
     )
-    
+
     assert hypothesis.is_confident(0.80) == True
     assert hypothesis.is_confident(0.90) == False
 
@@ -31,7 +31,7 @@ def test_hypothesis_unknowns():
         intent="lookup standard",
         parameters={}
     )
-    
+
     hypothesis_without_unknowns = Hypothesis(
         question_type=QuestionType.FACTUAL_LOOKUP,
         entities=["ISO 26262"],
@@ -40,7 +40,7 @@ def test_hypothesis_unknowns():
         intent="lookup standard",
         parameters={}
     )
-    
+
     assert hypothesis_with_unknowns.has_unknowns() == True
     assert hypothesis_without_unknowns.has_unknowns() == False
 
@@ -55,7 +55,7 @@ def test_verified_facts_validity():
         verification_method="lookup",
         timestamp="2024-01-01T00:00:00"
     )
-    
+
     invalid_facts = VerifiedFacts(
         entity="ISO 26262",
         facts={},
@@ -64,7 +64,7 @@ def test_verified_facts_validity():
         verification_method="none",
         timestamp="2024-01-01T00:00:00"
     )
-    
+
     assert valid_facts.is_valid() == True
     assert invalid_facts.is_valid() == False
 

@@ -20,7 +20,7 @@ from .api_server import GovernanceAPI
 __version__ = "1.0.0"
 __all__ = [
     "PresetManager",
-    "GovernancePreset", 
+    "GovernancePreset",
     "EnforcementMode",
     "ValidationEngine",
     "ValidationResult",

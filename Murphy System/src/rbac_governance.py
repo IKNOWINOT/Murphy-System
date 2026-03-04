@@ -212,15 +212,15 @@ class RBACGovernance:
     ) -> Tuple[bool, str]:
         """
         Check if a user can toggle full automation mode.
-        
+
         For organizations: Only admin or owner roles can toggle full automation.
         For non-organizations: Only account owners can toggle full automation.
-        
+
         Args:
             user_id: User identifier
             tenant_id: Tenant identifier
             is_organization: Whether this is an organization context
-            
+
         Returns:
             (allowed, reason) tuple
         """
@@ -228,10 +228,10 @@ class RBACGovernance:
             user = self._users.get(user_id)
             if user is None:
                 return False, "unknown_user"
-            
+
             if user.tenant_id != tenant_id:
                 return False, "user_not_in_tenant"
-            
+
             if is_organization:
                 # Only admin or owner can toggle in organizations
                 if Role.ADMIN in user.roles or Role.OWNER in user.roles:

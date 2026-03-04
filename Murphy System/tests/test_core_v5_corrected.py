@@ -34,14 +34,14 @@ except ImportError as e:
 
 class TestSystemIntegrator(unittest.TestCase):
     """Test SystemIntegrator core functionality"""
-    
+
     def setUp(self):
         """Set up test fixtures"""
         try:
             self.integrator = SystemIntegrator()
         except Exception as e:
             self.skipTest(f"Cannot create SystemIntegrator: {e}")
-    
+
     def test_initialization(self):
         """Test that SystemIntegrator initializes correctly"""
         self.assertIsNotNone(self.integrator)
@@ -54,7 +54,7 @@ class TestSystemIntegrator(unittest.TestCase):
             hasattr(self.integrator, 'state')
         )
         self.assertTrue(has_state_method, "SystemIntegrator should have a state method")
-    
+
     def test_process_user_request(self):
         """Test processing user requests"""
         try:
@@ -66,7 +66,7 @@ class TestSystemIntegrator(unittest.TestCase):
             self.assertTrue(hasattr(result, 'response') or isinstance(result, dict))
         except Exception as e:
             self.skipTest(f"Process user request failed: {e}")
-    
+
     def test_get_system_state_dict(self):
         """Test getting system state as dict"""
         try:
@@ -75,7 +75,7 @@ class TestSystemIntegrator(unittest.TestCase):
             self.assertIsInstance(state, dict)
         except Exception as e:
             self.skipTest(f"Get system state dict failed: {e}")
-    
+
     def test_adapter_initialization(self):
         """Test that all adapters are initialized"""
         adapters = [
@@ -92,18 +92,18 @@ class TestSystemIntegrator(unittest.TestCase):
 
 class TestDocumentProcessor(unittest.TestCase):
     """Test DocumentProcessor functionality"""
-    
+
     def setUp(self):
         """Set up test fixtures"""
         try:
             self.processor = DocumentProcessor()
         except Exception as e:
             self.skipTest(f"Cannot create DocumentProcessor: {e}")
-    
+
     def test_initialization(self):
         """Test initialization"""
         self.assertIsNotNone(self.processor)
-    
+
     def test_process_document(self):
         """Test processing a document"""
         try:
@@ -117,7 +117,7 @@ class TestDocumentProcessor(unittest.TestCase):
                 self.skipTest("process_document method not found")
         except Exception as e:
             self.skipTest(f"Process document failed: {e}")
-    
+
     def test_analyze_document(self):
         """Test analyzing a document"""
         try:
@@ -133,18 +133,18 @@ class TestDocumentProcessor(unittest.TestCase):
 
 class TestTelemetryAdapter(unittest.TestCase):
     """Test TelemetryAdapter functionality"""
-    
+
     def setUp(self):
         """Set up test fixtures"""
         try:
             self.adapter = TelemetryAdapter()
         except Exception as e:
             self.skipTest(f"Cannot create TelemetryAdapter: {e}")
-    
+
     def test_initialization(self):
         """Test initialization"""
         self.assertIsNotNone(self.adapter)
-    
+
     def test_collect_metric(self):
         """Test collecting a metric"""
         try:
@@ -152,7 +152,7 @@ class TestTelemetryAdapter(unittest.TestCase):
             import inspect
             sig = inspect.signature(self.adapter.collect_metric)
             params = list(sig.parameters.keys())
-            
+
             # Test with appropriate parameters
             if 'value' in params:
                 result = self.adapter.collect_metric(value=42.5)
@@ -161,7 +161,7 @@ class TestTelemetryAdapter(unittest.TestCase):
                 self.skipTest("Unknown collect_metric signature")
         except Exception as e:
             self.skipTest(f"Collect metric failed: {e}")
-    
+
     def test_get_metrics(self):
         """Test retrieving metrics"""
         try:
@@ -174,18 +174,18 @@ class TestTelemetryAdapter(unittest.TestCase):
 
 class TestSystemLibrarian(unittest.TestCase):
     """Test SystemLibrarian functionality"""
-    
+
     def setUp(self):
         """Set up test fixtures"""
         try:
             self.librarian = SystemLibrarian()
         except Exception as e:
             self.skipTest(f"Cannot create SystemLibrarian: {e}")
-    
+
     def test_initialization(self):
         """Test initialization"""
         self.assertIsNotNone(self.librarian)
-    
+
     def test_get_documentation(self):
         """Test getting documentation"""
         try:
@@ -200,7 +200,7 @@ class TestSystemLibrarian(unittest.TestCase):
                 self.skipTest("No documentation retrieval method found")
         except Exception as e:
             self.skipTest(f"Get documentation failed: {e}")
-    
+
     def test_get_help(self):
         """Test getting help"""
         try:
@@ -215,18 +215,18 @@ class TestSystemLibrarian(unittest.TestCase):
 
 class TestConstraintSystem(unittest.TestCase):
     """Test ConstraintSystem functionality"""
-    
+
     def setUp(self):
         """Set up test fixtures"""
         try:
             self.constraint_system = ConstraintSystem()
         except Exception as e:
             self.skipTest(f"Cannot create ConstraintSystem: {e}")
-    
+
     def test_initialization(self):
         """Test initialization"""
         self.assertIsNotNone(self.constraint_system)
-    
+
     def test_add_constraint(self):
         """Test adding a constraint"""
         try:
@@ -234,7 +234,7 @@ class TestConstraintSystem(unittest.TestCase):
             import inspect
             sig = inspect.signature(self.constraint_system.add_constraint)
             params = list(sig.parameters.keys())
-            
+
             # Test with appropriate parameters
             if all(p in params for p in ['constraint_type', 'parameter', 'operator', 'threshold_value']):
                 result = self.constraint_system.add_constraint(
@@ -248,7 +248,7 @@ class TestConstraintSystem(unittest.TestCase):
                 self.skipTest("Unknown add_constraint signature")
         except Exception as e:
             self.skipTest(f"Add constraint failed: {e}")
-    
+
     def test_validate_constraints(self):
         """Test validating constraints"""
         try:
@@ -263,18 +263,18 @@ class TestConstraintSystem(unittest.TestCase):
 
 class TestSecurityPlaneAdapter(unittest.TestCase):
     """Test SecurityPlaneAdapter functionality"""
-    
+
     def setUp(self):
         """Set up test fixtures"""
         try:
             self.adapter = SecurityPlaneAdapter()
         except Exception as e:
             self.skipTest(f"Cannot create SecurityPlaneAdapter: {e}")
-    
+
     def test_initialization(self):
         """Test initialization"""
         self.assertIsNotNone(self.adapter)
-    
+
     def test_validate_input(self):
         """Test input validation"""
         try:
@@ -282,7 +282,7 @@ class TestSecurityPlaneAdapter(unittest.TestCase):
             import inspect
             sig = inspect.signature(self.adapter.validate_input)
             params = list(sig.parameters.keys())
-            
+
             if 'value' in params:
                 result = self.adapter.validate_input(value="safe_input")
                 self.assertIsNotNone(result)
@@ -290,7 +290,7 @@ class TestSecurityPlaneAdapter(unittest.TestCase):
                 self.skipTest("Unknown validate_input signature")
         except Exception as e:
             self.skipTest(f"Validate input failed: {e}")
-    
+
     def test_compute_trust_score(self):
         """Test trust score computation"""
         try:
@@ -306,18 +306,18 @@ class TestSecurityPlaneAdapter(unittest.TestCase):
 
 class TestNeuroSymbolicAdapter(unittest.TestCase):
     """Test NeuroSymbolicAdapter functionality"""
-    
+
     def setUp(self):
         """Set up test fixtures"""
         try:
             self.adapter = NeuroSymbolicAdapter()
         except Exception as e:
             self.skipTest(f"Cannot create NeuroSymbolicAdapter: {e}")
-    
+
     def test_initialization(self):
         """Test initialization"""
         self.assertIsNotNone(self.adapter)
-    
+
     def test_perform_inference(self):
         """Test inference"""
         try:
@@ -325,7 +325,7 @@ class TestNeuroSymbolicAdapter(unittest.TestCase):
             import inspect
             sig = inspect.signature(self.adapter.perform_inference)
             params = list(sig.parameters.keys())
-            
+
             if 'query' in params:
                 result = self.adapter.perform_inference(query="What is 2 + 2?")
                 self.assertIsNotNone(result)
@@ -333,7 +333,7 @@ class TestNeuroSymbolicAdapter(unittest.TestCase):
                 self.skipTest("Unknown perform_inference signature")
         except Exception as e:
             self.skipTest(f"Perform inference failed: {e}")
-    
+
     def test_validate_constraints(self):
         """Test constraint validation"""
         try:
@@ -341,7 +341,7 @@ class TestNeuroSymbolicAdapter(unittest.TestCase):
             import inspect
             sig = inspect.signature(self.adapter.validate_constraints)
             params = list(sig.parameters.keys())
-            
+
             if 'statement' in params:
                 result = self.adapter.validate_constraints(statement="x > 0")
                 self.assertIsNotNone(result)
@@ -353,18 +353,18 @@ class TestNeuroSymbolicAdapter(unittest.TestCase):
 
 class TestBotInventoryLibrary(unittest.TestCase):
     """Test BotInventoryLibrary functionality"""
-    
+
     def setUp(self):
         """Set up test fixtures"""
         try:
             self.library = BotInventoryLibrary()
         except Exception as e:
             self.skipTest(f"Cannot create BotInventoryLibrary: {e}")
-    
+
     def test_initialization(self):
         """Test initialization"""
         self.assertIsNotNone(self.library)
-    
+
     def test_get_available_bots(self):
         """Test getting available bots"""
         try:
@@ -373,7 +373,7 @@ class TestBotInventoryLibrary(unittest.TestCase):
             self.assertIsInstance(bots, list)
         except Exception as e:
             self.skipTest(f"Get available bots failed: {e}")
-    
+
     def test_get_bot_capabilities(self):
         """Test getting bot capabilities"""
         try:
@@ -389,18 +389,18 @@ class TestBotInventoryLibrary(unittest.TestCase):
 
 class TestModuleCompilerAdapter(unittest.TestCase):
     """Test ModuleCompilerAdapter functionality"""
-    
+
     def setUp(self):
         """Set up test fixtures"""
         try:
             self.adapter = ModuleCompilerAdapter()
         except Exception as e:
             self.skipTest(f"Cannot create ModuleCompilerAdapter: {e}")
-    
+
     def test_initialization(self):
         """Test initialization"""
         self.assertIsNotNone(self.adapter)
-    
+
     def test_compile_module(self):
         """Test compiling a module"""
         try:
@@ -408,7 +408,7 @@ class TestModuleCompilerAdapter(unittest.TestCase):
             import inspect
             sig = inspect.signature(self.adapter.compile_module)
             params = list(sig.parameters.keys())
-            
+
             if 'source_path' in params:
                 result = self.adapter.compile_module(source_path="test_module.py")
                 self.assertIsNotNone(result)
@@ -420,18 +420,18 @@ class TestModuleCompilerAdapter(unittest.TestCase):
 
 class TestLibrarianAdapter(unittest.TestCase):
     """Test LibrarianAdapter functionality"""
-    
+
     def setUp(self):
         """Set up test fixtures"""
         try:
             self.adapter = LibrarianAdapter()
         except Exception as e:
             self.skipTest(f"Cannot create LibrarianAdapter: {e}")
-    
+
     def test_initialization(self):
         """Test initialization"""
         self.assertIsNotNone(self.adapter)
-    
+
     def test_ask_question(self):
         """Test asking a question"""
         try:
@@ -439,7 +439,7 @@ class TestLibrarianAdapter(unittest.TestCase):
             self.assertIsNotNone(result)
         except Exception as e:
             self.skipTest(f"Ask question failed: {e}")
-    
+
     def test_get_documentation(self):
         """Test getting documentation"""
         try:
@@ -454,7 +454,7 @@ def run_corrected_tests():
     # Create test suite
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
-    
+
     # Add all test classes
     test_classes = [
         TestSystemIntegrator,
@@ -468,15 +468,15 @@ def run_corrected_tests():
         TestModuleCompilerAdapter,
         TestLibrarianAdapter
     ]
-    
+
     for test_class in test_classes:
         tests = loader.loadTestsFromTestCase(test_class)
         suite.addTests(tests)
-    
+
     # Run tests
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
-    
+
     # Print summary
     print("\n" + "="*70)
     print("CORRECTED TEST SUMMARY")
@@ -490,7 +490,7 @@ def run_corrected_tests():
         success_rate = ((result.testsRun - len(result.failures) - len(result.errors)) / result.testsRun * 100)
         print(f"Success Rate: {success_rate:.1f}%")
     print("="*70)
-    
+
     return result
 
 

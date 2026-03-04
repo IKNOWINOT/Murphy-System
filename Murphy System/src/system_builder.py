@@ -10,7 +10,7 @@ class SystemBuilder:
     Builds system architecture from natural language descriptions
     Converts non-technical input into technical specifications
     """
-    
+
     def __init__(self):
         # Technical terms translation dictionary
         self.term_translations = {
@@ -54,7 +54,7 @@ class SystemBuilder:
             "work on phones": "mobile compatibility",
             "work on computers": "desktop compatibility"
         }
-        
+
         # Common system patterns
         self.system_patterns = {
             "web_app": {
@@ -102,35 +102,35 @@ class SystemBuilder:
                 "layers": ["sensing", "control", "actuation", "feedback"]
             }
         }
-    
-    def build_architecture(self, analysis: Dict[str, Any], 
+
+    def build_architecture(self, analysis: Dict[str, Any],
                           selected_modules: List[str]) -> Dict[str, Any]:
         """
         Build technical architecture from non-technical analysis
-        
+
         Args:
             analysis: Request analysis (intent, domain, complexity)
             selected_modules: Modules to use for building
-        
+
         Returns:
             Technical architecture specification
         """
         # Determine system pattern based on domain
         pattern_key = self._determine_pattern(analysis['domain'])
         pattern = self.system_patterns.get(pattern_key, self.system_patterns['web_app'])
-        
+
         # Build components
         components = self._build_components(pattern, analysis['complexity'])
-        
+
         # Build layers
         layers = self._build_layers(pattern['layers'])
-        
+
         # Add technical specifications
         specs = self._generate_specs(components, analysis['complexity'])
-        
+
         # Add module integration points
         integration = self._add_integration_points(components, selected_modules)
-        
+
         return {
             "system_type": pattern['name'],
             "description": pattern['description'],
@@ -140,7 +140,7 @@ class SystemBuilder:
             "integration": integration,
             "complexity": analysis['complexity']
         }
-    
+
     def _determine_pattern(self, domain: str) -> str:
         """Determine which system pattern to use"""
         pattern_map = {
@@ -150,11 +150,11 @@ class SystemBuilder:
             "system": "control_system"
         }
         return pattern_map.get(domain, "web_app")
-    
+
     def _build_components(self, pattern: Dict, complexity: str) -> List[Dict[str, Any]]:
         """Build components based on pattern and complexity"""
         base_components = pattern['components']
-        
+
         # Expand based on complexity
         if complexity == "simple":
             # Keep minimal components
@@ -186,13 +186,13 @@ class SystemBuilder:
                 }
                 for comp in base_components
             ]
-        
+
         return components
-    
+
     def _classify_component(self, component_name: str) -> str:
         """Classify component type"""
         component_lower = component_name.lower()
-        
+
         if any(word in component_lower for word in ["frontend", "interface", "ui", "user"]):
             return "presentation"
         elif any(word in component_lower for word in ["backend", "server", "logic", "engine"]):
@@ -203,7 +203,7 @@ class SystemBuilder:
             return "integration"
         else:
             return "utility"
-    
+
     def _get_advanced_features(self, component_name: str) -> List[str]:
         """Get advanced features for complex components"""
         features_map = {
@@ -233,7 +233,7 @@ class SystemBuilder:
             ]
         }
         return features_map.get(component_name, [])
-    
+
     def _build_layers(self, layer_names: List[str]) -> List[Dict[str, Any]]:
         """Build system layers"""
         layers = []
@@ -245,7 +245,7 @@ class SystemBuilder:
                 "components": self._get_layer_components(layer_name)
             })
         return layers
-    
+
     def _describe_layer(self, layer_name: str) -> str:
         """Describe what a layer does in simple terms"""
         descriptions = {
@@ -265,7 +265,7 @@ class SystemBuilder:
             "feedback": "Checks if actions worked correctly"
         }
         return descriptions.get(layer_name, "Performs system functions")
-    
+
     def _get_layer_components(self, layer_name: str) -> List[str]:
         """Get components that belong to a layer"""
         component_map = {
@@ -285,8 +285,8 @@ class SystemBuilder:
             "feedback": ["Feedback collectors", "Analyzers"]
         }
         return component_map.get(layer_name, ["System components"])
-    
-    def _generate_specs(self, components: List[Dict], 
+
+    def _generate_specs(self, components: List[Dict],
                        complexity: str) -> Dict[str, Any]:
         """Generate technical specifications"""
         specs = {
@@ -296,7 +296,7 @@ class SystemBuilder:
             "reliability": self._get_reliability_specs(complexity)
         }
         return specs
-    
+
     def _get_performance_specs(self, complexity: str) -> Dict[str, str]:
         """Get performance specifications"""
         if complexity == "simple":
@@ -317,7 +317,7 @@ class SystemBuilder:
                 "throughput": "100-1000 requests/minute",
                 "capacity": "Medium datasets"
             }
-    
+
     def _get_security_specs(self, complexity: str) -> Dict[str, str]:
         """Get security specifications"""
         if complexity == "simple":
@@ -339,7 +339,7 @@ class SystemBuilder:
                 "authorization": "Role-based access",
                 "encryption": "Data in transit and at rest"
             }
-    
+
     def _get_scalability_specs(self, complexity: str) -> Dict[str, str]:
         """Get scalability specifications"""
         if complexity == "simple":
@@ -360,7 +360,7 @@ class SystemBuilder:
                 "vertical_scaling": "Standard optimization",
                 "load_balancing": "Basic load distribution"
             }
-    
+
     def _get_reliability_specs(self, complexity: str) -> Dict[str, str]:
         """Get reliability specifications"""
         if complexity == "simple":
@@ -381,42 +381,42 @@ class SystemBuilder:
                 "backup": "Scheduled backups",
                 "disaster_recovery": "Recovery plan in place"
             }
-    
-    def _add_integration_points(self, components: List[Dict], 
+
+    def _add_integration_points(self, components: List[Dict],
                                modules: List[str]) -> Dict[str, List[str]]:
         """Add module integration points to components"""
         integration = {}
-        
+
         for component in components:
             comp_name = component['name']
             integration[comp_name] = self._determine_integrations(comp_name, modules)
-        
+
         return integration
-    
-    def _determine_integrations(self, component_name: str, 
+
+    def _determine_integrations(self, component_name: str,
                                modules: List[str]) -> List[str]:
         """Determine which modules integrate with a component"""
         integrations = []
-        
+
         # SystemBuilder integrates with most things
         if "SystemBuilder" in modules:
             integrations.append("Architecture definition")
             integrations.append("Component configuration")
-        
+
         # GateBuilder integrates with control components
         if "GateBuilder" in modules:
-            if any(word in component_name.lower() 
+            if any(word in component_name.lower()
                    for word in ["control", "logic", "decision", "engine"]):
                 integrations.append("Gate injection")
                 integrations.append("Safety constraints")
-        
+
         # TaskExecutor integrates with action components
         if "TaskExecutor" in modules:
-            if any(word in component_name.lower() 
+            if any(word in component_name.lower()
                    for word in ["backend", "processor", "executor", "actuation"]):
                 integrations.append("Task execution")
                 integrations.append("Operation handling")
-        
+
         return integrations
 
 # Initialize for easy import

@@ -54,7 +54,7 @@ class Phase(Enum):
     COLLAPSE = "collapse"
     BIND = "bind"
     EXECUTE = "execute"
-    
+
     @property
     def confidence_threshold(self) -> float:
         """Minimum confidence to advance from this phase"""
@@ -68,7 +68,7 @@ class Phase(Enum):
             Phase.EXECUTE: 0.85
         }
         return thresholds[self]
-    
+
     @property
     def weights(self) -> tuple[float, float]:
         """(w_g, w_d) weights for generative vs deterministic"""
@@ -98,13 +98,13 @@ class ArtifactNode:
     dependencies: List[str] = field(default_factory=list)
     timestamp: datetime = field(default_factory=datetime.now)
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     def __post_init__(self):
         """Generate ID if not provided"""
         if not self.id:
             content_str = str(self.content)
             self.id = hashlib.sha256(content_str.encode()).hexdigest()[:16]
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -127,71 +127,71 @@ class ArtifactGraph:
     """
     nodes: Dict[str, ArtifactNode] = field(default_factory=dict)
     edges: Dict[str, List[str]] = field(default_factory=dict)  # node_id -> [dependent_ids]
-    
+
     def add_node(self, node: ArtifactNode) -> None:
         """Add node to graph"""
         self.nodes[node.id] = node
         if node.id not in self.edges:
             self.edges[node.id] = []
-        
+
         # Add edges from dependencies
         for dep_id in node.dependencies:
             if dep_id not in self.edges:
                 self.edges[dep_id] = []
             if node.id not in self.edges[dep_id]:
                 self.edges[dep_id].append(node.id)
-    
+
     def get_node(self, node_id: str) -> Optional[ArtifactNode]:
         """Get node by ID"""
         return self.nodes.get(node_id)
-    
+
     def get_dependencies(self, node_id: str) -> List[ArtifactNode]:
         """Get all dependencies of a node"""
         node = self.nodes.get(node_id)
         if not node:
             return []
         return [self.nodes[dep_id] for dep_id in node.dependencies if dep_id in self.nodes]
-    
+
     def get_dependents(self, node_id: str) -> List[ArtifactNode]:
         """Get all nodes that depend on this node"""
         dependent_ids = self.edges.get(node_id, [])
         return [self.nodes[dep_id] for dep_id in dependent_ids if dep_id in self.nodes]
-    
+
     def is_dag(self) -> bool:
         """Check if graph is a DAG (no cycles)"""
         visited = set()
         rec_stack = set()
-        
+
         def has_cycle(node_id: str) -> bool:
             visited.add(node_id)
             rec_stack.add(node_id)
-            
+
             for dependent_id in self.edges.get(node_id, []):
                 if dependent_id not in visited:
                     if has_cycle(dependent_id):
                         return True
                 elif dependent_id in rec_stack:
                     return True
-            
+
             rec_stack.remove(node_id)
             return False
-        
+
         for node_id in self.nodes:
             if node_id not in visited:
                 if has_cycle(node_id):
                     return False
-        
+
         return True
-    
+
     def get_roots(self) -> List[ArtifactNode]:
         """Get root nodes (no dependencies)"""
         return [node for node in self.nodes.values() if not node.dependencies]
-    
+
     def get_leaves(self) -> List[ArtifactNode]:
         """Get leaf nodes (no dependents)"""
-        return [node for node_id, node in self.nodes.items() 
+        return [node for node_id, node in self.nodes.items()
                 if not self.edges.get(node_id, [])]
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -215,7 +215,7 @@ class VerificationEvidence:
     confidence_boost: float = 0.0  # How much does this boost confidence?
     timestamp: datetime = field(default_factory=datetime.now)
     details: Dict[str, Any] = field(default_factory=dict)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -241,7 +241,7 @@ class SourceTrust:
     success_count: int = 0
     failure_count: int = 0
     last_updated: datetime = field(default_factory=datetime.now)
-    
+
     @property
     def reliability(self) -> float:
         """Calculate reliability from success/failure ratio"""
@@ -249,7 +249,7 @@ class SourceTrust:
         if total == 0:
             return 0.5  # Neutral
         return self.success_count / total
-    
+
     def update_trust(self, success: bool) -> None:
         """Update trust based on outcome"""
         if success:
@@ -260,9 +260,9 @@ class SourceTrust:
             self.failure_count += 1
             # Decrease trust
             self.trust_weight = max(0.0, self.trust_weight - 0.1)
-        
+
         self.last_updated = datetime.now()
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -283,21 +283,21 @@ class TrustModel:
     Complete trust model for all sources
     """
     sources: Dict[str, SourceTrust] = field(default_factory=dict)
-    
+
     def get_trust(self, source_id: str) -> float:
         """Get trust weight for a source"""
         source = self.sources.get(source_id)
         return source.trust_weight if source else 0.5  # Default neutral
-    
+
     def add_source(self, source: SourceTrust) -> None:
         """Add or update source trust"""
         self.sources[source.source_id] = source
-    
+
     def update_source(self, source_id: str, success: bool) -> None:
         """Update source trust based on outcome"""
         if source_id in self.sources:
             self.sources[source_id].update_trust(success)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -317,14 +317,14 @@ class ConfidenceState:
     epistemic_instability: float  # H(x_t)
     phase: Phase
     timestamp: datetime = field(default_factory=datetime.now)
-    
+
     # Component scores
     hypothesis_coverage: float = 0.0
     decision_branching: float = 0.0
     question_quality: float = 0.0
     verified_artifacts: int = 0
     total_artifacts: int = 0
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -354,12 +354,12 @@ class AuthorityState:
     can_execute: bool
     phase: Phase
     timestamp: datetime = field(default_factory=datetime.now)
-    
+
     # Execution criteria
     gate_satisfaction: float = 0.0
     murphy_index: float = 0.0
     unknowns: int = 0
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {

@@ -49,7 +49,7 @@ class FailureModeType(Enum):
 class RiskVector:
     """
     Risk vector for a candidate future step
-    
+
     Components:
     - H: Epistemic instability
     - (1-D): Lack of deterministic grounding
@@ -60,7 +60,7 @@ class RiskVector:
     one_minus_D: float  # Lack of grounding [0, 1]
     exposure: float  # External exposure [0, 1]
     authority_risk: float  # Authority risk [0, 1]
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -70,7 +70,7 @@ class RiskVector:
             'authority_risk': self.authority_risk,
             'magnitude': self.magnitude()
         }
-    
+
     def magnitude(self) -> float:
         """Calculate overall risk magnitude"""
         return (self.H + self.one_minus_D + self.exposure + self.authority_risk) / 4.0
@@ -90,12 +90,12 @@ class FailureMode:
     affected_artifacts: List[str] = field(default_factory=list)
     mitigation_required: bool = True
     timestamp: datetime = field(default_factory=datetime.now)
-    
+
     @property
     def risk_score(self) -> float:
         """Calculate risk score (probability × impact)"""
         return self.probability * self.impact
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -123,7 +123,7 @@ class RiskPath:
     cumulative_risk: float
     likelihood: float
     timestamp: datetime = field(default_factory=datetime.now)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -147,7 +147,7 @@ class ExposureSignal:
     blast_radius_estimate: float  # [0, 1] - scope of potential damage
     affected_systems: List[str] = field(default_factory=list)
     timestamp: datetime = field(default_factory=datetime.now)
-    
+
     @property
     def risk_level(self) -> str:
         """Calculate risk level"""
@@ -157,7 +157,7 @@ class ExposureSignal:
             return "medium"
         else:
             return "low"
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -179,12 +179,12 @@ class BlastRadius:
     scope: float  # [0, 1] - how much can be affected
     severity: float  # [0, 1] - how bad the damage could be
     affected_domains: List[str] = field(default_factory=list)
-    
+
     @property
     def total_risk(self) -> float:
         """Calculate total risk (scope × severity)"""
         return self.scope * self.severity
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -204,20 +204,20 @@ class RetirementCondition:
     threshold: float
     current_value: float = 0.0
     satisfied: bool = False
-    
+
     def check(self, current_value: float) -> bool:
         """Check if condition is satisfied"""
         self.current_value = current_value
-        
+
         if self.condition_type == "confidence_recovery":
             self.satisfied = current_value >= self.threshold
         elif self.condition_type == "verification_success":
             self.satisfied = current_value >= self.threshold
         elif self.condition_type == "risk_reduction":
             self.satisfied = current_value <= self.threshold
-        
+
         return self.satisfied
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -232,7 +232,7 @@ class RetirementCondition:
 class Gate:
     """
     Control gate that restricts or requires actions
-    
+
     DESIGN LAW: No gate may authorize action.
     Gates may only restrict or require more evidence.
     """
@@ -243,69 +243,69 @@ class Gate:
     trigger_condition: Dict[str, Any]
     enforcement_effect: Dict[str, Any]
     state: GateState = GateState.PROPOSED
-    
+
     # Lifecycle
     created_at: datetime = field(default_factory=datetime.now)
     activated_at: Optional[datetime] = None
     expires_at: Optional[datetime] = None
     retired_at: Optional[datetime] = None
-    
+
     # Retirement conditions
     retirement_conditions: List[RetirementCondition] = field(default_factory=list)
-    
+
     # Metadata
     reason: str = ""
     failure_modes_addressed: List[str] = field(default_factory=list)
     priority: int = 5  # 1-10, higher = more critical
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     def __post_init__(self):
         """Generate ID if not provided"""
         if not self.id:
             content_str = f"{self.type.value}_{self.category.value}_{self.target}"
             self.id = hashlib.sha256(content_str.encode()).hexdigest()[:16]
-    
+
     def activate(self) -> None:
         """Activate the gate"""
         if self.state == GateState.PROPOSED:
             self.state = GateState.ACTIVE
             self.activated_at = datetime.now()
-    
+
     def check_expiry(self) -> bool:
         """Check if gate has expired"""
         if self.expires_at and datetime.now() > self.expires_at:
             self.state = GateState.EXPIRED
             return True
         return False
-    
+
     def check_retirement_conditions(self) -> bool:
         """Check if all retirement conditions are satisfied"""
         if not self.retirement_conditions:
             return False
-        
+
         all_satisfied = all(cond.satisfied for cond in self.retirement_conditions)
-        
+
         if all_satisfied:
             self.state = GateState.SATISFIED
             return True
-        
+
         return False
-    
+
     def retire(self, reason: str = "") -> None:
         """Retire the gate"""
         self.state = GateState.RETIRED
         self.retired_at = datetime.now()
         if reason:
             self.metadata['retirement_reason'] = reason
-    
+
     def is_active(self) -> bool:
         """Check if gate is currently active"""
         return self.state == GateState.ACTIVE
-    
+
     def can_retire(self) -> bool:
         """Check if gate can be retired"""
         return self.state in [GateState.SATISFIED, GateState.EXPIRED]
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -336,27 +336,27 @@ class GateRegistry:
     Registry of all gates
     """
     gates: Dict[str, Gate] = field(default_factory=dict)
-    
+
     def add_gate(self, gate: Gate) -> None:
         """Add gate to registry"""
         self.gates[gate.id] = gate
-    
+
     def get_gate(self, gate_id: str) -> Optional[Gate]:
         """Get gate by ID"""
         return self.gates.get(gate_id)
-    
+
     def get_active_gates(self) -> List[Gate]:
         """Get all active gates"""
         return [gate for gate in self.gates.values() if gate.is_active()]
-    
+
     def get_gates_by_category(self, category: GateCategory) -> List[Gate]:
         """Get gates by category"""
         return [gate for gate in self.gates.values() if gate.category == category]
-    
+
     def get_gates_by_target(self, target: str) -> List[Gate]:
         """Get gates affecting a specific target"""
         return [gate for gate in self.gates.values() if gate.target == target]
-    
+
     def retire_expired_gates(self) -> List[str]:
         """Retire all expired gates"""
         expired = []
@@ -365,7 +365,7 @@ class GateRegistry:
                 gate.retire("Expired")
                 expired.append(gate.id)
         return expired
-    
+
     def check_all_retirement_conditions(self) -> List[str]:
         """Check retirement conditions for all gates"""
         retired = []
@@ -374,7 +374,7 @@ class GateRegistry:
                 gate.retire("Conditions satisfied")
                 retired.append(gate.id)
         return retired
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {

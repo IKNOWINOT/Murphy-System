@@ -40,7 +40,7 @@ class ResourceProfile:
     timeout_seconds: int = 60  # Execution timeout
     network_required: bool = False  # Network access needed
     gpu_required: bool = False  # GPU access needed
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "cpu_limit": self.cpu_limit,
@@ -60,7 +60,7 @@ class FailureMode:
     description: str
     mitigation: Optional[str] = None
     probability: Optional[float] = None  # 0.0 to 1.0
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "type": self.type,
@@ -85,7 +85,7 @@ class Capability:
     entry_point: Optional[str] = None  # Function/method name
     required_env_vars: List[str] = field(default_factory=list)
     required_files: List[str] = field(default_factory=list)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "name": self.name,
@@ -100,20 +100,20 @@ class Capability:
             "required_env_vars": self.required_env_vars,
             "required_files": self.required_files,
         }
-    
+
     def is_deterministic(self) -> bool:
         """Check if capability is deterministic"""
         return self.determinism == DeterminismLevel.DETERMINISTIC
-    
+
     def requires_network(self) -> bool:
         """Check if capability requires network access"""
         return self.resource_profile.network_required
-    
+
     def max_severity(self) -> FailureSeverity:
         """Get maximum failure severity"""
         if not self.failure_modes:
             return FailureSeverity.LOW
-        
+
         # Map severity to numeric values for comparison
         severity_order = {
             FailureSeverity.LOW: 1,
@@ -121,14 +121,14 @@ class Capability:
             FailureSeverity.HIGH: 3,
             FailureSeverity.CRITICAL: 4,
         }
-        
+
         max_sev = max(severity_order[fm.severity] for fm in self.failure_modes)
-        
+
         # Return the corresponding severity
         for sev, val in severity_order.items():
             if val == max_sev:
                 return sev
-        
+
         return FailureSeverity.LOW
 
 
@@ -140,21 +140,21 @@ class SandboxProfile:
     network_enabled: bool = False
     gpu_enabled: bool = False
     privileged: bool = False
-    
+
     # Resource limits
     cpu_limit: float = 1.0
     memory_limit: str = "512MB"
     disk_limit: str = "100MB"
-    
+
     # Filesystem mounts
     mounts: List[Dict[str, str]] = field(default_factory=list)
-    
+
     # Environment variables (allowed)
     allowed_env_vars: List[str] = field(default_factory=list)
-    
+
     # Capabilities (Linux capabilities)
     capabilities: List[str] = field(default_factory=list)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "base_image": self.base_image,
@@ -169,7 +169,7 @@ class SandboxProfile:
             "allowed_env_vars": self.allowed_env_vars,
             "capabilities": self.capabilities,
         }
-    
+
     @classmethod
     def default_secure(cls) -> "SandboxProfile":
         """Create a default secure sandbox profile"""
@@ -198,24 +198,24 @@ class ModuleSpec:
     version_hash: str
     capabilities: List[Capability]
     sandbox_profile: SandboxProfile
-    
+
     # Metadata
     compiled_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     compiler_version: str = "1.0.0"
-    
+
     # Build information
     build_steps: List[str] = field(default_factory=list)
     dependencies: List[str] = field(default_factory=list)
-    
+
     # Verification
     verification_checks: List[Dict[str, Any]] = field(default_factory=list)
     verification_status: str = "pending"  # pending, passed, failed
-    
+
     # Flags
     is_partial: bool = False  # True if analysis was incomplete
     requires_manual_review: bool = False
     uncertainty_flags: List[str] = field(default_factory=list)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "module_id": self.module_id,
@@ -233,11 +233,11 @@ class ModuleSpec:
             "requires_manual_review": self.requires_manual_review,
             "uncertainty_flags": self.uncertainty_flags,
         }
-    
+
     def to_json(self) -> str:
         """Serialize to JSON"""
         return json.dumps(self.to_dict(), indent=2)
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ModuleSpec":
         """Deserialize from dictionary"""
@@ -267,10 +267,10 @@ class ModuleSpec:
             )
             for cap in data["capabilities"]
         ]
-        
+
         # Reconstruct sandbox profile
         sandbox_profile = SandboxProfile(**data["sandbox_profile"])
-        
+
         return cls(
             module_id=data["module_id"],
             source_path=data["source_path"],
@@ -287,7 +287,7 @@ class ModuleSpec:
             requires_manual_review=data.get("requires_manual_review", False),
             uncertainty_flags=data.get("uncertainty_flags", []),
         )
-    
+
     @staticmethod
     def generate_module_id(source_path: str, version_hash: str) -> str:
         """Generate unique module ID"""
@@ -297,7 +297,7 @@ class ModuleSpec:
         # Use first 8 chars of hash
         short_hash = version_hash[:8]
         return f"{module_name}-v1-{short_hash}"
-    
+
     @staticmethod
     def compute_version_hash(source_path: str) -> str:
         """Compute SHA-256 hash of source file"""
@@ -308,27 +308,27 @@ class ModuleSpec:
             # If file can't be read, use path hash
             logger.debug("Suppressed exception: %s", exc)
             return hashlib.sha256(source_path.encode()).hexdigest()
-    
+
     def get_capability(self, name: str) -> Optional[Capability]:
         """Get capability by name"""
         for cap in self.capabilities:
             if cap.name == name:
                 return cap
         return None
-    
+
     def has_deterministic_capabilities(self) -> bool:
         """Check if module has any deterministic capabilities"""
         return any(cap.is_deterministic() for cap in self.capabilities)
-    
+
     def requires_network(self) -> bool:
         """Check if any capability requires network"""
         return any(cap.requires_network() for cap in self.capabilities)
-    
+
     def max_failure_severity(self) -> FailureSeverity:
         """Get maximum failure severity across all capabilities"""
         if not self.capabilities:
             return FailureSeverity.LOW
-        
+
         # Map severity to numeric values for comparison
         severity_order = {
             FailureSeverity.LOW: 1,
@@ -336,12 +336,12 @@ class ModuleSpec:
             FailureSeverity.HIGH: 3,
             FailureSeverity.CRITICAL: 4,
         }
-        
+
         max_sev = max(severity_order[cap.max_severity()] for cap in self.capabilities)
-        
+
         # Return the corresponding severity
         for sev, val in severity_order.items():
             if val == max_sev:
                 return sev
-        
+
         return FailureSeverity.LOW

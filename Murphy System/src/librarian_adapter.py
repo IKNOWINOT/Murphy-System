@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class LibrarianAdapter:
     """
     Adapter for Librarian System integration.
-    
+
     Provides librarian capabilities including:
     - Question answering and help
     - Topic-based documentation
@@ -23,17 +23,17 @@ class LibrarianAdapter:
     - Troubleshooting guidance
     - Knowledge base search
     """
-    
+
     def __init__(self, librarian_module=None):
         """
         Initialize the librarian adapter.
-        
+
         Args:
             librarian_module: Optional librarian module instance
         """
         self.librarian = librarian_module
         self.enabled = librarian_module is not None
-        
+
         # Knowledge base (fallback)
         self.knowledge_base = {
             'catalog': {
@@ -77,7 +77,7 @@ class LibrarianAdapter:
                 'topics': ['validation', 'trust_scoring', 'gates', 'anomalies']
             }
         }
-        
+
         # Troubleshooting guides (fallback)
         self.troubleshooting_guides = {
             'performance': {
@@ -101,7 +101,7 @@ class LibrarianAdapter:
                 'solutions': ['Check network', 'Verify service status', 'Review configuration']
             }
         }
-        
+
         # Usage statistics
         self.usage_stats = {
             'questions_asked': 0,
@@ -109,24 +109,24 @@ class LibrarianAdapter:
             'searches_performed': 0,
             'troubleshooting_accessed': {}
         }
-        
+
         if self.enabled:
             logger.info("Librarian Adapter initialized with librarian module")
         else:
             logger.warning("Librarian Adapter running in FALLBACK mode - librarian module not available")
-    
+
     def is_enabled(self) -> bool:
         """Check if librarian is enabled"""
         return self.enabled
-    
+
     def ask_question(self, question: str, topic: Optional[str] = None) -> Dict:
         """
         Ask a question to the librarian.
-        
+
         Args:
             question: The question to ask
             topic: Optional topic to focus on
-            
+
         Returns:
             Dict containing answer with structure:
                 {
@@ -140,7 +140,7 @@ class LibrarianAdapter:
                 }
         """
         timestamp = datetime.now(timezone.utc).isoformat()
-        
+
         try:
             if not self.enabled:
                 # Fallback: Provide helpful answer based on knowledge base
@@ -148,15 +148,15 @@ class LibrarianAdapter:
             else:
                 # Use actual librarian module
                 result = self._actual_answer(question, topic)
-            
+
             # Update statistics
             self.usage_stats['questions_asked'] += 1
             if topic:
                 self.usage_stats['topics_accessed'][topic] = self.usage_stats['topics_accessed'].get(topic, 0) + 1
-            
+
             result['timestamp'] = timestamp
             return result
-            
+
         except Exception as exc:
             logger.error(f"Error in ask_question: {exc}")
             return {
@@ -166,11 +166,11 @@ class LibrarianAdapter:
                 'confidence': 0.0,
                 'timestamp': timestamp
             }
-    
+
     def get_topics(self) -> Dict:
         """
         Get all available topics.
-        
+
         Returns:
             Dict containing topics with structure:
                 {
@@ -191,7 +191,7 @@ class LibrarianAdapter:
                     }
                     for topic_id, topic_info in self.knowledge_base.items()
                 ]
-                
+
                 return {
                     'success': True,
                     'topics': topics_list,
@@ -201,7 +201,7 @@ class LibrarianAdapter:
             else:
                 # Use actual librarian module
                 return self._actual_get_topics()
-            
+
         except Exception as exc:
             logger.error(f"Error in get_topics: {exc}")
             return {
@@ -210,11 +210,11 @@ class LibrarianAdapter:
                 'topics': [],
                 'count': 0
             }
-    
+
     def get_health_status(self) -> Dict:
         """
         Get system health status.
-        
+
         Returns:
             Dict containing health status with structure:
                 {
@@ -227,7 +227,7 @@ class LibrarianAdapter:
         """
         try:
             timestamp = datetime.now(timezone.utc).isoformat()
-            
+
             if not self.enabled:
                 # Fallback: Simulated health check
                 components = {
@@ -237,11 +237,11 @@ class LibrarianAdapter:
                     'module_compiler': 'healthy',
                     'librarian': 'healthy'
                 }
-                
+
                 # Determine overall health
                 all_healthy = all(status == 'healthy' for status in components.values())
                 overall_health = 'healthy' if all_healthy else 'degraded'
-                
+
                 return {
                     'success': True,
                     'status': overall_health,
@@ -253,7 +253,7 @@ class LibrarianAdapter:
             else:
                 # Use actual librarian module
                 return self._actual_get_health_status()
-            
+
         except Exception as exc:
             logger.error(f"Error in get_health_status: {exc}")
             return {
@@ -263,14 +263,14 @@ class LibrarianAdapter:
                 'components': {},
                 'overall_health': 'unknown'
             }
-    
+
     def get_troubleshooting_guide(self, issue: str) -> Dict:
         """
         Get troubleshooting guidance for an issue.
-        
+
         Args:
             issue: The issue to troubleshoot
-            
+
         Returns:
             Dict containing troubleshooting guide with structure:
                 {
@@ -289,14 +289,14 @@ class LibrarianAdapter:
             else:
                 # Use actual librarian module
                 result = self._actual_troubleshooting(issue)
-            
+
             # Update statistics
             if result['success']:
                 self.usage_stats['troubleshooting_accessed'][issue] = \
                     self.usage_stats['troubleshooting_accessed'].get(issue, 0) + 1
-            
+
             return result
-            
+
         except Exception as exc:
             logger.error(f"Error in get_troubleshooting_guide: {exc}")
             return {
@@ -306,14 +306,14 @@ class LibrarianAdapter:
                 'causes': [],
                 'solutions': []
             }
-    
+
     def get_documentation(self, topic: str) -> Dict:
         """
         Get documentation for a specific topic.
-        
+
         Args:
             topic: The topic to get documentation for
-            
+
         Returns:
             Dict containing documentation with structure:
                 {
@@ -331,9 +331,9 @@ class LibrarianAdapter:
             else:
                 # Use actual librarian module
                 result = self._actual_documentation(topic)
-            
+
             return result
-            
+
         except Exception as exc:
             logger.error(f"Error in get_documentation: {exc}")
             return {
@@ -343,14 +343,14 @@ class LibrarianAdapter:
                 'documentation': None,
                 'examples': []
             }
-    
+
     def search_knowledge_base(self, query: str) -> Dict:
         """
         Search the knowledge base.
-        
+
         Args:
             query: The search query
-            
+
         Returns:
             Dict containing search results with structure:
                 {
@@ -364,16 +364,16 @@ class LibrarianAdapter:
         try:
             # Update statistics
             self.usage_stats['searches_performed'] += 1
-            
+
             if not self.enabled:
                 # Fallback: Simple keyword search
                 result = self._fallback_search(query)
             else:
                 # Use actual librarian module
                 result = self._actual_search(query)
-            
+
             return result
-            
+
         except Exception as exc:
             logger.error(f"Error in search_knowledge_base: {exc}")
             return {
@@ -384,11 +384,11 @@ class LibrarianAdapter:
                 'count': 0,
                 'total_matches': 0
             }
-    
+
     def get_librarian_statistics(self) -> Dict:
         """
         Get librarian usage statistics.
-        
+
         Returns:
             Dict containing statistics with structure:
                 {
@@ -416,13 +416,13 @@ class LibrarianAdapter:
                 'error': str(exc),
                 'enabled': self.enabled
             }
-    
+
     # ========== Fallback Methods ==========
-    
+
     def _fallback_answer(self, question: str, topic: Optional[str]) -> Dict:
         """Fallback answer generation"""
         question_lower = question.lower()
-        
+
         # Try to match to a topic
         if topic and topic in self.knowledge_base:
             topic_info = self.knowledge_base[topic]
@@ -437,7 +437,7 @@ class LibrarianAdapter:
                     ". Please ask about a specific topic for detailed information."
             confidence = 0.6
             related_topics = list(self.knowledge_base.keys())
-        
+
         return {
             'success': True,
             'answer': answer,
@@ -447,24 +447,24 @@ class LibrarianAdapter:
             'sources': ['knowledge_base'],
             'fallback_mode': True
         }
-    
+
     def _actual_answer(self, question: str, topic: Optional[str]) -> Dict:
         """Actual answer using librarian module"""
         # This would call the actual librarian module
         return self._fallback_answer(question, topic)
-    
+
     def _actual_get_topics(self) -> Dict:
         """Actual topics from librarian module"""
         return self.get_topics()
-    
+
     def _actual_get_health_status(self) -> Dict:
         """Actual health status from librarian module"""
         return self.get_health_status()
-    
+
     def _fallback_troubleshooting(self, issue: str) -> Dict:
         """Fallback troubleshooting"""
         issue_lower = issue.lower()
-        
+
         # Try to match against known issues
         for key, guide in self.troubleshooting_guides.items():
             if key in issue_lower or guide['issue'].lower() in issue_lower:
@@ -477,7 +477,7 @@ class LibrarianAdapter:
                     'confidence': 0.8,
                     'fallback_mode': True
                 }
-        
+
         # No match found
         return {
             'success': False,
@@ -487,11 +487,11 @@ class LibrarianAdapter:
             'solutions': [],
             'confidence': 0.0
         }
-    
+
     def _actual_troubleshooting(self, issue: str) -> Dict:
         """Actual troubleshooting from librarian module"""
         return self._fallback_troubleshooting(issue)
-    
+
     def _fallback_documentation(self, topic: str) -> Dict:
         """Fallback documentation"""
         if topic in self.knowledge_base:
@@ -501,7 +501,7 @@ class LibrarianAdapter:
                   f"## Topics\n\n"
             for subtopic in topic_info['topics']:
                 doc += f"- {subtopic}\n"
-            
+
             return {
                 'success': True,
                 'topic': topic,
@@ -518,16 +518,16 @@ class LibrarianAdapter:
                 'documentation': None,
                 'examples': []
             }
-    
+
     def _actual_documentation(self, topic: str) -> Dict:
         """Actual documentation from librarian module"""
         return self._fallback_documentation(topic)
-    
+
     def _fallback_search(self, query: str) -> Dict:
         """Fallback search"""
         query_lower = query.lower()
         results = []
-        
+
         # Search through knowledge base
         for topic_id, topic_info in self.knowledge_base.items():
             # Check topic name
@@ -539,7 +539,7 @@ class LibrarianAdapter:
                     'description': topic_info['description'],
                     'relevance': 0.9
                 })
-            
+
             # Check subtopics
             for subtopic in topic_info['topics']:
                 if query_lower in subtopic.lower():
@@ -550,10 +550,10 @@ class LibrarianAdapter:
                         'description': f"Part of {topic_info['name']}",
                         'relevance': 0.7
                     })
-        
+
         # Sort by relevance
         results.sort(key=lambda x: x['relevance'], reverse=True)
-        
+
         return {
             'success': True,
             'query': query,
@@ -562,7 +562,7 @@ class LibrarianAdapter:
             'total_matches': len(results),
             'fallback_mode': True
         }
-    
+
     def _actual_search(self, query: str) -> Dict:
         """Actual search from librarian module"""
         return self._fallback_search(query)

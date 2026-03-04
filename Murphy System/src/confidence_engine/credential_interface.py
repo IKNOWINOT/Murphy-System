@@ -77,7 +77,7 @@ class VerificationResponse(BaseModel):
 
 class ICredentialVerifier(Protocol):
     """Protocol for credential verifiers."""
-    
+
     async def verify(
         self,
         credential: Credential,
@@ -85,7 +85,7 @@ class ICredentialVerifier(Protocol):
     ) -> VerificationResponse:
         """Verify a credential."""
         ...
-    
+
     async def check_permissions(
         self,
         credential: Credential,
@@ -93,7 +93,7 @@ class ICredentialVerifier(Protocol):
     ) -> List[CredentialPermission]:
         """Check credential permissions."""
         ...
-    
+
     async def check_rate_limits(
         self,
         credential: Credential
@@ -104,22 +104,22 @@ class ICredentialVerifier(Protocol):
 
 class BaseCredentialVerifier(ABC):
     """Base class for credential verifiers."""
-    
+
     def __init__(self, service_provider: ServiceProvider):
         self.service_provider = service_provider
         self.verification_cache: Dict[str, Tuple[datetime, VerificationResponse]] = {}
         self.cache_ttl_seconds = 300  # 5 minutes
-    
+
     @abstractmethod
     async def verify_api_call(self, credential: Credential) -> bool:
         """Verify credential by making an API call."""
         pass
-    
+
     @abstractmethod
     async def verify_token(self, credential: Credential) -> bool:
         """Verify token validity."""
         pass
-    
+
     @abstractmethod
     async def check_permissions(
         self,
@@ -128,7 +128,7 @@ class BaseCredentialVerifier(ABC):
     ) -> List[CredentialPermission]:
         """Check credential permissions."""
         pass
-    
+
     @abstractmethod
     async def check_rate_limits(
         self,
@@ -136,7 +136,7 @@ class BaseCredentialVerifier(ABC):
     ) -> Tuple[Optional[int], Optional[datetime]]:
         """Check rate limits."""
         pass
-    
+
     async def verify(
         self,
         credential: Credential,
@@ -144,11 +144,11 @@ class BaseCredentialVerifier(ABC):
     ) -> VerificationResponse:
         """
         Verify credential using requested methods.
-        
+
         Args:
             credential: Credential to verify
             request: Verification request with methods and requirements
-            
+
         Returns:
             VerificationResponse with verification results
         """
@@ -158,12 +158,12 @@ class BaseCredentialVerifier(ABC):
             cached_time, cached_response = self.verification_cache[cache_key]
             if (datetime.now(timezone.utc) - cached_time).seconds < self.cache_ttl_seconds:
                 return cached_response
-        
+
         passed_methods = []
         failed_methods = []
         is_valid = True
         error_details = None
-        
+
         # Run verification methods
         for method in request.verification_methods:
             try:
@@ -177,18 +177,18 @@ class BaseCredentialVerifier(ABC):
                     result = await self.verify_signature(credential)
                 else:
                     result = True  # Default pass for unknown methods
-                
+
                 if result:
                     passed_methods.append(method)
                 else:
                     failed_methods.append(method)
                     is_valid = False
-            
+
             except Exception as exc:
                 failed_methods.append(method)
                 is_valid = False
                 error_details = str(exc)
-        
+
         # Check permissions if required
         permissions = []
         if request.required_permissions:
@@ -196,22 +196,22 @@ class BaseCredentialVerifier(ABC):
                 credential,
                 request.required_permissions
             )
-            
+
             # Fail if any required permission is not granted
             if not all(p.granted for p in permissions):
                 is_valid = False
-        
+
         # Check rate limits if requested
         rate_limit_remaining = None
         rate_limit_reset_at = None
         if request.check_rate_limits:
             rate_limit_remaining, rate_limit_reset_at = await self.check_rate_limits(credential)
-            
+
             # Fail if rate limit exceeded
             if rate_limit_remaining is not None and rate_limit_remaining <= 0:
                 is_valid = False
                 error_details = "Rate limit exceeded"
-        
+
         # Determine status
         if is_valid:
             status = CredentialStatus.ACTIVE
@@ -219,7 +219,7 @@ class BaseCredentialVerifier(ABC):
             status = CredentialStatus.EXPIRED
         else:
             status = CredentialStatus.INVALID
-        
+
         response = VerificationResponse(
             credential_id=credential.id,
             is_valid=is_valid,
@@ -231,12 +231,12 @@ class BaseCredentialVerifier(ABC):
             rate_limit_reset_at=rate_limit_reset_at,
             error_details=error_details
         )
-        
+
         # Cache response
         self.verification_cache[cache_key] = (datetime.now(timezone.utc), response)
-        
+
         return response
-    
+
     async def verify_signature(self, credential: Credential) -> bool:
         """Verify credential signature. Override in subclasses."""
         return True
@@ -244,10 +244,10 @@ class BaseCredentialVerifier(ABC):
 
 class AWSCredentialVerifier(BaseCredentialVerifier):
     """Verifier for AWS credentials."""
-    
+
     def __init__(self):
         super().__init__(ServiceProvider.AWS)
-    
+
     async def verify_api_call(self, credential: Credential) -> bool:
         """Verify AWS credentials via STS GetCallerIdentity (or format check).
 
@@ -272,7 +272,7 @@ class AWSCredentialVerifier(BaseCredentialVerifier):
             pass
         # Fallback — validate key format only
         return self._validate_aws_key_format(credential.credential_value)
-    
+
     async def verify_token(self, credential: Credential) -> bool:
         """Verify AWS credential type and format."""
         if credential.credential_type not in (
@@ -281,7 +281,7 @@ class AWSCredentialVerifier(BaseCredentialVerifier):
         ):
             return False
         return self._validate_aws_key_format(credential.credential_value)
-    
+
     async def check_permissions(
         self,
         credential: Credential,
@@ -296,14 +296,14 @@ class AWSCredentialVerifier(BaseCredentialVerifier):
                 granted=True  # Simulated — real impl uses IAM policy simulator
             ))
         return permissions
-    
+
     async def check_rate_limits(
         self,
         credential: Credential
     ) -> Tuple[Optional[int], Optional[datetime]]:
         """AWS uses per-service rate limits; return None to indicate no global cap."""
         return None, None
-    
+
     @staticmethod
     def _validate_aws_key_format(value: str) -> bool:
         """Basic format validation for AWS access key IDs.
@@ -323,10 +323,10 @@ class AWSCredentialVerifier(BaseCredentialVerifier):
 
 class GitHubCredentialVerifier(BaseCredentialVerifier):
     """Verifier for GitHub credentials."""
-    
+
     def __init__(self):
         super().__init__(ServiceProvider.GITHUB)
-    
+
     async def verify_api_call(self, credential: Credential) -> bool:
         """Verify GitHub token via the /user API (or format fallback)."""
         if not credential.credential_value:
@@ -346,11 +346,11 @@ class GitHubCredentialVerifier(BaseCredentialVerifier):
             # Network unavailable — fall back to format check
             logger.debug("Suppressed exception: %s", exc)
             return self._validate_github_token_format(credential.credential_value)
-    
+
     async def verify_token(self, credential: Credential) -> bool:
         """Verify GitHub token format (ghp_, gho_, ghs_, ghu_ prefix)."""
         return self._validate_github_token_format(credential.credential_value)
-    
+
     async def check_permissions(
         self,
         credential: Credential,
@@ -365,14 +365,14 @@ class GitHubCredentialVerifier(BaseCredentialVerifier):
                 granted=True  # Simulated — real impl checks X-OAuth-Scopes header
             ))
         return permissions
-    
+
     async def check_rate_limits(
         self,
         credential: Credential
     ) -> Tuple[Optional[int], Optional[datetime]]:
         """Return GitHub's standard authenticated rate limit."""
         return 5000, datetime.now(timezone.utc) + timedelta(hours=1)
-    
+
     @staticmethod
     def _validate_github_token_format(value: str) -> bool:
         """GitHub PATs/fine-grained tokens have known prefixes."""
@@ -383,10 +383,10 @@ class GitHubCredentialVerifier(BaseCredentialVerifier):
 
 class DatabaseCredentialVerifier(BaseCredentialVerifier):
     """Verifier for database credentials."""
-    
+
     def __init__(self):
         super().__init__(ServiceProvider.DATABASE)
-    
+
     async def verify_api_call(self, credential: Credential) -> bool:
         """Verify database credentials by format inspection.
 
@@ -397,11 +397,11 @@ class DatabaseCredentialVerifier(BaseCredentialVerifier):
         if not credential.credential_value:
             return False
         return self._looks_like_connection_string(credential.credential_value)
-    
+
     async def verify_token(self, credential: Credential) -> bool:
         """Verify database credential format."""
         return self._looks_like_connection_string(credential.credential_value)
-    
+
     async def check_permissions(
         self,
         credential: Credential,
@@ -416,14 +416,14 @@ class DatabaseCredentialVerifier(BaseCredentialVerifier):
                 granted=True  # Simulated — real impl queries INFORMATION_SCHEMA
             ))
         return permissions
-    
+
     async def check_rate_limits(
         self,
         credential: Credential
     ) -> Tuple[Optional[int], Optional[datetime]]:
         """Databases use connection-pool limits, not rate limits."""
         return None, None
-    
+
     @staticmethod
     def _looks_like_connection_string(value: str) -> bool:
         """Heuristic check for common connection-string patterns."""
@@ -441,9 +441,9 @@ class DatabaseCredentialVerifier(BaseCredentialVerifier):
 
 class CredentialVerifierFactory:
     """Factory for creating credential verifiers."""
-    
+
     _verifiers: Dict[ServiceProvider, BaseCredentialVerifier] = {}
-    
+
     @classmethod
     def register_verifier(
         cls,
@@ -452,25 +452,25 @@ class CredentialVerifierFactory:
     ):
         """Register a verifier for a service provider."""
         cls._verifiers[provider] = verifier
-    
+
     @classmethod
     def get_verifier(cls, provider: ServiceProvider) -> BaseCredentialVerifier:
         """Get verifier for a service provider."""
         if provider not in cls._verifiers:
             # Register default verifiers
             cls._register_default_verifiers()
-        
+
         return cls._verifiers.get(provider)
-    
+
     @classmethod
     def _register_default_verifiers(cls):
         """Register default verifiers."""
         if ServiceProvider.AWS not in cls._verifiers:
             cls.register_verifier(ServiceProvider.AWS, AWSCredentialVerifier())
-        
+
         if ServiceProvider.GITHUB not in cls._verifiers:
             cls.register_verifier(ServiceProvider.GITHUB, GitHubCredentialVerifier())
-        
+
         if ServiceProvider.DATABASE not in cls._verifiers:
             cls.register_verifier(ServiceProvider.DATABASE, DatabaseCredentialVerifier())
 
@@ -479,11 +479,11 @@ class CredentialVerificationInterface:
     """
     Unified interface for credential verification across all services.
     """
-    
+
     def __init__(self):
         self.factory = CredentialVerifierFactory()
         self.verification_history: List[VerificationResponse] = []
-    
+
     async def verify_credential(
         self,
         credential: Credential,
@@ -494,14 +494,14 @@ class CredentialVerificationInterface:
     ) -> VerificationResponse:
         """
         Verify a credential.
-        
+
         Args:
             credential: Credential to verify
             service_provider: Service provider for the credential
             verification_methods: Methods to use for verification
             required_permissions: Required permissions to check
             check_rate_limits: Whether to check rate limits
-            
+
         Returns:
             VerificationResponse with results
         """
@@ -512,7 +512,7 @@ class CredentialVerificationInterface:
                 VerificationMethod.TOKEN_VALIDATION,
                 VerificationMethod.API_CALL
             ]
-        
+
         # Create verification request
         request = VerificationRequest(
             credential_id=credential.id,
@@ -521,7 +521,7 @@ class CredentialVerificationInterface:
             required_permissions=required_permissions or [],
             check_rate_limits=check_rate_limits
         )
-        
+
         # Get appropriate verifier
         verifier = self.factory.get_verifier(service_provider)
         if not verifier:
@@ -536,40 +536,40 @@ class CredentialVerificationInterface:
             )
             self.verification_history.append(response)
             return response
-        
+
         # Perform verification
         response = await verifier.verify(credential, request)
-        
+
         # Stamp provider onto the response for downstream filtering
         response.service_provider = service_provider
-        
+
         # Record in history
         self.verification_history.append(response)
-        
+
         return response
-    
+
     async def batch_verify(
         self,
         credentials: List[Tuple[Credential, ServiceProvider]]
     ) -> List[VerificationResponse]:
         """
         Verify multiple credentials in batch.
-        
+
         Args:
             credentials: List of (credential, service_provider) tuples
-            
+
         Returns:
             List of VerificationResponse objects
         """
         import asyncio
-        
+
         tasks = [
             self.verify_credential(cred, provider)
             for cred, provider in credentials
         ]
-        
+
         return await asyncio.gather(*tasks)
-    
+
     def get_verification_history(
         self,
         credential_id: Optional[str] = None,
@@ -578,33 +578,33 @@ class CredentialVerificationInterface:
     ) -> List[VerificationResponse]:
         """Get verification history with optional filters."""
         history = self.verification_history
-        
+
         if credential_id:
             history = [h for h in history if h.credential_id == credential_id]
-        
+
         if service_provider:
             history = [h for h in history if h.service_provider == service_provider]
-        
+
         return history[-limit:]
-    
+
     def get_verification_statistics(self) -> Dict[str, Any]:
         """Get statistics about verifications."""
         total = len(self.verification_history)
-        
+
         if total == 0:
             return {
                 "total_verifications": 0,
                 "success_rate": 0.0,
                 "average_methods_per_verification": 0.0
             }
-        
+
         successful = sum(1 for h in self.verification_history if h.is_valid)
-        
+
         total_methods = sum(
             len(h.verification_methods_passed) + len(h.verification_methods_failed)
             for h in self.verification_history
         )
-        
+
         return {
             "total_verifications": total,
             "successful_verifications": successful,

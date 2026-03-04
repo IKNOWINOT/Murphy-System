@@ -29,14 +29,14 @@ class SafetyGate:
 class SafeLLMWrapper:
     """
     Wraps LLM calls with Murphy-Free safety checks
-    
+
     Key principles:
     1. All LLM outputs are [G] Generated until verified
     2. Outputs must pass safety gates before display
     3. Confidence is computed from verification
     4. Unbounded generation is prevented
     """
-    
+
     def __init__(self, llm_backend=None):
         """Initialize safe wrapper"""
         self.llm_backend = llm_backend
@@ -48,7 +48,7 @@ class SafeLLMWrapper:
             'peer_reviewed': 0.95,
             'official_docs': 0.9
         }
-    
+
     def _initialize_gates(self) -> List[SafetyGate]:
         """Initialize safety gates"""
         return [
@@ -83,7 +83,7 @@ class SafeLLMWrapper:
                 description="Response must be relevant"
             )
         ]
-    
+
     def _check_hallucination_markers(self, text: str) -> bool:
         """Check for common hallucination patterns"""
         hallucination_patterns = [
@@ -96,27 +96,27 @@ class SafeLLMWrapper:
             r'let\'s say',
             r'for example.*for example.*for example',  # Repetitive examples
         ]
-        
+
         text_lower = text.lower()
         for pattern in hallucination_patterns:
             if re.search(pattern, text_lower):
                 return False
         return True
-    
+
     def _check_unbounded_lists(self, text: str) -> bool:
         """Check for runaway list generation"""
         # Count numbered items
         numbered_items = len(re.findall(r'^\d+\.', text, re.MULTILINE))
         if numbered_items > 10:
             return False
-        
+
         # Check for repetitive patterns
         lines = text.split('\n')
         if len(lines) > 20:
             return False
-        
+
         return True
-    
+
     def _check_coherence(self, text: str) -> bool:
         """Check if response is coherent"""
         # Check for excessive repetition
@@ -125,16 +125,16 @@ class SafeLLMWrapper:
             unique_ratio = len(set(words)) / len(words)
             if unique_ratio < 0.3:  # Too repetitive
                 return False
-        
+
         # Check for sentence fragments
         sentences = text.split('.')
         if len(sentences) > 5:
             avg_length = sum(len(s.split()) for s in sentences) / len(sentences)
             if avg_length < 3:  # Too fragmented
                 return False
-        
+
         return True
-    
+
     def safe_generate(
         self,
         prompt: str,
@@ -143,7 +143,7 @@ class SafeLLMWrapper:
     ) -> Dict[str, Any]:
         """
         Generate response with safety checks
-        
+
         Returns:
             {
                 'content': str,
@@ -156,7 +156,7 @@ class SafeLLMWrapper:
         """
         # Enforce token limit
         max_tokens = min(max_tokens, self.max_response_length // 4)
-        
+
         # Generate response
         if self.llm_backend and hasattr(self.llm_backend, 'chat'):
             try:
@@ -177,7 +177,7 @@ class SafeLLMWrapper:
                         "content": prompt
                     }
                 ]
-                
+
                 raw_response = self.llm_backend.chat(
                     messages,
                     temperature=0.7,
@@ -187,16 +187,16 @@ class SafeLLMWrapper:
                 return self._fallback_response(prompt, str(exc))
         else:
             return self._fallback_response(prompt, "No LLM backend")
-        
+
         # Truncate if needed
         if len(raw_response) > self.max_response_length:
             raw_response = raw_response[:self.max_response_length] + "..."
-        
+
         # Run safety gates
         gates_passed = []
         gates_failed = []
         murphy_risk = 0.0
-        
+
         for gate in self.safety_gates:
             try:
                 if gate.check_fn(raw_response):
@@ -207,7 +207,7 @@ class SafeLLMWrapper:
             except Exception as exc:
                 gates_failed.append(f"{gate.name} (error: {exc})")
                 murphy_risk += gate.severity
-        
+
         # Determine status
         if murphy_risk > 0.7:
             # Too risky - reject
@@ -246,7 +246,7 @@ class SafeLLMWrapper:
                 'verification_status': 'bounded',
                 'murphy_risk': murphy_risk
             }
-    
+
     def _fallback_response(self, prompt: str, error: str) -> Dict[str, Any]:
         """Fallback when LLM unavailable"""
         return {
@@ -264,7 +264,7 @@ class SafeLLMWrapper:
             'verification_status': 'fallback',
             'murphy_risk': 0.0
         }
-    
+
     def verify_against_sources(
         self,
         claim: str,
@@ -272,7 +272,7 @@ class SafeLLMWrapper:
     ) -> Tuple[float, List[Dict[str, Any]]]:
         """
         Verify claim against trusted sources
-        
+
         Returns:
             (confidence, evidence_list)
         """
@@ -283,19 +283,19 @@ class SafeLLMWrapper:
 class MFGCIntegratedLLM:
     """
     LLM integrated with MFGC safety system
-    
+
     Ensures:
     1. All outputs pass Murphy checks
     2. Confidence is computed from verification
     3. Authority is bounded by confidence
     4. No unbounded generation possible
     """
-    
+
     def __init__(self, llm_backend=None):
         """Initialize MFGC-integrated LLM"""
         self.safe_wrapper = SafeLLMWrapper(llm_backend)
         self.conversation_history = []
-    
+
     def process_message(
         self,
         message: str,
@@ -303,7 +303,7 @@ class MFGCIntegratedLLM:
     ) -> Dict[str, Any]:
         """
         Process message with full MFGC safety
-        
+
         Returns response with:
         - Marker (V/G/B/R)
         - Confidence score
@@ -312,20 +312,20 @@ class MFGCIntegratedLLM:
         """
         if context is None:
             context = {}
-        
+
         # Add to history
         self.conversation_history.append({
             'role': 'user',
             'content': message
         })
-        
+
         # Generate safe response
         response = self.safe_wrapper.safe_generate(
             message,
             context,
             max_tokens=300
         )
-        
+
         # Add to history
         self.conversation_history.append({
             'role': 'assistant',
@@ -333,7 +333,7 @@ class MFGCIntegratedLLM:
             'marker': response['marker'],
             'confidence': response['confidence']
         })
-        
+
         # Format metadata
         metadata = {
             'confidence': response['confidence'],
@@ -342,17 +342,17 @@ class MFGCIntegratedLLM:
             'gates_failed': len(response['gates_failed']),
             'verification_status': response['verification_status']
         }
-        
+
         if response['gates_failed']:
             metadata['failed_gates'] = response['gates_failed']
-        
+
         return {
             'content': response['content'],
             'marker': response['marker'],
             'marker_class': self._get_marker_class(response['marker']),
             'metadata': metadata
         }
-    
+
     def _get_marker_class(self, marker: str) -> str:
         """Get CSS class for marker"""
         return {
@@ -361,7 +361,7 @@ class MFGCIntegratedLLM:
             'B': 'marker-bot',
             'R': 'marker-rejected'
         }.get(marker, 'marker-bot')
-    
+
     def get_status(self) -> Dict[str, Any]:
         """Get current status"""
         return {

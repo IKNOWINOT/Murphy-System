@@ -17,14 +17,14 @@ from .schemas import (
     ValidationResult,
     CorrectionType,
     Severity,
-    
+
     # Form Models
     PlanUploadForm,
     PlanGenerationForm,
     TaskExecutionForm,
     ValidationForm,
     CorrectionForm,
-    
+
     # Utilities
     FORM_REGISTRY,
     get_form_class,
@@ -42,14 +42,14 @@ __all__ = [
     'ValidationResult',
     'CorrectionType',
     'Severity',
-    
+
     # Form Models
     'PlanUploadForm',
     'PlanGenerationForm',
     'TaskExecutionForm',
     'ValidationForm',
     'CorrectionForm',
-    
+
     # Utilities
     'FORM_REGISTRY',
     'get_form_class',

@@ -13,7 +13,7 @@ from .librarian_module import LibrarianModule
 
 __all__ = [
     "KnowledgeBase",
-    "SemanticSearchEngine", 
+    "SemanticSearchEngine",
     "DocumentManager",
     "LibrarianModule"
 ]

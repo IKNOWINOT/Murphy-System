@@ -18,49 +18,49 @@ import json
 class TelemetryArtifact:
     """
     Telemetry data as an artifact.
-    
+
     Flows into Artifact Graph for Control Plane analysis.
     """
-    
+
     # Identity
     artifact_id: str
     device_id: str
     adapter_id: str
-    
+
     # Telemetry data
     timestamp: float
     state_vector: Dict
     error_codes: List[str]
     health: str  # "healthy", "degraded", "failed"
-    
+
     # Integrity
     checksum: str  # SHA-256 of state_vector
     sequence_number: int
-    
+
     # Metadata
     metadata: Optional[Dict] = None
-    
+
     # Deduplication
     previous_checksum: Optional[str] = None
-    
+
     def __post_init__(self):
         """Validate artifact"""
         # Verify checksum
         computed_checksum = self._compute_checksum(self.state_vector)
         if self.checksum != computed_checksum:
             raise ValueError(f"Checksum mismatch: {self.checksum} != {computed_checksum}")
-        
+
         # Validate health
         if self.health not in ["healthy", "degraded", "failed"]:
             raise ValueError(f"Invalid health: {self.health}")
-    
+
     @staticmethod
     def _compute_checksum(state_vector: Dict) -> str:
         """Compute SHA-256 checksum of state vector"""
         # Sort keys for deterministic serialization
         serialized = json.dumps(state_vector, sort_keys=True)
         return hashlib.sha256(serialized.encode()).hexdigest()
-    
+
     def to_dict(self) -> Dict:
         """Convert to dictionary"""
         return {
@@ -76,7 +76,7 @@ class TelemetryArtifact:
             "metadata": self.metadata,
             "previous_checksum": self.previous_checksum
         }
-    
+
     def is_duplicate(self, other: 'TelemetryArtifact') -> bool:
         """Check if this is a duplicate of another artifact"""
         return (
@@ -89,14 +89,14 @@ class TelemetryArtifact:
 class TelemetryIngestionPipeline:
     """
     Pipeline for ingesting telemetry into Artifact Graph.
-    
+
     Features:
     - Deduplication
     - Integrity checks
     - Sequence validation
     - Rate limiting
     """
-    
+
     def __init__(self):
         """Initialize pipeline"""
         self.artifacts = []
@@ -104,15 +104,15 @@ class TelemetryIngestionPipeline:
         self.last_checksum = {}  # device_id -> last checksum
         self.ingestion_count = {}  # device_id -> count
         self.max_artifacts = 10000
-    
+
     def ingest(self, telemetry: Dict, adapter_id: str) -> Optional[TelemetryArtifact]:
         """
         Ingest telemetry data.
-        
+
         Args:
             telemetry: Telemetry dictionary
             adapter_id: Adapter ID
-            
+
         Returns:
             TelemetryArtifact if ingested, None if rejected
         """
@@ -120,23 +120,23 @@ class TelemetryIngestionPipeline:
         if not device_id:
             print("[REJECT] Missing device_id")
             return None
-        
+
         # Validate required fields
         required = ['timestamp', 'state_vector', 'error_codes', 'health', 'checksum']
         for field in required:
             if field not in telemetry:
                 print(f"[REJECT] Missing required field: {field}")
                 return None
-        
+
         # Get sequence number
         sequence_number = telemetry.get('sequence_number', 0)
-        
+
         # Check sequence (must be monotonically increasing)
         if device_id in self.last_sequence:
             if sequence_number <= self.last_sequence[device_id]:
                 print(f"[REJECT] Sequence number not increasing: {sequence_number} <= {self.last_sequence[device_id]}")
                 return None
-        
+
         # Create artifact
         try:
             artifact = TelemetryArtifact(
@@ -155,39 +155,39 @@ class TelemetryIngestionPipeline:
         except ValueError as exc:
             print(f"[REJECT] Invalid artifact: {exc}")
             return None
-        
+
         # Check for duplicates
         if device_id in self.last_checksum:
             if artifact.checksum == self.last_checksum[device_id]:
                 print(f"[DEDUP] Duplicate telemetry from {device_id}")
                 return None
-        
+
         # Ingest
         self.artifacts.append(artifact)
         self.last_sequence[device_id] = sequence_number
         self.last_checksum[device_id] = artifact.checksum
         self.ingestion_count[device_id] = self.ingestion_count.get(device_id, 0) + 1
-        
+
         # Trim if needed
         if len(self.artifacts) > self.max_artifacts:
             self.artifacts = self.artifacts[-self.max_artifacts:]
-        
+
         print(f"[INGEST] Telemetry from {device_id} (seq={sequence_number}, health={artifact.health})")
-        
+
         return artifact
-    
+
     def get_latest(self, device_id: str) -> Optional[TelemetryArtifact]:
         """Get latest telemetry for device"""
         for artifact in reversed(self.artifacts):
             if artifact.device_id == device_id:
                 return artifact
         return None
-    
+
     def get_history(self, device_id: str, n: int = 10) -> List[TelemetryArtifact]:
         """Get recent telemetry history for device"""
         history = [a for a in self.artifacts if a.device_id == device_id]
         return history[-n:]
-    
+
     def get_statistics(self) -> Dict:
         """Get ingestion statistics"""
         return {
@@ -196,7 +196,7 @@ class TelemetryIngestionPipeline:
             "ingestion_count": self.ingestion_count,
             "last_sequence": self.last_sequence
         }
-    
+
     def check_health(self, device_id: str) -> str:
         """Check device health from latest telemetry"""
         latest = self.get_latest(device_id)

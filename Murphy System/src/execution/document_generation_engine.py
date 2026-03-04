@@ -24,7 +24,7 @@ class DocumentType(Enum):
 
 class DocumentTemplate:
     """Document template"""
-    
+
     def __init__(
         self,
         template_id: str,
@@ -38,22 +38,22 @@ class DocumentTemplate:
         self.content = content
         self.placeholders = placeholders or []
         self.styling = styling or {}
-    
+
     def render(self, context: Dict) -> str:
         """Render template with context"""
         rendered_content = self.content
-        
+
         for placeholder in self.placeholders:
             placeholder_key = f"{{{placeholder}}}"
             value = str(context.get(placeholder, ""))
             rendered_content = rendered_content.replace(placeholder_key, value)
-        
+
         return rendered_content
 
 
 class Document:
     """Generated document"""
-    
+
     def __init__(
         self,
         document_id: Optional[str] = None,
@@ -66,7 +66,7 @@ class Document:
         self.content = content
         self.metadata = metadata or {}
         self.created_at = datetime.now(timezone.utc)
-    
+
     def to_dict(self) -> Dict:
         """Convert document to dictionary"""
         return {
@@ -80,16 +80,16 @@ class Document:
 
 class DocumentGenerationEngine:
     """Generate documents from templates"""
-    
+
     def __init__(self):
         self.templates: Dict[str, DocumentTemplate] = {}
         self.documents: Dict[str, Document] = {}
-        
+
     def register_template(self, template: DocumentTemplate) -> None:
         """Register a document template"""
         self.templates[template.template_id] = template
         logger.info(f"Template registered: {template.template_id}")
-    
+
     def generate_pdf(
         self,
         template_id: str,
@@ -100,24 +100,24 @@ class DocumentGenerationEngine:
         template = self.templates.get(template_id)
         if not template:
             raise ValueError(f"Template not found: {template_id}")
-        
+
         # Render template
         content = template.render(data)
-        
+
         # Convert to PDF format
         pdf_content = self._convert_to_pdf(content, template.styling)
-        
+
         document = Document(
             document_type=DocumentType.PDF,
             content=pdf_content,
             metadata=metadata
         )
-        
+
         self.documents[document.document_id] = document
         logger.info(f"PDF document generated: {document.document_id}")
-        
+
         return document
-    
+
     def generate_word(
         self,
         template_id: str,
@@ -128,24 +128,24 @@ class DocumentGenerationEngine:
         template = self.templates.get(template_id)
         if not template:
             raise ValueError(f"Template not found: {template_id}")
-        
+
         # Render template
         content = template.render(data)
-        
+
         # Convert to Word format
         word_content = self._convert_to_word(content, template.styling)
-        
+
         document = Document(
             document_type=DocumentType.WORD,
             content=word_content,
             metadata=metadata
         )
-        
+
         self.documents[document.document_id] = document
         logger.info(f"Word document generated: {document.document_id}")
-        
+
         return document
-    
+
     def generate_html(
         self,
         template_id: str,
@@ -156,24 +156,24 @@ class DocumentGenerationEngine:
         template = self.templates.get(template_id)
         if not template:
             raise ValueError(f"Template not found: {template_id}")
-        
+
         # Render template
         content = template.render(data)
-        
+
         # Wrap in HTML structure
         html_content = self._wrap_in_html(content, template.styling)
-        
+
         document = Document(
             document_type=DocumentType.HTML,
             content=html_content,
             metadata=metadata
         )
-        
+
         self.documents[document.document_id] = document
         logger.info(f"HTML document generated: {document.document_id}")
-        
+
         return document
-    
+
     def generate_from_template(
         self,
         template_id: str,
@@ -184,21 +184,21 @@ class DocumentGenerationEngine:
         template = self.templates.get(template_id)
         if not template:
             raise ValueError(f"Template not found: {template_id}")
-        
+
         # Render template
         content = template.render(context)
-        
+
         document = Document(
             document_type=template.template_type,
             content=content,
             metadata=metadata
         )
-        
+
         self.documents[document.document_id] = document
         logger.info(f"Document generated: {document.document_id}")
-        
+
         return document
-    
+
     def preview_document(
         self,
         template_id: str,
@@ -208,9 +208,9 @@ class DocumentGenerationEngine:
         template = self.templates.get(template_id)
         if not template:
             raise ValueError(f"Template not found: {template_id}")
-        
+
         return template.render(data)
-    
+
     def _convert_to_pdf(self, content: str, styling: Dict) -> str:
         """Convert content to PDF format.
 
@@ -244,7 +244,7 @@ class DocumentGenerationEngine:
         except ImportError:
             # Graceful fallback — return structured text
             return f"%PDF-1.4-TEXT-FALLBACK\n{content}\n%%EOF"
-    
+
     def _convert_to_word(self, content: str, styling: Dict) -> str:
         """Convert content to Word (OOXML) format.
 
@@ -278,14 +278,14 @@ class DocumentGenerationEngine:
                 f"  <body>{escaped}</body>\n"
                 "</document>"
             )
-    
+
     def _wrap_in_html(self, content: str, styling: Dict) -> str:
         """Wrap content in HTML structure"""
         styling_str = ""
         if styling:
             for key, value in styling.items():
                 styling_str += f"{key}: {value}; "
-        
+
         html_content = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -297,13 +297,13 @@ class DocumentGenerationEngine:
     {content}
 </body>
 </html>"""
-        
+
         return html_content
-    
+
     def get_document(self, document_id: str) -> Optional[Document]:
         """Get document by ID"""
         return self.documents.get(document_id)
-    
+
     def get_all_documents(self) -> List[Dict]:
         """Get all documents"""
         return [doc.to_dict() for doc in self.documents.values()]

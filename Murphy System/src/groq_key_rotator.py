@@ -26,32 +26,32 @@ class KeyStats:
 class GroqKeyRotator:
     """
     Rotates through multiple Groq API keys to distribute load evenly
-    
+
     Features:
     - Round-robin rotation
     - Automatic key disabling on repeated failures
     - Usage statistics tracking
     - Thread-safe operations
     """
-    
+
     def __init__(self, keys: List[tuple]):
         """
         Initialize with list of (name, key) tuples
-        
+
         Args:
             keys: List of tuples like [("Murphy System", "gsk_..."), ...]
         """
         self.keys = [KeyStats(key=key, name=name) for name, key in keys]
         self.current_index = 0
         self.lock = threading.Lock()
-        
+
         if not self.keys:
             raise ValueError("At least one API key must be provided")
-    
+
     def get_next_key(self) -> tuple:
         """
         Get the next available API key in rotation
-        
+
         Returns:
             tuple: (key_name, api_key)
         """
@@ -59,36 +59,36 @@ class GroqKeyRotator:
             # Find next active key
             attempts = 0
             max_attempts = len(self.keys)
-            
+
             while attempts < max_attempts:
                 key_stats = self.keys[self.current_index]
-                
+
                 if key_stats.is_active:
                     # Update usage
                     key_stats.total_calls += 1
                     key_stats.last_used = datetime.now()
-                    
+
                     # Move to next key for next call
                     self.current_index = (self.current_index + 1) % len(self.keys)
-                    
+
                     return (key_stats.name, key_stats.key)
-                
+
                 # Try next key
                 self.current_index = (self.current_index + 1) % len(self.keys)
                 attempts += 1
-            
+
             # All keys are inactive - reactivate all and try again
             print("WARNING: All keys inactive, reactivating all keys")
             for key_stats in self.keys:
                 key_stats.is_active = True
-            
+
             # Return first key
             key_stats = self.keys[0]
             key_stats.total_calls += 1
             key_stats.last_used = datetime.now()
             self.current_index = 1
             return (key_stats.name, key_stats.key)
-    
+
     def report_success(self, key: str):
         """Report successful API call"""
         with self.lock:
@@ -97,11 +97,11 @@ class GroqKeyRotator:
                     key_stats.successful_calls += 1
                     key_stats.last_error = None
                     break
-    
+
     def report_failure(self, key: str, error: str):
         """
         Report failed API call
-        
+
         Automatically disables key after 3 consecutive failures
         """
         with self.lock:
@@ -109,13 +109,13 @@ class GroqKeyRotator:
                 if key_stats.key == key:
                     key_stats.failed_calls += 1
                     key_stats.last_error = error
-                    
+
                     # Disable key if too many failures
                     if key_stats.failed_calls >= 3:
                         key_stats.is_active = False
                         print(f"WARNING: Disabled key '{key_stats.name}' after {key_stats.failed_calls} failures")
                     break
-    
+
     def get_statistics(self) -> dict:
         """Get usage statistics for all keys"""
         with self.lock:
@@ -127,7 +127,7 @@ class GroqKeyRotator:
                 "failed_calls": sum(k.failed_calls for k in self.keys),
                 "keys": []
             }
-            
+
             for key_stats in self.keys:
                 stats["keys"].append({
                     "name": key_stats.name,
@@ -145,9 +145,9 @@ class GroqKeyRotator:
                     "is_active": key_stats.is_active,
                     "last_error": key_stats.last_error
                 })
-            
+
             return stats
-    
+
     def reset_key(self, key_name: str):
         """Reset a specific key (reactivate and clear error count)"""
         with self.lock:
@@ -159,7 +159,7 @@ class GroqKeyRotator:
                     print(f"Reset key '{key_name}'")
                     return True
             return False
-    
+
     def reset_all_keys(self):
         """Reset all keys"""
         with self.lock:
@@ -173,49 +173,49 @@ class GroqKeyRotator:
 def load_keys_from_file(file_path: str) -> List[tuple]:
     """
     Load API keys from file (DEPRECATED - use secure key manager)
-    
+
     Expected format:
     Murphy System <gsk_...>
     Murphy System 1 <gsk_...>
-    
+
     Returns:
         List of (name, key) tuples
     """
     keys = []
-    
+
     with open(file_path, 'r', encoding='utf-8') as f:
         for line in f:
             line = line.strip()
             if not line:
                 continue
-            
+
             # Parse format: "Name <key>"
             if '<' in line and '>' in line:
                 name = line.split('<')[0].strip()
                 key = line.split('<')[1].split('>')[0].strip()
                 keys.append((name, key))
-    
+
     return keys
 
 
 def load_keys_from_secure_storage() -> List[tuple]:
     """
     Load API keys from encrypted storage using SecureKeyManager.
-    
+
     Returns:
         List of (name, key) tuples
     """
     try:
         from secure_key_manager import get_secure_key_manager
-        
+
         manager = get_secure_key_manager()
         keys = manager.load_keys()
-        
+
         if not keys:
             raise ValueError("No keys found in encrypted storage")
-        
+
         return keys
-    
+
     except Exception as exc:
         print(f"Failed to load keys from secure storage: {exc}")
         raise
@@ -229,16 +229,16 @@ _rotator_lock = threading.Lock()
 def get_rotator(use_secure_storage: bool = True, keys_file: str = None) -> GroqKeyRotator:
     """
     Get or create the global key rotator instance.
-    
+
     Args:
         use_secure_storage: If True, load keys from encrypted storage (recommended)
         keys_file: Path to plaintext keys file (deprecated, for backward compatibility)
-    
+
     Returns:
         GroqKeyRotator instance
     """
     global _rotator_instance
-    
+
     with _rotator_lock:
         if _rotator_instance is None:
             if use_secure_storage:
@@ -251,8 +251,8 @@ def get_rotator(use_secure_storage: bool = True, keys_file: str = None) -> GroqK
                     keys_file = "/workspace/Murphy System Keys.txt"
                 keys = load_keys_from_file(keys_file)
                 print(f"⚠️  Loaded {len(keys)} keys from plaintext file (DEPRECATED)")
-            
+
             _rotator_instance = GroqKeyRotator(keys)
             print(f"Initialized Groq key rotator with {len(keys)} keys")
-        
+
         return _rotator_instance

@@ -74,24 +74,24 @@ class BiometricType(Enum):
 class Identity:
     """
     Identity in the system.
-    
+
     Can be human, service, agent, or device.
     """
     identity_id: str
     identity_type: IdentityType
     display_name: str
     created_at: datetime
-    
+
     # Authentication methods
     allowed_auth_methods: List[AuthenticationType]
-    
+
     # Trust context
     trust_score: Optional[TrustScore] = None
     authority_band: AuthorityBand = AuthorityBand.NONE
-    
+
     # Metadata
     metadata: Dict[str, str] = field(default_factory=dict)
-    
+
     # Status
     active: bool = True
     suspended: bool = False
@@ -102,27 +102,27 @@ class Identity:
 class AuthenticationCredential:
     """
     Authentication credential for an identity.
-    
+
     CRITICAL: No passwords, no long-lived secrets.
     """
     credential_id: str
     identity_id: str
     credential_type: AuthenticationType
-    
+
     # Credential data (encrypted)
     public_key: Optional[bytes] = None
     credential_data_encrypted: Optional[bytes] = None
-    
+
     # Lifecycle
     created_at: datetime = field(default_factory=datetime.now)
     expires_at: Optional[datetime] = None
     last_used: Optional[datetime] = None
     use_count: int = 0
-    
+
     # Device binding (for passkeys)
     device_id: Optional[str] = None
     device_name: Optional[str] = None
-    
+
     # Status
     active: bool = True
     revoked: bool = False
@@ -136,16 +136,16 @@ class AuthenticationAttempt:
     identity_id: str
     auth_type: AuthenticationType
     timestamp: datetime
-    
+
     # Result
     success: bool
     failure_reason: Optional[str] = None
-    
+
     # Context
     source_ip: Optional[str] = None
     user_agent: Optional[str] = None
     location: Optional[str] = None
-    
+
     # Trust impact
     trust_score_before: Optional[float] = None
     trust_score_after: Optional[float] = None
@@ -155,38 +155,38 @@ class AuthenticationAttempt:
 class AuthenticationSession:
     """
     Authentication session.
-    
+
     Short-lived, automatically expires.
     """
     session_id: str
     identity_id: str
     auth_type: AuthenticationType
-    
+
     # Lifecycle
     created_at: datetime
     expires_at: datetime
     last_activity: datetime
-    
+
     # Session token (cryptographically secure)
     session_token: str
-    
+
     # Trust context
     trust_score: TrustScore
     authority_band: AuthorityBand
-    
+
     # Status
     active: bool = True
     terminated: bool = False
     termination_reason: Optional[str] = None
-    
+
     def is_expired(self) -> bool:
         """Check if session has expired."""
         return datetime.now() > self.expires_at
-    
+
     def is_idle(self, idle_timeout: timedelta = timedelta(minutes=15)) -> bool:
         """Check if session is idle."""
         return datetime.now() - self.last_activity > idle_timeout
-    
+
     def refresh(self) -> None:
         """Refresh session activity."""
         self.last_activity = datetime.now()
@@ -196,20 +196,20 @@ class AuthenticationSession:
 class ContextualVerification:
     """
     Contextual verification data.
-    
+
     Verifies authentication based on context (time, location, task).
     """
     verification_id: str
     identity_id: str
     timestamp: datetime
-    
+
     # Context factors
     time_of_day: str  # "business_hours", "after_hours", "weekend"
     location: Optional[str]  # Geographic location
     device_id: Optional[str]  # Device identifier
     network: Optional[str]  # Network identifier
     task: Optional[str]  # Task being performed
-    
+
     # Verification result
     verified: bool
     confidence: float  # 0.0 to 1.0
@@ -220,22 +220,22 @@ class ContextualVerification:
 class IntentConfirmation:
     """
     Intent confirmation for high-risk operations.
-    
+
     Ensures user understands what they're authorizing.
     """
     confirmation_id: str
     identity_id: str
     timestamp: datetime
-    
+
     # Intent
     operation: str  # What operation is being performed
     description: str  # Human-readable description
     risk_level: str  # "low", "medium", "high", "critical"
-    
+
     # Confirmation
     confirmed: bool
     confirmation_method: str  # "explicit", "biometric", "hardware_key"
-    
+
     # Semantic match
     user_understanding: Optional[str] = None  # What user thinks they're doing
     semantic_match: Optional[float] = None  # 0.0 to 1.0
@@ -244,16 +244,16 @@ class IntentConfirmation:
 class HumanAuthenticator:
     """
     Authenticates humans using passkeys, biometrics, or hardware keys.
-    
+
     CRITICAL: No passwords, no manual secrets.
     """
-    
+
     def __init__(self, key_manager: KeyManager):
         self.key_manager = key_manager
         self._credentials: Dict[str, AuthenticationCredential] = {}
         self._sessions: Dict[str, AuthenticationSession] = {}
         self._attempts: List[AuthenticationAttempt] = []
-    
+
     def register_passkey(
         self,
         identity_id: str,
@@ -263,11 +263,11 @@ class HumanAuthenticator:
     ) -> AuthenticationCredential:
         """
         Register passkey for identity.
-        
+
         Passkeys are FIDO2-compliant, device-bound credentials.
         """
         credential_id = f"passkey-{secrets.token_hex(16)}"
-        
+
         credential = AuthenticationCredential(
             credential_id=credential_id,
             identity_id=identity_id,
@@ -279,10 +279,10 @@ class HumanAuthenticator:
             expires_at=None,  # Passkeys don't expire
             active=True
         )
-        
+
         self._credentials[credential_id] = credential
         return credential
-    
+
     def register_biometric(
         self,
         identity_id: str,
@@ -292,11 +292,11 @@ class HumanAuthenticator:
     ) -> AuthenticationCredential:
         """
         Register biometric for identity.
-        
+
         Biometric templates are encrypted and device-bound.
         """
         credential_id = f"biometric-{secrets.token_hex(16)}"
-        
+
         credential = AuthenticationCredential(
             credential_id=credential_id,
             identity_id=identity_id,
@@ -307,10 +307,10 @@ class HumanAuthenticator:
             expires_at=None,  # Biometrics don't expire
             active=True
         )
-        
+
         self._credentials[credential_id] = credential
         return credential
-    
+
     def authenticate_passkey(
         self,
         identity_id: str,
@@ -320,7 +320,7 @@ class HumanAuthenticator:
     ) -> Tuple[bool, Optional[AuthenticationSession]]:
         """
         Authenticate using passkey.
-        
+
         FIDO2 challenge-response authentication.
         """
         # Get credential
@@ -328,35 +328,35 @@ class HumanAuthenticator:
         if not credential or credential.identity_id != identity_id:
             self._record_attempt(identity_id, AuthenticationType.PASSKEY, False, "Invalid credential")
             return False, None
-        
+
         if not credential.active or credential.revoked:
             self._record_attempt(identity_id, AuthenticationType.PASSKEY, False, "Credential revoked")
             return False, None
-        
+
         # Verify signature (simulated FIDO2 verification)
         # In production: Use proper FIDO2 library
         expected_signature = CryptographicPrimitives.hash_data(
             challenge + credential.public_key
         )
-        
+
         if not CryptographicPrimitives.constant_time_compare(signature, expected_signature):
             self._record_attempt(identity_id, AuthenticationType.PASSKEY, False, "Invalid signature")
             return False, None
-        
+
         # Update credential
         credential.last_used = datetime.now()
         credential.use_count += 1
-        
+
         # Create session
         session = self._create_session(
             identity_id,
             AuthenticationType.PASSKEY,
             trust_level=TrustLevel.HIGH
         )
-        
+
         self._record_attempt(identity_id, AuthenticationType.PASSKEY, True)
         return True, session
-    
+
     def authenticate_biometric(
         self,
         identity_id: str,
@@ -365,7 +365,7 @@ class HumanAuthenticator:
     ) -> Tuple[bool, Optional[AuthenticationSession]]:
         """
         Authenticate using biometric.
-        
+
         Biometric matching is done on-device.
         """
         # Get credential
@@ -373,34 +373,34 @@ class HumanAuthenticator:
         if not credential or credential.identity_id != identity_id:
             self._record_attempt(identity_id, AuthenticationType.BIOMETRIC, False, "Invalid credential")
             return False, None
-        
+
         if not credential.active or credential.revoked:
             self._record_attempt(identity_id, AuthenticationType.BIOMETRIC, False, "Credential revoked")
             return False, None
-        
+
         # Verify biometric (simulated)
         # In production: Biometric matching done on secure hardware
         biometric_hash = CryptographicPrimitives.hash_data(biometric_data)
-        
+
         # Simulated match (in reality, this would be fuzzy matching)
         if len(biometric_hash) < 32:
             self._record_attempt(identity_id, AuthenticationType.BIOMETRIC, False, "Biometric mismatch")
             return False, None
-        
+
         # Update credential
         credential.last_used = datetime.now()
         credential.use_count += 1
-        
+
         # Create session
         session = self._create_session(
             identity_id,
             AuthenticationType.BIOMETRIC,
             trust_level=TrustLevel.HIGH
         )
-        
+
         self._record_attempt(identity_id, AuthenticationType.BIOMETRIC, True)
         return True, session
-    
+
     def _create_session(
         self,
         identity_id: str,
@@ -411,10 +411,10 @@ class HumanAuthenticator:
         """Create authentication session."""
         session_id = f"session-{secrets.token_hex(16)}"
         session_token = secrets.token_urlsafe(32)
-        
+
         now = datetime.now()
         expires = now + session_duration
-        
+
         # Create trust score
         trust_score = TrustScore(
             identity_id=identity_id,
@@ -428,7 +428,7 @@ class HumanAuthenticator:
             gate_history_clean=True,
             telemetry_coherent=True
         )
-        
+
         session = AuthenticationSession(
             session_id=session_id,
             identity_id=identity_id,
@@ -441,10 +441,10 @@ class HumanAuthenticator:
             authority_band=AuthorityBand.MEDIUM,
             active=True
         )
-        
+
         self._sessions[session_id] = session
         return session
-    
+
     def _record_attempt(
         self,
         identity_id: str,
@@ -461,71 +461,71 @@ class HumanAuthenticator:
             success=success,
             failure_reason=failure_reason
         )
-        
+
         capped_append(self._attempts, attempt)
-    
+
     def get_session(self, session_id: str) -> Optional[AuthenticationSession]:
         """Get session by ID."""
         session = self._sessions.get(session_id)
-        
+
         if not session:
             return None
-        
+
         # Check expiry
         if session.is_expired():
             session.active = False
             session.terminated = True
             session.termination_reason = "expired"
             return None
-        
+
         # Check idle timeout
         if session.is_idle():
             session.active = False
             session.terminated = True
             session.termination_reason = "idle_timeout"
             return None
-        
+
         return session
-    
+
     def terminate_session(self, session_id: str, reason: str = "user_logout") -> bool:
         """Terminate session."""
         session = self._sessions.get(session_id)
-        
+
         if not session:
             return False
-        
+
         session.active = False
         session.terminated = True
         session.termination_reason = reason
-        
+
         return True
-    
+
     def revoke_credential(self, credential_id: str, reason: str) -> bool:
         """Revoke credential."""
         credential = self._credentials.get(credential_id)
-        
+
         if not credential:
             return False
-        
+
         credential.active = False
         credential.revoked = True
         credential.revoked_at = datetime.now()
-        
+
         return True
 
 
 class MachineAuthenticator:
     """
     Authenticates machines (services, agents, devices) using mTLS.
-    
+
     CRITICAL: Mutual TLS with short-lived certificates.
     """
-    
+
     def __init__(self, key_manager: KeyManager):
         self.key_manager = key_manager
         self._certificates: Dict[str, AuthenticationCredential] = {}
         self._sessions: Dict[str, AuthenticationSession] = {}
-    
+
     def issue_certificate(
         self,
         identity_id: str,
@@ -535,7 +535,7 @@ class MachineAuthenticator:
     ) -> AuthenticationCredential:
         """
         Issue short-lived certificate for machine authentication.
-        
+
         Certificates expire in minutes.
         """
         # Generate key pair
@@ -545,12 +545,12 @@ class MachineAuthenticator:
             algorithm=CryptographicAlgorithm.HYBRID,
             capabilities=set(capabilities)
         )
-        
+
         credential_id = f"cert-{secrets.token_hex(16)}"
-        
+
         now = datetime.now()
         expires = now + certificate_duration
-        
+
         credential = AuthenticationCredential(
             credential_id=credential_id,
             identity_id=identity_id,
@@ -560,10 +560,10 @@ class MachineAuthenticator:
             expires_at=expires,
             active=True
         )
-        
+
         self._certificates[credential_id] = credential
         return credential
-    
+
     def authenticate_mtls(
         self,
         identity_id: str,
@@ -572,42 +572,42 @@ class MachineAuthenticator:
     ) -> Tuple[bool, Optional[AuthenticationSession]]:
         """
         Authenticate using mTLS.
-        
+
         Verifies client certificate.
         """
         # Get credential
         credential = self._certificates.get(credential_id)
         if not credential or credential.identity_id != identity_id:
             return False, None
-        
+
         if not credential.active or credential.revoked:
             return False, None
-        
+
         # Check expiry
         if credential.expires_at and datetime.now() > credential.expires_at:
             return False, None
-        
+
         # Verify certificate (simulated)
         # In production: Use proper TLS certificate verification
         cert_hash = CryptographicPrimitives.hash_data(client_certificate)
         expected_hash = CryptographicPrimitives.hash_data(credential.public_key)
-        
+
         if not CryptographicPrimitives.constant_time_compare(cert_hash, expected_hash):
             return False, None
-        
+
         # Update credential
         credential.last_used = datetime.now()
         credential.use_count += 1
-        
+
         # Create session
         session = self._create_session(
             identity_id,
             AuthenticationType.MTLS,
             trust_level=TrustLevel.HIGH
         )
-        
+
         return True, session
-    
+
     def _create_session(
         self,
         identity_id: str,
@@ -618,10 +618,10 @@ class MachineAuthenticator:
         """Create machine authentication session."""
         session_id = f"session-{secrets.token_hex(16)}"
         session_token = secrets.token_urlsafe(32)
-        
+
         now = datetime.now()
         expires = now + session_duration
-        
+
         # Create trust score
         trust_score = TrustScore(
             identity_id=identity_id,
@@ -635,7 +635,7 @@ class MachineAuthenticator:
             gate_history_clean=True,
             telemetry_coherent=True
         )
-        
+
         session = AuthenticationSession(
             session_id=session_id,
             identity_id=identity_id,
@@ -648,7 +648,7 @@ class MachineAuthenticator:
             authority_band=AuthorityBand.HIGH,
             active=True
         )
-        
+
         self._sessions[session_id] = session
         return session
 
@@ -657,10 +657,10 @@ class IdentityVerifier:
     """
     Verifies identity and maintains identity registry.
     """
-    
+
     def __init__(self):
         self._identities: Dict[str, Identity] = {}
-    
+
     def register_identity(
         self,
         identity_id: str,
@@ -677,61 +677,61 @@ class IdentityVerifier:
             allowed_auth_methods=allowed_auth_methods,
             active=True
         )
-        
+
         self._identities[identity_id] = identity
         return identity
-    
+
     def get_identity(self, identity_id: str) -> Optional[Identity]:
         """Get identity by ID."""
         return self._identities.get(identity_id)
-    
+
     def verify_identity(self, identity_id: str) -> bool:
         """Verify identity exists and is active."""
         identity = self._identities.get(identity_id)
-        
+
         if not identity:
             return False
-        
+
         if not identity.active or identity.suspended:
             return False
-        
+
         return True
-    
+
     def suspend_identity(self, identity_id: str, reason: str) -> bool:
         """Suspend identity."""
         identity = self._identities.get(identity_id)
-        
+
         if not identity:
             return False
-        
+
         identity.suspended = True
         identity.suspended_reason = reason
-        
+
         return True
-    
+
     def reactivate_identity(self, identity_id: str) -> bool:
         """Reactivate suspended identity."""
         identity = self._identities.get(identity_id)
-        
+
         if not identity:
             return False
-        
+
         identity.suspended = False
         identity.suspended_reason = None
-        
+
         return True
 
 
 class ContextualVerifier:
     """
     Verifies authentication based on context.
-    
+
     Context factors: time, location, device, network, task.
     """
-    
+
     def __init__(self):
         self._verifications: List[ContextualVerification] = []
-    
+
     def verify_context(
         self,
         identity_id: str,
@@ -743,13 +743,13 @@ class ContextualVerifier:
     ) -> ContextualVerification:
         """
         Verify authentication context.
-        
+
         Returns verification with confidence score.
         """
         verification_id = f"ctx-{secrets.token_hex(8)}"
         anomalies = []
         confidence = 1.0
-        
+
         # Check time of day
         if time_of_day == "after_hours":
             anomalies.append("Authentication during after hours")
@@ -757,24 +757,24 @@ class ContextualVerifier:
         elif time_of_day == "weekend":
             anomalies.append("Authentication during weekend")
             confidence *= 0.9
-        
+
         # Check location (simulated)
         if location and location.startswith("unknown"):
             anomalies.append("Authentication from unknown location")
             confidence *= 0.7
-        
+
         # Check device (simulated)
         if device_id and device_id.startswith("new"):
             anomalies.append("Authentication from new device")
             confidence *= 0.8
-        
+
         # Check network (simulated)
         if network and network.startswith("public"):
             anomalies.append("Authentication from public network")
             confidence *= 0.9
-        
+
         verified = confidence >= 0.7
-        
+
         verification = ContextualVerification(
             verification_id=verification_id,
             identity_id=identity_id,
@@ -788,7 +788,7 @@ class ContextualVerifier:
             confidence=confidence,
             anomalies=anomalies
         )
-        
+
         capped_append(self._verifications, verification)
         return verification
 
@@ -796,13 +796,13 @@ class ContextualVerifier:
 class IntentConfirmer:
     """
     Confirms user intent for high-risk operations.
-    
+
     Ensures user understands what they're authorizing.
     """
-    
+
     def __init__(self):
         self._confirmations: List[IntentConfirmation] = []
-    
+
     def request_confirmation(
         self,
         identity_id: str,
@@ -812,11 +812,11 @@ class IntentConfirmer:
     ) -> IntentConfirmation:
         """
         Request intent confirmation from user.
-        
+
         Returns confirmation object (confirmed=False initially).
         """
         confirmation_id = f"intent-{secrets.token_hex(8)}"
-        
+
         confirmation = IntentConfirmation(
             confirmation_id=confirmation_id,
             identity_id=identity_id,
@@ -827,10 +827,10 @@ class IntentConfirmer:
             confirmed=False,
             confirmation_method="pending"
         )
-        
+
         capped_append(self._confirmations, confirmation)
         return confirmation
-    
+
     def confirm_intent(
         self,
         confirmation_id: str,
@@ -839,7 +839,7 @@ class IntentConfirmer:
     ) -> bool:
         """
         Confirm user intent.
-        
+
         Optionally checks semantic match between operation and user understanding.
         """
         confirmation = None
@@ -847,10 +847,10 @@ class IntentConfirmer:
             if c.confirmation_id == confirmation_id:
                 confirmation = c
                 break
-        
+
         if not confirmation:
             return False
-        
+
         # Check semantic match if provided
         if user_understanding:
             semantic_match = self._compute_semantic_match(
@@ -859,31 +859,31 @@ class IntentConfirmer:
             )
             confirmation.semantic_match = semantic_match
             confirmation.user_understanding = user_understanding
-            
+
             # Require high semantic match for confirmation
             if semantic_match < 0.8:
                 return False
-        
+
         confirmation.confirmed = True
         confirmation.confirmation_method = confirmation_method
-        
+
         return True
-    
+
     def _compute_semantic_match(self, description: str, understanding: str) -> float:
         """
         Compute semantic match between description and user understanding.
-        
+
         In production: Use NLP/embedding similarity.
         """
         # Simulated semantic matching
         # In production: Use proper NLP models
         desc_words = set(description.lower().split())
         understand_words = set(understanding.lower().split())
-        
+
         if not desc_words or not understand_words:
             return 0.0
-        
+
         intersection = desc_words & understand_words
         union = desc_words | understand_words
-        
+
         return len(intersection) / (len(union) or 1) if union else 0.0

@@ -54,7 +54,7 @@ class LLMRequest:
     parameters: Dict[str, Any] = field(default_factory=dict)
     requires_validation: bool = False
     validation_type: Optional[str] = None  # math, physics, engineering
-    
+
     def to_dict(self) -> Dict:
         return {
             "request_id": self.request_id,
@@ -78,7 +78,7 @@ class LLMResponse:
     metadata: Dict[str, Any]
     validation: Optional[Dict[str, Any]] = None
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
-    
+
     def to_dict(self) -> Dict:
         return {
             "request_id": self.request_id,
@@ -103,7 +103,7 @@ class ValidationResult:
     disagreement_details: Optional[Dict[str, Any]] = None
     human_review_required: bool = False
     confidence: float = 0.0
-    
+
     def to_dict(self) -> Dict:
         return {
             "validation_id": self.validation_id,
@@ -129,7 +129,7 @@ class HumanLoopTrigger:
     context: Dict[str, Any]
     options: List[str] = field(default_factory=list)
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
-    
+
     def to_dict(self) -> Dict:
         return {
             "trigger_id": self.trigger_id,
@@ -148,37 +148,37 @@ class LLMIntegrationLayer:
     Master LLM integration layer coordinating Aristotle, Wulfrum, and Groq
     Routes requests based on domain type and provides validation
     """
-    
-    def __init__(self, aristotle_api_key: Optional[str] = None, 
+
+    def __init__(self, aristotle_api_key: Optional[str] = None,
                  wulfrum_api_key: Optional[str] = None,
                  groq_api_key: Optional[str] = None,
                  use_local_fallback: bool = True):
         self.request_count = 0
         self.validation_count = 0
         self.trigger_count = 0
-        
+
         # API keys (would be loaded from environment in production)
         self.aristotle_api_key = aristotle_api_key or os.getenv("ARISTOTLE_API_KEY")
         self.wulfrum_api_key = wulfrum_api_key or os.getenv("WULFRUM_API_KEY")
         self.groq_api_key = groq_api_key or os.getenv("GROQ_API_KEY")
-        
+
         # Groq API keys from environment (comma-separated list)
         env_keys = os.getenv("GROQ_API_KEYS", "")
         self.groq_api_keys = [k.strip() for k in env_keys.split(",") if k.strip()]
         if self.groq_api_key and self.groq_api_key not in self.groq_api_keys:
             self.groq_api_keys.insert(0, self.groq_api_key)
         self.current_groq_key_index = 0
-        
+
         # Domain routing configuration
         self.domain_routing = self._load_domain_routing()
-        
+
         # Validation triggers
         self.triggers: Dict[str, HumanLoopTrigger] = {}
-        
+
         # Request history
         self.request_history: List[LLMRequest] = []
         self.response_history: List[LLMResponse] = []
-        
+
         # Enhanced Local LLM Fallback
         self.use_local_fallback = use_local_fallback
         self.local_llm = None
@@ -190,7 +190,7 @@ class LLMIntegrationLayer:
             except ImportError as exc:
                 print(f"⚠️  Could not import Mock-Compatible Local LLM: {exc}")
                 self.use_local_fallback = False
-    
+
     def _load_domain_routing(self) -> Dict[DomainType, Dict[str, Any]]:
         """Load domain-specific routing configuration"""
         return {
@@ -238,7 +238,7 @@ class LLMIntegrationLayer:
                 "requires_validation": False
             }
         }
-    
+
     def route_request(
         self,
         prompt: str,
@@ -248,26 +248,26 @@ class LLMIntegrationLayer:
     ) -> LLMResponse:
         """
         Route request to appropriate LLM provider based on domain
-        
+
         Args:
             prompt: The prompt to send to LLM
             domain: Domain type for routing
             context: Additional context
             provider: Override provider if specified
-            
+
         Returns:
             LLMResponse object
         """
         self.request_count += 1
         request_id = f"req_{self.request_count}"
-        
+
         # Determine provider
         if provider == LLMProvider.AUTO or provider is None:
             provider = self._determine_provider(domain)
-        
+
         # Get domain configuration
         domain_config = self.domain_routing.get(domain, self.domain_routing[DomainType.GENERAL])
-        
+
         # Create request
         request = LLMRequest(
             request_id=request_id,
@@ -278,31 +278,31 @@ class LLMIntegrationLayer:
             requires_validation=domain_config.get("requires_validation", False),
             validation_type=domain_config.get("validation_type")
         )
-        
+
         self.request_history.append(request)
-        
+
         # Execute request
         response = self._execute_request(request)
         self.response_history.append(response)
-        
+
         # Validate if required
         if request.requires_validation:
             validation = self._validate_response(request, response)
             response.validation = validation.to_dict()
-            
+
             # Check for triggers
             if validation.status == ValidationStatus.DISAGREEMENT:
                 self._create_trigger(request, response, validation)
-        
+
         return response
-    
+
     def _determine_provider(self, domain: DomainType) -> LLMProvider:
         """Determine best provider for domain"""
         domain_config = self.domain_routing.get(domain)
         if domain_config:
             return domain_config.get("primary_provider", LLMProvider.GROQ)
         return LLMProvider.GROQ
-    
+
     def _execute_request(self, request: LLMRequest) -> LLMResponse:
         """Execute LLM request with fallback support"""
         try:
@@ -317,7 +317,7 @@ class LLMIntegrationLayer:
                 raise ValueError(f"Unknown provider: {request.provider}")
         except Exception as exc:
             print(f"⚠️  API call failed for {request.provider.value}: {exc}")
-            
+
             # Fallback to Groq if primary fails
             if request.provider != LLMProvider.GROQ:
                 try:
@@ -325,15 +325,15 @@ class LLMIntegrationLayer:
                     return self._call_groq(request)
                 except Exception as e2:
                     print(f"⚠️  Groq fallback also failed: {e2}")
-            
+
             # Final fallback to Enhanced Local LLM
             if self.use_local_fallback and self.local_llm:
                 print("🔄 Fallback to Enhanced Local LLM...")
                 return self._call_local_llm(request)
-            
+
             # All fallbacks failed
             raise Exception(f"All LLM providers failed. Last error: {exc}")
-    
+
     def _call_aristotle(self, request: LLMRequest) -> LLMResponse:
         """Call Aristotle API for deterministic/mathematical processing.
 
@@ -380,7 +380,7 @@ class LLMIntegrationLayer:
                 "source": "local",
             }
         )
-    
+
     def _call_wulfrum(self, request: LLMRequest) -> LLMResponse:
         """Call Wulfrum API for fuzzy match and math validation.
 
@@ -427,7 +427,7 @@ class LLMIntegrationLayer:
                 "source": "local",
             }
         )
-    
+
     def _call_groq(self, request: LLMRequest) -> LLMResponse:
         """Call Groq API for generative processing.
 
@@ -491,7 +491,7 @@ class LLMIntegrationLayer:
                 "source": "local",
             }
         )
-    
+
     def _local_aristotle_response(self, request: LLMRequest) -> str:
         """Local Aristotle deterministic engine (used when API is unavailable)."""
         if request.validation_type == "math":
@@ -500,7 +500,7 @@ class LLMIntegrationLayer:
             return "Aristotle deterministic analysis: Physics principles verified. Confidence: 0.95. Result: The calculation follows Newton's laws of motion."
         else:
             return "Aristotle deterministic analysis: Verified under domain standards. Confidence: 0.95."
-    
+
     def _local_wulfrum_response(self, request: LLMRequest) -> str:
         """Local Wulfrum fuzzy engine (used when API is unavailable)."""
         if request.validation_type == "math":
@@ -509,7 +509,7 @@ class LLMIntegrationLayer:
             return "Wulfrum fuzzy match: Physics validation complete. Match score: 0.92. Principles align with fuzzy tolerance."
         else:
             return "Wulfrum fuzzy match: Validation complete. Match score: 0.85. General agreement within tolerance."
-    
+
     def _local_groq_response(self, request: LLMRequest) -> str:
         """Local generative engine (used when Groq API is unavailable)."""
         domain_contexts = {
@@ -518,36 +518,36 @@ class LLMIntegrationLayer:
             DomainType.ARCHITECTURAL: "Architectural design generated with best practices.",
             DomainType.GENERAL: "General response generated based on context."
         }
-        
+
         base_response = domain_contexts.get(request.domain, "Response generated.")
-        
+
         if request.context:
             context_summary = ", ".join(f"{k}: {v}" for k, v in request.context.items() if isinstance(v, (str, int, float)))
             return f"{base_response} Context: {context_summary}"
-        
+
         return base_response
-    
+
     def _call_local_llm(self, request: LLMRequest) -> LLMResponse:
         """Call Enhanced Local LLM as final fallback"""
         if not self.local_llm:
             raise Exception("Enhanced Local LLM not available")
-        
+
         # Map LLMProvider to local LLM provider names
         provider_mapping = {
             LLMProvider.ARISTOTLE: "aristotle",
             LLMProvider.WULFRUM: "wulfrum",
             LLMProvider.GROQ: "groq"
         }
-        
+
         local_provider = provider_mapping.get(request.provider, "groq")
-        
+
         # Call the enhanced local LLM
         local_response = self.local_llm.query(
             prompt=request.prompt,
             provider=local_provider,
             temperature=0.7 if request.provider == LLMProvider.GROQ else 0.1
         )
-        
+
         # Convert local response to LLMResponse format
         return LLMResponse(
             request_id=request.request_id,
@@ -563,7 +563,7 @@ class LLMIntegrationLayer:
                 "local_metadata": local_response.get('metadata', {})
             }
         )
-    
+
     def _validate_response(
         self,
         request: LLMRequest,
@@ -571,21 +571,21 @@ class LLMIntegrationLayer:
     ) -> ValidationResult:
         """
         Validate response using multiple providers when required
-        
+
         Args:
             request: Original request
             response: Primary response
-            
+
         Returns:
             ValidationResult object
         """
         self.validation_count += 1
         validation_id = f"val_{self.validation_count}"
-        
+
         # Get domain config
         domain_config = self.domain_routing.get(request.domain, {})
         validation_provider = domain_config.get("validation_provider")
-        
+
         if not validation_provider:
             # No validation required
             return ValidationResult(
@@ -595,7 +595,7 @@ class LLMIntegrationLayer:
                 agreement=True,
                 confidence=response.confidence
             )
-        
+
         # Get validation from secondary provider
         if validation_provider == LLMProvider.WULFRUM:
             validation_response = self._call_wulfrum(request)
@@ -603,21 +603,21 @@ class LLMIntegrationLayer:
             validation_response = self._call_aristotle(request)
         else:
             validation_response = self._call_groq(request)
-        
+
         # Compare responses
         aristotle_result = response.response if request.provider == LLMProvider.ARISTOTLE else None
         wulfrum_result = validation_response.response if validation_provider == LLMProvider.WULFRUM else None
-        
+
         # Check for agreement (simplified)
         agreement = self._check_agreement(response.response, validation_response.response)
-        
+
         if agreement:
             status = ValidationStatus.VALIDATED
             human_review_required = False
         else:
             status = ValidationStatus.DISAGREEMENT
             human_review_required = True
-        
+
         return ValidationResult(
             validation_id=validation_id,
             request_id=request.request_id,
@@ -633,7 +633,7 @@ class LLMIntegrationLayer:
             human_review_required=human_review_required,
             confidence=(response.confidence + validation_response.confidence) / 2
         )
-    
+
     def _check_agreement(self, response1: str, response2: str) -> bool:
         """Check if two responses agree (simplified)"""
         # In production, this would use more sophisticated comparison
@@ -643,7 +643,7 @@ class LLMIntegrationLayer:
         if "error" in response1.lower() or "error" in response2.lower():
             return False
         return True
-    
+
     def _create_trigger(
         self,
         request: LLMRequest,
@@ -653,7 +653,7 @@ class LLMIntegrationLayer:
         """Create human-in-the-loop trigger"""
         self.trigger_count += 1
         trigger_id = f"trigger_{self.trigger_count}"
-        
+
         # Determine severity based on confidence
         if validation.confidence < 0.5:
             severity = "critical"
@@ -661,7 +661,7 @@ class LLMIntegrationLayer:
             severity = "high"
         else:
             severity = "medium"
-        
+
         trigger = HumanLoopTrigger(
             trigger_id=trigger_id,
             request_id=request.request_id,
@@ -676,13 +676,13 @@ class LLMIntegrationLayer:
             },
             options=["Accept Aristotle", "Accept Wulfrum", "Request Re-evaluation", "Manual Override"]
         )
-        
+
         self.triggers[trigger_id] = trigger
-    
+
     def get_pending_triggers(self) -> List[HumanLoopTrigger]:
         """Get all pending human-in-the-loop triggers"""
         return list(self.triggers.values())
-    
+
     def resolve_trigger(
         self,
         trigger_id: str,
@@ -690,11 +690,11 @@ class LLMIntegrationLayer:
     ) -> bool:
         """
         Resolve a human-in-the-loop trigger
-        
+
         Args:
             trigger_id: ID of trigger to resolve
             resolution: Resolution option chosen
-            
+
         Returns:
             True if resolved, False if not found
         """
@@ -702,7 +702,7 @@ class LLMIntegrationLayer:
             del self.triggers[trigger_id]
             return True
         return False
-    
+
     def generate_system_report(self) -> Dict[str, Any]:
         """Generate comprehensive system report"""
         # Count by provider
@@ -710,17 +710,17 @@ class LLMIntegrationLayer:
         for response in self.response_history:
             provider = response.provider.value
             by_provider[provider] = by_provider.get(provider, 0) + 1
-        
+
         # Count by domain
         by_domain = {}
         for request in self.request_history:
             domain = request.domain.value
             by_domain[domain] = by_domain.get(domain, 0) + 1
-        
+
         # Validation statistics
-        validations_pending = sum(1 for r in self.response_history 
+        validations_pending = sum(1 for r in self.response_history
                                  if r.validation and r.validation.get("human_review_required"))
-        
+
         return {
             "total_requests": self.request_count,
             "total_validations": self.validation_count,
@@ -735,7 +735,7 @@ class LLMIntegrationLayer:
 if __name__ == "__main__":
     # Test LLM integration layer
     llm_layer = LLMIntegrationLayer()
-    
+
     # Test 1: Mathematical domain (Aristotle + Wulfrum)
     print("=== Test 1: Mathematical Domain ===")
     response = llm_layer.route_request(
@@ -749,7 +749,7 @@ if __name__ == "__main__":
     if response.validation:
         print(f"Validation: {response.validation['status']}")
         print(f"Agreement: {response.validation['agreement']}")
-    
+
     # Test 2: Physics domain (Aristotle + Wulfrum)
     print("\n=== Test 2: Physics Domain ===")
     response = llm_layer.route_request(
@@ -759,7 +759,7 @@ if __name__ == "__main__":
     )
     print(f"Provider: {response.provider.value}")
     print(f"Response: {response.response}")
-    
+
     # Test 3: Creative domain (Groq)
     print("\n=== Test 3: Creative Domain ===")
     response = llm_layer.route_request(
@@ -769,7 +769,7 @@ if __name__ == "__main__":
     )
     print(f"Provider: {response.provider.value}")
     print(f"Response: {response.response}")
-    
+
     # Test 4: Architectural domain (Groq + Wulfrum)
     print("\n=== Test 4: Architectural Domain ===")
     response = llm_layer.route_request(
@@ -781,14 +781,14 @@ if __name__ == "__main__":
     print(f"Response: {response.response}")
     if response.validation:
         print(f"Validation: {response.validation['status']}")
-    
+
     # Test 5: Check triggers
     print("\n=== Test 5: Pending Triggers ===")
     triggers = llm_layer.get_pending_triggers()
     print(f"Pending triggers: {len(triggers)}")
     for trigger in triggers:
         print(f"  - {trigger.trigger_id}: {trigger.message}")
-    
+
     # Test 6: Generate report
     print("\n=== Test 6: System Report ===")
     report = llm_layer.generate_system_report()

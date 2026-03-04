@@ -45,7 +45,7 @@ class GateCondition:
     operator: str  # e.g., ">", "<", "==", "!=", "contains", "matches"
     expected_value: Any
     description: str
-    
+
     def to_dict(self) -> Dict:
         return {
             "condition_id": self.condition_id,
@@ -65,7 +65,7 @@ class GateAction:
     trigger: str  # "pass" or "fail"
     target: str  # what system or component to act on
     parameters: Dict[str, Any] = field(default_factory=dict)
-    
+
     def to_dict(self) -> Dict:
         return {
             "action_id": self.action_id,
@@ -93,7 +93,7 @@ class DomainGate:
     confidence_threshold: float = 0.85
     knowledge_references: List[str] = field(default_factory=list)  # Links to librarian
     metrics: Dict[str, Any] = field(default_factory=dict)
-    
+
     def to_dict(self) -> Dict:
         return {
             "gate_id": self.gate_id,
@@ -123,10 +123,10 @@ class LibrarianKnowledgeBase:
     Knowledge base integration with librarian system
     Provides best practices, regulatory standards, architectural requirements
     """
-    
+
     def __init__(self):
         self.knowledge_base = self._initialize_knowledge_base()
-    
+
     def _initialize_knowledge_base(self) -> Dict[str, Any]:
         """Initialize knowledge base with domain knowledge"""
         return {
@@ -192,7 +192,7 @@ class LibrarianKnowledgeBase:
                 ]
             }
         }
-    
+
     def get_knowledge(
         self,
         domain: str,
@@ -200,7 +200,7 @@ class LibrarianKnowledgeBase:
     ) -> List[Dict[str, str]]:
         """Get knowledge for a domain and category"""
         return self.knowledge_base.get(domain, {}).get(category, [])
-    
+
     def search_knowledge(
         self,
         query: str,
@@ -209,7 +209,7 @@ class LibrarianKnowledgeBase:
         """Search knowledge base for matching items"""
         results = []
         domains_to_search = [domain] if domain else self.knowledge_base.keys()
-        
+
         for d in domains_to_search:
             for category in ["best_practices", "regulatory_standards", "architectural_requirements"]:
                 for item in self.knowledge_base.get(d, {}).get(category, []):
@@ -219,20 +219,20 @@ class LibrarianKnowledgeBase:
                             "category": category,
                             **item
                         })
-        
+
         return results
-    
+
     def get_gate_templates(self, domain: str) -> List[Dict[str, Any]]:
         """Get gate templates for a domain"""
         templates = []
-        
+
         for category in ["best_practices", "regulatory_standards", "architectural_requirements"]:
             for item in self.knowledge_base.get(domain, {}).get(category, []):
                 template = self._create_gate_template(item, category)
                 templates.append(template)
-        
+
         return templates
-    
+
     def _create_gate_template(self, item: Dict, category: str) -> Dict[str, Any]:
         """Create a gate template from knowledge item"""
         gate_type_mapping = {
@@ -240,7 +240,7 @@ class LibrarianKnowledgeBase:
             "regulatory_standards": GateType.COMPLIANCE,
             "architectural_requirements": GateType.ARCHITECTURAL
         }
-        
+
         return {
             "name": item["name"],
             "description": item["description"],
@@ -255,12 +255,12 @@ class DomainGateGenerator:
     Generates domain-specific gates with wired functions
     Integrates with librarian system for knowledge reference
     """
-    
+
     def __init__(self):
         self.gate_count = 0
         self.librarian = LibrarianKnowledgeBase()
         self.function_registry = self._initialize_function_registry()
-    
+
     def _initialize_function_registry(self) -> Dict[str, Callable]:
         """Initialize registry of wired functions"""
         # In production, these would be actual function references
@@ -277,7 +277,7 @@ class DomainGateGenerator:
             "validate_availability": lambda data: self._mock_validate("availability", data),
             "validate_backup": lambda data: self._mock_validate("backup", data)
         }
-    
+
     def _mock_validate(self, validation_type: str, data: Dict) -> Dict[str, Any]:
         """Mock validation function (would be real implementations)"""
         return {
@@ -287,7 +287,7 @@ class DomainGateGenerator:
             "details": f"Mock validation for {validation_type}",
             "timestamp": datetime.now().isoformat()
         }
-    
+
     def generate_gate(
         self,
         name: str,
@@ -301,7 +301,7 @@ class DomainGateGenerator:
     ) -> DomainGate:
         """
         Generate a single domain gate
-        
+
         Args:
             name: Gate name
             description: Gate description
@@ -311,7 +311,7 @@ class DomainGateGenerator:
             wired_function: Name of wired function
             knowledge_references: Links to librarian knowledge
             risk_reduction: Risk reduction percentage (0.0 to 1.0)
-            
+
         Returns:
             DomainGate object
         """
@@ -319,20 +319,20 @@ class DomainGateGenerator:
             gate_type = GateType.SAFETY
         self.gate_count += 1
         gate_id = f"gate_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{self.gate_count}"
-        
+
         # Auto-generate conditions if not provided
         if conditions is None:
             conditions = self._generate_conditions(gate_type, name)
-        
+
         # Generate actions
         pass_actions = self._generate_pass_actions(gate_type)
         fail_actions = self._generate_fail_actions(gate_type, severity)
-        
+
         # Get function signature if wired
         function_signature = None
         if wired_function and wired_function in self.function_registry:
             function_signature = self._get_function_signature(wired_function)
-        
+
         # Create gate
         gate = DomainGate(
             gate_id=gate_id,
@@ -355,9 +355,9 @@ class DomainGateGenerator:
                 "last_check": None
             }
         )
-        
+
         return gate
-    
+
     def _generate_conditions(
         self,
         gate_type: GateType,
@@ -365,7 +365,7 @@ class DomainGateGenerator:
     ) -> List[GateCondition]:
         """Generate default conditions based on gate type"""
         conditions = []
-        
+
         if gate_type == GateType.VALIDATION:
             conditions.append(GateCondition(
                 condition_id=f"cond_{uuid.uuid4().hex[:8]}",
@@ -375,7 +375,7 @@ class DomainGateGenerator:
                 expected_value=0.8,
                 description="Validation score must meet threshold"
             ))
-        
+
         elif gate_type == GateType.COMPLIANCE:
             conditions.append(GateCondition(
                 condition_id=f"cond_{uuid.uuid4().hex[:8]}",
@@ -385,7 +385,7 @@ class DomainGateGenerator:
                 expected_value=True,
                 description="Compliance check must pass"
             ))
-        
+
         elif gate_type == GateType.PERFORMANCE:
             conditions.append(GateCondition(
                 condition_id=f"cond_{uuid.uuid4().hex[:8]}",
@@ -395,7 +395,7 @@ class DomainGateGenerator:
                 expected_value=500,
                 description="Response time must be under threshold"
             ))
-        
+
         elif gate_type == GateType.SECURITY:
             conditions.append(GateCondition(
                 condition_id=f"cond_{uuid.uuid4().hex[:8]}",
@@ -405,7 +405,7 @@ class DomainGateGenerator:
                 expected_value="pass",
                 description="Security scan must pass"
             ))
-        
+
         else:
             # Default condition
             conditions.append(GateCondition(
@@ -416,20 +416,20 @@ class DomainGateGenerator:
                 expected_value=0.7,
                 description="Must meet minimum threshold"
             ))
-        
+
         return conditions
-    
+
     def _generate_pass_actions(self, gate_type: GateType) -> List[GateAction]:
         """Generate actions for when gate passes"""
         actions = []
-        
+
         actions.append(GateAction(
             action_id=f"action_{uuid.uuid4().hex[:8]}",
             action_type="proceed",
             trigger="pass",
             target="next_step"
         ))
-        
+
         actions.append(GateAction(
             action_id=f"action_{uuid.uuid4().hex[:8]}",
             action_type="log",
@@ -437,9 +437,9 @@ class DomainGateGenerator:
             target="system",
             parameters={"level": "info", "message": f"{gate_type.value} gate passed"}
         ))
-        
+
         return actions
-    
+
     def _generate_fail_actions(
         self,
         gate_type: GateType,
@@ -447,7 +447,7 @@ class DomainGateGenerator:
     ) -> List[GateAction]:
         """Generate actions for when gate fails"""
         actions = []
-        
+
         # Always log failure
         actions.append(GateAction(
             action_id=f"action_{uuid.uuid4().hex[:8]}",
@@ -456,7 +456,7 @@ class DomainGateGenerator:
             target="system",
             parameters={"level": "warning", "message": f"{gate_type.value} gate failed"}
         ))
-        
+
         # Block for critical/high severity
         if severity in [GateSeverity.CRITICAL, GateSeverity.HIGH]:
             actions.append(GateAction(
@@ -475,9 +475,9 @@ class DomainGateGenerator:
                 target="supervisor",
                 parameters={"severity": severity.value}
             ))
-        
+
         return actions
-    
+
     def _get_function_signature(self, function_name: str) -> str:
         """Get function signature for wired function"""
         signatures = {
@@ -493,7 +493,7 @@ class DomainGateGenerator:
             "validate_backup": "validate_backup(backup_config: Dict) -> Dict[str, Any]"
         }
         return signatures.get(function_name, f"{function_name}(data: Any) -> Dict[str, Any]")
-    
+
     def generate_gates_for_domain(
         self,
         domain: str = "software",
@@ -512,7 +512,7 @@ class DomainGateGenerator:
     ) -> Tuple[List[DomainGate], Dict[str, Any]]:
         """
         Generate all gates for a system based on requirements
-        
+
         Args:
             system_requirements: System requirements dict including:
                 - domain: software/infrastructure/data
@@ -522,42 +522,42 @@ class DomainGateGenerator:
                 - architectural_requirements: list of architectural requirements
                 - security_focus: boolean
                 - performance_requirements: dict
-                
+
         Returns:
             Tuple of (gates_list, gate_analysis)
         """
         gates = []
-        
+
         domain = system_requirements.get("domain", "software")
         complexity = system_requirements.get("complexity", "medium")
-        
+
         # Get gate templates from librarian
         templates = self.librarian.get_gate_templates(domain)
-        
+
         # Generate gates from templates
         for template in templates:
             gate = self._create_gate_from_template(template, system_requirements)
             if gate:
                 gates.append(gate)
-        
+
         # Add domain-specific gates
         gates.extend(self._generate_domain_specific_gates(domain, system_requirements))
-        
+
         # Add complexity-based gates
         gates.extend(self._generate_complexity_gates(complexity, system_requirements))
-        
+
         # Add constraint-based gates
         if system_requirements.get("budget"):
             gates.append(self._generate_budget_gate(system_requirements["budget"]))
-        
+
         # Add security gates if focused
         if system_requirements.get("security_focus"):
             gates.extend(self._generate_security_gates(system_requirements))
-        
+
         # Add performance gates if required
         if system_requirements.get("performance_requirements"):
             gates.extend(self._generate_performance_gates(system_requirements))
-        
+
         # Generate gate analysis
         gate_analysis = {
             "total_gates": len(gates),
@@ -567,9 +567,9 @@ class DomainGateGenerator:
             "gates_with_wired_functions": sum(1 for g in gates if g.wired_function),
             "knowledge_coverage": self._calculate_knowledge_coverage(gates, system_requirements)
         }
-        
+
         return gates, gate_analysis
-    
+
     def _create_gate_from_template(
         self,
         template: Dict,
@@ -579,13 +579,13 @@ class DomainGateGenerator:
         # Check if this gate is relevant based on requirements
         if not self._is_gate_relevant(template, requirements):
             return None
-        
+
         # Determine severity
         severity = self._determine_gate_severity(template, requirements)
-        
+
         # Get wired function
         wired_function = self._get_wired_function_for_gate(template["name"])
-        
+
         # Create gate
         return self.generate_gate(
             name=template["name"],
@@ -596,7 +596,7 @@ class DomainGateGenerator:
             knowledge_references=[template["knowledge_reference"]],
             risk_reduction=0.5
         )
-    
+
     def _is_gate_relevant(self, template: Dict, requirements: Dict) -> bool:
         """Determine if a gate template is relevant to requirements"""
         # Check regulatory requirements
@@ -606,24 +606,24 @@ class DomainGateGenerator:
                 return False
             if template["name"].lower() not in [r.lower() for r in regulatory_reqs]:
                 return False
-        
+
         return True
-    
+
     def _determine_gate_severity(self, template: Dict, requirements: Dict) -> GateSeverity:
         """Determine severity of gate based on context"""
         # Regulatory gates are high severity
         if template["category"] == "regulatory_standards":
             return GateSeverity.HIGH
-        
+
         # Architectural gates for complex systems are high severity
         if template["category"] == "architectural_requirements":
             if requirements.get("complexity") in ["complex", "very_complex"]:
                 return GateSeverity.HIGH
             return GateSeverity.MEDIUM
-        
+
         # Default to medium
         return GateSeverity.MEDIUM
-    
+
     def _get_wired_function_for_gate(self, gate_name: str) -> Optional[str]:
         """Get wired function name for a gate"""
         function_mapping = {
@@ -637,13 +637,13 @@ class DomainGateGenerator:
             "availability": "validate_availability",
             "backup": "validate_backup"
         }
-        
+
         for key, func in function_mapping.items():
             if key in gate_name.lower():
                 return func
-        
+
         return None
-    
+
     def _generate_domain_specific_gates(
         self,
         domain: str,
@@ -651,7 +651,7 @@ class DomainGateGenerator:
     ) -> List[DomainGate]:
         """Generate domain-specific gates"""
         gates = []
-        
+
         if domain == "software":
             gates.append(self.generate_gate(
                 name="code_quality_gate",
@@ -661,7 +661,7 @@ class DomainGateGenerator:
                 wired_function="validate_code_review",
                 risk_reduction=0.7
             ))
-            
+
             gates.append(self.generate_gate(
                 name="dependency_vulnerability_gate",
                 description="Check for vulnerable dependencies",
@@ -670,7 +670,7 @@ class DomainGateGenerator:
                 wired_function="validate_security_scan",
                 risk_reduction=0.8
             ))
-        
+
         elif domain == "infrastructure":
             gates.append(self.generate_gate(
                 name="infrastructure_compliance_gate",
@@ -680,7 +680,7 @@ class DomainGateGenerator:
                 wired_function="validate_compliance_gdpr",
                 risk_reduction=0.75
             ))
-        
+
         elif domain == "data":
             gates.append(self.generate_gate(
                 name="data_quality_gate",
@@ -689,7 +689,7 @@ class DomainGateGenerator:
                 severity=GateSeverity.HIGH,
                 risk_reduction=0.7
             ))
-            
+
             gates.append(self.generate_gate(
                 name="data_privacy_gate",
                 description="Ensure data privacy requirements",
@@ -698,7 +698,7 @@ class DomainGateGenerator:
                 wired_function="validate_compliance_gdpr",
                 risk_reduction=0.85
             ))
-        
+
         elif domain == "sales":
             gates.append(self.generate_gate(
                 name="lead_data_validation_gate",
@@ -707,7 +707,7 @@ class DomainGateGenerator:
                 severity=GateSeverity.HIGH,
                 risk_reduction=0.6
             ))
-            
+
             gates.append(self.generate_gate(
                 name="can_spam_compliance_gate",
                 description="Ensure outreach emails comply with CAN-SPAM and GDPR",
@@ -715,7 +715,7 @@ class DomainGateGenerator:
                 severity=GateSeverity.CRITICAL,
                 risk_reduction=0.9
             ))
-            
+
             gates.append(self.generate_gate(
                 name="scoring_output_validation_gate",
                 description="Validate lead scores are within expected range (0-100)",
@@ -723,7 +723,7 @@ class DomainGateGenerator:
                 severity=GateSeverity.MEDIUM,
                 risk_reduction=0.5
             ))
-            
+
             gates.append(self.generate_gate(
                 name="proposal_authority_gate",
                 description="Verify proposer has authority for the recommended edition pricing",
@@ -731,9 +731,9 @@ class DomainGateGenerator:
                 severity=GateSeverity.HIGH,
                 risk_reduction=0.7
             ))
-        
+
         return gates
-    
+
     def _generate_complexity_gates(
         self,
         complexity: str,
@@ -741,7 +741,7 @@ class DomainGateGenerator:
     ) -> List[DomainGate]:
         """Generate gates based on system complexity"""
         gates = []
-        
+
         if complexity in ["complex", "very_complex"]:
             gates.append(self.generate_gate(
                 name="architecture_review_gate",
@@ -750,7 +750,7 @@ class DomainGateGenerator:
                 severity=GateSeverity.HIGH,
                 risk_reduction=0.6
             ))
-            
+
             gates.append(self.generate_gate(
                 name="integration_test_gate",
                 description="Comprehensive integration testing required",
@@ -758,7 +758,7 @@ class DomainGateGenerator:
                 severity=GateSeverity.MEDIUM,
                 risk_reduction=0.5
             ))
-        
+
         if complexity == "very_complex":
             gates.append(self.generate_gate(
                 name="expert_review_gate",
@@ -767,9 +767,9 @@ class DomainGateGenerator:
                 severity=GateSeverity.CRITICAL,
                 risk_reduction=0.7
             ))
-        
+
         return gates
-    
+
     def _generate_budget_gate(self, budget: float) -> DomainGate:
         """Generate budget constraint gate"""
         return self.generate_gate(
@@ -789,11 +789,11 @@ class DomainGateGenerator:
             ],
             risk_reduction=0.5
         )
-    
+
     def _generate_security_gates(self, requirements: Dict) -> List[DomainGate]:
         """Generate security-focused gates"""
         gates = []
-        
+
         gates.append(self.generate_gate(
             name="security_vulnerability_scan_gate",
             description="Security vulnerability scan must pass",
@@ -802,7 +802,7 @@ class DomainGateGenerator:
             wired_function="validate_security_scan",
             risk_reduction=0.9
         ))
-        
+
         gates.append(self.generate_gate(
             name="penetration_test_gate",
             description="Penetration testing required",
@@ -810,14 +810,14 @@ class DomainGateGenerator:
             severity=GateSeverity.HIGH,
             risk_reduction=0.8
         ))
-        
+
         return gates
-    
+
     def _generate_performance_gates(self, requirements: Dict) -> List[DomainGate]:
         """Generate performance requirement gates"""
         gates = []
         perf_reqs = requirements.get("performance_requirements", {})
-        
+
         if "response_time" in perf_reqs:
             gates.append(self.generate_gate(
                 name="response_time_gate",
@@ -837,9 +837,9 @@ class DomainGateGenerator:
                 ],
                 risk_reduction=0.7
             ))
-        
+
         return gates
-    
+
     def _count_gates_by_type(self, gates: List[DomainGate]) -> Dict[str, int]:
         """Count gates by type"""
         counts = {}
@@ -847,7 +847,7 @@ class DomainGateGenerator:
             gate_type = gate.gate_type.value
             counts[gate_type] = counts.get(gate_type, 0) + 1
         return counts
-    
+
     def _count_gates_by_severity(self, gates: List[DomainGate]) -> Dict[str, int]:
         """Count gates by severity"""
         counts = {}
@@ -855,7 +855,7 @@ class DomainGateGenerator:
             severity = gate.severity.value
             counts[severity] = counts.get(severity, 0) + 1
         return counts
-    
+
     def _calculate_knowledge_coverage(
         self,
         gates: List[DomainGate],
@@ -866,7 +866,7 @@ class DomainGateGenerator:
             "regulatory_requirements": [],
             "architectural_requirements": []
         }
-        
+
         regulatory_reqs = requirements.get("regulatory_requirements", [])
         for req in regulatory_reqs:
             covered = any(req.lower() in gate.name.lower() for gate in gates)
@@ -874,7 +874,7 @@ class DomainGateGenerator:
                 "requirement": req,
                 "covered": covered
             })
-        
+
         arch_reqs = requirements.get("architectural_requirements", [])
         for req in arch_reqs:
             covered = any(req.lower() in gate.name.lower() for gate in gates)
@@ -882,9 +882,9 @@ class DomainGateGenerator:
                 "requirement": req,
                 "covered": covered
             })
-        
+
         return coverage
-    
+
     def execute_gate(
         self,
         gate: DomainGate,
@@ -892,11 +892,11 @@ class DomainGateGenerator:
     ) -> Dict[str, Any]:
         """
         Execute a gate with provided data
-        
+
         Args:
             gate: DomainGate to execute
             data: Data to validate against gate
-            
+
         Returns:
             Execution result dict
         """
@@ -908,15 +908,15 @@ class DomainGateGenerator:
             "actions_taken": [],
             "timestamp": datetime.now().isoformat()
         }
-        
+
         # Check conditions
         for condition in gate.conditions:
             condition_result = self._check_condition(condition, data)
             result["conditions_results"].append(condition_result)
-            
+
             if not condition_result["passed"]:
                 result["passed"] = False
-        
+
         # Execute wired function if available
         if gate.wired_function and gate.wired_function in self.function_registry:
             try:
@@ -927,7 +927,7 @@ class DomainGateGenerator:
             except Exception as exc:
                 result["wired_function_error"] = str(exc)
                 result["passed"] = False
-        
+
         # Execute actions
         actions = gate.pass_actions if result["passed"] else gate.fail_actions
         for action in actions:
@@ -937,7 +937,7 @@ class DomainGateGenerator:
                 "target": action.target,
                 "executed": True
             })
-        
+
         # Update gate metrics
         gate.metrics["total_checks"] += 1
         if result["passed"]:
@@ -945,14 +945,14 @@ class DomainGateGenerator:
         else:
             gate.metrics["failed"] += 1
         gate.metrics["last_check"] = datetime.now().isoformat()
-        
+
         return result
 
 
 if __name__ == "__main__":
     # Test domain gate generation
     generator = DomainGateGenerator()
-    
+
     # Test 1: Generate single gate
     print("=== Test 1: Generate Single Gate ===")
     gate = generator.generate_gate(
@@ -964,7 +964,7 @@ if __name__ == "__main__":
         risk_reduction=0.7
     )
     print(json.dumps(gate.to_dict(), indent=2))
-    
+
     # Test 2: Generate gates for system
     print("\n=== Test 2: Generate Gates for System ===")
     requirements = {
@@ -976,14 +976,14 @@ if __name__ == "__main__":
         "budget": 10000,
         "performance_requirements": {"response_time": 200}
     }
-    
+
     gates, analysis = generator.generate_gates_for_system(requirements)
     print(f"Total Gates: {analysis['total_gates']}")
     print(f"By Type: {analysis['by_type']}")
     print(f"By Severity: {analysis['by_severity']}")
     print(f"Avg Risk Reduction: {analysis['average_risk_reduction']:.2%}")
     print(f"Gates with Wired Functions: {analysis['gates_with_wired_functions']}")
-    
+
     # Test 3: Execute gate
     print("\n=== Test 3: Execute Gate ===")
     result = generator.execute_gate(

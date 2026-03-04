@@ -14,7 +14,7 @@ import re
 class CapabilityExtractor:
     """
     Extract capabilities from SwissKiss analysis.
-    
+
     Uses:
     - README content analysis
     - Language detection
@@ -22,7 +22,7 @@ class CapabilityExtractor:
     - Risk patterns (what it accesses)
     - Requirements (what libraries it uses)
     """
-    
+
     def __init__(self):
         # Map common patterns to capabilities
         self.capability_patterns = {
@@ -30,45 +30,45 @@ class CapabilityExtractor:
             r'pandas|dataframe|csv': 'data_processing',
             r'numpy|scipy|math': 'numerical_computation',
             r'matplotlib|seaborn|plotly': 'data_visualization',
-            
+
             # Web/API
             r'requests|urllib|http': 'http_client',
             r'flask|django|fastapi': 'web_server',
             r'beautifulsoup|scrapy|selenium': 'web_scraping',
-            
+
             # Database
             r'sqlalchemy|psycopg|mysql': 'database_access',
             r'mongodb|redis|elasticsearch': 'nosql_database',
-            
+
             # File operations
             r'pathlib|os\.path|shutil': 'file_operations',
             r'json|yaml|toml|xml': 'data_serialization',
             r'pillow|opencv|imageio': 'image_processing',
-            
+
             # ML/AI
             r'tensorflow|pytorch|keras': 'deep_learning',
             r'sklearn|scikit': 'machine_learning',
             r'transformers|huggingface': 'nlp',
-            
+
             # Cloud/Infrastructure
             r'boto3|aws': 'aws_integration',
             r'google\.cloud|gcp': 'gcp_integration',
             r'azure': 'azure_integration',
-            
+
             # Communication
             r'smtp|email': 'email_sending',
             r'twilio|sms': 'sms_sending',
             r'slack|discord|telegram': 'chat_integration',
-            
+
             # Security
             r'cryptography|pycrypto': 'encryption',
             r'jwt|oauth': 'authentication',
-            
+
             # System
             r'subprocess|os\.system': 'system_execution',
             r'socket|paramiko': 'network_access',
         }
-        
+
         # Map capabilities to Murphy categories
         self.capability_to_category = {
             'data_processing': 'data-analysis',
@@ -96,7 +96,7 @@ class CapabilityExtractor:
             'system_execution': 'system-automation',
             'network_access': 'networking',
         }
-    
+
     def extract_from_swisskiss(
         self,
         module_yaml: Dict,
@@ -104,49 +104,49 @@ class CapabilityExtractor:
     ) -> List[str]:
         """
         Extract capabilities from SwissKiss analysis.
-        
+
         Args:
             module_yaml: The module.yaml from SwissKiss
             audit: The audit.json from SwissKiss
-        
+
         Returns:
             List of capability strings
         """
-        
+
         capabilities = set()
-        
+
         # Extract from description/summary
         summary = audit.get('summary', '') + ' ' + module_yaml.get('description', '')
         capabilities.update(self._extract_from_text(summary))
-        
+
         # Extract from languages
         languages = audit.get('languages', {})
         capabilities.update(self._extract_from_languages(languages))
-        
+
         # Extract from requirements
         requirements = audit.get('requirements', [])
         capabilities.update(self._extract_from_requirements(requirements))
-        
+
         # Extract from risk patterns (what it accesses)
         risk_scan = audit.get('risk_scan', {})
         capabilities.update(self._extract_from_risk_patterns(risk_scan))
-        
+
         # Add category as capability
         category = module_yaml.get('category', 'general')
         if category != 'general':
             capabilities.add(category.replace('-', '_'))
-        
+
         return sorted(list(capabilities))
-    
+
     def _extract_from_text(self, text: str) -> set:
         """Extract capabilities from text (README, description)"""
         capabilities = set()
         text_lower = text.lower()
-        
+
         for pattern, capability in self.capability_patterns.items():
             if re.search(pattern, text_lower):
                 capabilities.add(capability)
-        
+
         # Common keywords
         if 'api' in text_lower:
             capabilities.add('api_integration')
@@ -158,13 +158,13 @@ class CapabilityExtractor:
             capabilities.add('file_operations')
         if 'data' in text_lower:
             capabilities.add('data_processing')
-        
+
         return capabilities
-    
+
     def _extract_from_languages(self, languages: Dict[str, int]) -> set:
         """Extract capabilities from detected languages"""
         capabilities = set()
-        
+
         if 'Python' in languages:
             capabilities.add('python_scripting')
         if 'JavaScript' in languages or 'TypeScript' in languages:
@@ -175,35 +175,35 @@ class CapabilityExtractor:
             capabilities.add('go_execution')
         if 'Rust' in languages:
             capabilities.add('rust_execution')
-        
+
         return capabilities
-    
+
     def _extract_from_requirements(self, requirements: List[Dict]) -> set:
         """Extract capabilities from requirements files"""
         capabilities = set()
-        
+
         for req in requirements:
             filename = req.get('file', '')
-            
+
             if 'requirements.txt' in filename or 'pyproject.toml' in filename:
                 # Python dependencies - would need to read file content
                 # For now, just mark as having dependencies
                 capabilities.add('python_dependencies')
-            
+
             if 'package.json' in filename:
                 capabilities.add('npm_dependencies')
-        
+
         return capabilities
-    
+
     def _extract_from_risk_patterns(self, risk_scan: Dict) -> set:
         """Extract capabilities from risk patterns (what it accesses)"""
         capabilities = set()
-        
+
         issues = risk_scan.get('issues', [])
-        
+
         for issue in issues:
             pattern = issue.get('pattern', '')
-            
+
             if 'subprocess' in pattern or 'os.system' in pattern:
                 capabilities.add('system_execution')
             if 'requests' in pattern:
@@ -214,36 +214,36 @@ class CapabilityExtractor:
                 capabilities.add('ssh_access')
             if 'eval' in pattern or 'exec' in pattern:
                 capabilities.add('code_execution')
-        
+
         return capabilities
-    
+
     def suggest_category(self, capabilities: List[str]) -> str:
         """
         Suggest Murphy category based on capabilities.
-        
+
         Args:
             capabilities: List of extracted capabilities
-        
+
         Returns:
             Suggested category name
         """
-        
+
         # Count category votes
         category_votes = {}
-        
+
         for capability in capabilities:
             category = self.capability_to_category.get(capability, 'general')
             category_votes[category] = category_votes.get(category, 0) + 1
-        
+
         # Return most common category
         if category_votes:
             return max(category_votes.items(), key=lambda x: x[1])[0]
-        
+
         return 'general'
-    
+
     def generate_capability_description(self, capability: str) -> str:
         """Generate human-readable description for capability"""
-        
+
         descriptions = {
             'data_processing': 'Process and transform data',
             'numerical_computation': 'Perform numerical computations',
@@ -273,5 +273,5 @@ class CapabilityExtractor:
             'javascript_execution': 'Execute JavaScript code',
             'shell_scripting': 'Execute shell scripts',
         }
-        
+
         return descriptions.get(capability, f'Capability: {capability}')

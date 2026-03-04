@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class NeuroSymbolicAdapter:
     """
     Adapter for neuro-symbolic models integration.
-    
+
     Provides neural-symbolic reasoning capabilities including:
     - Neuro-symbolic inference engine
     - Logical constraint validation
@@ -23,11 +23,11 @@ class NeuroSymbolicAdapter:
     - Knowledge graph reasoning
     - Semantic reasoning with logical constraints
     """
-    
+
     def __init__(self, neuro_symbolic_models_module=None):
         """
         Initialize the neuro-symbolic adapter.
-        
+
         Args:
             neuro_symbolic_models_module: Optional neuro_symbolic_models module instance
         """
@@ -35,7 +35,7 @@ class NeuroSymbolicAdapter:
         self.enabled = neuro_symbolic_models_module is not None
         self.inference_history: List[Dict] = []
         self.reasoning_cache: Dict[str, Dict] = {}
-        
+
         # Reasoning modes
         self.reasoning_modes = [
             "neural_only",          # Pure neural reasoning
@@ -44,7 +44,7 @@ class NeuroSymbolicAdapter:
             "sequential",          # Neural first, then symbolic validation
             "parallel"             # Neural and symbolic in parallel
         ]
-        
+
         # Constraint types
         self.constraint_types = [
             "logical",             # Logical constraints (AND, OR, NOT)
@@ -53,16 +53,16 @@ class NeuroSymbolicAdapter:
             "semantic",            # Semantic constraints (meaning-based)
             "domain_specific"      # Domain-specific constraints
         ]
-        
+
         if self.enabled:
             logger.info("Neuro-Symbolic Adapter initialized with neuro_symbolic_models module")
         else:
             logger.warning("Neuro-Symbolic Adapter running in FALLBACK mode - neuro_symbolic_models module not available")
-    
+
     def is_enabled(self) -> bool:
         """Check if neuro-symbolic models are enabled"""
         return self.enabled
-    
+
     def perform_inference(
         self,
         query: str,
@@ -74,14 +74,14 @@ class NeuroSymbolicAdapter:
     ) -> Dict:
         """
         Perform neuro-symbolic inference on a query.
-        
+
         Args:
             query: The query to perform inference on
             context: Optional context information
             reasoning_mode: The reasoning mode to use (neural_only, symbolic_only, hybrid, sequential, parallel)
             constraints: Optional list of constraints to apply
             mode: Alias for reasoning_mode (convenience)
-            
+
         Returns:
             Dict containing inference results with structure:
                 {
@@ -95,7 +95,7 @@ class NeuroSymbolicAdapter:
                 }
         """
         timestamp = datetime.now(timezone.utc).isoformat()
-        
+
         # Handle mode alias
         if mode is not None:
             reasoning_mode = mode
@@ -104,11 +104,11 @@ class NeuroSymbolicAdapter:
         if reasoning_mode not in self.reasoning_modes:
             logger.warning(f"Invalid reasoning mode '{reasoning_mode}', using 'hybrid'")
             reasoning_mode = "hybrid"
-        
+
         # Validate constraints
         if constraints is None:
             constraints = []
-        
+
         try:
             if not self.enabled:
                 # Fallback: Simulate inference
@@ -116,15 +116,15 @@ class NeuroSymbolicAdapter:
             else:
                 # Use actual neuro_symbolic_models module
                 result = self._actual_inference(query, context, reasoning_mode, constraints)
-            
+
             # Add metadata
             result['timestamp'] = timestamp
             result['reasoning_mode'] = reasoning_mode
-            
+
             # Cache result
             cache_key = f"{query}_{reasoning_mode}"
             self.reasoning_cache[cache_key] = result
-            
+
             # Add to history
             self.inference_history.append({
                 'query': query,
@@ -133,9 +133,9 @@ class NeuroSymbolicAdapter:
                 'success': result['success'],
                 'confidence': result.get('confidence', 0.0)
             })
-            
+
             return result
-            
+
         except Exception as exc:
             logger.error(f"Error in perform_inference: {exc}")
             return {
@@ -148,7 +148,7 @@ class NeuroSymbolicAdapter:
                 'reasoning_mode': reasoning_mode,
                 'timestamp': timestamp
             }
-    
+
     def validate_constraints(
         self,
         statement: str = None,
@@ -157,12 +157,12 @@ class NeuroSymbolicAdapter:
     ) -> Dict:
         """
         Validate logical constraints against a statement.
-        
+
         Args:
             statement: The statement to validate (or constraints list if called with single arg)
             constraints: List of constraints to validate
             context: Optional context information
-            
+
         Returns:
             Dict containing validation results with structure:
                 {
@@ -192,9 +192,9 @@ class NeuroSymbolicAdapter:
             else:
                 # Use actual neuro_symbolic_models module
                 result = self._actual_constraint_validation(statement, constraints, context)
-            
+
             return result
-            
+
         except Exception as exc:
             logger.error(f"Error in validate_constraints: {exc}")
             return {
@@ -205,7 +205,7 @@ class NeuroSymbolicAdapter:
                 'warnings': [],
                 'overall_confidence': 0.0
             }
-    
+
     def perform_hybrid_reasoning(
         self,
         problem: str,
@@ -215,13 +215,13 @@ class NeuroSymbolicAdapter:
     ) -> Dict:
         """
         Perform hybrid reasoning combining neural and symbolic approaches.
-        
+
         Args:
             problem: The problem to reason about
             neural_input: Optional neural network input
             symbolic_constraints: Optional symbolic constraints
             context: Optional context information
-            
+
         Returns:
             Dict containing hybrid reasoning results with structure:
                 {
@@ -241,9 +241,9 @@ class NeuroSymbolicAdapter:
             else:
                 # Use actual neuro_symbolic_models module
                 result = self._actual_hybrid_reasoning(problem, neural_input, symbolic_constraints, context)
-            
+
             return result
-            
+
         except Exception as exc:
             logger.error(f"Error in perform_hybrid_reasoning: {exc}")
             return {
@@ -256,7 +256,7 @@ class NeuroSymbolicAdapter:
                 'confidence': 0.0,
                 'reasoning_steps': []
             }
-    
+
     def create_knowledge_graph(
         self,
         entities: List[Dict],
@@ -265,12 +265,12 @@ class NeuroSymbolicAdapter:
     ) -> Dict:
         """
         Create a knowledge graph from entities and relationships.
-        
+
         Args:
             entities: List of entities (each with 'id', 'type', 'attributes')
             relationships: List of relationships (each with 'source', 'target', 'type')
             constraints: Optional constraints to apply
-            
+
         Returns:
             Dict containing knowledge graph with structure:
                 {
@@ -289,9 +289,9 @@ class NeuroSymbolicAdapter:
             else:
                 # Use actual neuro_symbolic_models module
                 result = self._actual_knowledge_graph(entities, relationships, constraints)
-            
+
             return result
-            
+
         except Exception as exc:
             logger.error(f"Error in create_knowledge_graph: {exc}")
             return {
@@ -303,11 +303,11 @@ class NeuroSymbolicAdapter:
                 'statistics': {},
                 'validation_results': {}
             }
-    
+
     def get_reasoning_statistics(self) -> Dict:
         """
         Get statistics about neuro-symbolic reasoning operations.
-        
+
         Returns:
             Dict containing statistics with structure:
                 {
@@ -325,22 +325,22 @@ class NeuroSymbolicAdapter:
             total_inferences = len(self.inference_history)
             successful_inferences = sum(1 for h in self.inference_history if h['success'])
             failed_inferences = total_inferences - successful_inferences
-            
+
             if total_inferences > 0:
                 average_confidence = sum(h.get('confidence', 0) for h in self.inference_history) / total_inferences
             else:
                 average_confidence = 0.0
-            
+
             # Reasoning mode distribution
             mode_distribution = {}
             for h in self.inference_history:
                 mode = h.get('reasoning_mode', 'unknown')
                 mode_distribution[mode] = mode_distribution.get(mode, 0) + 1
-            
+
             # Cache statistics
             cache_hits = len(self.reasoning_cache)
             cache_misses = total_inferences - cache_hits
-            
+
             return {
                 'total_inferences': total_inferences,
                 'successful_inferences': successful_inferences,
@@ -352,7 +352,7 @@ class NeuroSymbolicAdapter:
                 'cache_misses': cache_misses,
                 'enabled': self.enabled
             }
-            
+
         except Exception as exc:
             logger.error(f"Error in get_reasoning_statistics: {exc}")
             return {
@@ -367,14 +367,14 @@ class NeuroSymbolicAdapter:
                 'enabled': self.enabled,
                 'error': str(exc)
             }
-    
+
     def get_inference_history(self, limit: int = 20) -> List[Dict]:
         """
         Get recent inference history.
-        
+
         Args:
             limit: Maximum number of history items to return
-            
+
         Returns:
             List of inference history items
         """
@@ -383,11 +383,11 @@ class NeuroSymbolicAdapter:
         except Exception as exc:
             logger.error(f"Error in get_inference_history: {exc}")
             return []
-    
+
     def clear_cache(self) -> Dict:
         """
         Clear the reasoning cache.
-        
+
         Returns:
             Dict with status
         """
@@ -397,9 +397,9 @@ class NeuroSymbolicAdapter:
             'message': 'Reasoning cache cleared',
             'cleared_entries': len(self.inference_history)
         }
-    
+
     # ========== Fallback Methods ==========
-    
+
     def _fallback_inference(
         self,
         query: str,
@@ -410,7 +410,7 @@ class NeuroSymbolicAdapter:
         """Fallback inference simulation when neuro_symbolic_models is not available"""
         # Simulate inference with simple keyword matching
         query_lower = query.lower()
-        
+
         # Simulate reasoning trace
         reasoning_trace = [
             {'step': 1, 'action': 'parse_query', 'result': 'Query parsed successfully'},
@@ -418,17 +418,17 @@ class NeuroSymbolicAdapter:
             {'step': 3, 'action': 'evaluate_constraints', 'result': f'Applied {len(constraints)} constraints'},
             {'step': 4, 'action': 'generate_inference', 'result': 'Inference generated'}
         ]
-        
+
         # Simple confidence calculation based on query length
         confidence = min(0.9, max(0.5, 0.5 + (len(query) / 1000)))
-        
+
         # Generate simple inference result
         inference_result = {
             'answer': f"Inference result for: {query}",
             'reasoning': f"Processed using {reasoning_mode} reasoning mode",
             'constraints_applied': len(constraints)
         }
-        
+
         return {
             'success': True,
             'inference_result': inference_result,
@@ -437,7 +437,7 @@ class NeuroSymbolicAdapter:
             'constraint_violations': [],
             'fallback_mode': True
         }
-    
+
     def _fallback_constraint_validation(
         self,
         statement: str,
@@ -448,7 +448,7 @@ class NeuroSymbolicAdapter:
         # Simulate validation results
         constraint_results = []
         violations = []
-        
+
         for i, constraint in enumerate(constraints):
             constraint_type = constraint.get('type', 'unknown')
             result = {
@@ -458,7 +458,7 @@ class NeuroSymbolicAdapter:
                 'message': f"Constraint {constraint_type} validated successfully"
             }
             constraint_results.append(result)
-        
+
         return {
             'valid': len(violations) == 0,
             'constraint_results': constraint_results,
@@ -467,7 +467,7 @@ class NeuroSymbolicAdapter:
             'overall_confidence': 0.8,
             'fallback_mode': True
         }
-    
+
     def _fallback_hybrid_reasoning(
         self,
         problem: str,
@@ -482,14 +482,14 @@ class NeuroSymbolicAdapter:
             'confidence': 0.75,
             'output': f"Neural processing for: {problem}"
         }
-        
+
         # Simulate symbolic result
         symbolic_result = {
             'type': 'symbolic',
             'confidence': 0.85,
             'output': f"Symbolic processing with {len(symbolic_constraints or [])} constraints"
         }
-        
+
         # Simulate integrated result
         integrated_result = {
             'type': 'hybrid',
@@ -498,7 +498,7 @@ class NeuroSymbolicAdapter:
             'neural_contribution': 0.4,
             'symbolic_contribution': 0.6
         }
-        
+
         return {
             'success': True,
             'neural_result': neural_result,
@@ -513,7 +513,7 @@ class NeuroSymbolicAdapter:
             ],
             'fallback_mode': True
         }
-    
+
     def _fallback_knowledge_graph(
         self,
         entities: List[Dict],
@@ -528,17 +528,17 @@ class NeuroSymbolicAdapter:
             'entity_types': {},
             'relationship_types': {}
         }
-        
+
         # Count entity types
         for entity in entities:
             entity_type = entity.get('type', 'unknown')
             statistics['entity_types'][entity_type] = statistics['entity_types'].get(entity_type, 0) + 1
-        
+
         # Count relationship types
         for rel in relationships:
             rel_type = rel.get('type', 'unknown')
             statistics['relationship_types'][rel_type] = statistics['relationship_types'].get(rel_type, 0) + 1
-        
+
         return {
             'success': True,
             'graph': {
@@ -554,23 +554,23 @@ class NeuroSymbolicAdapter:
             },
             'fallback_mode': True
         }
-    
+
     # ========== Actual Methods (when neuro_symbolic_models is available) ==========
-    
+
     def _actual_inference(self, query, context, reasoning_mode, constraints):
         """Actual inference using neuro_symbolic_models module"""
         # This would call the actual neuro_symbolic_models module
         # For now, return fallback result
         return self._fallback_inference(query, context, reasoning_mode, constraints)
-    
+
     def _actual_constraint_validation(self, statement, constraints, context):
         """Actual constraint validation using neuro_symbolic_models module"""
         return self._fallback_constraint_validation(statement, constraints, context)
-    
+
     def _actual_hybrid_reasoning(self, problem, neural_input, symbolic_constraints, context):
         """Actual hybrid reasoning using neuro_symbolic_models module"""
         return self._fallback_hybrid_reasoning(problem, neural_input, symbolic_constraints, context)
-    
+
     def _actual_knowledge_graph(self, entities, relationships, constraints):
         """Actual knowledge graph creation using neuro_symbolic_models module"""
         return self._fallback_knowledge_graph(entities, relationships, constraints)

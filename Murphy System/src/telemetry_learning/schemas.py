@@ -129,7 +129,7 @@ TELEMETRY_ARTIFACT_SCHEMA: Dict[str, Any] = {
 GATE_EVOLUTION_SCHEMA: Dict[str, Any] = {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
-    "required": ["evolution_id", "gate_id", "reason_codes", "telemetry_evidence", 
+    "required": ["evolution_id", "gate_id", "reason_codes", "telemetry_evidence",
                  "parameter_diff", "rollback_state", "authorized", "timestamp"],
     "properties": {
         "evolution_id": {"type": "string"},

@@ -121,48 +121,48 @@ class Correction(BaseModel):
     correction_type: CorrectionType
     severity: CorrectionSeverity
     status: CorrectionStatus = CorrectionStatus.PENDING
-    
+
     # Context
     context: CorrectionContext
-    
+
     # Changes
     diffs: List[CorrectionDiff]
-    
+
     # Explanation
     explanation: str
     reasoning: str
     alternative_approaches: List[str] = Field(default_factory=list)
-    
+
     # Metrics
     metrics: CorrectionMetrics
-    
+
     # Learning
     learning_signals: List[LearningSignal] = Field(default_factory=list)
-    
+
     # Validation
     validated_by: Optional[str] = None
     validated_at: Optional[datetime] = None
     validation_notes: Optional[str] = None
-    
+
     # Timestamps
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     applied_at: Optional[datetime] = None
-    
+
     # Metadata
     tags: List[str] = Field(default_factory=list)
     related_corrections: List[str] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
-    
+
     def calculate_impact_score(self) -> float:
         """Calculate overall impact score of the correction."""
         if not self.diffs:
             return 0.0
-        
+
         # Weighted average of diff impact scores
         total_impact = sum(diff.impact_score for diff in self.diffs)
         avg_impact = total_impact / (len(self.diffs) or 1)
-        
+
         # Adjust by severity
         severity_weights = {
             CorrectionSeverity.CRITICAL: 1.0,
@@ -171,18 +171,18 @@ class Correction(BaseModel):
             CorrectionSeverity.LOW: 0.4,
             CorrectionSeverity.COSMETIC: 0.2
         }
-        
+
         severity_weight = severity_weights.get(self.severity, 0.5)
         return avg_impact * severity_weight
-    
+
     def get_affected_fields(self) -> List[str]:
         """Get list of fields that were corrected."""
         return [diff.field_name for diff in self.diffs]
-    
+
     def is_validated(self) -> bool:
         """Check if correction has been validated."""
         return self.status == CorrectionStatus.VALIDATED
-    
+
     def is_applied(self) -> bool:
         """Check if correction has been applied."""
         return self.status == CorrectionStatus.APPLIED
@@ -213,20 +213,20 @@ class CorrectionTemplate(BaseModel):
     description: str
     correction_type: CorrectionType
     default_severity: CorrectionSeverity
-    
+
     # Template fields
     field_templates: List[Dict[str, Any]] = Field(default_factory=list)
     reasoning_template: str
     tags: List[str] = Field(default_factory=list)
-    
+
     # Usage stats
     usage_count: int = 0
     last_used: Optional[datetime] = None
-    
+
     def apply_template(self, context: CorrectionContext, values: Dict[str, Any]) -> Correction:
         """Apply template to create a new correction."""
         diffs = []
-        
+
         for field_template in self.field_templates:
             field_name = field_template["field_name"]
             if field_name in values:
@@ -247,7 +247,7 @@ class CorrectionTemplate(BaseModel):
                     description=field_template.get("description", "")
                 )
                 diffs.append(diff)
-        
+
         correction = Correction(
             correction_type=self.correction_type,
             severity=self.default_severity,
@@ -261,11 +261,11 @@ class CorrectionTemplate(BaseModel):
             ),
             tags=self.tags
         )
-        
+
         # Update usage stats
         self.usage_count += 1
         self.last_used = datetime.now(timezone.utc)
-        
+
         return correction
 
 
@@ -368,7 +368,7 @@ def create_simple_correction(
 ) -> Correction:
     """
     Helper function to create a simple correction quickly.
-    
+
     Args:
         task_id: ID of the task being corrected
         field_name: Name of the field being corrected
@@ -377,7 +377,7 @@ def create_simple_correction(
         reasoning: Explanation for the correction
         correction_type: Type of correction
         severity: Severity level
-        
+
     Returns:
         Correction object
     """
@@ -386,7 +386,7 @@ def create_simple_correction(
         phase="execution",
         operation="output_generation"
     )
-    
+
     diff = CorrectionDiff(
         field_name=field_name,
         original=OriginalValue(
@@ -403,7 +403,7 @@ def create_simple_correction(
         impact_score=0.5,
         description=f"Corrected {field_name}"
     )
-    
+
     return Correction(
         correction_type=correction_type,
         severity=severity,
@@ -421,35 +421,35 @@ def create_simple_correction(
 def merge_corrections(corrections: List[Correction]) -> Correction:
     """
     Merge multiple corrections into a single correction.
-    
+
     Args:
         corrections: List of corrections to merge
-        
+
     Returns:
         Merged correction
     """
     if not corrections:
         raise ValueError("Cannot merge empty list of corrections")
-    
+
     if len(corrections) == 1:
         return corrections[0]
-    
+
     # Use first correction as base
     base = corrections[0]
-    
+
     # Merge diffs
     all_diffs = []
     for correction in corrections:
         all_diffs.extend(correction.diffs)
-    
+
     # Merge learning signals
     all_signals = []
     for correction in corrections:
         all_signals.extend(correction.learning_signals)
-    
+
     # Merge tags
     all_tags = list(set(tag for correction in corrections for tag in correction.tags))
-    
+
     # Create merged correction
     merged = Correction(
         correction_type=base.correction_type,
@@ -466,5 +466,5 @@ def merge_corrections(corrections: List[Correction]) -> Correction:
         tags=all_tags,
         related_corrections=[c.id for c in corrections]
     )
-    
+
     return merged

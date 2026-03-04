@@ -39,11 +39,11 @@ class Hypothesis:
     unknowns: list[str]
     intent: str
     parameters: dict
-    
+
     def is_confident(self, threshold: float = 0.80) -> bool:
         """Check if confidence exceeds threshold"""
         return self.confidence >= threshold
-    
+
     def has_unknowns(self) -> bool:
         """Check if there are unresolved unknowns"""
         return len(self.unknowns) > 0
@@ -61,7 +61,7 @@ class VerifiedFacts:
     verified: bool
     verification_method: str
     timestamp: str
-    
+
     def is_valid(self) -> bool:
         """Check if facts are verified and non-empty"""
         return self.verified and bool(self.facts)
@@ -77,7 +77,7 @@ class SystemResponse:
     facts: Optional[VerifiedFacts]
     confidence: float
     reasoning: str
-    
+
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization"""
         return {

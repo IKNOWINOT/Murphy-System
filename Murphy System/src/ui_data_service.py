@@ -59,16 +59,16 @@ class UIDataService:
     Central service for UI data
     Both System and Human interfaces consume from here
     """
-    
+
     def __init__(self, mfgc_system):
         self.system = mfgc_system
         self.event_log = []
         self.max_events = 1000
-        
+
     def get_system_state_snapshot(self) -> Dict[str, Any]:
         """Get current system state for UI"""
         state = self.system.get_system_state()
-        
+
         snapshot = SystemStateSnapshot(
             timestamp=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             phase=state.get('band', 'conversational').upper(),
@@ -79,14 +79,14 @@ class UIDataService:
             swarm_count=0,  # Will be populated from actual swarm system
             execution_allowed=state.get('confidence', 0.5) >= 0.88
         )
-        
+
         return asdict(snapshot)
-    
+
     def get_phase_fsm(self) -> Dict[str, Any]:
         """Get phase FSM state"""
         state = self.system.get_system_state()
         confidence = state.get('confidence', 0.5)
-        
+
         return {
             "fsm": {
                 "Expand": {"allowed": confidence < 0.3},
@@ -106,11 +106,11 @@ class UIDataService:
             },
             "current_phase": self._get_phase_name(confidence)
         }
-    
+
     def get_gate_graph(self) -> Dict[str, Any]:
         """Get gate graph for visualization"""
         gates = self.system.get_active_gates()
-        
+
         nodes = []
         for i, gate in enumerate(gates):
             nodes.append(asdict(GateNode(
@@ -122,7 +122,7 @@ class UIDataService:
                 risk_reduction=0.05,
                 satisfied=False
             )))
-        
+
         # Simple linear graph for now
         edges = []
         for i in range(len(nodes) - 1):
@@ -131,21 +131,21 @@ class UIDataService:
                 "to": nodes[i+1]['gate_id'],
                 "blocked_by": []
             })
-        
+
         return {
             "nodes": nodes,
             "edges": edges
         }
-    
+
     def get_confidence_breakdown(self) -> Dict[str, Any]:
         """Get detailed confidence breakdown"""
         state = self.system.get_system_state()
         confidence = state.get('confidence', 0.5)
-        
+
         # Estimate components
         generative = min(confidence + 0.1, 1.0)
         deterministic = max(confidence - 0.1, 0.0)
-        
+
         breakdown = ConfidenceBreakdown(
             confidence=confidence,
             generative_adequacy=generative,
@@ -157,14 +157,14 @@ class UIDataService:
                 {"source": "verification_pending", "delta": -0.02}
             ]
         )
-        
+
         return asdict(breakdown)
-    
+
     def get_execution_packet_status(self) -> Dict[str, Any]:
         """Get execution packet status"""
         state = self.system.get_system_state()
         confidence = state.get('confidence', 0.5)
-        
+
         if confidence >= 0.88:
             status = {
                 "packet_compiled": True,
@@ -181,9 +181,9 @@ class UIDataService:
                 "packet_compiled": False,
                 "last_packet": None
             }
-        
+
         return status
-    
+
     def get_swarm_activity(self) -> Dict[str, Any]:
         """Get aggregated swarm activity"""
         return {
@@ -193,7 +193,7 @@ class UIDataService:
             "gate_proposals_per_min": 0,
             "dominant_risk": "none"
         }
-    
+
     def add_event(self, event_type: str, data: Dict[str, Any]):
         """Add event to log"""
         event = {
@@ -201,17 +201,17 @@ class UIDataService:
             "type": event_type,
             "data": data
         }
-        
+
         self.event_log.append(event)
-        
+
         # Keep only recent events
         if len(self.event_log) > self.max_events:
             self.event_log = self.event_log[-self.max_events:]
-    
+
     def get_recent_events(self, limit: int = 50) -> List[Dict[str, Any]]:
         """Get recent events"""
         return self.event_log[-limit:]
-    
+
     def _get_authority_band(self, confidence: float) -> str:
         """Determine authority band from confidence"""
         if confidence < 0.3:
@@ -222,16 +222,16 @@ class UIDataService:
             return "CONSTRAIN"
         else:
             return "EXECUTE"
-    
+
     def _calculate_murphy_index(self, state: Dict[str, Any]) -> float:
         """Calculate Murphy index (risk indicator)"""
         confidence = state.get('confidence', 0.5)
         gates = state.get('gates_count', 0)
-        
+
         # Simple formula: lower confidence + more gates = higher Murphy index
         murphy = (1.0 - confidence) * 0.7 + (gates / 20.0) * 0.3
         return min(murphy, 1.0)
-    
+
     def _get_phase_name(self, confidence: float) -> str:
         """Get phase name from confidence"""
         if confidence < 0.3:

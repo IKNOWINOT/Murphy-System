@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 class CompilationGate:
     """
     Multi-criteria gate for ExecutionPacket compilation.
-    
+
     Checks:
     1. Confidence >= threshold
     2. Contradictions <= max
@@ -38,7 +38,7 @@ class CompilationGate:
     4. All verification requirements met
     5. Authority level sufficient
     """
-    
+
     def __init__(
         self,
         confidence_threshold: float = 0.7,
@@ -49,7 +49,7 @@ class CompilationGate:
         self.max_contradictions = max_contradictions
         self.min_authority = min_authority
         self.authority_levels = ["none", "low", "medium", "high"]
-    
+
     def check(
         self,
         confidence: float,
@@ -63,52 +63,52 @@ class CompilationGate:
     ) -> Tuple[bool, List[BlockingReason]]:
         """
         Check if all compilation criteria are met.
-        
+
         Returns (can_compile, blocking_reasons).
         """
         blocking_reasons = []
-        
+
         # Check confidence
         if confidence < self.confidence_threshold:
             blocking_reasons.append(BlockingReason.CONFIDENCE_TOO_LOW)
-        
+
         # Check contradictions
         if contradictions > self.max_contradictions:
             blocking_reasons.append(BlockingReason.CONTRADICTIONS_TOO_HIGH)
-        
+
         # Check authority
         if self.authority_levels.index(authority_level) < self.authority_levels.index(self.min_authority):
             blocking_reasons.append(BlockingReason.AUTHORITY_INSUFFICIENT)
-        
+
         # Check gates
         gates_blocking = set(gates_required) - set(gates_satisfied)
         if gates_blocking:
             blocking_reasons.append(BlockingReason.GATES_NOT_SATISFIED)
-        
+
         # Check verifications
         verifications_pending = set(verifications_required) - set(verifications_complete)
         if verifications_pending:
             blocking_reasons.append(BlockingReason.VERIFICATION_INCOMPLETE)
-        
+
         # Check risk flags
         if risk_flags:
             blocking_reasons.append(BlockingReason.RISK_FLAGS_PRESENT)
-        
+
         can_compile = len(blocking_reasons) == 0
-        
+
         return can_compile, blocking_reasons
 
 
 class ExecutionPacketCompiler:
     """
     System B ExecutionPacket compiler.
-    
+
     Compiles ExecutionPackets from verified hypotheses ONLY when
     all safety criteria are met.
-    
+
     CRITICAL: This is the ONLY way to create ExecutionPackets.
     """
-    
+
     def __init__(self):
         self.compilation_gate = CompilationGate()
         self.compilation_log: List[CompilationResult] = []
@@ -117,7 +117,7 @@ class ExecutionPacketCompiler:
             "compilations_successful": 0,
             "compilations_blocked": 0,
         }
-    
+
     def attempt_compilation(
         self,
         hypothesis: HypothesisArtifact,
@@ -130,7 +130,7 @@ class ExecutionPacketCompiler:
     ) -> CompilationResult:
         """
         Attempt to compile ExecutionPacket from hypothesis.
-        
+
         Returns CompilationResult with:
         - Success/failure
         - ExecutionPacket (if success)
@@ -138,20 +138,20 @@ class ExecutionPacketCompiler:
         - Required evidence (if failure)
         """
         self.stats["compilation_attempts"] += 1
-        
+
         # Step 1: Check verification status
         verifications_complete = []
         verifications_pending = []
-        
+
         for verification in verifications:
             if verification.status == VerificationStatus.VERIFIED and verification.result is True:
                 verifications_complete.append(verification.verification_id)
             else:
                 verifications_pending.append(verification.verification_id)
-        
+
         # All verifications must be complete
         verifications_required = [v.verification_id for v in verifications]
-        
+
         # Step 2: Check compilation gate
         can_compile, blocking_reasons = self.compilation_gate.check(
             confidence=confidence,
@@ -163,7 +163,7 @@ class ExecutionPacketCompiler:
             verifications_required=verifications_required,
             risk_flags=hypothesis.risk_flags,
         )
-        
+
         # Step 3: Compile or return blocking reasons
         if can_compile:
             execution_packet = self._compile_packet(
@@ -172,7 +172,7 @@ class ExecutionPacketCompiler:
                 confidence=confidence,
                 authority_level=authority_level,
             )
-            
+
             result = CompilationResult(
                 hypothesis_id=hypothesis.hypothesis_id,
                 success=True,
@@ -186,9 +186,9 @@ class ExecutionPacketCompiler:
                 verifications_pending=[],
                 required_evidence=[],
             )
-            
+
             self.stats["compilations_successful"] += 1
-            
+
             logger.info(
                 f"Successfully compiled ExecutionPacket for {hypothesis.hypothesis_id}"
             )
@@ -199,7 +199,7 @@ class ExecutionPacketCompiler:
                 verifications_pending=verifications_pending,
                 gates_blocking=list(set(gates_required) - set(gates_satisfied)),
             )
-            
+
             result = CompilationResult(
                 hypothesis_id=hypothesis.hypothesis_id,
                 success=False,
@@ -213,18 +213,18 @@ class ExecutionPacketCompiler:
                 verifications_pending=verifications_pending,
                 required_evidence=required_evidence,
             )
-            
+
             self.stats["compilations_blocked"] += 1
-            
+
             logger.warning(
                 f"Compilation blocked for {hypothesis.hypothesis_id}: "
                 f"{[br.value for br in blocking_reasons]}"
             )
-        
+
         self.compilation_log.append(result)
-        
+
         return result
-    
+
     def _compile_packet(
         self,
         hypothesis: HypothesisArtifact,
@@ -234,7 +234,7 @@ class ExecutionPacketCompiler:
     ) -> Dict[str, Any]:
         """
         Compile ExecutionPacket from verified hypothesis.
-        
+
         This creates a proper ExecutionPacket with:
         - Cryptographic signature
         - Replay protection
@@ -243,10 +243,10 @@ class ExecutionPacketCompiler:
         """
         import hashlib
         import uuid
-        
+
         timestamp = datetime.now(timezone.utc)
         nonce = str(uuid.uuid4())
-        
+
         # Build packet
         packet = {
             "packet_id": f"execution_packet_{hypothesis.hypothesis_id}_{timestamp.timestamp()}",
@@ -261,7 +261,7 @@ class ExecutionPacketCompiler:
             "status": "compiled",
             "execution_rights": True,  # NOW has execution rights
         }
-        
+
         # Compute signature
         import json
         canonical = json.dumps({
@@ -273,12 +273,12 @@ class ExecutionPacketCompiler:
             "timestamp": packet["timestamp"],
             "nonce": packet["nonce"],
         }, sort_keys=True)
-        
+
         signature = hashlib.sha256(canonical.encode()).hexdigest()
         packet["signature"] = signature
-        
+
         return packet
-    
+
     def _determine_required_evidence(
         self,
         blocking_reasons: List[BlockingReason],
@@ -287,7 +287,7 @@ class ExecutionPacketCompiler:
     ) -> List[str]:
         """Determine what evidence is needed to unblock compilation"""
         required_evidence = []
-        
+
         for reason in blocking_reasons:
             if reason == BlockingReason.CONFIDENCE_TOO_LOW:
                 required_evidence.append(
@@ -314,9 +314,9 @@ class ExecutionPacketCompiler:
                 required_evidence.append(
                     "Mitigate or accept all risk flags"
                 )
-        
+
         return required_evidence
-    
+
     def get_stats(self) -> Dict[str, Any]:
         """Get compilation statistics"""
         return {
@@ -327,7 +327,7 @@ class ExecutionPacketCompiler:
                 else 0.0
             ),
         }
-    
+
     def get_compilation_log(
         self,
         hypothesis_id: Optional[str] = None,
@@ -335,10 +335,10 @@ class ExecutionPacketCompiler:
     ) -> List[CompilationResult]:
         """Get compilation log"""
         log = self.compilation_log
-        
+
         if hypothesis_id:
             log = [r for r in log if r.hypothesis_id == hypothesis_id]
-        
+
         return log[-limit:]
 
     async def compile_packet(self, packet_data=None, authority_level="medium", requirements=None, **kwargs):

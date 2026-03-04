@@ -90,19 +90,19 @@ class SwarmProposal:
 class SwarmProposalGenerator:
     """
     Generates swarm proposals for Murphy System
-    
+
     Based on RLM pattern from paper:
     - Recursive decomposition of tasks
     - Code generation for task execution
     - Safety gate integration
     - Confidence-based routing
     """
-    
+
     def __init__(self, llm_controller: LLMController):
         self.llm_controller = llm_controller
         self.repl = MurphyREPL(llm_controller)
         self.proposal_history: List[SwarmProposal] = []
-        
+
     async def generate_proposal(
         self,
         task_description: str,
@@ -110,7 +110,7 @@ class SwarmProposalGenerator:
     ) -> SwarmProposal:
         """
         Generate a complete swarm proposal for a task
-        
+
         Process:
         1. Analyze task complexity
         2. Determine optimal swarm configuration
@@ -119,32 +119,32 @@ class SwarmProposalGenerator:
         5. Add safety gates
         6. Estimate resources and costs
         """
-        
+
         # Step 1: Analyze task
         task_analysis = await self._analyze_task(task_description, context)
-        
+
         # Step 2: Determine swarm type
         swarm_type = self._determine_swarm_type(task_analysis)
-        
+
         # Step 3: Generate agents
         agents = self._generate_agents(task_analysis, swarm_type)
-        
+
         # Step 4: Create execution plan
         execution_plan = await self._create_execution_plan(
             task_description,
             agents,
             swarm_type
         )
-        
+
         # Step 5: Add safety gates
         safety_gates = self._add_safety_gates(execution_plan, task_analysis)
-        
+
         # Step 6: Estimate resources
         resource_estimates = self._estimate_resources(
             agents,
             execution_plan
         )
-        
+
         # Step 7: Calculate cost and confidence
         cost_estimate = self._estimate_cost(agents, execution_plan)
         confidence_estimate = self._estimate_confidence(
@@ -152,7 +152,7 @@ class SwarmProposalGenerator:
             agents,
             safety_gates
         )
-        
+
         # Create proposal
         proposal = SwarmProposal(
             proposal_id=f"prop_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
@@ -172,17 +172,17 @@ class SwarmProposalGenerator:
                 'context_length': len(context) if context else 0
             }
         )
-        
+
         self.proposal_history.append(proposal)
         return proposal
-    
+
     async def _analyze_task(
         self,
         task_description: str,
         context: Optional[str] = None
     ) -> Dict[str, Any]:
         """Analyze the task to understand requirements"""
-        
+
         # Use LLM to analyze task
         analysis_prompt = f"""
 Analyze this task and provide a structured analysis:
@@ -197,7 +197,7 @@ Provide a JSON response with these fields:
 - potential_risks: list of potential risks
 - required_capabilities: list of required capabilities (reasoning, code_generation, context_processing, etc.)
 """
-        
+
         request = LLMRequest(
             prompt=analysis_prompt,
             context=context,
@@ -205,16 +205,16 @@ Provide a JSON response with these fields:
             max_tokens=1000,
             require_capabilities=[ModelCapability.REASONING]
         )
-        
+
         response = await self.llm_controller.query_llm(request)
-        
+
         try:
             analysis = json.loads(response.content)
         except Exception as exc:
             # Fallback analysis
             logger.debug("Suppressed exception: %s", exc)
             analysis = self._fallback_analysis(task_description)
-        
+
         # Map complexity string to enum
         complexity_mapping = {
             'simple': TaskComplexity.SIMPLE,
@@ -222,18 +222,18 @@ Provide a JSON response with these fields:
             'complex': TaskComplexity.COMPLEX,
             'very_complex': TaskComplexity.VERY_COMPLEX
         }
-        
+
         analysis['complexity'] = complexity_mapping.get(
             analysis.get('complexity', 'medium'),
             TaskComplexity.MEDIUM
         )
-        
+
         return analysis
-    
+
     def _fallback_analysis(self, task_description: str) -> Dict[str, Any]:
         """Fallback analysis when LLM fails"""
         task_lower = task_description.lower()
-        
+
         # Determine complexity
         if any(word in task_lower for word in ['simple', 'basic', 'easy']):
             complexity = 'simple'
@@ -241,7 +241,7 @@ Provide a JSON response with these fields:
             complexity = 'complex'
         else:
             complexity = 'medium'
-        
+
         # Determine task type
         if any(word in task_lower for word in ['app', 'web', 'website']):
             task_type = 'web_app'
@@ -251,7 +251,7 @@ Provide a JSON response with these fields:
             task_type = 'ai_system'
         else:
             task_type = 'general'
-        
+
         return {
             'complexity': complexity,
             'task_type': task_type,
@@ -260,16 +260,16 @@ Provide a JSON response with these fields:
             'potential_risks': ['complexity_risk'],
             'required_capabilities': ['reasoning']
         }
-    
+
     def _determine_swarm_type(
         self,
         task_analysis: Dict[str, Any]
     ) -> SwarmType:
         """Determine optimal swarm configuration"""
-        
+
         complexity = task_analysis['complexity']
         components = task_analysis.get('main_components', [])
-        
+
         if complexity == TaskComplexity.SIMPLE:
             return SwarmType.SINGLE_AGENT
         elif complexity == TaskComplexity.MEDIUM:
@@ -281,17 +281,17 @@ Provide a JSON response with these fields:
             return SwarmType.PIPELINE
         else:  # VERY_COMPLEX
             return SwarmType.HYBRID
-    
+
     def _generate_agents(
         self,
         task_analysis: Dict[str, Any],
         swarm_type: SwarmType
     ) -> List[SwarmAgent]:
         """Generate agents for the swarm"""
-        
+
         agents = []
         required_capabilities = task_analysis.get('required_capabilities', [])
-        
+
         # Base agent always present
         base_agent = SwarmAgent(
             id="agent_0",
@@ -303,7 +303,7 @@ Provide a JSON response with these fields:
             safety_gates=["task_validation", "output_verification"]
         )
         agents.append(base_agent)
-        
+
         # Add specialized agents based on swarm type
         if swarm_type in [SwarmType.COLLABORATIVE, SwarmType.HIERARCHICAL]:
             # Add reasoning agent
@@ -317,7 +317,7 @@ Provide a JSON response with these fields:
                 safety_gates=["logical_consistency"]
             )
             agents.append(reasoning_agent)
-        
+
         if swarm_type in [SwarmType.PIPELINE, SwarmType.HYBRID]:
             # Add code generation agent
             code_agent = SwarmAgent(
@@ -330,7 +330,7 @@ Provide a JSON response with these fields:
                 safety_gates=["code_quality", "security_check"]
             )
             agents.append(code_agent)
-        
+
         if swarm_type == SwarmType.HYBRID:
             # Add context processing agent
             context_agent = SwarmAgent(
@@ -343,9 +343,9 @@ Provide a JSON response with these fields:
                 safety_gates=["information_loss"]
             )
             agents.append(context_agent)
-        
+
         return agents
-    
+
     async def _create_execution_plan(
         self,
         task_description: str,
@@ -353,7 +353,7 @@ Provide a JSON response with these fields:
         swarm_type: SwarmType
     ) -> List[SwarmStep]:
         """Create step-by-step execution plan"""
-        
+
         plan_prompt = f"""
 Create an execution plan for this task:
 
@@ -372,16 +372,16 @@ Provide a JSON response with a 'steps' array, where each step has:
 
 Format: {{"steps": [...]}}
 """
-        
+
         request = LLMRequest(
             prompt=plan_prompt,
             temperature=0.5,
             max_tokens=1500,
             require_capabilities=[ModelCapability.SWARM_PLANNING]
         )
-        
+
         response = await self.llm_controller.query_llm(request)
-        
+
         try:
             plan_data = json.loads(response.content)
             steps_data = plan_data.get('steps', [])
@@ -389,7 +389,7 @@ Format: {{"steps": [...]}}
             # Fallback to simple plan
             logger.debug("Suppressed exception: %s", exc)
             steps_data = self._fallback_execution_plan(agents)
-        
+
         # Convert to SwarmStep objects
         steps = []
         for step_data in steps_data:
@@ -403,9 +403,9 @@ Format: {{"steps": [...]}}
                 dependencies=step_data.get('dependencies', [])
             )
             steps.append(step)
-        
+
         return steps
-    
+
     def _fallback_execution_plan(self, agents: List[SwarmAgent]) -> List[Dict[str, Any]]:
         """Fallback execution plan"""
         steps = [
@@ -419,7 +419,7 @@ Format: {{"steps": [...]}}
                 'dependencies': []
             }
         ]
-        
+
         if len(agents) > 1:
             steps.append({
                 'step_id': 1,
@@ -430,7 +430,7 @@ Format: {{"steps": [...]}}
                 'estimated_time': 10.0,
                 'dependencies': [0]
             })
-        
+
         if len(agents) > 2:
             steps.append({
                 'step_id': 2,
@@ -441,18 +441,18 @@ Format: {{"steps": [...]}}
                 'estimated_time': 15.0,
                 'dependencies': [1]
             })
-        
+
         return steps
-    
+
     def _add_safety_gates(
         self,
         execution_plan: List[SwarmStep],
         task_analysis: Dict[str, Any]
     ) -> List[SafetyGate]:
         """Add safety gates to the execution plan"""
-        
+
         gates = []
-        
+
         # Gate 1: Task validation
         gates.append(SafetyGate(
             gate_id="gate_0",
@@ -463,7 +463,7 @@ Format: {{"steps": [...]}}
             action="block",
             confidence_threshold=0.80
         ))
-        
+
         # Gate 2: Input validation
         gates.append(SafetyGate(
             gate_id="gate_1",
@@ -474,7 +474,7 @@ Format: {{"steps": [...]}}
             action="block",
             confidence_threshold=0.75
         ))
-        
+
         # Gate 3: Output verification
         gates.append(SafetyGate(
             gate_id="gate_2",
@@ -485,10 +485,10 @@ Format: {{"steps": [...]}}
             action="block",
             confidence_threshold=0.85
         ))
-        
+
         # Add gates for potential risks
         potential_risks = task_analysis.get('potential_risks', [])
-        
+
         if 'security' in potential_risks:
             gates.append(SafetyGate(
                 gate_id="gate_security",
@@ -499,21 +499,21 @@ Format: {{"steps": [...]}}
                 action="block",
                 confidence_threshold=0.90
             ))
-        
+
         return gates
-    
+
     def _estimate_resources(
         self,
         agents: List[SwarmAgent],
         execution_plan: List[SwarmStep]
     ) -> Dict[str, Any]:
         """Estimate resource requirements"""
-        
+
         total_time = sum(step.estimated_time for step in execution_plan)
-        
+
         # Estimate costs based on agents and time
         estimated_cost = total_time * 0.1  # $0.10 per minute average
-        
+
         return {
             'estimated_time_minutes': total_time,
             'estimated_cost_usd': estimated_cost,
@@ -521,28 +521,28 @@ Format: {{"steps": [...]}}
             'step_count': len(execution_plan),
             'parallel_steps': len([s for s in execution_plan if not s.dependencies])
         }
-    
+
     def _estimate_cost(
         self,
         agents: List[SwarmAgent],
         execution_plan: List[SwarmStep]
     ) -> float:
         """Estimate total cost of proposal execution"""
-        
+
         # Base cost from resource estimates
         resource_estimates = self._estimate_resources(agents, execution_plan)
         base_cost = resource_estimates['estimated_cost_usd']
-        
+
         # Add safety gate overhead
         safety_gate_cost = len(execution_plan) * 0.05
-        
+
         # Add confidence overhead
         confidence_overhead = base_cost * 0.1
-        
+
         total_cost = base_cost + safety_gate_cost + confidence_overhead
-        
+
         return round(total_cost, 2)
-    
+
     def _estimate_confidence(
         self,
         task_analysis: Dict[str, Any],
@@ -550,7 +550,7 @@ Format: {{"steps": [...]}}
         safety_gates: List[SafetyGate]
     ) -> float:
         """Estimate confidence level of proposal"""
-        
+
         # Base confidence from task complexity
         complexity = task_analysis['complexity']
         complexity_confidence = {
@@ -559,27 +559,27 @@ Format: {{"steps": [...]}}
             TaskComplexity.COMPLEX: 0.75,
             TaskComplexity.VERY_COMPLEX: 0.65
         }.get(complexity, 0.80)
-        
+
         # Confidence from agent quality
         avg_agent_confidence = sum(
             agent.confidence_threshold for agent in agents
         ) / (len(agents) or 1)
-        
+
         # Confidence from safety gates
         safety_confidence = 0.85 + (len(safety_gates) * 0.01)
-        
+
         # Combine confidences
         final_confidence = (
             complexity_confidence * 0.4 +
             avg_agent_confidence * 0.4 +
             safety_confidence * 0.2
         )
-        
+
         return round(min(final_confidence, 1.0), 2)
-    
+
     def format_proposal_for_display(self, proposal: SwarmProposal) -> str:
         """Format proposal for display in terminal UI"""
-        
+
         lines = []
         lines.append("# " + "="*60)
         lines.append("# SWARM PROPOSAL")
@@ -593,7 +593,7 @@ Format: {{"steps": [...]}}
         lines.append(f"**Estimated Cost:** ${proposal.cost_estimate:.2f}")
         lines.append(f"**Estimated Time:** {proposal.resource_estimates['estimated_time_minutes']:.1f} minutes")
         lines.append("")
-        
+
         lines.append("## Agents")
         lines.append("")
         for agent in proposal.agents:
@@ -603,7 +603,7 @@ Format: {{"steps": [...]}}
             lines.append(f"  - Confidence Threshold: {agent.confidence_threshold*100:.1f}%")
             lines.append(f"  - Safety Gates: {', '.join(agent.safety_gates)}")
             lines.append("")
-        
+
         lines.append("## Execution Plan")
         lines.append("")
         for step in proposal.execution_plan:
@@ -612,7 +612,7 @@ Format: {{"steps": [...]}}
             lines.append(f"- Agents: {', '.join(step.agent_ids)}")
             lines.append(f"- Estimated Time: {step.estimated_time:.1f} min")
             lines.append("")
-        
+
         lines.append("## Safety Gates")
         lines.append("")
         for gate in proposal.safety_gates:
@@ -621,9 +621,9 @@ Format: {{"steps": [...]}}
             lines.append(f"  - Action: {gate.action.upper()}")
             lines.append(f"  - Confidence Threshold: {gate.confidence_threshold*100:.1f}%")
             lines.append("")
-        
+
         return "\n".join(lines)
-    
+
     def get_proposal_history(self) -> List[Dict[str, Any]]:
         """Get history of generated proposals"""
         return [
