@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Round 42 refined deep-scan** — eliminated false positives, confirmed zero real gaps:
+  - Verified enum values are not real secrets (9 false positives excluded)
+  - Verified REPL exec() is intentionally sandboxed (1 false positive excluded)
+  - Verified relative imports resolve correctly with proper level handling
+  - Verified all 4 silent catches are legitimate `except ImportError: pass`
+  - 8 new regression tests locking refined detection logic
+  - Updated badge: 8,232 → 8,240 tests; 350 → 351 test files
 - **Round 41 documentation accuracy** — sync docs with actual metrics:
   - GETTING_STARTED: updated gap-closure count (190+ → 118), audit categories (14 → 90), test count (8,200+)
   - README: updated badge (8,215 → 8,232), disclaimer (349 → 350 test files)
