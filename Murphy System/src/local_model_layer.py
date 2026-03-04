@@ -5,6 +5,9 @@ No API calls, runs entirely on local hardware
 
 import re
 from typing import Optional, Dict, Any
+
+import logging
+logger = logging.getLogger("local_model_layer")
 try:
     from state_machine import Hypothesis, QuestionType
 except ImportError:
@@ -17,7 +20,7 @@ try:
     HAS_TRANSFORMERS = True
 except ImportError:
     HAS_TRANSFORMERS = False
-    print("⚠ transformers not installed - will use rule-based fallback only")
+    logger.info("⚠ transformers not installed - will use rule-based fallback only")
 
 
 class LocalModelParser:
@@ -40,7 +43,7 @@ class LocalModelParser:
                 "transformers not installed. Install with: pip install transformers torch"
             )
 
-        print(f"Loading local model: {model_name}...")
+        logger.info(f"Loading local model: {model_name}...")
 
         # Load model and tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -55,7 +58,7 @@ class LocalModelParser:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
         self.model_name = model_name
-        print(f"✓ Model loaded: {model_name}")
+        logger.info(f"✓ Model loaded: {model_name}")
 
     def infer_intent(self, prompt: str) -> Hypothesis:
         """

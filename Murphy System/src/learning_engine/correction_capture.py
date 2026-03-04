@@ -8,6 +8,9 @@ from datetime import datetime, timezone
 from enum import Enum
 from pydantic import BaseModel, Field
 
+import logging
+logger = logging.getLogger("learning_engine.correction_capture")
+
 from .correction_models import (
     Correction, CorrectionType, CorrectionSeverity, CorrectionSource,
     CorrectionContext, CorrectionDiff, OriginalValue, CorrectedValue,
@@ -237,7 +240,7 @@ class BatchCorrectionCapture:
                 corrections.append(correction)
                 self.processed_corrections.append(correction)
             except Exception as exc:
-                print(f"Error processing correction: {exc}")
+                logger.info(f"Error processing correction: {exc}")
                 continue
 
         # Clear queue

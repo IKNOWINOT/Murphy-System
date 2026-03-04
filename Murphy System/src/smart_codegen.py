@@ -6,6 +6,9 @@ Clearly marks Generated vs Verified content
 from typing import Dict, Any, Optional
 import re
 
+import logging
+logger = logging.getLogger("smart_codegen")
+
 
 class SmartCodeGenerator:
     """Generates functional code with clear G/V markers"""
@@ -63,10 +66,10 @@ def fibonacci_sequence(count):
 # Example usage
 if __name__ == "__main__":
     # Test single number
-    print(f"10th Fibonacci number: {fibonacci(10)}")  # Should be 55
+    logger.info(f"10th Fibonacci number: {fibonacci(10)}")  # Should be 55
 
     # Test sequence
-    print(f"First 15 Fibonacci numbers: {fibonacci_sequence(15)}")
+    logger.info(f"First 15 Fibonacci numbers: {fibonacci_sequence(15)}")
 ''',
                     'verified': True,
                     'confidence': 1.0,
@@ -141,8 +144,8 @@ console.log(`First 15: ${fibonacciSequence(15)}`);
 
 # Example usage
 if __name__ == "__main__":
-    print(f"5! = {factorial(5)}")  # Should be 120
-    print(f"10! = {factorial(10)}")  # Should be 3628800
+    logger.info(f"5! = {factorial(5)}")  # Should be 120
+    logger.info(f"10! = {factorial(10)}")  # Should be 3628800
 ''',
                     'verified': True,
                     'confidence': 1.0,
@@ -204,9 +207,9 @@ def primes_up_to(limit):
 
 # Example usage
 if __name__ == "__main__":
-    print(f"Is 17 prime? {is_prime(17)}")  # True
-    print(f"Is 20 prime? {is_prime(20)}")  # False
-    print(f"Primes up to 50: {primes_up_to(50)}")
+    logger.info(f"Is 17 prime? {is_prime(17)}")  # True
+    logger.info(f"Is 20 prime? {is_prime(20)}")  # False
+    logger.info(f"Primes up to 50: {primes_up_to(50)}")
 ''',
                     'verified': True,
                     'confidence': 1.0,
@@ -261,9 +264,9 @@ def quick_sort(arr):
 # Example usage
 if __name__ == "__main__":
     test_arr = [64, 34, 25, 12, 22, 11, 90]
-    print(f"Original: {test_arr}")
-    print(f"Bubble sorted: {bubble_sort(test_arr.copy())}")
-    print(f"Quick sorted: {quick_sort(test_arr.copy())}")
+    logger.info(f"Original: {test_arr}")
+    logger.info(f"Bubble sorted: {bubble_sort(test_arr.copy())}")
+    logger.info(f"Quick sorted: {quick_sort(test_arr.copy())}")
 ''',
                     'verified': True,
                     'confidence': 1.0,
@@ -326,7 +329,7 @@ if __name__ == "__main__":
 if __name__ == "__main__":
     test_value = 10
     result = calculate(test_value)
-    print(f"Result: {{result}}")
+    logger.info(f"Result: {{result}}")
 '''
                 return {
                     'code': code,
@@ -346,7 +349,7 @@ def main():
     Main function
     [G] This is a template - implement your specific logic
     """
-    print("Task: {task}")
+    logger.info("Task: {task}")
     # TODO: Add your implementation here
     pass
 
@@ -402,8 +405,8 @@ if __name__ == "__main__":
 
     # Test verified pattern
     result = gen.generate("calculate fibonacci numbers", "python")
-    print(gen.format_response(result, "fibonacci"))
+    logger.info(gen.format_response(result, "fibonacci"))
 
     # Test generated template
     result = gen.generate("process user data", "python")
-    print(gen.format_response(result, "process user data"))
+    logger.info(gen.format_response(result, "process user data"))

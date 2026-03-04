@@ -86,9 +86,9 @@ class UnifiedMFGC:
                 self.key_rotator = get_rotator()
                 self.llm_available = True
                 self.llm_mode = "groq_rotation"
-                print(f"Groq key rotation enabled with {len(self.key_rotator.keys)} keys")
+                logger.info(f"Groq key rotation enabled with {len(self.key_rotator.keys)} keys")
             except Exception as exc:
-                print(f"Key rotation failed: {exc}, falling back to single key mode")
+                logger.info(f"Key rotation failed: {exc}, falling back to single key mode")
                 self.key_rotator = None
 
         # Fallback to single key mode
@@ -921,7 +921,7 @@ Format as a numbered list."""
                     self.key_rotator.report_failure(api_key, str(exc))
 
                 # Fall back to offline mode if Groq fails
-                print(f"Groq failed (key: {key_name}), using offline fallback: {str(exc)}")
+                logger.info(f"Groq failed (key: {key_name}), using offline fallback: {str(exc)}")
                 return self.fallback_llm.generate(prompt, max_tokens)
 
         # Try single key Groq mode
@@ -942,7 +942,7 @@ Format as a numbered list."""
                 return chat_completion.choices[0].message.content.strip()
             except Exception as exc:
                 # Fall back to offline mode if Groq fails
-                print(f"Groq failed, using offline fallback: {str(exc)}")
+                logger.info(f"Groq failed, using offline fallback: {str(exc)}")
                 return self.fallback_llm.generate(prompt, max_tokens)
 
         # Use offline fallback

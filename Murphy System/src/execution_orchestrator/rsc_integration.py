@@ -6,6 +6,9 @@ Adds endpoints and enforcement for Recursive Stability Controller integration.
 
 from flask import jsonify, request
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Global control signal from RSC
 _current_control_signal = {
@@ -84,7 +87,7 @@ def add_rsc_endpoints(app, executor, executions):
         data = request.json
         _current_control_signal = data
 
-        print(f"[RSC] Control signal received: mode={data.get('mode')}, "
+        logger.info(f"[RSC] Control signal received: mode={data.get('mode')}, "
               f"spawn={data.get('allow_agent_spawn')}, "
               f"gates={data.get('allow_gate_synthesis')}")
 

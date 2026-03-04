@@ -756,7 +756,7 @@ class TicketConnector(BaseConnector):
             return success
 
         except Exception as exc:
-            print(f"Error sending ticket message: {exc}")
+            logger.info(f"Error sending ticket message: {exc}")
             return False
 
     def _send_jira_comment(self, packet: CommunicationPacket) -> bool:

@@ -4,10 +4,13 @@ Provides streaming, pagination, and memory optimization capabilities.
 """
 
 import gc
+import logging
 from typing import Any, Dict, Generator, Iterator, List, Optional, Callable, TypeVar
 import sys
 
 T = TypeVar("T")
+
+logger = logging.getLogger(__name__)
 
 
 class StreamProcessor:

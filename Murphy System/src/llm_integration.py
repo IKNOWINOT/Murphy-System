@@ -84,9 +84,9 @@ class OllamaLLM:
         self.available = self._check_ollama()
 
         if self.available:
-            print(f"✓ Ollama available with model: {model_name}")
+            logger.info(f"✓ Ollama available with model: {model_name}")
         else:
-            print("⚠ Ollama not available - install with: curl -fsSL https://ollama.com/install.sh | sh")
+            logger.info("⚠ Ollama not available - install with: curl -fsSL https://ollama.com/install.sh | sh")
 
     def _check_ollama(self) -> bool:
         """Check if Ollama is running"""
@@ -217,7 +217,7 @@ class LLMEnhancedMFGC:
             self.llm = OllamaLLM(model_name)
         else:
             self.llm = None
-            print("⚠ No LLM provider - using rule-based fallback")
+            logger.info("⚠ No LLM provider - using rule-based fallback")
 
     def generate_candidates(self, task: str, phase: str,
                           existing_candidates: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -382,7 +382,7 @@ def get_system_info() -> Dict[str, Any]:
 
 def print_installation_guide():
     """Print installation guide for Ollama"""
-    print("""
+    logger.info("""
 ╔══════════════════════════════════════════════════════════════╗
 ║              LLM Enhancement Installation Guide              ║
 ╚══════════════════════════════════════════════════════════════╝
@@ -414,11 +414,11 @@ Current system specs:
 """)
 
     info = get_system_info()
-    print(f"  • Available RAM: {info['available_ram_gb']:.1f} GB")
-    print(f"  • Total RAM: {info['total_ram_gb']:.1f} GB")
-    print(f"  • CPU cores: {info['cpu_count']}")
-    print(f"  • Recommended model: {info['recommended_model']}")
-    print()
+    logger.info(f"  • Available RAM: {info['available_ram_gb']:.1f} GB")
+    logger.info(f"  • Total RAM: {info['total_ram_gb']:.1f} GB")
+    logger.info(f"  • CPU cores: {info['cpu_count']}")
+    logger.info(f"  • Recommended model: {info['recommended_model']}")
+    logger.debug("")
 
 
 if __name__ == "__main__":

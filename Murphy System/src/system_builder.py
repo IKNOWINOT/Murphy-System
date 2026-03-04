@@ -5,6 +5,9 @@ Reading level: High school student
 from typing import Dict, List, Any, Optional
 import json
 
+import logging
+logger = logging.getLogger("system_builder")
+
 class SystemBuilder:
     """
     Builds system architecture from natural language descriptions
@@ -437,5 +440,5 @@ SystemBuilder.build_system = _build_system
 SystemBuilder.get_system_patterns = _get_system_patterns
 
 if __name__ == "__main__":
-    print("System Builder Module")
-    print("Translates non-technical requests into technical architectures")
+    logger.info("System Builder Module")
+    logger.info("Translates non-technical requests into technical architectures")

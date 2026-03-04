@@ -14,6 +14,9 @@ import random
 from typing import Dict, List, Any
 from datetime import datetime
 
+import logging
+logger = logging.getLogger("synthetic_failure_generator.test_modes")
+
 from .models import (
     BaseScenario,
     FailureType,
@@ -319,7 +322,7 @@ class TestModeExecutor:
                 )
                 results['historical'].append(result)
             except Exception as exc:
-                print(f"Error replaying {disaster.disaster_name}: {exc}")
+                logger.info(f"Error replaying {disaster.disaster_name}: {exc}")
 
         return results
 

@@ -9,6 +9,9 @@ from enum import Enum
 from pydantic import BaseModel, Field
 import statistics
 
+import logging
+logger = logging.getLogger("confidence_engine.risk.risk_scoring")
+
 from src.confidence_engine.risk.risk_database import (
     RiskPattern, RiskCategory, RiskSeverity, RiskLikelihood, RiskIncident
 )
@@ -671,7 +674,7 @@ class RiskScoringSystem:
                     context
                 )
             except Exception as exc:
-                print(f"Error calculating {method.value} score: {exc}")
+                logger.info(f"Error calculating {method.value} score: {exc}")
                 continue
 
         return results

@@ -17,6 +17,9 @@ from typing import Dict, List, Optional, Callable
 from datetime import datetime
 import json
 
+import logging
+logger = logging.getLogger("execution_orchestrator.telemetry")
+
 from .models import (
     TelemetryEvent,
     TelemetryStream,
@@ -426,7 +429,7 @@ class TelemetryStreamer:
                 try:
                     callback(event)
                 except Exception as exc:
-                    print(f"Error notifying subscriber: {exc}")
+                    logger.info(f"Error notifying subscriber: {exc}")
 
     def export_stream(self, packet_id: str, output_format: str = 'json') -> str:
         """

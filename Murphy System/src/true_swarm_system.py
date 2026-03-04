@@ -17,6 +17,9 @@ from abc import ABC, abstractmethod
 import time
 import uuid
 
+import logging
+logger = logging.getLogger("true_swarm_system")
+
 
 class Phase(Enum):
     """MFGC phases"""
@@ -984,12 +987,12 @@ class TrueSwarmSystem:
         - confidence impact
         - Murphy risk
         """
-        print(f"\n{'='*60}")
-        print(f"PHASE: {phase.value.upper()}")
-        print(f"{'='*60}")
+        logger.info(f"\n{'='*60}")
+        logger.info(f"PHASE: {phase.value.upper()}")
+        logger.info(f"{'='*60}")
 
         # 1. Spawn exploration swarm
-        print("\n🟢 Spawning EXPLORATION swarm...")
+        logger.info("\n🟢 Spawning EXPLORATION swarm...")
         exploration_agents = self.spawner.spawn_swarm(
             mode=SwarmMode.EXPLORATION,
             phase=phase,
@@ -997,20 +1000,20 @@ class TrueSwarmSystem:
             context=context,
             workspace=self.workspace
         )
-        print(f"   Spawned {len(exploration_agents)} agents: {[a.instance.profession.value for a in exploration_agents]}")
+        logger.info(f"   Spawned {len(exploration_agents)} agents: {[a.instance.profession.value for a in exploration_agents]}")
 
         # 2. Exploration agents generate artifacts (parallel)
-        print("\n   Generating solution candidates...")
+        logger.info("\n   Generating solution candidates...")
         exploration_artifacts = []
         for agent in exploration_agents:
             artifacts = agent.generate_artifacts(task, self.workspace, context)
             for artifact in artifacts:
                 self.workspace.write_artifact(artifact)
                 exploration_artifacts.append(artifact)
-        print(f"   Generated {len(exploration_artifacts)} artifacts")
+        logger.info(f"   Generated {len(exploration_artifacts)} artifacts")
 
         # 3. Spawn control swarm
-        print("\n🔴 Spawning CONTROL swarm...")
+        logger.info("\n🔴 Spawning CONTROL swarm...")
         control_agents = self.spawner.spawn_swarm(
             mode=SwarmMode.CONTROL,
             phase=phase,
@@ -1018,23 +1021,23 @@ class TrueSwarmSystem:
             context=context,
             workspace=self.workspace
         )
-        print(f"   Spawned {len(control_agents)} agents: {[a.instance.profession.value for a in control_agents]}")
+        logger.info(f"   Spawned {len(control_agents)} agents: {[a.instance.profession.value for a in control_agents]}")
 
         # 4. Control agents analyze risks and propose gates (parallel)
-        print("\n   Analyzing risks and proposing gates...")
+        logger.info("\n   Analyzing risks and proposing gates...")
         control_artifacts = []
         for agent in control_agents:
             artifacts = agent.estimate_risks(self.workspace, context)
             for artifact in artifacts:
                 self.workspace.write_artifact(artifact)
                 control_artifacts.append(artifact)
-        print(f"   Generated {len(control_artifacts)} risk artifacts")
-        print(f"   Proposed {len(self.workspace.gate_proposals)} gates")
+        logger.info(f"   Generated {len(control_artifacts)} risk artifacts")
+        logger.info(f"   Proposed {len(self.workspace.gate_proposals)} gates")
 
         # 5. Compile gates
-        print("\n   Compiling gates...")
+        logger.info("\n   Compiling gates...")
         activated_gates = self.gate_compiler.compile_gates(self.workspace, phase)
-        print(f"   Activated {len(activated_gates)} gates")
+        logger.info(f"   Activated {len(activated_gates)} gates")
 
         # 6. Compute confidence impact
         total_confidence_impact = sum(a.confidence_impact for a in exploration_artifacts)
@@ -1045,12 +1048,12 @@ class TrueSwarmSystem:
         risks = self.workspace.get_artifacts_by_type(ArtifactType.RISK, phase)
         murphy_risk = sum(r.content.get('severity', 0.5) for r in risks) / max(len(risks), 1)
 
-        print("\n📊 Phase Results:")
-        print(f"   Exploration artifacts: {len(exploration_artifacts)}")
-        print(f"   Control artifacts: {len(control_artifacts)}")
-        print(f"   Active gates: {len(activated_gates)}")
-        print(f"   Net confidence impact: {net_confidence:+.2f}")
-        print(f"   Murphy risk: {murphy_risk:.2f}")
+        logger.info("\n📊 Phase Results:")
+        logger.info(f"   Exploration artifacts: {len(exploration_artifacts)}")
+        logger.info(f"   Control artifacts: {len(control_artifacts)}")
+        logger.info(f"   Active gates: {len(activated_gates)}")
+        logger.info(f"   Net confidence impact: {net_confidence:+.2f}")
+        logger.info(f"   Murphy risk: {murphy_risk:.2f}")
 
         result = {
             'phase': phase.value,
@@ -1075,10 +1078,10 @@ class TrueSwarmSystem:
         if context is None:
             context = {}
 
-        print(f"\n{'='*60}")
-        print("TRUE SWARM SYSTEM - FULL CYCLE")
-        print(f"Task: {task}")
-        print(f"{'='*60}")
+        logger.info(f"\n{'='*60}")
+        logger.info("TRUE SWARM SYSTEM - FULL CYCLE")
+        logger.info(f"Task: {task}")
+        logger.info(f"{'='*60}")
 
         results = []
         for phase in Phase:
@@ -1091,14 +1094,14 @@ class TrueSwarmSystem:
         final_confidence = sum(r['confidence_impact'] for r in results)
         avg_murphy_risk = sum(r['murphy_risk'] for r in results) / (len(results) or 1)
 
-        print(f"\n{'='*60}")
-        print("CYCLE COMPLETE")
-        print(f"{'='*60}")
-        print(f"Total artifacts generated: {total_artifacts}")
-        print(f"Total gates activated: {total_gates}")
-        print(f"Final confidence: {final_confidence:.2f}")
-        print(f"Average Murphy risk: {avg_murphy_risk:.2f}")
-        print(f"{'='*60}\n")
+        logger.info(f"\n{'='*60}")
+        logger.info("CYCLE COMPLETE")
+        logger.info(f"{'='*60}")
+        logger.info(f"Total artifacts generated: {total_artifacts}")
+        logger.info(f"Total gates activated: {total_gates}")
+        logger.info(f"Final confidence: {final_confidence:.2f}")
+        logger.info(f"Average Murphy risk: {avg_murphy_risk:.2f}")
+        logger.info(f"{'='*60}\n")
 
         return {
             'task': task,

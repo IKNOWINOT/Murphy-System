@@ -13,12 +13,15 @@ Simulates:
 import time
 import hashlib
 import json
+import logging
 from typing import Dict
 from ..adapter_contract import (
     AdapterAPI, AdapterManifest, AdapterCapability,
     TelemetrySchema, CommandSchema, SafetyLimits
 )
 from ..execution_packet_extension import DeviceExecutionPacket
+
+logger = logging.getLogger("adapter_framework.adapters.mock_adapter")
 
 
 class MockAdapter(AdapterAPI):
@@ -201,7 +204,7 @@ class MockAdapter(AdapterAPI):
 
     def emergency_stop(self) -> bool:
         """Execute emergency stop"""
-        print(f"[EMERGENCY STOP] {self.device_id}")
+        logger.info(f"[EMERGENCY STOP] {self.device_id}")
 
         # Stop all motion
         self.velocity = 0.0

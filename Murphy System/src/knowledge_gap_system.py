@@ -7,6 +7,9 @@ through clarifying questions, research, and hypothesis testing
 from typing import Dict, Any, List, Optional, Tuple
 import re
 
+import logging
+logger = logging.getLogger("knowledge_gap_system")
+
 
 class KnowledgeGapDetector:
     """
@@ -430,4 +433,4 @@ if __name__ == "__main__":
 
     # Test with ambiguous query
     result = engine.reason_iteratively("Is it better?")
-    print(engine.format_response(result, "Is it better?"))
+    logger.info(engine.format_response(result, "Is it better?"))

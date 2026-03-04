@@ -4,6 +4,9 @@ Generates code in multiple programming languages from verified templates
 """
 
 from typing import Dict, Any, Optional
+
+import logging
+logger = logging.getLogger("multi_language_codegen")
 try:
     from research_engine import ResearchEngine
 except ImportError:
@@ -136,7 +139,7 @@ class APIClient:
 if __name__ == "__main__":
     client = APIClient("https://api.example.com")
     result = client.get("/endpoint")
-    print(result)
+    logger.info(result)
 '''
             explanation = "Python API client using requests library with error handling"
 
@@ -169,7 +172,7 @@ if __name__ == "__main__":
     data = [{"id": 1, "value": 100}, {"id": 2, "value": 200}]
     df = process_data(data)
     analysis = analyze_data(df)
-    print(analysis)
+    logger.info(analysis)
 '''
             explanation = "Python data processing using pandas with type hints"
 
@@ -182,7 +185,7 @@ Generated using verified Python patterns
 def main():
     """Main function"""
     # TODO: Implement task logic
-    print("Task: {task}")
+    logger.info("Task: {task}")
     pass
 
 if __name__ == "__main__":

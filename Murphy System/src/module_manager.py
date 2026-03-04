@@ -6,6 +6,9 @@ from typing import Dict, List, Any, Optional
 import importlib
 import inspect
 
+import logging
+logger = logging.getLogger("module_manager")
+
 class ModuleManager:
     """
     Manages which modules are active in the system
@@ -57,11 +60,11 @@ class ModuleManager:
             True if successful, False otherwise
         """
         if name not in self.available_modules:
-            print(f"Module {name} not found")
+            logger.info(f"Module {name} not found")
             return False
 
         if name in self.active_modules:
-            print(f"Module {name} is already active")
+            logger.info(f"Module {name} is already active")
             return True
 
         try:
@@ -73,11 +76,11 @@ class ModuleManager:
             self.active_modules[name] = module
             self.available_modules[name]["status"] = "active"
 
-            print(f"✓ Loaded module: {name}")
+            logger.info(f"✓ Loaded module: {name}")
             return True
 
         except Exception as exc:
-            print(f"✗ Failed to load module {name}: {exc}")
+            logger.info(f"✗ Failed to load module {name}: {exc}")
             return False
 
     def unload_module(self, name: str) -> bool:
@@ -91,7 +94,7 @@ class ModuleManager:
             True if successful, False otherwise
         """
         if name not in self.active_modules:
-            print(f"Module {name} is not active")
+            logger.info(f"Module {name} is not active")
             return False
 
         try:
@@ -99,11 +102,11 @@ class ModuleManager:
             del self.active_modules[name]
             self.available_modules[name]["status"] = "available"
 
-            print(f"✗ Unloaded module: {name}")
+            logger.info(f"✗ Unloaded module: {name}")
             return True
 
         except Exception as exc:
-            print(f"✗ Failed to unload module {name}: {exc}")
+            logger.info(f"✗ Failed to unload module {name}: {exc}")
             return False
 
     def find_modules_for_capability(self, capability: str) -> List[str]:
@@ -227,5 +230,5 @@ class ModuleManager:
 module_manager = ModuleManager()
 
 if __name__ == "__main__":
-    print("Module Manager")
-    print("Manages dynamic module coupling/decoupling")
+    logger.info("Module Manager")
+    logger.info("Manages dynamic module coupling/decoupling")

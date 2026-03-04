@@ -17,6 +17,9 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional
 from enum import Enum
 
+import logging
+logger = logging.getLogger("recursive_stability_controller.spawn_controller")
+
 
 class SpawnDecision(Enum):
     """Spawn decision enumeration"""
@@ -211,18 +214,18 @@ class SpawnRateController:
         for _ in range(min(max_agents, len(self.spawn_queue))):
             request = self.spawn_queue.pop(0)
             launched.append(request)
-            print(f"[SPAWN] Launching agent: {request.agent_type} (priority: {request.priority})")
+            logger.info(f"[SPAWN] Launching agent: {request.agent_type} (priority: {request.priority})")
 
         return launched
 
     def _add_to_queue(self, request: SpawnRequest):
         """Add request to spawn queue"""
         if len(self.spawn_queue) >= self.max_queue_size:
-            print(f"[WARNING] Spawn queue full, dropping request: {request.request_id}")
+            logger.info(f"[WARNING] Spawn queue full, dropping request: {request.request_id}")
             return
 
         self.spawn_queue.append(request)
-        print(f"[QUEUE] Agent spawn queued: {request.agent_type}")
+        logger.info(f"[QUEUE] Agent spawn queued: {request.agent_type}")
 
     def _record_denied(self, request: SpawnRequest, reasons: List[str]):
         """Record denied request"""
@@ -232,9 +235,9 @@ class SpawnRateController:
             "timestamp": request.timestamp
         })
 
-        print(f"[DENIED] Agent spawn denied: {request.agent_type}")
+        logger.info(f"[DENIED] Agent spawn denied: {request.agent_type}")
         for reason in reasons:
-            print(f"  - {reason}")
+            logger.info(f"  - {reason}")
 
     def _record_history(self, response: SpawnResponse):
         """Record spawn response in history"""
@@ -297,21 +300,21 @@ class SpawnRateController:
     def report_failure(self):
         """Report unresolved failure"""
         self.unresolved_failures += 1
-        print(f"[FAILURE] Unresolved failures: {self.unresolved_failures}")
+        logger.info(f"[FAILURE] Unresolved failures: {self.unresolved_failures}")
 
     def resolve_failure(self):
         """Resolve failure"""
         if self.unresolved_failures > 0:
             self.unresolved_failures -= 1
-            print(f"[RESOLVED] Unresolved failures: {self.unresolved_failures}")
+            logger.info(f"[RESOLVED] Unresolved failures: {self.unresolved_failures}")
 
     def clear_queue(self):
         """Clear spawn queue (emergency)"""
         cleared = len(self.spawn_queue)
         self.spawn_queue = []
-        print(f"[EMERGENCY] Spawn queue cleared: {cleared} requests dropped")
+        logger.info(f"[EMERGENCY] Spawn queue cleared: {cleared} requests dropped")
 
     def freeze(self):
         """Freeze spawn controller (no new spawns)"""
-        print("[FREEZE] Spawn controller frozen - all requests will be denied")
+        logger.info("[FREEZE] Spawn controller frozen - all requests will be denied")
         # Note: Actual freeze logic handled by checking system state

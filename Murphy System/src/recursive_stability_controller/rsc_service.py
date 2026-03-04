@@ -10,6 +10,9 @@ from flask import Flask, request, jsonify
 from typing import Dict, Optional
 import time
 
+import logging
+logger = logging.getLogger("recursive_stability_controller.rsc_service")
+
 from .state_variables import StateCollector, StateNormalizer
 from .recursion_energy import RecursionEnergyEstimator, RecursionEnergyCoefficients
 from .stability_score import StabilityScoreCalculator
@@ -77,7 +80,7 @@ class RecursiveStabilityController:
         self.cycle_count = 0
         self.last_control_signal = None
 
-        print("[INIT] Recursive Stability Controller initialized")
+        logger.info("[INIT] Recursive Stability Controller initialized")
 
     def run_control_cycle(self) -> Dict:
         """
@@ -91,13 +94,13 @@ class RecursiveStabilityController:
         # Step 1: Collect state variables
         raw_state = self.state_collector.collect_mock()  # Use mock for now
         if raw_state is None:
-            print("[ERROR] Failed to collect state")
+            logger.info("[ERROR] Failed to collect state")
             return {"error": "Failed to collect state"}
 
         # Step 2: Normalize state
         normalized_state = self.state_normalizer.normalize(raw_state)
         if normalized_state is None:
-            print("[ERROR] Failed to normalize state")
+            logger.info("[ERROR] Failed to normalize state")
             return {"error": "Failed to normalize state"}
 
         # Step 3: Estimate recursion energy
@@ -161,7 +164,7 @@ class RecursiveStabilityController:
         # Step 8: Check for early collapse
         collapse_warning = self.telemetry.detect_early_collapse()
         if collapse_warning:
-            print(f"[WARNING] Early collapse detected: {collapse_warning}")
+            logger.info(f"[WARNING] Early collapse detected: {collapse_warning}")
 
         return {
             "cycle_id": normalized_state.cycle_id,

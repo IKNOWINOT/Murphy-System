@@ -12,6 +12,9 @@ import json
 import time
 from pathlib import Path
 
+import logging
+logger = logging.getLogger("modular_runtime")
+
 # Import gate builder
 from .gate_builder import GateBuilder
 from .system_builder import SystemBuilder
@@ -53,7 +56,7 @@ class Module:
             self.status = ModuleStatus.ACTIVE
 
         except Exception as exc:
-            print(f"Error loading module {self.name}: {exc}")
+            logger.info(f"Error loading module {self.name}: {exc}")
             self.status = ModuleStatus.LOADED
 
     def get_command_signature(self, command_name: str) -> str:
@@ -158,7 +161,7 @@ class ModularRuntime:
                     version: str = "1.0.0", dependencies: List[str] = None):
         """Load a new module into the runtime"""
         if name in self.modules:
-            print(f"Module {name} already loaded")
+            logger.info(f"Module {name} already loaded")
             return
 
         module = Module(
@@ -172,7 +175,7 @@ class ModularRuntime:
         self.modules[name] = module
         self.active_modules[name] = module
         self.help_cache = None  # Invalidate cache
-        print(f"✓ Loaded module: {name} v{version}")
+        logger.info(f"✓ Loaded module: {name} v{version}")
 
     def unload_module(self, name: str):
         """Unload a module from the runtime"""
@@ -180,7 +183,7 @@ class ModularRuntime:
             self.modules[name].status = ModuleStatus.REMOVED
             del self.active_modules[name]
             self.help_cache = None  # Invalidate cache
-            print(f"✗ Unloaded module: {name}")
+            logger.info(f"✗ Unloaded module: {name}")
 
     def pause_module(self, name: str):
         """Pause a module (keep loaded but not active)"""
@@ -188,7 +191,7 @@ class ModularRuntime:
             self.modules[name].status = ModuleStatus.PAUSED
             del self.active_modules[name]
             self.help_cache = None
-            print(f"⏸ Paused module: {name}")
+            logger.info(f"⏸ Paused module: {name}")
 
     def resume_module(self, name: str):
         """Resume a paused module"""
@@ -196,7 +199,7 @@ class ModularRuntime:
             self.modules[name].status = ModuleStatus.ACTIVE
             self.active_modules[name] = self.modules[name]
             self.help_cache = None
-            print(f"▶ Resumed module: {name}")
+            logger.info(f"▶ Resumed module: {name}")
 
     def get_active_commands(self) -> Dict[str, Dict]:
         """Get all active commands from all active modules"""
@@ -285,46 +288,46 @@ class ModularRuntime:
         Returns:
             System architecture and plan
         """
-        print(f"\n{'='*60}")
-        print("Building system from request:")
-        print(f"'{user_request}'")
-        print(f"{'='*60}\n")
+        logger.info(f"\n{'='*60}")
+        logger.info("Building system from request:")
+        logger.info(f"'{user_request}'")
+        logger.info(f"{'='*60}\n")
 
         # Step 1: Analyze the request (non-technical → technical)
         analysis = self._analyze_request(user_request)
-        print("📋 Request Analysis:")
-        print(f"  Intent: {analysis['intent']}")
-        print(f"  Domain: {analysis['domain']}")
-        print(f"  Complexity: {analysis['complexity']}")
-        print()
+        logger.info("📋 Request Analysis:")
+        logger.info(f"  Intent: {analysis['intent']}")
+        logger.info(f"  Domain: {analysis['domain']}")
+        logger.info(f"  Complexity: {analysis['complexity']}")
+        logger.debug("")
 
         # Step 2: Select appropriate modules
         confidence = 0.7  # Start with medium confidence
         selected_modules = self.auto_select_tools(user_request, confidence)
-        print("🔧 Selected Modules:")
+        logger.info("🔧 Selected Modules:")
         for mod in selected_modules:
-            print(f"  ✓ {mod}")
-        print()
+            logger.info(f"  ✓ {mod}")
+        logger.debug("")
 
         # Step 3: Build system architecture
         architecture = self.system_builder.build_architecture(
             analysis,
             selected_modules
         )
-        print("🏗️  System Architecture:")
-        print(f"  Components: {len(architecture['components'])}")
-        print(f"  Layers: {len(architecture['layers'])}")
-        print()
+        logger.info("🏗️  System Architecture:")
+        logger.info(f"  Components: {len(architecture['components'])}")
+        logger.info(f"  Layers: {len(architecture['layers'])}")
+        logger.debug("")
 
         # Step 4: Generate gates
         gates = self.gate_builder.build_gates(
             analysis,
             architecture
         )
-        print("🚧 Safety Gates:")
+        logger.info("🚧 Safety Gates:")
         for gate in gates:
-            print(f"  ⚠️  {gate['name']}: {gate['description']}")
-        print()
+            logger.info(f"  ⚠️  {gate['name']}: {gate['description']}")
+        logger.debug("")
 
         # Step 5: Generate implementation plan
         plan = self._generate_implementation_plan(
@@ -332,11 +335,11 @@ class ModularRuntime:
             gates,
             selected_modules
         )
-        print("📝 Implementation Plan:")
+        logger.info("📝 Implementation Plan:")
         for step in plan['steps']:
-            print(f"  {step['order']}. {step['title']}")
-            print(f"     {step['description']}")
-        print()
+            logger.info(f"  {step['order']}. {step['title']}")
+            logger.info(f"     {step['description']}")
+        logger.debug("")
 
         return {
             "request": user_request,
@@ -459,9 +462,9 @@ class ModularRuntime:
 runtime = ModularRuntime()
 
 if __name__ == "__main__":
-    print("Modular Runtime System v1.0")
-    print("=" * 60)
-    print("\nLoaded Modules:")
+    logger.info("Modular Runtime System v1.0")
+    logger.info("=" * 60)
+    logger.info("\nLoaded Modules:")
     for name, module in runtime.modules.items():
-        print(f"  ✓ {name} - {module.description}")
-    print()
+        logger.info(f"  ✓ {name} - {module.description}")
+    logger.debug("")

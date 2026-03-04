@@ -11,6 +11,9 @@ import json
 from datetime import datetime
 from decimal import Decimal
 
+import logging
+logger = logging.getLogger("constraint_system")
+
 
 class ConstraintType(Enum):
     """Types of constraints"""
@@ -920,7 +923,7 @@ if __name__ == "__main__":
     system = ConstraintSystem()
 
     # Test 1: Add constraints
-    print("=== Test 1: Add Constraints ===")
+    logger.info("=== Test 1: Add Constraints ===")
 
     # Budget constraint
     budget_constraint = system.add_constraint_from_template(
@@ -928,7 +931,7 @@ if __name__ == "__main__":
         priority=9,
         justification="Project budget limit"
     )
-    print(f"Added: {budget_constraint.name}")
+    logger.info(f"Added: {budget_constraint.name}")
 
     # Performance constraint
     perf_constraint = system.add_constraint_from_template(
@@ -936,7 +939,7 @@ if __name__ == "__main__":
         priority=8,
         justification="User experience requirement"
     )
-    print(f"Added: {perf_constraint.name}")
+    logger.info(f"Added: {perf_constraint.name}")
 
     # Regulatory constraint
     reg_constraint = system.add_constraint_from_template(
@@ -944,7 +947,7 @@ if __name__ == "__main__":
         priority=10,
         justification="Legal requirement"
     )
-    print(f"Added: {reg_constraint.name}")
+    logger.info(f"Added: {reg_constraint.name}")
 
     # Architectural constraint
     arch_constraint = system.add_constraint_from_template(
@@ -952,10 +955,10 @@ if __name__ == "__main__":
         priority=8,
         justification="SLA requirement"
     )
-    print(f"Added: {arch_constraint.name}")
+    logger.info(f"Added: {arch_constraint.name}")
 
     # Test 2: Validate constraints
-    print("\n=== Test 2: Validate Constraints ===")
+    logger.info("\n=== Test 2: Validate Constraints ===")
     system_state = {
         "total_cost": 9500,
         "response_time_ms": 180,
@@ -964,41 +967,41 @@ if __name__ == "__main__":
     }
 
     results, warnings = system.validate_constraints(system_state)
-    print(f"Satisfied: {results['satisfied']}")
-    print(f"Violated: {results['violated']}")
-    print(f"Warnings: {results['warnings']}")
-    print(f"Pending: {results['pending']}")
+    logger.info(f"Satisfied: {results['satisfied']}")
+    logger.info(f"Violated: {results['violated']}")
+    logger.info(f"Warnings: {results['warnings']}")
+    logger.info(f"Pending: {results['pending']}")
 
     for warning in warnings:
-        print(f"  - {warning}")
+        logger.info(f"  - {warning}")
 
     # Test 3: Detect conflicts
-    print("\n=== Test 3: Detect Conflicts ===")
+    logger.info("\n=== Test 3: Detect Conflicts ===")
     conflicts = system.detect_conflicts()
-    print(f"Found {len(conflicts)} conflicts")
+    logger.info(f"Found {len(conflicts)} conflicts")
     for conflict in conflicts:
-        print(f"  - {conflict.description}")
+        logger.info(f"  - {conflict.description}")
 
     # Test 4: Prioritize constraints
-    print("\n=== Test 4: Prioritize Constraints ===")
+    logger.info("\n=== Test 4: Prioritize Constraints ===")
     prioritized = system.prioritize_constraints()
-    print("Prioritized order:")
+    logger.info("Prioritized order:")
     for constraint in prioritized:
-        print(f"  {constraint.priority}. {constraint.name} ({constraint.severity.value})")
+        logger.info(f"  {constraint.priority}. {constraint.name} ({constraint.severity.value})")
 
     # Test 5: Analyze impact
-    print("\n=== Test 5: Analyze Impact ===")
+    logger.info("\n=== Test 5: Analyze Impact ===")
     impact = system.analyze_impact(budget_constraint.constraint_id, {})
     if impact:
-        print(f"Impact of {budget_constraint.name}:")
-        print(f"  Type: {impact.impact_type}")
-        print(f"  Level: {impact.impact_level}")
-        print(f"  Affected Components: {', '.join(impact.affected_components)}")
-        print("  Mitigation Strategies:")
+        logger.info(f"Impact of {budget_constraint.name}:")
+        logger.info(f"  Type: {impact.impact_type}")
+        logger.info(f"  Level: {impact.impact_level}")
+        logger.info(f"  Affected Components: {', '.join(impact.affected_components)}")
+        logger.info("  Mitigation Strategies:")
         for strategy in impact.mitigation_strategies:
-            print(f"    - {strategy}")
+            logger.info(f"    - {strategy}")
 
     # Test 6: Generate report
-    print("\n=== Test 6: Generate Report ===")
+    logger.info("\n=== Test 6: Generate Report ===")
     report = system.generate_constraint_report(include_details=False)
-    print(json.dumps(report, indent=2))
+    logger.info(json.dumps(report, indent=2))

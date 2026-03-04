@@ -10,6 +10,9 @@ from pydantic import BaseModel, Field
 import re
 from collections import defaultdict
 
+import logging
+logger = logging.getLogger("confidence_engine.risk.risk_storage")
+
 from src.confidence_engine.risk.risk_database import (
     RiskPattern, RiskCategory, RiskSeverity, RiskLikelihood,
     RiskIncident, MitigationStrategy, RiskDatabase
@@ -523,7 +526,7 @@ class RiskPatternStorage:
                 pattern_id = self.database.add_risk_pattern(pattern)
                 imported_ids.append(pattern_id)
             except Exception as exc:
-                print(f"Error importing pattern: {exc}")
+                logger.info(f"Error importing pattern: {exc}")
                 continue
 
         return imported_ids

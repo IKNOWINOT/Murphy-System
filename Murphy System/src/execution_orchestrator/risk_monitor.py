@@ -16,6 +16,9 @@ Design Principle: Continuous safety monitoring with automatic intervention
 from typing import Dict, List, Optional, Callable
 from datetime import datetime
 
+import logging
+logger = logging.getLogger("execution_orchestrator.risk_monitor")
+
 from .models import (
     RuntimeRisk,
     SafetyState,
@@ -194,7 +197,7 @@ class RuntimeRiskMonitor:
             try:
                 callback(packet_id, conditions)
             except Exception as exc:
-                print(f"Error notifying pause callback: {exc}")
+                logger.info(f"Error notifying pause callback: {exc}")
 
     def calculate_risk_projection(self, packet_id: str, remaining_steps: int) -> float:
         """

@@ -11,6 +11,9 @@ import re
 from datetime import datetime
 import os
 
+import logging
+logger = logging.getLogger("document_processor")
+
 
 class DocumentType(Enum):
     """Types of documents"""
@@ -694,7 +697,7 @@ if __name__ == "__main__":
     processor = DocumentProcessor()
 
     # Test 1: Upload requirements document
-    print("=== Test 1: Upload Requirements Document ===")
+    logger.info("=== Test 1: Upload Requirements Document ===")
     requirements_doc = """
 # System Requirements Document
 
@@ -715,12 +718,12 @@ Requirement: 99.9% uptime required.
         content=requirements_doc,
         document_type="requirements"
     )
-    print(f"Uploaded: {metadata.name}")
-    print(f"Type: {metadata.document_type.value}")
-    print(f"Status: {metadata.status.value}")
+    logger.info(f"Uploaded: {metadata.name}")
+    logger.info(f"Type: {metadata.document_type.value}")
+    logger.info(f"Status: {metadata.status.value}")
 
     # Test 2: Upload design document
-    print("\n=== Test 2: Upload Design Document ===")
+    logger.info("\n=== Test 2: Upload Design Document ===")
     design_doc = """
 # System Design Document
 
@@ -740,45 +743,45 @@ If CPU usage > 80% -> Scale up servers
         content=design_doc,
         document_type="design"
     )
-    print(f"Uploaded: {metadata.name}")
+    logger.info(f"Uploaded: {metadata.name}")
 
     # Test 3: Get document summaries
-    print("\n=== Test 3: Document Summaries ===")
+    logger.info("\n=== Test 3: Document Summaries ===")
     for doc_id in processor.documents:
         summary = processor.get_document_summary(doc_id)
-        print(f"\nDocument: {summary['metadata']['name']}")
-        print(f"  Requirements: {summary['requirements_extracted']}")
-        print(f"  Equipment: {summary['equipment_selected']}")
-        print(f"  Triggers: {summary['triggers_generated']}")
+        logger.info(f"\nDocument: {summary['metadata']['name']}")
+        logger.info(f"  Requirements: {summary['requirements_extracted']}")
+        logger.info(f"  Equipment: {summary['equipment_selected']}")
+        logger.info(f"  Triggers: {summary['triggers_generated']}")
 
     # Test 4: Generate report
-    print("\n=== Test 4: Requirements Report ===")
+    logger.info("\n=== Test 4: Requirements Report ===")
     report = processor.generate_requirements_report()
-    print(f"Total Documents: {report['total_documents']}")
-    print(f"Total Requirements: {report['total_requirements']}")
-    print(f"By Category: {report['by_category']}")
-    print(f"By Priority: {report['by_priority']}")
-    print(f"Total Equipment: {report['total_equipment']}")
-    print(f"Total Cost: ${report['total_equipment_cost']:.2f}/month")
-    print(f"Total Triggers: {report['total_triggers']}")
+    logger.info(f"Total Documents: {report['total_documents']}")
+    logger.info(f"Total Requirements: {report['total_requirements']}")
+    logger.info(f"By Category: {report['by_category']}")
+    logger.info(f"By Priority: {report['by_priority']}")
+    logger.info(f"Total Equipment: {report['total_equipment']}")
+    logger.info(f"Total Cost: ${report['total_equipment_cost']:.2f}/month")
+    logger.info(f"Total Triggers: {report['total_triggers']}")
 
     # Test 5: Show extracted requirements
-    print("\n=== Test 5: Extracted Requirements ===")
+    logger.info("\n=== Test 5: Extracted Requirements ===")
     for req_id, req in processor.requirements.items():
-        print(f"\n{req_id}: {req.text}")
-        print(f"  Category: {req.category}, Priority: {req.priority}")
+        logger.info(f"\n{req_id}: {req.text}")
+        logger.info(f"  Category: {req.category}, Priority: {req.priority}")
 
     # Test 6: Show selected equipment
-    print("\n=== Test 6: Selected Equipment ===")
+    logger.info("\n=== Test 6: Selected Equipment ===")
     for eq_id, eq in processor.equipment.items():
-        print(f"\n{eq_id}: {eq.name}")
-        print(f"  Type: {eq.type}, Cost: ${eq.cost:.2f}")
-        print(f"  Justification: {eq.justification}")
+        logger.info(f"\n{eq_id}: {eq.name}")
+        logger.info(f"  Type: {eq.type}, Cost: ${eq.cost:.2f}")
+        logger.info(f"  Justification: {eq.justification}")
 
     # Test 7: Show generated triggers
-    print("\n=== Test 7: Generated Triggers ===")
+    logger.info("\n=== Test 7: Generated Triggers ===")
     for trigger_id, trigger in processor.triggers.items():
-        print(f"\n{trigger_id}: {trigger.name}")
-        print(f"  Type: {trigger.trigger_type}")
-        print(f"  Condition: {trigger.condition}")
-        print(f"  Action: {trigger.action}")
+        logger.info(f"\n{trigger_id}: {trigger.name}")
+        logger.info(f"  Type: {trigger.trigger_type}")
+        logger.info(f"  Condition: {trigger.condition}")
+        logger.info(f"  Action: {trigger.action}")

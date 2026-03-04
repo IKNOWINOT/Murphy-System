@@ -9,6 +9,9 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 import time
 
+import logging
+logger = logging.getLogger("groq_key_rotator")
+
 
 @dataclass
 class KeyStats:
@@ -78,7 +81,7 @@ class GroqKeyRotator:
                 attempts += 1
 
             # All keys are inactive - reactivate all and try again
-            print("WARNING: All keys inactive, reactivating all keys")
+            logger.info("WARNING: All keys inactive, reactivating all keys")
             for key_stats in self.keys:
                 key_stats.is_active = True
 
@@ -113,7 +116,7 @@ class GroqKeyRotator:
                     # Disable key if too many failures
                     if key_stats.failed_calls >= 3:
                         key_stats.is_active = False
-                        print(f"WARNING: Disabled key '{key_stats.name}' after {key_stats.failed_calls} failures")
+                        logger.info(f"WARNING: Disabled key '{key_stats.name}' after {key_stats.failed_calls} failures")
                     break
 
     def get_statistics(self) -> dict:
@@ -156,7 +159,7 @@ class GroqKeyRotator:
                     key_stats.is_active = True
                     key_stats.failed_calls = 0
                     key_stats.last_error = None
-                    print(f"Reset key '{key_name}'")
+                    logger.info(f"Reset key '{key_name}'")
                     return True
             return False
 
@@ -167,7 +170,7 @@ class GroqKeyRotator:
                 key_stats.is_active = True
                 key_stats.failed_calls = 0
                 key_stats.last_error = None
-            print("Reset all keys")
+            logger.info("Reset all keys")
 
 
 def load_keys_from_file(file_path: str) -> List[tuple]:
@@ -217,7 +220,7 @@ def load_keys_from_secure_storage() -> List[tuple]:
         return keys
 
     except Exception as exc:
-        print(f"Failed to load keys from secure storage: {exc}")
+        logger.info(f"Failed to load keys from secure storage: {exc}")
         raise
 
 
@@ -244,15 +247,15 @@ def get_rotator(use_secure_storage: bool = True, keys_file: str = None) -> GroqK
             if use_secure_storage:
                 # Load from encrypted storage (recommended)
                 keys = load_keys_from_secure_storage()
-                print(f"✅ Loaded {len(keys)} keys from encrypted storage")
+                logger.info(f"✅ Loaded {len(keys)} keys from encrypted storage")
             else:
                 # Fallback to plaintext file (deprecated)
                 if keys_file is None:
                     keys_file = "/workspace/Murphy System Keys.txt"
                 keys = load_keys_from_file(keys_file)
-                print(f"⚠️  Loaded {len(keys)} keys from plaintext file (DEPRECATED)")
+                logger.info(f"⚠️  Loaded {len(keys)} keys from plaintext file (DEPRECATED)")
 
             _rotator_instance = GroqKeyRotator(keys)
-            print(f"Initialized Groq key rotator with {len(keys)} keys")
+            logger.info(f"Initialized Groq key rotator with {len(keys)} keys")
 
         return _rotator_instance

@@ -17,6 +17,9 @@ from dataclasses import dataclass
 from typing import Dict, List
 import numpy as np
 
+import logging
+logger = logging.getLogger("recursive_stability_controller.gate_damping")
+
 
 @dataclass
 class GateSynthesisRequest:
@@ -154,8 +157,8 @@ class GateDampingController:
         # Record in history
         self._record_history(response)
 
-        print(f"[GATE SYNTHESIS] Requested: {request.num_gates}, Allowed: {allowed_gates}")
-        print(f"  {reason}")
+        logger.info(f"[GATE SYNTHESIS] Requested: {request.num_gates}, Allowed: {allowed_gates}")
+        logger.info(f"  {reason}")
 
         return response
 
@@ -167,7 +170,7 @@ class GateDampingController:
             count: Number of gates to retire
         """
         self.current_gate_count = max(0, self.current_gate_count - count)
-        print(f"[GATE RETIRE] Retired {count} gates, current: {self.current_gate_count}")
+        logger.info(f"[GATE RETIRE] Retired {count} gates, current: {self.current_gate_count}")
 
     def get_gate_count(self) -> int:
         """Get current gate count"""
@@ -249,7 +252,7 @@ class GateDampingController:
 
     def halt_synthesis(self):
         """Halt all gate synthesis (emergency)"""
-        print("[HALT] Gate synthesis halted - no new gates allowed")
+        logger.info("[HALT] Gate synthesis halted - no new gates allowed")
         # Note: Actual halt logic handled by returning 0 allowed gates
 
     def reset_count(self, new_count: int = 0):
@@ -261,4 +264,4 @@ class GateDampingController:
         """
         old_count = self.current_gate_count
         self.current_gate_count = new_count
-        print(f"[RESET] Gate count reset: {old_count} → {new_count}")
+        logger.info(f"[RESET] Gate count reset: {old_count} → {new_count}")

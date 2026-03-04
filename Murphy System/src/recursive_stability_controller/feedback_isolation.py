@@ -21,6 +21,9 @@ from dataclasses import dataclass
 from typing import Dict, List, Set, Optional
 from enum import Enum
 
+import logging
+logger = logging.getLogger("recursive_stability_controller.feedback_isolation")
+
 
 class EntityType(Enum):
     """Entity type enumeration"""
@@ -147,7 +150,7 @@ class FeedbackIsolationRouter:
         """
         self.entities[entity.entity_id] = entity
         self.influence[entity.entity_id] = set()
-        print(f"[REGISTER] Entity: {entity.entity_id} ({entity.entity_type.value})")
+        logger.info(f"[REGISTER] Entity: {entity.entity_id} ({entity.entity_type.value})")
 
     def register_artifact(self, artifact: Artifact):
         """
@@ -165,7 +168,7 @@ class FeedbackIsolationRouter:
         else:
             self.influence[artifact.producer_id] = {artifact.artifact_id}
 
-        print(f"[ARTIFACT] {artifact.artifact_id} produced by {artifact.producer_id}")
+        logger.info(f"[ARTIFACT] {artifact.artifact_id} produced by {artifact.producer_id}")
 
     def check_evaluation(
         self,
@@ -187,7 +190,7 @@ class FeedbackIsolationRouter:
 
         # Check if artifact exists
         if artifact_id not in self.lineage:
-            print(f"[WARNING] Unknown artifact: {artifact_id}")
+            logger.info(f"[WARNING] Unknown artifact: {artifact_id}")
             return True, None  # Allow if artifact not tracked
 
         # Get producer
@@ -333,12 +336,12 @@ class FeedbackIsolationRouter:
         """Record isolation violation"""
         self.violations.append(violation)
 
-        print("[VIOLATION] Feedback isolation violated!")
-        print(f"  Type: {violation.violation_type}")
-        print(f"  Evaluator: {violation.evaluator_id}")
-        print(f"  Artifact: {violation.artifact_id}")
-        print(f"  Chain: {' → '.join(violation.influence_chain)}")
-        print(f"  Severity: {violation.severity}")
+        logger.info("[VIOLATION] Feedback isolation violated!")
+        logger.info(f"  Type: {violation.violation_type}")
+        logger.info(f"  Evaluator: {violation.evaluator_id}")
+        logger.info(f"  Artifact: {violation.artifact_id}")
+        logger.info(f"  Chain: {' → '.join(violation.influence_chain)}")
+        logger.info(f"  Severity: {violation.severity}")
 
     def _record_evaluation(self, request: EvaluationRequest, allowed: bool):
         """Record evaluation request"""
@@ -397,4 +400,4 @@ class FeedbackIsolationRouter:
         """Clear lineage graph (use with caution)"""
         self.lineage.clear()
         self.influence.clear()
-        print("[CLEAR] Lineage graph cleared")
+        logger.info("[CLEAR] Lineage graph cleared")
