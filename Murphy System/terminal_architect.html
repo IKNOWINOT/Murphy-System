@@ -581,6 +581,35 @@
         .tab-content.active {
             display: block;
         }
+        /* ── Color Key Legend ────────────────────────────── */
+        .color-key {
+            display: flex;
+            gap: 14px;
+            padding: 4px 15px;
+            background: #0a0a0a;
+            border-bottom: 1px solid #333;
+            font-size: 11px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .color-key-label {
+            color: #666;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-right: 4px;
+        }
+        .color-key-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .color-key-swatch {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
@@ -600,6 +629,15 @@
             <button class="header-btn" onclick="setupProfile('development')">DEV</button>
             <button class="header-btn" onclick="toggleTerminal()">TERM</button>
         </div>
+    </div>
+    <div class="color-key">
+        <span class="color-key-label">Color Key:</span>
+        <span class="color-key-item"><span class="color-key-swatch" style="background:#00FF00"></span><span style="color:#00FF00">System / Success</span></span>
+        <span class="color-key-item"><span class="color-key-swatch" style="background:#00FFFF"></span><span style="color:#00FFFF">User Input</span></span>
+        <span class="color-key-item"><span class="color-key-swatch" style="background:#0088FF"></span><span style="color:#0088FF">Info</span></span>
+        <span class="color-key-item"><span class="color-key-swatch" style="background:#FFFF00"></span><span style="color:#FFFF00">Warning</span></span>
+        <span class="color-key-item"><span class="color-key-swatch" style="background:#FF0000"></span><span style="color:#FF0000">Error</span></span>
+        <span class="color-key-item"><span class="color-key-swatch" style="background:#FF00FF"></span><span style="color:#FF00FF">MFGC Data</span></span>
     </div>
 
     <div class="container">

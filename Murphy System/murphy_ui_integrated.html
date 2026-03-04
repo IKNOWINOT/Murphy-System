@@ -318,6 +318,35 @@
             color: #0a0a0a;
             font-weight: bold;
         }
+        /* ── Color Key Legend ────────────────────────────── */
+        .color-key {
+            display: flex;
+            gap: 14px;
+            padding: 4px 15px;
+            background: #111;
+            border-bottom: 1px solid #333;
+            font-size: 11px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .color-key-label {
+            color: #666;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-right: 4px;
+        }
+        .color-key-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .color-key-swatch {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
@@ -325,6 +354,13 @@
         <div class="header">
             <h1>🚀 Murphy System - Integrated Interface</h1>
             <p>Form-Driven Task Execution with Murphy Validation</p>
+        </div>
+        <div class="color-key">
+            <span class="color-key-label">Color Key:</span>
+            <span class="color-key-item"><span class="color-key-swatch" style="background:#00ff41"></span><span style="color:#00ff41">Success</span></span>
+            <span class="color-key-item"><span class="color-key-swatch" style="background:#00e5ff"></span><span style="color:#00e5ff">Info</span></span>
+            <span class="color-key-item"><span class="color-key-swatch" style="background:#ffc107"></span><span style="color:#ffc107">Warning</span></span>
+            <span class="color-key-item"><span class="color-key-swatch" style="background:#ff4757"></span><span style="color:#ff4757">Error / Danger</span></span>
         </div>
         
         <div class="tabs">
