@@ -27,7 +27,7 @@ class TestCanonicalStateStructure:
         state = CanonicalStateVector()
         dim = state.dimensionality()
         assert isinstance(dim, int)
-        assert dim == 17  # Exact expected dimensionality
+        assert dim == 25  # Exact expected dimensionality (expanded from 17 to 25)
 
     def test_state_vector_is_pydantic(self):
         """GAP: State was dataclasses. Closed when CanonicalStateVector is a BaseModel."""

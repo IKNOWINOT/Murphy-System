@@ -93,8 +93,8 @@ class TestCanonicalStateVector(unittest.TestCase):
     def test_dimensionality_is_tracked(self):
         """dim(x_t) is a tracked integer."""
         sv = CanonicalStateVector()
-        self.assertEqual(sv.dimensionality(), 17)
-        self.assertEqual(len(_DIMENSION_NAMES), 17)
+        self.assertEqual(sv.dimensionality(), 25)
+        self.assertEqual(len(_DIMENSION_NAMES), 25)
 
     def test_to_vector_and_back(self):
         """Roundtrip: to_vector → from_vector preserves values."""
@@ -117,13 +117,13 @@ class TestCanonicalStateVector(unittest.TestCase):
         names = CanonicalStateVector.dimension_names()
         self.assertEqual(names[0], "confidence")
         self.assertEqual(names[3], "phase_index")
-        self.assertEqual(len(names), 17)
+        self.assertEqual(len(names), 25)
 
     def test_covariance_diagonal_default(self):
         """Per-variable uncertainty produces heuristic covariance diagonal."""
         sv = CanonicalStateVector(uncertainty_data=0.5, uncertainty_authority=0.8)
         cov = sv.covariance_diagonal()
-        self.assertEqual(len(cov), 17)
+        self.assertEqual(len(cov), 25)
         # Higher uncertainty → higher variance
         self.assertGreater(cov[0], 0.0)  # confidence variance
         self.assertTrue(all(v > 0 for v in cov))
@@ -131,7 +131,7 @@ class TestCanonicalStateVector(unittest.TestCase):
     def test_covariance_diagonal_explicit(self):
         """Explicit variances override heuristic defaults."""
         sv = CanonicalStateVector()
-        variances = [0.1] * 17
+        variances = [0.1] * 25
         cov = sv.covariance_diagonal(variances)
         self.assertEqual(cov, variances)
 
@@ -156,16 +156,16 @@ class TestDimensionRegistry(unittest.TestCase):
     """Audit §VII — Mechanism for adding state dimensions with versioning."""
 
     def test_initial_dimensions(self):
-        """Registry starts with all 17 canonical dimensions."""
+        """Registry starts with all 25 canonical dimensions."""
         reg = DimensionRegistry()
-        self.assertEqual(reg.size, 17)
+        self.assertEqual(reg.size, 25)
         self.assertEqual(reg.version, 1)
 
     def test_register_new_dimension(self):
         """Adding a dimension increments version and size."""
         reg = DimensionRegistry()
         reg.register_dimension("custom_metric", dtype="float", bounds=(0.0, 100.0))
-        self.assertEqual(reg.size, 18)
+        self.assertEqual(reg.size, 26)
         self.assertEqual(reg.version, 2)
         self.assertTrue(reg.has_dimension("custom_metric"))
 
@@ -183,7 +183,7 @@ class TestStateTransition(unittest.TestCase):
         """x_{t+1} = x_t + u_t  (no noise)."""
         f = StateTransitionFunction(noise=ProcessNoise.zero())
         state = CanonicalStateVector(confidence=0.5, authority=0.3)
-        control = [0.0] * 17
+        control = [0.0] * 25
         control[0] = 0.1  # bump confidence
         next_state = f.transition(state, control, add_noise=False)
         self.assertAlmostEqual(next_state.confidence, 0.6)
@@ -192,7 +192,7 @@ class TestStateTransition(unittest.TestCase):
         """State is clamped to valid bounds after transition."""
         f = StateTransitionFunction(noise=ProcessNoise.zero())
         state = CanonicalStateVector(confidence=0.95)
-        control = [0.0] * 17
+        control = [0.0] * 25
         control[0] = 0.2  # would push confidence to 1.15
         next_state = f.transition(state, control, add_noise=False)
         self.assertAlmostEqual(next_state.confidence, 1.0)
@@ -201,7 +201,7 @@ class TestStateTransition(unittest.TestCase):
         """Predict rolls out multiple deterministic steps."""
         f = StateTransitionFunction(noise=ProcessNoise.zero())
         state = CanonicalStateVector(confidence=0.1)
-        control = [0.0] * 17
+        control = [0.0] * 25
         control[0] = 0.1
         trajectory = f.predict(state, control, horizon=3)
         self.assertEqual(len(trajectory), 3)
@@ -220,7 +220,7 @@ class TestStateTransition(unittest.TestCase):
         noise = ProcessNoise(variances=tuple(0.1 for _ in _DIMENSION_NAMES))
         f = StateTransitionFunction(noise=noise)
         state = CanonicalStateVector(confidence=0.5)
-        control = [0.0] * 17
+        control = [0.0] * 25
         results = set()
         for _ in range(10):
             ns = f.transition(state, control, add_noise=True)
@@ -457,7 +457,7 @@ class TestControlLaw(unittest.TestCase):
         target = CanonicalStateVector(confidence=1.0)
         current = CanonicalStateVector(confidence=0.5)
         control = law.compute_control(target, current)
-        self.assertEqual(len(control), 17)
+        self.assertEqual(len(control), 25)
 
     def test_suggest_action(self):
         """suggest_action returns a valid ControlVector."""
@@ -511,10 +511,10 @@ class TestStability(unittest.TestCase):
     def test_lyapunov_gradient(self):
         """Gradient ∂V/∂x is computed correctly."""
         eq = CanonicalStateVector(confidence=1.0)
-        lyap = LyapunovFunction(eq, weights=[1.0] * 17)
+        lyap = LyapunovFunction(eq, weights=[1.0] * 25)
         state = CanonicalStateVector(confidence=0.5)
         grad = lyap.gradient(state)
-        self.assertEqual(len(grad), 17)
+        self.assertEqual(len(grad), 25)
         # ∂V/∂confidence = 2 × 1.0 × (0.5 - 1.0) = -1.0
         self.assertAlmostEqual(grad[0], -1.0)
 
@@ -535,7 +535,7 @@ class TestStability(unittest.TestCase):
     def test_positive_definite_check(self):
         """Weight matrix is positive definite."""
         eq = CanonicalStateVector()
-        lyap = LyapunovFunction(eq, weights=[1.0] * 17)
+        lyap = LyapunovFunction(eq, weights=[1.0] * 25)
         self.assertTrue(lyap.is_positive_definite())
 
 

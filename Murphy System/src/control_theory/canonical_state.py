@@ -31,6 +31,15 @@ _DIMENSION_NAMES: List[str] = [
     "uptime_seconds",
     "active_tasks",
     "cpu_usage_percent",
+    # Extended dimensions (added in v1.1.0)
+    "response_latency",
+    "domain_coverage",
+    "constraint_violation_count",
+    "delegation_depth",
+    "feedback_recency",
+    "observation_staleness",
+    "llm_confidence_aggregate",
+    "escalation_pending_count",
 ]
 
 
@@ -43,23 +52,31 @@ class CanonicalStateVector(BaseModel):
     LivingDocument into a single versioned, serialisable model.
 
     Numeric dimensions (in canonical order):
-        1.  confidence            [0.0, 1.0]
-        2.  authority             [0.0, 1.0]
-        3.  murphy_index          [0.0, 1.0]
-        4.  phase_index           [0, 6]
-        5.  complexity            [0.0, 1.0]
-        6.  domain_depth          [0, ∞)
-        7.  gate_count            [0, ∞)
-        8.  active_constraints    [0, ∞)
-        9.  artifact_count        [0, ∞)
-        10. uncertainty_data      [0.0, 1.0]  (UD)
-        11. uncertainty_authority [0.0, 1.0]  (UA)
-        12. uncertainty_information [0.0, 1.0] (UI)
-        13. uncertainty_resources [0.0, 1.0]  (UR)
-        14. uncertainty_disagreement [0.0, 1.0] (UG)
-        15. uptime_seconds        [0.0, ∞)
-        16. active_tasks          [0, ∞)
-        17. cpu_usage_percent     [0.0, ∞)
+        1.  confidence                  [0.0, 1.0]
+        2.  authority                   [0.0, 1.0]
+        3.  murphy_index                [0.0, 1.0]
+        4.  phase_index                 [0, 6]
+        5.  complexity                  [0.0, 1.0]
+        6.  domain_depth                [0, ∞)
+        7.  gate_count                  [0, ∞)
+        8.  active_constraints          [0, ∞)
+        9.  artifact_count              [0, ∞)
+        10. uncertainty_data            [0.0, 1.0]  (UD)
+        11. uncertainty_authority       [0.0, 1.0]  (UA)
+        12. uncertainty_information     [0.0, 1.0] (UI)
+        13. uncertainty_resources       [0.0, 1.0]  (UR)
+        14. uncertainty_disagreement    [0.0, 1.0] (UG)
+        15. uptime_seconds              [0.0, ∞)
+        16. active_tasks                [0, ∞)
+        17. cpu_usage_percent           [0.0, ∞)
+        18. response_latency            [0.0, ∞)   seconds
+        19. domain_coverage             [0.0, 1.0]
+        20. constraint_violation_count  [0, ∞)
+        21. delegation_depth            [0, ∞)
+        22. feedback_recency            [0.0, ∞)   seconds since last feedback
+        23. observation_staleness       [0.0, ∞)   seconds since last observation
+        24. llm_confidence_aggregate    [0.0, 1.0]
+        25. escalation_pending_count    [0, ∞)
     """
 
     # ------------------------------------------------------------------ #
@@ -82,6 +99,15 @@ class CanonicalStateVector(BaseModel):
     uptime_seconds: float = Field(default=0.0, ge=0.0)
     active_tasks: int = Field(default=0, ge=0)
     cpu_usage_percent: float = Field(default=0.0, ge=0.0)
+    # Extended dimensions (v1.1.0)
+    response_latency: float = Field(default=0.0, ge=0.0)
+    domain_coverage: float = Field(default=0.0, ge=0.0, le=1.0)
+    constraint_violation_count: int = Field(default=0, ge=0)
+    delegation_depth: int = Field(default=0, ge=0)
+    feedback_recency: float = Field(default=0.0, ge=0.0)
+    observation_staleness: float = Field(default=0.0, ge=0.0)
+    llm_confidence_aggregate: float = Field(default=0.0, ge=0.0, le=1.0)
+    escalation_pending_count: int = Field(default=0, ge=0)
 
     # ------------------------------------------------------------------ #
     # Metadata (not part of numeric vector)
@@ -105,6 +131,8 @@ class CanonicalStateVector(BaseModel):
         "uncertainty_information",
         "uncertainty_resources",
         "uncertainty_disagreement",
+        "domain_coverage",
+        "llm_confidence_aggregate",
     )
 
     @field_validator(*_PROBABILITY_FIELDS, mode="before")
@@ -127,7 +155,8 @@ class CanonicalStateVector(BaseModel):
             return 0
         return max(0, min(6, v))
 
-    @field_validator("domain_depth", "gate_count", "active_constraints", "artifact_count", "active_tasks", mode="before")
+    @field_validator("domain_depth", "gate_count", "active_constraints", "artifact_count", "active_tasks",
+                     "constraint_violation_count", "delegation_depth", "escalation_pending_count", mode="before")
     @classmethod
     def clamp_non_negative_int(cls, v: int) -> int:
         """Ensure non-negative integer counts."""
@@ -137,7 +166,8 @@ class CanonicalStateVector(BaseModel):
             return 0
         return max(0, v)
 
-    @field_validator("uptime_seconds", "cpu_usage_percent", mode="before")
+    @field_validator("uptime_seconds", "cpu_usage_percent",
+                     "response_latency", "feedback_recency", "observation_staleness", mode="before")
     @classmethod
     def clamp_non_negative_float(cls, v: float) -> float:
         """Ensure non-negative floats."""
@@ -156,7 +186,7 @@ class CanonicalStateVector(BaseModel):
         return list(_DIMENSION_NAMES)
 
     def dimensionality(self) -> int:
-        """Return the number of numeric state dimensions (17)."""
+        """Return the number of numeric state dimensions (25)."""
         return len(_DIMENSION_NAMES)
 
     def to_vector(self) -> List[float]:
@@ -179,6 +209,14 @@ class CanonicalStateVector(BaseModel):
             float(self.uptime_seconds),
             float(self.active_tasks),
             float(self.cpu_usage_percent),
+            float(self.response_latency),
+            float(self.domain_coverage),
+            float(self.constraint_violation_count),
+            float(self.delegation_depth),
+            float(self.feedback_recency),
+            float(self.observation_staleness),
+            float(self.llm_confidence_aggregate),
+            float(self.escalation_pending_count),
         ]
 
     @classmethod
@@ -272,6 +310,14 @@ class CanonicalStateVector(BaseModel):
             base,                                          # uptime_seconds
             base,                                          # active_tasks
             base,                                          # cpu_usage_percent
+            base,                                          # response_latency
+            base,                                          # domain_coverage
+            base,                                          # constraint_violation_count
+            base,                                          # delegation_depth
+            base,                                          # feedback_recency
+            base,                                          # observation_staleness
+            self.uncertainty_data * u_scale + base,        # llm_confidence_aggregate
+            base,                                          # escalation_pending_count
         ]
 
 
