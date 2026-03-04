@@ -401,8 +401,6 @@ class Plan(BaseModel):
         ]
         return critical_path
 
-        # Build adjacency list from finish-to-start dependencies.
-    
     def get_completion_percentage(self) -> float:
         """Get plan completion percentage"""
         if not self.tasks:
