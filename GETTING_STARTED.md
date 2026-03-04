@@ -514,9 +514,10 @@ archive.externalize_to_platform(
 )
 
 # Later: retrieve by time period (includes external VOD refs)
+now = datetime.now(timezone.utc)
 refs = archive.find_externalized_for_period(
-    start="2026-02-01T00:00:00+00:00",
-    end="2026-03-01T00:00:00+00:00",
+    start=(now - timedelta(days=30)).isoformat(),
+    end=now.isoformat(),
 )
 # refs = [{"platform": "youtube", "url": "...", "time_range_start": "...", ...}]
 ```
