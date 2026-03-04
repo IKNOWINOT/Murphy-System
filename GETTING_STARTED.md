@@ -1,479 +1,240 @@
-# Getting Started with Murphy System 1.0
+# Getting Started with Murphy System
 
-This guide will help you get Murphy System running in less than 5 minutes.
+A complete guide to installing, launching, and using Murphy System — from zero to running in one command.
 
 ---
 
-## 🚀 One-Command Setup & Start (Recommended)
+## 1. Quick Start
 
-After cloning the repository, run **one command** from the repo root:
+### One-Command Setup (Linux / macOS)
+
+From the repository root:
 
 ```bash
-# Linux / macOS
 bash setup_and_start.sh
 ```
 
+This script checks prerequisites (Python 3.10+), creates a virtual environment, installs all dependencies, configures your environment, and starts the system.
+
+### Windows
+
 ```cmd
-REM Windows
 setup_and_start.bat
 ```
 
-This single script:
-1. ✓ Checks prerequisites (Python 3.10+, pip)
-2. ✓ Creates (or reuses) a Python virtual environment
-3. ✓ Installs **all** dependencies — main, optional, and extras
-4. ✓ Configures `.env` (onboard LLM — no API key needed)
-5. ✓ Creates runtime directories
-6. ✓ Starts Murphy (backend server **or** terminal UI — your choice)
-
-No manual activation, no missing packages, no platform-specific errors.
-
----
-
-## 🌐 Remote One-Line Install
-
-If you haven't cloned the repo yet:
+### Remote Install (no clone required)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/IKNOWINOT/Murphy-System/main/install.sh | bash
 ```
 
-This downloads Murphy, creates a virtual environment, installs all dependencies, and sets up the `murphy` CLI. Then start automating:
+### Manual Setup
 
 ```bash
-murphy start          # Start in foreground
-murphy start -d       # Start as background daemon
-murphy status         # Check health
-murphy stop           # Stop daemon
-```
-
-Install to a custom directory:
-```bash
-curl -fsSL https://raw.githubusercontent.com/IKNOWINOT/Murphy-System/main/install.sh | bash -s -- /opt/murphy
-```
-
----
-
-## What Works ✅
-- ✅ 583 source modules across 54 packages
-- ✅ 7,924 tests passing (345 test files)
-- ✅ One-line installer and CLI tool
-- ✅ Startup scripts for Linux/Mac/Windows
-- ✅ Main runtime file is complete
-- ✅ Universal Control Plane architecture implemented
-- ✅ Integration Engine code present
-- ✅ Business Automation engines coded
-- ✅ 45-category code-quality audit — zero gaps remaining
-
----
-
-## 📋 Manual Setup (Alternative)
-
-### Prerequisites
-
-1. **Python 3.11+** (required)
-   ```bash
-   python3 --version  # Must show 3.11 or higher
-   ```
-
-2. **Git** (to clone if needed)
-   ```bash
-   git --version
-   ```
-
-### Step 1: Navigate to Murphy Integrated
-
-```bash
+# Requires Python 3.10+
+pip install -r requirements.txt
 cd "Murphy System"
+python murphy_system_1.0_runtime.py
 ```
 
-### Step 2: Install Dependencies
+The REST API server starts on **http://localhost:8000**. Confirm it is running:
 
 ```bash
-# Create virtual environment (recommended)
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Upgrade pip
-pip install --upgrade pip
-
-# Install dependencies
-pip install -r requirements_murphy_1.0.txt
+curl http://localhost:8000/api/health
 ```
-
-**Expected time:** 3-5 minutes (downloads packages)
-
-### Step 3: Create Configuration File
-
-Create a `.env` file in the `Murphy System` directory:
-
-```bash
-# Copy this template and save as .env
-
-# ============= MURPHY SYSTEM CONFIGURATION =============
-
-# Core Configuration
-MURPHY_VERSION=1.0.0
-MURPHY_ENV=development
-MURPHY_PORT=8000
-
-# LLM API Keys (at least one required for AI features)
-# Get free API key from: https://console.groq.com
-GROQ_API_KEY=your_groq_api_key_here
-
-# Optional: OpenAI (for advanced features)
-# OPENAI_API_KEY=your_openai_key_here
-
-# Optional: Anthropic Claude
-# ANTHROPIC_API_KEY=your_anthropic_key_here
-
-# Database (Optional - SQLite used if not provided)
-# DATABASE_URL=postgresql://user:pass@localhost:5432/murphy
-# For development, SQLite is auto-created (no config needed)
-
-# Cache (Optional - in-memory cache used if not provided)
-# REDIS_URL=redis://localhost:6379
-
-# Security (Auto-generated if not provided)
-# JWT_SECRET=your-secret-key-here
-# ENCRYPTION_KEY=your-encryption-key-here
-
-# ============= OPTIONAL INTEGRATIONS =============
-
-# GitHub (for repository integration features)
-# GITHUB_TOKEN=your_github_token_here
-
-# Payment Processing (for business automation)
-# STRIPE_API_KEY=your_stripe_key_here
-# PAYPAL_CLIENT_ID=your_paypal_id_here
-# PAYPAL_CLIENT_SECRET=your_paypal_secret_here
-
-# Email (for marketing automation)
-# SENDGRID_API_KEY=your_sendgrid_key_here
-# AWS_SES_ACCESS_KEY=your_aws_key_here
-# AWS_SES_SECRET_KEY=your_aws_secret_here
-
-# CRM (for sales automation)
-# SALESFORCE_TOKEN=your_salesforce_token_here
-# HUBSPOT_API_KEY=your_hubspot_key_here
-
-# ============= END CONFIGURATION =============
-```
-
-**Minimum required:** Just set `GROQ_API_KEY` for basic functionality.
-
-### Step 4: Start Murphy
-
-```bash
-# Make script executable (Linux/Mac only)
-chmod +x start_murphy_1.0.sh
-
-# Start Murphy
-./start_murphy_1.0.sh  # Linux/Mac
-# OR
-start_murphy_1.0.bat   # Windows
-```
-
-### Step 5: Verify It's Running
-
-Open your browser and visit:
-- **API Docs:** http://localhost:8000/docs
-- **Health Check:** http://localhost:8000/api/health
-- **System Status:** http://localhost:8000/api/status
 
 ---
 
-## 🔑 Getting API Keys
+## 2. What You Get
 
-### Free Option: Groq (Recommended for Getting Started)
+Murphy System ships with four interface layers. All are available out of the box.
 
-1. Visit https://console.groq.com
-2. Sign up for free account
-3. Create an API key
-4. Add to `.env`: `GROQ_API_KEY=gsk_...`
+| Interface | Entry Point | Description |
+|-----------|-------------|-------------|
+| **REST API** | `murphy_system_1.0_runtime.py` (port 8000) | 70+ endpoints, Swagger docs at `/docs` |
+| **Terminal UI** | `murphy_terminal.py` | Conversational TUI (requires `textual`) |
+| **Web UIs** | Static HTML files (open in browser) | Dashboards, wizards, and terminal views |
+| **Setup Wizard CLI** | Python one-liner (see §6) | Guided first-time configuration |
 
-**Why Groq?** 
-- Free tier available
-- Fast inference
-- Good for development
-- Works with Murphy out of the box
-
-### Alternative: OpenAI
-
-1. Visit https://platform.openai.com
-2. Create account and add payment method
-3. Create API key
-4. Add to `.env`: `OPENAI_API_KEY=sk-...`
+Under the hood: 583 source modules across 54 packages, 155+ gap-closure tests, and 14 audit categories all at zero. Project configuration (pytest, mypy, ruff) lives in `pyproject.toml`.
 
 ---
 
-## 📋 What Can You Do Right Now?
+## 3. Using the REST API
 
-Once Murphy is running, you can:
+The FastAPI server exposes 70+ endpoints under `/api/`. Interactive documentation is available at **http://localhost:8000/docs** once the server is running.
 
-### 1. Check System Status
+### Key Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/health` | GET | Health check |
+| `/api/status` | GET | System status and loaded components |
+| `/api/execute` | POST | Execute a task |
+| `/api/chat` | POST | Conversational interface |
+| `/api/forms/*` | various | Dynamic form management |
+| `/api/onboarding/wizard/*` | various | Guided onboarding flow |
+| `/api/librarian/*` | various | Knowledge-base operations |
+| `/api/documents/*` | various | Document management |
+| `/api/integrations/*` | various | Third-party integrations |
+| `/api/llm/*` | various | LLM configuration and queries |
+
+### Examples
+
+**Check system status:**
 
 ```bash
 curl http://localhost:8000/api/status
 ```
 
-Returns Murphy's current state and loaded components.
-
-### 2. Execute a Simple Task
+**Execute a task:**
 
 ```bash
 curl -X POST http://localhost:8000/api/execute \
   -H "Content-Type: application/json" \
-  -d '{
-    "task_description": "What is the capital of France?",
-    "task_type": "query"
-  }'
+  -d '{"task_description": "Summarize quarterly sales data", "task_type": "query"}'
 ```
 
-### 3. Add a GitHub Integration (Advanced)
+**Chat with Murphy:**
 
 ```bash
-curl -X POST http://localhost:8000/api/integrations/add \
+curl -X POST http://localhost:8000/api/chat \
   -H "Content-Type: application/json" \
-  -d '{
-    "source": "https://github.com/requests/requests",
-    "category": "http-library"
-  }'
+  -d '{"message": "What integrations are available?"}'
 ```
-
-Note: Requires `GITHUB_TOKEN` in `.env` for private repos.
 
 ---
 
-## 🐛 Troubleshooting
+## 4. Using the Web UIs
 
-### Issue: "FastAPI not installed"
+Open any of the following HTML files directly in a browser. They connect to the REST API on port 8000.
 
-**Solution:**
+| File | Purpose |
+|------|---------|
+| `onboarding_wizard.html` | No-code setup wizard — configure Murphy without touching config files |
+| `murphy_landing_page.html` | Control-plane dashboard — system overview and navigation |
+| `murphy_ui_integrated.html` | Integrated management interface — unified admin panel |
+| `terminal_architect.html` | Architect terminal — system design and planning |
+| `terminal_worker.html` | Worker terminal — task execution and monitoring |
+| `terminal_integrated.html` | Full integrated terminal — combined architect + worker view |
+| `terminal_enhanced.html` | Enhanced terminal — advanced features and output formatting |
+
+All files are located inside the `Murphy System/` directory. Example:
+
 ```bash
-pip install fastapi uvicorn pydantic
-```
-
-### Issue: "No module named 'pydantic'"
-
-**Solution:**
-```bash
-pip install -r requirements_murphy_1.0.txt
-```
-
-### Issue: "Port 8000 already in use"
-
-**Solution:** Change port in `.env`:
-```bash
-MURPHY_PORT=7777
-```
-
-### Issue: "Python version too old"
-
-**Current version:** Check with `python3 --version`  
-**Required:** 3.11 or higher
-
-**Solution:**
-```bash
-# Ubuntu/Debian
-sudo apt install python3.11
-
 # macOS
-brew install python@3.11
+open "Murphy System/onboarding_wizard.html"
+
+# Linux
+xdg-open "Murphy System/onboarding_wizard.html"
 
 # Windows
-# Download from python.org
+start "Murphy System\onboarding_wizard.html"
 ```
 
-### Issue: "API key not working"
-
-**Check:**
-1. Is the `.env` file in the `Murphy System` directory?
-2. Is the key in the correct format? (starts with `gsk_` for Groq)
-3. Did you restart Murphy after adding the key?
+Make sure the REST API server is running before using the web UIs.
 
 ---
 
-## 📦 What's Actually Included
+## 5. Using the Terminal UI
 
-### Core System ✅
-- **583 source modules** across 54 packages (209,701 lines of Python)
-- **Control Plane:** Universal automation engine
-- **Integration Engine:** GitHub ingestion with safety
-- **Business Automation:** 5 engines (sales, marketing, R&D, etc.)
-- **Two-Phase System:** Setup → Execute pattern
-- **Code Quality:** 45-category static audit — zero gaps
+The Textual-based TUI provides a natural-language conversational interface in your terminal.
 
-### Tests ✅
-- **345 test files** with **8,350 test functions**
-- Gap-closure tests (rounds 3–12) verify code quality across all 583 source files
-- Commissioning, integration, and unit tests for all subsystems
+```bash
+cd "Murphy System"
+python murphy_terminal.py
+```
 
-### Documentation 📚
-- Complete API documentation (auto-generated at /docs)
-- Architecture map and dependency graph
-- User manual and deployment guide
-- 10+ comprehensive docs
-
-### What's NOT Included ⚠️
-- **Database:** Uses SQLite by default (PostgreSQL optional)
-- **Cache:** Uses in-memory cache (Redis optional)
-- **API Keys:** You must provide your own
-- **Training Data:** Shadow agent needs your corrections to learn
-- **External Integrations:** GitHub, Stripe, etc. require your accounts
+> **Note:** The `textual` package is an optional dependency. If it is not installed, add it with:
+> ```bash
+> pip install textual
+> ```
 
 ---
 
-## 🎯 Minimal Working Setup
+## 6. Using the Setup Wizard
 
-To get Murphy running with **minimal features**:
+For guided first-time configuration, run the CLI setup wizard:
 
-1. ✅ Python 3.11+
-2. ✅ Dependencies installed (`pip install -r requirements_murphy_1.0.txt`)
-3. ✅ One API key (Groq free tier works)
-4. ✅ .env file with `GROQ_API_KEY`
+```bash
+python -c "from src.setup_wizard import run_cli; run_cli()"
+```
 
-**That's it!** Everything else is optional.
-
----
-
-## 🔐 Security Notes
-
-### Development vs Production
-
-The instructions above are for **development/testing** only.
-
-For **production deployment**, you need:
-- ✅ Proper database (PostgreSQL recommended)
-- ✅ Redis for caching
-- ✅ Strong JWT secret
-- ✅ Encryption keys
-- ✅ HTTPS/SSL certificates
-- ✅ Firewall rules
-- ✅ Monitoring setup
-
-See [DEPLOYMENT_GUIDE.md](Murphy%20System/DEPLOYMENT_GUIDE.md) for production setup.
+The wizard walks you through environment configuration, API key setup, and initial system preferences.
 
 ---
 
-## 📊 Expected Performance
+## 7. Use Cases
 
-### Development Setup (This Guide)
-- **Startup time:** <10 seconds
-- **API response:** <500ms
-- **Memory usage:** ~200MB
-- **Concurrent users:** 1-5
+Murphy System is a general-purpose automation platform. Common applications include:
 
-### Production Setup (With Database/Redis)
-- **Startup time:** <5 seconds
-- **API response:** <100ms p95
-- **Memory usage:** ~500MB
-- **Concurrent users:** 100+
-- **Throughput:** 1000+ req/s
+- **Business Automation** — Sales pipelines, marketing campaigns, reporting workflows, and CRM integration.
+- **Self-Integration** — Ingest and connect external repositories, APIs, and services through the integration engine.
+- **Content Creation** — Generate, review, and manage documents and knowledge-base articles using the LLM and librarian subsystems.
+- **Manufacturing & Operations** — Model production workflows, track execution, and automate operational tasks end-to-end.
+
+Combine the REST API with the web dashboards and terminal UIs to build workflows tailored to your domain.
 
 ---
 
-## 🆘 Still Having Issues?
+## 8. Troubleshooting
 
-### Quick Diagnostics
+### Port 8000 already in use
 
-Run this to check your setup:
+Another process is occupying the default port. Either stop that process or set a different port:
+
+```bash
+MURPHY_PORT=7777 python murphy_system_1.0_runtime.py
+```
+
+### `ModuleNotFoundError` on startup
+
+Dependencies are missing. Install them from the repository root:
+
+```bash
+pip install -r requirements.txt
+```
+
+### Python version too old
+
+Murphy requires **Python 3.10 or higher**. Check your version:
+
+```bash
+python3 --version
+```
+
+Upgrade via your system package manager or download from [python.org](https://www.python.org/downloads/).
+
+### Terminal UI fails to launch
+
+The `textual` package may not be installed:
+
+```bash
+pip install textual
+```
+
+### Quick diagnostic script
 
 ```bash
 cd "Murphy System"
 python3 -c "
 import sys
 print(f'Python: {sys.version}')
-try:
-    import fastapi
-    print('✓ FastAPI installed')
-except:
-    print('✗ FastAPI missing - run: pip install fastapi')
-try:
-    import pydantic
-    print('✓ Pydantic installed')
-except:
-    print('✗ Pydantic missing - run: pip install pydantic')
-try:
-    import uvicorn
-    print('✓ Uvicorn installed')
-except:
-    print('✗ Uvicorn missing - run: pip install uvicorn')
+for mod in ['fastapi', 'uvicorn', 'pydantic']:
+    try:
+        __import__(mod)
+        print(f'  ✓ {mod}')
+    except ImportError:
+        print(f'  ✗ {mod} — run: pip install {mod}')
 "
 ```
 
-### Common Solutions
-
-1. **Dependencies missing:** `pip install -r requirements_murphy_1.0.txt`
-2. **Old Python version:** Upgrade to 3.11+
-3. **Port in use:** Change `MURPHY_PORT` in .env
-4. **API key issues:** Check .env file location and format
-
-### Get Help
-
-- **GitHub Issues:** Report bugs or ask questions
-- **Documentation:** Check other .md files in the repository
-- **Examples:** See `demo_murphy.py` for code examples
-
 ---
 
-## ✅ Success Checklist
+## 9. Next Steps
 
-Before moving forward, verify:
-
-- [ ] Python 3.11+ installed
-- [ ] Dependencies installed (no import errors)
-- [ ] .env file created with GROQ_API_KEY
-- [ ] Murphy starts without errors
-- [ ] Can access http://localhost:8000/docs
-- [ ] Health check returns {"status": "healthy"}
-
-If all checked ✅, you're ready to use Murphy!
-
----
-
-## 🎉 Next Steps
-
-Once Murphy is running:
-
-1. **Explore API Docs:** http://localhost:8000/docs
-2. **Try Examples:** Run `python3 demo_murphy.py`
-3. **Read Specification:** [MURPHY_SYSTEM_1.0_SPECIFICATION.md](Murphy%20System/MURPHY_SYSTEM_1.0_SPECIFICATION.md)
-4. **Add Integrations:** Try adding a GitHub repo
-5. **Run Automation:** Test business automation engines
-6. **Launch Automation:** Follow the [Launch Automation Plan](<Murphy System/docs/LAUNCH_AUTOMATION_PLAN.md>) to automate Murphy's own launch
-7. **Operations & Testing:** Use the [Operations, Testing & Iteration Plan](<Murphy System/docs/OPERATIONS_TESTING_PLAN.md>) for systematic verification
-8. **Review Gap Analysis:** See [Gap Analysis](<Murphy System/docs/GAP_ANALYSIS.md>) for what works vs what needs fixing
-9. **Follow Remediation Plan:** See [Remediation Plan](<Murphy System/docs/REMEDIATION_PLAN.md>) for concrete next steps
-
----
-
-## 💡 Pro Tips
-
-1. **Start Simple:** Get basic task execution working first
-2. **Add API Keys Gradually:** Start with just Groq, add others as needed
-3. **Monitor Logs:** Check console output for warnings
-4. **Use Virtual Environment:** Keeps dependencies isolated
-5. **Read Error Messages:** Murphy provides helpful error messages
-
----
-
-## 📝 Summary
-
-**Question:** "Is it lacking anything to try and use now?"
-
-**Answer:** The code is complete, but you need:
-
-1. ✅ **Install dependencies** (5 minutes): `pip install -r requirements_murphy_1.0.txt`
-2. ✅ **Create .env file** (2 minutes): Add `GROQ_API_KEY` 
-3. ✅ **Start Murphy** (1 minute): `./start_murphy_1.0.sh`
-
-**Total time to first run:** ~10 minutes
-
-Everything else (database, Redis, additional integrations) is optional for getting started.
-
----
-
-**Created:** February 9, 2026  
-**Last Updated:** February 26, 2026  
-**Status:** Ready to use with setup steps above
+- **Explore the API** — Browse all 70+ endpoints at http://localhost:8000/docs.
+- **Try the onboarding wizard** — Open `onboarding_wizard.html` or run the CLI wizard for guided setup.
+- **Read the docs** — See the [`docs/`](docs/) directory for architecture details, deployment guides, and audit reports.
+- **Run the tests** — Execute `pytest` from the repository root to verify your installation (155+ gap-closure tests).
+- **Contribute** — Read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on submitting changes.
