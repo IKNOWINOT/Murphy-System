@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Round 35 extended audit** — 30-category comprehensive code-quality verification:
+  - Zero TODO/FIXME/HACK/XXX comments across all 584 source files
+  - Zero shadowed built-in names in function arguments
+  - Zero missing `__init__.py` in package directories
+  - Zero broken file links in README.md (with URL decoding)
+  - GETTING_STARTED.md verified: all required sections present, 309 lines
+  - `pyproject.toml` verified present with build-system and project config
+  - All 517 source modules continue to import without error
+  - Updated badge: 8,170 → 8,179 tests; 344 test files
 - **Round 33–34 extended audit** — 20-category comprehensive code-quality verification:
   - Zero duplicate function/method definitions across 530 modules
   - Zero duplicate top-level imports across 530 modules
