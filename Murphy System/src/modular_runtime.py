@@ -299,7 +299,6 @@ class ModularRuntime:
         logger.info(f"  Intent: {analysis['intent']}")
         logger.info(f"  Domain: {analysis['domain']}")
         logger.info(f"  Complexity: {analysis['complexity']}")
-        logger.debug("")
 
         # Step 2: Select appropriate modules
         confidence = 0.7  # Start with medium confidence
@@ -307,7 +306,6 @@ class ModularRuntime:
         logger.info("🔧 Selected Modules:")
         for mod in selected_modules:
             logger.info(f"  ✓ {mod}")
-        logger.debug("")
 
         # Step 3: Build system architecture
         architecture = self.system_builder.build_architecture(
@@ -317,7 +315,6 @@ class ModularRuntime:
         logger.info("🏗️  System Architecture:")
         logger.info(f"  Components: {len(architecture['components'])}")
         logger.info(f"  Layers: {len(architecture['layers'])}")
-        logger.debug("")
 
         # Step 4: Generate gates
         gates = self.gate_builder.build_gates(
@@ -327,7 +324,6 @@ class ModularRuntime:
         logger.info("🚧 Safety Gates:")
         for gate in gates:
             logger.info(f"  ⚠️  {gate['name']}: {gate['description']}")
-        logger.debug("")
 
         # Step 5: Generate implementation plan
         plan = self._generate_implementation_plan(
@@ -339,7 +335,6 @@ class ModularRuntime:
         for step in plan['steps']:
             logger.info(f"  {step['order']}. {step['title']}")
             logger.info(f"     {step['description']}")
-        logger.debug("")
 
         return {
             "request": user_request,
@@ -467,4 +462,3 @@ if __name__ == "__main__":
     logger.info("\nLoaded Modules:")
     for name, module in runtime.modules.items():
         logger.info(f"  ✓ {name} - {module.description}")
-    logger.debug("")
