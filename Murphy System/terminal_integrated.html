@@ -188,6 +188,35 @@
             font-size: 10px;
             color: #00ffff;
         }
+        /* ── Color Key Legend ────────────────────────────── */
+        .color-key {
+            display: flex;
+            gap: 14px;
+            padding: 4px 15px;
+            background: #0f0f0f;
+            border-bottom: 1px solid #333;
+            font-size: 11px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .color-key-label {
+            color: #666;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-right: 4px;
+        }
+        .color-key-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .color-key-swatch {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
@@ -195,6 +224,15 @@
         <div class="terminal-header">
             <h1>Murphy System Runtime - Integrated Terminal v2.0</h1>
             <span class="status-badge" id="statusBadge">CONNECTING...</span>
+        </div>
+        <div class="color-key">
+            <span class="color-key-label">Color Key:</span>
+            <span class="color-key-item"><span class="color-key-swatch" style="background:#00ff00"></span><span style="color:#00ff00">System / Success</span></span>
+            <span class="color-key-item"><span class="color-key-swatch" style="background:#00ffff"></span><span style="color:#00ffff">Info / Prompt</span></span>
+            <span class="color-key-item"><span class="color-key-swatch" style="background:#ffffff"></span><span style="color:#ffffff">User Input</span></span>
+            <span class="color-key-item"><span class="color-key-swatch" style="background:#ffff00"></span><span style="color:#ffff00">Warning</span></span>
+            <span class="color-key-item"><span class="color-key-swatch" style="background:#ff0000"></span><span style="color:#ff0000">Error</span></span>
+            <span class="color-key-item"><span class="color-key-swatch" style="background:#ff00ff"></span><span style="color:#ff00ff">JSON Data</span></span>
         </div>
         
         <div class="terminal-output" id="output">
