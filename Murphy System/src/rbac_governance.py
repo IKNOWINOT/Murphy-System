@@ -234,7 +234,11 @@ class RBACGovernance:
             if is_organization:
                 # Only admin or owner can toggle in organizations
                 if Role.ADMIN in user.roles or Role.OWNER in user.roles:
-                    return True, f"granted_by_role:{user.roles[0].value}"
+                    granting = next(
+                        (r for r in user.roles if r in (Role.ADMIN, Role.OWNER)),
+                        user.roles[0] if user.roles else Role.ADMIN,
+                    )
+                    return True, f"granted_by_role:{granting.value}"
                 else:
                     return False, "only_admin_or_owner_can_toggle_in_organization"
             else:

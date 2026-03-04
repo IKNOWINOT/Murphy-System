@@ -305,7 +305,9 @@ class TestTranslationDeliveryAdapter:
         )
         result = adapter.deliver(req)
 
-        assert result.status == DeliveryStatus.DELIVERED
+        # Translation service hasn't filled translated_text yet, so the
+        # status must be NEEDS_INFO (not DELIVERED with a null body).
+        assert result.status == DeliveryStatus.NEEDS_INFO
         tp = result.output["translation_payload"]
         assert tp["source_locale"] == "en"
         assert tp["target_locale"] == "es"

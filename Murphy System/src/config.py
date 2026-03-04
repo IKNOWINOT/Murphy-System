@@ -21,8 +21,8 @@ class Settings(BaseSettings):
     # ============================================================================
     
     api_host: str = Field(
-        default="0.0.0.0",
-        description="API server host"
+        default="127.0.0.1",
+        description="API server host (use 0.0.0.0 to expose on all interfaces)"
     )
     
     api_port: int = Field(

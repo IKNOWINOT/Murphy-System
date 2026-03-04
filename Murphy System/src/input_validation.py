@@ -256,7 +256,11 @@ class ChatMessageInput(BaseModel):
             raise ValueError("Message cannot be empty")
         
         # Remove only the most dangerous characters
-        dangerous_chars = ['<script', '</script', '<iframe', 'javascript:', 'onerror=']
+        dangerous_chars = [
+            '<script', '</script', '<iframe', '</iframe',
+            'javascript:', 'onerror=', 'onload=', 'onmouseover=',
+            'onfocus=', 'onblur=', 'onclick=',
+        ]
         v_lower = v.lower()
         
         for pattern in dangerous_chars:

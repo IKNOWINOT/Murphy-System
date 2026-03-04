@@ -102,6 +102,8 @@ class RegulationUpdate:
 class ContinuousComplianceMonitor:
     """Background monitor that periodically checks compliance sensors."""
 
+    _MAX_ALERTS = 5_000
+
     def __init__(self, check_interval: float = 60.0):
         self._lock = threading.RLock()
         self._sensors: Dict[str, ComplianceSensor] = {}
@@ -189,6 +191,8 @@ class ContinuousComplianceMonitor:
                     "timestamp": now.isoformat(),
                     "details": result,
                 }
+                if len(self._alerts) >= self._MAX_ALERTS:
+                    self._alerts = self._alerts[self._MAX_ALERTS // 10:]
                 self._alerts.append(alert)
 
             self._check_count += 1
@@ -283,6 +287,8 @@ class ContinuousComplianceMonitor:
 class ComplianceDriftDetector:
     """Detects configuration drift from a compliant baseline."""
 
+    _MAX_DRIFT_HISTORY = 5_000
+
     def __init__(self):
         self._lock = threading.RLock()
         self._baselines: Dict[str, DriftBaseline] = {}
@@ -344,6 +350,8 @@ class ComplianceDriftDetector:
                 "drifts": drifts,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
+            if len(self._drift_history) >= self._MAX_DRIFT_HISTORY:
+                self._drift_history = self._drift_history[self._MAX_DRIFT_HISTORY // 10:]
             self._drift_history.append(record)
             return record
 
@@ -394,6 +402,8 @@ class ComplianceDriftDetector:
 class AutomatedRemediationEngine:
     """Auto-fixes common compliance violations."""
 
+    _MAX_REMEDIATION_LOG = 5_000
+
     def __init__(self):
         self._lock = threading.RLock()
         self._remediation_log: List[Dict[str, Any]] = []
@@ -406,6 +416,10 @@ class AutomatedRemediationEngine:
         self._handlers[RemediationAction.PATCH_ACCESS_POLICY.value] = self._remediate_patch_access_policy
         self._handlers[RemediationAction.ROTATE_CREDENTIALS.value] = self._remediate_rotate_credentials
         self._handlers[RemediationAction.ENABLE_AUDIT_LOG.value] = self._remediate_enable_audit_log
+
+    def _cap_remediation_log(self) -> None:
+        if len(self._remediation_log) >= self._MAX_REMEDIATION_LOG:
+            self._remediation_log = self._remediation_log[self._MAX_REMEDIATION_LOG // 10:]
 
     def register_handler(self, action_name: str, handler: Any) -> Dict[str, Any]:
         with self._lock:
@@ -428,6 +442,7 @@ class AutomatedRemediationEngine:
                     "success": result.get("success", False),
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
+                self._cap_remediation_log()
                 self._remediation_log.append(entry)
                 return entry
             except Exception as exc:
@@ -439,6 +454,7 @@ class AutomatedRemediationEngine:
                     "success": False,
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
+                self._cap_remediation_log()
                 self._remediation_log.append(entry)
                 return entry
 

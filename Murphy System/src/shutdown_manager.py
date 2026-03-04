@@ -54,6 +54,8 @@ class ShutdownManager:
         self._cleanup()
         sys.exit(0)
     
+    _CLEANUP_TIMEOUT = 5  # seconds per handler
+
     def _cleanup(self):
         """Execute all cleanup handlers"""
         if self.is_shutting_down:
@@ -66,10 +68,32 @@ class ShutdownManager:
         for handler, name in reversed(self.cleanup_handlers):
             try:
                 logger.info(f"Executing cleanup handler: {name}")
-                handler()
+                self._run_with_timeout(handler, name, self._CLEANUP_TIMEOUT)
                 logger.info(f"✅ Cleanup handler completed: {name}")
             except Exception as e:
                 logger.error(f"❌ Cleanup handler failed: {name} - {e}", exc_info=True)
+        
+        logger.info("✅ Murphy System shutdown complete")
+
+    def _run_with_timeout(self, handler, name, timeout):
+        """Run a handler with a timeout to prevent hung shutdown."""
+        import threading
+        result = [None]
+        exc_holder = [None]
+
+        def target():
+            try:
+                handler()
+            except Exception as e:
+                exc_holder[0] = e
+
+        t = threading.Thread(target=target, daemon=True)
+        t.start()
+        t.join(timeout)
+        if t.is_alive():
+            raise TimeoutError(f"Cleanup handler '{name}' timed out after {timeout}s")
+        if exc_holder[0] is not None:
+            raise exc_holder[0]
         
         logger.info("✅ Murphy System shutdown complete")
     
