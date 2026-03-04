@@ -563,7 +563,7 @@ class DomainGateGenerator:
             "total_gates": len(gates),
             "by_type": self._count_gates_by_type(gates),
             "by_severity": self._count_gates_by_severity(gates),
-            "average_risk_reduction": sum(g.risk_reduction for g in gates) / len(gates) if gates else 0.0,
+            "average_risk_reduction": sum(g.risk_reduction for g in gates) / (len(gates) or 1) if gates else 0.0,
             "gates_with_wired_functions": sum(1 for g in gates if g.wired_function),
             "knowledge_coverage": self._calculate_knowledge_coverage(gates, system_requirements)
         }

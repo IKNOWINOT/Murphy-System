@@ -240,7 +240,7 @@ class StabilityScoreCalculator:
             "min": np.min(scores),
             "max": np.max(scores),
             "trend": trend,
-            "stability_rate": stable_count / len(self.history),
+            "stability_rate": stable_count / (len(self.history) or 1),
             "count": len(self.history)
         }
     

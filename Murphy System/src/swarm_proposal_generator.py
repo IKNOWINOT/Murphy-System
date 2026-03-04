@@ -559,7 +559,7 @@ Format: {{"steps": [...]}}
         # Confidence from agent quality
         avg_agent_confidence = sum(
             agent.confidence_threshold for agent in agents
-        ) / len(agents)
+        ) / (len(agents) or 1)
         
         # Confidence from safety gates
         safety_confidence = 0.85 + (len(safety_gates) * 0.01)

@@ -11,6 +11,7 @@ import json
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
+from thread_safe_operations import capped_append
 
 
 class GatewayAuthMethod(Enum):
@@ -303,7 +304,7 @@ class APIGatewayAdapter:
         route_state.last_response_time = response.latency_ms
 
         with self._lock:
-            self._request_log.append({
+            capped_append(self._request_log, {
                 "request_id": request.request_id,
                 "path": request.path,
                 "method": request.method,

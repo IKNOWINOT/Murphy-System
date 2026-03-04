@@ -272,7 +272,7 @@ class ContractualAuditSystem:
                 "critical": 1.0
             }
             total_severity = sum(avg_severity_score.get(gap.severity, 0.5) for gap in detected_gaps)
-            audit_summary["overall_score"] = 1.0 - (total_severity / len(detected_gaps))
+            audit_summary["overall_score"] = 1.0 - (total_severity / (len(detected_gaps) or 1))
         else:
             audit_summary["overall_score"] = 1.0
         

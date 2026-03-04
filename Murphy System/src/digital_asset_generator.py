@@ -25,6 +25,7 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
+from thread_safe_operations import capped_append
 
 
 # ---------------------------------------------------------------------------
@@ -303,7 +304,7 @@ class DigitalAssetGenerator:
             }
 
             self._assets[descriptor.asset_id] = result
-            self._generation_log.append({
+            capped_append(self._generation_log, {
                 "action": "generate_asset",
                 "asset_id": descriptor.asset_id,
                 "timestamp": time.time(),
@@ -358,7 +359,7 @@ class DigitalAssetGenerator:
             }
 
             self._picture_arrays[descriptor.array_id] = result
-            self._generation_log.append({
+            capped_append(self._generation_log, {
                 "action": "generate_picture_array",
                 "array_id": descriptor.array_id,
                 "frame_count": descriptor.frame_count,

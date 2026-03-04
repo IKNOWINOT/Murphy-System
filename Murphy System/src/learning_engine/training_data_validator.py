@@ -129,8 +129,8 @@ class DataValidator:
         
         # Calculate coverage
         if expected_features:
-            avg_presence = sum(feature_presence.values()) / len(expected_features)
-            coverage = avg_presence / len(dataset.examples) if dataset.examples else 0
+            avg_presence = sum(feature_presence.values()) / (len(expected_features) or 1)
+            coverage = avg_presence / (len(dataset.examples) or 1) if dataset.examples else 0
         else:
             coverage = 0
         

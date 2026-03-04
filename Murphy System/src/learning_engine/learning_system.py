@@ -13,6 +13,7 @@ License: Apache License 2.0
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 import logging
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ class LearningSystem:
             'received_at': datetime.now(timezone.utc).isoformat(),
             'processed': True,
         }
-        self._corrections.append(entry)
+        capped_append(self._corrections, entry)
         self._patterns_learned += 1
         
         logger.info(

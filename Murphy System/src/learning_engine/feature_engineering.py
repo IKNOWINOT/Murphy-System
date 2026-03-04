@@ -302,7 +302,7 @@ class FeatureEngineer:
         word_counts = Counter(words)
         
         for word in vocab["words"]:
-            tf = word_counts.get(word, 0) / len(words) if words else 0
+            tf = word_counts.get(word, 0) / (len(words) or 1) if words else 0
             features.append(Feature(
                 name=f"{feature.name}_tfidf_{word}",
                 type=FeatureType.NUMERICAL,

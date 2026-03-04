@@ -169,12 +169,12 @@ class MFGCMetricsCollector:
         
         return {
             'total_executions': len(self.executions),
-            'average_duration': sum(e.total_duration for e in self.executions) / len(self.executions),
-            'average_confidence_gain': sum(e.confidence_gain for e in self.executions) / len(self.executions),
-            'average_final_confidence': sum(e.final_confidence for e in self.executions) / len(self.executions),
-            'average_murphy_index': sum(e.peak_murphy_index for e in self.executions) / len(self.executions),
-            'average_gates_synthesized': sum(e.total_gates_synthesized for e in self.executions) / len(self.executions),
-            'success_rate': sum(1 for e in self.executions if e.all_phases_completed) / len(self.executions),
+            'average_duration': sum(e.total_duration for e in self.executions) / (len(self.executions) or 1),
+            'average_confidence_gain': sum(e.confidence_gain for e in self.executions) / (len(self.executions) or 1),
+            'average_final_confidence': sum(e.final_confidence for e in self.executions) / (len(self.executions) or 1),
+            'average_murphy_index': sum(e.peak_murphy_index for e in self.executions) / (len(self.executions) or 1),
+            'average_gates_synthesized': sum(e.total_gates_synthesized for e in self.executions) / (len(self.executions) or 1),
+            'success_rate': sum(1 for e in self.executions if e.all_phases_completed) / (len(self.executions) or 1),
             'murphy_violations': sum(1 for e in self.executions if e.murphy_threshold_exceeded),
             'phase_durations': self._get_average_phase_durations()
         }
@@ -224,10 +224,10 @@ class MFGCMetricsCollector:
         return {
             'phase': phase_name,
             'executions': len(phase_metrics),
-            'average_duration': sum(pm.duration for pm in phase_metrics) / len(phase_metrics),
-            'average_confidence_delta': sum(pm.confidence_delta for pm in phase_metrics) / len(phase_metrics),
-            'average_murphy_index': sum(pm.murphy_index for pm in phase_metrics) / len(phase_metrics),
-            'average_gates_added': sum(pm.gates_added for pm in phase_metrics) / len(phase_metrics),
+            'average_duration': sum(pm.duration for pm in phase_metrics) / (len(phase_metrics) or 1),
+            'average_confidence_delta': sum(pm.confidence_delta for pm in phase_metrics) / (len(phase_metrics) or 1),
+            'average_murphy_index': sum(pm.murphy_index for pm in phase_metrics) / (len(phase_metrics) or 1),
+            'average_gates_added': sum(pm.gates_added for pm in phase_metrics) / (len(phase_metrics) or 1),
             'min_duration': min(pm.duration for pm in phase_metrics),
             'max_duration': max(pm.duration for pm in phase_metrics)
         }
@@ -249,7 +249,7 @@ class MFGCMetricsCollector:
         
         for i in range(max_len):
             values = [t[i] for t in trajectories if i < len(t)]
-            avg_trajectory.append(sum(values) / len(values))
+            avg_trajectory.append(sum(values) / (len(values) or 1))
         
         return {
             'average_trajectory': avg_trajectory,
@@ -267,10 +267,10 @@ class MFGCMetricsCollector:
         
         return {
             'peak_values': [e.peak_murphy_index for e in self.executions],
-            'average_peak': sum(e.peak_murphy_index for e in self.executions) / len(self.executions),
+            'average_peak': sum(e.peak_murphy_index for e in self.executions) / (len(self.executions) or 1),
             'max_peak': max(e.peak_murphy_index for e in self.executions),
             'threshold_violations': sum(1 for e in self.executions if e.murphy_threshold_exceeded),
-            'violation_rate': sum(1 for e in self.executions if e.murphy_threshold_exceeded) / len(self.executions),
+            'violation_rate': sum(1 for e in self.executions if e.murphy_threshold_exceeded) / (len(self.executions) or 1),
             'safe_executions': sum(1 for e in self.executions if not e.murphy_threshold_exceeded)
         }
     
@@ -281,7 +281,7 @@ class MFGCMetricsCollector:
         
         return {
             'total_gates_all_executions': sum(e.total_gates_synthesized for e in self.executions),
-            'average_gates_per_execution': sum(e.total_gates_synthesized for e in self.executions) / len(self.executions),
+            'average_gates_per_execution': sum(e.total_gates_synthesized for e in self.executions) / (len(self.executions) or 1),
             'min_gates': min(e.total_gates_synthesized for e in self.executions),
             'max_gates': max(e.total_gates_synthesized for e in self.executions),
             'gates_by_phase': self._get_gates_by_phase()

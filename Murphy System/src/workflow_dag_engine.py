@@ -15,6 +15,7 @@ from enum import Enum
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from thread_safe_operations import capped_append
 
 
 class StepStatus(Enum):
@@ -271,7 +272,7 @@ class WorkflowDAGEngine:
         }
 
         with self._lock:
-            self._execution_history.append(summary)
+            capped_append(self._execution_history, summary)
         return summary
 
     def _evaluate_condition(self, condition: str, context: Dict[str, Any], results: Dict[str, Any]) -> bool:

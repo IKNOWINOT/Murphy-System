@@ -25,6 +25,7 @@ import threading
 import time
 import uuid
 from typing import Any, Callable, Dict, List, Optional, Tuple
+from thread_safe_operations import capped_append
 
 
 # ---------------------------------------------------------------------------
@@ -388,7 +389,7 @@ class AgenticAPIProvisioner:
                 "module_count": len(module_catalog),
                 "timestamp": time.time(),
             }
-            self._provision_log.append(result)
+            capped_append(self._provision_log, result)
             return result
 
     def register_endpoint(self, path: str, method: EndpointMethod,

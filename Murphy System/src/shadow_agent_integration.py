@@ -19,6 +19,7 @@ from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -343,7 +344,7 @@ class ShadowAgentIntegration:
 
     def _emit_audit(self, event: str, details: Dict[str, Any]) -> None:
         """Append an audit entry. Must be called under lock."""
-        self._audit_log.append({
+        capped_append(self._audit_log, {
             "event": event,
             "details": details,
             "timestamp": datetime.now(timezone.utc).isoformat(),

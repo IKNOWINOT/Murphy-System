@@ -20,6 +20,7 @@ from .schemas import (
     AssumptionBinding
 )
 from .assumption_management import AssumptionRegistry
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +97,7 @@ class ValidationSourceTracker:
             block_reason=block_reason
         )
         
-        self._validation_attempts.append(attempt)
+        capped_append(self._validation_attempts, attempt)
         
         if blocked:
             logger.warning(

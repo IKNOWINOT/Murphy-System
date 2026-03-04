@@ -64,7 +64,7 @@ class DeterminismAnalyzer:
         
         # Factor in sensitivity
         if sensitivity:
-            avg_sensitivity = sum(sensitivity.values()) / len(sensitivity)
+            avg_sensitivity = sum(sensitivity.values()) / (len(sensitivity) or 1)
             
             # High sensitivity reduces stability
             if avg_sensitivity > 10:

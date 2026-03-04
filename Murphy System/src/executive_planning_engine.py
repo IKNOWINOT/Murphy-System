@@ -23,6 +23,7 @@ import logging
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set, Tuple
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -485,7 +486,7 @@ class IntegrationAutomationBinder:
     def register_integration(self, integration: Dict[str, Any]) -> Dict[str, Any]:
         """Register a custom integration in the catalog."""
         with self._lock:
-            self._custom_integrations.append(dict(integration))
+            capped_append(self._custom_integrations, dict(integration))
             return {"registered": True, "integration_id": integration.get("integration_id")}
 
     def discover_integrations_for_objective(
@@ -832,7 +833,7 @@ class ResponseEngine:
                 "severity": severity,
                 "generated_at": time.time(),
             }
-            self._responses.append(response)
+            capped_append(self._responses, response)
             return dict(response)
 
     def escalation_handler(self, blocked_gate_id: str) -> Dict[str, Any]:

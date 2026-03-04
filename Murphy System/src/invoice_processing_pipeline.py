@@ -40,6 +40,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -332,7 +333,7 @@ class InvoiceProcessingPipeline:
 
     def _record_event(self, invoice_id: str, action: str, details: Dict[str, Any]) -> None:
         """Append audit event (caller must hold _lock)."""
-        self._history.append({
+        capped_append(self._history, {
             "invoice_id": invoice_id,
             "action": action,
             "details": details,

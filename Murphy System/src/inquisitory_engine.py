@@ -624,7 +624,7 @@ class InquisitoryEngine:
                 confidence += 0.2
         
         # Normalize confidence
-        confidence = min(1.0, confidence / len(premises) if premises else 0.0)
+        confidence = min(1.0, confidence / (len(premises) or 1) if premises else 0.0)
         
         return {
             "premises": premises,
@@ -659,7 +659,7 @@ class InquisitoryEngine:
             by_confidence[conf] = by_confidence.get(conf, 0) + 1
         
         # Calculate average confidence
-        avg_confidence = sum(r.confidence_score for r in recommendations) / len(recommendations) if recommendations else 0.0
+        avg_confidence = sum(r.confidence_score for r in recommendations) / (len(recommendations) or 1) if recommendations else 0.0
         
         return {
             "total_recommendations": len(recommendations),

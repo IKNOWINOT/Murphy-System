@@ -25,6 +25,7 @@ from .schemas import (
     InvalidationSignal,
     InvalidationSource
 )
+from thread_safe_operations import capped_append
 from .assumption_management import (
     AssumptionRegistry,
     AssumptionValidator,
@@ -91,7 +92,7 @@ class SupervisorAuditLogger:
             details=details
         )
         
-        self._logs.append(log_entry)
+        capped_append(self._logs, log_entry)
         
         logger.info(
             f"Audit log: {log_entry.log_id} - {action_taken} by {feedback.supervisor_id} "

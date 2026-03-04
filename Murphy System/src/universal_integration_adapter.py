@@ -38,6 +38,7 @@ import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -1283,7 +1284,7 @@ class UniversalIntegrationAdapter:
         with self._lock:
             if len(self._action_log) >= self.MAX_LOG_SIZE:
                 self._action_log.pop(0)
-            self._action_log.append(result.to_dict())
+            capped_append(self._action_log, result.to_dict())
         return result
 
     def register_handler(

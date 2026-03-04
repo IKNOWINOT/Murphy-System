@@ -14,6 +14,7 @@ from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple
 import logging
 import uuid
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +158,7 @@ class GateExecutionWiring:
             evaluations.append(evaluation)
 
             # Record in history
-            self._history.append({
+            capped_append(self._history, {
                 "session_id": session_id,
                 "task": task,
                 "evaluation": evaluation.to_dict(),

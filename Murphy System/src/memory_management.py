@@ -146,7 +146,7 @@ class DataCache:
             if key in self._cache:
                 # Update access order
                 self._access_order.remove(key)
-                self._access_order.append(key)
+                capped_append(self._access_order, key)
                 return self._cache[key]
             return None
     
@@ -167,7 +167,7 @@ class DataCache:
             
             # Add new value
             self._cache[key] = value
-            self._access_order.append(key)
+            capped_append(self._access_order, key)
             self._current_size_mb += size_mb
             
             return True
@@ -212,6 +212,7 @@ class DataCache:
 
 
 import threading
+from thread_safe_operations import capped_append
 
 
 class MemoryEfficientList:
@@ -225,7 +226,7 @@ class MemoryEfficientList:
     def append(self, item: Any) -> None:
         """Append item."""
         with self._lock:
-            self._data.append(item)
+            capped_append(self._data, item)
     
     def extend(self, items: List[Any]) -> None:
         """Extend list."""

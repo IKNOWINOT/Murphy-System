@@ -331,7 +331,7 @@ Keep questions brief and specific."""
     def _calculate_confidence(self, results: List, gates: List) -> float:
         """Calculate overall confidence"""
         # Base confidence from swarm results
-        base_confidence = sum(r.get('confidence', 0.5) for r in results) / len(results)
+        base_confidence = sum(r.get('confidence', 0.5) for r in results) / (len(results) or 1)
         
         # Boost from gates (more gates = more safety = higher confidence)
         gate_boost = min(len(gates) * 0.05, 0.3)

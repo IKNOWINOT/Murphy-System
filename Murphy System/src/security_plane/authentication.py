@@ -36,6 +36,7 @@ from .schemas import (
     SecurityAction,
     AuthorityBand
 )
+from thread_safe_operations import capped_append
 from .cryptography import (
     CryptographicPrimitives,
     KeyManager,
@@ -461,7 +462,7 @@ class HumanAuthenticator:
             failure_reason=failure_reason
         )
         
-        self._attempts.append(attempt)
+        capped_append(self._attempts, attempt)
     
     def get_session(self, session_id: str) -> Optional[AuthenticationSession]:
         """Get session by ID."""
@@ -788,7 +789,7 @@ class ContextualVerifier:
             anomalies=anomalies
         )
         
-        self._verifications.append(verification)
+        capped_append(self._verifications, verification)
         return verification
 
 
@@ -827,7 +828,7 @@ class IntentConfirmer:
             confirmation_method="pending"
         )
         
-        self._confirmations.append(confirmation)
+        capped_append(self._confirmations, confirmation)
         return confirmation
     
     def confirm_intent(
@@ -885,4 +886,4 @@ class IntentConfirmer:
         intersection = desc_words & understand_words
         union = desc_words | understand_words
         
-        return len(intersection) / len(union) if union else 0.0
+        return len(intersection) / (len(union) or 1) if union else 0.0

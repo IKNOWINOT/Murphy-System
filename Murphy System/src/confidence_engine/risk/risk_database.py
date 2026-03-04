@@ -520,7 +520,7 @@ class RiskDatabase:
         
         # Average risk score
         risk_scores = [p.risk_score for p in self.risk_patterns.values()]
-        avg_risk_score = sum(risk_scores) / len(risk_scores) if risk_scores else 0.0
+        avg_risk_score = sum(risk_scores) / (len(risk_scores) or 1) if risk_scores else 0.0
         
         return {
             "total_patterns": total_patterns,

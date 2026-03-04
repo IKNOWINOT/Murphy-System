@@ -260,15 +260,15 @@ class ShadowAgent:
         
         return {
             "total_predictions": len(self.prediction_history),
-            "avg_confidence": sum(confidences) / len(confidences),
+            "avg_confidence": sum(confidences) / (len(confidences) or 1),
             "min_confidence": min(confidences),
             "max_confidence": max(confidences),
             "high_confidence_rate": sum(
                 1 for c in confidences if c >= self.config.high_confidence_threshold
-            ) / len(confidences),
+            ) / (len(confidences) or 1),
             "avg_prediction_time_ms": sum(
                 p.prediction_time_ms for p in self.prediction_history
-            ) / len(self.prediction_history),
+            ) / (len(self.prediction_history) or 1),
         }
     
     def update_model(self, model_version: ModelVersion):

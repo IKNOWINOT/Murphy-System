@@ -432,7 +432,7 @@ class ConfidenceEngine:
         murphy_score = 1.0 - min(1.0, state.M_t / 0.3)
         
         # Check phase progress
-        phase_score = (list(Phase).index(state.p_t) + 1) / len(Phase)
+        phase_score = (list(Phase).index(state.p_t) + 1) / (len(Phase) or 1)
         
         return (gate_score + murphy_score + phase_score) / 3.0
 

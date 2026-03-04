@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from collections import defaultdict
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -559,7 +560,7 @@ class ComplianceReportGenerator:
                 "data": data,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
-            self._evidence.append(entry)
+            capped_append(self._evidence, entry)
             return entry
 
     def get_evidence(self, framework: Optional[str] = None,
@@ -729,14 +730,14 @@ class RegulationChangeTracker:
                 "total_affected_controls": len(u.affected_controls),
                 "controls_in_scope": affected,
                 "controls_not_covered": gap,
-                "coverage_rate": round(len(affected) / len(u.affected_controls), 4)
+                "coverage_rate": round(len(affected) / (len(u.affected_controls) or 1), 4)
                     if u.affected_controls else 1.0,
                 "action_required": len(gap) > 0 or u.impact in (
                     RegulationImpact.BREAKING, RegulationImpact.SIGNIFICANT),
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
             u.assessed = True
-            self._impact_assessments.append(assessment)
+            capped_append(self._impact_assessments, assessment)
             return assessment
 
     def list_updates(self, regulation: Optional[str] = None,

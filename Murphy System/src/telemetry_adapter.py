@@ -269,7 +269,7 @@ class TelemetryAdapter:
                 
                 # Calculate statistics
                 mean_val = sum(values) / len(values)
-                variance = sum((x - mean_val) ** 2 for x in values) / len(values)
+                variance = sum((x - mean_val) ** 2 for x in values) / (len(values) or 1)
                 std_dev = variance ** 0.5 if variance > 0 else 0
                 
                 # Find anomalies (values > threshold standard deviations from mean)

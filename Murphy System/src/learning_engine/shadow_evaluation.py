@@ -126,7 +126,7 @@ class ModelEvaluator:
         
         # Performance metrics
         metrics.n_samples = len(y_true)
-        metrics.avg_prediction_time_ms = (prediction_time * 1000) / len(y_true)
+        metrics.avg_prediction_time_ms = (prediction_time * 1000) / (len(y_true) or 1)
         metrics.throughput_predictions_per_sec = len(y_true) / prediction_time if prediction_time > 0 else 0
         
         # Get probabilities for calibration
@@ -322,7 +322,7 @@ class ModelEvaluator:
             bin_confidence = sum(max(y_proba[j]) for j in bin_indices) / len(bin_indices)
             
             # Add to ECE
-            ece += abs(bin_accuracy - bin_confidence) * len(bin_indices) / len(y_true)
+            ece += abs(bin_accuracy - bin_confidence) * len(bin_indices) / (len(y_true) or 1)
         
         return ece
 
@@ -441,7 +441,7 @@ class AutomatedTestSuite:
             predictions = model.predict(X)
             duration = (datetime.now(timezone.utc) - start).total_seconds()
             
-            avg_time_ms = (duration * 1000) / len(X)
+            avg_time_ms = (duration * 1000) / (len(X) or 1)
             
             # Check if meets performance requirements
             passed = avg_time_ms < 100  # 100ms per prediction

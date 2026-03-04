@@ -328,7 +328,7 @@ class GraphAnalyzer:
         # Calculate branching factor (avg children per node)
         branching_factors = [len(graph.edges.get(node_id, [])) 
                            for node_id in graph.nodes]
-        avg_branching = sum(branching_factors) / len(branching_factors) if branching_factors else 0
+        avg_branching = sum(branching_factors) / (len(branching_factors) or 1) if branching_factors else 0
         branching_score = min(1.0, avg_branching / 5.0)  # Normalize to [0, 1]
         
         # Combine metrics
@@ -358,7 +358,7 @@ class GraphAnalyzer:
         total_edges = sum(len(deps) for deps in graph.edges.values())
         
         dependency_counts = [len(node.dependencies) for node in graph.nodes.values()]
-        avg_dependencies = sum(dependency_counts) / len(dependency_counts)
+        avg_dependencies = sum(dependency_counts) / (len(dependency_counts) or 1)
         
         # Calculate max depth
         max_depth = self._calculate_max_depth(graph)

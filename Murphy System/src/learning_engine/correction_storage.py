@@ -299,10 +299,10 @@ class CorrectionAnalytics:
         
         # Calculate averages
         impact_scores = [c.calculate_impact_score() for c in corrections]
-        avg_impact = sum(impact_scores) / len(impact_scores)
+        avg_impact = sum(impact_scores) / (len(impact_scores) or 1)
         
         times = [c.metrics.time_to_correct_seconds for c in corrections]
-        avg_time = sum(times) / len(times) if times else 0
+        avg_time = sum(times) / (len(times) or 1) if times else 0
         
         # Most corrected fields
         field_counts = defaultdict(int)
@@ -320,7 +320,7 @@ class CorrectionAnalytics:
         validated = sum(1 for c in corrections if c.is_validated())
         applied = sum(1 for c in corrections if c.is_applied())
         
-        validation_rate = validated / len(corrections) if corrections else 0
+        validation_rate = validated / (len(corrections) or 1) if corrections else 0
         application_rate = applied / validated if validated > 0 else 0
         
         return CorrectionStatistics(
@@ -373,7 +373,7 @@ class CorrectionAnalytics:
         
         return {
             "trend": trend,
-            "daily_average": sum(by_day.values()) / len(by_day),
+            "daily_average": sum(by_day.values()) / (len(by_day) or 1),
             "peak_day": max(by_day.items(), key=lambda x: x[1]),
             "total_corrections": len(corrections)
         }
@@ -389,7 +389,7 @@ class CorrectionAnalytics:
             "total_corrections": len(corrections),
             "by_type": self._count_by_field(corrections, "correction_type"),
             "by_severity": self._count_by_field(corrections, "severity"),
-            "average_impact": sum(c.calculate_impact_score() for c in corrections) / len(corrections),
+            "average_impact": sum(c.calculate_impact_score() for c in corrections) / (len(corrections) or 1),
             "most_recent": corrections[-1].created_at.isoformat() if corrections else None
         }
     
@@ -435,7 +435,7 @@ class CorrectionAnalytics:
         fields1 = set(c1.get_affected_fields())
         fields2 = set(c2.get_affected_fields())
         if fields1 and fields2:
-            field_overlap = len(fields1 & fields2) / len(fields1 | fields2)
+            field_overlap = len(fields1 & fields2) / (len(fields1 | fields2) or 1)
             score += 0.3 * field_overlap
         
         # Similar reasoning
@@ -444,7 +444,7 @@ class CorrectionAnalytics:
             words1 = set(c1.reasoning.lower().split())
             words2 = set(c2.reasoning.lower().split())
             if words1 and words2:
-                word_overlap = len(words1 & words2) / len(words1 | words2)
+                word_overlap = len(words1 & words2) / (len(words1 | words2) or 1)
                 score += 0.2 * word_overlap
         
         return score

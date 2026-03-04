@@ -18,6 +18,7 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
 from enum import Enum
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -387,7 +388,7 @@ class AutomatedScheduler:
             job.last_run = now
             entry = {"job_id": job_id, "success": success,
                      "executed_at": now}
-            self._execution_log.append(entry)
+            capped_append(self._execution_log, entry)
         return {"success": True, **entry}
 
     def get_schedule_status(self) -> Dict[str, Any]:
@@ -439,13 +440,13 @@ class HealthMonitor:
             if status != ComponentStatus.HEALTHY:
                 anomaly = {"component": component, "status": status,
                            "message": message, "detected_at": now}
-                self._anomalies.append(anomaly)
+                capped_append(self._anomalies, anomaly)
                 # Auto-healing trigger
                 rule = self._healing_rules.get(component)
                 if rule and status in rule.get("trigger_statuses", []):
                     heal = {"component": component, "action": rule["action"],
                             "triggered_at": now}
-                    self._healed.append(heal)
+                    capped_append(self._healed, heal)
                     return {"success": True, "component": component,
                             "status": status, "auto_heal_triggered": True,
                             "heal_action": rule["action"]}

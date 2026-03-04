@@ -538,7 +538,7 @@ class DynamicExpertGenerator:
         
         # Generate each expert
         for expert_type in expert_types:
-            expert_budget = budget / len(expert_types) if budget else None
+            expert_budget = budget / (len(expert_types) or 1) if budget else None
             
             expert = self.generate_expert(
                 title=expert_type["title"],
@@ -557,7 +557,7 @@ class DynamicExpertGenerator:
         team_analysis = {
             "total_experts": len(experts),
             "total_cost_per_hour": total_cost,
-            "average_confidence": sum(e.confidence_threshold for e in experts) / len(experts),
+            "average_confidence": sum(e.confidence_threshold for e in experts) / (len(experts) or 1),
             "coverage": self._calculate_team_coverage(experts, requirements),
             "budget_utilization": total_cost / budget if budget else None,
             "expertise_distribution": self._calculate_expertise_distribution(experts)
@@ -631,7 +631,7 @@ class DynamicExpertGenerator:
         
         # Calculate average coverage
         coverage = {
-            "capability_coverage": sum(all_capabilities.values()) / len(all_capabilities),
+            "capability_coverage": sum(all_capabilities.values()) / (len(all_capabilities) or 1),
             "expert_count": len(experts),
             "unique_capabilities": len(all_capabilities)
         }

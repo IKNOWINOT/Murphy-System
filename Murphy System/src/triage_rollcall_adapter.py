@@ -171,7 +171,7 @@ class TriageRollcallAdapter:
                 matched = sum(
                     1 for cap in candidate.capabilities if cap.lower() in task_lower
                 )
-                match_score = matched / len(candidate.capabilities)
+                match_score = matched / (len(candidate.capabilities) or 1)
             else:
                 match_score = 0.0
 

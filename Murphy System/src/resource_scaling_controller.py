@@ -44,6 +44,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -254,7 +255,7 @@ class ResourceScalingController:
         for key, snaps in groups.items():
             recent = snaps[-window:]
             values = [s.utilisation for s in recent]
-            mean = sum(values) / len(values) if values else 0.0
+            mean = sum(values) / (len(values) or 1) if values else 0.0
             trend = (values[-1] - values[0]) / len(values) if len(values) > 1 else 0.0
             results[key] = {
                 "mean": round(mean, 4),
@@ -375,7 +376,7 @@ class ResourceScalingController:
             executed_at=datetime.now(timezone.utc).isoformat() if approved else "",
         )
         with self._lock:
-            self._decisions.append(decision)
+            capped_append(self._decisions, decision)
 
         # Persist
         if self._pm is not None:

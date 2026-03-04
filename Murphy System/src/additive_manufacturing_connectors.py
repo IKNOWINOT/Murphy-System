@@ -21,6 +21,7 @@ import uuid
 import threading
 from enum import Enum
 from typing import Any, Dict, List, Optional
+from thread_safe_operations import capped_append
 
 
 # ---------------------------------------------------------------------------
@@ -174,7 +175,7 @@ class AMConnector:
                 "params": params,
                 "simulated": True,
             })
-            self._action_log.append(result)
+            capped_append(self._action_log, result)
             return result
 
     def list_available_actions(self) -> List[str]:

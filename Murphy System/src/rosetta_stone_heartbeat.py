@@ -29,6 +29,7 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
+from thread_safe_operations import capped_append
 
 
 # ---------------------------------------------------------------------------
@@ -280,7 +281,7 @@ class RosettaStoneHeartbeat:
                 "tiers": tier_statuses,
                 "checked_at": now,
             }
-            self._sync_log.append(result)
+            capped_append(self._sync_log, result)
             return result
 
     # -- Tier state queries -------------------------------------------------

@@ -19,6 +19,7 @@ import logging
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -264,7 +265,7 @@ class HITLAutonomyController:
             "confidence": confidence,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
-        self._action_history.append(record)
+        capped_append(self._action_history, record)
         logger.info(
             "Recorded action %s: task_type=%s autonomous=%s outcome=%s",
             action_id, task_type, autonomous, outcome,

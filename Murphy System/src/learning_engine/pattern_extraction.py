@@ -580,7 +580,7 @@ class PatternExtractor:
                     name=f"Frequent correction of '{field}'",
                     description=f"Field '{field}' is frequently corrected",
                     frequency=count,
-                    confidence=min(count / len(corrections), 1.0),
+                    confidence=min(count / (len(corrections) or 1), 1.0),
                     examples=field_examples[field],
                     metadata={"field": field}
                 )
@@ -609,7 +609,7 @@ class PatternExtractor:
                     name=f"Common {corr_type.value} errors",
                     description=f"Frequent {corr_type.value} corrections detected",
                     frequency=len(group),
-                    confidence=len(group) / len(corrections),
+                    confidence=len(group) / (len(corrections) or 1),
                     examples=[c.id for c in group[:5]],
                     metadata={"correction_type": corr_type.value}
                 )

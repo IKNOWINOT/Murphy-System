@@ -92,7 +92,7 @@ class TaskExecutor:
         
         # Capability match score (0.5 of total)
         if required_capabilities:
-            capability_score = capability_matches / len(required_capabilities)
+            capability_score = capability_matches / (len(required_capabilities) or 1)
             score += capability_score * 0.5
         
         # Description keyword match (0.3 of total)
@@ -105,7 +105,7 @@ class TaskExecutor:
         
         word_matches = len(task_words & desc_words)
         if task_words:
-            keyword_score = word_matches / len(task_words)
+            keyword_score = word_matches / (len(task_words) or 1)
             score += keyword_score * 0.3
         
         # Tool availability (0.2 of total)

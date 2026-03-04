@@ -327,4 +327,4 @@ def _compute_match_score(query: str, pattern: str) -> float:
 
 def _safe_mean(values: List[float]) -> float:
     """Return the mean of *values*, or 0.0 for an empty list."""
-    return sum(values) / len(values) if values else 0.0
+    return sum(values) / (len(values) or 1) if values else 0.0

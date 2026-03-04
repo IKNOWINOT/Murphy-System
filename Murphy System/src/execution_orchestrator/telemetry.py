@@ -414,7 +414,7 @@ class TelemetryStreamer:
             'confidence_scores': {
                 'min': min(confidence_scores) if confidence_scores else 0,
                 'max': max(confidence_scores) if confidence_scores else 0,
-                'avg': sum(confidence_scores) / len(confidence_scores) if confidence_scores else 0,
+                'avg': sum(confidence_scores) / (len(confidence_scores) or 1) if confidence_scores else 0,
                 'current': confidence_scores[-1] if confidence_scores else 0
             }
         }

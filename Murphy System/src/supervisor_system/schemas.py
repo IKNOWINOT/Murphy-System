@@ -214,7 +214,7 @@ class ConfidenceTrend:
         
         recent = self.confidence_values[-5:]
         mean = sum(recent) / len(recent)
-        variance = sum((x - mean) ** 2 for x in recent) / len(recent)
+        variance = sum((x - mean) ** 2 for x in recent) / (len(recent) or 1)
         return variance > threshold
 
 

@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 import logging
 import re
 import uuid
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -525,7 +526,7 @@ class DeliveryOrchestrator:
 
         # Governance gate: approval required
         if request.requires_approval:
-            self._pending_approvals.append(request)
+            capped_append(self._pending_approvals, request)
             result = DeliveryResult(
                 request_id=request_id,
                 channel=request.channel,

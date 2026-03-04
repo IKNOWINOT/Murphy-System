@@ -22,6 +22,7 @@ import threading
 import time
 import uuid
 from typing import Any, Dict, List, Optional
+from thread_safe_operations import capped_append
 
 
 # ---------------------------------------------------------------------------
@@ -336,7 +337,7 @@ class ContentCreatorPlatformRegistry:
             if connector is None:
                 return {"success": False, "error": f"Unknown connector: {connector_id}"}
             result = connector.execute(action, params)
-            self._action_log.append({
+            capped_append(self._action_log, {
                 "connector_id": connector_id,
                 "action": action,
                 "success": result["success"],

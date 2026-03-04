@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from threading import Lock
 from typing import Any, Dict, List, Optional, Set
+from thread_safe_operations import capped_append
 
 
 class TaskCategory(str, Enum):
@@ -283,7 +284,7 @@ class SelfAutomationOrchestrator:
         )
         with self._lock:
             self._tasks[task_id] = task
-            self._queue_order.append(task_id)
+            capped_append(self._queue_order, task_id)
             self._sort_queue()
         return task
 
@@ -358,7 +359,7 @@ class SelfAutomationOrchestrator:
             task.status = TaskStatus.COMPLETED
             task.completed_at = datetime.now(timezone.utc).isoformat()
             task.result = result or {}
-            self._completed_tasks.append(task_id)
+            capped_append(self._completed_tasks, task_id)
             if task_id in self._queue_order:
                 self._queue_order.remove(task_id)
             if self._current_cycle:
@@ -417,7 +418,7 @@ class SelfAutomationOrchestrator:
             if not self._current_cycle:
                 return None
             self._current_cycle.completed_at = datetime.now(timezone.utc).isoformat()
-            self._cycles.append(self._current_cycle)
+            capped_append(self._cycles, self._current_cycle)
             completed = self._current_cycle
             self._current_cycle = None
             return completed

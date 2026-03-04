@@ -8,6 +8,7 @@ from collections import defaultdict
 import threading
 
 from .thread_safe_operations import ThreadSafeCounter, ThreadSafeDict
+from thread_safe_operations import capped_append
 
 
 class StatisticsSnapshot:
@@ -180,7 +181,7 @@ class ThreadSafeStatisticsCollector:
         """Save a snapshot for later retrieval."""
         snapshot = self.take_snapshot()
         with self._snapshot_lock:
-            self._snapshots.append(snapshot)
+            capped_append(self._snapshots, snapshot)
     
     def get_snapshots(
         self,

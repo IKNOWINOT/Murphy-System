@@ -17,6 +17,7 @@ from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -376,7 +377,7 @@ class OrgChartEnforcement:
 
     def _emit_audit(self, event: str, node_id: str = "", detail: str = "") -> None:
         """Append an audit entry. Must be called under lock."""
-        self._audit_log.append({
+        capped_append(self._audit_log, {
             "event": event,
             "node_id": node_id,
             "detail": detail,

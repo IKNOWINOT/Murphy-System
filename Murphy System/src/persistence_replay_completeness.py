@@ -27,6 +27,7 @@ from dataclasses import dataclass, field, asdict
 from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Callable
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -198,7 +199,7 @@ class WriteAheadLog:
             status=WAL_STATUS_PENDING,
         )
         with self._lock:
-            self._entries.append(entry)
+            capped_append(self._entries, entry)
             self._flush()
         logger.debug("WAL logged operation %s (%s)", entry.entry_id, operation)
         return entry.entry_id
@@ -546,7 +547,7 @@ class PointInTimeRecovery:
             "label": label,
         }
         with self._lock:
-            self._history.append(entry)
+            capped_append(self._history, entry)
             self._history.sort(key=lambda e: e["timestamp"])
             idx = self._history.index(entry)
         return {"index": idx, "timestamp": ts, "label": label}
@@ -780,7 +781,7 @@ class ReplayOrchestrator:
         result = self._execute_step(step)
 
         with self._lock:
-            self._results.append(result)
+            capped_append(self._results, result)
             if self._current_index >= len(self._steps):
                 self._state = ReplayState.COMPLETED
             else:

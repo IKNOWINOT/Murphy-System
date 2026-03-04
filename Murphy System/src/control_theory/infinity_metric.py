@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
+from thread_safe_operations import capped_append
 
 
 # ------------------------------------------------------------------ #
@@ -148,7 +149,7 @@ class EntropyTracker:
     def record(self, covariance_matrix: np.ndarray) -> float:
         """Record entropy at the current time step and return it."""
         h = compute_differential_entropy(covariance_matrix)
-        self._history.append(h)
+        capped_append(self._history, h)
         return h
 
     @property

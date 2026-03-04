@@ -1089,7 +1089,7 @@ class TrueSwarmSystem:
         total_artifacts = sum(r['exploration_artifacts'] + r['control_artifacts'] for r in results)
         total_gates = sum(r['gates_activated'] for r in results)
         final_confidence = sum(r['confidence_impact'] for r in results)
-        avg_murphy_risk = sum(r['murphy_risk'] for r in results) / len(results)
+        avg_murphy_risk = sum(r['murphy_risk'] for r in results) / (len(results) or 1)
         
         print(f"\n{'='*60}")
         print(f"CYCLE COMPLETE")

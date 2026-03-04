@@ -34,6 +34,7 @@ import statistics
 import threading
 import uuid
 from datetime import datetime, timedelta
+from thread_safe_operations import capped_append
 
 
 # =============================================================================
@@ -307,7 +308,7 @@ class ReverseInferenceEngine:
                 data.revenue_history[i] - data.revenue_history[i - 1]
                 for i in range(1, len(data.revenue_history))
             ]
-            avg_diff = sum(diffs) / len(diffs)
+            avg_diff = sum(diffs) / (len(diffs) or 1)
             base = abs(data.revenue_history[0]) if data.revenue_history[0] != 0 else 1.0
             trend = avg_diff / base
             revenue_trend = max(0.0, min(1.0, 0.5 + trend))
@@ -638,7 +639,7 @@ class PaperTradingSimulator:
                 stop_loss=stop_loss,
                 take_profit=take_profit,
             )
-            self._orders.append(order)
+            capped_append(self._orders, order)
             return self._fill_order(order)
 
     def _fill_order(self, order: TradeOrder) -> Dict[str, Any]:
@@ -655,8 +656,8 @@ class PaperTradingSimulator:
         elif order.side == "sell":
             self.capital += cost
 
-        self._filled_orders.append(order)
-        self._equity_curve.append(self.capital)
+        capped_append(self._filled_orders, order)
+        capped_append(self._equity_curve, self.capital)
 
         log_entry = {
             "order_id": order.order_id,
@@ -668,7 +669,7 @@ class PaperTradingSimulator:
             "timestamp": order.fill_timestamp,
             "strategy": order.strategy,
         }
-        self._trade_log.append(log_entry)
+        capped_append(self._trade_log, log_entry)
 
         return {"status": "filled", "order": order.to_dict(), "capital": self.capital}
 
@@ -682,7 +683,7 @@ class PaperTradingSimulator:
                 "return_pct": round(ret * 100, 4),
                 "profitable": ret > 0,
             }
-            self._monthly_returns.append(entry)
+            capped_append(self._monthly_returns, entry)
             return entry
 
     def systematic_profitability_proven(self) -> bool:
@@ -802,7 +803,7 @@ class PortfolioTracker:
                 lot_id=str(uuid.uuid4()), symbol=symbol, quantity=quantity,
                 purchase_price=price, purchase_date=time.time(),
             )
-            self._tax_lots.append(lot)
+            capped_append(self._tax_lots, lot)
             return {"status": "opened", "symbol": symbol, "quantity": quantity, "price": price, "cash": self.cash}
 
     def close_position(self, symbol: str, price: float, quantity: Optional[float] = None) -> Dict[str, Any]:
@@ -1034,7 +1035,7 @@ class TradingGateway:
                     "reason": "LIVE_TRADING_ENABLED is False",
                     "timestamp": time.time(),
                 }
-                self._audit_log.append(entry)
+                capped_append(self._audit_log, entry)
                 return {"status": "blocked", "reason": "LIVE_TRADING_ENABLED is False (hardcoded safety)"}
 
             if not self.paper_simulator.systematic_profitability_proven():
@@ -1044,7 +1045,7 @@ class TradingGateway:
                     "reason": "profitability_not_proven",
                     "timestamp": time.time(),
                 }
-                self._audit_log.append(entry)
+                capped_append(self._audit_log, entry)
                 return {"status": "blocked", "reason": "Systematic profitability not proven in paper trading."}
 
             self.mode = TradingMode.LIVE
@@ -1053,7 +1054,7 @@ class TradingGateway:
                 "result": "activated",
                 "timestamp": time.time(),
             }
-            self._audit_log.append(entry)
+            capped_append(self._audit_log, entry)
             return {"status": "activated", "mode": "live"}
 
     def submit_order(self, symbol: str, side: str, quantity: float, price: float,
@@ -1070,7 +1071,7 @@ class TradingGateway:
                 "mode": self.mode.value,
                 "timestamp": time.time(),
             }
-            self._audit_log.append(entry)
+            capped_append(self._audit_log, entry)
 
             if self.mode == TradingMode.PAPER:
                 return self.paper_simulator.submit_order(
@@ -1152,7 +1153,7 @@ class AIOptimizationLayer:
             confidence = 1.0 - min(1.0, abs(avg_return) / 0.005)
 
         with self._lock:
-            self._regime_history.append(regime.value)
+            capped_append(self._regime_history, regime.value)
 
         return {"regime": regime.value, "confidence": round(confidence, 4), "avg_return": round(avg_return, 6), "volatility": round(volatility, 6)}
 
@@ -1297,7 +1298,7 @@ class TradingBotEngine:
 
     def _log_audit(self, action: str, details: Dict[str, Any]) -> None:
         with self._lock:
-            self._audit_trail.append({
+            capped_append(self._audit_trail, {
                 "action": action,
                 "details": details,
                 "timestamp": time.time(),

@@ -462,7 +462,7 @@ class ComplianceValidator:
         
         report['regulations']['GDPR'] = {
             'compliant_messages': gdpr_compliant,
-            'compliance_rate': gdpr_compliant / len(messages) if messages else 0
+            'compliance_rate': gdpr_compliant / (len(messages) or 1) if messages else 0
         }
         
         # SOX checks

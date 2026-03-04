@@ -180,7 +180,7 @@ class TrustRecomputer:
         ]
         
         if recent_signals:
-            behavior_adjustment = sum(recent_signals) / len(recent_signals)
+            behavior_adjustment = sum(recent_signals) / (len(recent_signals) or 1)
             decayed_confidence = max(0.0, min(1.0, decayed_confidence + behavior_adjustment))
         
         # Determine trust level from confidence
@@ -672,5 +672,5 @@ class ZeroTrustAccessController:
             "requires_elevation": sum(1 for g in grants if g.decision == AccessDecision.REQUIRES_ELEVATION),
             "requires_reauth": sum(1 for g in grants if g.decision == AccessDecision.REQUIRES_REAUTH),
             "frozen": sum(1 for g in grants if g.decision == AccessDecision.FROZEN),
-            "average_trust_score": sum(g.trust_score_at_grant for g in grants) / len(grants)
+            "average_trust_score": sum(g.trust_score_at_grant for g in grants) / (len(grants) or 1)
         }

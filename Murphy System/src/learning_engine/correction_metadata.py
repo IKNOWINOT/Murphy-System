@@ -310,8 +310,8 @@ class MetadataAnalyzer:
         
         return {
             "total_corrections": len(user_corrections),
-            "average_correction_time": sum(times) / len(times) if times else 0,
-            "average_quality_improvement": sum(quality_improvements) / len(quality_improvements) if quality_improvements else 0,
+            "average_correction_time": sum(times) / (len(times) or 1) if times else 0,
+            "average_quality_improvement": sum(quality_improvements) / (len(quality_improvements) or 1) if quality_improvements else 0,
             "correction_ids": user_corrections
         }
     
@@ -373,7 +373,7 @@ class MetadataAnalyzer:
         
         # Calculate average importance for each feature
         return {
-            feature: sum(scores) / len(scores)
+            feature: sum(scores) / (len(scores) or 1)
             for feature, scores in feature_scores.items()
         }
 
@@ -443,11 +443,11 @@ class MetadataEnricher:
         if correction.diffs:
             original_conf = sum(
                 d.original.confidence or 0.5 for d in correction.diffs
-            ) / len(correction.diffs)
+            ) / (len(correction.diffs) or 1)
             
             corrected_conf = sum(
                 d.corrected.confidence for d in correction.diffs
-            ) / len(correction.diffs)
+            ) / (len(correction.diffs) or 1)
             
             quality_meta = QualityMetadata(
                 original_confidence=original_conf,

@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 import uuid
 from collections import defaultdict
 import statistics
+from thread_safe_operations import capped_append
 
 
 # ============================================================================
@@ -447,7 +448,7 @@ class FeedbackAnalytics:
         
         return {
             "trend": trend,
-            "daily_average": sum(by_day.values()) / len(by_day),
+            "daily_average": sum(by_day.values()) / (len(by_day) or 1),
             "total_recent": len(recent)
         }
     
@@ -644,7 +645,7 @@ class FeedbackStorage:
         self._index: Dict[str, FeedbackEntry] = {}
 
     def add_entry(self, entry: FeedbackEntry):
-        self._entries.append(entry)
+        capped_append(self._entries, entry)
         self._index[entry.feedback_id] = entry
         while len(self._entries) > self.max_entries:
             removed = self._entries.pop(0)
@@ -706,7 +707,7 @@ class FeedbackAnalyzer:
 
         success_count = sum(1 for e in entries if e.success)
         success_rate = success_count / len(entries)
-        average_confidence = sum(e.confidence for e in entries) / len(entries)
+        average_confidence = sum(e.confidence for e in entries) / (len(entries) or 1)
 
         ops: Dict[str, Dict[str, int]] = defaultdict(lambda: {'success': 0, 'total': 0})
         type_counts: Dict[str, int] = defaultdict(int)

@@ -161,7 +161,7 @@ class Correction(BaseModel):
         
         # Weighted average of diff impact scores
         total_impact = sum(diff.impact_score for diff in self.diffs)
-        avg_impact = total_impact / len(self.diffs)
+        avg_impact = total_impact / (len(self.diffs) or 1)
         
         # Adjust by severity
         severity_weights = {

@@ -13,6 +13,7 @@ import time
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -274,7 +275,7 @@ class CrossPlatformDataSync:
                         "timestamp": datetime.now(timezone.utc).isoformat(),
                     }
                     with self._lock:
-                        self._sync_log.append(log_entry)
+                        capped_append(self._sync_log, log_entry)
                     return {"mapping_id": mapping.mapping_id, "status": "error", "error": str(e)}
             else:
                 source_data = []
@@ -314,7 +315,7 @@ class CrossPlatformDataSync:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         with self._lock:
-            self._sync_log.append(log_entry)
+            capped_append(self._sync_log, log_entry)
 
         return {
             "mapping_id": mapping.mapping_id,

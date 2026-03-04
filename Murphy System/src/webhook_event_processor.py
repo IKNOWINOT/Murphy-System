@@ -12,6 +12,7 @@ import json
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
+from thread_safe_operations import capped_append
 
 
 class WebhookStatus(Enum):
@@ -1008,7 +1009,7 @@ class WebhookEventProcessor:
                 error=f"Unknown source: {source_id}",
             )
             with self._lock:
-                self._events.append(event)
+                capped_append(self._events, event)
             return event
 
         if not source.active:
@@ -1022,7 +1023,7 @@ class WebhookEventProcessor:
                 error=f"Source '{source_id}' is disabled",
             )
             with self._lock:
-                self._events.append(event)
+                capped_append(self._events, event)
             return event
 
         # Verify signature
@@ -1040,7 +1041,7 @@ class WebhookEventProcessor:
                     error="Signature verification failed",
                 )
                 with self._lock:
-                    self._events.append(event)
+                    capped_append(self._events, event)
                 return event
 
         # Extract event type
@@ -1072,7 +1073,7 @@ class WebhookEventProcessor:
                     event.error = str(e)
                     event.status = WebhookStatus.FAILED
                     with self._lock:
-                        self._events.append(event)
+                        capped_append(self._events, event)
                     return event
             event.status = WebhookStatus.PROCESSED
             event.processed_at = time.time()
@@ -1081,7 +1082,7 @@ class WebhookEventProcessor:
             event.processed_at = time.time()
 
         with self._lock:
-            self._events.append(event)
+            capped_append(self._events, event)
         return event
 
     def get_event(self, event_id: str) -> Optional[Dict[str, Any]]:
