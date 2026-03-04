@@ -300,7 +300,243 @@ for mod in ['fastapi', 'uvicorn', 'pydantic']:
 
 ---
 
-## 9. Next Steps
+## 9. Screenshots — Current Build
+
+### Landing Page
+
+![Murphy System Landing Page](https://github.com/user-attachments/assets/eaaca012-48f2-477a-ba2b-90a59cf1bfb4)
+
+### Pricing Tiers
+
+| Tier | Price | Notes |
+|------|-------|-------|
+| Community | Free | Open source (MIT), budgeted from paid income |
+| Creator Starter | $20/mo | Flat rate |
+| Professional | $99/mo | Per seat |
+| Enterprise | $750/mo | Per seat — funds community free tier |
+
+![Pricing Section](https://github.com/user-attachments/assets/c48623cb-51c3-455b-8c01-6a962e8d133b)
+
+### Onboarding Wizard
+
+![Onboarding Wizard](https://github.com/user-attachments/assets/fcb66a2a-8996-459b-8d00-d82e28bf369f)
+
+### Architect Terminal
+
+![Architect Terminal](https://github.com/user-attachments/assets/58b7339c-d53c-460e-bc9e-e8264d3fbcb7)
+
+### Integrated Terminal
+
+![Integrated Terminal](https://github.com/user-attachments/assets/15889254-53c5-4759-9c39-7d3518d79d58)
+
+### API Health & Status
+
+![API Health](https://github.com/user-attachments/assets/fb0c5187-6524-4757-90ea-39b1ddbb0542)
+
+![API Status](https://github.com/user-attachments/assets/2952d21c-0218-463f-a11f-0d5ace328eca)
+
+---
+
+## 10. Automation Loops & Repeating Cycles
+
+Murphy runs three continuous business automation cycles that repeat alongside all other automations.
+
+### 30-Day Traction Cycle
+
+Every 30 days, the system measures per-tier performance trends:
+
+- **Healthy** (≥3% conversion): Maintain current campaigns
+- **Low** (1–3%): Auto-adjust channels, demographics, and messaging
+- **Critical** (<1%): Propose paid advertising campaigns (requires founder HITL approval)
+
+```python
+from src.operations_cycle_engine import OperationsCycleEngine
+
+ops = OperationsCycleEngine()
+ops.start_traction_cycle()  # Auto-repeats every 30 days
+
+# Evaluate traction mid-cycle
+result = ops.evaluate_traction_cycle({
+    "pro": {"impressions": 10000, "leads": 500, "conversions": 20},
+    "enterprise": {"impressions": 2000, "leads": 50, "conversions": 3},
+})
+
+# Complete cycle → auto-starts next 30-day cycle
+ops.complete_traction_cycle()
+```
+
+### 60-Day R&D Sprint Cycle
+
+Every 60 days, the system builds everything queued during the cycle:
+
+1. Competitive intelligence detects capability gaps
+2. Gaps are routed to the R&D backlog with priority
+3. At cycle end, queued items are built as modules
+4. Remaining items carry over to the next 60-day cycle
+
+```python
+# Queue R&D items from competitive gap analysis
+from src.competitive_intelligence_engine import CompetitiveIntelligenceEngine
+
+ci = CompetitiveIntelligenceEngine()
+ci.load_default_landscape()
+ci.detect_gaps()
+rd_items = ci.route_gaps_to_rd()
+
+# Start R&D cycle with queued items
+ops.start_rd_cycle(queued_items=[item.to_dict() for item in rd_items[:5]])
+
+# At end of 60 days: build, gap-analyze, carry over remaining
+ops.complete_rd_cycle(built_modules=[
+    {"title": "visual_workflow", "status": "completed"},
+])
+```
+
+### Instant Disruption Response
+
+When something disrupts the industry, Murphy immediately:
+
+1. Reviews what's being created and identifies gaps
+2. Proposes non-plagiarized Murphy-native builds
+3. Routes through HITL founder approval before execution
+
+```python
+from src.operations_cycle_engine import DisruptionSeverity
+
+dr = ops.report_disruption(
+    "CompetitorX", "Launched autonomous workflow builder",
+    DisruptionSeverity.HIGH,
+    ["autonomous_workflow", "visual_builder", "multi_llm_routing"]
+)
+# dr.our_gaps = ["autonomous_workflow", "visual_builder"]
+# dr.status = AWAITING_APPROVAL  (founder HITL gate)
+
+ops.approve_disruption_response(dr.response_id, "corey_post_founder")
+```
+
+---
+
+## 11. Marketing Campaigns & Competitive Intelligence
+
+### Adaptive Campaigns Per Tier
+
+Marketing agents run campaigns to fill every pricing tier. When traction is low, campaigns auto-adjust demographics and channels. Paid advertising requires founder approval.
+
+```python
+from src.adaptive_campaign_engine import AdaptiveCampaignEngine
+
+campaigns = AdaptiveCampaignEngine()
+campaigns.bootstrap_tier_campaigns()
+
+# Record performance and evaluate
+campaigns.record_performance("pro", impressions=5000, leads=200, conversions=8)
+result = campaigns.evaluate_and_act()
+# Auto-adjusts low-traction tiers, proposes paid ads for critical tiers
+```
+
+### Adversarial Marketing & Competitive Intelligence
+
+The system requests marketing information from competitors, builds competitive offering systems, identifies who they sell to and how, and routes capability gaps through R&D.
+
+```python
+from src.competitive_intelligence_engine import CompetitiveIntelligenceEngine
+
+ci = CompetitiveIntelligenceEngine()
+ci.load_default_landscape()  # Zapier, Make, n8n, UiPath, Power Automate
+
+report = ci.full_competitive_analysis()
+# report["summary"]["competitors_analyzed"] = 5
+# report["summary"]["capability_gaps"] = 46
+# report["summary"]["rd_items_created"] = 46
+# report["competitive_strategies"] = [per-competitor adversarial strategies]
+```
+
+---
+
+## 12. Data Archive, Retrieval & External Content Libraries
+
+### Archiving Data
+
+All system data is archived chronologically with category classification and automatic metric routing.
+
+```python
+from src.data_archive_manager import DataArchiveManager, ArchiveCategory
+
+archive = DataArchiveManager()
+
+# Archive metric data → auto-routed to analytics
+archive.archive(
+    title="Daily page views",
+    data={"channel": "seo", "metric_name": "views", "value": 15000},
+    category=ArchiveCategory.METRIC,
+    tags=["seo", "daily"],
+)
+
+# Archive campaign results
+archive.archive(
+    title="Pro tier campaign Q1",
+    data={"campaign_id": "camp-001", "conversions": 42},
+    category=ArchiveCategory.CAMPAIGN,
+)
+```
+
+### Chronological Retrieval
+
+Retrieve data by time range, category, tags, or ID — always in chronological order.
+
+```python
+from datetime import datetime, timezone, timedelta
+
+now = datetime.now(timezone.utc)
+result = archive.retrieve_by_time_range(
+    start=(now - timedelta(days=30)).isoformat(),
+    end=now.isoformat(),
+    category=ArchiveCategory.METRIC,
+)
+# result["local_records"] = [...chronologically ordered records...]
+# result["external_refs"] = [...YouTube/Twitch VODs covering this period...]
+```
+
+### External Content Libraries (YouTube/Twitch VOD Storage)
+
+High-volume data (telemetry streams, session recordings, large logs) is externalized to free platforms like YouTube and Twitch as VODs. This avoids paid storage while keeping data accessible chronologically.
+
+```python
+# Find large records that should be externalized
+candidates = archive.get_externalization_candidates()
+
+# After uploading to YouTube/Twitch, record the reference
+archive.externalize_to_platform(
+    record_ids=[r["record_id"] for r in candidates],
+    platform="youtube",
+    url="https://youtube.com/watch?v=session_archive_week9",
+    title="Murphy Telemetry Archive — Week 9",
+)
+
+# Later: retrieve by time period (includes external VOD refs)
+refs = archive.find_externalized_for_period(
+    start="2026-02-01T00:00:00+00:00",
+    end="2026-03-01T00:00:00+00:00",
+)
+# refs = [{"platform": "youtube", "url": "...", "time_range_start": "...", ...}]
+```
+
+### Storage Summary
+
+```python
+summary = archive.get_storage_summary()
+# {
+#   "total_records": 18,
+#   "local_records": 15,
+#   "external_youtube": 2,
+#   "external_twitch": 1,
+#   "externalization_candidates": 3,
+# }
+```
+
+---
+
+## 13. Next Steps
 
 - **Explore the API** — Browse all 70+ endpoints at http://localhost:8000/docs.
 - **Try the onboarding wizard** — Open `onboarding_wizard.html` or run the CLI wizard for guided setup.
