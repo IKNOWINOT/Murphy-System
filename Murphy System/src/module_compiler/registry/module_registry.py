@@ -296,7 +296,7 @@ class ModuleRegistry:
             try:
                 with open(self.index_path, 'r') as f:
                     return json.load(f)
-            except:
+            except Exception:
                 pass
         
         # Return empty index

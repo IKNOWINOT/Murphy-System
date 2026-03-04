@@ -233,7 +233,7 @@ class SemanticSearchEngine:
                             score += 0.2
                         elif days_old < 30:
                             score += 0.1
-                    except:
+                    except Exception:
                         pass
             
             # Access popularity bonus

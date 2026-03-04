@@ -192,7 +192,7 @@ class EmailConnector(BaseConnector):
             
             # Get unread messages
             url = f'{self.graph_endpoint}/me/messages?$filter=isRead eq false'
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=headers, timeout=30)
             
             if response.status_code == 200:
                 data = response.json()
@@ -296,7 +296,7 @@ class EmailConnector(BaseConnector):
             }
             
             url = f'{self.graph_endpoint}/me/sendMail'
-            response = requests.post(url, headers=headers, json=payload)
+            response = requests.post(url, headers=headers, json=payload, timeout=30)
             
             return response.status_code == 202
         
@@ -341,7 +341,7 @@ class SlackConnector(BaseConnector):
             url = f'{self.api_base}/conversations.history'
             params = {'limit': 100}
             
-            response = requests.get(url, headers=headers, params=params)
+            response = requests.get(url, headers=headers, params=params, timeout=30)
             
             if response.status_code == 200:
                 data = response.json()
@@ -383,7 +383,7 @@ class SlackConnector(BaseConnector):
             if self.webhook_url:
                 # Send via webhook
                 payload = {'text': packet.content}
-                response = requests.post(self.webhook_url, json=payload)
+                response = requests.post(self.webhook_url, json=payload, timeout=30)
                 success = response.status_code == 200
             else:
                 # Send via API
@@ -398,7 +398,7 @@ class SlackConnector(BaseConnector):
                 }
                 
                 url = f'{self.api_base}/chat.postMessage'
-                response = requests.post(url, headers=headers, json=payload)
+                response = requests.post(url, headers=headers, json=payload, timeout=30)
                 success = response.status_code == 200
             
             if success:
@@ -436,7 +436,7 @@ class TeamsConnector(BaseConnector):
             
             # Get chat messages
             url = f'{self.graph_endpoint}/me/chats/getAllMessages'
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=headers, timeout=30)
             
             if response.status_code == 200:
                 data = response.json()
@@ -479,7 +479,7 @@ class TeamsConnector(BaseConnector):
                 payload = {
                     'text': packet.content
                 }
-                response = requests.post(self.webhook_url, json=payload)
+                response = requests.post(self.webhook_url, json=payload, timeout=30)
                 success = response.status_code == 200
             else:
                 # Send via Graph API
@@ -495,7 +495,7 @@ class TeamsConnector(BaseConnector):
                 }
                 
                 url = f'{self.graph_endpoint}/chats/{packet.thread_id}/messages'
-                response = requests.post(url, headers=headers, json=payload)
+                response = requests.post(url, headers=headers, json=payload, timeout=30)
                 success = response.status_code == 201
             
             if success:
