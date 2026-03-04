@@ -233,9 +233,7 @@ def render_banner_plain(
 
 if __name__ == "__main__":
     logger.info(render_banner())
-    logger.debug("")
     logger.info(render_section("QUESTIONS"))
-    logger.debug("")
     logger.info(
         render_panel(
             "HYPOTHESIS EXECUTABILITY STATUS",

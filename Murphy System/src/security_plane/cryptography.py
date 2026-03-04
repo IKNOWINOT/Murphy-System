@@ -47,7 +47,6 @@ import hmac
 import logging
 from enum import Enum
 
-import logging
 logger = logging.getLogger("security_plane.cryptography")
 
 from .schemas import (

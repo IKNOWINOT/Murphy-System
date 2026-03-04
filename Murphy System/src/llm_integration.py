@@ -418,7 +418,6 @@ Current system specs:
     logger.info(f"  • Total RAM: {info['total_ram_gb']:.1f} GB")
     logger.info(f"  • CPU cores: {info['cpu_count']}")
     logger.info(f"  • Recommended model: {info['recommended_model']}")
-    logger.debug("")
 
 
 if __name__ == "__main__":
