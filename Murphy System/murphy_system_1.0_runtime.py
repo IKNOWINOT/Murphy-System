@@ -11826,12 +11826,17 @@ class MurphySystem:
         if not answers:
             return ""
 
+        # Librarian display thresholds
+        MIN_GOAL_TEXT_LENGTH = 10
+        MAX_GOAL_DISPLAY_LENGTH = 80
+        MAX_DISPLAYED_SUGGESTIONS = 3
+
         hints: List[str] = []
 
         # After 'signup', acknowledge the goal and ask specifics
         if stage == "signup" and "signup" in answers:
             goal_text = answers["signup"].lower()
-            if len(goal_text) > 10:
+            if len(goal_text) > MIN_GOAL_TEXT_LENGTH:
                 hints.append(
                     f"\n💡 *Librarian note:* Great — I'm already thinking about "
                     f"what integrations will support your goal."
@@ -11937,7 +11942,7 @@ class MurphySystem:
                     hints.append(
                         "\n🔎 *Suggestions to help me build a better plan:*"
                     )
-                    for q in missing_context[:3]:
+                    for q in missing_context[:MAX_DISPLAYED_SUGGESTIONS]:
                         hints.append(f"  • {q}")
 
         # After 'automation_production', ask about monitoring
@@ -11964,7 +11969,7 @@ class MurphySystem:
                 )
             if suggestions:
                 hints.append("\n🔎 *Suggestions to finalize your production setup:*")
-                for q in suggestions[:3]:
+                for q in suggestions[:MAX_DISPLAYED_SUGGESTIONS]:
                     hints.append(f"  • {q}")
 
         # Preview hint for upcoming production stage
@@ -12788,6 +12793,8 @@ class MurphySystem:
         more specific suggestions and follow-up questions rather than
         generic guidance.
         """
+        MAX_GOAL_DISPLAY_LENGTH = 80
+
         # Gather session context for inference-based suggestions
         session = self.chat_sessions.get(session_id, {})
         answers = session.get("answers", {})
@@ -12855,7 +12862,7 @@ class MurphySystem:
                 goal = answers.get("signup", "")
                 if goal:
                     reply = (
-                        f"Based on your goal — *\"{goal[:80]}\"* — here's what I suggest:\n\n"
+                        f"Based on your goal — *\"{goal[:MAX_GOAL_DISPLAY_LENGTH]}\"* — here's what I suggest:\n\n"
                     )
                     recs = self.infer_needed_integrations(answers)
                     if recs:
@@ -12880,7 +12887,7 @@ class MurphySystem:
                 goal = answers.get("signup", "")
                 if goal:
                     reply += (
-                        f"\n\n🔎 *Based on your setup for \"{goal[:60]}\" — "
+                        f"\n\n🔎 *Based on your setup for \"{goal[:MAX_GOAL_DISPLAY_LENGTH]}\" — "
                         "try describing a specific task, like:*\n"
                     )
                     combined = " ".join(str(v) for v in answers.values()).lower()
