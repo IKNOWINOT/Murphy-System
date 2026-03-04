@@ -16,6 +16,8 @@ import hashlib
 import json
 
 from dataclasses import dataclass, field
+import logging
+logger = logging.getLogger(__name__)
 
 
 class ExecutionOutcome(Enum):
@@ -59,6 +61,7 @@ class StabilityMetrics:
                 else:
                     state_changes.append(0)
             except Exception as exc:
+                logger.debug("Suppressed exception: %s", exc)
                 state_changes.append(0)
         
         max_change_rate = max(state_changes) if state_changes else 0

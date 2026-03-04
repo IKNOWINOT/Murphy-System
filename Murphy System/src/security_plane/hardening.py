@@ -27,6 +27,8 @@ import os
 import shlex
 from pathlib import Path
 from urllib.parse import quote, quote_plus, urlencode
+import logging
+logger = logging.getLogger(__name__)
 
 
 class ValidationError(Exception):
@@ -645,6 +647,7 @@ class PathTraversalPreventer:
             
             return False
         except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             return False
     
     def sanitize_path(self, path: str) -> Path:

@@ -99,6 +99,7 @@ class PersistenceManager:
                 json.dump(data, f, indent=2, default=str)
             tmp_path.replace(filepath)
         except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             if tmp_path.exists():
                 tmp_path.unlink()
             raise

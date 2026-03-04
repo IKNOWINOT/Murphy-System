@@ -3,6 +3,8 @@ LLM + Swarm Integration
 Combines LLM capabilities with True Swarm System and Memory & Artifacts
 """
 
+import logging
+logger = logging.getLogger(__name__)
 import sys
 import os
 from typing import Dict, List, Any, Optional
@@ -78,6 +80,7 @@ class LLMSwarmController:
             response = requests.get(f"{self.ollama_url}/api/tags", timeout=2)
             return response.status_code == 200
         except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             return False
     
     def _call_llm(self, prompt: str, max_tokens: int = 500) -> str:

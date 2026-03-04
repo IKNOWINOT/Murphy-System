@@ -5,6 +5,8 @@ Uses pattern matching and templates for offline operation
 Integrates with Ollama for local model inference when available
 """
 
+import logging
+logger = logging.getLogger(__name__)
 import re
 from typing import Dict, Any, List, Tuple, Optional
 import random
@@ -26,6 +28,7 @@ def _check_ollama_available(base_url: str = "http://localhost:11434") -> bool:
         with urllib.request.urlopen(req, timeout=2) as resp:
             return resp.status == 200
     except Exception as exc:
+        logger.debug("Suppressed exception: %s", exc)
         return False
 
 
@@ -55,6 +58,7 @@ def _query_ollama(
             data = _json.loads(resp.read().decode("utf-8"))
             return data.get("response", "")
     except Exception as exc:
+        logger.debug("Suppressed exception: %s", exc)
         return None
 
 

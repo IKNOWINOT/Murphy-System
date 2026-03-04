@@ -151,5 +151,6 @@ class RecalibrationScheduler:
             try:
                 self.run_all()
             except Exception as exc:
+                logger.debug("Suppressed exception: %s", exc)
                 logger.exception("Recalibration loop error")
             self._stop_event.wait(timeout=self._interval)

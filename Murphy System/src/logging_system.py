@@ -17,6 +17,8 @@ from enum import Enum
 from pathlib import Path
 import threading
 from contextlib import contextmanager
+import logging
+logger = logging.getLogger(__name__)
 
 
 class ThreadStatus(Enum):
@@ -195,6 +197,7 @@ class LoggingDatabase:
             yield conn
             conn.commit()
         except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             conn.rollback()
             raise
         finally:

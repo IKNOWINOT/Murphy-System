@@ -6,6 +6,8 @@ Defines the structure of compiled modules and their capabilities.
 Owner: INONI LLC / Corey Post (corey.gfc@gmail.com)
 """
 
+import logging
+logger = logging.getLogger(__name__)
 from dataclasses import dataclass, field
 from typing import Dict, List, Any, Optional
 from enum import Enum
@@ -304,6 +306,7 @@ class ModuleSpec:
                 return hashlib.sha256(f.read()).hexdigest()
         except Exception as exc:
             # If file can't be read, use path hash
+            logger.debug("Suppressed exception: %s", exc)
             return hashlib.sha256(source_path.encode()).hexdigest()
     
     def get_capability(self, name: str) -> Optional[Capability]:

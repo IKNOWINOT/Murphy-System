@@ -41,6 +41,7 @@ class RosettaManager:
                 json.dump(data, f, indent=2, default=str)
             tmp_path.replace(filepath)
         except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             if tmp_path.exists():
                 tmp_path.unlink()
             raise
@@ -92,6 +93,7 @@ class RosettaManager:
                     data = self._read_json(filepath)
                     state = RosettaAgentState.model_validate(data)
                 except Exception as exc:
+                    logger.debug("Suppressed exception: %s", exc)
                     return None
 
             current = state.model_dump(mode="json")

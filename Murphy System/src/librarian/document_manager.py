@@ -309,6 +309,7 @@ class DocumentManager:
                     metadata['json_keys'] = list(json_data.keys()) if isinstance(json_data, dict) else []
                     metadata['is_json_valid'] = True
                 except Exception as exc:
+                    logger.debug("Suppressed exception: %s", exc)
                     metadata['is_json_valid'] = False
             
             elif document_type == 'text':
@@ -349,6 +350,7 @@ class DocumentManager:
                     return content
                 return content
             except Exception as exc:
+                logger.debug("Suppressed exception: %s", exc)
                 return content
         
         # Register pipelines

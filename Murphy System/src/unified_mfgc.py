@@ -501,6 +501,7 @@ Provide a helpful, context-aware response. Reference previous topics if relevant
             try:
                 response_text = self._call_llm(prompt, max_tokens)
             except Exception as exc:
+                logger.debug("Suppressed exception: %s", exc)
                 response_text = f"I understand you're asking about {domain}. Based on our conversation about {', '.join(self.conversation_context['topics_discussed'][-2:]) if self.conversation_context['topics_discussed'] else 'this topic'}, let me help with that."
         else:
             response_text = self._generate_intelligent_response(message, domain, confidence)
@@ -1461,6 +1462,7 @@ Make questions specific and actionable."""
             }
         except Exception as exc:
             # Fallback to zero counts
+            logger.debug("Suppressed exception: %s", exc)
             return {
                 'sandbox': 0,
                 'working': 0,

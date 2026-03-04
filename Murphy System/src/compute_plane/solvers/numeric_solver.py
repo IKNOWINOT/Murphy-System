@@ -122,6 +122,7 @@ class NumericSolver:
             return (min(values), max(values))
         
         except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             return (float('-inf'), float('inf'))
     
     def sensitivity_analysis(self, normalized_expr, base_point: Dict[str, float], perturbation: float = 0.01) -> Dict[str, float]:

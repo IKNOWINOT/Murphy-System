@@ -43,6 +43,8 @@ from .schemas import (
     AuthorityLevel,
     ArtifactType,
 )
+import logging
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -269,6 +271,7 @@ class CompilationCache:
                 created_at=datetime.fromisoformat(data['created_at']),
             )
         except (KeyError, ValueError) as exc:
+            logger.debug("Suppressed exception: %s", exc)
             return None
 
 

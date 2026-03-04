@@ -365,6 +365,7 @@ class EventBackbone:
                 cb.record_success()
             return True
         except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             logger.exception(
                 "Handler %s failed for event %s (retry %d/%d)",
                 sub.subscription_id,

@@ -344,6 +344,7 @@ class GitHubCredentialVerifier(BaseCredentialVerifier):
                 return resp.status == 200
         except Exception as exc:
             # Network unavailable — fall back to format check
+            logger.debug("Suppressed exception: %s", exc)
             return self._validate_github_token_format(credential.credential_value)
     
     async def verify_token(self, credential: Credential) -> bool:

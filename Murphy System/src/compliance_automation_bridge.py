@@ -205,6 +205,7 @@ class ComplianceAutomationBridge:
                     else:
                         release_ready = bool(ready_result)
                 except Exception as exc:
+                    logger.debug("Suppressed exception: %s", exc)
                     release_ready = non_compliant_count == 0
 
             except Exception as exc:

@@ -309,6 +309,7 @@ class SecurityDashboard:
             try:
                 cb(event)
             except Exception as exc:
+                logger.debug("Suppressed exception: %s", exc)
                 logger.exception("Escalation callback failed for event %s",
                                  event.event_id)
 
