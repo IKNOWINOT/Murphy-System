@@ -12022,6 +12022,7 @@ class MurphySystem:
         (r"\b(status|dashboard)\b", "status"),
         (r"\b(health|alive|ping)\b", "health"),
         (r"\b(billing|subscription|tier|pricing)\b", "billing"),
+        (r"^/librarian\b", "librarian_direct"),
         (r"\b(librarian|knowledge base|search docs)\b", "librarian"),
         (r"\b(corrections|correction stats)\b", "corrections"),
         (r"\b(hitl|pending interventions|hitl stats)\b", "hitl"),
@@ -12053,13 +12054,13 @@ class MurphySystem:
             lines = [
                 "**Murphy System — Available Commands**\n",
                 "• **start interview** — Begin the guided onboarding interview",
+                "• **/librarian <question>** — Ask the Librarian directly (separate from onboarding)",
                 "• **show modules** — List all loaded modules",
                 "• **status** / **dashboard** — View system status",
                 "• **health** — Check system health",
                 "• **sales report** — View sales automation summary",
                 "• **billing** — View billing and subscription tiers",
                 "• **compliance status** — Check compliance posture",
-                "• **librarian** — Ask the knowledge-base expert anything",
                 "• **api keys** — Get API signup links for integrations",
                 "• **corrections** — View correction statistics",
                 "• **hitl** — View pending human-in-the-loop interventions",
@@ -12136,6 +12137,23 @@ class MurphySystem:
                     session_id, intent=intent
                 )
             return self._chat_response("Compliance engine is not configured.", session_id, intent=intent)
+        if intent == "librarian_direct":
+            # /librarian <question> — route question directly to librarian,
+            # separate from onboarding flow context
+            librarian_query = re.sub(r"^/librarian\s*", "", message, flags=re.IGNORECASE).strip()
+            if not librarian_query:
+                return self._chat_response(
+                    "**📚 Murphy Librarian**\n\n"
+                    "Ask me anything about the Murphy System. Use:\n\n"
+                    "  `/librarian what modules handle HVAC?`\n"
+                    "  `/librarian how does confidence scoring work?`\n"
+                    "  `/librarian what integrations do I need for email automation?`\n\n"
+                    "I'll analyze your question against the system knowledge base "
+                    "and provide specific suggestions based on what I know about "
+                    "your setup.",
+                    session_id, intent=intent
+                )
+            return self.librarian_ask(librarian_query, session_id)
         if intent == "librarian":
             return self.librarian_ask(message, session_id)
         if intent == "corrections":
@@ -12991,6 +13009,15 @@ class MurphySystem:
         # --- Intent detection (Chapter 1: route recognised commands) ---
         intent = self._detect_intent(message)
         in_flow = session.get("in_flow", False)
+
+        # /librarian always routes to librarian, even during onboarding flow
+        if intent == "librarian_direct":
+            resp = self._handle_intent(intent, message, session_id)
+            if resp is not None:
+                duration = time.perf_counter() - start
+                self._record_execution(success=True, duration=duration)
+                return resp
+
         if intent == "onboarding":
             # Start the onboarding flow
             session["stage_index"] = 0
