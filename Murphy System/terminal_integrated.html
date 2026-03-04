@@ -428,7 +428,7 @@ Type 'help' for all commands · Type 'api' for endpoint reference
                     await showTrainingData();
                     break;
                 case 'execute':
-                    await executeTask(args);
+                    await _executeTaskJSON(args);
                     break;
                 case 'integrate':
                     await addIntegration(args);
@@ -1054,7 +1054,7 @@ Type 'help' for all commands · Type 'api' for endpoint reference
             }
         }
 
-        async function executeTask(argsStr) {
+        async function _executeTaskJSON(argsStr) {
             if (!argsStr) {
                 addOutput('Usage: execute <JSON>', 'info');
                 addOutput('Example: execute {"task_description":"Analyze Q4 sales","task_type":"analysis"}', 'info');
@@ -1088,7 +1088,17 @@ Type 'help' for all commands · Type 'api' for endpoint reference
                         }
                     }
                 } else {
-                    addOutput('✗ Execution failed: ' + (result.error || result.reason || 'Unknown error'), 'error');
+                    addOutput('✗ Execution blocked: ' + (result.error || result.reason || 'Unknown error'), 'error');
+                    // Show clarifying questions
+                    if (result.clarifying_questions && result.clarifying_questions.length > 0) {
+                        addOutput('', '');
+                        addOutput('⚠ Murphy needs more information to proceed:', 'warning');
+                        result.clarifying_questions.forEach(function(q) {
+                            addOutput('  → ' + q.question, 'warning');
+                        });
+                        addOutput('', '');
+                        addOutput('Provide answers to raise confidence above the threshold.', 'info');
+                    }
                 }
             } catch (error) {
                 addOutput('✗ Error: ' + error.message, 'error');
@@ -1458,57 +1468,72 @@ Type 'help' for all commands · Type 'api' for endpoint reference
         }
 
         // ── No-Code Natural Language Handler ──
-        // Sends plain-English input to /api/execute as a task description.
+        // Sends plain-English input to /api/chat for conversational routing.
+        // The chat endpoint handles onboarding, help, status, and general questions.
         // Displays confidence, follow-up questions, and results.
         const LOW_CONFIDENCE_THRESHOLD = 0.6;
 
         async function handleNaturalLanguage(userInput) {
             addOutput('💀 Interpreting: "' + userInput + '"', 'info');
-            addOutput('   Routing through Murphy Confidence Engine...', 'info');
+            addOutput('   Routing through Murphy Librarian...', 'info');
 
             try {
-                const response = await fetch(`${API_BASE}/execute`, {
+                const response = await fetch(`${API_BASE}/chat`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        task_description: userInput,
-                        task_type: 'natural_language',
-                        parameters: { source: 'terminal_nocode', raw_input: userInput }
+                        message: userInput,
+                        session_id: 'terminal_integrated',
+                        use_mfgc: false
                     })
                 });
                 const result = await response.json();
 
                 if (result.success) {
-                    // Show confidence score
-                    if (result.confidence_report) {
-                        const conf = result.confidence_report.combined_confidence;
-                        if (typeof conf === 'number' && !isNaN(conf) && conf >= 0 && conf <= 1) {
-                            addOutput('☠ Confidence: ' + (conf * 100).toFixed(1) + '%', 'success');
-                            showConfidenceBar(conf);
-
-                            if (conf < LOW_CONFIDENCE_THRESHOLD) {
-                                addOutput('', '');
-                                addOutput('⚠ Low confidence — Murphy needs more information.', 'warning');
-                                addOutput('   Please provide additional details to raise confidence:', 'warning');
-                                showFollowUpQuestions(result, userInput);
-                                return;
+                    // Show the chat response
+                    const msg = result.response || result.message || result.reply_text || '';
+                    if (msg) {
+                        // Split multi-line markdown into separate output lines
+                        msg.split('\n').forEach(function(line) {
+                            if (line.startsWith('**') || line.startsWith('•') || line.startsWith('  ')) {
+                                addOutput(line, 'info');
+                            } else if (line.startsWith('✓') || line.startsWith('✅')) {
+                                addOutput(line, 'success');
+                            } else if (line.startsWith('⚠') || line.startsWith('Warning')) {
+                                addOutput(line, 'warning');
+                            } else if (line.trim()) {
+                                addOutput(line, 'success');
                             }
-                        }
+                        });
                     }
-                    // Display result
-                    addOutput('✓ Task processed successfully', 'success');
-                    if (result.task_id) addOutput('  Task ID: ' + result.task_id, 'success');
-                    if (result.result) {
-                        addOutput('  Result:', 'info');
-                        addOutput(JSON.stringify(result.result, null, 2), 'json');
+                    // Show mode indicator
+                    if (result.mode) {
+                        addOutput('   [Mode: ' + result.mode + ']', 'info');
                     }
-                    if (result.output) {
-                        addOutput('  Output:', 'info');
-                        addOutput(JSON.stringify(result.output, null, 2), 'json');
+                    // Show flow stage if in onboarding
+                    if (result.flow_stage) {
+                        addOutput('   [Flow stage: ' + result.flow_stage + ']', 'info');
+                    }
+                    // Show suggested commands
+                    if (result.suggested_commands && result.suggested_commands.length > 0) {
+                        addOutput('', '');
+                        addOutput('💀 Suggested next:', 'info');
+                        result.suggested_commands.forEach(function(cmd) {
+                            addOutput('   → ' + cmd, 'info');
+                        });
                     }
                 } else {
-                    addOutput('☠ Murphy could not process: ' + (result.error || result.reason || 'Unknown error'), 'error');
-                    addOutput('   Try rephrasing or type "help" for command reference.', 'info');
+                    // Chat failed — show error and suggest help
+                    const errMsg = result.error || result.llm_error || 'Unknown error';
+                    addOutput('☠ ' + errMsg, 'error');
+                    if (result.suggested_commands && result.suggested_commands.length > 0) {
+                        addOutput('💀 Try:', 'info');
+                        result.suggested_commands.forEach(function(cmd) {
+                            addOutput('   → ' + cmd, 'info');
+                        });
+                    } else {
+                        addOutput('   Try "help" for command reference.', 'info');
+                    }
                 }
             } catch (error) {
                 addOutput('☠ Connection error: ' + error.message, 'error');
@@ -1516,26 +1541,45 @@ Type 'help' for all commands · Type 'api' for endpoint reference
             }
         }
 
-        function showFollowUpQuestions(result, originalInput) {
-            const questions = [];
-            // Derive follow-up questions from the result context
-            if (result.activation_preview) {
-                const preview = result.activation_preview;
-                if (preview.gaps && preview.gaps.length > 0) {
-                    preview.gaps.forEach(function(gap) {
-                        questions.push('  → ' + (gap.description || gap));
-                    });
+        async function executeTask(argsJson) {
+            // Explicit "execute" command routes to /api/execute
+            addOutput('💀 Executing task...', 'info');
+            try {
+                let body;
+                try {
+                    body = JSON.parse(argsJson);
+                } catch (_) {
+                    body = { task_description: argsJson, task_type: 'general' };
                 }
+                const response = await fetch(`${API_BASE}/execute`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    addOutput('✓ Task executed successfully', 'success');
+                    if (result.task_id) addOutput('  Task ID: ' + result.task_id, 'success');
+                    if (result.result) {
+                        addOutput('  Result:', 'info');
+                        addOutput(JSON.stringify(result.result, null, 2), 'json');
+                    }
+                } else {
+                    addOutput('☠ Execution blocked: ' + (result.error || result.reason || 'Unknown'), 'error');
+                    // Show clarifying questions if available
+                    if (result.clarifying_questions && result.clarifying_questions.length > 0) {
+                        addOutput('', '');
+                        addOutput('⚠ Murphy needs more information to proceed:', 'warning');
+                        result.clarifying_questions.forEach(function(q) {
+                            addOutput('  → ' + q.question, 'warning');
+                        });
+                        addOutput('', '');
+                        addOutput('Provide answers to raise confidence above the threshold.', 'info');
+                    }
+                }
+            } catch (error) {
+                addOutput('☠ Error: ' + error.message, 'error');
             }
-            if (questions.length === 0) {
-                // Generic confidence-raising questions
-                questions.push('  → What specific outcome do you expect?');
-                questions.push('  → Which department or domain does this apply to?');
-                questions.push('  → Are there constraints (budget, timeline, tools)?');
-            }
-            questions.forEach(function(q) { addOutput(q, 'warning'); });
-            addOutput('', '');
-            addOutput('Refine your request with more detail, then press Enter.', 'info');
         }
         
         function addOutput(text, type = '') {
