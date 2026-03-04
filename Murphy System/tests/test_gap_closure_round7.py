@@ -71,7 +71,7 @@ class TestRestrictedUnpickler:
             os.path.dirname(__file__), "..", "src",
             "learning_engine", "model_architecture.py",
         )
-        with open(fpath) as f:
+        with open(fpath, encoding='utf-8') as f:
             content = f.read()
         assert "pickle.load(" not in content, \
             "Raw pickle.load still present — must use _RestrictedUnpickler"
@@ -90,7 +90,7 @@ class TestCrossPlatformDataSyncErrorLogging:
             os.path.dirname(__file__), "..", "src",
             "cross_platform_data_sync.py",
         )
-        with open(fpath) as f:
+        with open(fpath, encoding='utf-8') as f:
             lines = f.readlines()
 
         silent_blocks = []
@@ -114,7 +114,7 @@ class TestCrossPlatformDataSyncErrorLogging:
             os.path.dirname(__file__), "..", "src",
             "cross_platform_data_sync.py",
         )
-        with open(fpath) as f:
+        with open(fpath, encoding='utf-8') as f:
             content = f.read()
         # Must contain logger.error calls where the silent pass used to be
         assert content.count("logger.error") >= 2, \
@@ -135,7 +135,7 @@ class TestNoRawPickleLoad:
                 if not fname.endswith(".py"):
                     continue
                 fpath = os.path.join(root, fname)
-                with open(fpath) as f:
+                with open(fpath, encoding='utf-8') as f:
                     for i, line in enumerate(f, 1):
                         s = line.strip()
                         if s.startswith("#"):

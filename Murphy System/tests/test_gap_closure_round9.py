@@ -33,7 +33,7 @@ class TestNoWildcardImports:
                 if not fname.endswith(".py"):
                     continue
                 fpath = os.path.join(root, fname)
-                with open(fpath) as f:
+                with open(fpath, encoding='utf-8') as f:
                     for i, line in enumerate(f, 1):
                         s = line.strip()
                         if s.startswith("#"):
@@ -64,7 +64,7 @@ class TestNoProductionAsserts:
                     continue
                 fpath = os.path.join(root, fname)
                 try:
-                    with open(fpath) as f:
+                    with open(fpath, encoding='utf-8') as f:
                         tree = ast.parse(f.read())
                 except SyntaxError:
                     continue
@@ -109,7 +109,7 @@ class TestPairedListIntegrity:
 
     def test_ml_strategy_uses_capped_append_paired(self):
         fpath = os.path.join(SRC_DIR, "ml_strategy_engine.py")
-        with open(fpath) as f:
+        with open(fpath, encoding='utf-8') as f:
             content = f.read()
         assert "capped_append_paired(" in content, (
             "ml_strategy_engine should use capped_append_paired for paired lists"

@@ -40,7 +40,7 @@ class TestNoSilentExceptionSwallows:
                     continue
                 fpath = os.path.join(root, fname)
                 try:
-                    with open(fpath) as f:
+                    with open(fpath, encoding='utf-8') as f:
                         tree = ast.parse(f.read())
                 except SyntaxError:
                     continue
@@ -69,7 +69,7 @@ class TestNoSilentExceptionSwallows:
                 if not fname.endswith(".py"):
                     continue
                 fpath = os.path.join(root, fname)
-                with open(fpath) as f:
+                with open(fpath, encoding='utf-8') as f:
                     for i, line in enumerate(f, 1):
                         s = line.strip()
                         if s.startswith("#"):
@@ -96,7 +96,7 @@ class TestNoSensitiveDataInLogs:
                 if not fname.endswith(".py"):
                     continue
                 fpath = os.path.join(root, fname)
-                with open(fpath) as f:
+                with open(fpath, encoding='utf-8') as f:
                     for i, line in enumerate(f, 1):
                         s = line.strip()
                         if s.startswith("#"):
@@ -132,7 +132,7 @@ class TestNoSensitiveDataInLogs:
     def test_provider_adapter_logs_exception_type_only(self):
         """provider_adapter.py must log type(exc).__name__, not str(exc)."""
         fpath = os.path.join(SRC_DIR, "auar", "provider_adapter.py")
-        with open(fpath) as f:
+        with open(fpath, encoding='utf-8') as f:
             content = f.read()
         assert "type(exc).__name__" in content, (
             "provider_adapter should log exception type, not full message"
@@ -174,7 +174,7 @@ class TestAllPriorGapsClosed:
                 if not fname.endswith(".py"):
                     continue
                 fpath = os.path.join(root, fname)
-                with open(fpath) as f:
+                with open(fpath, encoding='utf-8') as f:
                     for i, line in enumerate(f, 1):
                         assert not re.match(r"^\s*except\s*:", line), (
                             f"Bare except at {fpath}:{i}"
@@ -187,7 +187,7 @@ class TestAllPriorGapsClosed:
                     continue
                 fpath = os.path.join(root, fname)
                 try:
-                    with open(fpath) as f:
+                    with open(fpath, encoding='utf-8') as f:
                         tree = ast.parse(f.read())
                 except SyntaxError:
                     continue
@@ -202,7 +202,7 @@ class TestAllPriorGapsClosed:
                 if not fname.endswith(".py"):
                     continue
                 fpath = os.path.join(root, fname)
-                with open(fpath) as f:
+                with open(fpath, encoding='utf-8') as f:
                     for i, line in enumerate(f, 1):
                         s = line.strip()
                         if s.startswith("#"):
@@ -218,7 +218,7 @@ class TestAllPriorGapsClosed:
                     continue
                 fpath = os.path.join(root, fname)
                 try:
-                    with open(fpath) as f:
+                    with open(fpath, encoding='utf-8') as f:
                         tree = ast.parse(f.read())
                 except SyntaxError:
                     continue
@@ -249,7 +249,7 @@ class TestNoUnreachableCode:
                     continue
                 fpath = os.path.join(root, fname)
                 try:
-                    with open(fpath) as f:
+                    with open(fpath, encoding='utf-8') as f:
                         tree = ast.parse(f.read())
                 except SyntaxError:
                     continue
@@ -290,7 +290,7 @@ class TestNoDuplicateMethods:
                     continue
                 fpath = os.path.join(root, fname)
                 try:
-                    with open(fpath) as f:
+                    with open(fpath, encoding='utf-8') as f:
                         tree = ast.parse(f.read())
                 except SyntaxError:
                     continue
@@ -329,7 +329,7 @@ class TestNoDeeplyNestedTry:
                     continue
                 fpath = os.path.join(root, fname)
                 try:
-                    with open(fpath) as f:
+                    with open(fpath, encoding='utf-8') as f:
                         tree = ast.parse(f.read())
                 except SyntaxError:
                     continue
@@ -366,7 +366,7 @@ class TestConsistentExceptionNaming:
                     continue
                 fpath = os.path.join(root, fname)
                 try:
-                    with open(fpath) as f:
+                    with open(fpath, encoding='utf-8') as f:
                         tree = ast.parse(f.read())
                 except SyntaxError:
                     continue

@@ -32,7 +32,7 @@ class TestDivisionByZeroGuards:
                 if not fname.endswith(".py"):
                     continue
                 fpath = os.path.join(root, fname)
-                with open(fpath) as f:
+                with open(fpath, encoding='utf-8') as f:
                     lines = f.readlines()
                 for i, line in enumerate(lines, 1):
                     s = line.strip()
@@ -78,7 +78,7 @@ class TestUnboundedAppendsCapped:
                 if not fname.endswith(".py"):
                     continue
                 fpath = os.path.join(root, fname)
-                with open(fpath) as f:
+                with open(fpath, encoding='utf-8') as f:
                     content = f.read()
                 raw_appends = set(re.findall(r"self\.(_\w+)\.append\(", content))
                 for attr in raw_appends:
@@ -176,7 +176,7 @@ class TestCappedAppendPaired:
                 if not fname.endswith(".py"):
                     continue
                 fpath = os.path.join(root, fname)
-                with open(fpath) as f:
+                with open(fpath, encoding='utf-8') as f:
                     content = f.read()
                     lines = content.split("\n")
 
@@ -261,7 +261,7 @@ class TestAllPriorGapsClosed:
                 if not fname.endswith(".py"):
                     continue
                 fpath = os.path.join(root, fname)
-                with open(fpath) as f:
+                with open(fpath, encoding='utf-8') as f:
                     for i, line in enumerate(f, 1):
                         assert not re.match(r"^\s*except\s*:", line), (
                             f"Bare except at {fpath}:{i}"
@@ -273,7 +273,7 @@ class TestAllPriorGapsClosed:
                 if not fname.endswith(".py"):
                     continue
                 fpath = os.path.join(root, fname)
-                with open(fpath) as f:
+                with open(fpath, encoding='utf-8') as f:
                     for i, line in enumerate(f, 1):
                         s = line.strip()
                         if s.startswith("#"):
@@ -288,7 +288,7 @@ class TestAllPriorGapsClosed:
                 if not fname.endswith(".py"):
                     continue
                 fpath = os.path.join(root, fname)
-                with open(fpath) as f:
+                with open(fpath, encoding='utf-8') as f:
                     for i, line in enumerate(f, 1):
                         s = line.strip()
                         if s.startswith("#"):
@@ -308,7 +308,7 @@ class TestAllPriorGapsClosed:
                 if not fname.endswith(".py"):
                     continue
                 fpath = os.path.join(root, fname)
-                with open(fpath) as f:
+                with open(fpath, encoding='utf-8') as f:
                     content = f.read()
                 if "import requests" not in content:
                     continue

@@ -46,7 +46,7 @@ class TestNoEmptyFstrings:
                     continue
                 fpath = os.path.join(root, fname)
                 try:
-                    with open(fpath) as f:
+                    with open(fpath, encoding='utf-8') as f:
                         tree = ast.parse(f.read())
                 except SyntaxError:
                     continue
@@ -90,7 +90,7 @@ class TestRound14Regression:
                     continue
                 fpath = os.path.join(root, fname)
                 try:
-                    with open(fpath) as f:
+                    with open(fpath, encoding='utf-8') as f:
                         tree = ast.parse(f.read())
                 except SyntaxError:
                     continue

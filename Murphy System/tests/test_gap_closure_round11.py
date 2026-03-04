@@ -31,7 +31,7 @@ class TestWriteWithEncoding:
                 if not fname.endswith(".py"):
                     continue
                 fpath = os.path.join(root, fname)
-                with open(fpath) as f:
+                with open(fpath, encoding='utf-8') as f:
                     for i, line in enumerate(f, 1):
                         s = line.strip()
                         if s.startswith("#"):
@@ -59,7 +59,7 @@ class TestInitHasAll:
                 if fname != "__init__.py":
                     continue
                 fpath = os.path.join(root, fname)
-                with open(fpath) as f:
+                with open(fpath, encoding='utf-8') as f:
                     content = f.read()
                 if not content.strip():
                     continue
@@ -85,7 +85,7 @@ class TestAllCategories:
                 if not fname.endswith(".py"):
                     continue
                 fpath = os.path.join(root, fname)
-                with open(fpath) as f:
+                with open(fpath, encoding='utf-8') as f:
                     for i, line in enumerate(f, 1):
                         assert not re.match(r"^\s*except\s*:", line), (
                             f"Bare except at {fpath}:{i}"
@@ -98,7 +98,7 @@ class TestAllCategories:
                     continue
                 fpath = os.path.join(root, fname)
                 try:
-                    with open(fpath) as f:
+                    with open(fpath, encoding='utf-8') as f:
                         tree = ast.parse(f.read())
                 except SyntaxError:
                     continue
@@ -124,7 +124,7 @@ class TestAllCategories:
                     continue
                 fpath = os.path.join(root, fname)
                 try:
-                    with open(fpath) as f:
+                    with open(fpath, encoding='utf-8') as f:
                         tree = ast.parse(f.read())
                 except SyntaxError:
                     continue
@@ -143,7 +143,7 @@ class TestAllCategories:
                     continue
                 fpath = os.path.join(root, fname)
                 try:
-                    with open(fpath) as f:
+                    with open(fpath, encoding='utf-8') as f:
                         tree = ast.parse(f.read())
                 except SyntaxError:
                     continue
@@ -173,7 +173,7 @@ class TestAllCategories:
                     continue
                 fpath = os.path.join(root, fname)
                 try:
-                    with open(fpath) as f:
+                    with open(fpath, encoding='utf-8') as f:
                         tree = ast.parse(f.read())
                 except SyntaxError:
                     continue
@@ -224,7 +224,7 @@ class TestNoUnusedExceptionVars:
                     continue
                 fpath = os.path.join(root, fname)
                 try:
-                    with open(fpath) as f:
+                    with open(fpath, encoding='utf-8') as f:
                         tree = ast.parse(f.read())
                 except SyntaxError:
                     continue
