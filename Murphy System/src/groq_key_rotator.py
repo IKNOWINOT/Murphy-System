@@ -183,7 +183,7 @@ def load_keys_from_file(file_path: str) -> List[tuple]:
     """
     keys = []
     
-    with open(file_path, 'r') as f:
+    with open(file_path, 'r', encoding='utf-8') as f:
         for line in f:
             line = line.strip()
             if not line:

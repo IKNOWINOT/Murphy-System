@@ -51,7 +51,7 @@ class OrgChartParser:
         """Parse org chart from CSV file"""
         nodes = []
         
-        with open(file_path, 'r') as f:
+        with open(file_path, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
                 node = OrgChartNode(
@@ -73,7 +73,7 @@ class OrgChartParser:
     @staticmethod
     def parse_json(file_path: str) -> List[OrgChartNode]:
         """Parse org chart from JSON file"""
-        with open(file_path, 'r') as f:
+        with open(file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         
         nodes = []
@@ -133,7 +133,7 @@ class ProcessFlowParser:
     @staticmethod
     def parse_json(file_path: str) -> ProcessFlow:
         """Parse process flow from JSON file"""
-        with open(file_path, 'r') as f:
+        with open(file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         
         return ProcessFlow(
@@ -349,7 +349,7 @@ class TicketEventIngestor:
     @staticmethod
     def ingest_json(file_path: str) -> List[HandoffEvent]:
         """Ingest ticket events from JSON file"""
-        with open(file_path, 'r') as f:
+        with open(file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         
         events = []
@@ -385,7 +385,7 @@ class TicketEventIngestor:
         """Ingest ticket events from CSV file"""
         events = []
         
-        with open(file_path, 'r') as f:
+        with open(file_path, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
                 # Create work artifact
@@ -434,7 +434,7 @@ class EmailThreadIngestor:
     @staticmethod
     def ingest_json(file_path: str) -> List[WorkArtifact]:
         """Ingest email threads from JSON file"""
-        with open(file_path, 'r') as f:
+        with open(file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         
         artifacts = []

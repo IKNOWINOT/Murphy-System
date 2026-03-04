@@ -339,7 +339,7 @@ class ConversationManager:
             filepath: Path to load state from
         """
         try:
-            with open(filepath, 'r') as f:
+            with open(filepath, 'r', encoding='utf-8') as f:
                 state = json.load(f)
             
             with self.lock:

@@ -245,7 +245,7 @@ class StateManager:
     def restore_state(self, state_id: str, file_path: str) -> bool:
         """Restore state from file"""
         try:
-            with open(file_path, 'r') as f:
+            with open(file_path, 'r', encoding='utf-8') as f:
                 state_data = json.load(f)
             
             state = SystemState(

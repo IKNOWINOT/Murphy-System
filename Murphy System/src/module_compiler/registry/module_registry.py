@@ -110,7 +110,7 @@ class ModuleRegistry:
             if not os.path.exists(module_file):
                 return None
             
-            with open(module_file, 'r') as f:
+            with open(module_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             
             return ModuleSpec.from_dict(data)
@@ -296,7 +296,7 @@ class ModuleRegistry:
         """Load index from file"""
         if os.path.exists(self.index_path):
             try:
-                with open(self.index_path, 'r') as f:
+                with open(self.index_path, 'r', encoding='utf-8') as f:
                     return json.load(f)
             except Exception as exc:
                 logger.debug("Suppressed exception: %s", exc)

@@ -549,7 +549,7 @@ class RiskDatabase:
     
     def import_from_json(self, filepath: str):
         """Import database from JSON file."""
-        with open(filepath, 'r') as f:
+        with open(filepath, 'r', encoding='utf-8') as f:
             data = json.load(f)
         
         for pattern_data in data.get("risk_patterns", []):

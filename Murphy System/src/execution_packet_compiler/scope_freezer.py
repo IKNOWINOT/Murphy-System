@@ -187,7 +187,7 @@ class ScopeFreezer:
         critical_types = [ArtifactType.DECISION, ArtifactType.PLAN]
         unverified_critical = [
             node.id for node in artifact_graph.nodes.values()
-            if node.type in critical_types and node.metadata.get('verified', False) == False
+            if node.type in critical_types and not node.metadata.get('verified', False)
         ]
         
         if unverified_critical:
