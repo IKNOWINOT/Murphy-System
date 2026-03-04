@@ -201,8 +201,8 @@ class UnifiedConfidenceEngine:
             current_idx = phases.index(current_phase)
             if current_idx < len(phases) - 1:
                 return phases[current_idx + 1]
-        except ValueError:
-            pass
+        except ValueError as exc:
+            logger.debug("Suppressed %s: %s", type(exc).__name__, exc)  # noqa: E501
         
         return 'EXECUTE'
     

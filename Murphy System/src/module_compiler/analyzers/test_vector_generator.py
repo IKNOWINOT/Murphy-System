@@ -10,6 +10,8 @@ import random
 import string
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass, field
+import logging
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -117,9 +119,9 @@ class TestVectorGenerator:
                 # 4. Generate random tests
                 vectors.extend(self._generate_random_tests(func_info, num_random_tests))
         
-        except SyntaxError:
+        except SyntaxError as exc:
             # If code can't be parsed, return empty list
-            pass
+            logger.debug("Suppressed %s: %s", type(exc).__name__, exc)  # noqa: E501
         
         return vectors
     
