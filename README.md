@@ -699,7 +699,7 @@ strategy analysis.
 | **Test Files** | 345 |
 | **Test Functions** | 8,350 |
 | **Automation Types** | 6 (factory, content, data, system, agent, business) |
-| **Gap-Closure Categories Audited** | 40 (all at zero) |
+| **Gap-Closure Categories Audited** | 43 (all at zero) |
 
 ---
 
@@ -721,7 +721,7 @@ python -m pytest tests/ -q --tb=short
 | Failed | 0 |
 | Skipped | 72 |
 | Test files | 345 |
-| Gap-closure tests | 142 (rounds 3–18) |
+| Gap-closure tests | 146 (rounds 3–19) |
 
 **Skipped tests** require optional dependencies (Flask, Textual, torch) that are
 not part of the core FastAPI-based system. Install them with `pip install flask
