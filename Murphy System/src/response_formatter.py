@@ -3,6 +3,8 @@ Response Formatter for Murphy System
 Formats system output to be user-friendly and clean
 """
 
+import logging
+logger = logging.getLogger(__name__)
 import re
 from typing import Dict, List, Any
 
@@ -247,6 +249,7 @@ class ResponseFormatter:
             from src.cli_art import render_section
             _section = render_section
         except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             def _section(title: str, **_kw: object) -> str:
                 return f"\n\n═══ {title} ═══"
 

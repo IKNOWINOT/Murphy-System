@@ -208,3 +208,42 @@ class TestAllCategories:
                     rel = os.path.relpath(fpath, SRC_DIR)
                     errors.append(rel)
         assert errors == [], f"Syntax errors: {errors}"
+
+
+# ===================================================================
+# Gap 42 — no unused exception variables
+# ===================================================================
+class TestNoUnusedExceptionVars:
+    """Every captured exception variable must be used (logged, re-raised, etc)."""
+
+    def test_no_unused_exception_vars(self):
+        violations = []
+        for root, _dirs, files in os.walk(SRC_DIR):
+            for fname in files:
+                if not fname.endswith(".py"):
+                    continue
+                fpath = os.path.join(root, fname)
+                try:
+                    with open(fpath) as f:
+                        tree = ast.parse(f.read())
+                except SyntaxError:
+                    continue
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.ExceptHandler) and node.name:
+                        used = any(
+                            isinstance(child, ast.Name)
+                            and child.id == node.name
+                            and (
+                                child.lineno != node.lineno
+                                or child.col_offset != node.col_offset
+                            )
+                            for child in ast.walk(node)
+                        )
+                        if not used:
+                            rel = os.path.relpath(fpath, SRC_DIR)
+                            violations.append(
+                                f"{rel}:{node.lineno} as {node.name}"
+                            )
+        assert violations == [], (
+            f"Unused exception variables: {violations[:10]}"
+        )

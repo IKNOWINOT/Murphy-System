@@ -12,6 +12,9 @@ License: Apache License 2.0
 
 from __future__ import annotations
 
+import logging
+logger = logging.getLogger(__name__)
+
 import hashlib
 import json
 import time
@@ -186,6 +189,7 @@ class SelfAutomationOrchestrator:
             self._persistence.save_document(self._PERSIST_DOC_ID, state)
             return True
         except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             return False
 
     def load_state(self) -> bool:
@@ -199,6 +203,7 @@ class SelfAutomationOrchestrator:
         try:
             state = self._persistence.load_document(self._PERSIST_DOC_ID)
         except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             return False
         if state is None:
             return False

@@ -163,6 +163,7 @@ class WriteAheadLog:
                 json.dump(data, f, indent=2, default=str)
             tmp.replace(self._wal_file())
         except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             if tmp.exists():
                 tmp.unlink()
             raise
@@ -319,6 +320,7 @@ class SnapshotManager:
                 json.dump(snapshot.to_dict(), f, indent=2, default=str)
             tmp.replace(filepath)
         except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             if tmp.exists():
                 tmp.unlink()
             raise
@@ -889,6 +891,7 @@ class PersistenceReplayCompleteness:
             self.wal.commit(entry_id, result)
             return result
         except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             self.wal.rollback(entry_id)
             raise
 

@@ -17,6 +17,8 @@ Design Principles:
 4. Track results and metrics
 """
 
+import logging
+logger = logging.getLogger(__name__)
 import time
 import requests
 from typing import Dict, List, Optional, Any, Tuple
@@ -147,6 +149,7 @@ class StepwiseExecutor:
         try:
             return response.json()
         except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             return response.text
     
     def _execute_rpc_call(self, step: Dict, context: Dict) -> Any:

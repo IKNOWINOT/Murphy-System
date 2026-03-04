@@ -13,6 +13,8 @@ import json
 
 from llm_controller import LLMController, LLMRequest, LLMModel, ModelCapability
 from murphy_repl import MurphyREPL
+import logging
+logger = logging.getLogger(__name__)
 
 
 class TaskComplexity(Enum):
@@ -210,6 +212,7 @@ Provide a JSON response with these fields:
             analysis = json.loads(response.content)
         except Exception as exc:
             # Fallback analysis
+            logger.debug("Suppressed exception: %s", exc)
             analysis = self._fallback_analysis(task_description)
         
         # Map complexity string to enum
@@ -384,6 +387,7 @@ Format: {{"steps": [...]}}
             steps_data = plan_data.get('steps', [])
         except Exception as exc:
             # Fallback to simple plan
+            logger.debug("Suppressed exception: %s", exc)
             steps_data = self._fallback_execution_plan(agents)
         
         # Convert to SwarmStep objects

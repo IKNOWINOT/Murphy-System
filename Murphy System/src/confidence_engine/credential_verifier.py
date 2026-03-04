@@ -3,6 +3,8 @@ Credential Verification System
 Manages credential validation, expiry tracking, and refresh mechanisms.
 """
 
+import logging
+logger = logging.getLogger(__name__)
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta, timezone
 from enum import Enum
@@ -269,6 +271,7 @@ class CredentialVerifier:
             parts = credential.credential_value.split('.')
             return len(parts) == 3
         except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             return False
     
     def _update_credential_status(self, credential_id: str, status: CredentialStatus):

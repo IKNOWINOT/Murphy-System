@@ -16,6 +16,8 @@ import hashlib
 import json
 
 from dataclasses import dataclass, field
+import logging
+logger = logging.getLogger(__name__)
 
 
 class AuthorityBand(Enum):
@@ -320,6 +322,7 @@ class AgentDescriptor:
             return True
             
         except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             return False
     
     def can_execute_action(self, action_type: ActionType) -> bool:

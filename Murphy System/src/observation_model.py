@@ -8,6 +8,8 @@ Defines:
   and performs simple Bayesian uncertainty updates.
 """
 
+import logging
+logger = logging.getLogger(__name__)
 import math
 import time
 from dataclasses import dataclass, field
@@ -193,6 +195,7 @@ class ObservationModel:
                 )
                 prior_uncertainty = uncertainty_dict.get(dim, 1.0)
             except Exception as exc:
+                logger.debug("Suppressed exception: %s", exc)
                 prior_uncertainty = 1.0
 
         # Kalman-style information gain approximation:

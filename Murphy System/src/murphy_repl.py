@@ -4,6 +4,8 @@ Safe execution environment for code generation and analysis
 Based on RLM pattern from the paper
 """
 
+import logging
+logger = logging.getLogger(__name__)
 import ast
 import sys
 import io
@@ -192,6 +194,7 @@ class SafeREPL:
             )
             
         except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             error_output = stderr_capture.getvalue()
             error_trace = traceback.format_exc()
             
@@ -351,6 +354,7 @@ print(json.dumps(context_analysis, indent=2))
             try:
                 return json.loads(result.output)
             except Exception as exc:
+                logger.debug("Suppressed exception: %s", exc)
                 return {}
         
         return {}

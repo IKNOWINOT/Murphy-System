@@ -8,6 +8,8 @@ Goes beyond generic failures to identify risks specific to each capability.
 import ast
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
+import logging
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -110,6 +112,7 @@ class EnhancedFailureModeDetector:
         
         except SyntaxError as exc:
             # If code can't be parsed, return generic failures only
+            logger.debug("Suppressed exception: %s", exc)
             failure_modes.extend(self._detect_generic_failures())
         
         return failure_modes

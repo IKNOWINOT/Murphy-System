@@ -13,6 +13,8 @@ Rollback Scenarios:
 Design Principle: Safe reversal of all executed steps
 """
 
+import logging
+logger = logging.getLogger(__name__)
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 
@@ -337,6 +339,7 @@ class RollbackEnforcer:
                     if actual_content != expected_content:
                         return False
                 except Exception as exc:
+                    logger.debug("Suppressed exception: %s", exc)
                     return False
         
         return True

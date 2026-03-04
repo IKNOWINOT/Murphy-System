@@ -439,6 +439,7 @@ class EnhancedLocalLLM:
                 }
             }
         except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             return None
 
     # -- Safe arithmetic evaluator (replaces eval) ---------------------------

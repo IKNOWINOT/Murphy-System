@@ -768,6 +768,7 @@ class AlertRulesEngine:
                 try:
                     cb(alert)
                 except Exception as exc:
+                    logger.debug("Suppressed exception: %s", exc)
                     logger.exception("Alert callback failed")
 
         return {

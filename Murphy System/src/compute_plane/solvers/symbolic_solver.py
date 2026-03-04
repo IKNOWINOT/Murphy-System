@@ -4,6 +4,8 @@ Symbolic Solver
 Executes symbolic computations with cross-validation support.
 """
 
+import logging
+logger = logging.getLogger(__name__)
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 import time
@@ -186,6 +188,7 @@ class SymbolicSolver:
                             validation['difference'] = numeric_diff
                             validation['notes'].append(f"Results differ by: {numeric_diff}")
                     except Exception as exc:
+                        logger.debug("Suppressed exception: %s", exc)
                         validation['notes'].append(f"Results differ symbolically: {diff}")
         
         except Exception as exc:

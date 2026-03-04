@@ -249,6 +249,7 @@ class ClassicalCryptography:
                 _pub.verify(signature, data, ec.ECDSA(hashes.SHA256()))
                 return True
             except Exception as exc:
+                _log.debug("Suppressed exception: %s", exc)
                 return False
         expected_signature = hmac.new(private_key, data, hashlib.sha256).digest()
         return CryptographicPrimitives.constant_time_compare(signature, expected_signature)
@@ -352,6 +353,7 @@ class PostQuantumCryptography:
                 verifier = oqs.Signature("Dilithium2")
                 return verifier.verify(data, signature, public_key)
             except Exception as exc:
+                _log.debug("Suppressed exception: %s", exc)
                 return False
         expected_signature = hmac.new(private_key, data, hashlib.sha3_256).digest()
         return CryptographicPrimitives.constant_time_compare(signature, expected_signature)

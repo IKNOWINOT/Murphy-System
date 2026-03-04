@@ -3,6 +3,8 @@ Deterministic Verification Layer
 External truth sources - NO generation, only lookup
 """
 
+import logging
+logger = logging.getLogger(__name__)
 import re
 try:
     import requests
@@ -116,6 +118,7 @@ class WikipediaVerifier:
                 "options": exc.options[:5]
             }
         except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             return None
 
 
@@ -158,6 +161,7 @@ class WikidataVerifier:
             return None
             
         except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             return None
 
 
@@ -222,6 +226,7 @@ class CalculationEngine:
             result = eval_node(node.body)
             return float(result)
         except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             return None
     
     @staticmethod
@@ -243,6 +248,7 @@ class CalculationEngine:
             amount = principal * (1 + rate / n) ** (n * time)
             return round(amount, 2)
         except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             return None
 
 
