@@ -494,7 +494,9 @@ class InoniOrgBootstrap:
             r"experimental plan|progression server|spawner|"
             r"remake system|escalation system|streaming overlay|"
             r"macro trigger|cultural identity|experience lore|"
-            r"play.*character|character.*play|in-game"
+            r"play.*character|character.*play|in-game|"
+            r"avatar.*agent|let.?s.?play|avatar.*window|"
+            r"eq.*session|npc.*persona|game.*avatar"
             r")\b",
             re.IGNORECASE,
         )
@@ -871,4 +873,74 @@ class InoniOrgBootstrap:
                 "Just reply with a number or describe what you need."
             ),
             "status": "awaiting_clarification",
+        }
+
+    # ------------------------------------------------------------------
+    # EverQuest Let's Play — CRO-managed avatar agent sessions
+    # ------------------------------------------------------------------
+
+    def create_eq_lets_play_session(
+        self,
+        character_name,
+        race="Human",
+        eq_class="Warrior",
+        server_name="Murphy EQ",
+    ):
+        """Create an EQ Let's Play session managed by the CRO.
+
+        The Chief Research Officer (Kael Ashford) manages all EverQuest
+        R&D, including avatar agent sessions where AI agents control named
+        EQ characters in a content-creator-style "let's play" format.
+
+        Each session creates an avatar window in the bottom-left corner
+        showing the agent's face while it plays the character.
+        """
+        try:
+            from src.eq.streaming_overlay import (
+                LetsPlaySessionManager,
+                StreamOverlayManager,
+            )
+        except ImportError:
+            from eq.streaming_overlay import (
+                LetsPlaySessionManager,
+                StreamOverlayManager,
+            )
+
+        cro = self.agents.get("chief_research_officer")
+        if cro is None:
+            return {"error": "CRO not initialized — run bootstrap() first"}
+
+        if not hasattr(self, "_lets_play_manager"):
+            self._lets_play_manager = LetsPlaySessionManager(
+                overlay_manager=StreamOverlayManager()
+            )
+
+        session = self._lets_play_manager.create_session(
+            agent_id=cro["agent"].agent_id,
+            agent_persona_name=cro["avatar_name"],
+            character_name=character_name,
+            race=race,
+            eq_class=eq_class,
+            server_name=server_name,
+        )
+
+        return {
+            "session": session.to_dict(),
+            "managed_by": {
+                "role": "chief_research_officer",
+                "name": cro["avatar_name"],
+                "title": cro["avatar_title"],
+            },
+            "avatar_window": session.avatar_window.to_dict() if session.avatar_window else None,
+        }
+
+    def get_eq_sessions(self):
+        """Return all EQ Let's Play sessions."""
+        if not hasattr(self, "_lets_play_manager"):
+            return {"sessions": [], "active": 0, "total": 0}
+        mgr = self._lets_play_manager
+        return {
+            "sessions": [s.to_dict() for s in mgr.get_active_sessions()],
+            "active": mgr.active_session_count,
+            "total": mgr.session_count,
         }
