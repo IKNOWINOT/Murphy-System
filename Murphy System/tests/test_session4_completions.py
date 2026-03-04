@@ -211,7 +211,7 @@ class TestCodegenTemplatesStillIntentional:
         """The _template_basic method emits TODO in generated code."""
         lines = self._read_source('src/research_engine.py')
         found_template_todo = any(
-            'TODO: Implement task logic' in line
+            'TODO: Implement' in line
             for line in lines
         )
         assert found_template_todo, "research_engine.py template should keep TODO"

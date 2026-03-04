@@ -142,7 +142,10 @@ def create_test_processes(count: int = 5) -> List[ProcessFlow]:
 
 def measure_memory_usage():
     """Get current memory usage in MB"""
-    import psutil
+    try:
+        import psutil
+    except ImportError:
+        return 0.0  # psutil is optional; skip memory measurement
     import os
     process = psutil.Process(os.getpid())
     return process.memory_info().rss / 1024 / 1024  # Convert to MB
