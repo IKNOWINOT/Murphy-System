@@ -255,14 +255,14 @@ class PlanDecomposer:
             if not line:
                 continue
 
-            # First non-empty line becomes the title if nothing better found
-            if title == context and not line.startswith("#"):
-                title = line
-                continue
-
-            # Markdown headers → new section
+            # Markdown headers → new section (or title if first h1)
             if line.startswith("#"):
                 header = line.lstrip("#").strip()
+                level = len(line) - len(line.lstrip("#"))
+                # Top-level heading becomes the title
+                if level == 1 and title == (context or "Parsed Plan"):
+                    title = header
+                    continue
                 current_section = {"header": header, "items": []}
                 sections.append(current_section)
                 # Detect special sections
@@ -271,6 +271,11 @@ class PlanDecomposer:
                     current_section["_kind"] = "assumptions"
                 elif "risk" in lower_header:
                     current_section["_kind"] = "risks"
+                continue
+
+            # First non-empty non-heading line becomes the title if not set yet
+            if title == (context or "Parsed Plan") and not line.startswith("#"):
+                title = line
                 continue
 
             # Bullet items
@@ -381,17 +386,14 @@ class PlanDecomposer:
         import re
         sentences = [s.strip() for s in re.split(r'[.;!\n]', goal) if s.strip()]
 
-        # Extract key objective phrases (clauses that start with action verbs)
-        _action_verbs = {
+        # Extract action verbs present in the goal as key objectives
+        _action_verbs = [
             "build", "create", "deploy", "design", "develop", "implement",
             "integrate", "launch", "migrate", "optimise", "optimize",
             "reduce", "scale", "ship", "test", "automate", "deliver",
-        }
-        key_objectives = []
-        for sent in sentences:
-            first_word = sent.split()[0].lower() if sent.split() else ""
-            if first_word in _action_verbs:
-                key_objectives.append(sent)
+        ]
+        goal_lower = goal.lower()
+        key_objectives = [v for v in _action_verbs if v in goal_lower]
         if not key_objectives:
             key_objectives = sentences[:3] or [goal]
 
@@ -408,9 +410,9 @@ class PlanDecomposer:
                 "Market-fit evidence documented",
             ],
             "marketing_campaign": [
-                "Target KPIs defined and baselined",
-                "Content calendar published",
-                "Conversion funnel instrumented",
+                "Audience reach",
+                "Conversion rate",
+                "Brand awareness",
             ],
         }
         success_factors = _domain_success.get(domain, [
