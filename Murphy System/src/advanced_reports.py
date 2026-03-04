@@ -30,7 +30,7 @@ class AdvancedReportGenerator:
     def generate(
         self,
         topic: str,
-        format: str = "markdown",
+        output_format: str = "markdown",
         depth: str = "standard",
         domain: Optional[str] = None,
         include_equations: bool = True,
@@ -41,7 +41,7 @@ class AdvancedReportGenerator:
         
         Args:
             topic: Topic to report on
-            format: Output format
+            output_format: Output output_format
             depth: Research depth
             domain: Optional domain (control, probability, quantum, statistics)
             include_equations: Include mathematical equations
@@ -59,7 +59,7 @@ class AdvancedReportGenerator:
             research = self.research_engine.research_topic(topic, depth)
             is_advanced = False
         
-        # Generate report based on format
+        # Generate report based on output_format
         generators = {
             "markdown": self._generate_markdown,
             "html": self._generate_html,
@@ -69,12 +69,12 @@ class AdvancedReportGenerator:
             "pdf": self._generate_pdf_ready
         }
         
-        generator = generators.get(format.lower(), self._generate_markdown)
+        generator = generators.get(output_format.lower(), self._generate_markdown)
         content = generator(research, is_advanced, include_equations, include_code)
         
         return {
             "content": content,
-            "format": format,
+            "output_format": output_format,
             "topic": topic,
             "domain": domain if domain else "general",
             "is_advanced": is_advanced,

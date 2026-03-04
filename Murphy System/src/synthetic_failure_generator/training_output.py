@@ -280,14 +280,14 @@ class TrainingOutputGenerator:
     def export_dataset(
         self,
         artifact_type: str,
-        format: str = 'json'
+        output_format: str = 'json'
     ) -> str:
         """
         Export training dataset
         
         Args:
             artifact_type: Type of artifacts to export
-            format: Export format ('json', 'csv')
+            output_format: Export format ('json', 'csv')
         """
         # Filter artifacts by type
         artifacts = [
@@ -295,10 +295,10 @@ class TrainingOutputGenerator:
             if a.artifact_type == artifact_type
         ]
         
-        if format == 'json':
+        if output_format == 'json':
             import json
             return json.dumps([a.to_dict() for a in artifacts], indent=2)
-        elif format == 'csv':
+        elif output_format == 'csv':
             # CSV export
             if not artifacts:
                 return ""
@@ -326,7 +326,7 @@ class TrainingOutputGenerator:
             
             return '\n'.join(lines)
         else:
-            raise ValueError(f"Unsupported format: {format}")
+            raise ValueError(f"Unsupported output_format: {output_format}")
     
     def get_statistics(self) -> Dict[str, Any]:
         """Get statistics about generated training data"""

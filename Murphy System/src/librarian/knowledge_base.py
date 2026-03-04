@@ -319,21 +319,21 @@ class KnowledgeBase:
         except Exception as exc:
             logger.error(f"Error loading from storage: {exc}")
     
-    def export_knowledge(self, format: str = 'json') -> str:
+    def export_knowledge(self, output_format: str = 'json') -> str:
         """
         Export knowledge base data.
         
         Args:
-            format: Export format ('json', 'csv')
+            output_format: Export format ('json', 'csv')
             
         Returns:
             Exported data as string
         """
         try:
-            if format == 'json':
+            if output_format == 'json':
                 return json.dumps(self.knowledge_store, indent=2)
             else:
-                logger.warning(f"Format {format} not supported")
+                logger.warning(f"Format {output_format} not supported")
                 return ""
         except Exception as exc:
             logger.error(f"Error exporting knowledge: {exc}")

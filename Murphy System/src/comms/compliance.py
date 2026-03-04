@@ -326,11 +326,11 @@ class AuditTrailManager:
         
         return logs
     
-    def export_logs(self, format: str = 'json') -> str:
+    def export_logs(self, output_format: str = 'json') -> str:
         """Export audit logs for compliance reporting"""
         import json
         
-        if format == 'json':
+        if output_format == 'json':
             logs_data = [
                 {
                     'log_id': log.log_id,

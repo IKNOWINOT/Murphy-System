@@ -460,7 +460,7 @@ class ReportGenerator:
     def generate_report(
         self, 
         topic: str, 
-        format: str = "markdown",
+        output_format: str = "markdown",
         depth: str = "standard"
     ) -> Dict[str, Any]:
         """
@@ -468,7 +468,7 @@ class ReportGenerator:
         
         Args:
             topic: Topic to report on
-            format: "markdown", "html", or "text"
+            output_format: "markdown", "html", or "text"
             depth: "quick", "standard", or "deep"
         
         Returns:
@@ -479,16 +479,16 @@ class ReportGenerator:
         research = self.research_engine.research_topic(topic, depth=depth)
         
         # Generate report
-        if format == "markdown":
+        if output_format == "markdown":
             content = self._generate_markdown_report(research)
-        elif format == "html":
+        elif output_format == "html":
             content = self._generate_html_report(research)
         else:
             content = self._generate_text_report(research)
         
         return {
             "content": content,
-            "format": format,
+            "output_format": output_format,
             "topic": topic,
             "sources": research.synthesis["all_sources"],
             "confidence": research.confidence,
