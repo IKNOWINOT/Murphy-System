@@ -319,6 +319,9 @@ class ReasonCommand(CommandModule):
         total_weight = sum(weights)
         if total_weight > 0:
             weights = [w / total_weight for w in weights]
+        else:
+            # All weights zero — fall back to equal weighting
+            weights = [1.0 / len(weights)] * len(weights) if weights else []
         
         # Extract options from data
         if 'facts' in data:
