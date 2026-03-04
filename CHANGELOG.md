@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Round 37 deep audit** — 50-category code-quality verification:
+  - Zero ``== True`` / ``== False`` boolean comparisons (all use ``is`` or direct bool)
+  - Zero ``except Exception: pass`` (swallowed exceptions)
+  - Zero hardcoded IP addresses in production code
+  - All public classes have docstrings (2,428/2,428; 3 private exempt)
+  - 33+ documentation markdown files verified
+  - Import sweep re-verified: 517/517 modules clean
+  - 94 gap-closure tests across 9 round files
+- **Round 36 deep audit** — 40-category code-quality verification:
+  - Zero wildcard imports across all 584 source files
+  - Zero deeply-nested try/except (≥3 levels)
+  - Zero %-style string formatting (all f-strings or .format)
+  - print() usage verified only in CLI entry-point files
+  - GETTING_STARTED.md cross-reference links validated
+  - README badge count verified ≥8000
+  - Updated badge: 8,179 → 8,191 tests; 346 test files
 - **Round 35 extended audit** — 30-category comprehensive code-quality verification:
   - Zero TODO/FIXME/HACK/XXX comments across all 584 source files
   - Zero shadowed built-in names in function arguments
