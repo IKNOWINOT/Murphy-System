@@ -25,6 +25,11 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
+from thread_safe_operations import capped_append
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -32,6 +37,7 @@ from typing import Any, Dict, List, Optional
 # ---------------------------------------------------------------------------
 
 class AssetType(enum.Enum):
+    """Asset type (Enum subclass)."""
     TEXTURE = "texture"
     SPRITE_SHEET = "sprite_sheet"
     TEXTURE_ATLAS = "texture_atlas"
@@ -45,6 +51,7 @@ class AssetType(enum.Enum):
 
 
 class TargetPlatform(enum.Enum):
+    """Target platform (Enum subclass)."""
     UNREAL_ENGINE = "unreal_engine"
     MAYA = "maya"
     BLENDER = "blender"
@@ -55,6 +62,7 @@ class TargetPlatform(enum.Enum):
 
 
 class AssetFormat(enum.Enum):
+    """Asset format (Enum subclass)."""
     FBX = "fbx"
     GLTF = "gltf"
     USD = "usd"
@@ -71,6 +79,7 @@ class AssetFormat(enum.Enum):
 
 
 class PipelineStatus(enum.Enum):
+    """Pipeline status (Enum subclass)."""
     QUEUED = "queued"
     VALIDATING = "validating"
     GENERATING = "generating"
@@ -303,7 +312,7 @@ class DigitalAssetGenerator:
             }
 
             self._assets[descriptor.asset_id] = result
-            self._generation_log.append({
+            capped_append(self._generation_log, {
                 "action": "generate_asset",
                 "asset_id": descriptor.asset_id,
                 "timestamp": time.time(),
@@ -358,7 +367,7 @@ class DigitalAssetGenerator:
             }
 
             self._picture_arrays[descriptor.array_id] = result
-            self._generation_log.append({
+            capped_append(self._generation_log, {
                 "action": "generate_picture_array",
                 "array_id": descriptor.array_id,
                 "frame_count": descriptor.frame_count,

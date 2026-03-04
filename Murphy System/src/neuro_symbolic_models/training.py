@@ -16,6 +16,9 @@ from datetime import datetime
 import json
 import os
 
+import logging
+logger = logging.getLogger("neuro_symbolic_models.training")
+
 from .models import NeuroSymbolicConfidenceModel, ModelConfig
 from .data import GraphDataset, TrainingExample
 
@@ -48,7 +51,7 @@ class ModelTrainer:
     """
     Trains neuro-symbolic confidence models.
     """
-    
+
     def __init__(
         self,
         model: NeuroSymbolicConfidenceModel,
@@ -58,14 +61,14 @@ class ModelTrainer:
         self.config = config
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
-        
+
         # Optimizer
         self.optimizer = optim.Adam(
             model.parameters(),
             lr=config.learning_rate,
             weight_decay=config.weight_decay
         )
-        
+
         # Learning rate scheduler
         self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(
             self.optimizer,
@@ -74,20 +77,20 @@ class ModelTrainer:
             patience=5,
             verbose=True
         )
-        
+
         # Loss function (MSE for regression)
         self.criterion = nn.MSELoss()
-        
+
         # Training history
         self.history: List[TrainingMetrics] = []
-        
+
         # Best model tracking
         self.best_val_loss = float('inf')
         self.patience_counter = 0
-        
+
         # Create checkpoint directory
         os.makedirs(config.checkpoint_dir, exist_ok=True)
-    
+
     def train_epoch(
         self,
         train_loader: DataLoader,
@@ -97,19 +100,19 @@ class ModelTrainer:
         Train for one epoch.
         """
         self.model.train()
-        
+
         total_loss = 0.0
         loss_H_total = 0.0
         loss_D_total = 0.0
         loss_R_total = 0.0
         num_batches = 0
-        
+
         for batch_idx, batch in enumerate(train_loader):
             batch = batch.to(self.device)
-            
+
             # Zero gradients
             self.optimizer.zero_grad()
-            
+
             # Forward pass
             H_pred, D_pred, R_pred = self.model(
                 batch.x,
@@ -117,48 +120,48 @@ class ModelTrainer:
                 batch.symbolic_features,
                 batch.batch
             )
-            
+
             # Extract ground truth
             H_true = batch.y[:, 0].unsqueeze(1)
             D_true = batch.y[:, 1].unsqueeze(1)
             R_true = batch.y[:, 2].unsqueeze(1)
-            
+
             # Compute losses
             loss_H = self.criterion(H_pred, H_true)
             loss_D = self.criterion(D_pred, D_true)
             loss_R = self.criterion(R_pred, R_true)
-            
+
             # Weighted combination (emphasize H and D)
             loss = 0.4 * loss_H + 0.4 * loss_D + 0.2 * loss_R
-            
+
             # Backward pass
             loss.backward()
-            
+
             # Gradient clipping
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
-            
+
             # Update weights
             self.optimizer.step()
-            
+
             # Accumulate losses
             total_loss += loss.item()
             loss_H_total += loss_H.item()
             loss_D_total += loss_D.item()
             loss_R_total += loss_R.item()
             num_batches += 1
-            
+
             # Log progress
             if batch_idx % self.config.log_interval == 0:
-                print(f"Epoch {epoch}, Batch {batch_idx}/{len(train_loader)}, "
+                logger.info(f"Epoch {epoch}, Batch {batch_idx}/{len(train_loader)}, "
                       f"Loss: {loss.item():.4f}")
-        
+
         return {
             "total_loss": total_loss / num_batches,
             "loss_H": loss_H_total / num_batches,
             "loss_D": loss_D_total / num_batches,
             "loss_R": loss_R_total / num_batches
         }
-    
+
     def validate(
         self,
         val_loader: DataLoader
@@ -167,13 +170,13 @@ class ModelTrainer:
         Validate model performance.
         """
         self.model.eval()
-        
+
         total_loss = 0.0
         loss_H_total = 0.0
         loss_D_total = 0.0
         loss_R_total = 0.0
         num_batches = 0
-        
+
         # Collect predictions for metrics
         all_H_pred = []
         all_D_pred = []
@@ -181,11 +184,11 @@ class ModelTrainer:
         all_H_true = []
         all_D_true = []
         all_R_true = []
-        
+
         with torch.no_grad():
             for batch in val_loader:
                 batch = batch.to(self.device)
-                
+
                 # Forward pass
                 H_pred, D_pred, R_pred = self.model(
                     batch.x,
@@ -193,26 +196,26 @@ class ModelTrainer:
                     batch.symbolic_features,
                     batch.batch
                 )
-                
+
                 # Extract ground truth
                 H_true = batch.y[:, 0].unsqueeze(1)
                 D_true = batch.y[:, 1].unsqueeze(1)
                 R_true = batch.y[:, 2].unsqueeze(1)
-                
+
                 # Compute losses
                 loss_H = self.criterion(H_pred, H_true)
                 loss_D = self.criterion(D_pred, D_true)
                 loss_R = self.criterion(R_pred, R_true)
-                
+
                 loss = 0.4 * loss_H + 0.4 * loss_D + 0.2 * loss_R
-                
+
                 # Accumulate
                 total_loss += loss.item()
                 loss_H_total += loss_H.item()
                 loss_D_total += loss_D.item()
                 loss_R_total += loss_R.item()
                 num_batches += 1
-                
+
                 # Store predictions
                 all_H_pred.extend(H_pred.cpu().numpy().flatten())
                 all_D_pred.extend(D_pred.cpu().numpy().flatten())
@@ -220,7 +223,7 @@ class ModelTrainer:
                 all_H_true.extend(H_true.cpu().numpy().flatten())
                 all_D_true.extend(D_true.cpu().numpy().flatten())
                 all_R_true.extend(R_true.cpu().numpy().flatten())
-        
+
         # Compute additional metrics
         metrics = {
             "total_loss": total_loss / num_batches,
@@ -231,9 +234,9 @@ class ModelTrainer:
             "mae_D": np.mean(np.abs(np.array(all_D_pred) - np.array(all_D_true))),
             "mae_R": np.mean(np.abs(np.array(all_R_pred) - np.array(all_R_true)))
         }
-        
+
         return metrics
-    
+
     def train(
         self,
         train_loader: DataLoader,
@@ -242,21 +245,21 @@ class ModelTrainer:
         """
         Complete training loop with early stopping.
         """
-        print(f"Starting training on {self.device}")
-        print(f"Model parameters: {sum(p.numel() for p in self.model.parameters())}")
-        
+        logger.info(f"Starting training on {self.device}")
+        logger.info(f"Model parameters: {sum(p.numel() for p in self.model.parameters())}")
+
         for epoch in range(self.config.num_epochs):
-            print(f"\nEpoch {epoch + 1}/{self.config.num_epochs}")
-            
+            logger.info(f"\nEpoch {epoch + 1}/{self.config.num_epochs}")
+
             # Train
             train_metrics = self.train_epoch(train_loader, epoch)
-            
+
             # Validate
             val_metrics = self.validate(val_loader)
-            
+
             # Update learning rate
             self.scheduler.step(val_metrics["total_loss"])
-            
+
             # Log metrics
             metrics = TrainingMetrics(
                 epoch=epoch,
@@ -267,39 +270,39 @@ class ModelTrainer:
                 timestamp=datetime.now().isoformat()
             )
             self.history.append(metrics)
-            
-            print(f"Train Loss: {train_metrics['total_loss']:.4f}, "
+
+            logger.info(f"Train Loss: {train_metrics['total_loss']:.4f}, "
                   f"Val Loss: {val_metrics['total_loss']:.4f}")
-            print(f"Val MAE - H: {val_metrics['mae_H']:.4f}, "
+            logger.info(f"Val MAE - H: {val_metrics['mae_H']:.4f}, "
                   f"D: {val_metrics['mae_D']:.4f}, "
                   f"R: {val_metrics['mae_R']:.4f}")
-            
+
             # Check for improvement
             if val_metrics["total_loss"] < self.best_val_loss - self.config.min_delta:
                 self.best_val_loss = val_metrics["total_loss"]
                 self.patience_counter = 0
-                
+
                 # Save best model
                 self.save_checkpoint(epoch, is_best=True)
-                print(f"New best model! Val loss: {self.best_val_loss:.4f}")
+                logger.info(f"New best model! Val loss: {self.best_val_loss:.4f}")
             else:
                 self.patience_counter += 1
-                print(f"No improvement. Patience: {self.patience_counter}/{self.config.patience}")
-            
+                logger.info(f"No improvement. Patience: {self.patience_counter}/{self.config.patience}")
+
             # Early stopping
             if self.patience_counter >= self.config.patience:
-                print(f"Early stopping triggered at epoch {epoch}")
+                logger.info(f"Early stopping triggered at epoch {epoch}")
                 break
-            
+
             # Save regular checkpoint
             if (epoch + 1) % 10 == 0:
                 self.save_checkpoint(epoch, is_best=False)
-        
-        print("\nTraining complete!")
-        print(f"Best validation loss: {self.best_val_loss:.4f}")
-        
+
+        logger.info("\nTraining complete!")
+        logger.info(f"Best validation loss: {self.best_val_loss:.4f}")
+
         return self.history
-    
+
     def save_checkpoint(self, epoch: int, is_best: bool = False):
         """Save model checkpoint."""
         checkpoint = {
@@ -312,27 +315,27 @@ class ModelTrainer:
             "best_val_loss": self.best_val_loss,
             "history": self.history
         }
-        
+
         if is_best:
             path = f"{self.config.checkpoint_dir}/best_model.pt"
         else:
             path = f"{self.config.checkpoint_dir}/checkpoint_epoch_{epoch}.pt"
-        
+
         torch.save(checkpoint, path)
-        print(f"Saved checkpoint: {path}")
-    
+        logger.info(f"Saved checkpoint: {path}")
+
     def load_checkpoint(self, checkpoint_path: str):
         """Load model from checkpoint."""
         checkpoint = torch.load(checkpoint_path, map_location=self.device)
-        
+
         self.model.load_state_dict(checkpoint["model_state_dict"])
         self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         self.scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
         self.best_val_loss = checkpoint["best_val_loss"]
         self.history = checkpoint["history"]
-        
-        print(f"Loaded checkpoint from {checkpoint_path}")
-        print(f"Best val loss: {self.best_val_loss:.4f}")
+
+        logger.info(f"Loaded checkpoint from {checkpoint_path}")
+        logger.info(f"Best val loss: {self.best_val_loss:.4f}")
 
 
 @dataclass
@@ -361,10 +364,10 @@ class ModelValidator:
     """
     Validates models before promotion to production.
     """
-    
+
     def __init__(self, device: Optional[torch.device] = None):
         self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
+
     def validate_model(
         self,
         model: NeuroSymbolicConfidenceModel,
@@ -373,31 +376,31 @@ class ModelValidator:
         """
         Comprehensive model validation.
         """
-        print("Starting model validation...")
-        
+        logger.info("Starting model validation...")
+
         model.to(self.device)
         model.eval()
-        
+
         # Check accuracy
         accuracy = self._check_accuracy(model, test_loader)
-        print(f"Accuracy: {accuracy:.4f}")
-        
+        logger.info(f"Accuracy: {accuracy:.4f}")
+
         # Check calibration
         calibration = self._check_calibration(model, test_loader)
-        print(f"Calibration: {calibration:.4f}")
-        
+        logger.info(f"Calibration: {calibration:.4f}")
+
         # Check robustness
         robustness = self._check_robustness(model, test_loader)
-        print(f"Robustness: {robustness:.4f}")
-        
+        logger.info(f"Robustness: {robustness:.4f}")
+
         # Check inference speed
         inference_speed = self._check_inference_speed(model, test_loader)
-        print(f"Inference speed: {inference_speed:.2f}ms")
-        
+        logger.info(f"Inference speed: {inference_speed:.2f}ms")
+
         # Check safety properties
         safety = self._check_safety_properties(model, test_loader)
-        print(f"Safety check: {'PASSED' if safety.passed else 'FAILED'}")
-        
+        logger.info(f"Safety check: {'PASSED' if safety.passed else 'FAILED'}")
+
         # Overall approval decision
         approved = (
             accuracy > 0.85 and
@@ -406,7 +409,7 @@ class ModelValidator:
             inference_speed < 100 and
             safety.passed
         )
-        
+
         report = ValidationReport(
             accuracy=accuracy,
             calibration=calibration,
@@ -416,11 +419,11 @@ class ModelValidator:
             approved=approved,
             timestamp=datetime.now().isoformat()
         )
-        
-        print(f"\nValidation {'APPROVED' if approved else 'REJECTED'}")
-        
+
+        logger.info(f"\nValidation {'APPROVED' if approved else 'REJECTED'}")
+
         return report
-    
+
     def _check_accuracy(
         self,
         model: NeuroSymbolicConfidenceModel,
@@ -429,36 +432,36 @@ class ModelValidator:
         """Check prediction accuracy (1 - MAE)."""
         total_mae = 0.0
         num_samples = 0
-        
+
         with torch.no_grad():
             for batch in test_loader:
                 batch = batch.to(self.device)
-                
+
                 H_pred, D_pred, R_pred = model(
                     batch.x,
                     batch.edge_index,
                     batch.symbolic_features,
                     batch.batch
                 )
-                
+
                 H_true = batch.y[:, 0].unsqueeze(1)
                 D_true = batch.y[:, 1].unsqueeze(1)
                 R_true = batch.y[:, 2].unsqueeze(1)
-                
+
                 mae = (
                     torch.abs(H_pred - H_true).mean() +
                     torch.abs(D_pred - D_true).mean() +
                     torch.abs(R_pred - R_true).mean()
                 ) / 3.0
-                
+
                 total_mae += mae.item() * batch.num_graphs
                 num_samples += batch.num_graphs
-        
+
         avg_mae = total_mae / num_samples
         accuracy = 1.0 - avg_mae  # Convert MAE to accuracy
-        
+
         return accuracy
-    
+
     def _check_calibration(
         self,
         model: NeuroSymbolicConfidenceModel,
@@ -468,7 +471,7 @@ class ModelValidator:
         # Simplified calibration check
         # In practice, use proper calibration metrics (ECE, MCE)
         return 0.85  # Placeholder
-    
+
     def _check_robustness(
         self,
         model: NeuroSymbolicConfidenceModel,
@@ -478,7 +481,7 @@ class ModelValidator:
         # Simplified robustness check
         # In practice, test with adversarial perturbations
         return 0.80  # Placeholder
-    
+
     def _check_inference_speed(
         self,
         model: NeuroSymbolicConfidenceModel,
@@ -486,13 +489,13 @@ class ModelValidator:
     ) -> float:
         """Check inference speed in milliseconds."""
         import time
-        
+
         # Warm-up
         batch = next(iter(test_loader))
         batch = batch.to(self.device)
         with torch.no_grad():
             _ = model(batch.x, batch.edge_index, batch.symbolic_features, batch.batch)
-        
+
         # Measure
         times = []
         for _ in range(100):
@@ -501,19 +504,19 @@ class ModelValidator:
                 _ = model(batch.x, batch.edge_index, batch.symbolic_features, batch.batch)
             end = time.time()
             times.append((end - start) * 1000)  # Convert to ms
-        
+
         return np.mean(times)
-    
+
     def _check_safety_properties(
         self,
         model: NeuroSymbolicConfidenceModel,
         test_loader: DataLoader
     ) -> SafetyReport:
         """Verify safety properties."""
-        
+
         # Test 1: Authority independence (by design)
         authority_independent = True
-        
+
         # Test 2: Output bounds
         outputs_bounded = True
         with torch.no_grad():
@@ -525,7 +528,7 @@ class ModelValidator:
                     batch.symbolic_features,
                     batch.batch
                 )
-                
+
                 if not (torch.all(H >= 0) and torch.all(H <= 1)):
                     outputs_bounded = False
                     break
@@ -535,21 +538,21 @@ class ModelValidator:
                 if not (torch.all(R >= 0) and torch.all(R <= 1)):
                     outputs_bounded = False
                     break
-        
+
         # Test 3: Graceful degradation
         graceful_degradation = True
         # In practice, test with invalid inputs
-        
+
         # Test 4: Adversarial robustness
         adversarial_robustness = 0.85  # Placeholder
-        
+
         passed = (
             authority_independent and
             outputs_bounded and
             graceful_degradation and
             adversarial_robustness > 0.8
         )
-        
+
         return SafetyReport(
             authority_independent=authority_independent,
             outputs_bounded=outputs_bounded,
@@ -557,7 +560,7 @@ class ModelValidator:
             adversarial_robustness=adversarial_robustness,
             passed=passed
         )
-    
+
     def save_report(self, report: ValidationReport, path: str):
         """Save validation report to file."""
         report_dict = {
@@ -575,38 +578,38 @@ class ModelValidator:
             "approved": report.approved,
             "timestamp": report.timestamp
         }
-        
-        with open(path, 'w') as f:
+
+        with open(path, 'w', encoding='utf-8') as f:
             json.dump(report_dict, f, indent=2)
-        
-        print(f"Saved validation report to {path}")
+
+        logger.info(f"Saved validation report to {path}")
 
 
 # Example usage
 if __name__ == "__main__":
     from .models import create_model
     from .data import TrainingDataCollector, DataSplitter, create_dataloaders
-    
+
     # Collect data
-    print("Collecting training data...")
+    logger.info("Collecting training data...")
     collector = TrainingDataCollector()
     examples = collector.collect_training_batch(batch_size=1000)
-    
+
     # Split data
     train, val, test = DataSplitter.split(examples)
-    
+
     # Create dataloaders
     train_loader, val_loader = create_dataloaders(train, val, batch_size=32)
     test_loader, _ = create_dataloaders(test, test, batch_size=32)
-    
+
     # Create model
     model = create_model()
-    
+
     # Train
     config = TrainingConfig(num_epochs=50)
     trainer = ModelTrainer(model, config)
     history = trainer.train(train_loader, val_loader)
-    
+
     # Validate
     validator = ModelValidator()
     report = validator.validate_model(model, test_loader)

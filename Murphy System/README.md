@@ -1,300 +1,132 @@
-# Murphy System - Runtime 1.0 (Primary)
+# Murphy System — Runtime Directory
 
-**A comprehensive AI automation runtime with task execution, validation modules, and optional form/correction components.**
+This is the primary runtime directory for the Murphy System. It contains the
+FastAPI server, 584 source modules across 54 packages in `src/`, web interfaces,
+tests, and deployment configuration.
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
-# 1. Start runtime 1.0 (installs requirements_murphy_1.0.txt)
-./start_murphy_1.0.sh
-
-# 2. Verify the runtime
-curl http://localhost:8000/api/health
+pip install -r requirements_murphy_1.0.txt   # install dependencies
+python murphy_system_1.0_runtime.py           # FastAPI server on :8000
+curl http://localhost:8000/api/health          # verify it's running
 ```
 
-**That's it!** Runtime 1.0 is now running.
+The optional Textual TUI terminal is available separately:
+
+```bash
+python murphy_terminal.py
+```
+
+Interactive API docs are served at **http://localhost:8000/docs** (Swagger UI).
 
 ---
 
-## 📋 Table of Contents
+## API Reference
 
-1. [Overview](#overview)
-2. [Features](#features)
-3. [Architecture](#architecture)
-4. [Installation](#installation)
-5. [Usage](#usage)
-6. [API Documentation](#api-documentation)
-7. [Development](#development)
-8. [Deployment](#deployment)
-9. [Contributing](#contributing)
-10. [License](#license)
+All endpoints are prefixed with `/api`.
 
----
+| Group | Endpoints | Description |
+|---|---|---|
+| **Core** | `/api/health`, `/api/status`, `/api/execute`, `/api/chat` | Health checks, system status, task execution, chat |
+| **Forms** | `/api/forms/*` | Form intake and processing |
+| **Onboarding** | `/api/onboarding/wizard/*` | Guided onboarding wizard |
+| **Librarian** | `/api/librarian/*` | Knowledge-base and document librarian |
+| **Documents** | `/api/documents/*` | Document management |
+| **Integrations** | `/api/integrations/*` | External system integrations |
+| **LLM** | `/api/llm/*` | Language-model routing and inference |
+| **HITL** | `/api/hitl/*` | Human-in-the-loop checkpoints and approvals |
+| **MFGC** | `/api/mfgc/*` | Murphy Formula / Gate / Confidence scoring |
+| **Corrections** | `/api/corrections/*` | Correction capture and learning |
 
-## 🎯 Overview
-
-Runtime 1.0 is the only prepared runtime in this repository. References to v2/v3 are planning documents only.
-
-Runtime 1.0 combines:
-
-- **Original Murphy Runtime** - Proven execution engine with G/D/H confidence scoring
-- **Phase 1-5 Enhancements** - Form-driven interface, Murphy validation, correction capture, shadow agent training
-- **Integration Layer** - Seamlessly connects new and old systems
-
-### Integrated Enhancements
-
-✅ **Form Intake Modules** - Form handlers included (not wired to runtime 1.0 APIs by default)  
-✅ **Enhanced Murphy Validation** - 5D uncertainty analysis (UD/UA/UI/UR/UG)  
-✅ **Correction Capture** - Learn from human corrections  
-✅ **Shadow Agent Training** - Self-improving AI that learns from mistakes  
-✅ **Human-in-the-Loop** - Smart checkpoints for critical decisions  
-✅ **Additional API Endpoints** - RESTful API for integrated features  
-✅ **Optional Web UI** - Static HTML interface (served separately)  
-✅ **Backward Compatible** - Core original features preserved (verify for your deployment)  
+Full auto-generated docs: **http://localhost:8000/docs**
 
 ---
 
-For a concise status summary, see [RUNTIME_1.0_STATUS.md](archive/murphy_integrated_archive/legacy_docs/RUNTIME_1.0_STATUS.md).
-For inactive subsystem inventory and verification steps, see [ACTIVATION_AUDIT.md](archive/murphy_integrated_archive/legacy_docs/ACTIVATION_AUDIT.md).
-For a full flow analysis and UI attempt script, see [SYSTEM_FLOW_ANALYSIS.md](archive/murphy_integrated_archive/legacy_docs/SYSTEM_FLOW_ANALYSIS.md).
-For gap closure recommendations, see [CAPABILITY_GAP_SOLUTIONS.md](archive/murphy_integrated_archive/legacy_docs/CAPABILITY_GAP_SOLUTIONS.md).
-For a full system assessment and finishing plan, see [FULL_SYSTEM_ASSESSMENT.md](archive/murphy_integrated_archive/FULL_SYSTEM_ASSESSMENT.md).
+## Web Interfaces
 
-## ✨ Features
+Eight static HTML files are served by the runtime or a local HTTP server:
 
-### Core Capabilities
-
-#### 1. Task Execution (Runtime 1.0)
-- Execute tasks via `/api/execute`
-- Orchestrates work through the control plane and two-phase workflow
-- Form intake modules are present but not exposed by default in runtime 1.0
-
-#### 2. Murphy Validation System
-- **Original G/D/H Formula** - Goodness, Domain, Hazard scoring
-- **New 5D Uncertainty** - UD (Data), UA (Authority), UI (Information), UR (Resources), UG (Disagreement)
-- **Murphy Gate** - Threshold-based approval/rejection
-- **Confidence Reports** - Detailed validation results
-
-#### 3. Correction Capture & Learning
-- Correction and learning modules are available in code
-- Runtime 1.0 does not expose dedicated correction endpoints by default
-
-#### 4. Shadow Agent Training
-- Training pipeline modules are present
-- Requires integration work to run end-to-end in runtime 1.0
-
-#### 5. Human-in-the-Loop (HITL)
-- **Smart Checkpoints** - 6 checkpoint types for critical decisions
-- **Intervention Requests** - Automatic escalation when needed
-- **Approval Workflows** - Structured decision-making
-- **Statistics** - Track intervention patterns
-
-#### 6. Toggleable Full Automation ⭐ NEW
-- **Three-Tier Modes** - MANUAL, SEMI_AUTONOMOUS, FULL_AUTONOMOUS
-- **Admin/Owner-Only Controls** - Only authorized users can toggle automation
-- **HITL Gap Detection** - Automatic detection of human-in-the-loop transition issues
-- **Risk-Based Activation** - Auto-approval based on action risk level
-- **Success Rate Monitoring** - Adaptive mode transitions based on performance
-- **Comprehensive Audit Logging** - Complete audit trail for compliance
-
-These modules are included but require configuration and wiring to specific workflows in runtime 1.0.
+| File | Purpose |
+|---|---|
+| `onboarding_wizard.html` | Step-by-step new-user onboarding |
+| `murphy_landing_page.html` | Main landing / dashboard page |
+| `murphy_ui_integrated.html` | Integrated management UI |
+| `murphy_ui_integrated_terminal.html` | Terminal-style integrated UI |
+| `terminal_architect.html` | Architect-role terminal |
+| `terminal_enhanced.html` | Enhanced terminal with extra tooling |
+| `terminal_integrated.html` | Integrated terminal view |
+| `terminal_worker.html` | Worker-role terminal |
 
 ---
 
-## 🏗️ Architecture
+## Configuration
 
-### System Components
+| Source | Description |
+|---|---|
+| `.env` | Environment variables (secrets, feature flags, ports) |
+| `src/config.py` | Pydantic `BaseSettings` — loads `.env` and provides typed config |
+| `pyproject.toml` | Tool configurations (pytest, linters, etc.) |
+
+Copy `.env.example` to `.env` (if provided) and edit values before starting.
+
+---
+
+## Testing
+
+Tests live in the `tests/` directory.
+
+```bash
+python -m pytest tests/
+```
+
+---
+
+## Deployment
+
+### Docker
+
+```bash
+docker build -t murphy-system .
+docker compose up -d
+```
+
+`Dockerfile` and `docker-compose.yml` are in this directory.
+
+### Kubernetes
+
+Manifests are in the `k8s/` directory. Apply with:
+
+```bash
+kubectl apply -f k8s/
+```
+
+---
+
+## Directory Structure
 
 ```
 Murphy System/
-├── src/
-│   ├── form_intake/              # Form processing
-│   ├── confidence_engine/        # Validation
-│   │   ├── unified_confidence_engine.py  # Integration class
-│   │   ├── uncertainty_calculator.py     # 5D uncertainty
-│   │   ├── murphy_gate.py                # Threshold validation
-│   │   └── risk/                         # Risk assessment
-│   ├── execution_engine/         # Task execution
-│   │   └── integrated_form_executor.py   # Integration class
-│   ├── learning_engine/          # Learning & corrections
-│   │   ├── integrated_correction_system.py  # Integration class
-│   │   ├── correction_capture.py            # Capture system
-│   │   ├── pattern_extraction.py            # Pattern mining
-│   │   └── shadow_agent.py                  # Self-improving AI
-│   ├── supervisor_system/        # HITL monitoring
-│   │   └── integrated_hitl_monitor.py    # Integration class
-│   └── ... (original runtime modules)
-├── murphy_system_1.0_runtime.py         # Runtime 1.0 API server
-├── murphy_production_ui.html            # Redirects to architect terminal UI (legacy light UI via ?legacy=true)
-├── murphy_ui_integrated.html            # Legacy integrated UI
-└── tests/                               # Test suite
+├── murphy_system_1.0_runtime.py   # Entry point — FastAPI server
+├── murphy_terminal.py             # Optional Textual TUI
+├── src/                           # 584 modules, 54 packages
+│   ├── config.py                  # Pydantic settings
+│   ├── confidence_engine/         # Murphy Formula / Gate / Confidence
+│   ├── execution_engine/          # Task execution
+│   ├── form_intake/               # Form processing
+│   ├── learning_engine/           # Corrections & shadow-agent training
+│   ├── supervisor_system/         # HITL monitoring
+│   └── ...                        # Additional subsystem packages
+├── tests/                         # Pytest test suite
+├── docs/                          # Project documentation
+├── scripts/                       # Utility & helper scripts
+├── k8s/                           # Kubernetes manifests
+├── monitoring/                    # Monitoring & observability config
+├── Dockerfile                     # Container image definition
+├── docker-compose.yml             # Multi-service orchestration
+├── pyproject.toml                 # Tool configs (pytest, linters)
+├── .env                           # Runtime environment variables
+└── *.html                         # 8 web interface files
 ```
-
----
-
-## 📦 Installation
-
-### Prerequisites
-- Python 3.11 or higher
-- pip (Python package manager)
-- 4GB RAM minimum (8GB recommended)
-
-### Step 1: Install Dependencies
-```bash
-pip install -r requirements_murphy_1.0.txt
-```
-
-### Step 2: Verify Installation (Optional)
-```bash
-python tests/test_basic_imports.py
-```
-
-Expected output:
-```
-✓ UnifiedConfidenceEngine imported successfully
-✓ IntegratedCorrectionSystem imported successfully
-✓ IntegratedFormExecutor imported successfully
-✓ IntegratedHITLMonitor imported successfully
-✓ Form intake modules imported successfully
-
-Results: 5/5 tests passed
-```
-
-### Step 3: Start the Server
-```bash
-python murphy_system_1.0_runtime.py
-```
-
-Server starts on: **http://localhost:8000**
-
----
-
-## 💻 Usage
-
-### Web UI
-
-Serve the static UI with a simple HTTP server (not hosted by runtime 1.0):
-
-```bash
-python -m http.server 8090
-```
-
-Then open:
-
-```
-http://localhost:8090/terminal_architect.html?apiPort=8000
-```
-
-### API Usage
-
-#### Execute a Task
-```bash
-curl -X POST http://localhost:8000/api/execute \
-  -H "Content-Type: application/json" \
-  -d '{
-    "task_description": "Analyze Q4 sales data",
-    "task_type": "analysis",
-    "parameters": {"quarter": "Q4", "year": 2024}
-  }'
-```
-
-#### Check System Status
-```bash
-curl http://localhost:8000/api/status
-```
-
-#### Run Business Automation
-```bash
-curl -X POST http://localhost:8000/api/automation/sales/generate_leads \
-  -H "Content-Type: application/json" \
-  -d '{"parameters": {"target_industry": "SaaS"}}'
-```
-
-#### Toggle Full Automation Mode ⭐ NEW
-```bash
-# Enable full automation (requires admin/owner role)
-curl -X POST http://localhost:8000/api/automation/mode \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -d '{
-    "tenant_id": "your-tenant-id",
-    "mode": "full_autonomous",
-    "reason": "admin_override"
-  }'
-
-# Check current automation mode
-curl http://localhost:8000/api/automation/mode?tenant_id=your-tenant-id
-
-# Get automation metrics
-curl http://localhost:8000/api/automation/metrics?tenant_id=your-tenant-id
-```
-
-**Note:** Full automation can only be enabled by:
-- **Organizations:** Users with `admin` or `owner` roles
-- **Individual Accounts:** Account owners only
-
-See [docs/self_running_analysis.md](docs/self_running_analysis.md) for complete documentation on toggleable automation.
-
----
-
-## 📚 API Documentation
-
-See [API_DOCUMENTATION.md](API_DOCUMENTATION.md) for complete API reference.
-
-### Available Endpoints
-
-**Core Endpoints:**
-- `POST /api/execute` - Execute a task
-- `GET /api/status` - Get system status
-- `GET /api/info` - Get system information
-- `GET /api/health` - Health check
-
-**Integration Endpoints:** (available when integration engine dependencies are installed)
-- `POST /api/integrations/add` - Submit integration request
-- `POST /api/integrations/{request_id}/approve` - Approve integration
-- `POST /api/integrations/{request_id}/reject` - Reject integration
-- `GET /api/integrations/{status}` - List integrations (`pending`, `committed`, `all`)
-
-**Automation Endpoints:**
-- `POST /api/automation/{engine_name}/{action}` - Run business automation action
-
----
-
-## 🛠️ Development
-
-### Running Tests
-```bash
-python -m pytest
-```
-
----
-
-## 🚀 Deployment
-
-See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for deployment notes. Docker and Kubernetes examples live in legacy archives.
-
----
-
-## 📄 License
-
-Copyright © 2020 Inoni Limited Liability Company  
-Creator: Corey Post  
-License: Apache License 2.0
-
----
-
-## 📞 Support
-
-### Documentation
-- [START_INTEGRATED_SYSTEM.md](archive/murphy_integrated_archive/legacy_docs/START_INTEGRATED_SYSTEM.md) - Quick start guide
-- [API_DOCUMENTATION.md](API_DOCUMENTATION.md) - Complete API reference
-- [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) - Deployment instructions
-- [INTEGRATION_COMPLETE_SUMMARY.md](archive/murphy_integrated_archive/legacy_docs/INTEGRATION_COMPLETE_SUMMARY.md) - Integration details
-
----
-
-**Murphy System Integrated Runtime** - Intelligent, Self-Improving, Human-Centered AI
-
-*Making AI agents smarter, one correction at a time.* 🚀

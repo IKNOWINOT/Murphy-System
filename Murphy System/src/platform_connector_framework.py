@@ -14,9 +14,15 @@ import json
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
+from thread_safe_operations import capped_append
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ConnectorCategory(Enum):
+    """Connector category (Enum subclass)."""
     CRM = "crm"
     COMMUNICATION = "communication"
     PROJECT_MANAGEMENT = "project_management"
@@ -32,6 +38,7 @@ class ConnectorCategory(Enum):
 
 
 class AuthType(Enum):
+    """Auth type (Enum subclass)."""
     API_KEY = "api_key"
     OAUTH2 = "oauth2"
     BASIC = "basic"
@@ -41,6 +48,7 @@ class AuthType(Enum):
 
 
 class ConnectorHealth(Enum):
+    """Connector health (Enum subclass)."""
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -50,6 +58,7 @@ class ConnectorHealth(Enum):
 
 @dataclass
 class RateLimitConfig:
+    """Rate limit config."""
     max_requests: int = 100
     window_seconds: int = 60
     burst_limit: int = 10
@@ -57,6 +66,7 @@ class RateLimitConfig:
 
 @dataclass
 class RetryConfig:
+    """Retry config."""
     max_retries: int = 3
     base_delay: float = 1.0
     max_delay: float = 30.0
@@ -65,6 +75,7 @@ class RetryConfig:
 
 @dataclass
 class ConnectorDefinition:
+    """Connector definition."""
     connector_id: str
     name: str
     category: ConnectorCategory
@@ -80,6 +91,7 @@ class ConnectorDefinition:
 
 @dataclass
 class ConnectorInstance:
+    """Connector instance."""
     definition: ConnectorDefinition
     credentials: Dict[str, str] = field(default_factory=dict)
     health: ConnectorHealth = ConnectorHealth.UNKNOWN
@@ -93,6 +105,7 @@ class ConnectorInstance:
 
 @dataclass
 class ConnectorAction:
+    """Connector action."""
     action_id: str
     connector_id: str
     action_type: str  # read, write, subscribe, execute
@@ -103,6 +116,7 @@ class ConnectorAction:
 
 @dataclass
 class ConnectorResult:
+    """Connector result."""
     action_id: str
     connector_id: str
     success: bool
@@ -905,7 +919,7 @@ class PlatformConnectorFramework:
                 error=f"Connector '{action.connector_id}' not configured",
             )
             with self._lock:
-                self._action_history.append(result)
+                capped_append(self._action_history, result)
             return result
 
         if not instance.enabled:
@@ -916,7 +930,7 @@ class PlatformConnectorFramework:
                 error=f"Connector '{action.connector_id}' is disabled",
             )
             with self._lock:
-                self._action_history.append(result)
+                capped_append(self._action_history, result)
             return result
 
         if not self._check_rate_limit(instance):
@@ -927,7 +941,7 @@ class PlatformConnectorFramework:
                 error="Rate limit exceeded",
             )
             with self._lock:
-                self._action_history.append(result)
+                capped_append(self._action_history, result)
             return result
 
         # Check capability support
@@ -941,7 +955,7 @@ class PlatformConnectorFramework:
                     error=f"Action '{action.action_type}' not supported by '{action.connector_id}'",
                 )
                 with self._lock:
-                    self._action_history.append(result)
+                    capped_append(self._action_history, result)
                 return result
 
         # Simulate successful action execution
@@ -960,7 +974,7 @@ class PlatformConnectorFramework:
             latency_ms=latency,
         )
         with self._lock:
-            self._action_history.append(result)
+            capped_append(self._action_history, result)
         return result
 
     def health_check(self, connector_id: str) -> ConnectorHealth:

@@ -87,7 +87,7 @@ def get_submission_status(submission_id: str) -> Optional[Dict[str, Any]]:
 _submission_store: Dict[str, Dict[str, Any]] = {}
 
 
-def _record_submission(submission_id: str, form_type: str, extra: Optional[Dict[str, Any]] = None) -> None:
+def _record_submission_store(submission_id: str, form_type: str, extra: Optional[Dict[str, Any]] = None) -> None:
     """Record a new submission in the in-process store."""
     now = datetime.now().isoformat()
     _submission_store[submission_id] = {
@@ -103,7 +103,7 @@ def _record_submission(submission_id: str, form_type: str, extra: Optional[Dict[
 
 class FormSubmissionResult:
     """Result of form submission"""
-    
+
     def __init__(
         self,
         success: bool,
@@ -120,7 +120,7 @@ class FormSubmissionResult:
         self.data = data or {}
         self.errors = errors or {}
         self.timestamp = datetime.now()
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -136,31 +136,31 @@ class FormSubmissionResult:
 
 class PlanUploadFormHandler:
     """Handler for Plan Upload Form"""
-    
+
     def __init__(self):
         self.form_type = FormType.PLAN_UPLOAD
-    
+
     def handle(self, form_data: Dict[str, Any]) -> FormSubmissionResult:
         """
         Handle plan upload form submission
-        
+
         Args:
             form_data: Form data to process
-            
+
         Returns:
             FormSubmissionResult with processing outcome
         """
         try:
             # Validate form
             form = validate_form(self.form_type, form_data)
-            
+
             # Generate submission ID
             submission_id = self._generate_submission_id(form)
-            
+
             # Log submission
             logger.info(f"Plan upload form submitted: {submission_id}")
             logger.debug(f"Plan context: {form.plan_context[:100]}...")
-            
+
             # Process form (will be implemented in plan decomposition engine)
             result_data = {
                 'submission_id': submission_id,
@@ -175,8 +175,8 @@ class PlanUploadFormHandler:
                 submission_id, self.form_type.value,
                 'queued_for_processing', data=result_data,
             )
-            
-            _record_submission(submission_id, self.form_type.value)
+
+            _record_submission_store(submission_id, self.form_type.value)
             return FormSubmissionResult(
                 success=True,
                 submission_id=submission_id,
@@ -184,17 +184,17 @@ class PlanUploadFormHandler:
                 message="Plan upload form submitted successfully. Processing will begin shortly.",
                 data=result_data
             )
-            
-        except Exception as e:
-            logger.error(f"Error handling plan upload form: {str(e)}")
+
+        except Exception as exc:
+            logger.error(f"Error handling plan upload form: {str(exc)}")
             return FormSubmissionResult(
                 success=False,
                 submission_id="",
                 form_type=self.form_type,
-                message=f"Error processing form: {str(e)}",
-                errors={'validation_error': str(e)}
+                message=f"Error processing form: {str(exc)}",
+                errors={'validation_error': str(exc)}
             )
-    
+
     def _generate_submission_id(self, form: PlanUploadForm) -> str:
         """Generate unique submission ID"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -203,32 +203,32 @@ class PlanUploadFormHandler:
 
 class PlanGenerationFormHandler:
     """Handler for Plan Generation Form"""
-    
+
     def __init__(self):
         self.form_type = FormType.PLAN_GENERATION
-    
+
     def handle(self, form_data: Dict[str, Any]) -> FormSubmissionResult:
         """
         Handle plan generation form submission
-        
+
         Args:
             form_data: Form data to process
-            
+
         Returns:
             FormSubmissionResult with processing outcome
         """
         try:
             # Validate form
             form = validate_form(self.form_type, form_data)
-            
+
             # Generate submission ID
             submission_id = self._generate_submission_id(form)
-            
+
             # Log submission
             logger.info(f"Plan generation form submitted: {submission_id}")
             logger.debug(f"Goal: {form.goal[:100]}...")
             logger.debug(f"Domain: {form.domain.value}")
-            
+
             # Process form (will be implemented in plan generation engine)
             result_data = {
                 'submission_id': submission_id,
@@ -245,8 +245,8 @@ class PlanGenerationFormHandler:
                 submission_id, self.form_type.value,
                 'queued_for_generation', data=result_data,
             )
-            
-            _record_submission(submission_id, self.form_type.value)
+
+            _record_submission_store(submission_id, self.form_type.value)
             return FormSubmissionResult(
                 success=True,
                 submission_id=submission_id,
@@ -254,17 +254,17 @@ class PlanGenerationFormHandler:
                 message="Plan generation form submitted successfully. Plan generation will begin shortly.",
                 data=result_data
             )
-            
-        except Exception as e:
-            logger.error(f"Error handling plan generation form: {str(e)}")
+
+        except Exception as exc:
+            logger.error(f"Error handling plan generation form: {str(exc)}")
             return FormSubmissionResult(
                 success=False,
                 submission_id="",
                 form_type=self.form_type,
-                message=f"Error processing form: {str(e)}",
-                errors={'validation_error': str(e)}
+                message=f"Error processing form: {str(exc)}",
+                errors={'validation_error': str(exc)}
             )
-    
+
     def _generate_submission_id(self, form: PlanGenerationForm) -> str:
         """Generate unique submission ID"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -274,33 +274,33 @@ class PlanGenerationFormHandler:
 
 class TaskExecutionFormHandler:
     """Handler for Task Execution Form"""
-    
+
     def __init__(self):
         self.form_type = FormType.TASK_EXECUTION
-    
+
     def handle(self, form_data: Dict[str, Any]) -> FormSubmissionResult:
         """
         Handle task execution form submission
-        
+
         Args:
             form_data: Form data to process
-            
+
         Returns:
             FormSubmissionResult with processing outcome
         """
         try:
             # Validate form
             form = validate_form(self.form_type, form_data)
-            
+
             # Generate submission ID
             submission_id = self._generate_submission_id(form)
-            
+
             # Log submission
             logger.info(f"Task execution form submitted: {submission_id}")
             logger.debug(f"Plan ID: {form.plan_id}")
             logger.debug(f"Task ID: {form.task_id}")
             logger.debug(f"Execution mode: {form.execution_mode.value}")
-            
+
             # Process form (will be implemented in execution orchestrator)
             result_data = {
                 'submission_id': submission_id,
@@ -311,8 +311,8 @@ class TaskExecutionFormHandler:
                 'status': 'queued_for_execution',
                 'next_step': 'task_execution'
             }
-            
-            _record_submission(submission_id, self.form_type.value)
+
+            _record_submission_store(submission_id, self.form_type.value)
             return FormSubmissionResult(
                 success=True,
                 submission_id=submission_id,
@@ -320,17 +320,17 @@ class TaskExecutionFormHandler:
                 message="Task execution form submitted successfully. Execution will begin shortly.",
                 data=result_data
             )
-            
-        except Exception as e:
-            logger.error(f"Error handling task execution form: {str(e)}")
+
+        except Exception as exc:
+            logger.error(f"Error handling task execution form: {str(exc)}")
             return FormSubmissionResult(
                 success=False,
                 submission_id="",
                 form_type=self.form_type,
-                message=f"Error processing form: {str(e)}",
-                errors={'validation_error': str(e)}
+                message=f"Error processing form: {str(exc)}",
+                errors={'validation_error': str(exc)}
             )
-    
+
     def _generate_submission_id(self, form: TaskExecutionForm) -> str:
         """Generate unique submission ID"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -339,34 +339,34 @@ class TaskExecutionFormHandler:
 
 class ValidationFormHandler:
     """Handler for Validation Form"""
-    
+
     def __init__(self):
         self.form_type = FormType.VALIDATION
-    
+
     def handle(self, form_data: Dict[str, Any]) -> FormSubmissionResult:
         """
         Handle validation form submission
-        
+
         Args:
             form_data: Form data to process
-            
+
         Returns:
             FormSubmissionResult with processing outcome
         """
         try:
             # Validate form
             form = validate_form(self.form_type, form_data)
-            
+
             # Generate submission ID
             submission_id = self._generate_submission_id(form)
-            
+
             # Log submission
             logger.info(f"Validation form submitted: {submission_id}")
             logger.debug(f"Task ID: {form.task_id}")
             logger.debug(f"Output ID: {form.output_id}")
             logger.debug(f"Result: {form.validation_result.value}")
             logger.debug(f"Quality score: {form.quality_score}/10")
-            
+
             # Process form (will update task status and trigger next steps)
             result_data = {
                 'submission_id': submission_id,
@@ -378,12 +378,12 @@ class ValidationFormHandler:
                 'status': 'validation_recorded',
                 'next_step': 'update_task_status'
             }
-            
+
             # If corrections exist, trigger correction capture
             if form.corrections:
                 result_data['next_step'] = 'correction_capture'
-            
-            _record_submission(submission_id, self.form_type.value)
+
+            _record_submission_store(submission_id, self.form_type.value)
             return FormSubmissionResult(
                 success=True,
                 submission_id=submission_id,
@@ -391,17 +391,17 @@ class ValidationFormHandler:
                 message="Validation recorded successfully. Thank you for your feedback!",
                 data=result_data
             )
-            
-        except Exception as e:
-            logger.error(f"Error handling validation form: {str(e)}")
+
+        except Exception as exc:
+            logger.error(f"Error handling validation form: {str(exc)}")
             return FormSubmissionResult(
                 success=False,
                 submission_id="",
                 form_type=self.form_type,
-                message=f"Error processing form: {str(e)}",
-                errors={'validation_error': str(e)}
+                message=f"Error processing form: {str(exc)}",
+                errors={'validation_error': str(exc)}
             )
-    
+
     def _generate_submission_id(self, form: ValidationForm) -> str:
         """Generate unique submission ID"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -410,34 +410,34 @@ class ValidationFormHandler:
 
 class CorrectionFormHandler:
     """Handler for Correction Form"""
-    
+
     def __init__(self):
         self.form_type = FormType.CORRECTION
-    
+
     def handle(self, form_data: Dict[str, Any]) -> FormSubmissionResult:
         """
         Handle correction form submission
-        
+
         Args:
             form_data: Form data to process
-            
+
         Returns:
             FormSubmissionResult with processing outcome
         """
         try:
             # Validate form
             form = validate_form(self.form_type, form_data)
-            
+
             # Generate submission ID
             submission_id = self._generate_submission_id(form)
-            
+
             # Log submission
             logger.info(f"Correction form submitted: {submission_id}")
             logger.debug(f"Task ID: {form.task_id}")
             logger.debug(f"Output ID: {form.output_id}")
             logger.debug(f"Correction types: {[ct.value for ct in form.correction_type]}")
             logger.debug(f"Severity: {form.severity.value}")
-            
+
             # Process form (will be implemented in correction capture system)
             result_data = {
                 'submission_id': submission_id,
@@ -448,8 +448,8 @@ class CorrectionFormHandler:
                 'status': 'queued_for_training',
                 'next_step': 'create_training_example'
             }
-            
-            _record_submission(submission_id, self.form_type.value)
+
+            _record_submission_store(submission_id, self.form_type.value)
             return FormSubmissionResult(
                 success=True,
                 submission_id=submission_id,
@@ -457,17 +457,17 @@ class CorrectionFormHandler:
                 message="Correction captured successfully. This will be used to improve Murphy's performance. Thank you!",
                 data=result_data
             )
-            
-        except Exception as e:
-            logger.error(f"Error handling correction form: {str(e)}")
+
+        except Exception as exc:
+            logger.error(f"Error handling correction form: {str(exc)}")
             return FormSubmissionResult(
                 success=False,
                 submission_id="",
                 form_type=self.form_type,
-                message=f"Error processing form: {str(e)}",
-                errors={'validation_error': str(e)}
+                message=f"Error processing form: {str(exc)}",
+                errors={'validation_error': str(exc)}
             )
-    
+
     def _generate_submission_id(self, form: CorrectionForm) -> str:
         """Generate unique submission ID"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -476,7 +476,7 @@ class CorrectionFormHandler:
 
 class FormHandlerRegistry:
     """Registry of form handlers"""
-    
+
     def __init__(self):
         self.handlers = {
             FormType.PLAN_UPLOAD: PlanUploadFormHandler(),
@@ -485,19 +485,19 @@ class FormHandlerRegistry:
             FormType.VALIDATION: ValidationFormHandler(),
             FormType.CORRECTION: CorrectionFormHandler()
         }
-    
+
     def get_handler(self, form_type: FormType):
         """Get handler for form type"""
         return self.handlers.get(form_type)
-    
+
     def handle_form(self, form_type: FormType, form_data: Dict[str, Any]) -> FormSubmissionResult:
         """
         Handle form submission
-        
+
         Args:
             form_type: Type of form
             form_data: Form data
-            
+
         Returns:
             FormSubmissionResult
         """
@@ -510,7 +510,7 @@ class FormHandlerRegistry:
                 message=f"No handler found for form type: {form_type.value}",
                 errors={'handler_error': 'Handler not found'}
             )
-        
+
         return handler.handle(form_data)
 
 
@@ -521,11 +521,11 @@ form_handler_registry = FormHandlerRegistry()
 def submit_form(form_type: FormType, form_data: Dict[str, Any]) -> FormSubmissionResult:
     """
     Submit a form for processing
-    
+
     Args:
         form_type: Type of form to submit
         form_data: Form data
-        
+
     Returns:
         FormSubmissionResult with processing outcome
     """

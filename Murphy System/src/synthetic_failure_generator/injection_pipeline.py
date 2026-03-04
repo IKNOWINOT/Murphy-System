@@ -5,7 +5,7 @@ Failure Injection Pipeline
 Pipeline for injecting failures into base scenarios.
 
 Pipeline Flow:
-BaseScenario → Perturbation Operators → Failure Manifolds → 
+BaseScenario → Perturbation Operators → Failure Manifolds →
 Synthetic Execution Packets → Execution Simulator → Telemetry + Risk Outcomes
 """
 
@@ -28,22 +28,26 @@ from .control_failures import ControlPlaneFailureGenerator
 from .interface_failures import InterfaceFailureGenerator
 from .organizational_failures import OrganizationalFailureGenerator
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class FailureInjectionPipeline:
     """
     Pipeline for generating and injecting failures
-    
+
     Transforms base scenarios into failure cases through perturbations
     """
-    
+
     def __init__(self):
         self.semantic_gen = SemanticFailureGenerator()
         self.control_gen = ControlPlaneFailureGenerator()
         self.interface_gen = InterfaceFailureGenerator()
         self.organizational_gen = OrganizationalFailureGenerator()
-        
+
         self.manifolds: Dict[str, FailureManifold] = {}
-    
+
     def create_base_scenario(
         self,
         scenario_name: str,
@@ -55,7 +59,7 @@ class FailureInjectionPipeline:
     ) -> BaseScenario:
         """Create base scenario for failure injection"""
         scenario_id = self._generate_id('scenario')
-        
+
         return BaseScenario(
             scenario_id=scenario_id,
             scenario_name=scenario_name,
@@ -65,7 +69,7 @@ class FailureInjectionPipeline:
             initial_confidence=initial_confidence,
             initial_risk=initial_risk
         )
-    
+
     def create_perturbation_operator(
         self,
         operator_name: str,
@@ -74,7 +78,7 @@ class FailureInjectionPipeline:
     ) -> PerturbationOperator:
         """Create perturbation operator"""
         operator_id = self._generate_id('operator')
-        
+
         # Map failure type to perturbation function
         function_map = {
             FailureType.UNIT_MISMATCH: 'inject_unit_mismatch',
@@ -94,9 +98,9 @@ class FailureInjectionPipeline:
             FailureType.MISALIGNED_INCENTIVE: 'inject_misaligned_incentive',
             FailureType.SCHEDULE_PRESSURE: 'inject_schedule_pressure'
         }
-        
+
         perturbation_function = function_map.get(failure_type, 'inject_generic')
-        
+
         return PerturbationOperator(
             operator_id=operator_id,
             operator_name=operator_name,
@@ -105,14 +109,14 @@ class FailureInjectionPipeline:
             parameters=parameters,
             expected_impact=self._estimate_impact(failure_type)
         )
-    
+
     def apply_perturbation(
         self,
         base_scenario: BaseScenario,
         operator: PerturbationOperator
     ) -> FailureCase:
         """Apply perturbation operator to base scenario"""
-        
+
         # Generate failure case based on type
         if operator.failure_type in [
             FailureType.UNIT_MISMATCH,
@@ -149,9 +153,9 @@ class FailureInjectionPipeline:
                 base_scenario,
                 operator
             )
-        
+
         return failure_case
-    
+
     def build_failure_manifold(
         self,
         base_scenario: BaseScenario,
@@ -160,13 +164,13 @@ class FailureInjectionPipeline:
     ) -> FailureManifold:
         """Build failure manifold by exploring perturbation space"""
         manifold_id = self._generate_id('manifold')
-        
+
         manifold = FailureManifold(
             manifold_id=manifold_id,
             base_failure_type=failure_type,
             perturbation_space=perturbation_space
         )
-        
+
         # Generate failure cases across perturbation space
         for param_name, param_values in perturbation_space.items():
             for param_value in param_values:
@@ -176,25 +180,25 @@ class FailureInjectionPipeline:
                     failure_type,
                     {param_name: param_value}
                 )
-                
+
                 # Apply perturbation
                 failure_case = self.apply_perturbation(base_scenario, operator)
-                
+
                 # Add to manifold
                 manifold.add_failure_case(failure_case)
-        
+
         # Store manifold
         self.manifolds[manifold_id] = manifold
-        
+
         return manifold
-    
+
     def generate_synthetic_packet(
         self,
         failure_case: FailureCase,
         base_scenario: BaseScenario
     ) -> Dict[str, Any]:
         """Generate synthetic execution packet with injected failure"""
-        
+
         # Create packet structure
         packet = {
             'packet_id': self._generate_id('packet'),
@@ -211,9 +215,9 @@ class FailureInjectionPipeline:
             'is_synthetic': True,
             'timestamp': datetime.now().isoformat()
         }
-        
+
         return packet
-    
+
     def simulate_execution(
         self,
         synthetic_packet: Dict[str, Any],
@@ -221,33 +225,33 @@ class FailureInjectionPipeline:
     ) -> SimulationResult:
         """Simulate execution of synthetic packet"""
         simulation_id = self._generate_id('simulation')
-        
+
         # Simulate execution steps
         execution_steps = self._simulate_steps(
             synthetic_packet,
             failure_case
         )
-        
+
         # Generate telemetry outcome
         telemetry_outcome = self._generate_telemetry(
             execution_steps,
             failure_case
         )
-        
+
         # Determine which gates were triggered/missed
         gates_triggered = self._identify_triggered_gates(
             execution_steps,
             failure_case
         )
-        
+
         gates_missed = failure_case.missed_gates
-        
+
         # Determine if execution was halted
         execution_halted = telemetry_outcome.total_loss > 0.5
         halt_reason = None
         if execution_halted:
             halt_reason = f"Risk threshold breach: loss={telemetry_outcome.total_loss:.2f}"
-        
+
         return SimulationResult(
             simulation_id=simulation_id,
             scenario_id=synthetic_packet['scenario_id'],
@@ -261,7 +265,7 @@ class FailureInjectionPipeline:
             execution_halted=execution_halted,
             halt_reason=halt_reason
         )
-    
+
     def run_pipeline(
         self,
         base_scenario_or_failure,
@@ -270,14 +274,14 @@ class FailureInjectionPipeline:
     ):
         """
         Run complete pipeline for multiple failure types
-        
+
         Args:
             base_scenario_or_failure: Can be BaseScenario or FailureCase
             failure_types: List of failure types (optional if FailureCase provided)
             count_per_type: Number of failures per type
         """
         from .models import FailureCase, BaseScenario, SimulationResult, TelemetryOutcome
-        
+
         # Handle both BaseScenario and FailureCase inputs
         if isinstance(base_scenario_or_failure, FailureCase):
             # Return a simple simulation result for a single failure
@@ -302,24 +306,24 @@ class FailureInjectionPipeline:
                 execution_halted=True,
                 halt_reason="safety_gate_triggered"
             )
-        
+
         base_scenario = base_scenario_or_failure
         if failure_types is None:
             failure_types = []
-        
+
         results = []
-        
+
         for failure_type in failure_types:
             # Create perturbation space
             perturbation_space = self._create_perturbation_space(failure_type)
-            
+
             # Build failure manifold
             manifold = self.build_failure_manifold(
                 base_scenario,
                 failure_type,
                 perturbation_space
             )
-            
+
             # Simulate each failure case
             for failure_case in manifold.failure_cases[:count_per_type]:
                 # Generate synthetic packet
@@ -327,17 +331,17 @@ class FailureInjectionPipeline:
                     failure_case,
                     base_scenario
                 )
-                
+
                 # Simulate execution
                 simulation_result = self.simulate_execution(
                     synthetic_packet,
                     failure_case
                 )
-                
+
                 results.append(simulation_result)
-        
+
         return results
-    
+
     def _apply_semantic_perturbation(
         self,
         base_scenario: BaseScenario,
@@ -360,7 +364,7 @@ class FailureInjectionPipeline:
             return self.semantic_gen.generate_conflicting_goal(
                 base_scenario.artifact_graph
             )
-    
+
     def _apply_control_perturbation(
         self,
         base_scenario: BaseScenario,
@@ -379,7 +383,7 @@ class FailureInjectionPipeline:
             return self.control_gen.generate_false_confidence({})
         else:  # MISSING_ROLLBACK
             return self.control_gen.generate_missing_rollback({})
-    
+
     def _apply_interface_perturbation(
         self,
         base_scenario: BaseScenario,
@@ -387,7 +391,7 @@ class FailureInjectionPipeline:
     ) -> FailureCase:
         """Apply interface perturbation"""
         interface_id = f"interface_{random.randint(1, 10)}"
-        
+
         if operator.failure_type == FailureType.STALE_DATA:
             return self.interface_gen.generate_stale_data(interface_id)
         elif operator.failure_type == FailureType.ACTUATOR_DRIFT:
@@ -396,7 +400,7 @@ class FailureInjectionPipeline:
             return self.interface_gen.generate_intermittent_connectivity(interface_id)
         else:  # PARTIAL_WRITE
             return self.interface_gen.generate_partial_write(interface_id)
-    
+
     def _apply_organizational_perturbation(
         self,
         base_scenario: BaseScenario,
@@ -411,7 +415,7 @@ class FailureInjectionPipeline:
             return self.organizational_gen.generate_misaligned_incentive({})
         else:  # SCHEDULE_PRESSURE
             return self.organizational_gen.generate_schedule_pressure({})
-    
+
     def _create_execution_graph(
         self,
         failure_case: FailureCase
@@ -428,7 +432,7 @@ class FailureInjectionPipeline:
                 for i in range(5)
             ]
         }
-    
+
     def _simulate_steps(
         self,
         synthetic_packet: Dict[str, Any],
@@ -436,7 +440,7 @@ class FailureInjectionPipeline:
     ) -> List[Dict[str, Any]]:
         """Simulate execution steps"""
         steps = []
-        
+
         for i, step in enumerate(synthetic_packet['execution_graph']['steps']):
             steps.append({
                 'step_id': step['step_id'],
@@ -445,9 +449,9 @@ class FailureInjectionPipeline:
                 'risk_delta': step['risk_delta'],
                 'confidence_delta': step['confidence_delta']
             })
-        
+
         return steps
-    
+
     def _generate_telemetry(
         self,
         execution_steps: List[Dict[str, Any]],
@@ -473,7 +477,7 @@ class FailureInjectionPipeline:
             total_loss=failure_case.expected_loss,
             detection_latency=random.uniform(1.0, 10.0)
         )
-    
+
     def _identify_triggered_gates(
         self,
         execution_steps: List[Dict[str, Any]],
@@ -486,7 +490,7 @@ class FailureInjectionPipeline:
             if random.random() < 0.3:  # 30% chance gate was triggered
                 triggered.append(gate['gate_type'])
         return triggered
-    
+
     def _create_perturbation_space(
         self,
         failure_type: FailureType
@@ -507,9 +511,9 @@ class FailureInjectionPipeline:
                 'override_reason': ['deadline', 'cost', 'executive']
             }
         }
-        
+
         return spaces.get(failure_type, {'severity': ['medium']})
-    
+
     def _estimate_impact(self, failure_type: FailureType) -> str:
         """Estimate impact of failure type"""
         high_impact = [
@@ -518,12 +522,12 @@ class FailureInjectionPipeline:
             FailureType.AUTHORITY_OVERRIDE,
             FailureType.PARTIAL_WRITE
         ]
-        
+
         if failure_type in high_impact:
             return "high"
         else:
             return "medium"
-    
+
     def _generate_id(self, prefix: str) -> str:
         """Generate unique ID"""
         timestamp = datetime.now().isoformat()

@@ -12,9 +12,15 @@ import json
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
+from thread_safe_operations import capped_append
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class WebhookStatus(Enum):
+    """Webhook status (Enum subclass)."""
     RECEIVED = "received"
     VERIFIED = "verified"
     REJECTED = "rejected"
@@ -24,6 +30,7 @@ class WebhookStatus(Enum):
 
 
 class SignatureAlgorithm(Enum):
+    """Signature algorithm (Enum subclass)."""
     SHA256 = "sha256"
     SHA1 = "sha1"
     MD5 = "md5"
@@ -32,6 +39,7 @@ class SignatureAlgorithm(Enum):
 
 @dataclass
 class WebhookSource:
+    """Webhook source."""
     source_id: str
     name: str
     platform: str
@@ -46,6 +54,7 @@ class WebhookSource:
 
 @dataclass
 class NormalizationRule:
+    """Normalization rule."""
     rule_id: str
     source_id: str
     source_event: str
@@ -56,6 +65,7 @@ class NormalizationRule:
 
 @dataclass
 class WebhookEvent:
+    """Webhook event."""
     event_id: str
     source_id: str
     raw_event_type: str
@@ -1008,7 +1018,7 @@ class WebhookEventProcessor:
                 error=f"Unknown source: {source_id}",
             )
             with self._lock:
-                self._events.append(event)
+                capped_append(self._events, event)
             return event
 
         if not source.active:
@@ -1022,7 +1032,7 @@ class WebhookEventProcessor:
                 error=f"Source '{source_id}' is disabled",
             )
             with self._lock:
-                self._events.append(event)
+                capped_append(self._events, event)
             return event
 
         # Verify signature
@@ -1040,7 +1050,7 @@ class WebhookEventProcessor:
                     error="Signature verification failed",
                 )
                 with self._lock:
-                    self._events.append(event)
+                    capped_append(self._events, event)
                 return event
 
         # Extract event type
@@ -1068,11 +1078,12 @@ class WebhookEventProcessor:
             for handler in handlers:
                 try:
                     handler(event)
-                except Exception as e:
-                    event.error = str(e)
+                except Exception as exc:
+                    logger.debug("Caught exception: %s", exc)
+                    event.error = str(exc)
                     event.status = WebhookStatus.FAILED
                     with self._lock:
-                        self._events.append(event)
+                        capped_append(self._events, event)
                     return event
             event.status = WebhookStatus.PROCESSED
             event.processed_at = time.time()
@@ -1081,7 +1092,7 @@ class WebhookEventProcessor:
             event.processed_at = time.time()
 
         with self._lock:
-            self._events.append(event)
+            capped_append(self._events, event)
         return event
 
     def get_event(self, event_id: str) -> Optional[Dict[str, Any]]:

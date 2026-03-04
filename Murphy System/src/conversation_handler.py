@@ -6,13 +6,16 @@ Clearly marks Generated vs Verified responses
 from typing import Dict, Any, Optional
 import re
 
+import logging
+logger = logging.getLogger("conversation_handler")
+
 
 class ConversationHandler:
     """Handles natural conversation with clear G/V markers"""
-    
+
     def __init__(self):
         self.topics = self._load_topics()
-    
+
     def _load_topics(self) -> Dict[str, Dict]:
         """Load verified knowledge on various topics"""
         return {
@@ -40,36 +43,36 @@ class ConversationHandler:
                 'marker': 'V'
             }
         }
-    
+
     def handle(self, user_input: str) -> Dict[str, Any]:
         """
         Handle conversational input
-        
+
         Returns:
             Dict with response, marker (G/V), and confidence
         """
         input_lower = user_input.lower()
-        
+
         # Check for specific topics we have verified knowledge about
         for topic, data in self.topics.items():
             if topic in input_lower:
                 return self._create_verified_response(topic, data, user_input)
-        
+
         # Check for opinion/subjective questions
         if self._is_opinion_question(input_lower):
             return self._handle_opinion_question(user_input)
-        
+
         # Check for capability questions
         if self._is_capability_question(input_lower):
             return self._handle_capability_question()
-        
+
         # Check for greeting
         if self._is_greeting(input_lower):
             return self._handle_greeting()
-        
+
         # Default: acknowledge and offer help
         return self._handle_general(user_input)
-    
+
     def _is_opinion_question(self, text: str) -> bool:
         """Detect if user is asking for opinion"""
         opinion_patterns = [
@@ -80,7 +83,7 @@ class ConversationHandler:
             'your thoughts on'
         ]
         return any(pattern in text for pattern in opinion_patterns)
-    
+
     def _is_capability_question(self, text: str) -> bool:
         """Detect if user is asking about capabilities"""
         capability_patterns = [
@@ -91,15 +94,15 @@ class ConversationHandler:
             'can you help'
         ]
         return any(pattern in text for pattern in capability_patterns)
-    
+
     def _is_greeting(self, text: str) -> bool:
         """Detect greetings"""
         greetings = ['hello', 'hi', 'hey', 'greetings', 'good morning', 'good afternoon']
         return any(greeting in text for greeting in greetings)
-    
+
     def _create_verified_response(self, topic: str, data: Dict, original_question: str) -> Dict[str, Any]:
         """Create response from verified knowledge"""
-        
+
         if topic == 'constitution':
             response = "**[V] The U.S. Constitution** - Verified Historical Facts\n\n"
             response += "I can share verified facts about the Constitution:\n\n"
@@ -111,17 +114,17 @@ class ConversationHandler:
             response += "- Research a specific amendment\n"
             response += "- Explain separation of powers\n"
             response += "- Compare constitutional provisions"
-        
+
         return {
             'response': response,
             'marker': 'V',
             'confidence': data['confidence'],
             'topic': topic
         }
-    
+
     def _handle_opinion_question(self, question: str) -> Dict[str, Any]:
         """Handle questions asking for opinions"""
-        
+
         response = "**[V] System Design Note**\n\n"
         response += "I'm designed as a deterministic-gated system, which means:\n\n"
         response += "✓ I provide **verified facts** from trusted sources\n"
@@ -135,68 +138,68 @@ class ConversationHandler:
         response += "- `/research [topic]` - Get verified information\n"
         response += "- `/reason [question]` - Logical analysis\n"
         response += "- Ask for multiple perspectives on an issue"
-        
+
         return {
             'response': response,
             'marker': 'V',
             'confidence': 1.0,
             'topic': 'system_design'
         }
-    
+
     def _handle_capability_question(self) -> Dict[str, Any]:
         """Handle questions about capabilities"""
-        
+
         response = "**[V] My Verified Capabilities**\n\n"
         response += "I'm a deterministic-gated AI system with these core abilities:\n\n"
-        
+
         response += "**1. Research & Verification**\n"
         response += "• Multi-source research (Wikipedia, Standards DB, web)\n"
         response += "• Source trust ranking and verification\n"
         response += "• Fact compilation and synthesis\n"
         response += "• Command: `/research [topic]`\n\n"
-        
+
         response += "**2. Code Generation**\n"
         response += "• [V] Verified algorithms (Fibonacci, factorial, primes, sorting)\n"
         response += "• [G] Generated templates (customizable starting points)\n"
         response += "• 10 languages: Python, JavaScript, Java, C++, C#, Go, Rust, TypeScript, Ruby, PHP\n"
         response += "• Automatic test generation\n\n"
-        
+
         response += "**3. Mathematical Operations**\n"
         response += "• Deterministic calculations (100% confidence)\n"
         response += "• Symbolic math verification\n"
         response += "• Command: `/math [expression]`\n\n"
-        
+
         response += "**4. Reasoning & Analysis**\n"
         response += "• 10+ reasoning categories\n"
         response += "• Knowledge gap detection\n"
         response += "• Iterative problem solving\n"
         response += "• Command: `/reason [question]`\n\n"
-        
+
         response += "**5. Natural Conversation**\n"
         response += "• Context-aware responses\n"
         response += "• Clarifying questions when needed\n"
         response += "• Clear [V]erified vs [G]enerated markers\n\n"
-        
+
         response += "**Legend:**\n"
         response += "• **[V]** = Verified (high confidence, deterministic)\n"
         response += "• **[G]** = Generated (requires validation, probabilistic)\n\n"
-        
+
         response += "**Try asking me to:**\n"
         response += "• Generate Fibonacci code\n"
         response += "• Research quantum mechanics\n"
         response += "• Calculate complex expressions\n"
         response += "• Reason through logic puzzles"
-        
+
         return {
             'response': response,
             'marker': 'V',
             'confidence': 1.0,
             'topic': 'capabilities'
         }
-    
+
     def _handle_greeting(self) -> Dict[str, Any]:
         """Handle greetings"""
-        
+
         response = "**[V] System Ready**\n\n"
         response += "Hello! I'm a deterministic-gated AI system.\n\n"
         response += "**Quick Start:**\n"
@@ -206,17 +209,17 @@ class ConversationHandler:
         response += "• Ask questions (I'll provide verified facts)\n\n"
         response += "**Legend:** [V] = Verified | [G] = Generated\n\n"
         response += "What would you like to explore?"
-        
+
         return {
             'response': response,
             'marker': 'V',
             'confidence': 1.0,
             'topic': 'greeting'
         }
-    
+
     def _handle_general(self, user_input: str) -> Dict[str, Any]:
         """Handle general queries"""
-        
+
         response = "**[G] Query Received**\n\n"
         response += f"I received: &quot;{user_input}&quot;\n\n"
         response += "To provide the most accurate response, please specify:\n\n"
@@ -234,7 +237,7 @@ class ConversationHandler:
         response += "• Request explanations\n"
         response += "• Explore topics\n\n"
         response += "What would you like to do?"
-        
+
         return {
             'response': response,
             'marker': 'G',
@@ -246,7 +249,7 @@ class ConversationHandler:
 if __name__ == "__main__":
     # Test the handler
     handler = ConversationHandler()
-    
+
     # Test various inputs
     tests = [
         "what do you think of the constitution",
@@ -254,8 +257,8 @@ if __name__ == "__main__":
         "hello",
         ".."
     ]
-    
+
     for test in tests:
-        print(f"\nInput: {test}")
+        logger.info(f"\nInput: {test}")
         result = handler.handle(test)
-        print(f"[{result['marker']}] {result['response'][:100]}...")
+        logger.info(f"[{result['marker']}] {result['response'][:100]}...")

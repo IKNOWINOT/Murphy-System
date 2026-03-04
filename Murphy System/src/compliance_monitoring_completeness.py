@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from collections import defaultdict
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -32,12 +33,14 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 class MonitorStatus(str, Enum):
+    """Monitor status (str subclass)."""
     RUNNING = "running"
     STOPPED = "stopped"
     ERROR = "error"
 
 
 class DriftSeverity(str, Enum):
+    """Drift severity (str subclass)."""
     CRITICAL = "critical"
     HIGH = "high"
     MEDIUM = "medium"
@@ -45,6 +48,7 @@ class DriftSeverity(str, Enum):
 
 
 class RemediationAction(str, Enum):
+    """Remediation action (str subclass)."""
     TOKEN_REFRESH = "token_refresh"
     ENABLE_ENCRYPTION = "enable_encryption"
     PATCH_ACCESS_POLICY = "patch_access_policy"
@@ -53,6 +57,7 @@ class RemediationAction(str, Enum):
 
 
 class RegulationImpact(str, Enum):
+    """Regulation impact (str subclass)."""
     BREAKING = "breaking"
     SIGNIFICANT = "significant"
     MINOR = "minor"
@@ -65,6 +70,7 @@ class RegulationImpact(str, Enum):
 
 @dataclass
 class ComplianceSensor:
+    """Compliance sensor."""
     sensor_id: str
     framework: str
     control_id: str
@@ -77,6 +83,7 @@ class ComplianceSensor:
 
 @dataclass
 class DriftBaseline:
+    """Drift baseline."""
     baseline_id: str
     framework: str
     snapshot: Dict[str, Any] = field(default_factory=dict)
@@ -85,6 +92,7 @@ class DriftBaseline:
 
 @dataclass
 class RegulationUpdate:
+    """Regulation update."""
     update_id: str
     regulation: str
     description: str
@@ -101,6 +109,8 @@ class RegulationUpdate:
 
 class ContinuousComplianceMonitor:
     """Background monitor that periodically checks compliance sensors."""
+
+    _MAX_ALERTS = 5_000
 
     def __init__(self, check_interval: float = 60.0):
         self._lock = threading.RLock()
@@ -170,6 +180,7 @@ class ContinuousComplianceMonitor:
                     result = sensor.check_fn(config or {})
                     compliant = result.get("compliant", True)
                 except Exception as exc:
+                    logger.debug("Caught exception: %s", exc)
                     result = {"compliant": False, "error": str(exc)}
                     compliant = False
             else:
@@ -189,6 +200,8 @@ class ContinuousComplianceMonitor:
                     "timestamp": now.isoformat(),
                     "details": result,
                 }
+                if len(self._alerts) >= self._MAX_ALERTS:
+                    self._alerts = self._alerts[self._MAX_ALERTS // 10:]
                 self._alerts.append(alert)
 
             self._check_count += 1
@@ -283,6 +296,8 @@ class ContinuousComplianceMonitor:
 class ComplianceDriftDetector:
     """Detects configuration drift from a compliant baseline."""
 
+    _MAX_DRIFT_HISTORY = 5_000
+
     def __init__(self):
         self._lock = threading.RLock()
         self._baselines: Dict[str, DriftBaseline] = {}
@@ -344,6 +359,8 @@ class ComplianceDriftDetector:
                 "drifts": drifts,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
+            if len(self._drift_history) >= self._MAX_DRIFT_HISTORY:
+                self._drift_history = self._drift_history[self._MAX_DRIFT_HISTORY // 10:]
             self._drift_history.append(record)
             return record
 
@@ -394,6 +411,8 @@ class ComplianceDriftDetector:
 class AutomatedRemediationEngine:
     """Auto-fixes common compliance violations."""
 
+    _MAX_REMEDIATION_LOG = 5_000
+
     def __init__(self):
         self._lock = threading.RLock()
         self._remediation_log: List[Dict[str, Any]] = []
@@ -406,6 +425,10 @@ class AutomatedRemediationEngine:
         self._handlers[RemediationAction.PATCH_ACCESS_POLICY.value] = self._remediate_patch_access_policy
         self._handlers[RemediationAction.ROTATE_CREDENTIALS.value] = self._remediate_rotate_credentials
         self._handlers[RemediationAction.ENABLE_AUDIT_LOG.value] = self._remediate_enable_audit_log
+
+    def _cap_remediation_log(self) -> None:
+        if len(self._remediation_log) >= self._MAX_REMEDIATION_LOG:
+            self._remediation_log = self._remediation_log[self._MAX_REMEDIATION_LOG // 10:]
 
     def register_handler(self, action_name: str, handler: Any) -> Dict[str, Any]:
         with self._lock:
@@ -428,9 +451,11 @@ class AutomatedRemediationEngine:
                     "success": result.get("success", False),
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
+                self._cap_remediation_log()
                 self._remediation_log.append(entry)
                 return entry
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 entry = {
                     "remediation_id": str(uuid.uuid4()),
                     "action": action,
@@ -439,6 +464,7 @@ class AutomatedRemediationEngine:
                     "success": False,
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
+                self._cap_remediation_log()
                 self._remediation_log.append(entry)
                 return entry
 
@@ -543,7 +569,7 @@ class ComplianceReportGenerator:
                 "data": data,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
-            self._evidence.append(entry)
+            capped_append(self._evidence, entry)
             return entry
 
     def get_evidence(self, framework: Optional[str] = None,
@@ -713,14 +739,14 @@ class RegulationChangeTracker:
                 "total_affected_controls": len(u.affected_controls),
                 "controls_in_scope": affected,
                 "controls_not_covered": gap,
-                "coverage_rate": round(len(affected) / len(u.affected_controls), 4)
+                "coverage_rate": round(len(affected) / (len(u.affected_controls) or 1), 4)
                     if u.affected_controls else 1.0,
                 "action_required": len(gap) > 0 or u.impact in (
                     RegulationImpact.BREAKING, RegulationImpact.SIGNIFICANT),
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
             u.assessed = True
-            self._impact_assessments.append(assessment)
+            capped_append(self._impact_assessments, assessment)
             return assessment
 
     def list_updates(self, regulation: Optional[str] = None,

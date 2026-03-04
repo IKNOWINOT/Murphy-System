@@ -12,8 +12,34 @@ from uuid import UUID, uuid4
 import logging
 
 import numpy as np
+import pickle
 
 logger = logging.getLogger(__name__)
+
+# Allowed top-level modules for unpickling (numpy, sklearn, builtins only)
+_PICKLE_SAFE_MODULES = frozenset({
+    "numpy", "numpy.core", "numpy.core.multiarray", "numpy.core.numeric",
+    "numpy.random", "numpy.ma", "numpy.dtypes",
+    "sklearn", "builtins", "collections", "copy", "copyreg",
+    "_codecs", "encodings", "io",
+})
+
+
+class _RestrictedUnpickler(pickle.Unpickler):
+    """Unpickler that refuses to load arbitrary modules.
+
+    Only numpy, sklearn, and Python built-in types are allowed, which is
+    sufficient for the ML models stored by this module while blocking
+    code-execution exploits (CWE-502).
+    """
+
+    def find_class(self, module: str, name: str):
+        top = module.split(".")[0]
+        if top in _PICKLE_SAFE_MODULES:
+            return super().find_class(module, name)
+        raise pickle.UnpicklingError(
+            f"Restricted unpickler refused module {module!r}"
+        )
 
 
 class ModelType(str, Enum):
@@ -43,7 +69,7 @@ class DecisionTreeConfig:
     max_features: Optional[str] = "sqrt"  # sqrt, log2, None
     criterion: str = "gini"  # gini, entropy
     splitter: str = "best"  # best, random
-    
+
     # Pruning
     ccp_alpha: float = 0.0
     min_impurity_decrease: float = 0.0
@@ -58,7 +84,7 @@ class RandomForestConfig:
     min_samples_leaf: int = 1
     max_features: str = "sqrt"
     criterion: str = "gini"
-    
+
     # Ensemble parameters
     bootstrap: bool = True
     oob_score: bool = True
@@ -75,7 +101,7 @@ class GradientBoostingConfig:
     min_samples_leaf: int = 1
     subsample: float = 1.0
     max_features: Optional[str] = None
-    
+
     # Loss function
     loss: str = "log_loss"  # log_loss, exponential
 
@@ -87,23 +113,23 @@ class NeuralNetworkConfig:
     hidden_layers: List[int] = field(default_factory=lambda: [128, 64, 32])
     activation: ActivationFunction = ActivationFunction.RELU
     output_activation: ActivationFunction = ActivationFunction.SIGMOID
-    
+
     # Regularization
     dropout_rate: float = 0.2
     l1_reg: float = 0.0
     l2_reg: float = 0.01
-    
+
     # Batch normalization
     use_batch_norm: bool = True
-    
+
     # Training
     learning_rate: float = 0.001
     batch_size: int = 32
     epochs: int = 100
-    
+
     # Optimizer
     optimizer: str = "adam"  # adam, sgd, rmsprop
-    
+
     # Early stopping
     early_stopping: bool = True
     patience: int = 10
@@ -115,14 +141,14 @@ class HybridModelConfig:
     """Configuration for hybrid decision tree + neural network model"""
     # Decision tree for initial filtering
     tree_config: DecisionTreeConfig = field(default_factory=DecisionTreeConfig)
-    
+
     # Neural network for refinement
     nn_config: NeuralNetworkConfig = field(default_factory=NeuralNetworkConfig)
-    
+
     # Hybrid strategy
     use_tree_first: bool = True  # Use tree to filter, then NN
     tree_confidence_threshold: float = 0.8  # If tree confidence > threshold, skip NN
-    
+
     # Ensemble
     ensemble_method: str = "weighted"  # weighted, voting, stacking
 
@@ -134,38 +160,38 @@ class ModelMetadata:
     name: str = ""
     version: str = "1.0.0"
     model_type: ModelType = ModelType.HYBRID
-    
+
     # Training info
     trained_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     training_duration_seconds: float = 0.0
     training_examples: int = 0
-    
+
     # Performance metrics
     train_accuracy: float = 0.0
     validation_accuracy: float = 0.0
     test_accuracy: float = 0.0
-    
+
     train_loss: float = 0.0
     validation_loss: float = 0.0
     test_loss: float = 0.0
-    
+
     # Additional metrics
     precision: float = 0.0
     recall: float = 0.0
     f1_score: float = 0.0
     auc_roc: float = 0.0
-    
+
     # Feature importance
     feature_importance: Dict[str, float] = field(default_factory=dict)
-    
+
     # Configuration
     config: Dict[str, Any] = field(default_factory=dict)
     hyperparameters: Dict[str, Any] = field(default_factory=dict)
-    
+
     # Deployment info
     is_deployed: bool = False
     deployment_date: Optional[datetime] = None
-    
+
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -266,7 +292,7 @@ class ShadowAgentModel:
             'feature_importance': self.metadata.feature_importance,
             'config': {k: v for k, v in vars(self.config).items()} if hasattr(self.config, '__dict__') else {},
         }
-        with open(os.path.join(path, 'metadata.json'), 'w') as f:
+        with open(os.path.join(path, 'metadata.json'), 'w', encoding='utf-8') as f:
             json.dump(meta_dict, f, indent=2, default=str)
 
         # Model binary
@@ -290,7 +316,7 @@ class ShadowAgentModel:
         model_path = os.path.join(path, 'model.pkl')
 
         if os.path.isfile(meta_path):
-            with open(meta_path, 'r') as f:
+            with open(meta_path, 'r', encoding='utf-8') as f:
                 meta_dict = json.load(f)
             self.metadata.train_accuracy = meta_dict.get('train_accuracy', 0.0)
             self.metadata.validation_accuracy = meta_dict.get('validation_accuracy', 0.0)
@@ -298,7 +324,8 @@ class ShadowAgentModel:
 
         if os.path.isfile(model_path):
             with open(model_path, 'rb') as f:
-                self.model = pickle.load(f)
+                unpickler = _RestrictedUnpickler(f)
+                self.model = unpickler.load()
             self.is_trained = True
         else:
             logger.warning("No model binary found at %s", model_path)
@@ -309,18 +336,18 @@ class ShadowAgentModel:
 
 class DecisionTreeModel(ShadowAgentModel):
     """Decision tree model implementation"""
-    
+
     def __init__(self, config: Optional[DecisionTreeConfig] = None):
         super().__init__(
             config=config or DecisionTreeConfig(),
             metadata=ModelMetadata(model_type=ModelType.DECISION_TREE)
         )
-    
+
     def train(self, X_train, y_train, X_val=None, y_val=None):
         """Train decision tree"""
         try:
             from sklearn.tree import DecisionTreeClassifier
-            
+
             self.model = DecisionTreeClassifier(
                 max_depth=self.config.max_depth,
                 min_samples_split=self.config.min_samples_split,
@@ -332,56 +359,56 @@ class DecisionTreeModel(ShadowAgentModel):
                 min_impurity_decrease=self.config.min_impurity_decrease,
                 random_state=42,
             )
-            
+
             self.model.fit(X_train, y_train)
             self.is_trained = True
-            
+
             # Calculate metrics
             self.metadata.train_accuracy = self.model.score(X_train, y_train)
             if X_val is not None and y_val is not None:
                 self.metadata.validation_accuracy = self.model.score(X_val, y_val)
-            
+
             logger.info(f"Decision tree trained: accuracy={self.metadata.train_accuracy:.4f}")
-            
+
         except ImportError:
             logger.error("scikit-learn not installed. Install with: pip install scikit-learn")
             raise
-    
+
     def predict(self, X):
         """Make predictions"""
         if not self.is_trained:
             raise ValueError("Model not trained")
         return self.model.predict(X)
-    
+
     def predict_proba(self, X):
         """Predict probabilities"""
         if not self.is_trained:
             raise ValueError("Model not trained")
         return self.model.predict_proba(X)
-    
+
     def get_feature_importance(self) -> Dict[str, float]:
         """Get feature importance"""
         if not self.is_trained:
             return {}
-        
+
         importance = self.model.feature_importances_
         return {f"feature_{i}": float(imp) for i, imp in enumerate(importance)}
 
 
 class RandomForestModel(ShadowAgentModel):
     """Random forest model implementation"""
-    
+
     def __init__(self, config: Optional[RandomForestConfig] = None):
         super().__init__(
             config=config or RandomForestConfig(),
             metadata=ModelMetadata(model_type=ModelType.RANDOM_FOREST)
         )
-    
+
     def train(self, X_train, y_train, X_val=None, y_val=None):
         """Train random forest"""
         try:
             from sklearn.ensemble import RandomForestClassifier
-            
+
             self.model = RandomForestClassifier(
                 n_estimators=self.config.n_estimators,
                 max_depth=self.config.max_depth,
@@ -394,35 +421,35 @@ class RandomForestModel(ShadowAgentModel):
                 n_jobs=self.config.n_jobs,
                 random_state=42,
             )
-            
+
             self.model.fit(X_train, y_train)
             self.is_trained = True
-            
+
             # Calculate metrics
             self.metadata.train_accuracy = self.model.score(X_train, y_train)
             if X_val is not None and y_val is not None:
                 self.metadata.validation_accuracy = self.model.score(X_val, y_val)
-            
+
             logger.info(f"Random forest trained: accuracy={self.metadata.train_accuracy:.4f}")
-            
+
         except ImportError:
             logger.error("scikit-learn not installed")
             raise
-    
+
     def predict(self, X):
         if not self.is_trained:
             raise ValueError("Model not trained")
         return self.model.predict(X)
-    
+
     def predict_proba(self, X):
         if not self.is_trained:
             raise ValueError("Model not trained")
         return self.model.predict_proba(X)
-    
+
     def get_feature_importance(self) -> Dict[str, float]:
         if not self.is_trained:
             return {}
-        
+
         importance = self.model.feature_importances_
         return {f"feature_{i}": float(imp) for i, imp in enumerate(importance)}
 

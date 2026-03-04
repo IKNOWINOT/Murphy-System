@@ -289,7 +289,7 @@ class CustomerCommunicationManager:
         dist: Counter = Counter()
         for i in rated:
             dist[i.satisfaction_rating] += 1
-        avg = sum(i.satisfaction_rating for i in rated) / len(rated) if rated else 0.0
+        avg = sum(i.satisfaction_rating for i in rated) / (len(rated) or 1) if rated else 0.0
         summary = SatisfactionSummary(
             summary_id=f"sat-{uuid.uuid4().hex[:8]}",
             total_interactions=len(interactions),

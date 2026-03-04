@@ -21,6 +21,10 @@ from dataclasses import dataclass
 from typing import Dict, List
 from enum import Enum
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ControlMode(Enum):
     """Control mode enumeration"""
@@ -33,10 +37,10 @@ class ControlMode(Enum):
 @dataclass
 class ControlSignal:
     """Control signal to Execution Orchestrator"""
-    
+
     # Control mode
     mode: ControlMode
-    
+
     # Specific controls
     allow_agent_spawn: bool
     allow_gate_synthesis: bool
@@ -44,17 +48,17 @@ class ControlSignal:
     allow_execution: bool
     require_verification: bool
     require_deterministic: bool
-    
+
     # Authority reduction
     max_authority: str  # "none", "low", "medium", "high", "full"
-    
+
     # Reasoning
     reasons: List[str]
-    
+
     # Metadata
     timestamp: float
     cycle_id: int
-    
+
     def to_dict(self) -> Dict:
         """Convert to dictionary"""
         return {
@@ -75,25 +79,25 @@ class ControlSignal:
 class ControlSignalGenerator:
     """
     Generate control signals based on stability state.
-    
+
     Implements control-theoretic braking:
     - Emergency mode: Immediate freeze
     - Contraction mode: Reduce activity
     - Normal mode: Normal operation
     - Expansion mode: Allow growth
     """
-    
+
     # Re-expansion criteria (as approved)
     RE_EXPANSION_WINDOW = 5  # N consecutive stable cycles
     RE_EXPANSION_MARGIN = 0.1  # S(t) ≥ S_min + margin
-    
+
     def __init__(self):
         """Initialize control signal generator"""
         self.current_mode = ControlMode.NORMAL
         self.signal_history = []
         self.max_history = 1000
         self.freeze_count = 0
-    
+
     def generate_signal(
         self,
         stability_score: float,
@@ -106,7 +110,7 @@ class ControlSignalGenerator:
     ) -> ControlSignal:
         """
         Generate control signal based on stability state.
-        
+
         Args:
             stability_score: Current stability score S(t)
             lyapunov_stable: Whether ΔVₜ ≤ 0
@@ -115,12 +119,12 @@ class ControlSignalGenerator:
             s_min: Minimum stability threshold
             timestamp: Current timestamp
             cycle_id: Current cycle ID
-            
+
         Returns:
             ControlSignal with mode and controls
         """
         reasons = []
-        
+
         # Determine control mode
         if stability_score < 0.5:
             mode = ControlMode.EMERGENCY
@@ -134,7 +138,7 @@ class ControlSignalGenerator:
         else:
             mode = ControlMode.EXPANSION
             reasons.append(f"Expansion: S(t) = {stability_score:.3f} ≥ 0.85")
-        
+
         # Check Lyapunov stability
         if not lyapunov_stable:
             if mode == ControlMode.EXPANSION:
@@ -142,13 +146,13 @@ class ControlSignalGenerator:
             elif mode == ControlMode.NORMAL:
                 mode = ControlMode.CONTRACTION
             reasons.append("Lyapunov violation: ΔVₜ > 0")
-        
+
         # Check unresolved failures
         if unresolved_failures > 0:
             if mode == ControlMode.EXPANSION:
                 mode = ControlMode.NORMAL
             reasons.append(f"Unresolved failures: {unresolved_failures}")
-        
+
         # Generate controls based on mode
         if mode == ControlMode.EMERGENCY:
             signal = self._generate_emergency_signal(reasons, timestamp, cycle_id)
@@ -159,15 +163,15 @@ class ControlSignalGenerator:
             signal = self._generate_normal_signal(reasons, timestamp, cycle_id)
         else:  # EXPANSION
             signal = self._generate_expansion_signal(reasons, timestamp, cycle_id)
-        
+
         # Update current mode
         self.current_mode = mode
-        
+
         # Record in history
         self._record_history(signal)
-        
+
         return signal
-    
+
     def _generate_emergency_signal(
         self,
         reasons: List[str],
@@ -188,7 +192,7 @@ class ControlSignalGenerator:
             timestamp=timestamp,
             cycle_id=cycle_id
         )
-    
+
     def _generate_contraction_signal(
         self,
         reasons: List[str],
@@ -209,7 +213,7 @@ class ControlSignalGenerator:
             timestamp=timestamp,
             cycle_id=cycle_id
         )
-    
+
     def _generate_normal_signal(
         self,
         reasons: List[str],
@@ -230,7 +234,7 @@ class ControlSignalGenerator:
             timestamp=timestamp,
             cycle_id=cycle_id
         )
-    
+
     def _generate_expansion_signal(
         self,
         reasons: List[str],
@@ -251,7 +255,7 @@ class ControlSignalGenerator:
             timestamp=timestamp,
             cycle_id=cycle_id
         )
-    
+
     def check_re_expansion_criteria(
         self,
         stability_history: List[Dict],
@@ -262,26 +266,26 @@ class ControlSignalGenerator:
     ) -> tuple[bool, List[str]]:
         """
         Check if re-expansion criteria are satisfied.
-        
+
         Criteria (all must be true):
         1. ΔVₜ ≤ 0 for N = 5 consecutive cycles
         2. S(t) ≥ S_min + 0.1 (≥ 0.8)
         3. No unresolved failures
         4. Entropy strictly decreasing or flat
-        
+
         Args:
             stability_history: Recent stability scores
             lyapunov_history: Recent Lyapunov states
             entropy_history: Recent entropy values
             unresolved_failures: Number of unresolved failures
             s_min: Minimum stability threshold
-            
+
         Returns:
             (criteria_met, reasons)
         """
         reasons = []
         criteria_met = True
-        
+
         # Check 1: Lyapunov stability for N cycles
         if len(lyapunov_history) < self.RE_EXPANSION_WINDOW:
             criteria_met = False
@@ -291,7 +295,7 @@ class ControlSignalGenerator:
             if not all(h["is_stable"] for h in recent_lyapunov):
                 criteria_met = False
                 reasons.append(f"Lyapunov not stable for {self.RE_EXPANSION_WINDOW} cycles")
-        
+
         # Check 2: Stability score with margin
         if stability_history:
             current_score = stability_history[-1]["score"]
@@ -299,24 +303,24 @@ class ControlSignalGenerator:
             if current_score < threshold:
                 criteria_met = False
                 reasons.append(f"S(t) = {current_score:.3f} < {threshold:.3f}")
-        
+
         # Check 3: No unresolved failures
         if unresolved_failures > 0:
             criteria_met = False
             reasons.append(f"Unresolved failures: {unresolved_failures}")
-        
+
         # Check 4: Entropy decreasing or flat
         if len(entropy_history) >= 2:
             recent_entropy = entropy_history[-2:]
             if recent_entropy[-1] > recent_entropy[-2]:
                 criteria_met = False
                 reasons.append(f"Entropy increasing: {recent_entropy[-2]:.3f} → {recent_entropy[-1]:.3f}")
-        
+
         if criteria_met:
             reasons = ["All re-expansion criteria satisfied"]
-        
+
         return criteria_met, reasons
-    
+
     def _record_history(self, signal: ControlSignal):
         """Record control signal in history"""
         self.signal_history.append({
@@ -328,29 +332,29 @@ class ControlSignalGenerator:
             "timestamp": signal.timestamp,
             "cycle_id": signal.cycle_id
         })
-        
+
         # Trim history if needed
         if len(self.signal_history) > self.max_history:
             self.signal_history = self.signal_history[-self.max_history:]
-    
+
     def get_history(self, n: int = None) -> List[Dict]:
         """
         Get control signal history.
-        
+
         Args:
             n: Number of recent entries (all if None)
-            
+
         Returns:
             List of history entries
         """
         if n is None:
             return self.signal_history
         return self.signal_history[-n:]
-    
+
     def get_statistics(self) -> Dict:
         """
         Get control signal statistics.
-        
+
         Returns:
             Dictionary with mode distribution, freeze count, etc.
         """
@@ -363,12 +367,12 @@ class ControlSignalGenerator:
                 "expansion_count": 0,
                 "freeze_count": self.freeze_count
             }
-        
+
         emergency = sum(1 for h in self.signal_history if h["mode"] == "emergency")
         contraction = sum(1 for h in self.signal_history if h["mode"] == "contraction")
         normal = sum(1 for h in self.signal_history if h["mode"] == "normal")
         expansion = sum(1 for h in self.signal_history if h["mode"] == "expansion")
-        
+
         return {
             "total_cycles": len(self.signal_history),
             "emergency_count": emergency,

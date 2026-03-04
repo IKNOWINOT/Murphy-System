@@ -22,6 +22,11 @@ import threading
 import time
 import uuid
 from typing import Any, Dict, List, Optional
+from thread_safe_operations import capped_append
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -29,6 +34,7 @@ from typing import Any, Dict, List, Optional
 # ---------------------------------------------------------------------------
 
 class PlatformType(enum.Enum):
+    """Platform type (Enum subclass)."""
     VIDEO = "video"
     STREAMING = "streaming"
     SUBSCRIPTION = "subscription"
@@ -37,6 +43,7 @@ class PlatformType(enum.Enum):
 
 
 class ContentType(enum.Enum):
+    """Content type (Enum subclass)."""
     VIDEO = "video"
     LIVE_STREAM = "live_stream"
     SHORT_VIDEO = "short_video"
@@ -47,6 +54,7 @@ class ContentType(enum.Enum):
 
 
 class MonetizationModel(enum.Enum):
+    """Monetization model (Enum subclass)."""
     AD_REVENUE = "ad_revenue"
     SUBSCRIPTIONS = "subscriptions"
     DONATIONS = "donations"
@@ -58,6 +66,7 @@ class MonetizationModel(enum.Enum):
 
 
 class ConnectorStatus(enum.Enum):
+    """Connector status (Enum subclass)."""
     ACTIVE = "active"
     DEGRADED = "degraded"
     OFFLINE = "offline"
@@ -336,7 +345,7 @@ class ContentCreatorPlatformRegistry:
             if connector is None:
                 return {"success": False, "error": f"Unknown connector: {connector_id}"}
             result = connector.execute(action, params)
-            self._action_log.append({
+            capped_append(self._action_log, {
                 "connector_id": connector_id,
                 "action": action,
                 "success": result["success"],

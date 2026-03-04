@@ -14,6 +14,10 @@ from typing import List, Optional
 from datetime import datetime
 from enum import Enum
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class AssumptionStatus(Enum):
     """Status of an assumption."""
@@ -75,7 +79,7 @@ class ValidationEvidence:
     source: str
     timestamp: datetime
     is_external: bool  # MUST be True for validation
-    
+
     def __post_init__(self):
         """Enforce that validation evidence must be external."""
         if not self.is_external:
@@ -89,7 +93,7 @@ class ValidationEvidence:
 class AssumptionArtifact:
     """
     An assumption that must be validated externally.
-    
+
     CRITICAL SAFETY CONSTRAINTS:
     - validated_by_self MUST be False
     - requires_external_validation MUST be True
@@ -97,28 +101,28 @@ class AssumptionArtifact:
     assumption_id: str
     description: str
     source_artifact_id: str  # Hypothesis or packet that made this assumption
-    
+
     # Confidence impact
     confidence_if_true: float
     confidence_if_false: float
-    
+
     # Status
     status: AssumptionStatus
     created_at: datetime
     next_review_date: datetime
-    
+
     # CRITICAL: Self-validation prevention
     validated_by_self: bool  # MUST be False
     requires_external_validation: bool  # MUST be True
-    
+
     # Evidence
     validation_evidence: List[ValidationEvidence] = field(default_factory=list)
     invalidation_signals: List[InvalidationSignal] = field(default_factory=list)
-    
+
     # Metadata
     owner_role: Optional[str] = None
     tags: List[str] = field(default_factory=list)
-    
+
     def __post_init__(self):
         """Enforce safety constraints."""
         if self.validated_by_self:
@@ -142,12 +146,12 @@ class SupervisorFeedbackArtifact:
     supervisor_id: str
     supervisor_role: str
     timestamp: datetime
-    
+
     # Content
     rationale: str
     corrections: Optional[str] = None
     required_evidence: Optional[List[str]] = None
-    
+
     # Impact
     confidence_adjustment: Optional[float] = None
     authority_adjustment: Optional[str] = None
@@ -161,14 +165,14 @@ class CorrectionAction:
     action_type: CorrectionActionType
     triggered_by: str  # Signal ID or feedback ID
     timestamp: datetime
-    
+
     # Details
     rationale: str
     confidence_before: Optional[float] = None
     confidence_after: Optional[float] = None
     authority_before: Optional[str] = None
     authority_after: Optional[str] = None
-    
+
     # Execution impact
     execution_frozen: bool = False
     affected_artifacts: List[str] = field(default_factory=list)
@@ -190,31 +194,31 @@ class ConfidenceTrend:
     artifact_id: str
     timestamps: List[datetime] = field(default_factory=list)
     confidence_values: List[float] = field(default_factory=list)
-    
+
     def add_measurement(self, timestamp: datetime, confidence: float):
         """Add a confidence measurement."""
         self.timestamps.append(timestamp)
         self.confidence_values.append(confidence)
-    
+
     def is_decreasing(self, window_size: int = 5) -> bool:
         """Check if confidence is decreasing over recent window."""
         if len(self.confidence_values) < window_size:
             return False
-        
+
         recent = self.confidence_values[-window_size:]
         for i in range(1, len(recent)):
             if recent[i] > recent[i-1]:
                 return False
         return True
-    
+
     def is_volatile(self, threshold: float = 0.2) -> bool:
         """Check if confidence is volatile (high variance)."""
         if len(self.confidence_values) < 3:
             return False
-        
+
         recent = self.confidence_values[-5:]
         mean = sum(recent) / len(recent)
-        variance = sum((x - mean) ** 2 for x in recent) / len(recent)
+        variance = sum((x - mean) ** 2 for x in recent) / (len(recent) or 1)
         return variance > threshold
 
 
@@ -224,23 +228,23 @@ class MurphyIndexTrend:
     artifact_id: str
     timestamps: List[datetime] = field(default_factory=list)
     murphy_values: List[float] = field(default_factory=list)
-    
+
     def add_measurement(self, timestamp: datetime, murphy_index: float):
         """Add a Murphy index measurement."""
         self.timestamps.append(timestamp)
         self.murphy_values.append(murphy_index)
-    
+
     def is_increasing(self, window_size: int = 5) -> bool:
         """Check if Murphy index is increasing over recent window."""
         if len(self.murphy_values) < window_size:
             return False
-        
+
         recent = self.murphy_values[-window_size:]
         for i in range(1, len(recent)):
             if recent[i] < recent[i-1]:
                 return False
         return True
-    
+
     def exceeds_threshold(self, threshold: float = 0.7) -> bool:
         """Check if Murphy index exceeds threshold."""
         if not self.murphy_values:

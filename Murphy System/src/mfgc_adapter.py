@@ -10,11 +10,15 @@ from datetime import datetime
 import json
 
 from src.mfgc_core import (
-    MFGCSystemState, MFGCController, Phase, 
-    ConfidenceEngine, AuthorityController, 
+    MFGCSystemState, MFGCController, Phase,
+    ConfidenceEngine, AuthorityController,
     MurphyIndexMonitor, GateCompiler, SwarmGenerator
 )
 from src.system_integrator import SystemIntegrator, SystemState, SystemResponse, UserRequest
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -28,7 +32,7 @@ class MFGCConfig:
     emergency_gates: bool = True
     phase_verbosity: int = 1
     audit_trail: bool = True
-    
+
     def to_dict(self) -> Dict:
         return {
             "enabled": self.enabled,
@@ -59,7 +63,7 @@ class MFGCExecutionResult:
     execution_time: float
     system_state: MFGCSystemState
     integrator_response: Optional[SystemResponse] = None
-    
+
     def to_dict(self, phase_verbosity: int = 1) -> Dict:
         return {
             "success": self.success,
@@ -89,34 +93,34 @@ class MFGCExecutionResult:
 
 class MFGCAdapter:
     """Adapter that bridges MFGC control with SystemIntegrator"""
-    
+
     def __init__(self, integrator: SystemIntegrator, config: Optional[MFGCConfig] = None):
         self.integrator = integrator
         self.config = config or MFGCConfig()
         self.controller = MFGCController()
-        
+
         if self.config.murphy_threshold != 0.3:
             self.controller.murphy_monitor.threshold = self.config.murphy_threshold
-        
+
         self.execution_count = 0
         self.total_execution_time = 0.0
         self.success_count = 0
-        
-    def execute_with_mfgc(self, user_input: str, 
+
+    def execute_with_mfgc(self, user_input: str,
                           request_type: str = "general",
                           parameters: Optional[Dict] = None) -> MFGCExecutionResult:
         import time
         start_time = time.time()
-        
+
         context = {
             "user_input": user_input,
             "request_type": request_type,
             "parameters": parameters or {},
             "integrator": self.integrator
         }
-        
+
         mfgc_state = self.controller.execute(user_input, context)
-        
+
         integrator_response = None
         if mfgc_state.c_t >= mfgc_state.p_t.confidence_threshold:
             try:
@@ -124,20 +128,21 @@ class MFGCAdapter:
                     user_input=user_input,
                     parameters=parameters
                 )
-            except Exception as e:
+            except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 if self.config.audit_trail:
                     mfgc_state.log_event("integrator_error", {
-                        "error": str(e),
+                        "error": str(exc),
                         "user_input": user_input
                     })
-        
+
         execution_time = time.time() - start_time
-        
+
         self.execution_count += 1
         self.total_execution_time += execution_time
         if mfgc_state.c_t >= mfgc_state.p_t.confidence_threshold:
             self.success_count += 1
-        
+
         result = MFGCExecutionResult(
             success=mfgc_state.c_t >= mfgc_state.p_t.confidence_threshold,
             phases_completed=[p.value for p in mfgc_state.phase_history],
@@ -154,9 +159,9 @@ class MFGCAdapter:
             system_state=mfgc_state,
             integrator_response=integrator_response
         )
-        
+
         return result
-    
+
     def execute_without_mfgc(self, user_input: str,
                              request_type: str = "general",
                              parameters: Optional[Dict] = None) -> SystemResponse:
@@ -164,16 +169,16 @@ class MFGCAdapter:
             user_input=user_input,
             parameters=parameters
         )
-    
+
     def update_config(self, config: MFGCConfig):
         self.config = config
         if config.murphy_threshold != self.controller.murphy_monitor.threshold:
             self.controller.murphy_monitor.threshold = config.murphy_threshold
-    
+
     def get_statistics(self) -> Dict[str, Any]:
         success_rate = (self.success_count / self.execution_count * 100) if self.execution_count > 0 else 0
         avg_time = (self.total_execution_time / self.execution_count) if self.execution_count > 0 else 0
-        
+
         return {
             "total_executions": self.execution_count,
             "successful_executions": self.success_count,
@@ -183,10 +188,10 @@ class MFGCAdapter:
             "murphy_threshold": self.config.murphy_threshold,
             "confidence_mode": self.config.confidence_mode
         }
-    
+
     def get_current_state(self) -> Dict[str, Any]:
         integrator_state = self.integrator.get_system_state()
-        
+
         return {
             "integrator_state": integrator_state.to_dict(),
             "mfgc_config": self.config.to_dict(),
@@ -203,7 +208,7 @@ class MFGCAdapter:
 
 class MFGCSystemFactory:
     """Factory for creating MFGC-enabled systems"""
-    
+
     @staticmethod
     def create_production_system() -> MFGCAdapter:
         config = MFGCConfig(
@@ -218,7 +223,7 @@ class MFGCSystemFactory:
         )
         integrator = SystemIntegrator()
         return MFGCAdapter(integrator, config)
-    
+
     @staticmethod
     def create_certification_system() -> MFGCAdapter:
         config = MFGCConfig(
@@ -233,7 +238,7 @@ class MFGCSystemFactory:
         )
         integrator = SystemIntegrator()
         return MFGCAdapter(integrator, config)
-    
+
     @staticmethod
     def create_development_system() -> MFGCAdapter:
         config = MFGCConfig(
@@ -248,7 +253,7 @@ class MFGCSystemFactory:
         )
         integrator = SystemIntegrator()
         return MFGCAdapter(integrator, config)
-    
+
     @staticmethod
     def create_custom_system(**kwargs) -> MFGCAdapter:
         config = MFGCConfig(**kwargs)

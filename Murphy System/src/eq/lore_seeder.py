@@ -33,12 +33,17 @@ from .npc_card_effects import (
 from .soul_engine import SoulDocument, SoulEngine
 from .spawner_registry import SpawnerEntry, SpawnerRegistry
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ---------------------------------------------------------------------------
 # NPC role classification
 # ---------------------------------------------------------------------------
 
 class NPCRole:
+    """NPC role."""
     MERCHANT = "merchant"
     GUARD = "guard"
     QUEST_GIVER = "quest_giver"
@@ -200,6 +205,7 @@ class LoreSeeder:
             try:
                 self._process_npc(npc, result)
             except Exception as exc:  # noqa: BLE001
+                logger.debug("Caught exception: %s", exc)
                 result.errors.append(f"NPC {npc.npc_id} ({npc.name}): {exc}")
 
         return result

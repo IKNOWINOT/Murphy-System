@@ -6,20 +6,24 @@ Specialized swarms for different problem domains
 from typing import List, Dict, Any, Optional
 from mfgc_core import Phase
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class DomainSwarmGenerator:
     """Base class for domain-specific swarm generation"""
-    
+
     def __init__(self, domain_name: str):
         self.domain_name = domain_name
-    
-    def generate_candidates(self, 
+
+    def generate_candidates(self,
                           task: str,
                           phase: Phase,
                           context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Generate domain-specific candidates"""
         raise NotImplementedError
-    
+
     def generate_gates(self,
                       candidates: List[Dict[str, Any]],
                       context: Dict[str, Any]) -> List[str]:
@@ -29,11 +33,11 @@ class DomainSwarmGenerator:
 
 class SoftwareEngineeringSwarm(DomainSwarmGenerator):
     """Swarm generator for software engineering tasks"""
-    
+
     def __init__(self):
         super().__init__("software_engineering")
         self.architectures = [
-            'microservices', 'monolithic', 'serverless', 
+            'microservices', 'monolithic', 'serverless',
             'event-driven', 'layered', 'hexagonal'
         ]
         self.tech_stacks = {
@@ -42,13 +46,13 @@ class SoftwareEngineeringSwarm(DomainSwarmGenerator):
             'database': ['PostgreSQL', 'MongoDB', 'Redis', 'Cassandra'],
             'cloud': ['AWS', 'GCP', 'Azure', 'DigitalOcean']
         }
-    
-    def generate_candidates(self, 
+
+    def generate_candidates(self,
                           task: str,
                           phase: Phase,
                           context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Generate software engineering candidates"""
-        
+
         if phase == Phase.EXPAND:
             return self._expand_architectures(task, context)
         elif phase == Phase.TYPE:
@@ -63,13 +67,13 @@ class SoftwareEngineeringSwarm(DomainSwarmGenerator):
             return self._bind_specifications(task, context)
         elif phase == Phase.EXECUTE:
             return self._execute_deployment(task, context)
-        
+
         return []
-    
+
     def _expand_architectures(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """EXPAND: Explore different architectures"""
         candidates = []
-        
+
         for arch in self.architectures:
             candidates.append({
                 'type': 'architecture',
@@ -80,9 +84,9 @@ class SoftwareEngineeringSwarm(DomainSwarmGenerator):
                 'score': self._score_architecture(arch, context),
                 'requires_validation': ['scalability', 'maintainability', 'cost']
             })
-        
+
         return candidates
-    
+
     def _get_architecture_pros(self, arch: str) -> List[str]:
         """Get pros for architecture"""
         pros_map = {
@@ -94,7 +98,7 @@ class SoftwareEngineeringSwarm(DomainSwarmGenerator):
             'hexagonal': ['Highly testable', 'Framework independent', 'Flexible']
         }
         return pros_map.get(arch, ['Flexible', 'Proven'])
-    
+
     def _get_architecture_cons(self, arch: str) -> List[str]:
         """Get cons for architecture"""
         cons_map = {
@@ -106,22 +110,22 @@ class SoftwareEngineeringSwarm(DomainSwarmGenerator):
             'hexagonal': ['Initial complexity', 'More boilerplate', 'Learning curve']
         }
         return cons_map.get(arch, ['Trade-offs exist'])
-    
+
     def _score_architecture(self, arch: str, context: Dict[str, Any]) -> float:
         """Score architecture based on context"""
         # Simple scoring based on context hints
         score = 0.5
-        
+
         if 'scalability' in str(context).lower():
             if arch in ['microservices', 'serverless']:
                 score += 0.2
-        
+
         if 'simple' in str(context).lower():
             if arch in ['monolithic', 'layered']:
                 score += 0.2
-        
+
         return min(1.0, score)
-    
+
     def _type_components(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """TYPE: Categorize components"""
         return [
@@ -130,11 +134,11 @@ class SoftwareEngineeringSwarm(DomainSwarmGenerator):
             {'category': 'database', 'technologies': self.tech_stacks['database']},
             {'category': 'infrastructure', 'technologies': self.tech_stacks['cloud']}
         ]
-    
+
     def _enumerate_tech_stacks(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """ENUMERATE: List specific tech stacks"""
         stacks = []
-        
+
         # Generate combinations
         for frontend in self.tech_stacks['web'][:2]:
             for backend in self.tech_stacks['backend'][:2]:
@@ -147,9 +151,9 @@ class SoftwareEngineeringSwarm(DomainSwarmGenerator):
                         'maturity': 'production-ready',
                         'dependencies': [frontend, backend, db]
                     })
-        
+
         return stacks[:6]  # Limit to 6 combinations
-    
+
     def _constrain_requirements(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """CONSTRAIN: Apply software engineering constraints"""
         return [
@@ -159,7 +163,7 @@ class SoftwareEngineeringSwarm(DomainSwarmGenerator):
             {'constraint': 'maintainability', 'requirement': 'Code coverage > 80%'},
             {'constraint': 'availability', 'requirement': '99.9% uptime SLA'}
         ]
-    
+
     def _collapse_design(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """COLLAPSE: Synthesize final design"""
         return [{
@@ -173,7 +177,7 @@ class SoftwareEngineeringSwarm(DomainSwarmGenerator):
             ],
             'rationale': 'Balances scalability with maintainability'
         }]
-    
+
     def _bind_specifications(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """BIND: Create detailed specifications"""
         return [
@@ -196,7 +200,7 @@ class SoftwareEngineeringSwarm(DomainSwarmGenerator):
                 'services': 5
             }
         ]
-    
+
     def _execute_deployment(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """EXECUTE: Deployment steps"""
         return [
@@ -207,7 +211,7 @@ class SoftwareEngineeringSwarm(DomainSwarmGenerator):
             {'step': 'Deploy to production', 'risk': 0.25, 'duration': '10 min'},
             {'step': 'Monitor metrics', 'risk': 0.05, 'duration': 'continuous'}
         ]
-    
+
     def generate_gates(self,
                       candidates: List[Dict[str, Any]],
                       context: Dict[str, Any]) -> List[str]:
@@ -224,26 +228,26 @@ class SoftwareEngineeringSwarm(DomainSwarmGenerator):
             "Rollback plan must be documented and tested",
             "Monitoring and alerting must be configured"
         ]
-        
+
         return gates
 
 
 class BusinessStrategySwarm(DomainSwarmGenerator):
     """Swarm generator for business strategy tasks"""
-    
+
     def __init__(self):
         super().__init__("business_strategy")
         self.frameworks = [
             'SWOT', 'Porter Five Forces', 'Blue Ocean',
             'Business Model Canvas', 'Lean Startup', 'OKR'
         ]
-    
-    def generate_candidates(self, 
+
+    def generate_candidates(self,
                           task: str,
                           phase: Phase,
                           context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Generate business strategy candidates"""
-        
+
         if phase == Phase.EXPAND:
             return self._expand_strategies(task, context)
         elif phase == Phase.TYPE:
@@ -258,9 +262,9 @@ class BusinessStrategySwarm(DomainSwarmGenerator):
             return self._bind_plan(task, context)
         elif phase == Phase.EXECUTE:
             return self._execute_rollout(task, context)
-        
+
         return []
-    
+
     def _expand_strategies(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """EXPAND: Explore strategic options"""
         return [
@@ -289,7 +293,7 @@ class BusinessStrategySwarm(DomainSwarmGenerator):
                 'potential_return': 0.9
             }
         ]
-    
+
     def _type_markets(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """TYPE: Categorize markets"""
         return [
@@ -297,7 +301,7 @@ class BusinessStrategySwarm(DomainSwarmGenerator):
             {'market_type': 'B2C', 'characteristics': ['Short sales cycles', 'Volume']},
             {'market_type': 'B2B2C', 'characteristics': ['Hybrid model', 'Complex']}
         ]
-    
+
     def _enumerate_options(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """ENUMERATE: List specific options"""
         return [
@@ -305,7 +309,7 @@ class BusinessStrategySwarm(DomainSwarmGenerator):
             {'option': 'Strategic partnerships', 'timeline': '1-2 years', 'investment': 'Medium'},
             {'option': 'Acquisition', 'timeline': '6-12 months', 'investment': 'High'}
         ]
-    
+
     def _constrain_resources(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """CONSTRAIN: Resource constraints"""
         return [
@@ -313,7 +317,7 @@ class BusinessStrategySwarm(DomainSwarmGenerator):
             {'constraint': 'timeline', 'limit': '12 months', 'flexibility': 'medium'},
             {'constraint': 'team_size', 'limit': '10 people', 'flexibility': 'high'}
         ]
-    
+
     def _collapse_strategy(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """COLLAPSE: Final strategy"""
         return [{
@@ -325,7 +329,7 @@ class BusinessStrategySwarm(DomainSwarmGenerator):
             ],
             'success_metrics': ['Revenue growth', 'Customer acquisition', 'Market share']
         }]
-    
+
     def _bind_plan(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """BIND: Detailed business plan"""
         return [
@@ -333,7 +337,7 @@ class BusinessStrategySwarm(DomainSwarmGenerator):
             {'document': 'Financial Model', 'scenarios': 3, 'completeness': 0.85},
             {'document': 'Go-to-Market Plan', 'channels': 5, 'completeness': 0.80}
         ]
-    
+
     def _execute_rollout(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """EXECUTE: Rollout plan"""
         return [
@@ -341,7 +345,7 @@ class BusinessStrategySwarm(DomainSwarmGenerator):
             {'milestone': 'First Partnership', 'date': 'Month 6', 'risk': 0.4},
             {'milestone': 'Break-even', 'date': 'Month 12', 'risk': 0.5}
         ]
-    
+
     def generate_gates(self,
                       candidates: List[Dict[str, Any]],
                       context: Dict[str, Any]) -> List[str]:
@@ -362,20 +366,20 @@ class BusinessStrategySwarm(DomainSwarmGenerator):
 
 class ScientificResearchSwarm(DomainSwarmGenerator):
     """Swarm generator for scientific research tasks"""
-    
+
     def __init__(self):
         super().__init__("scientific_research")
         self.methodologies = [
             'experimental', 'observational', 'computational',
             'theoretical', 'meta-analysis', 'case study'
         ]
-    
-    def generate_candidates(self, 
+
+    def generate_candidates(self,
                           task: str,
                           phase: Phase,
                           context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Generate scientific research candidates"""
-        
+
         if phase == Phase.EXPAND:
             return self._expand_hypotheses(task, context)
         elif phase == Phase.TYPE:
@@ -390,9 +394,9 @@ class ScientificResearchSwarm(DomainSwarmGenerator):
             return self._bind_paper(task, context)
         elif phase == Phase.EXECUTE:
             return self._execute_publication(task, context)
-        
+
         return []
-    
+
     def _expand_hypotheses(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """EXPAND: Generate hypotheses"""
         return [
@@ -412,7 +416,7 @@ class ScientificResearchSwarm(DomainSwarmGenerator):
                 'novelty': 0.6
             }
         ]
-    
+
     def _type_methodologies(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """TYPE: Categorize methodologies"""
         return [
@@ -420,7 +424,7 @@ class ScientificResearchSwarm(DomainSwarmGenerator):
             {'methodology': 'Observational', 'control': 'low', 'cost': 'medium'},
             {'methodology': 'Computational', 'control': 'high', 'cost': 'low'}
         ]
-    
+
     def _enumerate_experiments(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """ENUMERATE: List experiments"""
         return [
@@ -443,7 +447,7 @@ class ScientificResearchSwarm(DomainSwarmGenerator):
                 'cost': '$30k'
             }
         ]
-    
+
     def _constrain_variables(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """CONSTRAIN: Control variables"""
         return [
@@ -451,7 +455,7 @@ class ScientificResearchSwarm(DomainSwarmGenerator):
             {'variable': 'gender', 'distribution': '50/50', 'control': 'balanced'},
             {'variable': 'location', 'sites': 3, 'control': 'multi-center'}
         ]
-    
+
     def _collapse_findings(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """COLLAPSE: Synthesize findings"""
         return [{
@@ -460,7 +464,7 @@ class ScientificResearchSwarm(DomainSwarmGenerator):
             'confidence_interval': '95%',
             'implications': 'Supports hypothesis H1'
         }]
-    
+
     def _bind_paper(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """BIND: Structure paper"""
         return [
@@ -470,7 +474,7 @@ class ScientificResearchSwarm(DomainSwarmGenerator):
             {'section': 'Results', 'words': 1500, 'completeness': 0.90},
             {'section': 'Discussion', 'words': 2000, 'completeness': 0.85}
         ]
-    
+
     def _execute_publication(self, task: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """EXECUTE: Publication process"""
         return [
@@ -480,7 +484,7 @@ class ScientificResearchSwarm(DomainSwarmGenerator):
             {'step': 'Revisions', 'duration': '1 month', 'risk': 0.3},
             {'step': 'Acceptance', 'duration': '2 weeks', 'risk': 0.2}
         ]
-    
+
     def generate_gates(self,
                       candidates: List[Dict[str, Any]],
                       context: Dict[str, Any]) -> List[str]:
@@ -501,7 +505,7 @@ class ScientificResearchSwarm(DomainSwarmGenerator):
 
 class DomainDetector:
     """Detect which domain a task belongs to"""
-    
+
     def __init__(self):
         self.domain_keywords = {
             'software_engineering': [
@@ -520,31 +524,31 @@ class DomainDetector:
                 'publication', 'peer review', 'findings'
             ]
         }
-        
+
         self.swarms = {
             'software_engineering': SoftwareEngineeringSwarm(),
             'business_strategy': BusinessStrategySwarm(),
             'scientific_research': ScientificResearchSwarm()
         }
-    
+
     def detect_domain(self, task: str, context: Dict[str, Any]) -> Optional[str]:
         """Detect domain from task description"""
         task_lower = task.lower()
         context_str = str(context).lower()
         combined = task_lower + ' ' + context_str
-        
+
         scores = {}
         for domain, keywords in self.domain_keywords.items():
             score = sum(1 for kw in keywords if kw in combined)
             scores[domain] = score
-        
+
         # Return domain with highest score, or None if no clear match
         max_score = max(scores.values())
         if max_score >= 2:  # At least 2 keyword matches
             return max(scores, key=scores.get)
-        
+
         return None
-    
+
     def get_swarm(self, domain: str) -> Optional[DomainSwarmGenerator]:
         """Get swarm generator for domain"""
         return self.swarms.get(domain)

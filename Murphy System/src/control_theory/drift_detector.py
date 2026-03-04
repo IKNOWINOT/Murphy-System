@@ -15,6 +15,10 @@ from typing import List, Optional
 from .infinity_metric import EntropyTracker, UncertaintyBudget
 from .state_model import StateVector
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ------------------------------------------------------------------ #
 # Alert types

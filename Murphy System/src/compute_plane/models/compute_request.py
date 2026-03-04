@@ -9,12 +9,16 @@ from typing import Dict, Any, Literal
 from datetime import datetime
 import uuid
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class ComputeRequest:
     """
     Request for deterministic computation.
-    
+
     Attributes:
         request_id: Unique identifier for this request
         expression: Mathematical expression to evaluate
@@ -25,7 +29,7 @@ class ComputeRequest:
         timestamp: When request was created
         metadata: Additional metadata for tracking
     """
-    
+
     SUPPORTED_LANGUAGES = ("wolfram", "sympy", "lp", "sat")
 
     expression: str
@@ -36,21 +40,21 @@ class ComputeRequest:
     timeout: int = 30
     timestamp: datetime = field(default_factory=datetime.now)
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     def __post_init__(self):
         """Validate request parameters"""
         if not self.expression:
             raise ValueError("Expression cannot be empty")
-        
+
         if self.language not in self.SUPPORTED_LANGUAGES:
             raise ValueError(f"Unsupported language: {self.language}")
-        
+
         if self.precision < 1 or self.precision > 50:
             raise ValueError("Precision must be between 1 and 50")
-        
+
         if self.timeout < 1 or self.timeout > 300:
             raise ValueError("Timeout must be between 1 and 300 seconds")
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization"""
         return {
@@ -63,7 +67,7 @@ class ComputeRequest:
             'timestamp': self.timestamp.isoformat(),
             'metadata': self.metadata,
         }
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'ComputeRequest':
         """Create from dictionary"""

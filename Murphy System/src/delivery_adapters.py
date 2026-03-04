@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 import logging
 import re
 import uuid
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -121,6 +122,7 @@ class DocumentDeliveryAdapter(BaseDeliveryAdapter):
     """Generates markdown documents from structured payloads."""
 
     def __init__(self) -> None:
+        super().__init__()
         self._delivery_count: int = 0
 
     def validate(self, request: DeliveryRequest) -> tuple[bool, List[str]]:
@@ -184,6 +186,7 @@ class EmailDeliveryAdapter(BaseDeliveryAdapter):
     _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
     def __init__(self) -> None:
+        super().__init__()
         self._delivery_count: int = 0
 
     def validate(self, request: DeliveryRequest) -> tuple[bool, List[str]]:
@@ -254,6 +257,7 @@ class ChatDeliveryAdapter(BaseDeliveryAdapter):
     SUPPORTED_PLATFORMS = {"slack", "teams", "discord", "webhook", "internal"}
 
     def __init__(self) -> None:
+        super().__init__()
         self._delivery_count: int = 0
 
     def validate(self, request: DeliveryRequest) -> tuple[bool, List[str]]:
@@ -320,6 +324,7 @@ class VoiceDeliveryAdapter(BaseDeliveryAdapter):
     """Prepares voice scripts with playback steps."""
 
     def __init__(self) -> None:
+        super().__init__()
         self._delivery_count: int = 0
 
     def validate(self, request: DeliveryRequest) -> tuple[bool, List[str]]:
@@ -405,6 +410,7 @@ class TranslationDeliveryAdapter(BaseDeliveryAdapter):
     }
 
     def __init__(self) -> None:
+        super().__init__()
         self._delivery_count: int = 0
 
     def validate(self, request: DeliveryRequest) -> tuple[bool, List[str]]:
@@ -460,8 +466,15 @@ class TranslationDeliveryAdapter(BaseDeliveryAdapter):
         return DeliveryResult(
             request_id=request_id,
             channel=DeliveryChannel.TRANSLATION,
-            status=DeliveryStatus.DELIVERED,
+            status=DeliveryStatus.NEEDS_INFO
+            if translation_payload["translated_text"] is None
+            else DeliveryStatus.DELIVERED,
             output={"translation_payload": translation_payload},
+            error=(
+                "Translation service has not yet provided translated text"
+                if translation_payload["translated_text"] is None
+                else None
+            ),
         )
 
     def get_status(self) -> Dict[str, Any]:
@@ -482,6 +495,8 @@ class DeliveryOrchestrator:
     Routes delivery requests to the appropriate adapter, tracks status,
     and integrates with governance gates (approval gating).
     """
+
+    _MAX_HISTORY = 10_000
 
     def __init__(self) -> None:
         self._adapters: Dict[DeliveryChannel, BaseDeliveryAdapter] = {}
@@ -516,7 +531,7 @@ class DeliveryOrchestrator:
 
         # Governance gate: approval required
         if request.requires_approval:
-            self._pending_approvals.append(request)
+            capped_append(self._pending_approvals, request)
             result = DeliveryResult(
                 request_id=request_id,
                 channel=request.channel,
@@ -588,6 +603,8 @@ class DeliveryOrchestrator:
     # -- internals -----------------------------------------------------------
 
     def _record(self, result: DeliveryResult, request: DeliveryRequest) -> None:
+        if len(self._history) >= self._MAX_HISTORY:
+            self._history = self._history[self._MAX_HISTORY // 10:]
         self._history.append({
             **result.to_dict(),
             "session_id": request.session_id,

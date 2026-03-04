@@ -9,6 +9,10 @@ from typing import Any, List, Dict, Tuple, Literal
 from datetime import datetime
 from enum import Enum
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ComputeStatus(str, Enum):
     """Status of computation"""
@@ -23,7 +27,7 @@ class ComputeStatus(str, Enum):
 class ComputeResult:
     """
     Result of deterministic computation.
-    
+
     Attributes:
         request_id: ID of original request
         status: Computation status
@@ -38,7 +42,7 @@ class ComputeResult:
         timestamp: When result was computed
         metadata: Additional metadata
     """
-    
+
     request_id: str
     status: ComputeStatus
     result: Any = None
@@ -51,26 +55,26 @@ class ComputeResult:
     execution_time: float = 0.0
     timestamp: datetime = field(default_factory=datetime.now)
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     def __post_init__(self):
         """Validate result parameters"""
         if not isinstance(self.status, ComputeStatus):
             self.status = ComputeStatus(self.status)
-        
+
         if self.confidence_score < 0.0 or self.confidence_score > 1.0:
             raise ValueError("Confidence score must be between 0.0 and 1.0")
-        
+
         if self.stability_estimate < 0.0 or self.stability_estimate > 1.0:
             raise ValueError("Stability estimate must be between 0.0 and 1.0")
-    
+
     def is_successful(self) -> bool:
         """Check if computation was successful"""
         return self.status == ComputeStatus.SUCCESS
-    
+
     def is_deterministic(self) -> bool:
         """Check if result is highly deterministic"""
         return self.stability_estimate > 0.8 and self.confidence_score > 0.8
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization"""
         return {
@@ -87,7 +91,7 @@ class ComputeResult:
             'timestamp': self.timestamp.isoformat(),
             'metadata': self.metadata,
         }
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'ComputeResult':
         """Create from dictionary"""

@@ -9,6 +9,10 @@ from dataclasses import dataclass, field
 from enum import Enum
 import json
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ExpertiseLevel(Enum):
     """Levels of expertise for domain experts."""
@@ -38,7 +42,7 @@ class KnowledgeContext:
     tools: List[str]
     questions_to_ask: List[str]
     artifacts_can_create: List[str]
-    
+
     def to_dict(self) -> Dict:
         """Convert to dictionary."""
         return {
@@ -59,7 +63,7 @@ class DomainExpert:
     knowledge_context: KnowledgeContext
     responsibilities: List[str]
     collaboration_with: List[str] = field(default_factory=list)
-    
+
     def to_dict(self) -> Dict:
         """Convert to dictionary."""
         return {
@@ -80,7 +84,7 @@ class Artifact:
     created_by: str
     content: str
     dependencies: List[str] = field(default_factory=list)
-    
+
     def to_dict(self) -> Dict:
         """Convert to dictionary."""
         return {
@@ -98,15 +102,15 @@ class DomainExpertSwarm:
     Manages domain expert swarms for project execution.
     Uses RLM patterns to decompose tasks and assign to experts.
     """
-    
+
     def __init__(self):
         self.experts: Dict[str, DomainExpert] = {}
         self.artifacts: Dict[str, Artifact] = {}
         self._initialize_expert_database()
-    
+
     def _initialize_expert_database(self):
         """Initialize common domain expert roles."""
-        
+
         # Software Development Experts
         self._add_expert(DomainExpert(
             job_title="Software Architect",
@@ -126,7 +130,7 @@ class DomainExpertSwarm:
             ),
             responsibilities=["design system architecture", "make technical decisions", "review code"]
         ))
-        
+
         self._add_expert(DomainExpert(
             job_title="Frontend Developer",
             expertise_level=ExpertiseLevel.INTERMEDIATE,
@@ -144,7 +148,7 @@ class DomainExpertSwarm:
             ),
             responsibilities=["build user interfaces", "implement designs", "optimize performance"]
         ))
-        
+
         self._add_expert(DomainExpert(
             job_title="Backend Developer",
             expertise_level=ExpertiseLevel.INTERMEDIATE,
@@ -162,7 +166,7 @@ class DomainExpertSwarm:
             ),
             responsibilities=["build server logic", "manage databases", "create APIs"]
         ))
-        
+
         self._add_expert(DomainExpert(
             job_title="Product Designer",
             expertise_level=ExpertiseLevel.INTERMEDIATE,
@@ -180,7 +184,7 @@ class DomainExpertSwarm:
             ),
             responsibilities=["design user experience", "create visual designs", "conduct user research"]
         ))
-        
+
         self._add_expert(DomainExpert(
             job_title="Project Manager",
             expertise_level=ExpertiseLevel.SENIOR,
@@ -199,7 +203,7 @@ class DomainExpertSwarm:
             ),
             responsibilities=["manage project timeline", "coordinate team", "handle risks"]
         ))
-        
+
         self._add_expert(DomainExpert(
             job_title="Business Analyst",
             expertise_level=ExpertiseLevel.INTERMEDIATE,
@@ -217,7 +221,7 @@ class DomainExpertSwarm:
             ),
             responsibilities=["gather requirements", "analyze business needs", "document processes"]
         ))
-        
+
         self._add_expert(DomainExpert(
             job_title="Quality Assurance Engineer",
             expertise_level=ExpertiseLevel.INTERMEDIATE,
@@ -235,7 +239,7 @@ class DomainExpertSwarm:
             ),
             responsibilities=["create test plans", "execute tests", "report bugs"]
         ))
-        
+
         self._add_expert(DomainExpert(
             job_title="Data Scientist",
             expertise_level=ExpertiseLevel.EXPERT,
@@ -253,7 +257,7 @@ class DomainExpertSwarm:
             ),
             responsibilities=["analyze data", "build models", "create insights"]
         ))
-        
+
         self._add_expert(DomainExpert(
             job_title="DevOps Engineer",
             expertise_level=ExpertiseLevel.SENIOR,
@@ -271,11 +275,11 @@ class DomainExpertSwarm:
             ),
             responsibilities=["deploy systems", "manage infrastructure", "set up CI/CD"]
         ))
-    
+
     def _add_expert(self, expert: DomainExpert):
         """Add an expert to the database."""
         self.experts[expert.job_title.lower()] = expert
-    
+
     def identify_required_experts(self, project_description: str) -> List[DomainExpert]:
         """
         Identify which domain experts are needed for a project based on description.
@@ -283,7 +287,7 @@ class DomainExpertSwarm:
         """
         required_experts = []
         description_lower = project_description.lower()
-        
+
         # Define expert detection patterns
         expert_patterns = {
             "software architect": ["software", "system", "architecture", "technical design", "scalability"],
@@ -296,7 +300,7 @@ class DomainExpertSwarm:
             "data scientist": ["data", "analytics", "machine learning", "prediction", "patterns"],
             "devops engineer": ["deploy", "deployment", "infrastructure", "cloud", "operations"]
         }
-        
+
         # Check for patterns in project description
         for expert_name, patterns in expert_patterns.items():
             for pattern in patterns:
@@ -304,12 +308,12 @@ class DomainExpertSwarm:
                     if expert_name in self.experts:
                         required_experts.append(self.experts[expert_name])
                     break
-        
+
         return required_experts
-    
+
     def generate_swarm_proposal(
-        self, 
-        project_description: str, 
+        self,
+        project_description: str,
         complexity: str = "medium"
     ) -> Dict[str, Any]:
         """
@@ -318,7 +322,7 @@ class DomainExpertSwarm:
         """
         # Identify required experts
         experts = self.identify_required_experts(project_description)
-        
+
         # If no experts found, provide a default team
         if not experts:
             experts = [
@@ -326,7 +330,7 @@ class DomainExpertSwarm:
                 self.experts["business analyst"],
                 self.experts["software architect"]
             ]
-        
+
         # Generate tasks for each expert
         tasks = []
         for expert in experts:
@@ -338,16 +342,16 @@ class DomainExpertSwarm:
                     "context": expert.knowledge_context.knowledge_type.value,
                     "priority": "high" if expert.expertise_level == ExpertiseLevel.SENIOR else "medium"
                 })
-        
+
         # Calculate estimated metrics
         estimated_time = len(experts) * 5  # 5 hours per expert base estimate
         if complexity == "simple":
             estimated_time = int(estimated_time * 0.5)
         elif complexity == "complex":
             estimated_time = int(estimated_time * 2)
-        
+
         estimated_cost = len(experts) * 100  # $100 per hour per expert
-        
+
         # Generate artifact suggestions
         suggested_artifacts = []
         for expert in experts:
@@ -356,7 +360,7 @@ class DomainExpertSwarm:
                     "type": artifact_type,
                     "created_by": expert.job_title
                 })
-        
+
         return {
             "project_description": project_description,
             "complexity": complexity,
@@ -367,10 +371,10 @@ class DomainExpertSwarm:
             "suggested_artifacts": suggested_artifacts[:10],  # Limit to 10 artifacts
             "confidence_score": 85  # Default confidence score
         }
-    
+
     def execute_rlm_task(
-        self, 
-        task: str, 
+        self,
+        task: str,
         context: Dict[str, Any],
         expert: DomainExpert
     ) -> Dict[str, Any]:
@@ -385,7 +389,7 @@ class DomainExpertSwarm:
             "artifacts": [],
             "final_answer": None
         }
-        
+
         # Step 1: Expert analyzes the task using their knowledge context
         result["steps"].append({
             "step": 1,
@@ -393,12 +397,12 @@ class DomainExpertSwarm:
             "description": f"{expert.job_title} analyzes task using {expert.knowledge_context.knowledge_type.value} knowledge",
             "context_used": expert.knowledge_context.topics
         })
-        
+
         # Step 2: Break down task into sub-tasks (RLM pattern)
         sub_tasks = []
         for skill in expert.knowledge_context.skills[:3]:  # Use first 3 skills
             sub_tasks.append(f"Apply {skill} to: {task}")
-        
+
         for i, sub_task in enumerate(sub_tasks, start=2):
             result["steps"].append({
                 "step": i,
@@ -406,7 +410,7 @@ class DomainExpertSwarm:
                 "description": f"Execute subtask: {sub_task}",
                 "using_expertise": expert.knowledge_context.skills[i-2]
             })
-        
+
         # Step 3: Generate artifact
         if expert.knowledge_context.artifacts_can_create:
             artifact_type = expert.knowledge_context.artifacts_can_create[0]
@@ -424,20 +428,20 @@ class DomainExpertSwarm:
                 "description": f"Created {artifact_type}",
                 "artifact": artifact.name
             })
-        
+
         # Step 4: Compile final answer
         result["final_answer"] = f"Task completed by {expert.job_title} using their expertise in {expert.knowledge_context.knowledge_type.value}. Generated {len(result['artifacts'])} artifacts."
-        
+
         return result
-    
+
     def get_expert_by_title(self, title: str) -> Optional[DomainExpert]:
         """Get an expert by job title."""
         return self.experts.get(title.lower())
-    
+
     def list_all_experts(self) -> List[Dict]:
         """List all available experts."""
         return [expert.to_dict() for expert in self.experts.values()]
-    
+
     def to_dict(self) -> Dict:
         """Convert swarm to dictionary."""
         return {

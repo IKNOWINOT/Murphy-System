@@ -1,9 +1,5 @@
-# security_dashboard.py — Unified Security Dashboard
+"""Unified Security Dashboard — aggregate events from all security modules."""
 # Copyright © 2020 Inoni Limited Liability Company
-#
-# Aggregates events from all security enhancement modules into a single
-# operational view with real-time correlation, compliance reporting, and
-# severity-based escalation.
 
 from __future__ import annotations
 
@@ -15,6 +11,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +20,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 class SecurityEventType(str, Enum):
+    """Security event type (str subclass)."""
     AUTHORIZATION_DENIED = "authorization_denied"
     AUTHORIZATION_GRANTED = "authorization_granted"
     QUOTA_VIOLATION = "quota_violation"
@@ -37,6 +35,7 @@ class SecurityEventType(str, Enum):
 
 
 class EscalationLevel(str, Enum):
+    """Escalation level (str subclass)."""
     INFO = "info"
     WARNING = "warning"
     ALERT = "alert"
@@ -64,6 +63,7 @@ _NON_INCIDENT_TYPES = {
 
 @dataclass
 class SecurityEvent:
+    """Security event."""
     event_id: str
     event_type: SecurityEventType
     escalation_level: EscalationLevel
@@ -92,6 +92,7 @@ class SecurityEvent:
 
 @dataclass
 class CorrelatedEventGroup:
+    """Correlated event group."""
     group_id: str
     events: List[SecurityEvent]
     primary_event_id: str
@@ -110,6 +111,7 @@ class CorrelatedEventGroup:
 
 @dataclass
 class SecurityReport:
+    """Security report."""
     report_id: str
     generated_at: datetime
     period_start: datetime
@@ -176,7 +178,7 @@ class SecurityDashboard:
                 self._events = self._events[-self._max_events:]
             group = self._correlate_event(event)
             if group is not None:
-                self._correlated_groups.append(group)
+                capped_append(self._correlated_groups, group)
         logger.info("Recorded event %s [%s/%s] from %s", event.event_id,
                      event.event_type.value, event.escalation_level.value,
                      event.source_module)
@@ -307,7 +309,8 @@ class SecurityDashboard:
         for cb in callbacks:
             try:
                 cb(event)
-            except Exception:
+            except Exception as exc:
+                logger.debug("Suppressed exception: %s", exc)
                 logger.exception("Escalation callback failed for event %s",
                                  event.event_id)
 

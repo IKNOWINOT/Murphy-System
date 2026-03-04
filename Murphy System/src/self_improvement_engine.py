@@ -77,6 +77,9 @@ class SelfImprovementEngine:
     # Persistence document IDs
     _PERSIST_DOC_ID = "self_improvement_engine_state"
 
+    _MAX_OUTCOMES = 10_000
+    _MAX_CORRECTIONS = 5_000
+
     def __init__(self, persistence_manager=None) -> None:
         self._lock = threading.Lock()
         self._outcomes: List[ExecutionOutcome] = []
@@ -187,6 +190,8 @@ class SelfImprovementEngine:
     def record_outcome(self, outcome: ExecutionOutcome) -> str:
         """Record an execution outcome and return its task_id."""
         with self._lock:
+            if len(self._outcomes) >= self._MAX_OUTCOMES:
+                self._outcomes = self._outcomes[self._MAX_OUTCOMES // 10:]
             self._outcomes.append(outcome)
         logger.info("Recorded outcome for task %s: %s", outcome.task_id, outcome.outcome.value)
         return outcome.task_id
@@ -329,6 +334,8 @@ class SelfImprovementEngine:
                 logger.warning("Proposal %s not found", proposal_id)
                 return False
             proposal.status = "applied"
+            if len(self._corrections_applied) >= self._MAX_CORRECTIONS:
+                self._corrections_applied = self._corrections_applied[self._MAX_CORRECTIONS // 10:]
             self._corrections_applied.append({
                 "proposal_id": proposal_id,
                 "result": result,
@@ -359,7 +366,7 @@ class SelfImprovementEngine:
 
         successes = sum(1 for o in relevant if o.outcome == OutcomeType.SUCCESS)
         total = len(relevant)
-        success_rate = successes / total
+        success_rate = successes / total if total > 0 else 0.0
 
         reported_confs = [
             o.metrics["confidence"] for o in relevant
@@ -409,11 +416,11 @@ class SelfImprovementEngine:
         llm_outcomes = [o for o in relevant if o.metrics.get("route") == "llm"]
 
         det_success = (
-            sum(1 for o in det_outcomes if o.outcome == OutcomeType.SUCCESS) / len(det_outcomes)
+            sum(1 for o in det_outcomes if o.outcome == OutcomeType.SUCCESS) / (len(det_outcomes) or 1)
             if det_outcomes else 0.0
         )
         llm_success = (
-            sum(1 for o in llm_outcomes if o.outcome == OutcomeType.SUCCESS) / len(llm_outcomes)
+            sum(1 for o in llm_outcomes if o.outcome == OutcomeType.SUCCESS) / (len(llm_outcomes) or 1)
             if llm_outcomes else 0.0
         )
 
@@ -497,4 +504,4 @@ class SelfImprovementEngine:
 
 def _safe_mean(values: List[float]) -> float:
     """Return the mean of *values*, or 0.0 for an empty list."""
-    return sum(values) / len(values) if values else 0.0
+    return sum(values) / (len(values) or 1) if values else 0.0

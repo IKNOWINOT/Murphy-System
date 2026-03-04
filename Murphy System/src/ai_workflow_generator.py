@@ -11,6 +11,11 @@ import re
 import threading
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional, Tuple
+from thread_safe_operations import capped_append
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # Keywords mapped to automation step types
@@ -222,7 +227,7 @@ class AIWorkflowGenerator:
         }
 
         with self._lock:
-            self._generation_history.append({
+            capped_append(self._generation_history, {
                 "workflow_id": workflow_id,
                 "description": description[:200],
                 "strategy": strategy,

@@ -29,6 +29,11 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
+from thread_safe_operations import capped_append
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -36,6 +41,7 @@ from typing import Any, Callable, Dict, List, Optional
 # ---------------------------------------------------------------------------
 
 class OrganizationTier(enum.Enum):
+    """Organization tier (Enum subclass)."""
     EXECUTIVE = "executive"
     MANAGEMENT = "management"
     OPERATIONS = "operations"
@@ -44,6 +50,7 @@ class OrganizationTier(enum.Enum):
 
 
 class PulseStatus(enum.Enum):
+    """Pulse status (Enum subclass)."""
     EMITTED = "emitted"
     PROPAGATING = "propagating"
     ACKNOWLEDGED = "acknowledged"
@@ -52,6 +59,7 @@ class PulseStatus(enum.Enum):
 
 
 class HeartbeatState(enum.Enum):
+    """Heartbeat state (Enum subclass)."""
     IDLE = "idle"
     RUNNING = "running"
     PAUSED = "paused"
@@ -212,6 +220,7 @@ class RosettaStoneHeartbeat:
                             "ack": ack,
                         })
                     except Exception as exc:
+                        logger.debug("Caught exception: %s", exc)
                         tier_state.status = PulseStatus.FAILED
                         tier_state.missed_count += 1
                         propagation_results.append({
@@ -280,7 +289,7 @@ class RosettaStoneHeartbeat:
                 "tiers": tier_statuses,
                 "checked_at": now,
             }
-            self._sync_log.append(result)
+            capped_append(self._sync_log, result)
             return result
 
     # -- Tier state queries -------------------------------------------------

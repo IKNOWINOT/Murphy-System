@@ -11,6 +11,9 @@ import json
 from datetime import datetime
 from decimal import Decimal
 
+import logging
+logger = logging.getLogger("constraint_system")
+
 
 class ConstraintType(Enum):
     """Types of constraints"""
@@ -62,7 +65,7 @@ class Constraint:
     jurisdiction: str = "GLOBAL"  # jurisdiction code (e.g. "US", "EU", "GLOBAL")
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
     updated_at: str = field(default_factory=lambda: datetime.now().isoformat())
-    
+
     def to_dict(self) -> Dict:
         d = {
             "constraint_id": self.constraint_id,
@@ -104,7 +107,7 @@ class ConstraintConflict:
     severity: str
     suggested_resolution: str
     auto_resolvable: bool = False
-    
+
     def to_dict(self) -> Dict:
         return {
             "conflict_id": self.conflict_id,
@@ -127,7 +130,7 @@ class ConstraintImpact:
     description: str
     affected_components: List[str]
     mitigation_strategies: List[str]
-    
+
     def to_dict(self) -> Dict:
         return {
             "constraint_id": self.constraint_id,
@@ -144,12 +147,12 @@ class ConstraintSystem:
     Multi-factor constraint management system
     Handles validation, prioritization, conflict resolution, and impact analysis
     """
-    
+
     def __init__(self):
         self.constraints: Dict[str, Constraint] = {}
         self.constraint_count = 0
         self.constraint_templates = self._load_constraint_templates()
-    
+
     def _load_constraint_templates(self) -> Dict:
         """Load constraint templates for common scenarios"""
         return {
@@ -253,7 +256,7 @@ class ConstraintSystem:
                 ]
             }
         }
-    
+
     def add_constraint(
         self,
         name_or_dict=None,
@@ -273,7 +276,7 @@ class ConstraintSystem:
     ) -> Constraint:
         """
         Add a new constraint
-        
+
         Args:
             name: Constraint name
             constraint_type: Type of constraint
@@ -287,7 +290,7 @@ class ConstraintSystem:
             flex_amount: Amount of flexibility
             source: Source of constraint
             justification: Justification for constraint
-            
+
         Returns:
             Constraint object
         """
@@ -328,7 +331,7 @@ class ConstraintSystem:
 
         self.constraint_count += 1
         constraint_id = f"constraint_{self.constraint_count}"
-        
+
         constraint = Constraint(
             constraint_id=constraint_id,
             name=name,
@@ -344,10 +347,10 @@ class ConstraintSystem:
             source=source,
             justification=justification
         )
-        
+
         self.constraints[constraint_id] = constraint
         return constraint
-    
+
     def add_constraint_from_template(
         self,
         template_type: str,
@@ -358,28 +361,28 @@ class ConstraintSystem:
     ) -> Optional[Constraint]:
         """
         Add constraint from predefined template
-        
+
         Args:
             template_type: Type category (budget, regulatory, etc.)
             template_name: Name of template
             threshold_value: Threshold value
             priority: Priority
             justification: Justification
-            
+
         Returns:
             Constraint object or None if template not found
         """
         templates = self.constraint_templates.get(template_type, {})
         template_data = None
-        
+
         for template in templates.get("templates", []):
             if template["name"] == template_name:
                 template_data = template
                 break
-        
+
         if not template_data:
             return None
-        
+
         # Map template type to ConstraintType
         type_mapping = {
             "budget": ConstraintType.BUDGET,
@@ -389,12 +392,12 @@ class ConstraintSystem:
             "security": ConstraintType.SECURITY,
             "time": ConstraintType.TIME
         }
-        
+
         constraint_type = type_mapping.get(template_type, ConstraintType.BUSINESS)
-        
+
         # Determine severity based on flexibility
         severity = ConstraintSeverity.HIGH if not template_data.get("flexible") else ConstraintSeverity.MEDIUM
-        
+
         return self.add_constraint(
             name=template_name,
             constraint_type=constraint_type,
@@ -409,7 +412,7 @@ class ConstraintSystem:
             source="template",
             justification=justification
         )
-    
+
     def select_constraints(self, jurisdiction: str) -> List[Constraint]:
         """
         Return constraints that apply in the given *jurisdiction*.
@@ -428,10 +431,10 @@ class ConstraintSystem:
     ) -> Tuple[Dict[str, Any], List[str]]:
         """
         Validate all constraints against current system state
-        
+
         Args:
             system_state: Current system state with parameter values
-            
+
         Returns:
             Tuple of (validation_results, warnings)
         """
@@ -443,27 +446,27 @@ class ConstraintSystem:
             "pending": 0,
             "constraints": {}
         }
-        
+
         warnings = []
-        
+
         for constraint_id, constraint in self.constraints.items():
             # Get current value from system state
             current_value = system_state.get(constraint.parameter)
             constraint.current_value = current_value
-            
+
             if current_value is None:
                 constraint.status = ConstraintStatus.PENDING
                 results["pending"] += 1
                 warnings.append(f"Constraint {constraint.name}: No value provided for {constraint.parameter}")
                 continue
-            
+
             # Check constraint
             passed = self._check_constraint_value(
                 current_value,
                 constraint.operator,
                 constraint.threshold_value
             )
-            
+
             if passed:
                 constraint.status = ConstraintStatus.SATISFIED
                 results["satisfied"] += 1
@@ -485,7 +488,7 @@ class ConstraintSystem:
                     constraint.status = ConstraintStatus.VIOLATED
                     results["violated"] += 1
                     warnings.append(f"Constraint {constraint.name}: Violated")
-            
+
             results["constraints"][constraint_id] = {
                 "name": constraint.name,
                 "status": constraint.status.value,
@@ -493,12 +496,12 @@ class ConstraintSystem:
                 "threshold_value": constraint.threshold_value,
                 "passed": constraint.status == ConstraintStatus.SATISFIED
             }
-            
+
             # Update timestamp
             constraint.updated_at = datetime.now().isoformat()
-        
+
         return results, warnings
-    
+
     def _check_constraint_value(
         self,
         current: Any,
@@ -528,7 +531,7 @@ class ConstraintSystem:
                 return False
         except (TypeError, ValueError):
             return False
-    
+
     def _check_with_flexibility(
         self,
         current: Any,
@@ -540,7 +543,7 @@ class ConstraintSystem:
         try:
             current_float = float(current)
             threshold_float = float(threshold)
-            
+
             # Apply flexibility to threshold
             if operator in ["<=", "<"]:
                 # For less-than constraints, increase threshold by flex_amount
@@ -554,22 +557,22 @@ class ConstraintSystem:
                 return False
         except (TypeError, ValueError):
             return False
-    
+
     def prioritize_constraints(
         self,
         constraints: Optional[List[Constraint]] = None
     ) -> List[Constraint]:
         """
         Prioritize constraints by severity and priority
-        
+
         Args:
             constraints: List of constraints (default: all constraints)
-            
+
         Returns:
             Prioritized list of constraints
         """
         constraints_to_sort = constraints if constraints else list(self.constraints.values())
-        
+
         # Sort by severity then priority
         severity_order = {
             ConstraintSeverity.CRITICAL: 0,
@@ -577,29 +580,29 @@ class ConstraintSystem:
             ConstraintSeverity.MEDIUM: 2,
             ConstraintSeverity.LOW: 3
         }
-        
+
         return sorted(
             constraints_to_sort,
             key=lambda c: (severity_order.get(c.severity, 4), -c.priority)
         )
-    
+
     def detect_conflicts(
         self,
         constraints: Optional[List[Constraint]] = None
     ) -> List[ConstraintConflict]:
         """
         Detect conflicts between constraints
-        
+
         Args:
             constraints: List of constraints to check (default: all)
-            
+
         Returns:
             List of conflicts
         """
         constraints_to_check = constraints if constraints else list(self.constraints.values())
         conflicts = []
         conflict_count = 0
-        
+
         for i, c1 in enumerate(constraints_to_check):
             for c2 in constraints_to_check[i+1:]:
                 conflict = self._check_pair_conflict(c1, c2)
@@ -607,9 +610,9 @@ class ConstraintSystem:
                     conflict_count += 1
                     conflict.conflict_id = f"conflict_{conflict_count}"
                     conflicts.append(conflict)
-        
+
         return conflicts
-    
+
     def _check_pair_conflict(
         self,
         c1: Constraint,
@@ -634,7 +637,7 @@ class ConstraintSystem:
                         suggested_resolution="Review and adjust thresholds or remove one constraint",
                         auto_resolvable=False
                     )
-        
+
         # Check for resource conflicts
         if c1.constraint_type in [ConstraintType.BUDGET, ConstraintType.RESOURCE] and \
            c2.constraint_type in [ConstraintType.BUDGET, ConstraintType.RESOURCE]:
@@ -649,7 +652,7 @@ class ConstraintSystem:
                 suggested_resolution="Evaluate resource allocation and prioritize constraints",
                 auto_resolvable=True
             )
-        
+
         # Check for priority conflicts
         if c1.priority != c2.priority and c1.severity == c2.severity:
             # Same severity but different priorities
@@ -664,9 +667,9 @@ class ConstraintSystem:
                 suggested_resolution="Review priority assignments to ensure alignment",
                 auto_resolvable=True
             )
-        
+
         return None
-    
+
     def resolve_conflicts(
         self,
         conflicts: List[ConstraintConflict],
@@ -674,26 +677,26 @@ class ConstraintSystem:
     ) -> List[Dict[str, Any]]:
         """
         Resolve conflicts between constraints
-        
+
         Args:
             conflicts: List of conflicts to resolve
             resolution_strategy: Strategy to use (priority, flexible, negotiate)
-            
+
         Returns:
             List of resolution results
         """
         resolutions = []
-        
+
         for conflict in conflicts:
             if conflict.auto_resolvable and resolution_strategy == "priority":
                 # Auto-resolve by priority
                 c1 = self.constraints.get(conflict.constraint_1)
                 c2 = self.constraints.get(conflict.constraint_2)
-                
+
                 if c1 and c2:
                     higher_priority = c1 if c1.priority >= c2.priority else c2
                     lower_priority = c2 if c1.priority >= c2.priority else c1
-                    
+
                     resolutions.append({
                         "conflict_id": conflict.conflict_id,
                         "resolved": True,
@@ -702,12 +705,12 @@ class ConstraintSystem:
                         "higher_priority": higher_priority.name,
                         "lower_priority": lower_priority.name
                     })
-            
+
             elif resolution_strategy == "flexible":
                 # Try to resolve with flexibility
                 c1 = self.constraints.get(conflict.constraint_1)
                 c2 = self.constraints.get(conflict.constraint_2)
-                
+
                 if c1 and c2:
                     if c1.flexible and not c2.flexible:
                         resolutions.append({
@@ -735,7 +738,7 @@ class ConstraintSystem:
                             "action": "Cannot resolve - both constraints fixed or both flexible",
                             "requires_manual_review": True
                         })
-            
+
             else:
                 # Manual negotiation required
                 resolutions.append({
@@ -745,9 +748,9 @@ class ConstraintSystem:
                     "action": "Manual negotiation required",
                     "requires_user_input": True
                 })
-        
+
         return resolutions
-    
+
     def analyze_impact(
         self,
         constraint_id: str,
@@ -755,18 +758,18 @@ class ConstraintSystem:
     ) -> Optional[ConstraintImpact]:
         """
         Analyze impact of a constraint on system
-        
+
         Args:
             constraint_id: Constraint to analyze
             system_components: System components that could be affected
-            
+
         Returns:
             ConstraintImpact object or None if constraint not found
         """
         constraint = self.constraints.get(constraint_id)
         if not constraint:
             return None
-        
+
         # Determine impact type based on constraint type
         impact_mapping = {
             ConstraintType.BUDGET: "cost",
@@ -776,9 +779,9 @@ class ConstraintSystem:
             ConstraintType.ARCHITECTURAL: "scope",
             ConstraintType.PERFORMANCE: "quality"
         }
-        
+
         impact_type = impact_mapping.get(constraint.constraint_type, "scope")
-        
+
         # Determine impact level based on severity
         impact_level_mapping = {
             ConstraintSeverity.CRITICAL: "critical",
@@ -786,9 +789,9 @@ class ConstraintSystem:
             ConstraintSeverity.MEDIUM: "medium",
             ConstraintSeverity.LOW: "low"
         }
-        
+
         impact_level = impact_level_mapping.get(constraint.severity, "medium")
-        
+
         # Identify affected components
         affected_components = []
         if constraint.constraint_type == ConstraintType.BUDGET:
@@ -803,10 +806,10 @@ class ConstraintSystem:
             affected_components = ["data_storage", "user_consent", "audit_logs", "compliance"]
         elif constraint.constraint_type == ConstraintType.ARCHITECTURAL:
             affected_components = ["system_design", "technology_stack", "integration"]
-        
+
         # Generate mitigation strategies
         mitigation_strategies = self._generate_mitigation_strategies(constraint)
-        
+
         return ConstraintImpact(
             constraint_id=constraint_id,
             impact_type=impact_type,
@@ -815,11 +818,11 @@ class ConstraintSystem:
             affected_components=affected_components,
             mitigation_strategies=mitigation_strategies
         )
-    
+
     def _generate_mitigation_strategies(self, constraint: Constraint) -> List[str]:
         """Generate mitigation strategies for a constraint"""
         strategies = []
-        
+
         if constraint.constraint_type == ConstraintType.BUDGET:
             strategies = [
                 "Prioritize features by business value",
@@ -862,19 +865,19 @@ class ConstraintSystem:
                 "Document constraint rationale",
                 "Monitor constraint impact"
             ]
-        
+
         return strategies
-    
+
     def generate_constraint_report(
         self,
         include_details: bool = True
     ) -> Dict[str, Any]:
         """
         Generate comprehensive constraint report
-        
+
         Args:
             include_details: Include detailed constraint information
-            
+
         Returns:
             Report dictionary
         """
@@ -883,19 +886,19 @@ class ConstraintSystem:
         for constraint in self.constraints.values():
             constraint_type = constraint.constraint_type.value
             by_type[constraint_type] = by_type.get(constraint_type, 0) + 1
-        
+
         # Count by severity
         by_severity = {}
         for constraint in self.constraints.values():
             severity = constraint.severity.value
             by_severity[severity] = by_severity.get(severity, 0) + 1
-        
+
         # Count by status
         by_status = {}
         for constraint in self.constraints.values():
             status = constraint.status.value
             by_status[status] = by_status.get(status, 0) + 1
-        
+
         report = {
             "total_constraints": len(self.constraints),
             "by_type": by_type,
@@ -905,100 +908,100 @@ class ConstraintSystem:
             "fixed_constraints": sum(1 for c in self.constraints.values() if not c.flexible),
             "high_priority": sum(1 for c in self.constraints.values() if c.priority >= 8)
         }
-        
+
         if include_details:
             report["constraints"] = {
                 constraint_id: constraint.to_dict()
                 for constraint_id, constraint in self.constraints.items()
             }
-        
+
         return report
 
 
 if __name__ == "__main__":
     # Test constraint system
     system = ConstraintSystem()
-    
+
     # Test 1: Add constraints
-    print("=== Test 1: Add Constraints ===")
-    
+    logger.info("=== Test 1: Add Constraints ===")
+
     # Budget constraint
     budget_constraint = system.add_constraint_from_template(
         "budget", "total_cost", 10000,
         priority=9,
         justification="Project budget limit"
     )
-    print(f"Added: {budget_constraint.name}")
-    
+    logger.info(f"Added: {budget_constraint.name}")
+
     # Performance constraint
     perf_constraint = system.add_constraint_from_template(
         "performance", "response_time", 200,
         priority=8,
         justification="User experience requirement"
     )
-    print(f"Added: {perf_constraint.name}")
-    
+    logger.info(f"Added: {perf_constraint.name}")
+
     # Regulatory constraint
     reg_constraint = system.add_constraint_from_template(
         "regulatory", "gdpr_compliance", True,
         priority=10,
         justification="Legal requirement"
     )
-    print(f"Added: {reg_constraint.name}")
-    
+    logger.info(f"Added: {reg_constraint.name}")
+
     # Architectural constraint
     arch_constraint = system.add_constraint_from_template(
         "architectural", "availability", 99.9,
         priority=8,
         justification="SLA requirement"
     )
-    print(f"Added: {arch_constraint.name}")
-    
+    logger.info(f"Added: {arch_constraint.name}")
+
     # Test 2: Validate constraints
-    print("\n=== Test 2: Validate Constraints ===")
+    logger.info("\n=== Test 2: Validate Constraints ===")
     system_state = {
         "total_cost": 9500,
         "response_time_ms": 180,
         "gdpr_compliant": True,
         "uptime_percentage": 99.8
     }
-    
+
     results, warnings = system.validate_constraints(system_state)
-    print(f"Satisfied: {results['satisfied']}")
-    print(f"Violated: {results['violated']}")
-    print(f"Warnings: {results['warnings']}")
-    print(f"Pending: {results['pending']}")
-    
+    logger.info(f"Satisfied: {results['satisfied']}")
+    logger.info(f"Violated: {results['violated']}")
+    logger.info(f"Warnings: {results['warnings']}")
+    logger.info(f"Pending: {results['pending']}")
+
     for warning in warnings:
-        print(f"  - {warning}")
-    
+        logger.info(f"  - {warning}")
+
     # Test 3: Detect conflicts
-    print("\n=== Test 3: Detect Conflicts ===")
+    logger.info("\n=== Test 3: Detect Conflicts ===")
     conflicts = system.detect_conflicts()
-    print(f"Found {len(conflicts)} conflicts")
+    logger.info(f"Found {len(conflicts)} conflicts")
     for conflict in conflicts:
-        print(f"  - {conflict.description}")
-    
+        logger.info(f"  - {conflict.description}")
+
     # Test 4: Prioritize constraints
-    print("\n=== Test 4: Prioritize Constraints ===")
+    logger.info("\n=== Test 4: Prioritize Constraints ===")
     prioritized = system.prioritize_constraints()
-    print("Prioritized order:")
+    logger.info("Prioritized order:")
     for constraint in prioritized:
-        print(f"  {constraint.priority}. {constraint.name} ({constraint.severity.value})")
-    
+        logger.info(f"  {constraint.priority}. {constraint.name} ({constraint.severity.value})")
+
     # Test 5: Analyze impact
-    print("\n=== Test 5: Analyze Impact ===")
+    logger.info("\n=== Test 5: Analyze Impact ===")
     impact = system.analyze_impact(budget_constraint.constraint_id, {})
     if impact:
-        print(f"Impact of {budget_constraint.name}:")
-        print(f"  Type: {impact.impact_type}")
-        print(f"  Level: {impact.impact_level}")
-        print(f"  Affected Components: {', '.join(impact.affected_components)}")
-        print(f"  Mitigation Strategies:")
+        logger.info(f"Impact of {budget_constraint.name}:")
+        logger.info(f"  Type: {impact.impact_type}")
+        logger.info(f"  Level: {impact.impact_level}")
+        logger.info(f"  Affected Components: {', '.join(impact.affected_components)}")
+        logger.info("  Mitigation Strategies:")
         for strategy in impact.mitigation_strategies:
-            print(f"    - {strategy}")
-    
+            logger.info(f"    - {strategy}")
+
     # Test 6: Generate report
-    print("\n=== Test 6: Generate Report ===")
+    logger.info("\n=== Test 6: Generate Report ===")
     report = system.generate_constraint_report(include_details=False)
-    print(json.dumps(report, indent=2))
+    logger.info(json.dumps(report, indent=2))

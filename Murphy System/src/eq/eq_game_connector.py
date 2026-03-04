@@ -18,6 +18,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
+from thread_safe_operations import capped_append
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -353,7 +358,7 @@ class EQEmuGameConnector:
 
     def emit_event(self, event: ServerEvent) -> None:
         """Log a server event for consumption by the Murphy System."""
-        self._event_log.append(event)
+        capped_append(self._event_log, event)
 
     def get_events(self, event_type: Optional[ServerEventType] = None) -> List[ServerEvent]:
         if event_type is None:

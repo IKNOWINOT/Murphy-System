@@ -18,6 +18,11 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set
+from thread_safe_operations import capped_append
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -139,7 +144,7 @@ class EQGateway:
             allowed=is_valid,
             rejection_reason=reason,
         )
-        self._log.append(entry)
+        capped_append(self._log, entry)
         return is_valid
 
     def pass_outbound(
@@ -160,7 +165,7 @@ class EQGateway:
             content_type=content_type,
             allowed=True,
         )
-        self._log.append(entry)
+        capped_append(self._log, entry)
         return True
 
     # --- Recall query scoping ---

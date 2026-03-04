@@ -147,10 +147,12 @@ class EventBackbone:
         self._subscription_index: Dict[str, _Subscription] = {}
         # Set of event_ids already seen (idempotency)
         self._seen_event_ids: set = set()
-        # Dead letter queue
+        # Dead letter queue (bounded)
         self._dlq: List[Event] = []
-        # Event history (completed / failed records)
+        self._max_dlq_size = 1000
+        # Event history (completed / failed records, bounded)
         self._history: List[Dict[str, Any]] = []
+        self._max_history_size = 10_000
         # Per-subscription circuit breakers
         self._circuit_breakers: Dict[str, _HandlerCircuitBreaker] = {}
         # Counters
@@ -362,7 +364,8 @@ class EventBackbone:
             if cb:
                 cb.record_success()
             return True
-        except Exception:
+        except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             logger.exception(
                 "Handler %s failed for event %s (retry %d/%d)",
                 sub.subscription_id,
@@ -377,6 +380,8 @@ class EventBackbone:
     def _send_to_dlq(self, event: Event) -> None:
         """Move an event to the dead letter queue."""
         with self._lock:
+            if len(self._dlq) >= self._max_dlq_size:
+                self._dlq = self._dlq[self._max_dlq_size // 10:]
             self._dlq.append(event)
             self._persist_state()
         self._record_history(event, "dead_letter")
@@ -388,6 +393,8 @@ class EventBackbone:
 
     def _record_history(self, event: Event, status: str) -> None:
         with self._lock:
+            if len(self._history) >= self._max_history_size:
+                self._history = self._history[self._max_history_size // 10:]
             self._history.append({
                 **event.to_dict(),
                 "status": status,
@@ -433,7 +440,7 @@ class EventBackbone:
         path = os.path.join(self._persistence_dir, "event_backbone_state.json")
         tmp_path = path + ".tmp"
         try:
-            with open(tmp_path, "w") as f:
+            with open(tmp_path, "w", encoding='utf-8') as f:
                 json.dump(state, f)
             os.replace(tmp_path, path)
         except OSError:
@@ -447,7 +454,7 @@ class EventBackbone:
         if not os.path.exists(path):
             return
         try:
-            with open(path, "r") as f:
+            with open(path, "r", encoding='utf-8') as f:
                 state = json.load(f)
             for et_value, events in state.get("queues", {}).items():
                 et = EventType(et_value)

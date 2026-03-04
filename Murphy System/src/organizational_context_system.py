@@ -8,6 +8,10 @@ from dataclasses import dataclass
 from enum import Enum
 import time
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class OrganizationalPressure(Enum):
     """Types of organizational pressure"""
@@ -63,15 +67,15 @@ class OrganizationalContext:
 class OrganizationalContextAnalyzer:
     """
     Analyzes organizational context to adjust MFGC behavior
-    
+
     Key insight: Same technical solution may be right or wrong
     depending on organizational context
     """
-    
+
     def __init__(self):
         self.context_history = []
         self.pressure_weights = self._initialize_pressure_weights()
-    
+
     def _initialize_pressure_weights(self) -> Dict[OrganizationalPressure, float]:
         """Initialize how much each pressure increases Murphy risk"""
         return {
@@ -85,7 +89,7 @@ class OrganizationalContextAnalyzer:
             OrganizationalPressure.INNOVATION: 0.1,  # Moderate risk
             OrganizationalPressure.EFFICIENCY: 0.15
         }
-    
+
     def analyze_context(
         self,
         task: str,
@@ -93,21 +97,21 @@ class OrganizationalContextAnalyzer:
     ) -> OrganizationalContext:
         """
         Analyze organizational context from task and stated context
-        
+
         Returns complete organizational context
         """
         # Extract pressures
         pressures = self._detect_pressures(task, stated_context)
-        
+
         # Detect incentive structure
         incentives = self._detect_incentives(stated_context)
-        
+
         # Detect culture
         culture = self._detect_culture(stated_context)
-        
+
         # Assess risk tolerance
         risk_tolerance = self._assess_risk_tolerance(pressures, culture)
-        
+
         # Build complete context
         context = OrganizationalContext(
             pressures=pressures,
@@ -122,16 +126,16 @@ class OrganizationalContextAnalyzer:
             historical_failures=stated_context.get('past_failures', []),
             success_metrics=stated_context.get('metrics', ['quality', 'time', 'cost'])
         )
-        
+
         # Store in history
         self.context_history.append({
             'timestamp': time.time(),
             'context': context,
             'task': task
         })
-        
+
         return context
-    
+
     def _detect_pressures(
         self,
         task: str,
@@ -141,49 +145,49 @@ class OrganizationalContextAnalyzer:
         pressures = []
         task_lower = task.lower()
         context_str = str(context).lower()
-        
+
         # Deadline pressure
         if any(word in task_lower for word in ['urgent', 'asap', 'deadline', 'quickly', 'fast']):
             pressures.append(OrganizationalPressure.DEADLINE)
-        
+
         # Budget pressure
         if any(word in task_lower for word in ['cheap', 'budget', 'cost', 'affordable']):
             pressures.append(OrganizationalPressure.BUDGET)
-        
+
         # Competition pressure
         if any(word in task_lower for word in ['competitor', 'market', 'competitive']):
             pressures.append(OrganizationalPressure.COMPETITION)
-        
+
         # Regulation pressure
         if any(word in task_lower for word in ['compliance', 'regulation', 'legal', 'audit']):
             pressures.append(OrganizationalPressure.REGULATION)
-        
+
         # Reputation pressure
         if any(word in task_lower for word in ['reputation', 'brand', 'image', 'public']):
             pressures.append(OrganizationalPressure.REPUTATION)
-        
+
         # Political pressure
         if any(word in context_str for word in ['political', 'stakeholder', 'executive']):
             pressures.append(OrganizationalPressure.POLITICAL)
-        
+
         # Innovation pressure
         if any(word in task_lower for word in ['innovative', 'novel', 'breakthrough']):
             pressures.append(OrganizationalPressure.INNOVATION)
-        
+
         # Efficiency pressure
         if any(word in task_lower for word in ['efficient', 'optimize', 'streamline']):
             pressures.append(OrganizationalPressure.EFFICIENCY)
-        
+
         # Default to NONE if no pressures detected
         if not pressures:
             pressures.append(OrganizationalPressure.NONE)
-        
+
         return pressures
-    
+
     def _detect_incentives(self, context: Dict[str, Any]) -> IncentiveStructure:
         """Detect incentive structure"""
         incentive_hints = context.get('incentives', '')
-        
+
         if 'quality' in str(incentive_hints).lower():
             return IncentiveStructure.QUALITY_FOCUSED
         elif 'speed' in str(incentive_hints).lower() or 'fast' in str(incentive_hints).lower():
@@ -194,11 +198,11 @@ class OrganizationalContextAnalyzer:
             return IncentiveStructure.INNOVATION_FOCUSED
         else:
             return IncentiveStructure.BALANCED
-    
+
     def _detect_culture(self, context: Dict[str, Any]) -> CultureType:
         """Detect organizational culture"""
         culture_hints = context.get('culture', '')
-        
+
         if 'safety' in str(culture_hints).lower():
             return CultureType.SAFETY_FIRST
         elif 'move fast' in str(culture_hints).lower():
@@ -215,7 +219,7 @@ class OrganizationalContextAnalyzer:
             return CultureType.DATA_DRIVEN
         else:
             return CultureType.BALANCED
-    
+
     def _assess_risk_tolerance(
         self,
         pressures: List[OrganizationalPressure],
@@ -233,9 +237,9 @@ class OrganizationalContextAnalyzer:
             CultureType.DATA_DRIVEN: 0.5,
             CultureType.BALANCED: 0.5
         }
-        
+
         base_tolerance = culture_tolerance.get(culture, 0.5)
-        
+
         # Adjust based on pressures
         pressure_adjustment = 0.0
         for pressure in pressures:
@@ -243,46 +247,46 @@ class OrganizationalContextAnalyzer:
                 pressure_adjustment += 0.1  # Pressure increases risk-taking
             elif pressure == OrganizationalPressure.REGULATION:
                 pressure_adjustment -= 0.1  # Regulation decreases risk-taking
-        
+
         return max(0.0, min(1.0, base_tolerance + pressure_adjustment))
-    
+
     def compute_murphy_multiplier(self, context: OrganizationalContext) -> float:
         """
         Compute Murphy risk multiplier based on organizational context
-        
+
         Key insight: Organizational pressure INCREASES Murphy risk,
         it does NOT increase authority
         """
         multiplier = 1.0
-        
+
         # Add pressure contributions
         for pressure in context.pressures:
             multiplier += self.pressure_weights.get(pressure, 0.0)
-        
+
         # Adjust for incentive misalignment
         if context.incentives == IncentiveStructure.MISALIGNED:
             multiplier += 0.4  # Misaligned incentives are very risky
         elif context.incentives == IncentiveStructure.SPEED_FOCUSED:
             multiplier += 0.2  # Speed incentives increase risk
-        
+
         # Adjust for culture
         if context.culture == CultureType.MOVE_FAST:
             multiplier += 0.2
         elif context.culture == CultureType.SAFETY_FIRST:
             multiplier -= 0.1  # Safety culture reduces risk
-        
+
         # Adjust for political factors
         multiplier += len(context.political_factors) * 0.1
-        
+
         return max(1.0, multiplier)  # Never less than 1.0
-    
+
     def suggest_gates_for_context(
         self,
         context: OrganizationalContext
     ) -> List[Dict[str, Any]]:
         """Suggest safety gates based on organizational context"""
         gates = []
-        
+
         # Gates for deadline pressure
         if OrganizationalPressure.DEADLINE in context.pressures:
             gates.append({
@@ -297,7 +301,7 @@ class OrganizationalContextAnalyzer:
                 'rationale': 'Speed pressure can compromise quality',
                 'severity': 0.8
             })
-        
+
         # Gates for budget pressure
         if OrganizationalPressure.BUDGET in context.pressures:
             gates.append({
@@ -306,7 +310,7 @@ class OrganizationalContextAnalyzer:
                 'rationale': 'Budget pressure hides long-term costs',
                 'severity': 0.6
             })
-        
+
         # Gates for political pressure
         if OrganizationalPressure.POLITICAL in context.pressures:
             gates.append({
@@ -315,7 +319,7 @@ class OrganizationalContextAnalyzer:
                 'rationale': 'Political pressure can override technical judgment',
                 'severity': 0.9
             })
-        
+
         # Gates for misaligned incentives
         if context.incentives == IncentiveStructure.MISALIGNED:
             gates.append({
@@ -324,7 +328,7 @@ class OrganizationalContextAnalyzer:
                 'rationale': 'Misaligned incentives cause perverse outcomes',
                 'severity': 0.9
             })
-        
+
         # Gates for move-fast culture
         if context.culture == CultureType.MOVE_FAST:
             gates.append({
@@ -333,7 +337,7 @@ class OrganizationalContextAnalyzer:
                 'rationale': 'Move fast culture needs clear boundaries',
                 'severity': 0.7
             })
-        
+
         # Gates for historical failures
         for failure in context.historical_failures:
             gates.append({
@@ -342,9 +346,9 @@ class OrganizationalContextAnalyzer:
                 'rationale': 'Learn from past failures',
                 'severity': 0.8
             })
-        
+
         return gates
-    
+
     def adjust_confidence_for_context(
         self,
         base_confidence: float,
@@ -352,60 +356,60 @@ class OrganizationalContextAnalyzer:
     ) -> float:
         """
         Adjust confidence based on organizational context
-        
+
         Key insight: Organizational pressure DECREASES confidence,
         not increases it
         """
         adjusted = base_confidence
-        
+
         # Pressure decreases confidence
         for pressure in context.pressures:
             if pressure != OrganizationalPressure.NONE:
                 adjusted *= 0.95  # Each pressure reduces confidence by 5%
-        
+
         # Misaligned incentives decrease confidence
         if context.incentives == IncentiveStructure.MISALIGNED:
             adjusted *= 0.8
-        
+
         # Risk-averse culture increases confidence (more validation)
         if context.culture == CultureType.RISK_AVERSE:
             adjusted *= 1.1
         elif context.culture == CultureType.MOVE_FAST:
             adjusted *= 0.9
-        
+
         return max(0.0, min(1.0, adjusted))
-    
+
     def generate_context_report(self, context: OrganizationalContext) -> str:
         """Generate human-readable context report"""
         report = []
         report.append("## Organizational Context Analysis")
         report.append("")
-        
+
         # Pressures
         report.append("**Detected Pressures:**")
         for pressure in context.pressures:
             weight = self.pressure_weights.get(pressure, 0.0)
             report.append(f"  • {pressure.value}: Murphy risk +{weight:.2f}")
         report.append("")
-        
+
         # Incentives
         report.append(f"**Incentive Structure:** {context.incentives.value}")
         if context.incentives == IncentiveStructure.MISALIGNED:
             report.append("  ⚠️ WARNING: Misaligned incentives detected")
         report.append("")
-        
+
         # Culture
         report.append(f"**Organizational Culture:** {context.culture.value}")
         report.append(f"**Risk Tolerance:** {context.risk_tolerance:.2f}")
         report.append("")
-        
+
         # Murphy multiplier
         multiplier = self.compute_murphy_multiplier(context)
         report.append(f"**Murphy Risk Multiplier:** {multiplier:.2f}x")
         if multiplier > 1.5:
             report.append("  ⚠️ HIGH RISK: Organizational factors significantly increase Murphy risk")
         report.append("")
-        
+
         # Suggested gates
         gates = self.suggest_gates_for_context(context)
         if gates:
@@ -413,5 +417,5 @@ class OrganizationalContextAnalyzer:
             for gate in gates:
                 report.append(f"  • {gate['name']} (severity: {gate['severity']:.1f})")
                 report.append(f"    Rationale: {gate['rationale']}")
-        
+
         return "\n".join(report)

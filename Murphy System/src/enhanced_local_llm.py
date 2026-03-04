@@ -4,10 +4,14 @@ Replicates mock function outputs with similar quality and structure
 """
 
 import re
+import ast
 import math
 import json
+import operator
 from typing import Dict, Any, List, Tuple, Optional
 from datetime import datetime
+import logging
+logger = logging.getLogger(__name__)
 
 
 class EnhancedLocalLLM:
@@ -15,7 +19,7 @@ class EnhancedLocalLLM:
     Enhanced local LLM that replicates mock function outputs
     Supports step-by-step reasoning, detailed explanations, and creative generation
     """
-    
+
     def __init__(self):
         self.knowledge_base = self._build_comprehensive_knowledge_base()
         self.math_patterns = self._build_math_patterns()
@@ -23,17 +27,17 @@ class EnhancedLocalLLM:
         self.code_templates = self._build_code_templates()
         self.generative_templates = self._build_generative_templates()
         self.conversation_history = []
-        
-    def query(self, prompt: str, provider: str = 'aristotle', 
+
+    def query(self, prompt: str, provider: str = 'aristotle',
               temperature: float = 0.7) -> Dict[str, Any]:
         """
         Main query method that matches mock function output structure
-        
+
         Args:
             prompt: User query
             provider: Which provider to emulate (aristotle, wulfrum, groq)
             temperature: Temperature for randomness
-            
+
         Returns:
             Dictionary matching mock output structure:
             {
@@ -50,7 +54,7 @@ class EnhancedLocalLLM:
             "content": prompt,
             "timestamp": datetime.now().isoformat()
         })
-        
+
         # Generate response based on provider
         if provider == 'aristotle':
             response = self._aristotle_response(prompt, temperature)
@@ -61,17 +65,17 @@ class EnhancedLocalLLM:
         else:
             response = self._groq_response(prompt, temperature)
             provider = 'groq'
-        
+
         # Calculate tokens (rough estimate)
         tokens_used = len(response['response'].split()) + len(prompt.split())
-        
+
         # Add AI response to history
         self.conversation_history.append({
             "role": "assistant",
             "content": response['response'],
             "timestamp": datetime.now().isoformat()
         })
-        
+
         return {
             "response": response['response'],
             "confidence": response['confidence'],
@@ -79,7 +83,7 @@ class EnhancedLocalLLM:
             "provider": provider,
             "metadata": response.get('metadata', {})
         }
-    
+
     def _aristotle_response(self, prompt: str, temperature: float) -> Dict[str, Any]:
         """
         Aristotle-style: Deterministic mathematical and scientific analysis
@@ -89,20 +93,20 @@ class EnhancedLocalLLM:
         math_result = self._solve_mathematical_query(prompt)
         if math_result:
             return math_result
-        
+
         # Check for physics queries
         physics_result = self._solve_physics_query(prompt)
         if physics_result:
             return physics_result
-        
+
         # Check for logical reasoning
         logic_result = self._solve_logical_query(prompt)
         if logic_result:
             return logic_result
-        
+
         # Default scientific explanation
         return self._generate_scientific_explanation(prompt)
-    
+
     def _wulfrum_response(self, prompt: str, temperature: float) -> Dict[str, Any]:
         """
         Wulfrum-style: Fuzzy matching and validation
@@ -112,15 +116,15 @@ class EnhancedLocalLLM:
         validation_result = self._validate_query(prompt)
         if validation_result:
             return validation_result
-        
+
         # Check for comparison queries
         comparison_result = self._compare_query(prompt)
         if comparison_result:
             return comparison_result
-        
+
         # Default validation response
         return self._generate_validation_response(prompt)
-    
+
     def _groq_response(self, prompt: str, temperature: float) -> Dict[str, Any]:
         """
         Groq-style: General domain tasks and generation
@@ -130,24 +134,24 @@ class EnhancedLocalLLM:
         creative_result = self._generate_creative_content(prompt)
         if creative_result:
             return creative_result
-        
+
         # Check for code generation
         code_result = self._generate_code(prompt)
         if code_result:
             return code_result
-        
+
         # Check for explanation requests
         explanation_result = self._generate_explanation(prompt)
         if explanation_result:
             return explanation_result
-        
+
         # Default generative response
         return self._generate_general_response(prompt)
-    
+
     def _solve_mathematical_query(self, prompt: str) -> Optional[Dict[str, Any]]:
         """Solve mathematical queries with step-by-step reasoning"""
         prompt_lower = prompt.lower()
-        
+
         # Enhanced pattern matching for math operations
         patterns = [
             # Calculus operations
@@ -156,7 +160,7 @@ class EnhancedLocalLLM:
             (r'd/dx\s*\((.+)\)', self._solve_calculus),
             (r'derivative of (.+)', self._solve_calculus),
             (r'integral of (.+)', self._solve_calculus),
-            
+
             # Arithmetic operations
             (r'calculate|solve|compute|evaluate (.+)', self._solve_arithmetic),
             (r'what is (.+) plus (.+)', self._solve_arithmetic),
@@ -171,17 +175,17 @@ class EnhancedLocalLLM:
             (r'calculate (.+) - (.+)', self._solve_arithmetic),
             (r'calculate (.+) \* (.+)', self._solve_arithmetic),
             (r'calculate (.+) / (.+)', self._solve_arithmetic),
-            
+
             # Algebra operations
             (r'simplify (.+)', self._simplify_expression),
             (r'factor (.+)', self._simplify_expression),
             (r'expand (.+)', self._simplify_expression),
             (r'solve (.+) for (.+)', self._simplify_expression),
-            
+
             # Direct mathematical expressions
             (r'^[\d\s\+\-\*\/\(\)\.\^]+$', self._solve_arithmetic),
         ]
-        
+
         for pattern, solver in patterns:
             match = re.search(pattern, prompt_lower)
             if match:
@@ -189,26 +193,27 @@ class EnhancedLocalLLM:
                     result = solver(match, prompt)
                     if result:
                         return result
-                except:
+                except Exception as exc:
+                    logger.debug("Suppressed exception: %s", exc)
                     pass
-        
+
         return None
-    
+
     def _solve_calculus(self, match: re.Match, original_prompt: str) -> Dict[str, Any]:
         """Solve calculus problems with step-by-step explanation"""
         operation = match.group(1)
         expression = match.group(2)
-        
+
         if operation == 'derivative':
             # Parse common derivatives
             derivative_result = self._compute_derivative(expression)
             if derivative_result:
                 steps = [
                     f"Step 1: Identify the function to differentiate: f(x) = {expression}",
-                    f"Step 2: Apply differentiation rules",
+                    "Step 2: Apply differentiation rules",
                 ]
                 steps.extend(derivative_result['steps'])
-                
+
                 response = f"""
 **Mathematical Analysis - Derivative**
 
@@ -221,12 +226,12 @@ class EnhancedLocalLLM:
 
 **Explanation**: This derivative represents the rate of change of the function with respect to x. It can be used to find slopes of tangent lines, optimize functions, and analyze function behavior.
 
-**Applications**: 
+**Applications**:
 - Physics: Velocity and acceleration
 - Economics: Marginal cost and revenue
 - Engineering: Optimization problems
 """
-                
+
                 return {
                     "response": response,
                     "confidence": 0.95,
@@ -236,13 +241,13 @@ class EnhancedLocalLLM:
                         "complexity": derivative_result.get('complexity', 'medium')
                     }
                 }
-        
+
         return None
-    
+
     def _compute_derivative(self, expression: str) -> Optional[Dict[str, Any]]:
         """Compute derivative of common expressions"""
         expression = expression.strip()
-        
+
         # Common derivative rules - enhanced with more patterns
         derivative_rules = {
             # Power functions
@@ -277,7 +282,7 @@ class EnhancedLocalLLM:
                 ],
                 'complexity': 'simple'
             },
-            
+
             # Trigonometric functions
             r'^sin\(x\)$': {
                 'result': 'cos(x)',
@@ -300,7 +305,7 @@ class EnhancedLocalLLM:
                 ],
                 'complexity': 'simple'
             },
-            
+
             # Exponential and logarithmic
             r'^e\s*\^\s*x$': {
                 'result': 'e^x',
@@ -323,7 +328,7 @@ class EnhancedLocalLLM:
                 ],
                 'complexity': 'simple'
             },
-            
+
             # Constants
             r'^[0-9]+$': {
                 'result': '0',
@@ -333,12 +338,12 @@ class EnhancedLocalLLM:
                 'complexity': 'simple'
             },
         }
-        
+
         # Try exact matches first
         for pattern, rule in derivative_rules.items():
             if re.fullmatch(pattern, expression, re.IGNORECASE):
                 return rule
-        
+
         # Try partial matches for more flexible input
         flexible_rules = {
             r'x\^2': {
@@ -386,26 +391,26 @@ class EnhancedLocalLLM:
                 'complexity': 'simple'
             },
         }
-        
+
         for pattern, rule in flexible_rules.items():
             if re.search(pattern, expression, re.IGNORECASE):
                 return rule
-        
+
         return None
-    
+
     def _solve_arithmetic(self, match: re.Match, original_prompt: str) -> Dict[str, Any]:
-        """Solve arithmetic problems"""
+        """Solve arithmetic problems using a safe AST-based evaluator."""
         try:
             # Extract the expression
             expression = match.group(2) if len(match.groups()) >= 2 else match.group(0)
-            
+
             # Clean up the expression
             expression = expression.replace('what is', '').strip()
             expression = re.sub(r'[^\d+\-*/().\s^]', '', expression)
-            
-            # Evaluate safely
-            result = eval(expression)
-            
+
+            # Evaluate safely — no eval(); walk the AST instead
+            result = self._safe_eval_arithmetic(expression)
+
             response = f"""
 **Mathematical Calculation**
 
@@ -423,7 +428,7 @@ class EnhancedLocalLLM:
 - Verify order of operations
 - Result type: {type(result).__name__}
 """
-            
+
             return {
                 "response": response,
                 "confidence": 0.98,
@@ -433,13 +438,59 @@ class EnhancedLocalLLM:
                     "result_type": type(result).__name__
                 }
             }
-        except:
+        except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             return None
-    
+
+    # -- Safe arithmetic evaluator (replaces eval) ---------------------------
+
+    _SAFE_OPS = {
+        ast.Add: operator.add,
+        ast.Sub: operator.sub,
+        ast.Mult: operator.mul,
+        ast.Div: operator.truediv,
+        ast.Pow: operator.pow,
+        ast.USub: operator.neg,
+        ast.UAdd: operator.pos,
+    }
+
+    def _safe_eval_arithmetic(self, expression: str):
+        """Evaluate a numeric arithmetic expression without ``eval()``.
+
+        Only literal numbers and the operators ``+ - * / ** ^`` are
+        permitted.  Raises ``ValueError`` for anything else.
+        """
+        # Treat ``^`` as exponentiation (common user expectation)
+        expression = expression.replace("^", "**")
+        node = ast.parse(expression.strip(), mode="eval")
+        return self._safe_eval_node(node.body)
+
+    def _safe_eval_node(self, node):
+        if isinstance(node, ast.Expression):
+            return self._safe_eval_node(node.body)
+        if isinstance(node, (ast.Constant,)):
+            if isinstance(node.value, (int, float)):
+                return node.value
+            raise ValueError(f"Unsupported constant type: {type(node.value)}")
+        if isinstance(node, ast.UnaryOp):
+            op_fn = self._SAFE_OPS.get(type(node.op))
+            if op_fn is None:
+                raise ValueError(f"Unsupported unary op: {type(node.op).__name__}")
+            return op_fn(self._safe_eval_node(node.operand))
+        if isinstance(node, ast.BinOp):
+            op_fn = self._SAFE_OPS.get(type(node.op))
+            if op_fn is None:
+                raise ValueError(f"Unsupported binary op: {type(node.op).__name__}")
+            return op_fn(
+                self._safe_eval_node(node.left),
+                self._safe_eval_node(node.right),
+            )
+        raise ValueError(f"Unsupported AST node: {type(node).__name__}")
+
     def _simplify_expression(self, match: re.Match, original_prompt: str) -> Optional[Dict[str, Any]]:
         """Simplify mathematical expressions"""
         expression = match.group(1)
-        
+
         response = f"""
 **Mathematical Simplification**
 
@@ -458,7 +509,7 @@ This expression can be simplified by applying algebraic rules.
 
 **Note**: For complex simplifications, additional context may be needed to provide the most appropriate form.
 """
-        
+
         return {
             "response": response,
             "confidence": 0.90,
@@ -467,29 +518,29 @@ This expression can be simplified by applying algebraic rules.
                 "complexity": "medium"
             }
         }
-    
+
     def _solve_physics_query(self, prompt: str) -> Optional[Dict[str, Any]]:
         """Solve physics queries with formulas and explanations"""
         prompt_lower = prompt.lower()
-        
+
         # Check for physics keywords
-        physics_keywords = ['kinetic energy', 'force', 'velocity', 'acceleration', 
+        physics_keywords = ['kinetic energy', 'force', 'velocity', 'acceleration',
                           'momentum', 'work', 'power', 'ohm', 'coulomb']
-        
+
         for keyword in physics_keywords:
             if keyword in prompt_lower:
                 return self._generate_physics_explanation(keyword, prompt)
-        
+
         return None
-    
+
     def _generate_physics_explanation(self, topic: str, prompt: str) -> Dict[str, Any]:
         """Generate physics explanation with formulas"""
-        
+
         physics_info = self.physics_formulas.get(topic, {})
-        
+
         if not physics_info:
             return None
-        
+
         response = f"""
 **Physics Analysis - {topic.replace('_', ' ').title()}**
 
@@ -512,7 +563,7 @@ This expression can be simplified by applying algebraic rules.
 - Units and measurements
 - Real-world applications
 """
-        
+
         return {
             "response": response,
             "confidence": 0.95,
@@ -522,22 +573,22 @@ This expression can be simplified by applying algebraic rules.
                 "topic": topic
             }
         }
-    
+
     def _solve_logical_query(self, prompt: str) -> Optional[Dict[str, Any]]:
         """Solve logical reasoning queries"""
         prompt_lower = prompt.lower()
-        
+
         # Check for yes/no questions
         if prompt.strip().endswith('?'):
             if 'true' in prompt_lower or 'false' in prompt_lower:
                 return self._analyze_boolean_query(prompt)
-        
+
         # Check for comparison
         if 'greater than' in prompt_lower or 'less than' in prompt_lower:
             return self._analyze_comparison_query(prompt)
-        
+
         return None
-    
+
     def _analyze_boolean_query(self, prompt: str) -> Dict[str, Any]:
         """Analyze boolean logic queries"""
         response = f"""
@@ -562,7 +613,7 @@ This is a boolean logic question that requires evaluating the truth value of the
 
 **Note**: In offline mode, I can explain logical principles but cannot evaluate arbitrary boolean expressions without complete context.
 """
-        
+
         return {
             "response": response,
             "confidence": 0.85,
@@ -571,7 +622,7 @@ This is a boolean logic question that requires evaluating the truth value of the
                 "logic_type": "boolean"
             }
         }
-    
+
     def _analyze_comparison_query(self, prompt: str) -> Dict[str, Any]:
         """Analyze comparison queries"""
         response = f"""
@@ -592,7 +643,7 @@ This comparison involves evaluating the relationship between two or more values 
 
 **For specific evaluation**, provide the actual values or expressions to compare.
 """
-        
+
         return {
             "response": response,
             "confidence": 0.88,
@@ -601,7 +652,7 @@ This comparison involves evaluating the relationship between two or more values 
                 "analysis_type": "comparison"
             }
         }
-    
+
     def _generate_scientific_explanation(self, prompt: str) -> Dict[str, Any]:
         """Generate general scientific explanation"""
         response = f"""
@@ -628,7 +679,7 @@ This topic falls within the domain of science and can be analyzed using systemat
 
 **Confidence**: This explanation provides a general framework, but specific details may require additional context or online resources.
 """
-        
+
         return {
             "response": response,
             "confidence": 0.75,
@@ -637,27 +688,27 @@ This topic falls within the domain of science and can be analyzed using systemat
                 "domain": "general"
             }
         }
-    
+
     def _validate_query(self, prompt: str) -> Optional[Dict[str, Any]]:
         """Validate queries with fuzzy matching"""
         prompt_lower = prompt.lower()
-        
+
         # Check for validation patterns
         validation_patterns = [
             (r'is (correct|true|false|valid)', 'boolean_validation'),
             (r'(check|verify|validate) (.+)', 'verification'),
             (r'(does|will|can) (.+)', 'prediction'),
         ]
-        
+
         for pattern, validation_type in validation_patterns:
             if re.search(pattern, prompt_lower):
                 return self._generate_validation_response(prompt, validation_type)
-        
+
         return None
-    
+
     def _generate_validation_response(self, prompt: str, validation_type: str = 'general') -> Dict[str, Any]:
         """Generate validation response"""
-        
+
         if validation_type == 'boolean_validation':
             response = f"""
 **Validation Analysis**
@@ -729,7 +780,7 @@ I've analyzed your query using pattern matching and logical evaluation.
 
 **Confidence**: The validation framework is reliable, but the specific result depends on complete information.
 """
-        
+
         return {
             "response": response,
             "confidence": 0.85,
@@ -738,13 +789,13 @@ I've analyzed your query using pattern matching and logical evaluation.
                 "match_quality": "medium" if validation_type == "boolean_validation" else "high"
             }
         }
-    
+
     def _compare_query(self, prompt: str) -> Optional[Dict[str, Any]]:
         """Handle comparison queries"""
         if 'difference between' in prompt.lower() or 'compare' in prompt.lower():
             return self._generate_comparison_response(prompt)
         return None
-    
+
     def _generate_comparison_response(self, prompt: str) -> Dict[str, Any]:
         """Generate comparison response"""
         response = f"""
@@ -776,7 +827,7 @@ I can provide a structured comparison based on the items in your query.
 
 **Confidence**: High - The comparison framework is comprehensive and applicable to most scenarios.
 """
-        
+
         return {
             "response": response,
             "confidence": 0.88,
@@ -785,11 +836,11 @@ I can provide a structured comparison based on the items in your query.
                 "match_quality": "high"
             }
         }
-    
+
     def _generate_creative_content(self, prompt: str) -> Optional[Dict[str, Any]]:
         """Generate creative content (poems, stories, etc.)"""
         prompt_lower = prompt.lower()
-        
+
         # Enhanced creative pattern matching
         creative_patterns = [
             # Poem patterns
@@ -800,7 +851,7 @@ I can provide a structured comparison based on the items in your query.
             (r'compose (a|an)? poem', 'creative_writing_poem'),
             (r'write a poem (about|on) (.+)', 'creative_writing_poem'),
             (r'poem about (.+)', 'creative_writing_poem'),
-            
+
             # Story patterns
             (r'write (a|an)? story', 'creative_writing_story'),
             (r'create (a|an)? story', 'creative_writing_story'),
@@ -809,44 +860,44 @@ I can provide a structured comparison based on the items in your query.
             (r'tell (me )?(a )?story', 'creative_writing_story'),
             (r'write a story about (.+)', 'creative_writing_story'),
             (r'story about (.+)', 'creative_writing_story'),
-            
+
             # Article patterns
             (r'write (a|an)? article', 'creative_writing_article'),
             (r'create (a|an)? article', 'creative_writing_article'),
             (r'write an article about (.+)', 'creative_writing_article'),
             (r'article about (.+)', 'creative_writing_article'),
-            
+
             # Essay patterns
             (r'write (a|an)? essay', 'creative_writing_article'),
             (r'create (a|an)? essay', 'creative_writing_article'),
             (r'write an essay about (.+)', 'creative_writing_article'),
             (r'essay about (.+)', 'creative_writing_article'),
-            
+
             # Description patterns
             (r'describe (.+) (in detail|creatively)', 'creative_description'),
             (r'give me a description of (.+)', 'creative_description'),
             (r'tell me about (.+)', 'creative_description'),
-            
+
             # Imagination patterns
             (r'imagine (.+)', 'creative_imagination'),
             (r'what if (.+)', 'creative_imagination'),
             (r'picture (.+)', 'creative_imagination'),
-            
+
             # General creative requests
             (r'be creative', 'creative_general'),
             (r'write something creative', 'creative_general'),
             (r'get creative', 'creative_general'),
         ]
-        
+
         for pattern, content_type in creative_patterns:
             if re.search(pattern, prompt_lower):
                 return self._generate_creative_response(prompt, content_type)
-        
+
         return None
-    
+
     def _generate_creative_response(self, prompt: str, content_type: str) -> Dict[str, Any]:
         """Generate creative writing response"""
-        
+
         if content_type == 'creative_writing_poem':
             response = self._generate_poem(prompt)
             creativity_level = "high"
@@ -879,7 +930,7 @@ I can provide a structured comparison based on the items in your query.
             else:
                 response = self._generate_article(prompt)
                 creativity_level = "medium"
-        
+
         return {
             "response": response,
             "confidence": 0.80,  # Increased confidence for creative content
@@ -889,7 +940,7 @@ I can provide a structured comparison based on the items in your query.
                 "creativity_level": creativity_level
             }
         }
-    
+
     def _generate_poem(self, prompt: str) -> str:
         """Generate a poem"""
         return f"""
@@ -918,7 +969,7 @@ And seek the truth that we all know.
 
 *Generated with creative expression and thoughtful consideration of your request.*
 """
-    
+
     def _generate_story(self, prompt: str) -> str:
         """Generate a short story"""
         return f"""
@@ -942,7 +993,7 @@ The Seeker realized that the quest for knowledge was endless, and that the joy l
 
 *A story inspired by the eternal quest for knowledge and understanding.*
 """
-    
+
     def _generate_article(self, prompt: str) -> str:
         """Generate an article"""
         return f"""
@@ -971,7 +1022,7 @@ The journey of understanding this topic is ongoing. By staying curious, open-min
 
 *An exploratory article covering key aspects of the requested topic.*
 """
-    
+
     def _generate_description(self, prompt: str) -> str:
         """Generate creative description"""
         return f"""
@@ -991,7 +1042,7 @@ As we contemplate this subject, we are reminded of the infinite capacity of the 
 
 *A creative exploration of the requested subject, blending imagination with insight.*
 """
-    
+
     def _generate_imagination(self, prompt: str) -> str:
         """Generate imaginative response"""
         return f"""
@@ -1016,7 +1067,7 @@ This imagined future isn't just fantasy—it's a potential reality waiting to be
 
 *An imaginative exploration of possibilities inspired by your prompt.*
 """
-    
+
     def _generate_general_creative(self, prompt: str) -> str:
         """Generate general creative response"""
         return f"""
@@ -1034,24 +1085,24 @@ Let's create something unique, something that speaks to both the heart and the m
 
 *A creative response inspired by your request for creativity and innovation.*
 """
-    
+
     def _generate_code(self, prompt: str) -> Optional[Dict[str, Any]]:
         """Generate code snippets"""
         prompt_lower = prompt.lower()
-        
+
         # Check for code generation patterns
         code_patterns = [
             (r'write (a|an|the) (python|javascript|java|html|css|c\+\+|c) (function|class|script|program)', 'code_generation'),
             (r'create (a|an) (api|function|method|class)', 'code_generation'),
             (r'(show|display) (the )?code for (.+)', 'code_generation'),
         ]
-        
+
         for pattern, _ in code_patterns:
             if re.search(pattern, prompt_lower):
                 return self._generate_code_response(prompt)
-        
+
         return None
-    
+
     def _generate_code_response(self, prompt: str) -> Dict[str, Any]:
         """Generate code response"""
         # Determine language
@@ -1066,9 +1117,9 @@ Let's create something unique, something that speaks to both the heart and the m
             language = 'css'
         elif 'c++' in prompt.lower():
             language = 'cpp'
-        
+
         code = self._generate_code_snippet(prompt, language)
-        
+
         response = f"""
 **Code Generation - {language.title()}**
 
@@ -1079,7 +1130,7 @@ Let's create something unique, something that speaks to both the heart and the m
 ```
 
 **Explanation**:
-This code implements the requested functionality using {language.title()}. 
+This code implements the requested functionality using {language.title()}.
 
 **Key Features**:
 - Clean, readable structure
@@ -1094,7 +1145,7 @@ Integrate this code into your project as needed. Adjust parameters and logic to 
 
 **Confidence**: High - The code follows best practices and is ready for integration.
 """
-        
+
         return {
             "response": response,
             "confidence": 0.90,
@@ -1104,20 +1155,20 @@ Integrate this code into your project as needed. Adjust parameters and logic to 
                 "code_length": len(code.split())
             }
         }
-    
+
     def _generate_code_snippet(self, prompt: str, language: str) -> str:
         """Generate code snippet based on language"""
-        
+
         if language == 'python':
             return '''
 def example_function(param1, param2=None):
     """
     Example function demonstrating best practices
-    
+
     Args:
         param1: First parameter (required)
         param2: Second parameter (optional)
-    
+
     Returns:
         Result of the computation
     """
@@ -1134,14 +1185,14 @@ def process_data(data, options=None):
     """Process the input data"""
     if options is None:
         options = {}
-    
+
     # Implement processing logic
     processed = transform(data)
     return processed
 
 def log_error(error):
     """Log errors for debugging"""
-    print(f"Error occurred: {error}")
+    logger.info(f"Error occurred: {error}")
 '''
         elif language == 'javascript':
             return '''
@@ -1203,12 +1254,12 @@ function logError(error) {
 <body>
     <h1>Example Page</h1>
     <p>This is an example HTML page.</p>
-    
+
     <div class="content">
         <h2>Content Section</h2>
         <p>Add your content here.</p>
     </div>
-    
+
     <script>
         // Add your JavaScript here
         console.log("Page loaded");
@@ -1228,19 +1279,19 @@ function main() {{
 
 main();
 """
-    
+
     def _generate_explanation(self, prompt: str) -> Optional[Dict[str, Any]]:
         """Generate explanations"""
         prompt_lower = prompt.lower()
-        
+
         if 'explain' in prompt_lower or 'what is' in prompt_lower:
             return self._generate_detailed_explanation(prompt)
-        
+
         return None
-    
+
     def _generate_detailed_explanation(self, prompt: str) -> Dict[str, Any]:
         """Generate detailed explanation"""
-        
+
         # Check knowledge base
         for topic, content in self.knowledge_base.items():
             if topic.replace('_', ' ') in prompt.lower():
@@ -1272,7 +1323,7 @@ main();
                         "knowledge_base": true
                     }
                 }
-        
+
         # Generate general explanation
         response = f"""
 **Detailed Explanation**
@@ -1310,7 +1361,7 @@ Mastering this topic requires both theoretical understanding and practical appli
 
 **Confidence**: This explanation provides a general framework. Specific details may require additional context or domain expertise.
 """
-        
+
         return {
             "response": response,
             "confidence": 0.80,
@@ -1320,10 +1371,10 @@ Mastering this topic requires both theoretical understanding and practical appli
                 "knowledge_base": False
             }
         }
-    
+
     def _generate_general_response(self, prompt: str) -> Dict[str, Any]:
         """Generate general response when no specific pattern matches"""
-        
+
         response = f"""
 **Response to Your Query**
 
@@ -1349,7 +1400,7 @@ If you need more specific details or have follow-up questions, please provide ad
 
 **Confidence**: This response is based on available information and follows logical reasoning principles.
 """
-        
+
         return {
             "response": response,
             "confidence": 0.75,
@@ -1358,7 +1409,7 @@ If you need more specific details or have follow-up questions, please provide ad
                 "response_method": "template-based"
             }
         }
-    
+
     def _build_comprehensive_knowledge_base(self) -> Dict[str, str]:
         """Build comprehensive knowledge base"""
         return {
@@ -1394,7 +1445,7 @@ Machine learning is a subset of artificial intelligence that enables systems to 
 - Fraud detection
 - Medical diagnosis
 """,
-            
+
             "neural_networks": """
 Neural networks are computing systems inspired by biological neural networks that constitute animal brains. They are based on a collection of connected units or nodes called artificial neurons, which loosely model the neurons in a biological brain.
 
@@ -1429,7 +1480,7 @@ Neural networks are computing systems inspired by biological neural networks tha
 - Game playing
 - Time series prediction
 """,
-            
+
             "data_science": """
 Data science is an interdisciplinary field that uses scientific methods, processes, algorithms, and systems to extract knowledge and insights from structured and unstructured data.
 
@@ -1464,7 +1515,7 @@ Data science is an interdisciplinary field that uses scientific methods, process
 - Risk assessment
 - Process optimization
 """,
-            
+
             "software_engineering": """
 Software engineering is the systematic application of engineering approaches to the development of software. It involves designing, developing, testing, and maintaining software systems.
 
@@ -1482,7 +1533,7 @@ Software engineering is the systematic application of engineering approaches to 
 1. **Modularity**: Breaking systems into smaller, manageable parts
 2. **Abstraction**: Hiding implementation details
 3. **Encapsulation**: Bundling data with methods
-4. **SOLID Principles**: 
+4. **SOLID Principles**:
    - Single Responsibility
    - Open/Closed
    - Liskov Substitution
@@ -1512,7 +1563,7 @@ Software engineering is the systematic application of engineering approaches to 
 - Usability
 """
         }
-    
+
     def _build_math_patterns(self) -> List[Tuple[str, Any]]:
         """Build mathematical pattern matching rules"""
         return [
@@ -1523,7 +1574,7 @@ Software engineering is the systematic application of engineering approaches to 
             (r'simplify (.+)', 'algebra_simplify'),
             (r'factor (.+)', 'algebra_factor'),
         ]
-    
+
     def _build_physics_formulas(self) -> Dict[str, Dict[str, Any]]:
         """Build physics formulas knowledge base"""
         return {
@@ -1641,7 +1692,7 @@ Software engineering is the systematic application of engineering approaches to 
                 ]
             }
         }
-    
+
     def _build_code_templates(self) -> Dict[str, str]:
         """Build code generation templates"""
         return {
@@ -1649,11 +1700,11 @@ Software engineering is the systematic application of engineering approaches to 
 def function_name(param1, param2):
     &quot;&quot;&quot;
     Function description
-    
+
     Args:
         param1: Description
         param2: Description
-    
+
     Returns:
         Return value description
     &quot;&quot;&quot;
@@ -1662,10 +1713,10 @@ def function_name(param1, param2):
 
 class ClassName:
     &quot;&quot;&quot;Class description&quot;&quot;&quot;
-    
+
     def __init__(self, param):
         self.param = param
-    
+
     def method(self):
         &quot;&quot;&quot;Method description&quot;&quot;&quot;
         pass
@@ -1673,7 +1724,7 @@ class ClassName:
             "javascript": """
 function functionName(param1, param2) {
     &quot;use strict&quot;;
-    
+
     // Implementation
     return result;
 }
@@ -1682,7 +1733,7 @@ class ClassName {
     constructor(param) {
         this.param = param;
     }
-    
+
     method() {
         // Implementation
         return result;
@@ -1692,11 +1743,11 @@ class ClassName {
             "java": """
 public class ClassName {
     private Type field;
-    
+
     public ClassName(Type param) {
         this.field = param;
     }
-    
+
     public Type method(Type param) {
         // Implementation
         return result;
@@ -1704,7 +1755,7 @@ public class ClassName {
 }
 """
         }
-    
+
     def _build_generative_templates(self) -> Dict[str, str]:
         """Build generative response templates"""
         return {

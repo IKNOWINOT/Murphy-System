@@ -3,6 +3,8 @@ Credential Verification System
 Manages credential validation, expiry tracking, and refresh mechanisms.
 """
 
+import logging
+logger = logging.getLogger(__name__)
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta, timezone
 from enum import Enum
@@ -43,20 +45,20 @@ class Credential(BaseModel):
     last_verified: Optional[datetime] = None
     verification_count: int = 0
     metadata: Dict[str, Any] = Field(default_factory=dict)
-    
+
     def is_expired(self) -> bool:
         """Check if credential is expired."""
         if not self.expires_at:
             return False
         return datetime.now(timezone.utc) > self.expires_at
-    
+
     def needs_refresh(self, threshold_hours: int = 24) -> bool:
         """Check if credential needs refresh."""
         if not self.expires_at:
             return False
         threshold = datetime.now(timezone.utc) + timedelta(hours=threshold_hours)
         return threshold > self.expires_at
-    
+
     def get_hash(self) -> str:
         """Get hash of credential for caching."""
         data = f"{self.service_name}:{self.credential_type}:{self.credential_value}"
@@ -79,38 +81,38 @@ class CredentialStore:
     Stores and manages credentials.
     In production, this would use encrypted storage (e.g., HashiCorp Vault, AWS Secrets Manager).
     """
-    
+
     def __init__(self):
         self.credentials: Dict[str, Credential] = {}
-    
+
     def add_credential(self, credential: Credential) -> str:
         """Add a credential to the store."""
         self.credentials[credential.id] = credential
         return credential.id
-    
+
     def get_credential(self, credential_id: str) -> Optional[Credential]:
         """Retrieve a credential by ID."""
         return self.credentials.get(credential_id)
-    
+
     def update_credential(self, credential_id: str, updates: Dict[str, Any]) -> bool:
         """Update credential fields."""
         credential = self.credentials.get(credential_id)
         if not credential:
             return False
-        
+
         for key, value in updates.items():
             if hasattr(credential, key):
                 setattr(credential, key, value)
-        
+
         return True
-    
+
     def delete_credential(self, credential_id: str) -> bool:
         """Delete a credential."""
         if credential_id in self.credentials:
             del self.credentials[credential_id]
             return True
         return False
-    
+
     def list_credentials(
         self,
         service_name: Optional[str] = None,
@@ -119,18 +121,18 @@ class CredentialStore:
     ) -> List[Credential]:
         """List credentials with optional filters."""
         credentials = list(self.credentials.values())
-        
+
         if service_name:
             credentials = [c for c in credentials if c.service_name == service_name]
-        
+
         if credential_type:
             credentials = [c for c in credentials if c.credential_type == credential_type]
-        
+
         if status:
             credentials = [c for c in credentials if c.status == status]
-        
+
         return credentials
-    
+
     def get_expiring_credentials(self, hours: int = 24) -> List[Credential]:
         """Get credentials expiring within specified hours."""
         threshold = datetime.now(timezone.utc) + timedelta(hours=hours)
@@ -145,11 +147,11 @@ class CredentialVerifier:
     Verifies credentials using various methods.
     Integrates with ExternalValidationService for actual verification.
     """
-    
+
     def __init__(self, credential_store: CredentialStore):
         self.credential_store = credential_store
         self.verification_history: List[CredentialVerificationResult] = []
-    
+
     async def verify_credential(
         self,
         credential_id: str,
@@ -157,11 +159,11 @@ class CredentialVerifier:
     ) -> CredentialVerificationResult:
         """
         Verify a credential.
-        
+
         Args:
             credential_id: ID of credential to verify
             force_refresh: Force verification even if recently verified
-            
+
         Returns:
             CredentialVerificationResult
         """
@@ -174,7 +176,7 @@ class CredentialVerifier:
                 confidence=0.0,
                 error_message="Credential not found"
             )
-        
+
         # Check if expired
         if credential.is_expired():
             result = CredentialVerificationResult(
@@ -186,7 +188,7 @@ class CredentialVerifier:
             )
             self._update_credential_status(credential_id, CredentialStatus.EXPIRED)
             return result
-        
+
         # Check if recently verified (unless force_refresh)
         if not force_refresh and credential.last_verified:
             time_since_verification = datetime.now(timezone.utc) - credential.last_verified
@@ -198,11 +200,11 @@ class CredentialVerifier:
                     confidence=1.0,
                     details={"cached": True, "last_verified": credential.last_verified.isoformat()}
                 )
-        
+
         # Perform actual verification
         try:
             is_valid = await self._verify_credential_value(credential)
-            
+
             result = CredentialVerificationResult(
                 credential_id=credential_id,
                 is_valid=is_valid,
@@ -213,26 +215,27 @@ class CredentialVerifier:
                     "service_name": credential.service_name
                 }
             )
-            
+
             # Update credential
             self.credential_store.update_credential(credential_id, {
                 "last_verified": datetime.now(timezone.utc),
                 "verification_count": credential.verification_count + 1,
                 "status": result.status
             })
-            
+
             self.verification_history.append(result)
             return result
-            
-        except Exception as e:
+
+        except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return CredentialVerificationResult(
                 credential_id=credential_id,
                 is_valid=False,
                 status=CredentialStatus.INVALID,
                 confidence=0.0,
-                error_message=str(e)
+                error_message=str(exc)
             )
-    
+
     async def _verify_credential_value(self, credential: Credential) -> bool:
         """
         Verify the actual credential value.
@@ -240,7 +243,7 @@ class CredentialVerifier:
         """
         # Placeholder implementation
         # In production, this would make actual API calls to verify credentials
-        
+
         if credential.credential_type == CredentialType.API_KEY:
             return await self._verify_api_key(credential)
         elif credential.credential_type == CredentialType.OAUTH_TOKEN:
@@ -250,17 +253,17 @@ class CredentialVerifier:
         else:
             # Default verification
             return len(credential.credential_value) > 0
-    
+
     async def _verify_api_key(self, credential: Credential) -> bool:
         """Verify API key."""
         # Placeholder - implement actual API key verification
         return len(credential.credential_value) >= 20
-    
+
     async def _verify_oauth_token(self, credential: Credential) -> bool:
         """Verify OAuth token."""
         # Placeholder - implement actual OAuth token verification
         return len(credential.credential_value) >= 40
-    
+
     async def _verify_jwt_token(self, credential: Credential) -> bool:
         """Verify JWT token."""
         # Placeholder - implement actual JWT verification
@@ -268,23 +271,24 @@ class CredentialVerifier:
             # In production, use PyJWT to decode and verify
             parts = credential.credential_value.split('.')
             return len(parts) == 3
-        except:
+        except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             return False
-    
+
     def _update_credential_status(self, credential_id: str, status: CredentialStatus):
         """Update credential status."""
         self.credential_store.update_credential(credential_id, {"status": status})
-    
+
     async def verify_multiple_credentials(
         self,
         credential_ids: List[str]
     ) -> List[CredentialVerificationResult]:
         """Verify multiple credentials in parallel."""
         import asyncio
-        
+
         tasks = [self.verify_credential(cred_id) for cred_id in credential_ids]
         return await asyncio.gather(*tasks)
-    
+
     def get_verification_history(
         self,
         credential_id: Optional[str] = None,
@@ -292,10 +296,10 @@ class CredentialVerifier:
     ) -> List[CredentialVerificationResult]:
         """Get verification history."""
         history = self.verification_history
-        
+
         if credential_id:
             history = [h for h in history if h.credential_id == credential_id]
-        
+
         return history[-limit:]
 
 
@@ -304,63 +308,63 @@ class CredentialRefreshManager:
     Manages credential refresh operations.
     Handles automatic refresh for expiring credentials.
     """
-    
+
     def __init__(self, credential_store: CredentialStore, verifier: CredentialVerifier):
         self.credential_store = credential_store
         self.verifier = verifier
         self.refresh_handlers: Dict[CredentialType, Any] = {}
-    
+
     def register_refresh_handler(self, credential_type: CredentialType, handler):
         """Register a refresh handler for a credential type."""
         self.refresh_handlers[credential_type] = handler
-    
+
     async def refresh_credential(self, credential_id: str) -> bool:
         """
         Refresh a credential.
-        
+
         Args:
             credential_id: ID of credential to refresh
-            
+
         Returns:
             True if refresh successful, False otherwise
         """
         credential = self.credential_store.get_credential(credential_id)
         if not credential:
             return False
-        
+
         handler = self.refresh_handlers.get(credential.credential_type)
         if not handler:
             return False
-        
+
         try:
             new_credential_value = await handler.refresh(credential)
-            
+
             # Update credential
             updates = {
                 "credential_value": new_credential_value,
                 "status": CredentialStatus.ACTIVE,
                 "expires_at": datetime.now(timezone.utc) + timedelta(days=30)  # Default 30 days
             }
-            
+
             self.credential_store.update_credential(credential_id, updates)
-            
+
             # Verify new credential
             result = await self.verifier.verify_credential(credential_id, force_refresh=True)
             return result.is_valid
-            
-        except Exception as e:
-            print(f"Error refreshing credential {credential_id}: {e}")
+
+        except Exception as exc:
+            logger.info(f"Error refreshing credential {credential_id}: {exc}")
             return False
-    
+
     async def auto_refresh_expiring_credentials(self, hours_threshold: int = 24):
         """
         Automatically refresh credentials expiring within threshold.
-        
+
         Args:
             hours_threshold: Refresh credentials expiring within this many hours
         """
         expiring = self.credential_store.get_expiring_credentials(hours_threshold)
-        
+
         for credential in expiring:
             if credential.status == CredentialStatus.ACTIVE:
                 await self.refresh_credential(credential.id)
@@ -371,12 +375,12 @@ class CredentialVerificationSystem:
     Complete credential verification system.
     Provides unified interface for credential management and verification.
     """
-    
+
     def __init__(self):
         self.store = CredentialStore()
         self.verifier = CredentialVerifier(self.store)
         self.refresh_manager = CredentialRefreshManager(self.store, self.verifier)
-    
+
     def add_credential(
         self,
         credential_type: CredentialType,
@@ -395,34 +399,34 @@ class CredentialVerificationSystem:
             metadata=metadata or {}
         )
         return self.store.add_credential(credential)
-    
+
     async def verify_credential(self, credential_id: str) -> CredentialVerificationResult:
         """Verify a credential."""
         return await self.verifier.verify_credential(credential_id)
-    
+
     async def verify_service_credentials(self, service_name: str) -> List[CredentialVerificationResult]:
         """Verify all credentials for a service."""
         credentials = self.store.list_credentials(service_name=service_name)
         credential_ids = [c.id for c in credentials]
         return await self.verifier.verify_multiple_credentials(credential_ids)
-    
+
     def get_credential_status(self, credential_id: str) -> Optional[CredentialStatus]:
         """Get current status of a credential."""
         credential = self.store.get_credential(credential_id)
         return credential.status if credential else None
-    
+
     async def refresh_credential(self, credential_id: str) -> bool:
         """Refresh a credential."""
         return await self.refresh_manager.refresh_credential(credential_id)
-    
+
     def register_refresh_handler(self, credential_type: CredentialType, handler):
         """Register a refresh handler."""
         self.refresh_manager.register_refresh_handler(credential_type, handler)
-    
+
     async def auto_refresh_expiring(self, hours_threshold: int = 24):
         """Auto-refresh expiring credentials."""
         await self.refresh_manager.auto_refresh_expiring_credentials(hours_threshold)
-    
+
     def get_verification_history(self, credential_id: Optional[str] = None) -> List[CredentialVerificationResult]:
         """Get verification history."""
         return self.verifier.get_verification_history(credential_id)

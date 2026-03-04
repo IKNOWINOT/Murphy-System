@@ -17,6 +17,10 @@ from datetime import datetime
 from collections import defaultdict
 import statistics
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class DecisionOutcome:
@@ -63,14 +67,14 @@ class AdaptiveDecision:
 
 class DecisionHistory:
     """Tracks decision history and outcomes"""
-    
+
     def __init__(self, max_history_size: int = 10000):
         self.max_history_size = max_history_size
         self.outcomes: List[DecisionOutcome] = []
         self.outcomes_by_type: Dict[str, List[DecisionOutcome]] = defaultdict(list)
         self.outcomes_by_action: Dict[str, List[DecisionOutcome]] = defaultdict(list)
         self.lock = threading.Lock()
-    
+
     def record_outcome(self, outcome: DecisionOutcome) -> None:
         """Record a decision outcome"""
         with self.lock:
@@ -82,29 +86,29 @@ class DecisionHistory:
                     self.outcomes_by_type[o.decision_type].remove(o)
                     self.outcomes_by_action[o.action].remove(o)
                 self.outcomes = self.outcomes[100:]
-            
+
             self.outcomes.append(outcome)
             self.outcomes_by_type[outcome.decision_type].append(outcome)
             self.outcomes_by_action[outcome.action].append(outcome)
-    
+
     def get_outcomes_by_type(self, decision_type: str,
                             limit: int = 100) -> List[DecisionOutcome]:
         """Get outcomes for a decision type"""
         with self.lock:
             outcomes = self.outcomes_by_type.get(decision_type, [])
             return outcomes[-limit:]
-    
+
     def get_outcomes_by_action(self, action: str,
                               limit: int = 100) -> List[DecisionOutcome]:
         """Get outcomes for an action"""
         with self.lock:
             outcomes = self.outcomes_by_action.get(action, [])
             return outcomes[-limit:]
-    
+
     def get_action_statistics(self, action: str) -> Dict[str, float]:
         """Get statistics for an action"""
         outcomes = self.get_outcomes_by_action(action)
-        
+
         if not outcomes:
             return {
                 'count': 0,
@@ -112,14 +116,14 @@ class DecisionHistory:
                 'average_utility': 0.0,
                 'average_confidence': 0.0
             }
-        
+
         successes = sum(1 for o in outcomes if o.success)
         utilities = [o.utility for o in outcomes]
         confidences = [o.confidence for o in outcomes]
-        
+
         return {
             'count': len(outcomes),
-            'success_rate': successes / len(outcomes),
+            'success_rate': successes / (len(outcomes) or 1),
             'average_utility': statistics.mean(utilities),
             'average_confidence': statistics.mean(confidences)
         }
@@ -127,17 +131,17 @@ class DecisionHistory:
 
 class PolicyManager:
     """Manages decision policies"""
-    
+
     def __init__(self):
         self.policies: Dict[str, DecisionPolicy] = {}
         self.lock = threading.Lock()
-    
+
     def create_policy(self, policy_name: str, decision_type: str,
                      actions: List[str], policy_type: str = 'adaptive',
                      exploration_rate: float = 0.1) -> DecisionPolicy:
         """Create a new decision policy"""
         policy_id = f"{decision_type}_{policy_name}"
-        
+
         policy = DecisionPolicy(
             policy_id=policy_id,
             policy_name=policy_name,
@@ -151,55 +155,55 @@ class PolicyManager:
             average_utility=0.0,
             last_updated=datetime.now()
         )
-        
+
         with self.lock:
             self.policies[policy_id] = policy
-        
+
         return policy
-    
+
     def get_policy(self, policy_id: str) -> Optional[DecisionPolicy]:
         """Get a policy by ID"""
         return self.policies.get(policy_id)
-    
+
     def update_policy(self, policy_id: str, action: str,
                      success: bool, utility: float) -> None:
         """Update policy based on outcome"""
         policy = self.policies.get(policy_id)
         if not policy:
             return
-        
+
         with self.lock:
             policy.total_decisions += 1
             if success:
                 policy.total_successes += 1
-            
+
             # Update action utility using exponential moving average
             learning_rate = 0.1
             current_utility = policy.action_utilities.get(action, 0.5)
             new_utility = current_utility + learning_rate * (utility - current_utility)
             policy.action_utilities[action] = new_utility
-            
+
             # Update average utility
-            policy.average_utility = sum(policy.action_utilities.values()) / len(policy.action_utilities)
-            
+            policy.average_utility = sum(policy.action_utilities.values()) / (len(policy.action_utilities) or 1)
+
             # Decrease exploration rate over time
             policy.exploration_rate = max(0.01, policy.exploration_rate * 0.999)
-            
+
             policy.last_updated = datetime.now()
-    
+
     def select_action(self, policy_id: str,
                      context: Optional[Dict[str, Any]] = None) -> Tuple[str, float]:
         """Select an action based on policy"""
         policy = self.policies.get(policy_id)
         if not policy:
             return "", 0.0
-        
+
         if policy.policy_type == 'deterministic':
             # Select action with highest utility
             action = max(policy.actions, key=lambda a: policy.action_utilities[a])
             utility = policy.action_utilities[action]
             return action, utility
-        
+
         elif policy.policy_type == 'probabilistic':
             # Select action based on utility probabilities
             utilities = [policy.action_utilities[a] for a in policy.actions]
@@ -208,7 +212,7 @@ class PolicyManager:
             action = random.choices(policy.actions, weights=probs, k=1)[0]
             utility = policy.action_utilities[action]
             return action, utility
-        
+
         elif policy.policy_type == 'adaptive':
             # Epsilon-greedy: explore sometimes, exploit usually
             if random.random() < policy.exploration_rate:
@@ -221,31 +225,31 @@ class PolicyManager:
                 action = max(policy.actions, key=lambda a: policy.action_utilities[a])
                 utility = policy.action_utilities[action]
                 return action, utility
-        
+
         return "", 0.0
 
 
 class AdaptiveDecisionEngine:
     """
     Main adaptive decision engine that makes decisions based on learning
-    
+
     The adaptive decision engine:
     - Makes decisions based on learned policies
     - Adapts policies based on outcomes
     - Balances exploration and exploitation
     - Provides decision rationale
     """
-    
+
     def __init__(self, enable_adaptation: bool = True):
         self.enable_adaptation = enable_adaptation
         self.history = DecisionHistory()
         self.policy_manager = PolicyManager()
         self.decision_counter = 0
         self.lock = threading.Lock()
-        
+
         # Initialize common policies
         self._initialize_default_policies()
-    
+
     def _initialize_default_policies(self) -> None:
         """Initialize default decision policies"""
         # Task execution policy
@@ -256,7 +260,7 @@ class AdaptiveDecisionEngine:
             policy_type="adaptive",
             exploration_rate=0.15
         )
-        
+
         # Workflow branching policy
         self.policy_manager.create_policy(
             policy_name="workflow_branch",
@@ -265,7 +269,7 @@ class AdaptiveDecisionEngine:
             policy_type="adaptive",
             exploration_rate=0.1
         )
-        
+
         # Risk mitigation policy
         self.policy_manager.create_policy(
             policy_name="risk_mitigation",
@@ -274,7 +278,7 @@ class AdaptiveDecisionEngine:
             policy_type="adaptive",
             exploration_rate=0.05
         )
-        
+
         # Resource allocation policy
         self.policy_manager.create_policy(
             policy_name="resource_allocation",
@@ -283,7 +287,7 @@ class AdaptiveDecisionEngine:
             policy_type="adaptive",
             exploration_rate=0.1
         )
-    
+
     def make_decision(self, decision_type: str,
                      context: Optional[Dict[str, Any]] = None,
                      policy_id: Optional[str] = None) -> AdaptiveDecision:
@@ -300,17 +304,17 @@ class AdaptiveDecisionEngine:
                 timestamp=datetime.now(),
                 policy_used="none"
             )
-        
+
         with self.lock:
             self.decision_counter += 1
             decision_id = f"decision_{self.decision_counter}"
-        
+
         # Determine policy to use
         if policy_id is None:
             policy_id = f"{decision_type}_{decision_type}"
-        
+
         policy = self.policy_manager.get_policy(policy_id)
-        
+
         if not policy:
             # Create default policy for this decision type
             policy = self.policy_manager.create_policy(
@@ -320,21 +324,21 @@ class AdaptiveDecisionEngine:
                 policy_type="adaptive",
                 exploration_rate=0.1
             )
-        
+
         # Select action
         action, utility_estimate = self.policy_manager.select_action(
             policy_id, context
         )
-        
+
         # Calculate confidence
         if policy.total_decisions > 10:
             confidence = min(0.95, 0.5 + policy.total_successes / policy.total_decisions * 0.45)
         else:
             confidence = 0.5
-        
+
         # Generate rationale
         rationale = self._generate_rationale(policy, action, utility_estimate, context)
-        
+
         return AdaptiveDecision(
             decision_id=decision_id,
             decision_type=decision_type,
@@ -345,49 +349,49 @@ class AdaptiveDecisionEngine:
             timestamp=datetime.now(),
             policy_used=policy_id
         )
-    
+
     def _generate_rationale(self, policy: DecisionPolicy, action: str,
                            utility_estimate: float,
                            context: Optional[Dict[str, Any]]) -> str:
         """Generate rationale for decision"""
         rationale_parts = []
-        
+
         # Base rationale
         rationale_parts.append(
             f"Selected action '{action}' based on policy '{policy.policy_name}'"
         )
-        
+
         # Add utility information
         rationale_parts.append(
             f"Estimated utility: {utility_estimate:.3f} (policy average: {policy.average_utility:.3f})"
         )
-        
+
         # Add policy statistics
         if policy.total_decisions > 0:
             success_rate = policy.total_successes / policy.total_decisions
             rationale_parts.append(
                 f"Policy has {policy.total_decisions} decisions with {success_rate:.1%} success rate"
             )
-        
+
         # Add exploration information
         if policy.exploration_rate > 0.05:
             rationale_parts.append(
                 f"Exploration rate: {policy.exploration_rate:.1%} (discovering new strategies)"
             )
-        
+
         # Add context if available
         if context:
             rationale_parts.append(f"Context: {len(context)} factors considered")
-        
+
         return ". ".join(rationale_parts)
-    
+
     def record_outcome(self, decision: AdaptiveDecision,
                       success: bool, confidence: float,
                       utility: float, context: Optional[Dict[str, Any]] = None) -> None:
         """Record the outcome of a decision"""
         if not self.enable_adaptation:
             return
-        
+
         # Record outcome in history
         outcome = DecisionOutcome(
             decision_id=decision.decision_id,
@@ -400,9 +404,9 @@ class AdaptiveDecisionEngine:
             context=context or {},
             metadata={}
         )
-        
+
         self.history.record_outcome(outcome)
-        
+
         # Update policy
         self.policy_manager.update_policy(
             decision.policy_used,
@@ -410,7 +414,7 @@ class AdaptiveDecisionEngine:
             success,
             utility
         )
-    
+
     def get_decision_statistics(self, decision_type: Optional[str] = None) -> Dict[str, Any]:
         """Get decision statistics"""
         if decision_type:
@@ -418,7 +422,7 @@ class AdaptiveDecisionEngine:
         else:
             with self.lock:
                 outcomes = self.history.outcomes
-        
+
         if not outcomes:
             return {
                 'total_decisions': 0,
@@ -427,12 +431,12 @@ class AdaptiveDecisionEngine:
                 'average_confidence': 0.0,
                 'by_action': {}
             }
-        
+
         total = len(outcomes)
         successes = sum(1 for o in outcomes if o.success)
         utilities = [o.utility for o in outcomes]
         confidences = [o.confidence for o in outcomes]
-        
+
         # Group by action
         by_action = {}
         for outcome in outcomes:
@@ -446,14 +450,14 @@ class AdaptiveDecisionEngine:
             if outcome.success:
                 by_action[outcome.action]['successes'] += 1
             by_action[outcome.action]['utilities'].append(outcome.utility)
-        
+
         # Calculate per-action statistics
         for action, stats in by_action.items():
             stats['success_rate'] = stats['successes'] / stats['count']
             stats['average_utility'] = statistics.mean(stats['utilities'])
             del stats['successes']
             del stats['utilities']
-        
+
         return {
             'total_decisions': total,
             'success_rate': successes / total,
@@ -461,13 +465,13 @@ class AdaptiveDecisionEngine:
             'average_confidence': statistics.mean(confidences),
             'by_action': by_action
         }
-    
+
     def get_policy_status(self, policy_id: str) -> Optional[Dict[str, Any]]:
         """Get status of a specific policy"""
         policy = self.policy_manager.get_policy(policy_id)
         if not policy:
             return None
-        
+
         return {
             'policy_id': policy.policy_id,
             'policy_name': policy.policy_name,
@@ -481,21 +485,21 @@ class AdaptiveDecisionEngine:
             'average_utility': policy.average_utility,
             'last_updated': policy.last_updated.isoformat()
         }
-    
+
     def get_all_policies(self) -> List[Dict[str, Any]]:
         """Get status of all policies"""
         return [
             self.get_policy_status(policy_id)
             for policy_id in self.policy_manager.policies.keys()
         ]
-    
+
     def reset_learning(self) -> None:
         """Reset all learning data"""
         self.history = DecisionHistory()
         self.policy_manager = PolicyManager()
         self.decision_counter = 0
         self._initialize_default_policies()
-    
+
     def export_decision_data(self) -> Dict[str, Any]:
         """Export decision data for analysis"""
         return {

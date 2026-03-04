@@ -10,9 +10,12 @@ Can be imported as a library or run from the command line:
 """
 
 import json
+import logging
 import copy
 from dataclasses import dataclass, field, asdict
 from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------

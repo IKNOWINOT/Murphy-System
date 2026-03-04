@@ -32,6 +32,7 @@ import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -267,6 +268,7 @@ class _PillowBackend:
                 metadata={"mode": "procedural_placeholder"},
             )
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return ImageResult(
                 request_id=request.request_id,
                 status=GenerationStatus.FAILED,
@@ -324,7 +326,8 @@ class _StableDiffusionBackend:
             if device == "cuda":
                 try:
                     pipe.enable_xformers_memory_efficient_attention()
-                except Exception:
+                except Exception as exc:
+                    logger.debug("Suppressed exception: %s", exc)
                     pass
 
             cls._pipe = pipe
@@ -381,6 +384,7 @@ class _StableDiffusionBackend:
                 },
             )
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return ImageResult(
                 request_id=request.request_id,
                 status=GenerationStatus.FAILED,
@@ -412,7 +416,7 @@ class ImageGenerationEngine:
             prompt="A futuristic AI control room",
             style=ImageStyle.DIGITAL_ART,
         ))
-        print(result.file_path)
+        logger.info(result.file_path)
     """
 
     # Maximum dimensions to prevent memory exhaustion
@@ -479,7 +483,7 @@ class ImageGenerationEngine:
                 self._error_count += 1
             if len(self._history) >= self.MAX_HISTORY:
                 self._history.pop(0)
-            self._history.append(result.to_dict())
+            capped_append(self._history, result.to_dict())
 
         return result
 

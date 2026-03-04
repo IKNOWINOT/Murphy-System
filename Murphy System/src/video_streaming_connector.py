@@ -25,12 +25,17 @@ import time
 import uuid
 from typing import Any, Dict, List, Optional
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ---------------------------------------------------------------------------
 # Enums
 # ---------------------------------------------------------------------------
 
 class StreamingPlatform(enum.Enum):
+    """Streaming platform (Enum subclass)."""
     TWITCH = "twitch"
     YOUTUBE_LIVE = "youtube_live"
     OBS_STUDIO = "obs_studio"
@@ -43,6 +48,7 @@ class StreamingPlatform(enum.Enum):
 
 
 class StreamStatus(enum.Enum):
+    """Stream status (Enum subclass)."""
     IDLE = "idle"
     STARTING = "starting"
     LIVE = "live"
@@ -53,6 +59,7 @@ class StreamStatus(enum.Enum):
 
 
 class StreamQuality(enum.Enum):
+    """Stream quality (Enum subclass)."""
     SD_480P = "480p"
     HD_720P = "720p"
     FHD_1080P = "1080p"
@@ -61,6 +68,7 @@ class StreamQuality(enum.Enum):
 
 
 class RecordingFormat(enum.Enum):
+    """Recording format (Enum subclass)."""
     MP4 = "mp4"
     MKV = "mkv"
     FLV = "flv"
@@ -69,6 +77,7 @@ class RecordingFormat(enum.Enum):
 
 
 class ConnectorStatus(enum.Enum):
+    """Connector status (Enum subclass)."""
     CONNECTED = "connected"
     DISCONNECTED = "disconnected"
     ERROR = "error"

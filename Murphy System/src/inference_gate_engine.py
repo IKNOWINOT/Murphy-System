@@ -53,7 +53,11 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
-from .domain_gate_generator import DomainGate, DomainGateGenerator, GateSeverity, GateType
+from domain_gate_generator import DomainGate, DomainGateGenerator, GateSeverity, GateType
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -407,10 +411,10 @@ class InferenceDomainGateEngine:
     Usage:
         engine = InferenceDomainGateEngine()
         result = engine.infer("How do I best manage a fintech startup?")
-        print(result.org_positions)   # Positions + metrics
-        print(result.inferred_gates)  # Gates for this domain
-        print(result.form_schema)     # What info is needed
-        print(result.form_schema.next_question)  # First missing field
+        logger.info(result.org_positions)   # Positions + metrics
+        logger.info(result.inferred_gates)  # Gates for this domain
+        logger.info(result.form_schema)     # What info is needed
+        logger.info(result.form_schema.next_question)  # First missing field
     """
 
     def __init__(self):

@@ -24,6 +24,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Sequence, Tuple
+from thread_safe_operations import capped_append, capped_append_paired
 
 logger = logging.getLogger(__name__)
 
@@ -57,12 +58,14 @@ def _cosine_similarity(a: Sequence[float], b: Sequence[float]) -> float:
 # ──────────────────────────────────────────────────────────────────────
 
 class AnomalyMethod(str, Enum):
+    """Anomaly method (str subclass)."""
     ZSCORE = "zscore"
     IQR = "iqr"
 
 
 @dataclass
 class AnomalyResult:
+    """Anomaly result."""
     value: float
     is_anomaly: bool
     score: float
@@ -83,7 +86,7 @@ class AnomalyDetector:
 
     def feed(self, value: float) -> None:
         with self._lock:
-            self._history.append(value)
+            capped_append(self._history, value)
 
     def feed_many(self, values: Sequence[float]) -> None:
         with self._lock:
@@ -133,6 +136,7 @@ class AnomalyDetector:
 # ──────────────────────────────────────────────────────────────────────
 
 class ForecastMethod(str, Enum):
+    """Forecast method (str subclass)."""
     MOVING_AVERAGE = "moving_average"
     EXPONENTIAL_SMOOTHING = "exponential_smoothing"
     WEIGHTED_MOVING_AVERAGE = "weighted_moving_average"
@@ -140,6 +144,7 @@ class ForecastMethod(str, Enum):
 
 @dataclass
 class ForecastResult:
+    """Forecast result."""
     predicted: float
     confidence_interval: Tuple[float, float]
     method: str
@@ -159,7 +164,7 @@ class TimeSeriesForecaster:
 
     def add(self, value: float) -> None:
         with self._lock:
-            self._series.append(value)
+            capped_append(self._series, value)
 
     def add_many(self, values: Sequence[float]) -> None:
         with self._lock:
@@ -280,6 +285,7 @@ class NaiveBayesClassifier:
 
 @dataclass
 class Recommendation:
+    """Recommendation."""
     item_id: str
     score: float
     reason: str
@@ -378,6 +384,7 @@ class RecommendationEngine:
 
 @dataclass
 class ClusterResult:
+    """Cluster result."""
     labels: List[int]
     centroids: List[List[float]]
     iterations: int
@@ -416,7 +423,7 @@ class KMeansClusterer:
             for ci in range(self.k):
                 members = [data[j] for j in range(n) if labels[j] == ci]
                 if members:
-                    centroids[ci] = [sum(m[d] for m in members) / len(members)
+                    centroids[ci] = [sum(m[d] for m in members) / (len(members) or 1)
                                      for d in range(dim)]
         # Compute inertia
         inertia = sum(_euclidean(data[j], centroids[labels[j]]) ** 2
@@ -476,6 +483,7 @@ class QLearningAgent:
 
 @dataclass
 class FeatureImportance:
+    """Feature importance."""
     feature: str
     importance: float
     method: str
@@ -548,6 +556,7 @@ class FeatureAnalyzer:
 
 @dataclass
 class ABTestResult:
+    """AB test result."""
     test_name: str
     variant_a_mean: float
     variant_b_mean: float
@@ -588,7 +597,7 @@ class ABTestingFramework:
             mean_a, mean_b = _safe_mean(a), _safe_mean(b)
             var_a = statistics.variance(a)
             var_b = statistics.variance(b)
-            se = math.sqrt(var_a / len(a) + var_b / len(b))
+            se = math.sqrt(var_a / (len(a) or 1) + var_b / (len(b) or 1))
             if se == 0:
                 p_value = 1.0
             else:
@@ -614,6 +623,7 @@ class ABTestingFramework:
 # ──────────────────────────────────────────────────────────────────────
 
 class EnsembleStrategy(str, Enum):
+    """Ensemble strategy (str subclass)."""
     MAJORITY_VOTE = "majority_vote"
     WEIGHTED_VOTE = "weighted_vote"
     AVERAGE = "average"
@@ -622,6 +632,7 @@ class EnsembleStrategy(str, Enum):
 
 @dataclass
 class EnsemblePrediction:
+    """Ensemble prediction."""
     prediction: Any
     confidence: float
     strategy: str
@@ -637,8 +648,7 @@ class EnsemblePredictor:
         self._weights: List[float] = []
 
     def add_member(self, classifier: NaiveBayesClassifier, weight: float = 1.0) -> None:
-        self._classifiers.append(classifier)
-        self._weights.append(weight)
+        capped_append_paired(self._classifiers, classifier, self._weights, weight)
 
     def predict(self, features: Sequence[str]) -> EnsemblePrediction:
         if not self._classifiers:
@@ -656,7 +666,7 @@ class EnsemblePredictor:
         for label, _ in preds:
             votes[label] += 1
         best = max(votes, key=votes.get)  # type: ignore[arg-type]
-        conf = votes[best] / len(preds)
+        conf = votes[best] / (len(preds) or 1)
         return EnsemblePrediction(best, conf, EnsembleStrategy.MAJORITY_VOTE.value,
                                   member_preds)
 
@@ -677,6 +687,7 @@ class EnsemblePredictor:
 
 @dataclass
 class OnlineLearnerState:
+    """Online learner state."""
     samples_seen: int
     current_accuracy: float
     feature_weights: Dict[str, float]

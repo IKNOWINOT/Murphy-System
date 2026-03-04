@@ -11,6 +11,10 @@ from typing import Any, Dict, List, Optional, Tuple, Type
 
 from pydantic import BaseModel, Field, field_validator
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ------------------------------------------------------------------ #
 # LLM Output Schema Models
@@ -99,6 +103,7 @@ class LLMOutputValidator:
             model = expected_schema.model_validate(raw_output)
             return True, model, []
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             errors = self._extract_errors(exc)
             return False, None, errors
 

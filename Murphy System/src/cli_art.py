@@ -19,6 +19,9 @@ falls back to simple Unicode box-drawing characters.
 
 from __future__ import annotations
 
+import logging
+logger = logging.getLogger("cli_art")
+
 from typing import Optional
 
 # ---------------------------------------------------------------------------
@@ -229,11 +232,9 @@ def render_banner_plain(
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    print(render_banner())
-    print()
-    print(render_section("QUESTIONS"))
-    print()
-    print(
+    logger.info(render_banner())
+    logger.info(render_section("QUESTIONS"))
+    logger.info(
         render_panel(
             "HYPOTHESIS EXECUTABILITY STATUS",
             [

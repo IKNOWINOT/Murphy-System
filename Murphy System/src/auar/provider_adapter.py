@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 class AuthMethod(Enum):
+    """Auth method (Enum subclass)."""
     NONE = "none"
     API_KEY = "api_key"
     BEARER = "bearer"
@@ -37,6 +38,7 @@ class AuthMethod(Enum):
 
 
 class Protocol(Enum):
+    """Protocol (Enum subclass)."""
     REST = "rest"
     GRAPHQL = "graphql"
     GRPC = "grpc"
@@ -143,7 +145,7 @@ class ProviderAdapter:
                     creds["access_token"] = new_token
                     access_token = new_token
             except Exception as exc:
-                logger.warning("OAuth2 token refresh failed: %s", exc)
+                logger.warning("OAuth2 token refresh failed: %s", type(exc).__name__)
 
         if access_token:
             return {"Authorization": f"Bearer {access_token}"}
@@ -245,6 +247,7 @@ class ProviderAdapter:
                 )
                 return resp
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 last_error = str(exc)
                 retries += 1
                 with self._lock:

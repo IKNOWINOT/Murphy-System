@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -264,7 +265,7 @@ class ObservabilityLayer:
             request_id=request_id,
         )
         with self._lock:
-            self._cost_records.append(attr)
+            capped_append(self._cost_records, attr)
         return attr
 
     def get_cost_summary(

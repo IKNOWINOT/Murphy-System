@@ -28,10 +28,10 @@ logger = logging.getLogger(__name__)
 class MLInferenceService:
     """
     ML inference service for confidence estimation.
-    
+
     Provides auxiliary signals to Confidence Engine.
     """
-    
+
     def __init__(
         self,
         model_path: Optional[str] = None,
@@ -40,15 +40,15 @@ class MLInferenceService:
         self.device = torch.device(
             device if device else ("cuda" if torch.cuda.is_available() else "cpu")
         )
-        
+
         self.model: Optional[NeuroSymbolicConfidenceModel] = None
         self.model_version = "1.0.0"
         self.model_loaded = False
         self.last_training = None
-        
+
         if model_path:
             self.load_model(model_path)
-    
+
     def load_model(self, model_path: str):
         """Load model from checkpoint."""
         try:
@@ -57,14 +57,14 @@ class MLInferenceService:
             self.model.eval()
             self.model_loaded = True
             logger.info(f"Loaded model from {model_path}")
-        except Exception as e:
-            logger.error(f"Failed to load model: {e}")
+        except Exception as exc:
+            logger.error(f"Failed to load model: {exc}")
             self.model_loaded = False
-    
+
     def is_healthy(self) -> bool:
         """Check if service is healthy."""
         return self.model_loaded and self.model is not None
-    
+
     def predict(
         self,
         artifact_graph: Dict[str, Any],
@@ -74,19 +74,19 @@ class MLInferenceService:
     ) -> Dict[str, Any]:
         """
         Make prediction for confidence estimation.
-        
+
         Args:
             artifact_graph: Artifact graph structure
             gate_graph: Gate graph structure (optional)
             interface_bindings: Interface bindings (optional)
             current_phase: Current execution phase (optional)
-        
+
         Returns:
             Dictionary with H_ml, D_ml, R_ml predictions
         """
         if not self.is_healthy():
             raise RuntimeError("Model not loaded or unhealthy")
-        
+
         try:
             # Convert input to tensors
             node_features, edge_index, symbolic_features = self._prepare_input(
@@ -95,15 +95,15 @@ class MLInferenceService:
                 interface_bindings,
                 current_phase
             )
-            
+
             # Move to device
             node_features = node_features.to(self.device)
             edge_index = edge_index.to(self.device)
             symbolic_features = symbolic_features.to(self.device)
-            
+
             # Inference
             start_time = datetime.now()
-            
+
             with torch.no_grad():
                 H_ml, D_ml, R_ml = self.model(
                     node_features,
@@ -111,9 +111,9 @@ class MLInferenceService:
                     symbolic_features,
                     batch=None
                 )
-            
+
             inference_time = (datetime.now() - start_time).total_seconds() * 1000
-            
+
             # Extract values
             h_val = float(H_ml.item())
             d_val = float(D_ml.item())
@@ -135,13 +135,13 @@ class MLInferenceService:
                 "inference_time_ms": inference_time,
                 "features_used": ["graph_structure", "symbolic_features"]
             }
-            
+
             return result
-        
-        except Exception as e:
-            logger.error(f"Prediction failed: {e}")
+
+        except Exception as exc:
+            logger.error(f"Prediction failed: {exc}")
             raise
-    
+
     def _prepare_input(
         self,
         artifact_graph: Dict[str, Any],
@@ -234,7 +234,7 @@ class MLInferenceService:
                 symbolic_features[0, feat_idx] = (hash(current_phase) % 10000) / 10000.0
 
         return node_features, edge_index, symbolic_features
-    
+
     def predict_batch(
         self,
         scenarios: list
@@ -244,9 +244,9 @@ class MLInferenceService:
         """
         if not self.is_healthy():
             raise RuntimeError("Model not loaded or unhealthy")
-        
+
         predictions = []
-        
+
         for scenario in scenarios:
             try:
                 pred = self.predict(
@@ -256,16 +256,16 @@ class MLInferenceService:
                     current_phase=scenario.get("current_phase")
                 )
                 predictions.append(pred)
-            except Exception as e:
-                logger.error(f"Batch prediction failed for scenario: {e}")
+            except Exception as exc:
+                logger.error(f"Batch prediction failed for scenario: {exc}")
                 predictions.append(None)
-        
+
         # Compute batch confidence
         valid_predictions = [p for p in predictions if p is not None]
         batch_confidence = np.mean([
             p["prediction_confidence"] for p in valid_predictions
         ]) if valid_predictions else 0.0
-        
+
         return {
             "predictions": predictions,
             "batch_confidence": batch_confidence,
@@ -295,7 +295,7 @@ def health_check():
 def predict_confidence():
     """
     Main prediction endpoint.
-    
+
     Request:
     {
         "artifact_graph": {...},
@@ -304,7 +304,7 @@ def predict_confidence():
         "current_phase": "generative",
         "request_id": "req_123"
     }
-    
+
     Response:
     {
         "H_ml": 0.3,
@@ -317,20 +317,20 @@ def predict_confidence():
     """
     try:
         data = request.json
-        
+
         result = ml_service.predict(
             artifact_graph=data.get("artifact_graph", {}),
             gate_graph=data.get("gate_graph"),
             interface_bindings=data.get("interface_bindings"),
             current_phase=data.get("current_phase")
         )
-        
+
         return jsonify(result)
-    
-    except Exception as e:
-        logger.error(f"Prediction endpoint error: {e}")
+
+    except Exception as exc:
+        logger.error(f"Prediction endpoint error: {exc}")
         return jsonify({
-            "error": str(e),
+            "error": str(exc),
             "status": "failed"
         }), 500
 
@@ -339,7 +339,7 @@ def predict_confidence():
 def predict_batch():
     """
     Batch prediction endpoint.
-    
+
     Request:
     {
         "scenarios": [
@@ -351,15 +351,15 @@ def predict_batch():
     try:
         data = request.json
         scenarios = data.get("scenarios", [])
-        
+
         result = ml_service.predict_batch(scenarios)
-        
+
         return jsonify(result)
-    
-    except Exception as e:
-        logger.error(f"Batch prediction endpoint error: {e}")
+
+    except Exception as exc:
+        logger.error(f"Batch prediction endpoint error: {exc}")
         return jsonify({
-            "error": str(e),
+            "error": str(exc),
             "status": "failed"
         }), 500
 
@@ -372,7 +372,7 @@ def model_info():
             "error": "Model not loaded",
             "status": "unavailable"
         }), 503
-    
+
     return jsonify({
         "architecture": "GraphSAGE + Symbolic Features",
         "parameters": sum(p.numel() for p in ml_service.model.parameters()),
@@ -390,7 +390,7 @@ def model_info():
 def load_model_endpoint():
     """
     Load model from checkpoint.
-    
+
     Request:
     {
         "model_path": "/path/to/checkpoint.pt"
@@ -399,25 +399,25 @@ def load_model_endpoint():
     try:
         data = request.json
         model_path = data.get("model_path")
-        
+
         if not model_path:
             return jsonify({
                 "error": "model_path required",
                 "status": "failed"
             }), 400
-        
+
         ml_service.load_model(model_path)
-        
+
         return jsonify({
             "status": "success",
             "model_loaded": ml_service.model_loaded,
             "model_version": ml_service.model_version
         })
-    
-    except Exception as e:
-        logger.error(f"Model load error: {e}")
+
+    except Exception as exc:
+        logger.error(f"Model load error: {exc}")
         return jsonify({
-            "error": str(e),
+            "error": str(exc),
             "status": "failed"
         }), 500
 
@@ -425,7 +425,7 @@ def load_model_endpoint():
 def run_server(host: str = "0.0.0.0", port: int = 8060, model_path: Optional[str] = None):
     """
     Run ML inference server.
-    
+
     Args:
         host: Host address
         port: Port number
@@ -433,15 +433,15 @@ def run_server(host: str = "0.0.0.0", port: int = 8060, model_path: Optional[str
     """
     if model_path:
         ml_service.load_model(model_path)
-    
+
     logger.info(f"Starting ML Inference Service on {host}:{port}")
     logger.info(f"Model loaded: {ml_service.model_loaded}")
-    
+
     app.run(host=host, port=port, debug=False)
 
 
 if __name__ == "__main__":
     import sys
-    
+
     model_path = sys.argv[1] if len(sys.argv) > 1 else None
     run_server(port=8060, model_path=model_path)

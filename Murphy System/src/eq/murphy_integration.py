@@ -16,6 +16,11 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
+from thread_safe_operations import capped_append
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -113,7 +118,7 @@ class RaidLeaderModerator:
             target_entity=target_id,
             reason=reason,
         )
-        self._actions.append(action)
+        capped_append(self._actions, action)
         return action
 
     def unmute_player(self, admin_id: str, target_id: str) -> AdminAction:
@@ -124,7 +129,7 @@ class RaidLeaderModerator:
             target_entity=target_id,
             reason="unmute",
         )
-        self._actions.append(action)
+        capped_append(self._actions, action)
         return action
 
     def kick_from_raid(self, admin_id: str, target_id: str, reason: str) -> AdminAction:
@@ -135,7 +140,7 @@ class RaidLeaderModerator:
             target_entity=target_id,
             reason=reason,
         )
-        self._actions.append(action)
+        capped_append(self._actions, action)
         return action
 
     def get_actions(self) -> List[AdminAction]:

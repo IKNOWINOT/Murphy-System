@@ -13,6 +13,11 @@ import uuid
 import threading
 from enum import Enum
 from typing import Any, Dict, List, Optional
+from thread_safe_operations import capped_append
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -20,6 +25,7 @@ from typing import Any, Dict, List, Optional
 # ---------------------------------------------------------------------------
 
 class EnergyManagementCategory(Enum):
+    """Energy management category (Enum subclass)."""
     UTILITY_ANALYTICS = "utility_analytics"
     BUILDING_EMS = "building_ems"
     GRID_MANAGEMENT = "grid_management"
@@ -29,6 +35,7 @@ class EnergyManagementCategory(Enum):
 
 
 class EnergyProtocol(Enum):
+    """Energy protocol (Enum subclass)."""
     MODBUS = "modbus"
     BACNET = "bacnet"
     OPC_UA = "opc_ua"
@@ -39,6 +46,7 @@ class EnergyProtocol(Enum):
 
 
 class ConnectorStatus(Enum):
+    """Connector status (Enum subclass)."""
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -132,7 +140,7 @@ class EnergyManagementConnector:
                     "simulated": True,
                 },
             )
-            self._action_log.append(result)
+            capped_append(self._action_log, result)
             return result
 
     # -- configuration ------------------------------------------------------

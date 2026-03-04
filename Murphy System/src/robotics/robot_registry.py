@@ -82,7 +82,8 @@ class RobotRegistry:
         for rid, client in clients.items():
             try:
                 results[rid] = client.emergency_stop()
-            except Exception:
+            except Exception as exc:
+                logger.debug("Suppressed exception: %s", exc)
                 logger.exception("Emergency stop failed for %s", rid)
                 results[rid] = False
         return results

@@ -44,17 +44,21 @@
 
 ### 1.2 Installation
 
+**One-command setup (recommended):**
+
 ```bash
-# Clone the repository
-git clone https://github.com/your-org/Murphy-System.git
+# Clone and start
+git clone https://github.com/IKNOWINOT/Murphy-System.git
+cd Murphy-System
+bash setup_and_start.sh
+```
+
+**Manual setup:**
+
+```bash
 cd "Murphy System"
-
-# Install dependencies
 pip install -r requirements_murphy_1.0.txt
-
-# Or use the setup script
-chmod +x setup_murphy.sh
-./setup_murphy.sh
+python murphy_system_1.0_runtime.py
 ```
 
 **Windows:**
@@ -62,6 +66,12 @@ chmod +x setup_murphy.sh
 ```bat
 cd "Murphy System"
 setup_murphy.bat
+```
+
+**Remote one-line install:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/IKNOWINOT/Murphy-System/main/install.sh | bash
 ```
 
 ### 1.3 Quick Start
@@ -916,18 +926,38 @@ Returns per-bot metrics: invocation count, success rate, average latency, and re
 
 ### 15.1 Available Interfaces
 
-| Interface | File | Description |
-|-----------|------|-------------|
-| **Landing Page** | `murphy_landing_page.html` | System overview and navigation |
-| **Integrated Dashboard** | `murphy_ui_integrated.html` | Full control dashboard |
-| **Worker Terminal** | `murphy_ui_worker_terminal.html` | Task submission and monitoring |
-| **Architect Terminal** | `terminal_architect.html` | System design and config |
-| **Enhanced Terminal** | `murphy_ui_enhanced_terminal.html` | Advanced command interface |
-| **Integrated Terminal** | `murphy_ui_integrated_terminal.html` | Combined terminal experience |
+Murphy provides multiple interfaces for different user roles:
 
-### 15.2 Dashboard Features
+| Interface | File | Purpose |
+|-----------|------|---------|
+| **Onboarding Wizard** | `onboarding_wizard.html` | No-code guided setup for new users |
+| **Landing Page** | `murphy_landing_page.html` | System overview and navigation hub |
+| **Integrated Dashboard** | `murphy_ui_integrated.html` | Full management interface |
+| **Integrated Terminal** | `murphy_ui_integrated_terminal.html` | Combined terminal with dashboard |
+| **Architect Terminal** | `terminal_architect.html` | System design, module config |
+| **Worker Terminal** | `terminal_worker.html` | Task submission and monitoring |
+| **Enhanced Terminal** | `terminal_enhanced.html` | Advanced command interface |
+| **Full Terminal** | `terminal_integrated.html` | All terminal features combined |
+| **Python TUI** | `murphy_terminal.py` | Textual-based conversational CLI |
+| **Setup Wizard CLI** | `src/setup_wizard.py` | Interactive configuration wizard |
+| **Swagger API Docs** | `/docs` (when server running) | Auto-generated REST API reference |
 
-The integrated dashboard (`/dashboard`) provides: execution pipeline visualization, bot activity monitoring, confidence score distributions, system health matrix, and streaming log viewer with filtering.
+### 15.2 Opening Web Interfaces
+
+All HTML interfaces are static files. Open them directly in a browser:
+
+```bash
+# Open the onboarding wizard
+open "Murphy System/onboarding_wizard.html"       # macOS
+xdg-open "Murphy System/onboarding_wizard.html"   # Linux
+start "Murphy System\onboarding_wizard.html"       # Windows
+```
+
+Or serve them via the API when the server is running at `http://localhost:8000/`.
+
+### 15.3 Dashboard Features
+
+The integrated dashboard (`murphy_ui_integrated.html`) provides: execution pipeline visualization, bot activity monitoring, confidence score distributions, system health matrix, and streaming log viewer with filtering.
 
 Terminal interfaces provide browser-based command-line access for direct API interaction, task scripting, diagnostics, and configuration management.
 
@@ -1175,7 +1205,7 @@ curl http://localhost:8000/api/health
 
 | Channel | Contact |
 |---------|---------|
-| GitHub Issues | [Murphy-System Issues](https://github.com/your-org/Murphy-System/issues) |
+| GitHub Issues | [Murphy-System Issues](https://github.com/IKNOWINOT/Murphy-System/issues) |
 | Documentation | `documentation/` directory in the repository |
 | Email | support@inoni.com |
 

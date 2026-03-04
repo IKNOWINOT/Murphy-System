@@ -32,6 +32,10 @@ import time
 import uuid
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # 1. VISUAL REGRESSION TESTING
@@ -361,6 +365,7 @@ class MobileGestureTester:
     """Tests touch interactions: swipes, pinches, long-press, taps."""
 
     class TouchEvent:
+        """Touch event."""
         def __init__(self, gesture: str, target: str,
                      coords: Tuple[int, int] = (0, 0),
                      duration_ms: int = 0):

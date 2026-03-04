@@ -13,6 +13,7 @@ Simulates:
 import time
 import hashlib
 import json
+import logging
 from typing import Dict
 from ..adapter_contract import (
     AdapterAPI, AdapterManifest, AdapterCapability,
@@ -20,22 +21,24 @@ from ..adapter_contract import (
 )
 from ..execution_packet_extension import DeviceExecutionPacket
 
+logger = logging.getLogger("adapter_framework.adapters.mock_adapter")
+
 
 class MockAdapter(AdapterAPI):
     """
     Mock adapter for testing.
-    
+
     Simulates a simple robot arm with:
     - Position control
     - Velocity limits
     - Force limits
     - Temperature monitoring
     """
-    
+
     def __init__(self, device_id: str = "mock_device_001"):
         """
         Initialize mock adapter.
-        
+
         Args:
             device_id: Device ID
         """
@@ -91,9 +94,9 @@ class MockAdapter(AdapterAPI):
             model="MockArm-1000",
             serial_number="MOCK-001"
         )
-        
+
         super().__init__(manifest)
-        
+
         # Device state
         self.device_id = device_id
         self.position = 0.0
@@ -103,30 +106,30 @@ class MockAdapter(AdapterAPI):
         self.health = "healthy"
         self.sequence_number = 0
         self.start_time = time.time()
-    
+
     def get_manifest(self) -> AdapterManifest:
         """Get adapter manifest"""
         return self.manifest
-    
+
     def read_telemetry(self) -> Dict:
         """Read current telemetry"""
         # Update state (simulate physics)
         self._update_state()
-        
+
         # Create state vector
         state_vector = {
             "position": self.position,
             "velocity": self.velocity,
             "temperature": self.temperature
         }
-        
+
         # Compute checksum
         serialized = json.dumps(state_vector, sort_keys=True)
         checksum = hashlib.sha256(serialized.encode()).hexdigest()
-        
+
         # Increment sequence
         self.sequence_number += 1
-        
+
         return {
             "timestamp": time.time(),
             "device_id": self.device_id,
@@ -141,7 +144,7 @@ class MockAdapter(AdapterAPI):
                 "temperature_celsius": self.temperature
             }
         }
-    
+
     def execute_command(self, execution_packet: DeviceExecutionPacket) -> Dict:
         """Execute command from packet"""
         # Check rate limit
@@ -151,7 +154,7 @@ class MockAdapter(AdapterAPI):
                 "success": False,
                 "error": reason
             }
-        
+
         # Check safety limits
         is_safe, violations = self.validate_safety_limits(execution_packet.command)
         if not is_safe:
@@ -159,11 +162,11 @@ class MockAdapter(AdapterAPI):
                 "success": False,
                 "error": f"Safety violation: {violations}"
             }
-        
+
         # Extract command
         action = execution_packet.command['action']
         parameters = execution_packet.command.get('parameters', {})
-        
+
         # Execute action
         try:
             if action == "move_to":
@@ -179,38 +182,39 @@ class MockAdapter(AdapterAPI):
                     "success": False,
                     "error": f"Unknown action: {action}"
                 }
-            
+
             # Update command tracking
             self.last_command_time = time.time()
             self.command_count += 1
-            
+
             # Read post-execution telemetry
             telemetry = self.read_telemetry()
-            
+
             return {
                 "success": True,
                 "telemetry": telemetry,
                 "error": None
             }
-            
-        except Exception as e:
+
+        except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
                 "success": False,
-                "error": str(e)
+                "error": str(exc)
             }
-    
+
     def emergency_stop(self) -> bool:
         """Execute emergency stop"""
-        print(f"[EMERGENCY STOP] {self.device_id}")
-        
+        logger.info(f"[EMERGENCY STOP] {self.device_id}")
+
         # Stop all motion
         self.velocity = 0.0
         self.is_emergency_stopped = True
         self.error_codes.append("emergency_stop")
         self.health = "degraded"
-        
+
         return True
-    
+
     def heartbeat(self) -> Dict:
         """Send heartbeat"""
         return {
@@ -220,36 +224,36 @@ class MockAdapter(AdapterAPI):
             "command_count": self.command_count,
             "is_emergency_stopped": self.is_emergency_stopped
         }
-    
+
     def _update_state(self):
         """Update device state (simulate physics)"""
         # Update position based on velocity
         dt = 0.1  # 100ms
         self.position += self.velocity * dt
-        
+
         # Clamp position
         self.position = max(-180.0, min(180.0, self.position))
-        
+
         # Update temperature (increases with motion)
         if abs(self.velocity) > 0.1:
             self.temperature += 0.1
         else:
             self.temperature = max(25.0, self.temperature - 0.05)
-        
+
         # Check for errors
         self.error_codes = []
-        
+
         if self.temperature > self.manifest.safety_limits.max_temperature:
             self.error_codes.append("temperature_exceeded")
             self.health = "degraded"
         else:
             self.health = "healthy"
-    
+
     def _move_to(self, parameters: Dict):
         """Move to position"""
         target_position = parameters['position']
         velocity = parameters.get('velocity', 1.0)
-        
+
         # Set velocity towards target
         if target_position > self.position:
             self.velocity = velocity
@@ -257,15 +261,15 @@ class MockAdapter(AdapterAPI):
             self.velocity = -velocity
         else:
             self.velocity = 0.0
-    
+
     def _set_velocity(self, parameters: Dict):
         """Set velocity"""
         self.velocity = parameters['velocity']
-    
+
     def _stop(self):
         """Stop motion"""
         self.velocity = 0.0
-    
+
     def _reset(self):
         """Reset to initial state"""
         self.position = 0.0

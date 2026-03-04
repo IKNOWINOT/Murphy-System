@@ -10,6 +10,9 @@ from flask import Flask, request, jsonify
 from typing import Dict, Optional
 import time
 
+import logging
+logger = logging.getLogger("recursive_stability_controller.rsc_service")
+
 from .state_variables import StateCollector, StateNormalizer
 from .recursion_energy import RecursionEnergyEstimator, RecursionEnergyCoefficients
 from .stability_score import StabilityScoreCalculator
@@ -24,14 +27,14 @@ from .telemetry import StabilityTelemetry, TelemetryRecord
 class RecursiveStabilityController:
     """
     Main Recursive Stability Controller.
-    
+
     Integrates all control components and provides:
     - Continuous stability monitoring
     - Control signal generation
     - Telemetry collection
     - REST API
     """
-    
+
     def __init__(
         self,
         confidence_engine_url: str = "http://localhost:8055",
@@ -41,7 +44,7 @@ class RecursiveStabilityController:
     ):
         """
         Initialize Recursive Stability Controller.
-        
+
         Args:
             confidence_engine_url: Confidence Engine URL
             gate_synthesis_url: Gate Synthesis Engine URL
@@ -52,10 +55,10 @@ class RecursiveStabilityController:
         self.confidence_engine_url = confidence_engine_url
         self.gate_synthesis_url = gate_synthesis_url
         self.orchestrator_url = orchestrator_url
-        
+
         # Control cycle period
         self.control_cycle_seconds = control_cycle_seconds
-        
+
         # Initialize components
         self.state_collector = StateCollector(
             confidence_engine_url,
@@ -71,53 +74,53 @@ class RecursiveStabilityController:
         self.feedback_isolation = FeedbackIsolationRouter()
         self.control_generator = ControlSignalGenerator()
         self.telemetry = StabilityTelemetry()
-        
+
         # State
         self.running = False
         self.cycle_count = 0
         self.last_control_signal = None
-        
-        print("[INIT] Recursive Stability Controller initialized")
-    
+
+        logger.info("[INIT] Recursive Stability Controller initialized")
+
     def run_control_cycle(self) -> Dict:
         """
         Run one control cycle.
-        
+
         Returns:
             Dictionary with cycle results
         """
         self.cycle_count += 1
-        
+
         # Step 1: Collect state variables
         raw_state = self.state_collector.collect_mock()  # Use mock for now
         if raw_state is None:
-            print("[ERROR] Failed to collect state")
+            logger.info("[ERROR] Failed to collect state")
             return {"error": "Failed to collect state"}
-        
+
         # Step 2: Normalize state
         normalized_state = self.state_normalizer.normalize(raw_state)
         if normalized_state is None:
-            print("[ERROR] Failed to normalize state")
+            logger.info("[ERROR] Failed to normalize state")
             return {"error": "Failed to normalize state"}
-        
+
         # Step 3: Estimate recursion energy
         energy_breakdown = self.energy_estimator.estimate_with_breakdown(normalized_state)
         R_t = energy_breakdown["R_t"]
-        
+
         # Step 4: Calculate stability score
         stability_score = self.stability_calculator.calculate(
             R_t,
             normalized_state.timestamp,
             normalized_state.cycle_id
         )
-        
+
         # Step 5: Update Lyapunov monitor
         lyapunov_state = self.lyapunov_monitor.update(
             R_t,
             normalized_state.timestamp,
             normalized_state.cycle_id
         )
-        
+
         # Step 6: Generate control signal
         control_signal = self.control_generator.generate_signal(
             stability_score.score,
@@ -128,9 +131,9 @@ class RecursiveStabilityController:
             normalized_state.timestamp,
             normalized_state.cycle_id
         )
-        
+
         self.last_control_signal = control_signal
-        
+
         # Step 7: Record telemetry
         telemetry_record = TelemetryRecord(
             cycle_id=normalized_state.cycle_id,
@@ -155,14 +158,14 @@ class RecursiveStabilityController:
             lyapunov_violations=self.lyapunov_monitor.consecutive_violations,
             isolation_violations=len(self.feedback_isolation.get_violations(n=1))
         )
-        
+
         self.telemetry.record(telemetry_record)
-        
+
         # Step 8: Check for early collapse
         collapse_warning = self.telemetry.detect_early_collapse()
         if collapse_warning:
-            print(f"[WARNING] Early collapse detected: {collapse_warning}")
-        
+            logger.info(f"[WARNING] Early collapse detected: {collapse_warning}")
+
         return {
             "cycle_id": normalized_state.cycle_id,
             "timestamp": normalized_state.timestamp,
@@ -173,7 +176,7 @@ class RecursiveStabilityController:
             "control_signal": control_signal.to_dict(),
             "collapse_warning": collapse_warning
         }
-    
+
     def get_status(self) -> Dict:
         """Get controller status"""
         return {
@@ -231,7 +234,7 @@ def status():
     """Get controller status"""
     if controller is None:
         return jsonify({"error": "Controller not initialized"}), 500
-    
+
     return jsonify(controller.get_status())
 
 
@@ -240,7 +243,7 @@ def control_cycle():
     """Run one control cycle"""
     if controller is None:
         return jsonify({"error": "Controller not initialized"}), 500
-    
+
     result = controller.run_control_cycle()
     return jsonify(result)
 
@@ -250,10 +253,10 @@ def get_control_signal():
     """Get current control signal"""
     if controller is None:
         return jsonify({"error": "Controller not initialized"}), 500
-    
+
     if controller.last_control_signal is None:
         return jsonify({"error": "No control signal available"}), 404
-    
+
     return jsonify(controller.last_control_signal.to_dict())
 
 
@@ -262,9 +265,9 @@ def spawn_request():
     """Request agent spawn"""
     if controller is None:
         return jsonify({"error": "Controller not initialized"}), 500
-    
+
     data = request.json
-    
+
     spawn_req = SpawnRequest(
         request_id=data.get("request_id"),
         agent_type=data.get("agent_type"),
@@ -273,7 +276,7 @@ def spawn_request():
         cycle_id=controller.cycle_count,
         requester=data.get("requester", "unknown")
     )
-    
+
     # Get current state for evaluation
     current_state = {
         "lyapunov_stable": controller.lyapunov_monitor.check_stability(),
@@ -282,9 +285,9 @@ def spawn_request():
         "recursion_energy": 0.0,  # Placeholder
         "estimated_spawn_impact": data.get("estimated_impact", 0.0)
     }
-    
+
     response = controller.spawn_controller.request_spawn(spawn_req, current_state)
-    
+
     return jsonify(response.to_dict())
 
 
@@ -293,7 +296,7 @@ def spawn_queue():
     """Get spawn queue status"""
     if controller is None:
         return jsonify({"error": "Controller not initialized"}), 500
-    
+
     return jsonify(controller.spawn_controller.get_queue_status())
 
 
@@ -302,9 +305,9 @@ def gate_request():
     """Request gate synthesis"""
     if controller is None:
         return jsonify({"error": "Controller not initialized"}), 500
-    
+
     data = request.json
-    
+
     gate_req = GateSynthesisRequest(
         request_id=data.get("request_id"),
         gate_type=data.get("gate_type"),
@@ -313,12 +316,12 @@ def gate_request():
         cycle_id=controller.cycle_count,
         requester=data.get("requester", "unknown")
     )
-    
+
     response = controller.gate_damping.request_synthesis(
         gate_req,
         data.get("confidence", 0.5)
     )
-    
+
     return jsonify(response.to_dict())
 
 
@@ -327,7 +330,7 @@ def gate_capacity():
     """Get gate capacity"""
     if controller is None:
         return jsonify({"error": "Controller not initialized"}), 500
-    
+
     return jsonify(controller.gate_damping.get_capacity())
 
 
@@ -336,18 +339,18 @@ def isolation_check():
     """Check evaluation for feedback isolation"""
     if controller is None:
         return jsonify({"error": "Controller not initialized"}), 500
-    
+
     data = request.json
-    
+
     eval_req = EvaluationRequest(
         request_id=data.get("request_id"),
         evaluator_id=data.get("evaluator_id"),
         artifact_id=data.get("artifact_id"),
         timestamp=time.time()
     )
-    
+
     is_allowed, violation = controller.feedback_isolation.check_evaluation(eval_req)
-    
+
     return jsonify({
         "allowed": is_allowed,
         "violation": violation.to_dict() if violation else None
@@ -359,10 +362,10 @@ def telemetry_recent():
     """Get recent telemetry"""
     if controller is None:
         return jsonify({"error": "Controller not initialized"}), 500
-    
+
     n = request.args.get('n', default=10, type=int)
     recent = controller.telemetry.get_recent(n)
-    
+
     return jsonify({
         "count": len(recent),
         "records": [r.to_dict() for r in recent]
@@ -374,7 +377,7 @@ def telemetry_statistics():
     """Get telemetry statistics"""
     if controller is None:
         return jsonify({"error": "Controller not initialized"}), 500
-    
+
     return jsonify(controller.telemetry.get_statistics())
 
 
@@ -383,7 +386,7 @@ def telemetry_metrics():
     """Get Prometheus metrics"""
     if controller is None:
         return "# Controller not initialized\n", 500
-    
+
     metrics = controller.telemetry.export_prometheus_metrics()
     return metrics, 200, {'Content-Type': 'text/plain; charset=utf-8'}
 
@@ -393,7 +396,7 @@ def statistics():
     """Get comprehensive statistics"""
     if controller is None:
         return jsonify({"error": "Controller not initialized"}), 500
-    
+
     return jsonify({
         "recursion_energy": controller.energy_estimator.get_statistics(),
         "stability_score": controller.stability_calculator.get_statistics(),
@@ -413,23 +416,23 @@ def create_app(
 ) -> Flask:
     """
     Create Flask application.
-    
+
     Args:
         confidence_engine_url: Confidence Engine URL
         gate_synthesis_url: Gate Synthesis Engine URL
         orchestrator_url: Execution Orchestrator URL
-        
+
     Returns:
         Flask application
     """
     global controller
-    
+
     controller = RecursiveStabilityController(
         confidence_engine_url,
         gate_synthesis_url,
         orchestrator_url
     )
-    
+
     return app
 
 

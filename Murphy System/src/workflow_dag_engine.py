@@ -15,9 +15,15 @@ from enum import Enum
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from thread_safe_operations import capped_append
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class StepStatus(Enum):
+    """Step status (Enum subclass)."""
     PENDING = "pending"
     READY = "ready"
     RUNNING = "running"
@@ -29,6 +35,7 @@ class StepStatus(Enum):
 
 
 class WorkflowStatus(Enum):
+    """Workflow status (Enum subclass)."""
     DRAFT = "draft"
     READY = "ready"
     RUNNING = "running"
@@ -40,6 +47,7 @@ class WorkflowStatus(Enum):
 
 @dataclass
 class StepDefinition:
+    """Step definition."""
     step_id: str
     name: str
     action: str  # what to execute
@@ -54,6 +62,7 @@ class StepDefinition:
 
 @dataclass
 class StepExecution:
+    """Step execution."""
     step_id: str
     status: StepStatus = StepStatus.PENDING
     result: Any = None
@@ -66,6 +75,7 @@ class StepExecution:
 
 @dataclass
 class WorkflowDefinition:
+    """Workflow definition."""
     workflow_id: str
     name: str
     description: str = ""
@@ -76,6 +86,7 @@ class WorkflowDefinition:
 
 @dataclass
 class WorkflowExecution:
+    """Workflow execution."""
     execution_id: str
     workflow_id: str
     status: WorkflowStatus = WorkflowStatus.DRAFT
@@ -184,9 +195,9 @@ class WorkflowDAGEngine:
 
         try:
             order = self._topological_sort(workflow)
-        except ValueError as e:
+        except ValueError as exc:
             execution.status = WorkflowStatus.FAILED
-            return {"error": str(e)}
+            return {"error": str(exc)}
 
         step_map = {s.step_id: s for s in workflow.steps}
         results = {}
@@ -227,8 +238,9 @@ class WorkflowDAGEngine:
                     result = handler(step_def, execution.context)
                     step_exec.result = result
                     step_exec.status = StepStatus.COMPLETED
-                except Exception as e:
-                    step_exec.error = str(e)
+                except Exception as exc:
+                    logger.debug("Caught exception: %s", exc)
+                    step_exec.error = str(exc)
                     step_exec.status = StepStatus.FAILED
             else:
                 # Default simulation
@@ -271,7 +283,7 @@ class WorkflowDAGEngine:
         }
 
         with self._lock:
-            self._execution_history.append(summary)
+            capped_append(self._execution_history, summary)
         return summary
 
     def _evaluate_condition(self, condition: str, context: Dict[str, Any], results: Dict[str, Any]) -> bool:

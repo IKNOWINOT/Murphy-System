@@ -9,6 +9,10 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 # Industry-to-feature mapping for personalized demos and proposals
 INDUSTRY_FEATURES: Dict[str, List[str]] = {
     "manufacturing": [

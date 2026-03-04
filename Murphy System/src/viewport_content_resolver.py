@@ -107,8 +107,8 @@ class ViewportContentResolver:
                 artifact = plane.read(artifact_id)
                 if artifact:
                     return self._extract_content(artifact)
-        except Exception as e:
-            logger.debug(f"MAS lookup failed for {artifact_id} in {plane_name}: {e}")
+        except Exception as exc:
+            logger.debug(f"MAS lookup failed for {artifact_id} in {plane_name}: {exc}")
 
         return None
 
@@ -121,8 +121,8 @@ class ViewportContentResolver:
             doc = self._persistence.load_document(artifact_id)
             if doc is not None:
                 return doc
-        except Exception as e:
-            logger.debug(f"Persistence lookup failed for {artifact_id}: {e}")
+        except Exception as exc:
+            logger.debug(f"Persistence lookup failed for {artifact_id}: {exc}")
 
         return None
 
@@ -140,8 +140,8 @@ class ViewportContentResolver:
                 transcript = self._librarian.get_transcript(artifact_id)
                 if transcript:
                     return transcript
-        except Exception as e:
-            logger.debug(f"Librarian lookup failed for {artifact_id}: {e}")
+        except Exception as exc:
+            logger.debug(f"Librarian lookup failed for {artifact_id}: {exc}")
 
         return None
 

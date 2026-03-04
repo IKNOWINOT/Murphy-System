@@ -1,6 +1,5 @@
-# bot_identity_verifier.py
+"""Cryptographic identity verification for bots in the Murphy System."""
 # Copyright © 2020 Inoni Limited Liability Company
-# Cryptographic identity verification for bots in the Murphy System.
 
 from __future__ import annotations
 
@@ -14,11 +13,13 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
 
 class IdentityStatus(str, Enum):
+    """Identity status (str subclass)."""
     ACTIVE = "active"
     REVOKED = "revoked"
     EXPIRED = "expired"
@@ -26,6 +27,7 @@ class IdentityStatus(str, Enum):
 
 
 class VerificationResult(str, Enum):
+    """Verification result (str subclass)."""
     VALID = "valid"
     INVALID_SIGNATURE = "invalid_signature"
     UNKNOWN_BOT = "unknown_bot"
@@ -35,6 +37,7 @@ class VerificationResult(str, Enum):
 
 @dataclass
 class BotIdentity:
+    """Bot identity."""
     bot_id: str
     tenant_id: str
     signing_key: str
@@ -61,6 +64,7 @@ class BotIdentity:
 
 @dataclass
 class SignedMessage:
+    """Signed message."""
     message_id: str
     from_bot: str
     to_bot: str
@@ -159,7 +163,7 @@ class BotIdentityVerifier:
 
             identity.status = IdentityStatus.REVOKED
             identity.revoked_at = datetime.now(timezone.utc)
-            self._revocation_log.append(
+            capped_append(self._revocation_log,
                 {"bot_id": bot_id, "reason": reason, "at": identity.revoked_at.isoformat()}
             )
             logger.info("Revoked identity for bot '%s' (reason: %s)", bot_id, reason)

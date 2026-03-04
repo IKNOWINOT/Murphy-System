@@ -9,6 +9,10 @@ from datetime import datetime
 from enum import Enum
 from pydantic import BaseModel, ConfigDict, Field
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ExecutionStatus(str, Enum):
     """Execution status"""
@@ -22,7 +26,7 @@ class ExecutionStatus(str, Enum):
 
 class PhaseResult(BaseModel):
     """Result of a single phase execution"""
-    
+
     phase: str = Field(..., description="Phase name")
     status: ExecutionStatus = Field(..., description="Phase status")
     confidence: float = Field(..., description="Confidence score for this phase")
@@ -30,7 +34,7 @@ class PhaseResult(BaseModel):
     output: Dict[str, Any] = Field(default_factory=dict, description="Phase output")
     duration_seconds: float = Field(..., description="Phase execution duration")
     timestamp: datetime = Field(default_factory=datetime.now, description="Phase completion time")
-    
+
     model_config = ConfigDict(json_schema_extra={
         "examples": [{
             "phase": "expand",
@@ -45,7 +49,7 @@ class PhaseResult(BaseModel):
 
 class ExecutionResult(BaseModel):
     """Complete execution result"""
-    
+
     task_id: str = Field(..., description="Task ID")
     execution_id: str = Field(..., description="Unique execution ID")
     status: ExecutionStatus = Field(..., description="Overall execution status")
@@ -93,7 +97,7 @@ class ExecutionResult(BaseModel):
         None,
         description="Total execution duration"
     )
-    
+
     model_config = ConfigDict(json_schema_extra={
         "examples": [{
             "task_id": "task_001",

@@ -14,6 +14,10 @@ from typing import Dict, List, Optional
 
 from .canonical_state import CanonicalStateVector, _DIMENSION_NAMES
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ------------------------------------------------------------------ #
 # Action space  U

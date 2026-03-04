@@ -26,6 +26,10 @@ from typing import Any, Dict, List, Optional, Set
 
 from .card_system import CardCollection, _strip_unmaking_state
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ---------------------------------------------------------------------------
 # Soul Document (§12.1)

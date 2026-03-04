@@ -29,6 +29,10 @@ from control_theory.observation_model import (
 from control_theory.stability import LyapunovFunction, StabilityAnalyzer
 from control_theory.state_model import StateDimension, StateEvolution, StateVector
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ------------------------------------------------------------------ #
 # Result types

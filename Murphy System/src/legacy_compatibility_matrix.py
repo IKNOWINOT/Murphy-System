@@ -20,6 +20,7 @@ from typing import Dict, List, Optional, Any, Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from collections import deque
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -156,7 +157,7 @@ class LegacyCompatibilityMatrixAdapter:
                 "target": target,
                 "timestamp": timestamp,
             }
-            self._execution_history.append(result)
+            capped_append(self._execution_history, result)
             return result
 
         hook_fn = self._bridge_hooks[key]
@@ -172,6 +173,7 @@ class LegacyCompatibilityMatrixAdapter:
                 "timestamp": timestamp,
             }
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             result = {
                 "status": "error",
                 "source": source,
@@ -181,7 +183,7 @@ class LegacyCompatibilityMatrixAdapter:
                 "timestamp": timestamp,
             }
 
-        self._execution_history.append(result)
+        capped_append(self._execution_history, result)
         logger.info("Bridge execution %s -> %s: %s", source, target, result["status"])
         return result
 

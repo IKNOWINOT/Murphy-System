@@ -23,16 +23,20 @@ from .models import (
     ConfidenceProfile
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class OrganizationalFailureGenerator:
     """
     Generates organizational failures
-    
+
     Injects failures into:
     - Governance input layer
     - Override channels
     """
-    
+
     def __init__(self):
         self.authority_levels = ['read_only', 'limited', 'standard', 'elevated']
         self.warning_types = [
@@ -42,7 +46,7 @@ class OrganizationalFailureGenerator:
             'resource_limit_warning',
             'safety_concern_warning'
         ]
-    
+
     def generate_authority_override(
         self,
         governance_state: Dict[str, Any],
@@ -50,15 +54,15 @@ class OrganizationalFailureGenerator:
     ) -> FailureCase:
         """
         Generate authority override failure
-        
+
         Example: Manager overrides safety gate to meet deadline
         """
         failure_id = self._generate_failure_id('authority_override')
-        
+
         # Simulate authority escalation
         original_authority = random.choice(self.authority_levels[:2])  # Low authority
         override_authority = random.choice(self.authority_levels[2:])  # High authority
-        
+
         override_reason = random.choice([
             'deadline_pressure',
             'cost_reduction',
@@ -66,11 +70,11 @@ class OrganizationalFailureGenerator:
             'executive_directive',
             'customer_demand'
         ])
-        
+
         # Calculate impact
         expected_loss = 0.9  # Very high impact
         murphy_probability = 0.95  # Almost certain failure
-        
+
         # Create confidence drift profile
         confidence_profile = ConfidenceProfile(
             initial_confidence=0.65,
@@ -80,7 +84,7 @@ class OrganizationalFailureGenerator:
             final_confidence=0.10,
             drift_rate=-0.1375
         )
-        
+
         return FailureCase(
             failure_id=failure_id,
             failure_type=FailureType.AUTHORITY_OVERRIDE,
@@ -119,7 +123,7 @@ class OrganizationalFailureGenerator:
             expected_loss=expected_loss,
             murphy_probability=murphy_probability
         )
-    
+
     def generate_ignored_warning(
         self,
         warning_history: List[Dict[str, Any]],
@@ -127,19 +131,19 @@ class OrganizationalFailureGenerator:
     ) -> FailureCase:
         """
         Generate ignored warning failure
-        
+
         Example: Risk threshold warning dismissed without investigation
         """
         failure_id = self._generate_failure_id('ignored_warning')
-        
+
         warning_type = random.choice(self.warning_types)
         warning_count = random.randint(3, 10)
         time_ignored_hours = random.randint(1, 48)
-        
+
         # Calculate impact based on warning severity and duration
         expected_loss = min(0.95, 0.5 + (warning_count * 0.05) + (time_ignored_hours / 100))
         murphy_probability = 0.85
-        
+
         # Create confidence drift profile
         confidence_profile = ConfidenceProfile(
             initial_confidence=0.70,
@@ -149,7 +153,7 @@ class OrganizationalFailureGenerator:
             final_confidence=0.15,
             drift_rate=-0.1375
         )
-        
+
         return FailureCase(
             failure_id=failure_id,
             failure_type=FailureType.IGNORED_WARNING,
@@ -188,7 +192,7 @@ class OrganizationalFailureGenerator:
             expected_loss=expected_loss,
             murphy_probability=murphy_probability
         )
-    
+
     def generate_misaligned_incentive(
         self,
         incentive_structure: Dict[str, Any],
@@ -196,11 +200,11 @@ class OrganizationalFailureGenerator:
     ) -> FailureCase:
         """
         Generate misaligned incentive failure
-        
+
         Example: Bonus for speed conflicts with safety requirements
         """
         failure_id = self._generate_failure_id('misaligned_incentive')
-        
+
         # Common misalignment patterns
         misalignments = [
             ('speed_bonus', 'safety_compliance', 'Speed incentive conflicts with safety'),
@@ -209,13 +213,13 @@ class OrganizationalFailureGenerator:
             ('revenue_target', 'risk_management', 'Revenue goals conflict with risk limits'),
             ('efficiency_metric', 'redundancy_requirement', 'Efficiency conflicts with redundancy')
         ]
-        
+
         incentive, requirement, description = random.choice(misalignments)
-        
+
         # Calculate impact
         expected_loss = 0.7
         murphy_probability = 0.75
-        
+
         # Create confidence drift profile
         confidence_profile = ConfidenceProfile(
             initial_confidence=0.75,
@@ -225,7 +229,7 @@ class OrganizationalFailureGenerator:
             final_confidence=0.25,
             drift_rate=-0.125
         )
-        
+
         return FailureCase(
             failure_id=failure_id,
             failure_type=FailureType.MISALIGNED_INCENTIVE,
@@ -264,7 +268,7 @@ class OrganizationalFailureGenerator:
             expected_loss=expected_loss,
             murphy_probability=murphy_probability
         )
-    
+
     def generate_schedule_pressure(
         self,
         project_state: Dict[str, Any],
@@ -272,15 +276,15 @@ class OrganizationalFailureGenerator:
     ) -> FailureCase:
         """
         Generate schedule pressure failure
-        
+
         Example: Deadline pressure leads to skipped verification
         """
         failure_id = self._generate_failure_id('schedule_pressure')
-        
+
         # Simulate schedule pressure
         days_behind = random.randint(5, 30)
         skipped_steps = random.randint(2, 8)
-        
+
         pressure_sources = [
             'customer_deadline',
             'market_window',
@@ -288,13 +292,13 @@ class OrganizationalFailureGenerator:
             'contract_penalty',
             'competitive_pressure'
         ]
-        
+
         pressure_source = random.choice(pressure_sources)
-        
+
         # Calculate impact
         expected_loss = min(0.9, 0.4 + (days_behind / 50) + (skipped_steps * 0.05))
         murphy_probability = 0.8
-        
+
         # Create confidence drift profile
         confidence_profile = ConfidenceProfile(
             initial_confidence=0.70,
@@ -304,7 +308,7 @@ class OrganizationalFailureGenerator:
             final_confidence=0.20,
             drift_rate=-0.125
         )
-        
+
         return FailureCase(
             failure_id=failure_id,
             failure_type=FailureType.SCHEDULE_PRESSURE,
@@ -343,11 +347,11 @@ class OrganizationalFailureGenerator:
             expected_loss=expected_loss,
             murphy_probability=murphy_probability
         )
-    
+
     def generate_batch(self, count: int = 10) -> List[FailureCase]:
         """Generate batch of organizational failures"""
         failures = []
-        
+
         for _ in range(count):
             failure_type = random.choice([
                 'authority_override',
@@ -355,7 +359,7 @@ class OrganizationalFailureGenerator:
                 'misaligned_incentive',
                 'schedule_pressure'
             ])
-            
+
             if failure_type == 'authority_override':
                 failures.append(self.generate_authority_override({}))
             elif failure_type == 'ignored_warning':
@@ -364,9 +368,9 @@ class OrganizationalFailureGenerator:
                 failures.append(self.generate_misaligned_incentive({}))
             else:
                 failures.append(self.generate_schedule_pressure({}))
-        
+
         return failures
-    
+
     def _generate_failure_id(self, failure_type: str) -> str:
         """Generate unique failure ID"""
         timestamp = datetime.now().isoformat()

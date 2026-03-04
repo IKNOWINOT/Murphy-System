@@ -84,15 +84,24 @@ def _is_health_endpoint(path: str) -> bool:
 # ── Rate Limiting ────────────────────────────────────────────────────
 
 class _FastAPIRateLimiter:
-    """Simple token-bucket rate limiter."""
+    """Simple token-bucket rate limiter with TTL-based cleanup."""
+
+    _BUCKET_TTL_SECONDS = 3600  # Evict buckets inactive for 1 hour
+    _CLEANUP_INTERVAL = 300     # Run cleanup every 5 minutes
 
     def __init__(self, requests_per_minute: int = 60, burst_size: int = 20):
         self.rpm = requests_per_minute
         self.burst = burst_size
         self._buckets: Dict[str, Dict[str, Any]] = {}
+        self._last_cleanup: float = time.monotonic()
 
     def check(self, client_id: str) -> Dict[str, Any]:
         now = time.monotonic()
+
+        # Periodic stale-bucket cleanup (CWE-400 mitigation)
+        if now - self._last_cleanup > self._CLEANUP_INTERVAL:
+            self._evict_stale_buckets(now)
+
         if client_id not in self._buckets:
             self._buckets[client_id] = {"tokens": self.burst, "last_refill": now}
         bucket = self._buckets[client_id]
@@ -109,6 +118,16 @@ class _FastAPIRateLimiter:
             "remaining": 0,
             "retry_after_seconds": (1 - bucket["tokens"]) * (60.0 / self.rpm),
         }
+
+    def _evict_stale_buckets(self, now: float) -> None:
+        """Remove buckets that have not been used within the TTL window."""
+        stale_keys = [
+            cid for cid, b in self._buckets.items()
+            if now - b["last_refill"] > self._BUCKET_TTL_SECONDS
+        ]
+        for key in stale_keys:
+            del self._buckets[key]
+        self._last_cleanup = now
 
 
 _rate_limiter = _FastAPIRateLimiter()

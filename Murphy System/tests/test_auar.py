@@ -1892,7 +1892,7 @@ class TestFastAPIRouter:
 
 
 # ===================================================================
-# Nested Schema Translation Tests  
+# Nested Schema Translation Tests
 # ===================================================================
 
 class TestNestedSchemaTranslation:

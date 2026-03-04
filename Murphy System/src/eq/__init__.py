@@ -34,3 +34,5 @@ Modules:
     murphy_integration    — Voice chat, sentiment classifier, raid moderation, Rosetta persistence
     eqemu_asset_manager   — EQEmu upstream asset discovery, download tracking, and validation
 """
+
+__all__: list[str] = []

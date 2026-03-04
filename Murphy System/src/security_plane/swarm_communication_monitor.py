@@ -1,7 +1,5 @@
-# swarm_communication_monitor.py
+"""Communication loop detection for inter-bot messaging in swarms."""
 # Copyright © 2020 Inoni Limited Liability Company
-#
-# Communication loop detection for inter-bot messaging in swarms.
 
 from __future__ import annotations
 
@@ -13,6 +11,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -225,7 +224,7 @@ class SwarmCommunicationMonitor:
     def _record_incident(
         self, incident: CommunicationIncident
     ) -> CommunicationIncident:
-        self._incidents.append(incident)
+        capped_append(self._incidents, incident)
         logger.warning(
             "Communication incident %s in swarm %s: %s — action=%s",
             incident.incident_id,

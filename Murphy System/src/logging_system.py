@@ -17,6 +17,8 @@ from enum import Enum
 from pathlib import Path
 import threading
 from contextlib import contextmanager
+import logging
+logger = logging.getLogger(__name__)
 
 
 class ThreadStatus(Enum):
@@ -180,12 +182,12 @@ class EmployeeAtom:
 
 class LoggingDatabase:
     """SQLite database for persistent logging"""
-    
+
     def __init__(self, db_path: str = "murphy_logs.db"):
         self.db_path = db_path
         self.lock = threading.Lock()
         self._initialize_database()
-    
+
     @contextmanager
     def get_connection(self):
         """Context manager for database connections with automatic cleanup"""
@@ -194,18 +196,19 @@ class LoggingDatabase:
         try:
             yield conn
             conn.commit()
-        except Exception as e:
+        except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             conn.rollback()
             raise
         finally:
             conn.close()
-    
+
     def _initialize_database(self):
         """Create database schema"""
         with self.lock:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                
+
                 # Sessions table
                 cursor.execute("""
                 CREATE TABLE IF NOT EXISTS sessions (
@@ -219,7 +222,7 @@ class LoggingDatabase:
                     metadata TEXT
                 )
                 """)
-                
+
                 # Threads table
                 cursor.execute("""
                 CREATE TABLE IF NOT EXISTS threads (
@@ -235,7 +238,7 @@ class LoggingDatabase:
                     FOREIGN KEY (session_id) REFERENCES sessions(session_id)
                 )
                 """)
-                
+
                 # Runtime gates table
                 cursor.execute("""
                 CREATE TABLE IF NOT EXISTS runtime_gates (
@@ -251,7 +254,7 @@ class LoggingDatabase:
                     FOREIGN KEY (thread_id) REFERENCES threads(thread_id)
                 )
                 """)
-                
+
                 # Employee atoms table
                 cursor.execute("""
                 CREATE TABLE IF NOT EXISTS employee_atoms (
@@ -268,7 +271,7 @@ class LoggingDatabase:
                     FOREIGN KEY (thread_id) REFERENCES threads(thread_id)
                 )
                 """)
-                
+
                 # Events table (enhanced)
                 cursor.execute("""
                 CREATE TABLE IF NOT EXISTS events (
@@ -285,7 +288,7 @@ class LoggingDatabase:
                     FOREIGN KEY (thread_id) REFERENCES threads(thread_id)
                 )
                 """)
-                
+
                 # Create indexes
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_sessions_start ON sessions(start_time)")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_threads_session ON threads(session_id)")
@@ -297,7 +300,7 @@ class LoggingDatabase:
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_events_session ON events(session_id)")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_events_thread ON events(thread_id)")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp)")
-    
+
     def insert_session(self, session: Session):
         """Insert or update session"""
         with self.lock:
@@ -305,8 +308,8 @@ class LoggingDatabase:
                 cursor = conn.cursor()
                 data = session.to_dict()
                 cursor.execute("""
-                    INSERT OR REPLACE INTO sessions 
-                    (session_id, user_id, start_time, end_time, total_messages, 
+                    INSERT OR REPLACE INTO sessions
+                    (session_id, user_id, start_time, end_time, total_messages,
                      total_commands, domains_accessed, metadata)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
@@ -314,7 +317,7 @@ class LoggingDatabase:
                     data['end_time'], data['total_messages'], data['total_commands'],
                     data['domains_accessed'], data['metadata']
                 ))
-    
+
     def insert_thread(self, thread: Thread):
         """Insert or update thread"""
         with self.lock:
@@ -330,7 +333,7 @@ class LoggingDatabase:
                 data['thread_id'], data['session_id'], data['parent_thread_id'],
                 data['project_name'], data['domain'], data['industry'],
                 data['start_time'], data['status'], data['metadata']
-            ))    
+            ))
     def insert_runtime_gate(self, gate: RuntimeLoopGate):
         """Insert or update runtime gate"""
         with self.lock:
@@ -348,7 +351,7 @@ class LoggingDatabase:
                 data['trigger_condition'], data['current_state'],
                 data['satisfaction_level'], data['last_check'],
                 data['check_frequency'], data['is_active']
-            ))    
+            ))
     def insert_employee_atom(self, atom: EmployeeAtom):
         """Insert employee atom"""
         with self.lock:
@@ -365,7 +368,7 @@ class LoggingDatabase:
                 data['industry'], data['atom_type'], data['content'],
                 data['confidence'], data['source'], data['timestamp'],
                 data['dependencies']
-            ))    
+            ))
     def insert_event(self, event: Dict[str, Any]):
         """Insert event"""
         with self.lock:
@@ -386,7 +389,7 @@ class LoggingDatabase:
                 event.get('confidence'),
                 event.get('murphy_index'),
                 json.dumps(event.get('data', {}))
-            ))    
+            ))
     def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
         """Get session by ID"""
         with self.lock:
@@ -397,19 +400,19 @@ class LoggingDatabase:
             if row:
                 return dict(row)
             return None
-    
+
     def get_active_sessions(self) -> List[Dict[str, Any]]:
         """Get all active sessions"""
         with self.lock:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
             cursor.execute("""
-                SELECT * FROM sessions 
-                WHERE end_time IS NULL 
+                SELECT * FROM sessions
+                WHERE end_time IS NULL
                 ORDER BY start_time DESC
             """)
             return [dict(row) for row in cursor.fetchall()]
-    
+
     def get_thread(self, thread_id: str) -> Optional[Dict[str, Any]]:
         """Get thread by ID"""
         with self.lock:
@@ -420,110 +423,110 @@ class LoggingDatabase:
             if row:
                 return dict(row)
             return None
-    
+
     def get_threads_by_session(self, session_id: str) -> List[Dict[str, Any]]:
         """Get all threads for a session"""
         with self.lock:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
             cursor.execute("""
-                SELECT * FROM threads 
-                WHERE session_id = ? 
+                SELECT * FROM threads
+                WHERE session_id = ?
                 ORDER BY start_time DESC
             """, (session_id,))
             return [dict(row) for row in cursor.fetchall()]
-    
+
     def get_active_threads(self) -> List[Dict[str, Any]]:
         """Get all active threads"""
         with self.lock:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
             cursor.execute("""
-                SELECT * FROM threads 
-                WHERE status = 'active' 
+                SELECT * FROM threads
+                WHERE status = 'active'
                 ORDER BY start_time DESC
             """)
             return [dict(row) for row in cursor.fetchall()]
-    
+
     def get_runtime_gates_by_thread(self, thread_id: str) -> List[Dict[str, Any]]:
         """Get all runtime gates for a thread"""
         with self.lock:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
             cursor.execute("""
-                SELECT * FROM runtime_gates 
+                SELECT * FROM runtime_gates
                 WHERE thread_id = ? AND is_active = 1
                 ORDER BY last_check DESC
             """, (thread_id,))
             return [dict(row) for row in cursor.fetchall()]
-    
+
     def get_active_runtime_gates(self) -> List[Dict[str, Any]]:
         """Get all active runtime gates"""
         with self.lock:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
             cursor.execute("""
-                SELECT * FROM runtime_gates 
+                SELECT * FROM runtime_gates
                 WHERE is_active = 1
                 ORDER BY last_check DESC
             """)
             return [dict(row) for row in cursor.fetchall()]
-    
+
     def get_employee_atoms_by_thread(self, thread_id: str) -> List[Dict[str, Any]]:
         """Get all employee atoms for a thread"""
         with self.lock:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
             cursor.execute("""
-                SELECT * FROM employee_atoms 
+                SELECT * FROM employee_atoms
                 WHERE thread_id = ?
                 ORDER BY timestamp DESC
             """, (thread_id,))
             return [dict(row) for row in cursor.fetchall()]
-    
+
     def get_employee_atoms_by_domain(self, domain: str) -> List[Dict[str, Any]]:
         """Get all employee atoms for a domain"""
         with self.lock:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
             cursor.execute("""
-                SELECT * FROM employee_atoms 
+                SELECT * FROM employee_atoms
                 WHERE domain = ?
                 ORDER BY confidence DESC, timestamp DESC
             """, (domain,))
             return [dict(row) for row in cursor.fetchall()]
-    
-    def get_events(self, session_id: Optional[str] = None, 
+
+    def get_events(self, session_id: Optional[str] = None,
                    thread_id: Optional[str] = None,
                    limit: int = 100) -> List[Dict[str, Any]]:
         """Get events with optional filtering"""
         with self.lock:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-            
+
             if session_id:
                 cursor.execute("""
-                    SELECT * FROM events 
+                    SELECT * FROM events
                     WHERE session_id = ?
                     ORDER BY timestamp DESC
                     LIMIT ?
                 """, (session_id, limit))
             elif thread_id:
                 cursor.execute("""
-                    SELECT * FROM events 
+                    SELECT * FROM events
                     WHERE thread_id = ?
                     ORDER BY timestamp DESC
                     LIMIT ?
                 """, (thread_id, limit))
             else:
                 cursor.execute("""
-                    SELECT * FROM events 
+                    SELECT * FROM events
                     ORDER BY timestamp DESC
                     LIMIT ?
                 """, (limit,))
-            
+
             return [dict(row) for row in cursor.fetchall()]
-    
+
     def close(self):
         """Close database connection (no-op with connection pooling)"""
         # With connection pooling, connections are closed automatically
@@ -533,13 +536,13 @@ class LoggingDatabase:
 
 class LoggingSystem:
     """Main logging system coordinator"""
-    
+
     def __init__(self, db_path: str = "murphy_logs.db"):
         self.db = LoggingDatabase(db_path)
         self.current_session: Optional[Session] = None
         self.current_thread: Optional[Thread] = None
         self.active_gates: Dict[str, RuntimeLoopGate] = {}
-    
+
     def create_session(self, user_id: Optional[str] = None) -> Session:
         """Create new session"""
         session = Session(
@@ -549,7 +552,7 @@ class LoggingSystem:
         self.db.insert_session(session)
         self.current_session = session
         return session
-    
+
     def end_session(self, session_id: str):
         """End a session"""
         session = self.db.get_session(session_id)
@@ -565,7 +568,7 @@ class LoggingSystem:
                 total_commands=session['total_commands']
             )
             self.db.insert_session(sess_obj)
-    
+
     def create_thread(self, session_id: str, project_name: str,
                      domain: str = "general", industry: str = "general",
                      parent_thread_id: Optional[str] = None) -> Thread:
@@ -581,7 +584,7 @@ class LoggingSystem:
         self.db.insert_thread(thread)
         self.current_thread = thread
         return thread
-    
+
     def update_thread_status(self, thread_id: str, status: ThreadStatus):
         """Update thread status"""
         thread = self.db.get_thread(thread_id)
@@ -599,7 +602,7 @@ class LoggingSystem:
                 status=ThreadStatus(thread['status'])
             )
             self.db.insert_thread(thread_obj)
-    
+
     def create_runtime_gate(self, thread_id: str, gate_type: str,
                            trigger_condition: str,
                            check_frequency: float = 60.0) -> RuntimeLoopGate:
@@ -614,7 +617,7 @@ class LoggingSystem:
         self.db.insert_runtime_gate(gate)
         self.active_gates[gate.gate_id] = gate
         return gate
-    
+
     def update_gate_satisfaction(self, gate_id: str, satisfaction: float,
                                 state: Dict[str, Any]):
         """Update gate satisfaction level"""
@@ -624,7 +627,7 @@ class LoggingSystem:
             gate.current_state = state
             gate.last_check = time.time()
             self.db.insert_runtime_gate(gate)
-    
+
     def create_employee_atom(self, thread_id: str, domain: str, industry: str,
                             atom_type: AtomType, content: Dict[str, Any],
                             confidence: float, source: AtomSource) -> EmployeeAtom:
@@ -641,7 +644,7 @@ class LoggingSystem:
         )
         self.db.insert_employee_atom(atom)
         return atom
-    
+
     def log_event(self, event_type: str, data: Dict[str, Any],
                  session_id: Optional[str] = None,
                  thread_id: Optional[str] = None):
@@ -655,16 +658,16 @@ class LoggingSystem:
             'data': data
         }
         self.db.insert_event(event)
-    
+
     def get_session_summary(self, session_id: str) -> Dict[str, Any]:
         """Get comprehensive session summary"""
         session = self.db.get_session(session_id)
         if not session:
             return {}
-        
+
         threads = self.db.get_threads_by_session(session_id)
         events = self.db.get_events(session_id=session_id)
-        
+
         return {
             'session': session,
             'threads': threads,
@@ -672,17 +675,17 @@ class LoggingSystem:
             'thread_count': len(threads),
             'event_count': len(events)
         }
-    
+
     def get_thread_summary(self, thread_id: str) -> Dict[str, Any]:
         """Get comprehensive thread summary"""
         thread = self.db.get_thread(thread_id)
         if not thread:
             return {}
-        
+
         gates = self.db.get_runtime_gates_by_thread(thread_id)
         atoms = self.db.get_employee_atoms_by_thread(thread_id)
         events = self.db.get_events(thread_id=thread_id)
-        
+
         return {
             'thread': thread,
             'gates': gates,
@@ -691,7 +694,7 @@ class LoggingSystem:
             'gate_count': len(gates),
             'atom_count': len(atoms)
         }
-    
+
     def close(self):
         """Close logging system"""
         self.db.close()

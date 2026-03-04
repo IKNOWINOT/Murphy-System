@@ -235,6 +235,7 @@ class AutomationReadinessEvaluator:
                         try:
                             is_healthy = bool(fn())
                         except Exception as exc:
+                            logger.debug("Caught exception: %s", exc)
                             msg = str(exc)[:200]
                     else:
                         is_healthy = True  # registered without check → assume OK
@@ -249,7 +250,7 @@ class AutomationReadinessEvaluator:
                     healthy=is_healthy,
                     message=msg,
                 ))
-            score = phase_ok / len(labels) if labels else 1.0
+            score = phase_ok / (len(labels) or 1) if labels else 1.0
             phase_scores.append(PhaseScore(
                 phase=phase,
                 expected=len(labels),

@@ -17,6 +17,10 @@ from enum import Enum
 from collections import defaultdict
 import statistics
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class RiskSeverity(Enum):
     """Risk severity levels"""
@@ -93,12 +97,12 @@ class MitigationAction:
 
 class RiskAssessment:
     """Performs risk assessment"""
-    
+
     def __init__(self):
         self.risk_factors: Dict[str, RiskFactor] = {}
         self.risk_history: List[Dict[str, Any]] = []
         self.lock = threading.Lock()
-    
+
     def assess_risk(self, factor_id: str, factor_name: str,
                    category: RiskCategory, description: str,
                    probability: float, impact: float,
@@ -106,7 +110,7 @@ class RiskAssessment:
                    metadata: Dict[str, Any] = None) -> RiskFactor:
         """Assess a new risk factor"""
         risk_score = probability * impact
-        
+
         # Determine severity based on risk score
         if risk_score >= 0.8:
             severity = RiskSeverity.CRITICAL
@@ -118,7 +122,7 @@ class RiskAssessment:
             severity = RiskSeverity.LOW
         else:
             severity = RiskSeverity.NEGLIGIBLE
-        
+
         now = datetime.now()
         risk_factor = RiskFactor(
             factor_id=factor_id,
@@ -134,7 +138,7 @@ class RiskAssessment:
             affected_components=affected_components or [],
             metadata=metadata or {}
         )
-        
+
         with self.lock:
             self.risk_factors[factor_id] = risk_factor
             self.risk_history.append({
@@ -143,9 +147,9 @@ class RiskAssessment:
                 'risk_id': factor_id,
                 'risk_score': risk_score
             })
-        
+
         return risk_factor
-    
+
     def update_risk(self, factor_id: str, probability: Optional[float] = None,
                    impact: Optional[float] = None,
                    mitigation_status: Optional[str] = None,
@@ -155,18 +159,18 @@ class RiskAssessment:
             risk_factor = self.risk_factors.get(factor_id)
             if not risk_factor:
                 return None
-            
+
             # Update probability if provided
             if probability is not None:
                 risk_factor.probability = probability
-            
+
             # Update impact if provided
             if impact is not None:
                 risk_factor.impact = impact
-            
+
             # Recalculate risk score and severity
             risk_factor.risk_score = risk_factor.probability * risk_factor.impact
-            
+
             if risk_factor.risk_score >= 0.8:
                 risk_factor.severity = RiskSeverity.CRITICAL
             elif risk_factor.risk_score >= 0.6:
@@ -177,17 +181,17 @@ class RiskAssessment:
                 risk_factor.severity = RiskSeverity.LOW
             else:
                 risk_factor.severity = RiskSeverity.NEGLIGIBLE
-            
+
             # Update mitigation status if provided
             if mitigation_status is not None:
                 risk_factor.mitigation_status = mitigation_status
-            
+
             # Update mitigation actions if provided
             if mitigation_actions is not None:
                 risk_factor.mitigation_actions = mitigation_actions
-            
+
             risk_factor.last_updated = datetime.now()
-            
+
             # Record update
             self.risk_history.append({
                 'timestamp': datetime.now(),
@@ -195,25 +199,25 @@ class RiskAssessment:
                 'risk_id': factor_id,
                 'new_risk_score': risk_factor.risk_score
             })
-            
+
             return risk_factor
-    
+
     def get_risk_factor(self, factor_id: str) -> Optional[RiskFactor]:
         """Get a risk factor by ID"""
         return self.risk_factors.get(factor_id)
-    
+
     def get_risks_by_severity(self, severity: RiskSeverity) -> List[RiskFactor]:
         """Get risk factors by severity"""
         return [rf for rf in self.risk_factors.values() if rf.severity == severity]
-    
+
     def get_risks_by_category(self, category: RiskCategory) -> List[RiskFactor]:
         """Get risk factors by category"""
         return [rf for rf in self.risk_factors.values() if rf.category == category]
-    
+
     def get_all_risks(self) -> List[RiskFactor]:
         """Get all risk factors"""
         return list(self.risk_factors.values())
-    
+
     def get_high_priority_risks(self) -> List[RiskFactor]:
         """Get high priority risks (CRITICAL and HIGH)"""
         return [
@@ -224,16 +228,16 @@ class RiskAssessment:
 
 class RiskMonitor:
     """Monitors risks and generates alerts"""
-    
+
     def __init__(self, assessment: RiskAssessment):
         self.assessment = assessment
         self.alerts: Dict[str, RiskAlert] = []
         self.alert_rules: List[Dict[str, Any]] = []
         self.lock = threading.Lock()
-        
+
         # Default alert rules
         self._initialize_default_rules()
-    
+
     def _initialize_default_rules(self) -> None:
         """Initialize default alert rules"""
         self.alert_rules = [
@@ -258,11 +262,11 @@ class RiskMonitor:
                 'message': 'High impact risk detected: {factor_name}'
             }
         ]
-    
+
     def monitor_risks(self) -> List[RiskAlert]:
         """Monitor risks and generate alerts"""
         new_alerts = []
-        
+
         with self.lock:
             # Check each risk factor
             for risk_factor in self.assessment.get_all_risks():
@@ -271,11 +275,11 @@ class RiskMonitor:
                     if rule['condition'](risk_factor):
                         # Check if alert already exists
                         existing_alert = next(
-                            (a for a in self.alerts 
+                            (a for a in self.alerts
                              if a.risk_factor_id == risk_factor.factor_id and not a.resolved_at),
                             None
                         )
-                        
+
                         if not existing_alert:
                             # Create new alert
                             alert = RiskAlert(
@@ -287,9 +291,9 @@ class RiskMonitor:
                             )
                             self.alerts.append(alert)
                             new_alerts.append(alert)
-        
+
         return new_alerts
-    
+
     def acknowledge_alert(self, alert_id: str, acknowledged_by: str) -> bool:
         """Acknowledge an alert"""
         with self.lock:
@@ -300,7 +304,7 @@ class RiskMonitor:
                     alert.acknowledged_at = datetime.now()
                     return True
             return False
-    
+
     def resolve_alert(self, alert_id: str, resolution: str) -> bool:
         """Resolve an alert"""
         with self.lock:
@@ -310,11 +314,11 @@ class RiskMonitor:
                     alert.resolved_at = datetime.now()
                     return True
             return False
-    
+
     def get_active_alerts(self) -> List[RiskAlert]:
         """Get active (unresolved) alerts"""
         return [a for a in self.alerts if not a.resolved_at]
-    
+
     def get_alerts_by_severity(self, severity: RiskSeverity) -> List[RiskAlert]:
         """Get alerts by severity"""
         return [a for a in self.alerts if a.severity == severity and not a.resolved_at]
@@ -322,15 +326,15 @@ class RiskMonitor:
 
 class MitigationPlanner:
     """Plans and tracks mitigation actions"""
-    
+
     def __init__(self):
         self.mitigation_actions: Dict[str, MitigationAction] = []
         self.action_templates: Dict[str, Dict[str, Any]] = {}
         self.lock = threading.Lock()
-        
+
         # Initialize action templates
         self._initialize_templates()
-    
+
     def _initialize_templates(self) -> None:
         """Initialize mitigation action templates"""
         self.action_templates = {
@@ -365,7 +369,7 @@ class MitigationPlanner:
                 'estimated_benefit': 0.2
             }
         }
-    
+
     def create_mitigation_action(self, risk_factor_id: str,
                                 action_type: str,
                                 action_name: str,
@@ -385,16 +389,16 @@ class MitigationPlanner:
             estimated_benefit=estimated_benefit,
             status="proposed"
         )
-        
+
         with self.lock:
             self.mitigation_actions.append(action)
-        
+
         return action
-    
+
     def get_actions_for_risk(self, risk_factor_id: str) -> List[MitigationAction]:
         """Get mitigation actions for a specific risk"""
         return [ma for ma in self.mitigation_actions if ma.risk_factor_id == risk_factor_id]
-    
+
     def approve_action(self, action_id: str) -> bool:
         """Approve a mitigation action"""
         with self.lock:
@@ -403,7 +407,7 @@ class MitigationPlanner:
                     action.status = "approved"
                     return True
             return False
-    
+
     def start_action(self, action_id: str, assigned_to: str) -> bool:
         """Start executing a mitigation action"""
         with self.lock:
@@ -414,7 +418,7 @@ class MitigationPlanner:
                     action.started_at = datetime.now()
                     return True
             return False
-    
+
     def complete_action(self, action_id: str, effectiveness: float) -> bool:
         """Complete a mitigation action"""
         with self.lock:
@@ -425,7 +429,7 @@ class MitigationPlanner:
                     action.effectiveness = effectiveness
                     return True
             return False
-    
+
     def get_action_status(self, action_id: str) -> Optional[Dict[str, Any]]:
         """Get status of a mitigation action"""
         for action in self.mitigation_actions:
@@ -450,7 +454,7 @@ class MitigationPlanner:
 class RiskManager:
     """
     Main risk manager that coordinates all risk management activities
-    
+
     The risk manager:
     - Assesses risks
     - Monitors risks for changes
@@ -458,14 +462,14 @@ class RiskManager:
     - Plans and tracks mitigation actions
     - Provides risk reporting
     """
-    
+
     def __init__(self, enable_risk_management: bool = True):
         self.enable_risk_management = enable_risk_management
         self.assessment = RiskAssessment()
         self.monitor = RiskMonitor(self.assessment)
         self.mitigation_planner = MitigationPlanner()
         self.lock = threading.Lock()
-    
+
     def assess_risk(self, factor_id: str, factor_name: str,
                    category: RiskCategory, description: str,
                    probability: float, impact: float,
@@ -474,17 +478,17 @@ class RiskManager:
         """Assess a new risk"""
         if not self.enable_risk_management:
             return None
-        
+
         risk_factor = self.assessment.assess_risk(
             factor_id, factor_name, category, description,
             probability, impact, affected_components, metadata
         )
-        
+
         # Check for alerts
         self.monitor.monitor_risks()
-        
+
         return risk_factor
-    
+
     def update_risk(self, factor_id: str, probability: Optional[float] = None,
                    impact: Optional[float] = None,
                    mitigation_status: Optional[str] = None,
@@ -492,17 +496,17 @@ class RiskManager:
         """Update an existing risk"""
         if not self.enable_risk_management:
             return None
-        
+
         risk_factor = self.assessment.update_risk(
             factor_id, probability, impact, mitigation_status, mitigation_actions
         )
-        
+
         if risk_factor:
             # Check for alerts
             self.monitor.monitor_risks()
-        
+
         return risk_factor
-    
+
     def create_mitigation_action(self, risk_factor_id: str,
                                 action_type: str,
                                 action_name: str,
@@ -513,26 +517,26 @@ class RiskManager:
         """Create a mitigation action"""
         if not self.enable_risk_management:
             return None
-        
+
         return self.mitigation_planner.create_mitigation_action(
             risk_factor_id, action_type, action_name, description,
             priority, estimated_cost, estimated_benefit
         )
-    
+
     def get_risk_summary(self) -> Dict[str, Any]:
         """Get summary of all risks"""
         risks = self.assessment.get_all_risks()
-        
+
         # Group by severity
         by_severity = defaultdict(list)
         for risk in risks:
             by_severity[risk.severity.name].append(risk)
-        
+
         # Group by category
         by_category = defaultdict(list)
         for risk in risks:
             by_category[risk.category.value].append(risk)
-        
+
         # Calculate aggregate metrics
         if risks:
             avg_risk_score = statistics.mean([r.risk_score for r in risks])
@@ -542,7 +546,7 @@ class RiskManager:
             avg_risk_score = 0.0
             max_risk_score = 0.0
             high_priority_count = 0
-        
+
         return {
             'total_risks': len(risks),
             'average_risk_score': avg_risk_score,
@@ -558,7 +562,7 @@ class RiskManager:
             },
             'active_alerts': len(self.monitor.get_active_alerts())
         }
-    
+
     def get_active_alerts(self) -> List[Dict[str, Any]]:
         """Get active risk alerts"""
         alerts = self.monitor.get_active_alerts()
@@ -575,18 +579,18 @@ class RiskManager:
             }
             for a in alerts
         ]
-    
+
     def get_risk_matrix(self) -> Dict[str, Dict[str, int]]:
         """Get risk matrix (probability vs impact)"""
         risks = self.assessment.get_all_risks()
-        
+
         matrix = {
             'critical': 0,  # High probability, High impact
             'high': 0,     # Medium probability, High impact
             'medium': 0,   # Low probability, High impact or High probability, Low impact
             'low': 0       # Low probability, Low impact
         }
-        
+
         for risk in risks:
             if risk.probability >= 0.7 and risk.impact >= 0.7:
                 matrix['critical'] += 1
@@ -596,9 +600,9 @@ class RiskManager:
                 matrix['medium'] += 1
             else:
                 matrix['low'] += 1
-        
+
         return matrix
-    
+
     def export_risk_data(self) -> Dict[str, Any]:
         """Export all risk data"""
         return {

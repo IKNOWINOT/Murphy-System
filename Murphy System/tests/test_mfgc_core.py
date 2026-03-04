@@ -15,14 +15,14 @@ from mfgc_core import (
 
 class TestPhase(unittest.TestCase):
     """Test Phase enum"""
-    
+
     def test_phase_order(self):
         """Test phases are in correct order"""
         phases = list(Phase)
         self.assertEqual(phases[0], Phase.EXPAND)
         self.assertEqual(phases[-1], Phase.EXECUTE)
         self.assertEqual(len(phases), 7)
-    
+
     def test_confidence_thresholds(self):
         """Test confidence thresholds increase with phases"""
         phases = list(Phase)
@@ -31,7 +31,7 @@ class TestPhase(unittest.TestCase):
                 phases[i].confidence_threshold,
                 phases[i+1].confidence_threshold
             )
-    
+
     def test_weights(self):
         """Test weights shift from generative to deterministic"""
         phases = list(Phase)
@@ -44,7 +44,7 @@ class TestPhase(unittest.TestCase):
 
 class TestSystemState(unittest.TestCase):
     """Test SystemState"""
-    
+
     def test_initialization(self):
         """Test state initializes correctly"""
         state = SystemState()
@@ -52,14 +52,14 @@ class TestSystemState(unittest.TestCase):
         self.assertEqual(state.p_t, Phase.EXPAND)
         self.assertEqual(state.M_t, 0.0)
         self.assertEqual(len(state.G_t), 0)
-    
+
     def test_log_event(self):
         """Test event logging"""
         state = SystemState()
         state.log_event('test', {'data': 'value'})
         self.assertEqual(len(state.events), 1)
         self.assertEqual(state.events[0]['type'], 'test')
-    
+
     def test_advance_phase(self):
         """Test phase advancement"""
         state = SystemState()
@@ -72,61 +72,61 @@ class TestSystemState(unittest.TestCase):
 
 class TestConfidenceEngine(unittest.TestCase):
     """Test ConfidenceEngine"""
-    
+
     def setUp(self):
         self.engine = ConfidenceEngine()
         self.state = SystemState()
-    
+
     def test_compute_confidence(self):
         """Test confidence computation"""
         confidence = self.engine.compute_confidence(self.state, 0.8, 0.9)
         self.assertGreaterEqual(confidence, 0.0)
         self.assertLessEqual(confidence, 1.0)
-    
+
     def test_confidence_bounds(self):
         """Test confidence is always bounded"""
         # Test with extreme values
         confidence = self.engine.compute_confidence(self.state, 2.0, 2.0)
         self.assertLessEqual(confidence, 1.0)
-        
+
         confidence = self.engine.compute_confidence(self.state, -1.0, -1.0)
         self.assertGreaterEqual(confidence, 0.0)
-    
+
     def test_phase_weights(self):
         """Test weights change with phase"""
         self.state.p_t = Phase.EXPAND
         conf_expand = self.engine.compute_confidence(self.state, 0.5, 0.8)
-        
+
         self.state.p_t = Phase.EXECUTE
         conf_execute = self.engine.compute_confidence(self.state, 0.5, 0.8)
-        
+
         # EXECUTE should weight deterministic more, so higher conf with high det score
         self.assertGreater(conf_execute, conf_expand)
 
 
 class TestAuthorityController(unittest.TestCase):
     """Test AuthorityController"""
-    
+
     def setUp(self):
         self.controller = AuthorityController()
-    
+
     def test_compute_authority(self):
         """Test authority computation"""
         authority = self.controller.compute_authority(0.9, Phase.EXPAND)
         self.assertGreaterEqual(authority, 0.0)
         self.assertLessEqual(authority, 1.0)
-    
+
     def test_authority_below_threshold(self):
         """Test authority is minimal below threshold"""
         authority = self.controller.compute_authority(0.1, Phase.EXECUTE)
         self.assertEqual(authority, 0.0)
-    
+
     def test_authority_increases_with_confidence(self):
         """Test authority increases with confidence"""
         auth_low = self.controller.compute_authority(0.5, Phase.EXPAND)
         auth_high = self.controller.compute_authority(0.9, Phase.EXPAND)
         self.assertLess(auth_low, auth_high)
-    
+
     def test_can_execute(self):
         """Test action authorization"""
         self.assertTrue(self.controller.can_execute(0.0, 'generate'))
@@ -136,27 +136,27 @@ class TestAuthorityController(unittest.TestCase):
 
 class TestMurphyIndexMonitor(unittest.TestCase):
     """Test MurphyIndexMonitor"""
-    
+
     def setUp(self):
         self.monitor = MurphyIndexMonitor(threshold=0.3)
-    
+
     def test_add_risk(self):
         """Test risk addition"""
         self.monitor.add_risk(0.5, 0.4, "Test risk")
         self.assertEqual(len(self.monitor.risks), 1)
-    
+
     def test_compute_index(self):
         """Test Murphy index computation"""
         self.monitor.add_risk(0.5, 0.4, "Risk 1")  # 0.2
         self.monitor.add_risk(0.3, 0.2, "Risk 2")  # 0.06
         index = self.monitor.compute_index()
         self.assertAlmostEqual(index, 0.26, places=2)
-    
+
     def test_check_threshold(self):
         """Test threshold checking"""
         self.assertFalse(self.monitor.check_threshold(0.2))
         self.assertTrue(self.monitor.check_threshold(0.4))
-    
+
     def test_get_top_risks(self):
         """Test top risks retrieval"""
         self.monitor.add_risk(0.5, 0.4, "High risk")
@@ -168,10 +168,10 @@ class TestMurphyIndexMonitor(unittest.TestCase):
 
 class TestGateCompiler(unittest.TestCase):
     """Test GateCompiler"""
-    
+
     def setUp(self):
         self.compiler = GateCompiler()
-    
+
     def test_synthesize_gates(self):
         """Test gate synthesis"""
         candidates = [
@@ -182,7 +182,7 @@ class TestGateCompiler(unittest.TestCase):
         ]
         gates = self.compiler.synthesize_gates(candidates, risks)
         self.assertGreater(len(gates), 0)
-    
+
     def test_risk_to_gate(self):
         """Test risk to gate conversion"""
         risk = {'description': 'data corruption', 'loss': 0.8, 'probability': 0.2}
@@ -193,10 +193,10 @@ class TestGateCompiler(unittest.TestCase):
 
 class TestSwarmGenerator(unittest.TestCase):
     """Test SwarmGenerator"""
-    
+
     def setUp(self):
         self.generator = SwarmGenerator()
-    
+
     def test_generate_candidates(self):
         """Test candidate generation"""
         candidates = self.generator.generate_candidates(
@@ -205,12 +205,12 @@ class TestSwarmGenerator(unittest.TestCase):
             {}
         )
         self.assertGreater(len(candidates), 0)
-    
+
     def test_phase_specific_generation(self):
         """Test different phases generate different candidates"""
         expand = self.generator.generate_candidates("Test", Phase.EXPAND, {})
         execute = self.generator.generate_candidates("Test", Phase.EXECUTE, {})
-        
+
         # Should have different structures
         self.assertNotEqual(
             list(expand[0].keys()) if expand else [],
@@ -220,24 +220,24 @@ class TestSwarmGenerator(unittest.TestCase):
 
 class TestMFGCController(unittest.TestCase):
     """Test MFGCController"""
-    
+
     def setUp(self):
         self.controller = MFGCController()
-    
+
     def test_execute(self):
         """Test complete execution"""
         state = self.controller.execute("Test task")
-        
+
         # Check state is valid
         self.assertIsNotNone(state)
         self.assertGreater(len(state.phase_history), 0)
         self.assertGreater(len(state.events), 0)
-    
+
     def test_all_phases_executed(self):
         """Test all 7 phases are executed"""
         state = self.controller.execute("Complex task")
         self.assertEqual(len(state.phase_history), 7)
-    
+
     def test_confidence_increases(self):
         """Test confidence generally increases"""
         state = self.controller.execute("Test task")
@@ -247,22 +247,22 @@ class TestMFGCController(unittest.TestCase):
                 state.confidence_history[-1],
                 state.confidence_history[0]
             )
-    
+
     def test_gates_synthesized(self):
         """Test gates are synthesized"""
         state = self.controller.execute("Test task")
         self.assertGreater(len(state.G_t), 0)
-    
+
     def test_murphy_index_tracked(self):
         """Test Murphy index is tracked"""
         state = self.controller.execute("Test task")
         self.assertGreater(len(state.murphy_history), 0)
-    
+
     def test_get_summary(self):
         """Test summary generation"""
         state = self.controller.execute("Test task")
         summary = self.controller.get_summary(state)
-        
+
         self.assertIn('task', summary)
         self.assertIn('final_confidence', summary)
         self.assertIn('total_gates', summary)

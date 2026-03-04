@@ -284,7 +284,7 @@ class KPITracker:
 
             # Use latest 10 observations average as current value
             recent = obs_list[-10:]
-            current = sum(o.value for o in recent) / len(recent)
+            current = sum(o.value for o in recent) / (len(recent) or 1)
 
             if defn.direction == KPIDirection.HIGHER_IS_BETTER:
                 is_met = current >= defn.target

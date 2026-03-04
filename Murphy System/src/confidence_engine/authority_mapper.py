@@ -12,14 +12,18 @@ from .models import (
     Phase
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class AuthorityMapper:
     """
     Maps confidence to authority bands
-    
+
     Authority automatically revokes if confidence drops
     No hysteresis allowed
-    
+
     Policy table:
     Confidence      Authority
     <0.3           Ask only
@@ -28,7 +32,7 @@ class AuthorityMapper:
     0.7–0.85       Negotiate
     ≥0.85          Execute
     """
-    
+
     def __init__(self):
         # Authority thresholds (no hysteresis)
         self.thresholds = [
@@ -38,7 +42,7 @@ class AuthorityMapper:
             (0.30, AuthorityBand.GENERATE),
             (0.00, AuthorityBand.ASK_ONLY)
         ]
-    
+
     def map_authority(
         self,
         confidence_state: ConfidenceState,
@@ -48,21 +52,21 @@ class AuthorityMapper:
     ) -> AuthorityState:
         """
         Map confidence to authority band
-        
+
         Args:
             confidence_state: Current confidence state
             murphy_index: Current Murphy index
             gate_satisfaction: Gate satisfaction ratio [0, 1]
             unknowns: Number of unresolved unknowns
-        
+
         Returns:
             Authority state with execution eligibility
         """
         confidence = confidence_state.confidence
-        
+
         # Determine authority band based on confidence
         authority_band = self._get_authority_band(confidence)
-        
+
         # Check execution eligibility
         can_execute = self._check_execution_eligibility(
             confidence,
@@ -71,7 +75,7 @@ class AuthorityMapper:
             unknowns,
             confidence_state.phase
         )
-        
+
         # Create authority state
         authority_state = AuthorityState(
             authority_band=authority_band,
@@ -82,21 +86,21 @@ class AuthorityMapper:
             murphy_index=murphy_index,
             unknowns=unknowns
         )
-        
+
         return authority_state
-    
+
     def _get_authority_band(self, confidence: float) -> AuthorityBand:
         """
         Get authority band for given confidence
-        
+
         No hysteresis - strictly based on current confidence
         """
         for threshold, band in self.thresholds:
             if confidence >= threshold:
                 return band
-        
+
         return AuthorityBand.ASK_ONLY
-    
+
     def _check_execution_eligibility(
         self,
         confidence: float,
@@ -107,14 +111,14 @@ class AuthorityMapper:
     ) -> bool:
         """
         Check if system can execute
-        
+
         Execution requires ALL of:
         1. Confidence ≥ 0.85
         2. Murphy Index ≤ 0.5
         3. Gate Satisfaction ≥ 70%
         4. Unknowns ≤ 2
         5. Phase = EXECUTE
-        
+
         Returns:
             True if execution is allowed
         """
@@ -124,7 +128,7 @@ class AuthorityMapper:
         gates_ok = gate_satisfaction >= 0.70
         unknowns_ok = unknowns <= 2
         phase_ok = phase == Phase.EXECUTE
-        
+
         # ALL must be satisfied
         can_execute = (
             confidence_ok and
@@ -133,9 +137,9 @@ class AuthorityMapper:
             unknowns_ok and
             phase_ok
         )
-        
+
         return can_execute
-    
+
     def get_execution_blockers(
         self,
         confidence: float,
@@ -146,7 +150,7 @@ class AuthorityMapper:
     ) -> Dict[str, Any]:
         """
         Get detailed breakdown of execution blockers
-        
+
         Returns:
             Dictionary with blocker status
         """
@@ -181,14 +185,14 @@ class AuthorityMapper:
                 'satisfied': phase == Phase.EXECUTE
             }
         }
-        
+
         # Count total blockers
         total_blockers = sum(1 for b in blockers.values() if not b['satisfied'])
         blockers['total_blockers'] = total_blockers
         blockers['can_execute'] = total_blockers == 0
-        
+
         return blockers
-    
+
     def calculate_authority_decay(
         self,
         current_authority: AuthorityBand,
@@ -196,13 +200,13 @@ class AuthorityMapper:
     ) -> AuthorityBand:
         """
         Calculate authority decay when confidence drops
-        
+
         Authority automatically revokes - no hysteresis
-        
+
         Args:
             current_authority: Current authority band
             new_confidence: New confidence value
-        
+
         Returns:
             New authority band (may be lower)
         """

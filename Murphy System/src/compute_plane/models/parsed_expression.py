@@ -7,12 +7,16 @@ Represents parsed and normalized mathematical expressions.
 from dataclasses import dataclass, field
 from typing import Dict, Any, List
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class ParsedExpression:
     """
     Parsed mathematical expression with uncertainty tracking.
-    
+
     Attributes:
         original: Original expression string
         parsed: Parsed expression object
@@ -21,14 +25,14 @@ class ParsedExpression:
         warnings: Parsing warnings
         metadata: Additional metadata
     """
-    
+
     original: str
     parsed: Any
     language: str
     uncertainty: float = 0.0
     warnings: List[str] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     def __post_init__(self):
         """Validate parsed expression"""
         if self.uncertainty < 0.0 or self.uncertainty > 1.0:
@@ -39,7 +43,7 @@ class ParsedExpression:
 class NormalizedExpression:
     """
     Normalized mathematical expression in canonical form.
-    
+
     Attributes:
         parsed_expr: Original parsed expression
         normalized: Normalized expression object
@@ -50,7 +54,7 @@ class NormalizedExpression:
         complexity: Expression complexity score
         metadata: Additional metadata
     """
-    
+
     parsed_expr: ParsedExpression
     normalized: Any
     canonical_form: str
@@ -59,7 +63,7 @@ class NormalizedExpression:
     operations: List[str] = field(default_factory=list)
     complexity: float = 0.0
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     def __post_init__(self):
         """Validate normalized expression"""
         if self.complexity < 0.0:

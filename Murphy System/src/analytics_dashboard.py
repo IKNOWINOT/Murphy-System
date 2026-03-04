@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -192,7 +193,7 @@ class ExecutionAnalytics:
             metadata=metadata or {},
         )
         with self._lock:
-            self._executions.append(execution)
+            capped_append(self._executions, execution)
             self._counts_by_type[task_type] += 1
             if success:
                 self._success_by_type[task_type] += 1
@@ -306,7 +307,7 @@ class ComplianceAnalytics:
             remediation_time=remediation_time,
         )
         with self._lock:
-            self._records.append(record)
+            capped_append(self._records, record)
         logger.debug("Recorded compliance assessment %s category=%s score=%.1f",
                       record.record_id, category, score)
         return record.to_dict()
@@ -472,7 +473,7 @@ class BusinessIntelligence:
             "timestamp": time.time(),
         }
         with self._lock:
-            self._task_costs.append(entry)
+            capped_append(self._task_costs, entry)
         return entry.copy()
 
     def set_manual_baseline(self, task_type: str, cost_per_task: float) -> Dict[str, Any]:
@@ -495,7 +496,7 @@ class BusinessIntelligence:
             "task_type": task_type,
             "count": len(entries),
             "total_cost": total,
-            "avg_cost": total / len(entries),
+            "avg_cost": total / (len(entries) or 1),
         }
 
     def get_roi(self, task_type: str) -> Dict[str, Any]:
@@ -508,7 +509,7 @@ class BusinessIntelligence:
             return {"task_type": task_type, "roi_percent": 0.0,
                     "savings_per_task": 0.0, "total_savings": 0.0,
                     "baseline_set": baseline is not None, "task_count": len(entries)}
-        avg_auto = sum(e["cost"] for e in entries) / len(entries)
+        avg_auto = sum(e["cost"] for e in entries) / (len(entries) or 1)
         savings_per_task = baseline - avg_auto
         total_savings = savings_per_task * len(entries)
         roi = (total_savings / (avg_auto * len(entries)) * 100) if avg_auto > 0 else 0.0
@@ -655,6 +656,7 @@ class RealTimeDashboard:
                 try:
                     d["data"] = providers[w.data_source]()
                 except Exception as exc:
+                    logger.debug("Caught exception: %s", exc)
                     d["data"] = {"error": str(exc)}
             result_widgets.append(d)
 
@@ -729,7 +731,7 @@ class AlertRulesEngine:
             self, callback: Callable[[Dict[str, Any]], None]) -> Dict[str, Any]:
         """Register a callback invoked when an alert fires."""
         with self._lock:
-            self._notification_callbacks.append(callback)
+            capped_append(self._notification_callbacks, callback)
         return {"registered": True,
                 "callback_count": len(self._notification_callbacks)}
 
@@ -752,13 +754,13 @@ class AlertRulesEngine:
                             rule.state = AlertState.FIRING
                             rule.last_triggered = now
                             alert = self._create_alert_event(rule, value, now)
-                            self._alerts_history.append(alert)
+                            capped_append(self._alerts_history, alert)
                             fired.append(alert)
                 else:
                     if rule.state == AlertState.FIRING:
                         rule.state = AlertState.RESOLVED
                         event = self._create_resolve_event(rule, value, now)
-                        self._alerts_history.append(event)
+                        capped_append(self._alerts_history, event)
                         resolved.append(event)
             callbacks = list(self._notification_callbacks)
 
@@ -766,7 +768,8 @@ class AlertRulesEngine:
             for cb in callbacks:
                 try:
                     cb(alert)
-                except Exception:
+                except Exception as exc:
+                    logger.debug("Suppressed exception: %s", exc)
                     logger.exception("Alert callback failed")
 
         return {

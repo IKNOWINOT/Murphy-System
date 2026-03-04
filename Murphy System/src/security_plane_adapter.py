@@ -15,11 +15,15 @@ from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
 from enum import Enum
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 # Import from security plane
 try:
     from security_plane.hardening import (
-        InputValidator, 
-        ValidationRule, 
+        InputValidator,
+        ValidationRule,
         InputType,
         sanitize_input,
         encode_output
@@ -37,13 +41,15 @@ except ImportError:
     SECURITY_PLANE_AVAILABLE = False
     # Fallback implementations
     class TrustLevel(Enum):
+        """Trust level (Enum subclass)."""
         CRITICAL = "critical"
         HIGH = "high"
         MEDIUM = "medium"
         LOW = "low"
         NONE = "none"
-    
+
     class AnomalyType(Enum):
+        """Anomaly type (Enum subclass)."""
         UNAUTHORIZED_ACCESS = "unauthorized_access"
         SUSPICIOUS_PATTERN = "suspicious_pattern"
         RATE_LIMIT_EXCEEDED = "rate_limit_exceeded"
@@ -54,7 +60,7 @@ except ImportError:
 class SecurityPlaneAdapter:
     """
     Adapter for Security Plane integration with SystemIntegrator.
-    
+
     Provides:
     - Input validation and sanitization
     - Trust scoring
@@ -62,7 +68,7 @@ class SecurityPlaneAdapter:
     - Anomaly detection
     - Security telemetry
     """
-    
+
     def __init__(self):
         """Initialize security plane adapter"""
         self.enabled = SECURITY_PLANE_AVAILABLE
@@ -72,11 +78,11 @@ class SecurityPlaneAdapter:
         self.anomalies: List[SecurityAnomaly] = []
         self.telemetry_log: List[Dict] = []
         self.security_events: List[Dict] = []
-        
+
         # Initialize default security rules
         if self.enabled:
             self._initialize_default_rules()
-    
+
     def _initialize_default_rules(self):
         """Initialize default validation rules for common inputs"""
         # Rule for system commands
@@ -86,7 +92,7 @@ class SecurityPlaneAdapter:
             min_length=1,
             max_length=1000
         ))
-        
+
         # Rule for user messages
         self.validator.add_rule("user_message", ValidationRule(
             input_type=InputType.STRING,
@@ -94,22 +100,22 @@ class SecurityPlaneAdapter:
             min_length=1,
             max_length=10000
         ))
-        
+
         # Rule for system prompts
         self.validator.add_rule("system_prompt", ValidationRule(
             input_type=InputType.STRING,
             required=False,
             max_length=50000
         ))
-    
+
     def validate_input(self, field_name: str = None, value: Any = None) -> Tuple[bool, Optional[str]]:
         """
         Validate input against security rules.
-        
+
         Args:
             field_name: Name of the field being validated (or value if called with single arg)
             value: Value to validate
-            
+
         Returns:
             Tuple of (is_valid, error_message)
         """
@@ -119,32 +125,33 @@ class SecurityPlaneAdapter:
             field_name = "input"
         if not self.enabled:
             return True, None
-        
+
         try:
             result = self.validator.validate(field_name, value)
             return True, None
-        except Exception as e:
+        except Exception as exc:
             # Log the validation failure
+            logger.debug("Caught exception: %s", exc)
             self._log_security_event("validation_failed", {
                 "field": field_name,
-                "error": str(e)
+                "error": str(exc)
             })
-            return False, str(e)
-    
+            return False, str(exc)
+
     def sanitize_input(self, value: Any, input_type: str = "string") -> Any:
         """
         Sanitize input to prevent injection attacks.
-        
+
         Args:
             value: Value to sanitize
             input_type: Type of input (string, command, json, etc.)
-            
+
         Returns:
             Sanitized value
         """
         if not self.enabled:
             return value
-        
+
         try:
             # Map input type string to enum
             type_map = {
@@ -154,27 +161,28 @@ class SecurityPlaneAdapter:
                 "path": InputType.PATH,
                 "url": InputType.URL
             }
-            
+
             input_type_enum = type_map.get(input_type, InputType.STRING)
             return sanitize_input(value, input_type_enum)
-        except Exception as e:
+        except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             self._log_security_event("sanitize_failed", {
-                "error": str(e)
+                "error": str(exc)
             })
             return value
-    
-    def compute_trust_score(self, 
+
+    def compute_trust_score(self,
                            entity_id: str,
                            base_score: float = 0.5,
                            factors: Optional[Dict[str, float]] = None) -> Dict[str, Any]:
         """
         Compute trust score for an entity.
-        
+
         Args:
             entity_id: Unique identifier for the entity
             base_score: Base trust score (0.0 to 1.0)
             factors: Dictionary of trust factors with weights
-            
+
         Returns:
             Dictionary with trust score and level
         """
@@ -185,18 +193,18 @@ class SecurityPlaneAdapter:
                 "trust_level": "MEDIUM",
                 "confidence": 0.5
             }
-        
+
         # Apply factors
         factors = factors or {}
         adjusted_score = base_score
-        
+
         for factor_name, factor_value in factors.items():
             weight = self._get_factor_weight(factor_name)
             adjusted_score += factor_value * weight
-        
+
         # Clamp to 0-1 range
         adjusted_score = max(0.0, min(1.0, adjusted_score))
-        
+
         # Determine trust level
         if adjusted_score >= 0.9:
             level = TrustLevel.CRITICAL
@@ -208,7 +216,7 @@ class SecurityPlaneAdapter:
             level = TrustLevel.LOW
         else:
             level = TrustLevel.NONE
-        
+
         # Store trust score
         self.trust_scores[entity_id] = TrustScore(
             entity_id=entity_id,
@@ -217,7 +225,7 @@ class SecurityPlaneAdapter:
             confidence=0.7 + (adjusted_score * 0.3),
             last_updated=datetime.now()
         )
-        
+
         return {
             "entity_id": entity_id,
             "trust_score": adjusted_score,
@@ -225,7 +233,7 @@ class SecurityPlaneAdapter:
             "confidence": self.trust_scores[entity_id].confidence,
             "factors_applied": list(factors.keys())
         }
-    
+
     def _get_factor_weight(self, factor_name: str) -> float:
         """Get weight for a trust factor"""
         weights = {
@@ -238,21 +246,21 @@ class SecurityPlaneAdapter:
             "security_violation": -0.4
         }
         return weights.get(factor_name, 0.0)
-    
-    def create_security_gate(self, 
+
+    def create_security_gate(self,
                             gate_id: str,
                             gate_name: str,
                             threshold: float = 0.7,
                             description: str = "") -> Any:
         """
         Create a security gate.
-        
+
         Args:
             gate_id: Unique identifier for the gate
             gate_name: Name of the gate
             threshold: Trust threshold required (0.0 to 1.0)
             description: Description of the gate
-            
+
         Returns:
             SecurityGate object or dict (fallback)
         """
@@ -279,49 +287,49 @@ class SecurityPlaneAdapter:
             }
             self.security_gates.append(gate)
             return gate
-    
-    def check_security_gate(self, 
+
+    def check_security_gate(self,
                            gate_id: str,
                            trust_score: float) -> Tuple[bool, str]:
         """
         Check if a security gate allows passage.
-        
+
         Args:
             gate_id: ID of the gate to check
             trust_score: Trust score of the entity
-            
+
         Returns:
             Tuple of (allowed, reason)
         """
         if not self.enabled:
             return True, "Security plane not enabled"
-        
+
         # Find gate
         gate = next((g for g in self.security_gates if g.gate_id == gate_id), None)
         if not gate:
             return True, f"Gate {gate_id} not found, allowing by default"
-        
+
         if not gate.active:
             return True, f"Gate {gate_id} is inactive"
-        
+
         # Check threshold
         if trust_score >= gate.threshold:
             return True, f"Passed gate {gate_id} (score: {trust_score:.2f} >= {gate.threshold:.2f})"
         else:
             return False, f"Failed gate {gate_id} (score: {trust_score:.2f} < {gate.threshold:.2f})"
-    
-    def detect_anomaly(self, 
+
+    def detect_anomaly(self,
                       anomaly_type: str,
                       entity_id: str,
                       details: Dict[str, Any]) -> Any:
         """
         Detect and log a security anomaly.
-        
+
         Args:
             anomaly_type: Type of anomaly
             entity_id: ID of the entity that caused it
             details: Details about the anomaly
-            
+
         Returns:
             SecurityAnomaly object or dict (fallback)
         """
@@ -335,7 +343,7 @@ class SecurityPlaneAdapter:
                 "details": details,
                 "detected_at": datetime.now()
             }
-        
+
         # Map anomaly type string to enum
         type_map = {
             "unauthorized_access": AnomalyType.UNAUTHORIZED_ACCESS,
@@ -344,9 +352,9 @@ class SecurityPlaneAdapter:
             "injection_attempt": AnomalyType.INJECTION_ATTEMPT,
             "permission_escalation": AnomalyType.PERMISSION_ESCALATION
         }
-        
+
         anomaly_type_enum = type_map.get(anomaly_type, AnomalyType.SUSPICIOUS_PATTERN)
-        
+
         # Determine severity based on type
         severity_map = {
             AnomalyType.UNAUTHORIZED_ACCESS: "HIGH",
@@ -356,7 +364,7 @@ class SecurityPlaneAdapter:
             AnomalyType.SUSPICIOUS_PATTERN: "LOW"
         }
         severity = severity_map.get(anomaly_type_enum, "MEDIUM")
-        
+
         anomaly = SecurityAnomaly(
             anomaly_id=f"ANOM-{len(self.anomalies)}",
             anomaly_type=anomaly_type_enum,
@@ -365,7 +373,7 @@ class SecurityPlaneAdapter:
             details=details,
             detected_at=datetime.now()
         )
-        
+
         self.anomalies.append(anomaly)
         self._log_security_event("anomaly_detected", {
             "anomaly_id": anomaly.anomaly_id,
@@ -373,9 +381,9 @@ class SecurityPlaneAdapter:
             "severity": severity,
             "entity": entity_id
         })
-        
+
         return anomaly
-    
+
     def _log_security_event(self, event_type: str, details: Dict[str, Any]):
         """Log a security event"""
         event = {
@@ -385,11 +393,11 @@ class SecurityPlaneAdapter:
         }
         self.security_events.append(event)
         self.telemetry_log.append(event)
-    
+
     def get_security_summary(self) -> Dict[str, Any]:
         """
         Get summary of security state.
-        
+
         Returns:
             Dictionary with security metrics
         """
@@ -401,7 +409,7 @@ class SecurityPlaneAdapter:
             else:
                 severity = anomaly.severity if hasattr(anomaly, 'severity') else "LOW"
             severity_counts[severity] = severity_counts.get(severity, 0) + 1
-        
+
         # Count active gates
         active_gate_count = 0
         for gate in self.security_gates:
@@ -411,7 +419,7 @@ class SecurityPlaneAdapter:
             else:
                 if hasattr(gate, 'active') and gate.active:
                     active_gate_count += 1
-        
+
         return {
             "enabled": self.enabled,
             "security_gates": len(self.security_gates),
@@ -422,14 +430,14 @@ class SecurityPlaneAdapter:
             "trust_tracked": len(self.trust_scores),
             "last_event": self.security_events[-1] if self.security_events else None
         }
-    
+
     def get_trust_score(self, entity_id: str) -> Optional[Dict[str, Any]]:
         """
         Get trust score for an entity.
-        
+
         Args:
             entity_id: Entity identifier
-            
+
         Returns:
             Trust score dictionary or None
         """
@@ -443,11 +451,11 @@ class SecurityPlaneAdapter:
                 "last_updated": score.last_updated.isoformat() if hasattr(score.last_updated, 'isoformat') else str(score.last_updated)
             }
         return None
-    
+
     def get_active_security_gates(self) -> List[Dict[str, Any]]:
         """
         Get list of active security gates.
-        
+
         Returns:
             List of gate dictionaries
         """
@@ -467,14 +475,14 @@ class SecurityPlaneAdapter:
                         "description": gate.description
                     })
         return active_gates
-    
+
     def get_recent_anomalies(self, limit: int = 10) -> List[Dict[str, Any]]:
         """
         Get recent security anomalies.
-        
+
         Args:
             limit: Maximum number to return
-            
+
         Returns:
             List of anomaly dictionaries
         """
@@ -496,7 +504,7 @@ class SecurityPlaneAdapter:
 def create_security_adapter() -> SecurityPlaneAdapter:
     """Create and configure security plane adapter"""
     adapter = SecurityPlaneAdapter()
-    
+
     # Create default security gates
     if adapter.enabled:
         adapter.create_security_gate(
@@ -505,19 +513,19 @@ def create_security_adapter() -> SecurityPlaneAdapter:
             threshold=0.6,
             description="Controls access to system operations"
         )
-        
+
         adapter.create_security_gate(
             "command_execution",
             "Command Execution Gate",
             threshold=0.75,
             description="Controls execution of system commands"
         )
-        
+
         adapter.create_security_gate(
             "sensitive_operations",
             "Sensitive Operations Gate",
             threshold=0.85,
             description="Controls access to sensitive operations"
         )
-    
+
     return adapter

@@ -10,6 +10,9 @@ from dataclasses import dataclass, field
 import json
 from datetime import datetime
 
+import logging
+logger = logging.getLogger("system_integrator")
+
 # Import all system components
 from src.dynamic_expert_generator import DynamicExpertGenerator, GeneratedExpert
 from src.domain_gate_generator import DomainGateGenerator, DomainGate, GateType
@@ -34,7 +37,7 @@ class SystemState:
     recommendations: List[ChoiceRecommendation]
     last_updated: str
     metrics: Dict[str, Any]
-    
+
     def to_dict(self) -> Dict:
         return {
             "system_id": self.system_id,
@@ -73,7 +76,7 @@ class UserRequest:
     request_type: str  # build_system, generate_expert, create_gates, etc.
     parameters: Dict[str, Any]
     timestamp: str
-    
+
     def to_dict(self) -> Dict:
         return {
             "request_id": self.request_id,
@@ -94,12 +97,12 @@ class SystemResponse:
     warnings: List[str]
     triggers: List[Dict[str, Any]]
     timestamp: str
-    
+
     @property
     def response(self) -> str:
         """Alias for message, for test compatibility"""
         return self.message
-    
+
     def to_dict(self) -> Dict:
         return {
             "request_id": self.request_id,
@@ -122,11 +125,11 @@ class SystemIntegrator:
     Master integrator that wires all system components together
     Provides unified API for frontend interaction
     """
-    
+
     def __init__(self):
         self.system_id = f"murphy_system_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         self.request_count = 0
-        
+
         # Initialize all components
         self.expert_generator = DynamicExpertGenerator()
         self.gate_generator = DomainGateGenerator()
@@ -137,7 +140,7 @@ class SystemIntegrator:
         self.bot_inventory = BotInventoryLibrary()
         self.contractual_audit = ContractualAuditSystem()
         self.librarian = SystemLibrarian()
-        
+
         # Security components
         try:
             from src.security_plane_adapter import SecurityPlaneAdapter
@@ -146,7 +149,7 @@ class SystemIntegrator:
         except ImportError:
             self.security_adapter = None
             self.security_enabled = False
-        
+
         # Module compiler components
         try:
             from src.module_compiler_adapter import ModuleCompilerAdapter
@@ -155,7 +158,7 @@ class SystemIntegrator:
         except ImportError:
             self.module_compiler = None
             self.module_compiler_enabled = False
-        
+
         # Neuro-symbolic adapter
         try:
             from src.neuro_symbolic_adapter import NeuroSymbolicAdapter
@@ -166,7 +169,7 @@ class SystemIntegrator:
         except ImportError:
             self.neuro_symbolic = None
             self.neuro_symbolic_enabled = False
-        
+
         # Telemetry adapter
         try:
             from src.telemetry_adapter import TelemetryAdapter
@@ -177,7 +180,7 @@ class SystemIntegrator:
         except ImportError:
             self.telemetry = None
             self.telemetry_enabled = False
-        
+
         # Librarian adapter
         try:
             from src.librarian_adapter import LibrarianAdapter
@@ -188,31 +191,31 @@ class SystemIntegrator:
         except ImportError:
             self.librarian_adapter = None
             self.librarian_adapter_enabled = False
-        
+
         # System state
         self.experts: List[GeneratedExpert] = []
         self.gates: List[DomainGate] = []
         self.requirements: List[DesignRequirement] = []
         self.recommendations: List[ChoiceRecommendation] = []
-        
+
         # Request history
         self.request_history: List[UserRequest] = []
         self.response_history: List[SystemResponse] = []
-    
+
     def process_user_request(self, user_input: str, parameters: Optional[Dict] = None) -> SystemResponse:
         """
         Process user request from frontend
-        
+
         Args:
             user_input: User's natural language input
             parameters: Additional parameters (files, specific settings, etc.)
-            
+
         Returns:
             SystemResponse object
         """
         self.request_count += 1
         request_id = f"req_{self.request_count}"
-        
+
         # Security validation
         if self.security_enabled and self.security_adapter:
             # Validate and sanitize input
@@ -231,10 +234,10 @@ class SystemIntegrator:
                     confidence=1.0,
                     metadata={"security_error": True, "error_type": "validation_failed"}
                 )
-            
+
             # Sanitize input
             user_input = self.security_adapter.sanitize_input(user_input, "string")
-        
+
         # Create request object
         request = UserRequest(
             request_id=request_id,
@@ -244,10 +247,10 @@ class SystemIntegrator:
             timestamp=datetime.now().isoformat()
         )
         self.request_history.append(request)
-        
+
         # Detect request type and route appropriately
         request_type = self._detect_request_type(user_input, parameters or {})
-        
+
         try:
             # Process based on type
             if request_type == "build_system":
@@ -270,62 +273,63 @@ class SystemIntegrator:
                 response = self._handle_chat(request)
             else:
                 response = self._handle_general_query(request)
-            
+
             # Add human-in-the-loop triggers from LLM layer
             triggers = self.llm_layer.get_pending_triggers()
             response.triggers = [t.to_dict() for t in triggers]
-            
+
             # Add to history
             self.response_history.append(response)
-            
+
             return response
-            
-        except Exception as e:
+
+        except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return SystemResponse(
                 request_id=request_id,
                 success=False,
                 data={},
-                message=f"Error processing request: {str(e)}",
+                message=f"Error processing request: {str(exc)}",
                 warnings=[],
                 triggers=[],
                 timestamp=datetime.now().isoformat()
             )
-    
+
     def _detect_request_type(self, user_input: str, parameters: Dict) -> str:
         """Detect type of user request"""
         input_lower = user_input.lower()
-        
+
         # Check for explicit type in parameters
         if "request_type" in parameters:
             return parameters["request_type"]
-        
+
         # Pattern matching
-        if any(keyword in input_lower for keyword in 
+        if any(keyword in input_lower for keyword in
                ["build system", "create system", "design system", "setup system"]):
             return "build_system"
-        elif any(keyword in input_lower for keyword in 
+        elif any(keyword in input_lower for keyword in
                  ["expert", "team", "specialist", "hire"]):
             return "generate_experts"
-        elif any(keyword in input_lower for keyword in 
+        elif any(keyword in input_lower for keyword in
                  ["gate", "safety", "validation", "compliance"]):
             return "create_gates"
-        elif any(keyword in input_lower for keyword in 
+        elif any(keyword in input_lower for keyword in
                  ["constraint", "limit", "budget", "deadline"]):
             return "add_constraints"
-        elif any(keyword in input_lower for keyword in 
+        elif any(keyword in input_lower for keyword in
                  ["upload", "document", "file", "requirements doc"]):
             return "upload_document"
-        elif any(keyword in input_lower for keyword in 
+        elif any(keyword in input_lower for keyword in
                  ["choose", "select", "recommend", "decision"]):
             return "analyze_choice"
-        elif any(keyword in input_lower for keyword in 
+        elif any(keyword in input_lower for keyword in
                  ["validate", "check", "verify", "test"]):
             return "validate_system"
         elif "recommendation" in input_lower:
             return "get_recommendations"
         else:
             return "chat"
-    
+
     def _handle_build_system(self, request: UserRequest) -> SystemResponse:
         """Handle system building request"""
         # Use LLM to extract requirements from natural language
@@ -334,25 +338,25 @@ class SystemIntegrator:
             domain=DomainType.ARCHITECTURAL,
             context=request.parameters
         )
-        
+
         # Parse requirements (simplified - would use actual parsing)
         requirements = self._parse_system_requirements(request.user_input, request.parameters)
-        
+
         # Generate experts
         experts, expert_analysis = self.expert_generator.generate_expert_team(requirements)
         self.experts.extend(experts)
-        
+
         # Generate gates
         gates, gate_analysis = self.gate_generator.generate_gates_for_system(requirements)
         self.gates.extend(gates)
-        
+
         # Add constraints
         if requirements.get("budget"):
             self.constraint_system.add_constraint_from_template(
                 "budget", "total_cost", requirements["budget"],
                 justification="System budget constraint"
             )
-        
+
         # Use inquisitory engine for choice recommendations
         if "tech_stack" not in request.parameters:
             tech_question = "What technology stack should we use?"
@@ -364,7 +368,7 @@ class SystemIntegrator:
                 context={"budget": requirements.get("budget", float('inf'))}
             )
             self.recommendations.append(recommendation)
-        
+
         return SystemResponse(
             request_id=request.request_id,
             success=True,
@@ -381,7 +385,7 @@ class SystemIntegrator:
             triggers=[],
             timestamp=datetime.now().isoformat()
         )
-    
+
     def _handle_generate_experts(self, request: UserRequest) -> SystemResponse:
         """Handle expert generation request"""
         # Use LLM to understand requirements
@@ -390,10 +394,10 @@ class SystemIntegrator:
             domain=DomainType.STRATEGIC,
             context=request.parameters
         )
-        
+
         # Parse requirements
         requirements = request.parameters or {}
-        
+
         # Generate team or single expert
         if "team" in request.user_input.lower() or "multiple" in request.user_input.lower():
             experts, analysis = self.expert_generator.generate_expert_team(
@@ -412,9 +416,9 @@ class SystemIntegrator:
             experts = [expert]
             analysis = {"total_experts": 1, "total_cost_per_hour": expert.cost_per_hour}
             message = f"Generated expert: {expert.name}"
-        
+
         self.experts.extend(experts)
-        
+
         return SystemResponse(
             request_id=request.request_id,
             success=True,
@@ -427,7 +431,7 @@ class SystemIntegrator:
             triggers=[],
             timestamp=datetime.now().isoformat()
         )
-    
+
     def _handle_create_gates(self, request: UserRequest) -> SystemResponse:
         """Handle gate creation request"""
         # Use LLM to understand gate requirements
@@ -436,14 +440,14 @@ class SystemIntegrator:
             domain=DomainType.REGULATORY,
             context=request.parameters
         )
-        
+
         # Parse system requirements
         requirements = request.parameters or {}
-        
+
         # Generate gates
         gates, analysis = self.gate_generator.generate_gates_for_system(requirements)
         self.gates.extend(gates)
-        
+
         return SystemResponse(
             request_id=request.request_id,
             success=True,
@@ -456,12 +460,12 @@ class SystemIntegrator:
             triggers=[],
             timestamp=datetime.now().isoformat()
         )
-    
+
     def _handle_add_constraints(self, request: UserRequest) -> SystemResponse:
         """Handle constraint addition request"""
         # Parse constraint details
         parameters = request.parameters or {}
-        
+
         # Add constraint based on parameters
         if parameters.get("type") == "budget":
             constraint = self.constraint_system.add_constraint_from_template(
@@ -487,7 +491,7 @@ class SystemIntegrator:
                 description=parameters.get("description", ""),
                 priority=parameters.get("priority", 5)
             )
-        
+
         return SystemResponse(
             request_id=request.request_id,
             success=True,
@@ -499,11 +503,11 @@ class SystemIntegrator:
             triggers=[],
             timestamp=datetime.now().isoformat()
         )
-    
+
     def _handle_upload_document(self, request: UserRequest) -> SystemResponse:
         """Handle document upload request"""
         parameters = request.parameters
-        
+
         # Process document
         metadata = self.document_processor.upload_document(
             name=parameters.get("filename", "document.txt"),
@@ -511,10 +515,10 @@ class SystemIntegrator:
             content=parameters.get("content", ""),
             document_type=parameters.get("document_type")
         )
-        
+
         # Get summary
         summary = self.document_processor.get_document_summary(metadata.document_id)
-        
+
         return SystemResponse(
             request_id=request.request_id,
             success=True,
@@ -527,7 +531,7 @@ class SystemIntegrator:
             triggers=[],
             timestamp=datetime.now().isoformat()
         )
-    
+
     def _handle_analyze_choice(self, request: UserRequest) -> SystemResponse:
         """Handle choice analysis request"""
         # Use LLM to understand the choice
@@ -536,12 +540,12 @@ class SystemIntegrator:
             domain=DomainType.STRATEGIC,
             context=request.parameters
         )
-        
+
         # Get options from parameters or generate defaults
         options = request.parameters.get("options", [])
         if not options:
             options = self._get_default_tech_options()
-        
+
         # Analyze choice
         recommendation = self.inquisitory_engine.analyze_choice(
             question=request.user_input,
@@ -549,9 +553,9 @@ class SystemIntegrator:
             options=options,
             context=request.parameters.get("context", {})
         )
-        
+
         self.recommendations.append(recommendation)
-        
+
         return SystemResponse(
             request_id=request.request_id,
             success=True,
@@ -563,19 +567,19 @@ class SystemIntegrator:
             triggers=[],
             timestamp=datetime.now().isoformat()
         )
-    
+
     def _handle_validate_system(self, request: UserRequest) -> SystemResponse:
         """Handle system validation request"""
         # Validate constraints
         system_state = request.parameters.get("system_state", {})
         results, warnings = self.constraint_system.validate_constraints(system_state)
-        
+
         # Validate gates
         gate_results = []
         for gate in self.gates:
             result = self.gate_generator.execute_gate(gate, system_state)
             gate_results.append(result)
-        
+
         # Get LLM validation for math/physics
         if request.parameters.get("validate_math_physics"):
             llm_response = self.llm_layer.route_request(
@@ -583,7 +587,7 @@ class SystemIntegrator:
                 domain=DomainType.MATHEMATICAL,
                 context=request.parameters
             )
-        
+
         return SystemResponse(
             request_id=request.request_id,
             success=True,
@@ -597,12 +601,12 @@ class SystemIntegrator:
             triggers=[],
             timestamp=datetime.now().isoformat()
         )
-    
+
     def _handle_get_recommendations(self, request: UserRequest) -> SystemResponse:
         """Handle get recommendations request"""
         # Generate report
         report = self.inquisitory_engine.generate_choice_report(self.recommendations)
-        
+
         return SystemResponse(
             request_id=request.request_id,
             success=True,
@@ -615,7 +619,7 @@ class SystemIntegrator:
             triggers=[],
             timestamp=datetime.now().isoformat()
         )
-    
+
     def _handle_chat(self, request: UserRequest) -> SystemResponse:
         """Handle general chat request"""
         # Use LLM to generate response
@@ -624,7 +628,7 @@ class SystemIntegrator:
             domain=DomainType.GENERAL,
             context=request.parameters
         )
-        
+
         return SystemResponse(
             request_id=request.request_id,
             success=True,
@@ -636,17 +640,17 @@ class SystemIntegrator:
             triggers=[],
             timestamp=datetime.now().isoformat()
         )
-    
+
     def _handle_general_query(self, request: UserRequest) -> SystemResponse:
         """Handle general query"""
         return self._handle_chat(request)
-    
+
     def _parse_system_requirements(self, user_input: str, parameters: Dict) -> Dict:
         """Parse system requirements from user input (simplified)"""
         requirements = parameters.copy()
-        
+
         input_lower = user_input.lower()
-        
+
         # Extract complexity
         if "simple" in input_lower:
             requirements["complexity"] = "simple"
@@ -654,7 +658,7 @@ class SystemIntegrator:
             requirements["complexity"] = "complex"
         else:
             requirements["complexity"] = "medium"
-        
+
         # Extract domain
         if "software" in input_lower or "app" in input_lower:
             requirements["domain"] = "software"
@@ -664,13 +668,13 @@ class SystemIntegrator:
             requirements["domain"] = "data"
         else:
             requirements["domain"] = "software"
-        
+
         # Extract security focus
-        requirements["security_focus"] = any(keyword in input_lower for keyword in 
+        requirements["security_focus"] = any(keyword in input_lower for keyword in
                                               ["security", "secure", "compliance"])
-        
+
         return requirements
-    
+
     def _get_default_tech_options(self) -> List[Dict]:
         """Get default technology stack options"""
         return [
@@ -695,28 +699,7 @@ class SystemIntegrator:
                 "success_probability": 0.85
             }
         ]
-    
-    def get_system_state(self) -> SystemState:
-        """Get current system state"""
-        return SystemState(
-            system_id=self.system_id,
-            initialized=True,
-            experts=self.experts,
-            gates=self.gates,
-            constraints=self.constraint_system.constraints,
-            requirements=self.requirements,
-            recommendations=self.recommendations,
-            last_updated=datetime.now().isoformat(),
-            metrics={
-                "total_requests": self.request_count,
-                "total_experts": len(self.experts),
-                "total_gates": len(self.gates),
-                "total_constraints": len(self.constraint_system.constraints),
-                "total_recommendations": len(self.recommendations),
-                "llm_stats": self.llm_layer.generate_system_report()
-            }
-        )
-    
+
     def get_system_state_dict(self) -> Dict[str, Any]:
         """Get current system state as a dictionary"""
         return self.get_system_state().to_dict()
@@ -734,14 +717,14 @@ class SystemIntegrator:
                 'total_constraints': len(self.constraint_system.constraints) if hasattr(self.constraint_system, 'constraints') else 0
             }
         }
-        
+
         # LLM report
         if self.llm_layer:
             report['llm_report'] = {
                 'total_requests': self.llm_layer.request_count if hasattr(self.llm_layer, 'request_count') else 0,
                 'provider_status': 'available'
             }
-        
+
         # Security section
         if self.security_enabled and self.security_adapter:
             security_summary = self.security_adapter.get_security_summary()
@@ -753,7 +736,7 @@ class SystemIntegrator:
             }
         else:
             report['security'] = {'enabled': False}
-        
+
         # Module compiler section
         if self.module_compiler_enabled and self.module_compiler:
             module_stats = self.module_compiler.get_module_statistics()
@@ -764,13 +747,13 @@ class SystemIntegrator:
             }
         else:
             report['module_compiler'] = {'enabled': False}
-        
+
         return report
-    
+
     def get_security_summary(self) -> Dict[str, Any]:
         """
         Get security summary from security adapter.
-        
+
         Returns:
             Dictionary with security metrics and state
         """
@@ -779,30 +762,30 @@ class SystemIntegrator:
                 "enabled": False,
                 "message": "Security plane not available"
             }
-        
+
         return self.security_adapter.get_security_summary()
-    
+
     def get_security_gates(self) -> List[Dict[str, Any]]:
         """
         Get list of active security gates.
-        
+
         Returns:
             List of security gate dictionaries
         """
         if not self.security_enabled or not self.security_adapter:
             return []
-        
+
         return self.security_adapter.get_active_security_gates()
-    
+
     def compute_trust_score(self, entity_id: str, base_score: float = 0.5, factors: Optional[Dict] = None) -> Dict[str, Any]:
         """
         Compute trust score for an entity.
-        
+
         Args:
             entity_id: Unique identifier for the entity
             base_score: Base trust score (0.0 to 1.0)
             factors: Dictionary of trust factors with weights
-            
+
         Returns:
             Dictionary with trust score and level
         """
@@ -812,65 +795,65 @@ class SystemIntegrator:
                 "trust_score": base_score,
                 "message": "Security plane not available"
             }
-        
+
         return self.security_adapter.compute_trust_score(entity_id, base_score, factors)
-    
+
     def get_trust_score(self, entity_id: str) -> Optional[Dict[str, Any]]:
         """
         Get trust score for an entity.
-        
+
         Args:
             entity_id: Entity identifier
-            
+
         Returns:
             Trust score dictionary or None
         """
         if not self.security_enabled or not self.security_adapter:
             return None
-        
+
         return self.security_adapter.get_trust_score(entity_id)
-    
+
     def get_security_anomalies(self, limit: int = 10) -> List[Dict[str, Any]]:
         """
         Get recent security anomalies.
-        
+
         Args:
             limit: Maximum number to return
-            
+
         Returns:
             List of anomaly dictionaries
         """
         if not self.security_enabled or not self.security_adapter:
             return []
-        
+
         return self.security_adapter.get_recent_anomalies(limit)
-    
+
     def check_security_gate(self, gate_id: str, trust_score: float) -> Tuple[bool, str]:
         """
         Check if a security gate allows passage.
-        
+
         Args:
             gate_id: ID of the gate to check
             trust_score: Trust score of the entity
-            
+
         Returns:
             Tuple of (allowed, reason)
         """
         if not self.security_enabled or not self.security_adapter:
             return True, "Security plane not enabled"
-        
+
         return self.security_adapter.check_security_gate(gate_id, trust_score)
-    
+
     # ========== Module Compiler Methods ==========
-    
+
     def compile_module(self, source_path: str, requested_capabilities: Optional[List[str]] = None) -> Dict[str, Any]:
         """
         Compile a Python module into a module specification.
-        
+
         Args:
             source_path: Path to Python module file or directory
             requested_capabilities: Specific capabilities to focus on
-            
+
         Returns:
             Dictionary with module specification
         """
@@ -880,17 +863,17 @@ class SystemIntegrator:
                 "error": "Module compiler not enabled",
                 "source_path": source_path
             }
-        
+
         return self.module_compiler.compile_module(source_path, requested_capabilities)
-    
+
     def compile_directory(self, directory_path: str, recursive: bool = True) -> Dict[str, Any]:
         """
         Compile all modules in a directory.
-        
+
         Args:
             directory_path: Path to directory
             recursive: Whether to search subdirectories
-            
+
         Returns:
             Dictionary with compilation results
         """
@@ -900,64 +883,64 @@ class SystemIntegrator:
                 "error": "Module compiler not enabled",
                 "directory_path": directory_path
             }
-        
+
         return self.module_compiler.compile_directory(directory_path, recursive)
-    
+
     def get_compiled_module(self, module_id: str) -> Optional[Dict[str, Any]]:
         """
         Get a compiled module by ID.
-        
+
         Args:
             module_id: Module identifier
-            
+
         Returns:
             Module specification or None
         """
         if not self.module_compiler_enabled or not self.module_compiler:
             return None
-        
+
         return self.module_compiler.get_compiled_module(module_id)
-    
+
     def get_all_compiled_modules(self) -> List[Dict[str, Any]]:
         """
         Get all compiled modules.
-        
+
         Returns:
             List of module specifications
         """
         if not self.module_compiler_enabled or not self.module_compiler:
             return []
-        
+
         return self.module_compiler.get_all_compiled_modules()
-    
-    def search_modules(self, 
+
+    def search_modules(self,
                       capability_name: Optional[str] = None,
                       determinism: Optional[str] = None,
                       min_determinism: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Search compiled modules by criteria.
-        
+
         Args:
             capability_name: Filter by capability name
             determinism: Filter by exact determinism level
             min_determinism: Filter by minimum determinism level
-            
+
         Returns:
             List of matching modules
         """
         if not self.module_compiler_enabled or not self.module_compiler:
             return []
-        
+
         return self.module_compiler.search_modules(
             capability_name=capability_name,
             determinism=determinism,
             min_determinism=min_determinism
         )
-    
+
     def get_module_statistics(self) -> Dict[str, Any]:
         """
         Get statistics about compiled modules.
-        
+
         Returns:
             Dictionary with statistics
         """
@@ -966,24 +949,24 @@ class SystemIntegrator:
                 "enabled": False,
                 "message": "Module compiler not available"
             }
-        
+
         return self.module_compiler.get_module_statistics()
-    
+
     def get_module_analysis_history(self, limit: int = 20) -> List[Dict[str, Any]]:
         """
         Get module analysis history.
-        
+
         Args:
             limit: Maximum number of entries to return
-            
+
         Returns:
             List of analysis entries
         """
         if not self.module_compiler_enabled or not self.module_compiler:
             return []
-        
+
         return self.module_compiler.get_analysis_history(limit)
-    
+
     def get_system_state(self) -> SystemState:
         """Get current system state"""
         return SystemState(
@@ -1002,23 +985,23 @@ class SystemIntegrator:
                 "total_constraints": len(self.constraint_system.constraints) if hasattr(self.constraint_system, 'constraints') else 0
             }
         )
-    
+
     # ========== Neuro-Symbolic Methods ==========
-    
-    def perform_inference(self, 
+
+    def perform_inference(self,
                         query: str,
                         reasoning_mode: str = "hybrid",
                         context: Optional[Dict] = None,
                         constraints: Optional[List[str]] = None) -> Dict[str, Any]:
         """
         Perform neural-symbolic inference.
-        
+
         Args:
             query: Query to reason about
             reasoning_mode: Mode of reasoning (hybrid, neural, symbolic)
             context: Optional context for inference
             constraints: Optional list of constraints to apply
-            
+
         Returns:
             Dictionary with inference results
         """
@@ -1028,26 +1011,26 @@ class SystemIntegrator:
                 "error": "Neuro-symbolic adapter not enabled",
                 "query": query
             }
-        
+
         return self.neuro_symbolic.perform_inference(
             query=query,
             reasoning_mode=reasoning_mode,
             context=context,
             constraints=constraints
         )
-    
-    def validate_constraints(self, 
+
+    def validate_constraints(self,
                            statement: str,
                            constraints: List[str],
                            context: Optional[Dict] = None) -> Dict[str, Any]:
         """
         Validate constraints against a statement.
-        
+
         Args:
             statement: Statement to validate
             constraints: List of constraints to validate
             context: Optional context for validation
-            
+
         Returns:
             Dictionary with validation results
         """
@@ -1057,27 +1040,27 @@ class SystemIntegrator:
                 "error": "Neuro-symbolic adapter not enabled",
                 "statement": statement
             }
-        
+
         return self.neuro_symbolic.validate_constraints(
             statement=statement,
             constraints=constraints,
             context=context
         )
-    
-    def perform_hybrid_reasoning(self, 
+
+    def perform_hybrid_reasoning(self,
                                 problem: str,
                                 neural_input: str,
                                 symbolic_constraints: List[str],
                                 context: Optional[Dict] = None) -> Dict[str, Any]:
         """
         Perform hybrid neural-symbolic reasoning.
-        
+
         Args:
             problem: Problem to solve
             neural_input: Input for neural processing
             symbolic_constraints: Symbolic constraints
             context: Optional context
-            
+
         Returns:
             Dictionary with reasoning results
         """
@@ -1087,26 +1070,26 @@ class SystemIntegrator:
                 "error": "Neuro-symbolic adapter not enabled",
                 "problem": problem
             }
-        
+
         return self.neuro_symbolic.perform_hybrid_reasoning(
             problem=problem,
             neural_input=neural_input,
             symbolic_constraints=symbolic_constraints,
             context=context
         )
-    
-    def create_knowledge_graph(self, 
+
+    def create_knowledge_graph(self,
                              entities: List[str],
                              relationships: List[Dict[str, Any]],
                              constraints: Optional[List[str]] = None) -> Dict[str, Any]:
         """
         Create a knowledge graph from entities and relationships.
-        
+
         Args:
             entities: List of entity names
             relationships: List of relationship dictionaries
             constraints: Optional constraints for graph creation
-            
+
         Returns:
             Dictionary with knowledge graph
         """
@@ -1115,17 +1098,17 @@ class SystemIntegrator:
                 "success": False,
                 "error": "Neuro-symbolic adapter not enabled"
             }
-        
+
         return self.neuro_symbolic.create_knowledge_graph(
             entities=entities,
             relationships=relationships,
             constraints=constraints
         )
-    
+
     def get_reasoning_statistics(self) -> Dict[str, Any]:
         """
         Get reasoning statistics.
-        
+
         Returns:
             Dictionary with statistics
         """
@@ -1134,27 +1117,27 @@ class SystemIntegrator:
                 "success": False,
                 "error": "Neuro-symbolic adapter not enabled"
             }
-        
+
         return self.neuro_symbolic.get_reasoning_statistics()
-    
+
     def get_inference_history(self, limit: int = 20) -> List[Dict[str, Any]]:
         """
         Get inference history.
-        
+
         Args:
             limit: Maximum number of entries
-            
+
         Returns:
             List of inference history entries
         """
         if not self.neuro_symbolic_enabled or not self.neuro_symbolic:
             return []
-        
+
         return self.neuro_symbolic.get_inference_history(limit)
-    
+
     # ========== Telemetry Methods ==========
-    
-    def collect_metric(self, 
+
+    def collect_metric(self,
                       metric_type: str,
                       metric_name: str,
                       value: float,
@@ -1162,14 +1145,14 @@ class SystemIntegrator:
                       timestamp: Optional[str] = None) -> Dict[str, Any]:
         """
         Collect a single metric.
-        
+
         Args:
             metric_type: Type of metric (performance, error, warning, system_event, user_action)
             metric_name: Name of the metric
             value: Metric value
             labels: Optional labels/dimensions for the metric
             timestamp: Optional timestamp (ISO format)
-            
+
         Returns:
             Dictionary with collection result
         """
@@ -1178,7 +1161,7 @@ class SystemIntegrator:
                 "success": False,
                 "error": "Telemetry adapter not enabled"
             }
-        
+
         return self.telemetry.collect_metric(
             metric_type=metric_type,
             metric_name=metric_name,
@@ -1187,7 +1170,7 @@ class SystemIntegrator:
             timestamp=timestamp
         )
 
-    def get_metrics(self, 
+    def get_metrics(self,
                    metric_type: Optional[str] = None,
                    metric_name: Optional[str] = None,
                    start_time: Optional[str] = None,
@@ -1195,14 +1178,14 @@ class SystemIntegrator:
                    limit: int = 100) -> Dict[str, Any]:
         """
         Get metrics with optional filtering.
-        
+
         Args:
             metric_type: Filter by metric type (None for all)
             metric_name: Filter by metric name (None for all)
             start_time: Filter by start time (ISO format)
             end_time: Filter by end time (ISO format)
             limit: Maximum number of metrics to return
-            
+
         Returns:
             Dictionary with metrics
         """
@@ -1211,7 +1194,7 @@ class SystemIntegrator:
                 "success": False,
                 "error": "Telemetry adapter not enabled"
             }
-        
+
         return self.telemetry.get_metrics(
             metric_type=metric_type,
             metric_name=metric_name,
@@ -1223,43 +1206,43 @@ class SystemIntegrator:
     def detect_anomalies(self) -> List[Dict[str, Any]]:
         """
         Detect anomalies in metrics.
-        
+
         Returns:
             List of detected anomalies
         """
         if not self.telemetry_enabled or not self.telemetry:
             return []
-        
+
         return self.telemetry.detect_anomalies()
-    
+
     def discover_patterns(self) -> List[Dict[str, Any]]:
         """
         Discover patterns in metric data.
-        
+
         Returns:
             List of discovered patterns
         """
         if not self.telemetry_enabled or not self.telemetry:
             return []
-        
+
         return self.telemetry.discover_patterns()
-    
+
     def generate_recommendations(self) -> List[Dict[str, Any]]:
         """
         Generate actionable recommendations from telemetry data.
-        
+
         Returns:
             List of recommendations
         """
         if not self.telemetry_enabled or not self.telemetry:
             return []
-        
+
         return self.telemetry.generate_recommendations()
-    
+
     def get_telemetry_summary(self) -> Dict[str, Any]:
         """
         Get summary of all telemetry data.
-        
+
         Returns:
             Dictionary with telemetry summary
         """
@@ -1268,16 +1251,16 @@ class SystemIntegrator:
                 "enabled": False,
                 "error": "Telemetry adapter not enabled"
             }
-        
+
         return self.telemetry.get_telemetry_summary()
-    
+
     def update_telemetry_config(self, config: Dict) -> Dict[str, Any]:
         """
         Update telemetry configuration.
-        
+
         Args:
             config: Configuration dictionary
-            
+
         Returns:
             Dictionary with update result
         """
@@ -1286,16 +1269,16 @@ class SystemIntegrator:
                 "success": False,
                 "error": "Telemetry adapter not enabled"
             }
-        
+
         return self.telemetry.update_config(config)
-    
+
     def clear_metrics(self, metric_type: Optional[str] = None) -> Dict[str, Any]:
         """
         Clear metrics from storage.
-        
+
         Args:
             metric_type: Type to clear (None for all)
-            
+
         Returns:
             Dictionary with clear result
         """
@@ -1304,19 +1287,19 @@ class SystemIntegrator:
                 "success": False,
                 "error": "Telemetry adapter not enabled"
             }
-        
+
         return self.telemetry.clear_metrics(metric_type)
-    
+
     # ========== Librarian Methods ==========
-    
+
     def ask_librarian_question(self, question: str, topic: Optional[str] = None) -> Dict[str, Any]:
         """
         Ask the system librarian a question.
-        
+
         Args:
             question: The question to ask
             topic: Optional topic for the question
-            
+
         Returns:
             Dictionary with answer and metadata
         """
@@ -1326,13 +1309,13 @@ class SystemIntegrator:
                 "error": "Librarian adapter not enabled",
                 "question": question
             }
-        
+
         return self.librarian_adapter.ask_question(question, topic)
-    
+
     def get_librarian_topics(self) -> Dict[str, Any]:
         """
         Get available topics from librarian.
-        
+
         Returns:
             Dictionary with topics
         """
@@ -1341,13 +1324,13 @@ class SystemIntegrator:
                 "success": False,
                 "error": "Librarian adapter not enabled"
             }
-        
+
         return self.librarian_adapter.get_topics()
-    
+
     def get_system_health_status(self) -> Dict[str, Any]:
         """
         Get overall system health status.
-        
+
         Returns:
             Dictionary with health status of all components
         """
@@ -1356,16 +1339,16 @@ class SystemIntegrator:
                 "success": False,
                 "error": "Librarian adapter not enabled"
             }
-        
+
         return self.librarian_adapter.get_health_status()
-    
+
     def get_troubleshooting_guide(self, issue: str) -> Dict[str, Any]:
         """
         Get troubleshooting guidance for an issue.
-        
+
         Args:
             issue: Description of the issue
-            
+
         Returns:
             Dictionary with troubleshooting steps
         """
@@ -1375,16 +1358,16 @@ class SystemIntegrator:
                 "error": "Librarian adapter not enabled",
                 "issue": issue
             }
-        
+
         return self.librarian_adapter.get_troubleshooting_guide(issue)
-    
+
     def get_librarian_documentation(self, topic: str) -> Dict[str, Any]:
         """
         Get documentation on a topic.
-        
+
         Args:
             topic: Topic to get documentation for
-            
+
         Returns:
             Dictionary with documentation content
         """
@@ -1394,16 +1377,16 @@ class SystemIntegrator:
                 "error": "Librarian adapter not enabled",
                 "topic": topic
             }
-        
+
         return self.librarian_adapter.get_documentation(topic)
-    
+
     def search_librarian_knowledge_base(self, query: str) -> Dict[str, Any]:
         """
         Search the knowledge base.
-        
+
         Args:
             query: Search query
-            
+
         Returns:
             Dictionary with search results
         """
@@ -1413,13 +1396,13 @@ class SystemIntegrator:
                 "error": "Librarian adapter not enabled",
                 "query": query
             }
-        
+
         return self.librarian_adapter.search_knowledge_base(query)
-    
+
     def get_librarian_statistics(self) -> Dict[str, Any]:
         """
         Get librarian statistics.
-        
+
         Returns:
             Dictionary with statistics
         """
@@ -1428,16 +1411,16 @@ class SystemIntegrator:
                 "success": False,
                 "error": "Librarian adapter not enabled"
             }
-        
+
         return self.librarian_adapter.get_librarian_statistics()
 
 
 if __name__ == "__main__":
     # Test system integrator
     integrator = SystemIntegrator()
-    
+
     # Test 1: Build system
-    print("=== Test 1: Build System ===")
+    logger.info("=== Test 1: Build System ===")
     response = integrator.process_user_request(
         "Build a complex web application with security focus",
         parameters={
@@ -1446,13 +1429,13 @@ if __name__ == "__main__":
             "architectural_requirements": ["microservices"]
         }
     )
-    print(f"Success: {response.success}")
-    print(f"Message: {response.message}")
-    print(f"Experts: {len(response.data.get('experts', []))}")
-    print(f"Gates: {len(response.data.get('gates', []))}")
-    
+    logger.info(f"Success: {response.success}")
+    logger.info(f"Message: {response.message}")
+    logger.info(f"Experts: {len(response.data.get('experts', []))}")
+    logger.info(f"Gates: {len(response.data.get('gates', []))}")
+
     # Test 2: Generate experts
-    print("\n=== Test 2: Generate Experts ===")
+    logger.info("\n=== Test 2: Generate Experts ===")
     response = integrator.process_user_request(
         "I need a team of experts for my software project",
         parameters={
@@ -1462,11 +1445,11 @@ if __name__ == "__main__":
             "budget": 8000
         }
     )
-    print(f"Success: {response.success}")
-    print(f"Message: {response.message}")
-    
+    logger.info(f"Success: {response.success}")
+    logger.info(f"Message: {response.message}")
+
     # Test 3: Create gates
-    print("\n=== Test 3: Create Gates ===")
+    logger.info("\n=== Test 3: Create Gates ===")
     response = integrator.process_user_request(
         "Create safety gates for my system",
         parameters={
@@ -1476,11 +1459,11 @@ if __name__ == "__main__":
             "regulatory_requirements": ["gdpr", "hipaa"]
         }
     )
-    print(f"Success: {response.success}")
-    print(f"Message: {response.message}")
-    
+    logger.info(f"Success: {response.success}")
+    logger.info(f"Message: {response.message}")
+
     # Test 4: Analyze choice
-    print("\n=== Test 4: Analyze Choice ===")
+    logger.info("\n=== Test 4: Analyze Choice ===")
     response = integrator.process_user_request(
         "Which technology stack should I use?",
         parameters={
@@ -1489,20 +1472,20 @@ if __name__ == "__main__":
             "context": {"budget": 10000, "timeline": 180}
         }
     )
-    print(f"Success: {response.success}")
-    print(f"Message: {response.message}")
-    
+    logger.info(f"Success: {response.success}")
+    logger.info(f"Message: {response.message}")
+
     # Test 5: Get system state
-    print("\n=== Test 5: System State ===")
+    logger.info("\n=== Test 5: System State ===")
     state = integrator.get_system_state()
-    print(f"System ID: {state.system_id}")
-    print(f"Experts: {len(state.experts)}")
-    print(f"Gates: {len(state.gates)}")
-    print(f"Constraints: {len(state.constraints)}")
-    print(f"Total Requests: {state.metrics['total_requests']}")
-    
+    logger.info(f"System ID: {state.system_id}")
+    logger.info(f"Experts: {len(state.experts)}")
+    logger.info(f"Gates: {len(state.gates)}")
+    logger.info(f"Constraints: {len(state.constraints)}")
+    logger.info(f"Total Requests: {state.metrics['total_requests']}")
+
     # Test 6: Generate report
-    print("\n=== Test 6: System Report ===")
+    logger.info("\n=== Test 6: System Report ===")
     report = integrator.generate_system_report()
-    print(f"System initialized: {report['system_state']['initialized']}")
-    print(f"LLM requests: {report['llm_report']['total_requests']}")
+    logger.info(f"System initialized: {report['system_state']['initialized']}")
+    logger.info(f"LLM requests: {report['llm_report']['total_requests']}")

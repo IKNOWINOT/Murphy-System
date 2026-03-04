@@ -10,6 +10,10 @@ from datetime import datetime
 import hashlib
 import json
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class PacketState(Enum):
     """States of an execution packet"""
@@ -45,7 +49,7 @@ class InterfaceType(Enum):
 class ExecutionScope:
     """
     Immutable snapshot of execution scope
-    
+
     After creation, no further artifact creation allowed
     """
     scope_id: str
@@ -55,20 +59,20 @@ class ExecutionScope:
     interface_bindings: Dict[str, str]  # interface_name -> interface_id
     timestamp: datetime = field(default_factory=datetime.now)
     frozen: bool = False
-    
+
     def freeze(self) -> str:
         """
         Freeze scope and return hash
-        
+
         Returns:
             SHA-256 hash of scope
         """
         if self.frozen:
             return self.calculate_hash()
-        
+
         self.frozen = True
         return self.calculate_hash()
-    
+
     def calculate_hash(self) -> str:
         """Calculate SHA-256 hash of scope"""
         content = {
@@ -80,26 +84,26 @@ class ExecutionScope:
         }
         content_str = json.dumps(content, sort_keys=True)
         return hashlib.sha256(content_str.encode()).hexdigest()
-    
+
     def validate(self) -> tuple[bool, List[str]]:
         """
         Validate scope
-        
+
         Returns:
             (is_valid, error_messages)
         """
         errors = []
-        
+
         if not self.artifact_ids:
             errors.append("Scope has no artifacts")
-        
+
         if not self.frozen:
             errors.append("Scope not frozen")
-        
+
         # Check for unresolved dependencies (would be checked by caller)
-        
+
         return len(errors) == 0, errors
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -118,7 +122,7 @@ class ExecutionScope:
 class ExecutionStep:
     """
     Single deterministic execution step
-    
+
     DESIGN LAW: No LLM calls allowed
     """
     step_id: str
@@ -131,33 +135,33 @@ class ExecutionStep:
     deterministic: bool = True
     verified: bool = False
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     def validate_determinism(self) -> tuple[bool, str]:
         """
         Validate that step is deterministic
-        
+
         Returns:
             (is_deterministic, reason)
         """
         if not self.deterministic:
             return False, "Step marked as non-deterministic"
-        
+
         # Check for LLM-related keywords
         llm_keywords = ['llm', 'gpt', 'generate', 'creative', 'sample']
         description_lower = self.description.lower()
-        
+
         for keyword in llm_keywords:
             if keyword in description_lower:
                 return False, f"Step description contains LLM keyword: {keyword}"
-        
+
         # Verify step type is allowed
-        if self.step_type not in [StepType.API_CALL, StepType.MATH_MODULE, 
+        if self.step_type not in [StepType.API_CALL, StepType.MATH_MODULE,
                                    StepType.CODE_BLOCK, StepType.ACTUATOR_COMMAND,
                                    StepType.DATA_TRANSFORM]:
             return False, f"Invalid step type: {self.step_type}"
-        
+
         return True, "Step is deterministic"
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -178,98 +182,98 @@ class ExecutionStep:
 class ExecutionGraph:
     """
     Execution DAG - strict ordering of deterministic steps
-    
+
     No branching allowed without explicit gate
     """
     graph_id: str
     steps: Dict[str, ExecutionStep] = field(default_factory=dict)
     edges: Dict[str, List[str]] = field(default_factory=dict)  # step_id -> [dependent_step_ids]
-    
+
     def add_step(self, step: ExecutionStep) -> None:
         """Add step to graph"""
         self.steps[step.step_id] = step
         if step.step_id not in self.edges:
             self.edges[step.step_id] = []
-        
+
         # Add edges from dependencies
         for dep_id in step.dependencies:
             if dep_id not in self.edges:
                 self.edges[dep_id] = []
             if step.step_id not in self.edges[dep_id]:
                 self.edges[dep_id].append(step.step_id)
-    
+
     def is_dag(self) -> bool:
         """Check if graph is a DAG (no cycles)"""
         visited = set()
         rec_stack = set()
-        
+
         def has_cycle(step_id: str) -> bool:
             visited.add(step_id)
             rec_stack.add(step_id)
-            
+
             for dependent_id in self.edges.get(step_id, []):
                 if dependent_id not in visited:
                     if has_cycle(dependent_id):
                         return True
                 elif dependent_id in rec_stack:
                     return True
-            
+
             rec_stack.remove(step_id)
             return False
-        
+
         for step_id in self.steps:
             if step_id not in visited:
                 if has_cycle(step_id):
                     return False
-        
+
         return True
-    
+
     def get_execution_order(self) -> List[str]:
         """
         Get topological sort of steps (execution order)
-        
+
         Returns:
             List of step IDs in execution order
         """
         if not self.is_dag():
             return []
-        
+
         in_degree = {step_id: 0 for step_id in self.steps}
-        
+
         for step_id in self.steps:
             for dependent_id in self.edges.get(step_id, []):
                 in_degree[dependent_id] += 1
-        
+
         queue = [step_id for step_id, degree in in_degree.items() if degree == 0]
         result = []
-        
+
         while queue:
             step_id = queue.pop(0)
             result.append(step_id)
-            
+
             for dependent_id in self.edges.get(step_id, []):
                 in_degree[dependent_id] -= 1
                 if in_degree[dependent_id] == 0:
                     queue.append(dependent_id)
-        
+
         return result if len(result) == len(self.steps) else []
-    
+
     def validate_determinism(self) -> tuple[bool, List[str]]:
         """
         Validate that all steps are deterministic
-        
+
         Returns:
             (all_deterministic, error_messages)
         """
         errors = []
-        
+
         for step in self.steps.values():
             is_det, reason = step.validate_determinism()
             if not is_det:
                 errors.append(f"Step {step.step_id}: {reason}")
-        
+
         return len(errors) == 0, errors
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -290,7 +294,7 @@ class InterfaceBinding:
     interface_name: str
     capabilities: List[str]
     constraints: Dict[str, Any] = field(default_factory=dict)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -306,33 +310,33 @@ class InterfaceBinding:
 class InterfaceMap:
     """
     Map of allowed interfaces
-    
+
     Defines what the execution packet is allowed to interact with
     """
     allowed_apis: List[InterfaceBinding] = field(default_factory=list)
     allowed_bots: List[InterfaceBinding] = field(default_factory=list)
     allowed_sensors: List[InterfaceBinding] = field(default_factory=list)
     allowed_robots: List[InterfaceBinding] = field(default_factory=list)
-    
+
     def get_interface(self, interface_id: str) -> Optional[InterfaceBinding]:
         """Get interface by ID"""
         all_interfaces = (
-            self.allowed_apis + 
-            self.allowed_bots + 
-            self.allowed_sensors + 
+            self.allowed_apis +
+            self.allowed_bots +
+            self.allowed_sensors +
             self.allowed_robots
         )
-        
+
         for interface in all_interfaces:
             if interface.interface_id == interface_id:
                 return interface
-        
+
         return None
-    
+
     def is_allowed(self, interface_id: str) -> bool:
         """Check if interface is allowed"""
         return self.get_interface(interface_id) is not None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -341,9 +345,9 @@ class InterfaceMap:
             'allowed_sensors': [sensor.to_dict() for sensor in self.allowed_sensors],
             'allowed_robots': [robot.to_dict() for robot in self.allowed_robots],
             'total_interfaces': (
-                len(self.allowed_apis) + 
-                len(self.allowed_bots) + 
-                len(self.allowed_sensors) + 
+                len(self.allowed_apis) +
+                len(self.allowed_bots) +
+                len(self.allowed_sensors) +
                 len(self.allowed_robots)
             )
         }
@@ -356,7 +360,7 @@ class RollbackStep:
     description: str
     action: str
     parameters: Dict[str, Any] = field(default_factory=dict)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -371,17 +375,17 @@ class RollbackStep:
 class RollbackPlan:
     """
     Plan for rolling back execution if needed
-    
+
     Defines safe stop procedures
     """
     plan_id: str
     steps: List[RollbackStep] = field(default_factory=list)
     triggers: List[str] = field(default_factory=list)  # Conditions that trigger rollback
-    
+
     def add_step(self, step: RollbackStep) -> None:
         """Add rollback step"""
         self.steps.append(step)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -398,7 +402,7 @@ class TelemetryConfig:
     metric_name: str
     collection_interval: float  # seconds
     thresholds: Dict[str, float] = field(default_factory=dict)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -415,11 +419,11 @@ class TelemetryPlan:
     """
     plan_id: str
     configs: List[TelemetryConfig] = field(default_factory=list)
-    
+
     def add_config(self, config: TelemetryConfig) -> None:
         """Add telemetry configuration"""
         self.configs.append(config)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -433,14 +437,14 @@ class TelemetryPlan:
 class ExecutionPacket:
     """
     Sealed execution packet
-    
+
     DESIGN LAW: No packet may contain uncertainty
-    
+
     Signature binds:
     - artifacts
     - constraints
     - authority state
-    
+
     Any mutation invalidates packet
     """
     packet_id: str
@@ -449,55 +453,55 @@ class ExecutionPacket:
     interfaces: InterfaceMap
     rollback_plan: RollbackPlan
     telemetry_plan: TelemetryPlan
-    
+
     # State
     state: PacketState = PacketState.COMPILING
-    
+
     # Authority snapshot
     confidence: float = 0.0
     authority_band: str = ""
     phase: str = ""
-    
+
     # Signature
     signature: Optional[str] = None
     signed_at: Optional[datetime] = None
-    
+
     # Timestamps
     created_at: datetime = field(default_factory=datetime.now)
     sealed_at: Optional[datetime] = None
     executed_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
-    
+
     # Metadata
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     def seal(self, confidence: float, authority_band: str, phase: str) -> str:
         """
         Seal packet with signature
-        
+
         Args:
             confidence: Current confidence
             authority_band: Current authority band
             phase: Current phase
-        
+
         Returns:
             Signature hash
         """
         if self.state != PacketState.COMPILING:
             raise ValueError(f"Cannot seal packet in state {self.state}")
-        
+
         # Freeze scope
         scope_hash = self.scope.freeze()
-        
+
         # Store authority snapshot
         self.confidence = confidence
         self.authority_band = authority_band
         self.phase = phase
-        
+
         # Store timestamp BEFORE generating signature
         self.signed_at = datetime.now()
         self.sealed_at = self.signed_at
-        
+
         # Generate signature
         signature_content = {
             'packet_id': self.packet_id,
@@ -508,26 +512,26 @@ class ExecutionPacket:
             'phase': phase,
             'timestamp': self.signed_at.isoformat()
         }
-        
+
         signature_str = json.dumps(signature_content, sort_keys=True)
         self.signature = hashlib.sha256(signature_str.encode()).hexdigest()
         self.state = PacketState.SEALED
-        
+
         return self.signature
-    
+
     def verify_signature(self) -> bool:
         """
         Verify packet signature
-        
+
         Returns:
             True if signature is valid
         """
         if not self.signature or not self.signed_at:
             return False
-        
+
         # Recalculate signature
         scope_hash = self.scope.calculate_hash()
-        
+
         signature_content = {
             'packet_id': self.packet_id,
             'scope_hash': scope_hash,
@@ -537,50 +541,50 @@ class ExecutionPacket:
             'phase': self.phase,
             'timestamp': self.signed_at.isoformat()
         }
-        
+
         signature_str = json.dumps(signature_content, sort_keys=True)
         expected_signature = hashlib.sha256(signature_str.encode()).hexdigest()
-        
+
         return self.signature == expected_signature
-    
+
     def invalidate(self, reason: str) -> None:
         """
         Invalidate packet
-        
+
         Args:
             reason: Reason for invalidation
         """
         self.state = PacketState.INVALIDATED
         self.metadata['invalidation_reason'] = reason
         self.metadata['invalidated_at'] = datetime.now().isoformat()
-    
+
     def can_execute(self) -> tuple[bool, List[str]]:
         """
         Check if packet can be executed
-        
+
         Returns:
             (can_execute, blockers)
         """
         blockers = []
-        
+
         if self.state != PacketState.SEALED:
             blockers.append(f"Packet not sealed (state: {self.state.value})")
-        
+
         if not self.verify_signature():
             blockers.append("Signature verification failed")
-        
+
         if not self.scope.frozen:
             blockers.append("Scope not frozen")
-        
+
         if not self.execution_graph.is_dag():
             blockers.append("Execution graph is not a DAG")
-        
+
         is_det, det_errors = self.execution_graph.validate_determinism()
         if not is_det:
             blockers.extend(det_errors)
-        
+
         return len(blockers) == 0, blockers
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {

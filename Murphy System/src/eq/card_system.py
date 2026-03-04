@@ -25,6 +25,10 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -41,12 +45,14 @@ TOWER_SAME_TYPE_ENTRY_COUNT = 4  # 4 same-type universal cards to enter Tower
 
 
 class CardType(Enum):
+    """Card type (Enum subclass)."""
     UNIVERSAL = "universal"
     GOD = "god"
     UNMAKING = "unmaking"
 
 
 class UnmakingBuff(Enum):
+    """Unmaking buff (Enum subclass)."""
     VOID_SPELL = "void_of_unmaking"
     SHIELD = "shield_of_the_unmaker"
     DISINTEGRATION = "disintegration_proc"

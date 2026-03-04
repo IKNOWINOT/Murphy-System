@@ -11,6 +11,9 @@ import re
 from datetime import datetime
 import os
 
+import logging
+logger = logging.getLogger("document_processor")
+
 
 class DocumentType(Enum):
     """Types of documents"""
@@ -44,7 +47,7 @@ class DocumentMetadata:
     status: DocumentStatus
     checksum: str
     version: str = "1.0"
-    
+
     def to_dict(self) -> Dict:
         return {
             "document_id": self.document_id,
@@ -68,7 +71,7 @@ class DesignRequirement:
     priority: str  # critical, high, medium, low
     source: str  # document_id and location
     artifacts: List[str] = field(default_factory=list)
-    
+
     def to_dict(self) -> Dict:
         return {
             "requirement_id": self.requirement_id,
@@ -92,7 +95,7 @@ class EquipmentSelection:
     vendor: Optional[str] = None
     alternatives: List[str] = field(default_factory=list)
     justification: str = ""
-    
+
     def to_dict(self) -> Dict:
         return {
             "equipment_id": self.equipment_id,
@@ -119,7 +122,7 @@ class SystemTrigger:
     priority: int
     enabled: bool = True
     created_from: Optional[str] = None  # document_id if from document
-    
+
     def to_dict(self) -> Dict:
         return {
             "trigger_id": self.trigger_id,
@@ -138,7 +141,7 @@ class DocumentProcessor:
     """
     Processes design documents, extracts requirements, selects equipment, generates triggers
     """
-    
+
     def __init__(self):
         self.documents: Dict[str, DocumentMetadata] = {}
         self.requirements: Dict[str, DesignRequirement] = {}
@@ -148,13 +151,13 @@ class DocumentProcessor:
         self.requirement_count = 0
         self.equipment_count = 0
         self.trigger_count = 0
-        
+
         # Equipment catalog (simplified - would be database in production)
         self.equipment_catalog = self._load_equipment_catalog()
-        
+
         # Trigger templates
         self.trigger_templates = self._load_trigger_templates()
-    
+
     def _load_equipment_catalog(self) -> Dict[str, Dict]:
         """Load equipment catalog with available options"""
         return {
@@ -247,7 +250,7 @@ class DocumentProcessor:
                 ]
             }
         }
-    
+
     def _load_trigger_templates(self) -> Dict[str, Dict]:
         """Load trigger templates for common scenarios"""
         return {
@@ -287,7 +290,7 @@ class DocumentProcessor:
                 "parameters": {"resource": "cpu", "amount": "25%"}
             }
         }
-    
+
     def upload_document(
         self,
         name: str,
@@ -297,26 +300,26 @@ class DocumentProcessor:
     ) -> DocumentMetadata:
         """
         Upload and process a document
-        
+
         Args:
             name: Document name
             file_type: File type (pdf, docx, txt, md, json)
             content: Document content
             document_type: Optional document type (auto-detected if not provided)
-            
+
         Returns:
             DocumentMetadata object
         """
         self.document_count += 1
         document_id = f"doc_{self.document_count}"
-        
+
         # Auto-detect document type if not provided
         if not document_type:
             document_type = self._detect_document_type(name, content)
-        
+
         # Calculate checksum (simplified)
         checksum = f"hash_{hash(content)}"
-        
+
         metadata = DocumentMetadata(
             document_id=document_id,
             name=name,
@@ -327,44 +330,44 @@ class DocumentProcessor:
             status=DocumentStatus.PROCESSING,
             checksum=checksum
         )
-        
+
         self.documents[document_id] = metadata
-        
+
         # Process document content
         self._process_document(document_id, content)
-        
+
         # Update status
         metadata.status = DocumentStatus.PROCESSED
-        
+
         return metadata
-    
+
     def _detect_document_type(self, name: str, content: str) -> str:
         """Auto-detect document type from name and content"""
         name_lower = name.lower()
         content_lower = content.lower()
-        
+
         # Check for keywords
-        if any(keyword in name_lower or keyword in content_lower for keyword in 
+        if any(keyword in name_lower or keyword in content_lower for keyword in
                ["requirement", "requirements", "spec"]):
             return "requirements"
-        elif any(keyword in name_lower or keyword in content_lower for keyword in 
+        elif any(keyword in name_lower or keyword in content_lower for keyword in
                  ["design", "architecture", "technical design"]):
             return "design"
-        elif any(keyword in name_lower or keyword in content_lower for keyword in 
+        elif any(keyword in name_lower or keyword in content_lower for keyword in
                  ["equipment", "hardware", "software list"]):
             return "equipment_list"
         elif "specification" in name_lower or "spec" in name_lower:
             return "specification"
         else:
             return "technical"
-    
+
     def _process_document(self, document_id: str, content: str):
         """Process document content to extract requirements, equipment, triggers"""
         # Extract requirements
         requirements = self._extract_requirements(document_id, content)
         for req in requirements:
             self.requirements[req.requirement_id] = req
-        
+
         # Extract equipment specifications
         equipment_specs = self._extract_equipment_specs(document_id, content)
         for spec in equipment_specs:
@@ -372,12 +375,12 @@ class DocumentProcessor:
             selections = self._select_equipment(spec)
             for selection in selections:
                 self.equipment[selection.equipment_id] = selection
-        
+
         # Extract triggers
         document_triggers = self._extract_triggers(document_id, content)
         for trigger in document_triggers:
             self.triggers[trigger.trigger_id] = trigger
-    
+
     def _extract_requirements(
         self,
         document_id: str,
@@ -385,10 +388,10 @@ class DocumentProcessor:
     ) -> List[DesignRequirement]:
         """Extract design requirements from document content"""
         requirements = []
-        
+
         # Split into sentences/lines
         lines = content.split('\n')
-        
+
         # Requirement patterns
         requirement_patterns = [
             r'the system\s+(shall|must|should)\s+(.+)',
@@ -396,22 +399,22 @@ class DocumentProcessor:
             r'functionality:\s+(.+)',
             r'constraint:\s+(.+)'
         ]
-        
+
         for i, line in enumerate(lines):
             line = line.strip()
             if not line or line.startswith('#'):
                 continue
-            
+
             for pattern in requirement_patterns:
                 match = re.search(pattern, line, re.IGNORECASE)
                 if match:
                     self.requirement_count += 1
                     requirement_id = f"req_{self.requirement_count}"
-                    
+
                     # Determine category and priority
                     category = "functional"
                     priority = "medium"
-                    
+
                     if "constraint" in pattern.lower() or "must" in line.lower():
                         category = "constraint"
                         priority = "high"
@@ -424,7 +427,7 @@ class DocumentProcessor:
                     elif "requirement" in line.lower():
                         category = "functional"
                         priority = "high"
-                    
+
                     requirement = DesignRequirement(
                         requirement_id=requirement_id,
                         text=match.group(2) if match.groups() else line,
@@ -432,12 +435,12 @@ class DocumentProcessor:
                         priority=priority,
                         source=f"{document_id}:line_{i+1}"
                     )
-                    
+
                     requirements.append(requirement)
                     break
-        
+
         return requirements
-    
+
     def _extract_equipment_specs(
         self,
         document_id: str,
@@ -445,21 +448,21 @@ class DocumentProcessor:
     ) -> List[Dict[str, Any]]:
         """Extract equipment specifications from document"""
         specs = []
-        
+
         # Look for equipment-related sections
         equipment_keywords = ["equipment", "hardware", "software", "technology stack", "infrastructure"]
         lines = content.split('\n')
-        
+
         in_equipment_section = False
         current_spec = {}
-        
+
         for line in lines:
             line_lower = line.lower().strip()
-            
+
             if any(keyword in line_lower for keyword in equipment_keywords):
                 in_equipment_section = True
                 continue
-            
+
             if in_equipment_section and line:
                 # Extract spec details
                 if "cpu" in line_lower or "processor" in line_lower:
@@ -472,19 +475,19 @@ class DocumentProcessor:
                     current_spec["database"] = line
                 elif "framework" in line_lower:
                     current_spec["framework"] = line
-                
+
                 if current_spec and len(current_spec) >= 2:
                     specs.append({
                         "document_id": document_id,
                         "specs": current_spec.copy()
                     })
                     current_spec = {}
-            
+
             if in_equipment_section and not line:
                 in_equipment_section = False
-        
+
         return specs
-    
+
     def _select_equipment(
         self,
         spec: Dict[str, Any]
@@ -492,23 +495,23 @@ class DocumentProcessor:
         """Select equipment based on specifications"""
         selections = []
         spec_details = spec.get("specs", {})
-        
+
         # Select servers based on CPU/RAM requirements
         if "cpu" in spec_details or "ram" in spec_details:
             cpu_req = 2  # Default
             ram_req = "8GB"  # Default
-            
+
             # Parse requirements (simplified)
             if "cpu" in spec_details:
                 cpu_match = re.search(r'(\d+)\s*cpu', spec_details["cpu"].lower())
                 if cpu_match:
                     cpu_req = int(cpu_match.group(1))
-            
+
             if "ram" in spec_details:
                 ram_match = re.search(r'(\d+)\s*gb', spec_details["ram"].lower())
                 if ram_match:
                     ram_req = f"{ram_match.group(1)}GB"
-            
+
             # Find matching server
             for server in self.equipment_catalog["hardware"]["servers"]:
                 if server["specifications"]["cpu"] >= cpu_req:
@@ -524,11 +527,11 @@ class DocumentProcessor:
                     )
                     selections.append(selection)
                     break
-        
+
         # Select database if specified
         if "database" in spec_details:
             db_spec = spec_details["database"].lower()
-            
+
             for db in self.equipment_catalog["hardware"]["databases"]:
                 if db["name"].lower() in db_spec or "postgresql" in db_spec and "postgres" in db_spec:
                     self.equipment_count += 1
@@ -543,11 +546,11 @@ class DocumentProcessor:
                     )
                     selections.append(selection)
                     break
-        
+
         # Select framework if specified
         if "framework" in spec_details:
             framework_spec = spec_details["framework"].lower()
-            
+
             for framework in self.equipment_catalog["software"]["frameworks"]:
                 if framework["name"].lower() in framework_spec:
                     self.equipment_count += 1
@@ -562,9 +565,9 @@ class DocumentProcessor:
                     )
                     selections.append(selection)
                     break
-        
+
         return selections
-    
+
     def _extract_triggers(
         self,
         document_id: str,
@@ -572,7 +575,7 @@ class DocumentProcessor:
     ) -> List[SystemTrigger]:
         """Extract system triggers from document"""
         triggers = []
-        
+
         # Look for trigger patterns
         trigger_patterns = [
             r'when\s+(.+),?\s+(should|must|will)\s+(.+)',
@@ -580,20 +583,20 @@ class DocumentProcessor:
             r'trigger:\s+(.+)',
             r'auto\s*(scale|backup|deploy)\s*when\s*(.+)'
         ]
-        
+
         lines = content.split('\n')
-        
+
         for i, line in enumerate(lines):
             line = line.strip()
             if not line or line.startswith('#'):
                 continue
-            
+
             for pattern in trigger_patterns:
                 match = re.search(pattern, line, re.IGNORECASE)
                 if match:
                     self.trigger_count += 1
                     trigger_id = f"trigger_{self.trigger_count}"
-                    
+
                     # Extract condition and action
                     if "trigger:" in line.lower():
                         parts = line.split("trigger:", 1)[1].strip().split("->")
@@ -612,14 +615,14 @@ class DocumentProcessor:
                     else:
                         condition = match.group(2)
                         action = match.group(1)
-                    
+
                     # Determine trigger type
                     trigger_type = "condition"
                     if "time" in condition.lower() or "schedule" in condition.lower():
                         trigger_type = "time"
                     elif "deploy" in action.lower() or "build" in condition.lower():
                         trigger_type = "event"
-                    
+
                     trigger = SystemTrigger(
                         trigger_id=trigger_id,
                         name=f"Trigger from {document_id}",
@@ -630,27 +633,27 @@ class DocumentProcessor:
                         priority=5,
                         created_from=document_id
                     )
-                    
+
                     triggers.append(trigger)
                     break
-        
+
         return triggers
-    
+
     def get_document_summary(self, document_id: str) -> Optional[Dict[str, Any]]:
         """Get summary of processed document"""
         if document_id not in self.documents:
             return None
-        
+
         metadata = self.documents[document_id]
-        
+
         # Count related items
-        requirements = [r for r in self.requirements.values() 
+        requirements = [r for r in self.requirements.values()
                        if document_id in r.source]
-        equipment = [e for e in self.equipment.values() 
+        equipment = [e for e in self.equipment.values()
                     if document_id in getattr(e, 'justification', '')]
-        triggers = [t for t in self.triggers.values() 
+        triggers = [t for t in self.triggers.values()
                    if t.created_from == document_id]
-        
+
         return {
             "metadata": metadata.to_dict(),
             "requirements_extracted": len(requirements),
@@ -660,7 +663,7 @@ class DocumentProcessor:
             "equipment": [e.to_dict() for e in equipment],
             "triggers": [t.to_dict() for t in triggers]
         }
-    
+
     def generate_requirements_report(self) -> Dict[str, Any]:
         """Generate comprehensive requirements report"""
 
@@ -679,32 +682,7 @@ class DocumentProcessor:
         reqs = [r.to_dict() for r in self.requirements.values()
                 if metadata.document_id in r.source]
         return reqs
-        # Count by category
-        by_category = {}
-        for req in self.requirements.values():
-            category = req.category
-            by_category[category] = by_category.get(category, 0) + 1
-        
-        # Count by priority
-        by_priority = {}
-        for req in self.requirements.values():
-            priority = req.priority
-            by_priority[priority] = by_priority.get(priority, 0) + 1
-        
-        # Calculate total cost
-        total_equipment_cost = sum(e.cost * e.quantity for e in self.equipment.values())
-        
-        return {
-            "total_documents": len(self.documents),
-            "total_requirements": len(self.requirements),
-            "by_category": by_category,
-            "by_priority": by_priority,
-            "total_equipment": len(self.equipment),
-            "total_equipment_cost": total_equipment_cost,
-            "total_triggers": len(self.triggers),
-            "equipment_by_type": self._count_equipment_by_type()
-        }
-    
+
     def _count_equipment_by_type(self) -> Dict[str, int]:
         """Count equipment by type"""
         counts = {}
@@ -717,9 +695,9 @@ class DocumentProcessor:
 if __name__ == "__main__":
     # Test document processor
     processor = DocumentProcessor()
-    
+
     # Test 1: Upload requirements document
-    print("=== Test 1: Upload Requirements Document ===")
+    logger.info("=== Test 1: Upload Requirements Document ===")
     requirements_doc = """
 # System Requirements Document
 
@@ -733,19 +711,19 @@ Constraint: Response time must be under 200ms.
 Specification: System must handle 1000 concurrent users.
 Requirement: 99.9% uptime required.
     """
-    
+
     metadata = processor.upload_document(
         name="requirements.txt",
         file_type="txt",
         content=requirements_doc,
         document_type="requirements"
     )
-    print(f"Uploaded: {metadata.name}")
-    print(f"Type: {metadata.document_type.value}")
-    print(f"Status: {metadata.status.value}")
-    
+    logger.info(f"Uploaded: {metadata.name}")
+    logger.info(f"Type: {metadata.document_type.value}")
+    logger.info(f"Status: {metadata.status.value}")
+
     # Test 2: Upload design document
-    print("\n=== Test 2: Upload Design Document ===")
+    logger.info("\n=== Test 2: Upload Design Document ===")
     design_doc = """
 # System Design Document
 
@@ -758,52 +736,52 @@ Framework: React frontend, Node.js backend
 When deployment completes -> Deploy to staging
 If CPU usage > 80% -> Scale up servers
     """
-    
+
     metadata = processor.upload_document(
         name="design.txt",
         file_type="txt",
         content=design_doc,
         document_type="design"
     )
-    print(f"Uploaded: {metadata.name}")
-    
+    logger.info(f"Uploaded: {metadata.name}")
+
     # Test 3: Get document summaries
-    print("\n=== Test 3: Document Summaries ===")
+    logger.info("\n=== Test 3: Document Summaries ===")
     for doc_id in processor.documents:
         summary = processor.get_document_summary(doc_id)
-        print(f"\nDocument: {summary['metadata']['name']}")
-        print(f"  Requirements: {summary['requirements_extracted']}")
-        print(f"  Equipment: {summary['equipment_selected']}")
-        print(f"  Triggers: {summary['triggers_generated']}")
-    
+        logger.info(f"\nDocument: {summary['metadata']['name']}")
+        logger.info(f"  Requirements: {summary['requirements_extracted']}")
+        logger.info(f"  Equipment: {summary['equipment_selected']}")
+        logger.info(f"  Triggers: {summary['triggers_generated']}")
+
     # Test 4: Generate report
-    print("\n=== Test 4: Requirements Report ===")
+    logger.info("\n=== Test 4: Requirements Report ===")
     report = processor.generate_requirements_report()
-    print(f"Total Documents: {report['total_documents']}")
-    print(f"Total Requirements: {report['total_requirements']}")
-    print(f"By Category: {report['by_category']}")
-    print(f"By Priority: {report['by_priority']}")
-    print(f"Total Equipment: {report['total_equipment']}")
-    print(f"Total Cost: ${report['total_equipment_cost']:.2f}/month")
-    print(f"Total Triggers: {report['total_triggers']}")
-    
+    logger.info(f"Total Documents: {report['total_documents']}")
+    logger.info(f"Total Requirements: {report['total_requirements']}")
+    logger.info(f"By Category: {report['by_category']}")
+    logger.info(f"By Priority: {report['by_priority']}")
+    logger.info(f"Total Equipment: {report['total_equipment']}")
+    logger.info(f"Total Cost: ${report['total_equipment_cost']:.2f}/month")
+    logger.info(f"Total Triggers: {report['total_triggers']}")
+
     # Test 5: Show extracted requirements
-    print("\n=== Test 5: Extracted Requirements ===")
+    logger.info("\n=== Test 5: Extracted Requirements ===")
     for req_id, req in processor.requirements.items():
-        print(f"\n{req_id}: {req.text}")
-        print(f"  Category: {req.category}, Priority: {req.priority}")
-    
+        logger.info(f"\n{req_id}: {req.text}")
+        logger.info(f"  Category: {req.category}, Priority: {req.priority}")
+
     # Test 6: Show selected equipment
-    print("\n=== Test 6: Selected Equipment ===")
+    logger.info("\n=== Test 6: Selected Equipment ===")
     for eq_id, eq in processor.equipment.items():
-        print(f"\n{eq_id}: {eq.name}")
-        print(f"  Type: {eq.type}, Cost: ${eq.cost:.2f}")
-        print(f"  Justification: {eq.justification}")
-    
+        logger.info(f"\n{eq_id}: {eq.name}")
+        logger.info(f"  Type: {eq.type}, Cost: ${eq.cost:.2f}")
+        logger.info(f"  Justification: {eq.justification}")
+
     # Test 7: Show generated triggers
-    print("\n=== Test 7: Generated Triggers ===")
+    logger.info("\n=== Test 7: Generated Triggers ===")
     for trigger_id, trigger in processor.triggers.items():
-        print(f"\n{trigger_id}: {trigger.name}")
-        print(f"  Type: {trigger.trigger_type}")
-        print(f"  Condition: {trigger.condition}")
-        print(f"  Action: {trigger.action}")
+        logger.info(f"\n{trigger_id}: {trigger.name}")
+        logger.info(f"  Type: {trigger.trigger_type}")
+        logger.info(f"  Condition: {trigger.condition}")
+        logger.info(f"  Action: {trigger.action}")

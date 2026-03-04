@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 class PlanDecomposer:
     """
     Decomposes plans into executable tasks
-    
+
     Takes a plan document or goal description and breaks it down into:
     - Individual tasks with clear descriptions
     - Task dependencies and ordering
@@ -38,13 +38,13 @@ class PlanDecomposer:
     - Human checkpoints for review
     - Assumptions and risks
     """
-    
+
     def __init__(self):
         self.task_counter = 0
         self.dependency_counter = 0
         self.criterion_counter = 0
         self.checkpoint_counter = 0
-    
+
     def decompose_uploaded_plan(
         self,
         plan_document_path: str,
@@ -56,7 +56,7 @@ class PlanDecomposer:
     ) -> Plan:
         """
         Decompose an uploaded plan document
-        
+
         Args:
             plan_document_path: Path to plan document
             plan_context: Business context
@@ -64,34 +64,34 @@ class PlanDecomposer:
             constraints: Plan constraints
             validation_criteria: Success criteria
             human_checkpoints: When to request human review
-            
+
         Returns:
             Decomposed Plan object
         """
         logger.info(f"Decomposing uploaded plan: {plan_document_path}")
         logger.debug(f"Expansion level: {expansion_level}")
-        
+
         # Extract plan content from document
         plan_content = self._extract_plan_content(plan_document_path)
-        
+
         # Parse plan structure
         plan_structure = self._parse_plan_structure(plan_content, plan_context)
-        
+
         # Generate tasks based on expansion level
         tasks = self._generate_tasks_from_structure(
             plan_structure,
             expansion_level
         )
-        
+
         # Identify dependencies
         dependencies = self._identify_dependencies(tasks)
-        
+
         # Add validation criteria to tasks
         self._add_validation_criteria(tasks, validation_criteria)
-        
+
         # Add human checkpoints
         self._add_human_checkpoints(tasks, human_checkpoints)
-        
+
         # Create plan object
         plan = Plan(
             plan_id=self._generate_plan_id(),
@@ -108,11 +108,11 @@ class PlanDecomposer:
             assumptions=plan_structure.get('assumptions', []),
             risks=plan_structure.get('risks', [])
         )
-        
+
         logger.info(f"Plan decomposed: {len(tasks)} tasks, {len(dependencies)} dependencies")
-        
+
         return plan
-    
+
     def decompose_goal_to_plan(
         self,
         goal: str,
@@ -126,7 +126,7 @@ class PlanDecomposer:
     ) -> Plan:
         """
         Generate a plan from a goal description
-        
+
         Args:
             goal: What to accomplish
             domain: Domain category
@@ -136,16 +136,16 @@ class PlanDecomposer:
             success_criteria: How to measure success
             known_constraints: Known limitations
             risk_tolerance: Risk acceptance level
-            
+
         Returns:
             Generated Plan object
         """
         logger.info(f"Generating plan from goal in domain: {domain}")
         logger.debug(f"Goal: {goal[:100]}...")
-        
+
         # Analyze goal and domain
         goal_analysis = self._analyze_goal(goal, domain)
-        
+
         # Generate task breakdown based on domain best practices
         tasks = self._generate_tasks_from_goal(
             goal_analysis,
@@ -154,21 +154,21 @@ class PlanDecomposer:
             budget,
             team_size
         )
-        
+
         # Identify dependencies
         dependencies = self._identify_dependencies(tasks)
-        
+
         # Add validation criteria
         self._add_validation_criteria(tasks, success_criteria)
-        
+
         # Add human checkpoints based on risk tolerance
         checkpoint_config = self._determine_checkpoints_by_risk(risk_tolerance)
         self._add_human_checkpoints(tasks, checkpoint_config)
-        
+
         # Identify assumptions and risks
         assumptions = self._identify_assumptions(goal_analysis, tasks)
         risks = self._identify_risks(goal_analysis, tasks, risk_tolerance)
-        
+
         # Create plan object
         plan = Plan(
             plan_id=self._generate_plan_id(),
@@ -190,11 +190,11 @@ class PlanDecomposer:
                 'generation_method': 'goal_based'
             }
         )
-        
+
         logger.info(f"Plan generated: {len(tasks)} tasks, {len(dependencies)} dependencies")
-        
+
         return plan
-    
+
     def _extract_plan_content(self, plan_document_path: str) -> str:
         """
         Extract text content from a plan document.
@@ -229,7 +229,7 @@ class PlanDecomposer:
         except Exception as exc:
             logger.warning("Failed to extract plan content from '%s': %s", plan_document_path, exc)
             return ""
-    
+
     def _parse_plan_structure(self, plan_content: str, context: str) -> Dict[str, Any]:
         """
         Parse plan structure from free-text or markdown content.
@@ -305,7 +305,7 @@ class PlanDecomposer:
             "assumptions": assumptions or ["Resources are available as planned"],
             "risks": risks or ["Timeline may slip due to unforeseen challenges"],
         }
-    
+
     def _generate_tasks_from_structure(
         self,
         plan_structure: Dict[str, Any],
@@ -360,7 +360,7 @@ class PlanDecomposer:
                 "Deployment & release",
             ]
             # Repeat / slice to match desired count
-            phase_list = (default_phases * ((num_tasks // len(default_phases)) + 1))[:num_tasks]
+            phase_list = (default_phases * ((num_tasks // (len(default_phases) or 1)) + 1))[:num_tasks]
             for i, phase in enumerate(phase_list):
                 task = Task(
                     task_id=self._generate_task_id(),
@@ -374,7 +374,7 @@ class PlanDecomposer:
                 tasks.append(task)
 
         return tasks
-    
+
     def _analyze_goal(self, goal: str, domain: str) -> Dict[str, Any]:
         """
         Analyse a free-text goal description and extract structured metadata.
@@ -436,7 +436,7 @@ class PlanDecomposer:
             "success_factors": success_factors,
             "challenges": challenges,
         }
-    
+
     def _generate_tasks_from_goal(
         self,
         goal_analysis: Dict[str, Any],
@@ -447,7 +447,7 @@ class PlanDecomposer:
     ) -> List[Task]:
         """Generate tasks from goal analysis"""
         tasks = []
-        
+
         # Domain-specific task templates
         domain_templates = {
             'software_development': [
@@ -480,10 +480,10 @@ class PlanDecomposer:
                 'Optimization'
             ]
         }
-        
+
         # Get templates for domain
         templates = domain_templates.get(domain, ['Task 1', 'Task 2', 'Task 3'])
-        
+
         # Generate tasks from templates
         for i, template in enumerate(templates):
             task = Task(
@@ -493,13 +493,13 @@ class PlanDecomposer:
                 priority=TaskPriority.MEDIUM if i < len(templates) // 2 else TaskPriority.HIGH,
                 status=TaskStatus.PENDING,
                 estimated_hours=16.0,
-                estimated_cost=budget / len(templates) if budget else None,
+                estimated_cost=budget / (len(templates) or 1) if budget else None,
                 deliverables=[f"{template} deliverable"]
             )
             tasks.append(task)
-        
+
         return tasks
-    
+
     def _identify_dependencies(self, tasks: List[Task]) -> List[Dependency]:
         """Detect inter-task dependencies using keyword analysis and domain heuristics.
 
@@ -647,7 +647,7 @@ class PlanDecomposer:
                         tasks[i + 1].dependencies.append(tasks[i].task_id)
 
         return dependencies
-    
+
     def _add_validation_criteria(
         self,
         tasks: List[Task],
@@ -657,16 +657,16 @@ class PlanDecomposer:
         # Distribute validation criteria across tasks
         for i, criterion_text in enumerate(validation_criteria):
             task_index = i % len(tasks)
-            
+
             criterion = ValidationCriterion(
                 criterion_id=self._generate_criterion_id(),
                 description=criterion_text,
                 validation_method='human_review',
                 is_mandatory=True
             )
-            
+
             tasks[task_index].validation_criteria.append(criterion)
-    
+
     def _add_human_checkpoints(
         self,
         tasks: List[Task],
@@ -683,7 +683,7 @@ class PlanDecomposer:
                     blocking=True
                 )
                 task.human_checkpoints.append(checkpoint)
-            
+
             if 'final_review' in checkpoint_config and task == tasks[-1]:
                 checkpoint = HumanCheckpoint(
                     checkpoint_id=self._generate_checkpoint_id(),
@@ -692,7 +692,7 @@ class PlanDecomposer:
                     blocking=True
                 )
                 task.human_checkpoints.append(checkpoint)
-    
+
     def _determine_checkpoints_by_risk(self, risk_tolerance: str) -> List[str]:
         """Determine checkpoint configuration based on risk tolerance"""
         if risk_tolerance == 'low':
@@ -701,7 +701,7 @@ class PlanDecomposer:
             return ['before_execution', 'final_review']
         else:  # high
             return ['final_review']
-    
+
     def _identify_assumptions(
         self,
         goal_analysis: Dict[str, Any],
@@ -727,32 +727,6 @@ class PlanDecomposer:
                 f"The primary objective ('{objectives[0][:60]}…') is well-scoped and stable"
             )
         return assumptions
-        """Identify plan-level assumptions based on goal analysis and task set.
-
-        Combines generic project assumptions with signals from the goal
-        analysis (e.g. if the goal mentions *migration* we assume the
-        legacy system will remain available during the transition).
-        """
-        base_assumptions = [
-            'Resources are available as planned',
-            'No major external blockers',
-            'Team has necessary skills',
-        ]
-
-        # Goal-derived assumptions.
-        challenges = goal_analysis.get('challenges', [])
-        for challenge in challenges:
-            ch_lower = challenge.lower()
-            if 'legacy' in ch_lower or 'compatibility' in ch_lower:
-                base_assumptions.append('Legacy systems remain accessible during migration')
-            if 'scale' in ch_lower or 'performance' in ch_lower:
-                base_assumptions.append('Infrastructure can be scaled as needed')
-
-        # Task-count assumption.
-        if len(tasks) > 20:
-            base_assumptions.append('Sufficient bandwidth to manage a large number of parallel tasks')
-
-        return base_assumptions
 
     def _identify_risks(
         self,
@@ -763,7 +737,7 @@ class PlanDecomposer:
         """
         Derive plan-level risks scaled by *risk_tolerance*.
 
-        Higher risk tolerance → fewer flagged risks.
+        Higher risk tolerance -- fewer flagged risks.
         """
         base_risks = [
             "Timeline may slip due to unforeseen technical challenges",
@@ -806,27 +780,27 @@ class PlanDecomposer:
             base_risks.append('Coordination overhead due to large task count')
 
         return base_risks
-    
+
     def _generate_plan_id(self) -> str:
         """Generate unique plan ID"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         return f"plan_{timestamp}"
-    
+
     def _generate_task_id(self) -> str:
         """Generate unique task ID"""
         self.task_counter += 1
         return f"task_{self.task_counter:04d}"
-    
+
     def _generate_dependency_id(self) -> str:
         """Generate unique dependency ID"""
         self.dependency_counter += 1
         return f"dep_{self.dependency_counter:04d}"
-    
+
     def _generate_criterion_id(self) -> str:
         """Generate unique criterion ID"""
         self.criterion_counter += 1
         return f"crit_{self.criterion_counter:04d}"
-    
+
     def _generate_checkpoint_id(self) -> str:
         """Generate unique checkpoint ID"""
         self.checkpoint_counter += 1

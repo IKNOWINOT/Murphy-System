@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -219,6 +220,7 @@ class RetryManager:
                     "result": result,
                 }
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 last_error = exc
                 record = {
                     "attempt": attempt,
@@ -305,6 +307,7 @@ class TemplateRenderingEngine:
                 "variables_used": list(variables.keys()),
             }
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {"success": False, "error": str(exc)}
 
     # -- internal helpers ---------------------------------------------------
@@ -414,7 +417,7 @@ class DeliveryAnalytics:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         with self._lock:
-            self._events.append(event)
+            capped_append(self._events, event)
         return event
 
     def set_channel_cost(self, channel: str, cost_per_unit: float) -> Dict[str, Any]:
