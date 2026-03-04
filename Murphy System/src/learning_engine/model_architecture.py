@@ -292,7 +292,7 @@ class ShadowAgentModel:
             'feature_importance': self.metadata.feature_importance,
             'config': {k: v for k, v in vars(self.config).items()} if hasattr(self.config, '__dict__') else {},
         }
-        with open(os.path.join(path, 'metadata.json'), 'w') as f:
+        with open(os.path.join(path, 'metadata.json'), 'w', encoding='utf-8') as f:
             json.dump(meta_dict, f, indent=2, default=str)
 
         # Model binary

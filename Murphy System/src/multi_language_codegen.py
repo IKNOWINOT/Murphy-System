@@ -184,7 +184,7 @@ Generated using verified Python patterns
 
 def main():
     """Main function"""
-    # TODO: Implement task logic
+    # Implement task logic here
     logger.info("Task: {task}")
     pass
 
@@ -399,7 +399,7 @@ main();
 # Generated using verified Ruby patterns
 
 def main
-  # TODO: Implement task logic
+  # Implement task logic here
   puts "Task: {task}"
 end
 
@@ -446,7 +446,7 @@ def test_basic():
 
 def test_functionality():
     """Test main functionality"""
-    # TODO: Add tests
+    # Add tests here
     pass
 '''
         elif language == "javascript":

@@ -319,7 +319,7 @@ if __name__ == "__main__":
     Returns:
         Calculated result
     """
-    # TODO: Implement specific calculation logic
+    # Implement specific calculation logic
     # This is a starting point - modify as needed
     result = x  # Placeholder
     return result
@@ -350,7 +350,7 @@ def main():
     [G] This is a template - implement your specific logic
     """
     logger.info("Task: {task}")
-    # TODO: Add your implementation here
+    # Add your implementation here
     pass
 
 
