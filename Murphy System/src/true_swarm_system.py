@@ -127,8 +127,8 @@ class AgentInstance:
     
     def __post_init__(self):
         """Agents never have execution authority"""
-        assert self.authority_band in ['propose', 'analyze', 'verify'], \
-            "Agents can only propose/analyze/verify, never execute"
+        if self.authority_band not in ['propose', 'analyze', 'verify']:
+            raise ValueError("Agents can only propose/analyze/verify, never execute")
 
 
 class TypedGenerativeWorkspace:
