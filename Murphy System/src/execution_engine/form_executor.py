@@ -306,48 +306,11 @@ class FormDrivenExecutor:
         phase result augmented with controller metadata (progress, next-phase
         eligibility, and transition history).
         """
-        # 1. Run the actual phase logic
-        phase_result = self._execute_phase_simple(phase, task, context)
-
-        # 2. Construct a lightweight ConfidenceState for the controller
-        from src.confidence_engine.models import ConfidenceState
-        confidence_value = context.metadata.get('confidence', 0.5)
-        confidence_state = ConfidenceState(
-            confidence=confidence_value,
-            phase=phase,
-        )
-
-        # 3. Ask the controller whether a transition is allowed
-        next_phase, transitioned, reason = self.phase_controller.check_phase_transition(
-            phase, confidence_state,
-        )
-
-        # 4. Gather progress telemetry
-        progress = self.phase_controller.get_phase_progress(phase)
-
-        phase_result.update({
-            'phase': phase.value,
-            'controller': {
-                'transitioned': transitioned,
-                'next_phase': next_phase.value,
-                'reason': reason,
-                'progress': progress,
-            },
-        })
-        return phase_result
-        """Execute phase using existing phase controller.
-
-        Delegates phase-gate logic to :class:`PhaseController` so that
-        confidence-based transition rules (threshold check, no-skip,
-        no-reverse) are enforced consistently.  The actual phase work is
-        still handled by :meth:`_execute_phase_simple`; this method adds
-        the phase-controller governance wrapper around it.
-        """
-        # Map the murphy_models.Phase (str enum) to the models.Phase used
+        # 1. Map the murphy_models.Phase (str enum) to the models.Phase used
         # by the PhaseController (which carries confidence_threshold).
         controller_phase = ControllerPhase(phase.value)
 
-        # Build a ConfidenceState from what the validator already computed.
+        # 2. Build a ConfidenceState from what the validator already computed.
         current_confidence = context.confidence or 0.5
         confidence_state = ConfidenceState(
             confidence=current_confidence,
@@ -357,20 +320,20 @@ class FormDrivenExecutor:
             phase=controller_phase,
         )
 
-        # Ask the phase controller whether the transition is allowed.
+        # 3. Ask the phase controller whether the transition is allowed.
         new_phase, transitioned, reason = (
             self.phase_controller.check_phase_transition(
                 controller_phase, confidence_state
             )
         )
 
-        # Record progress metadata in the execution context.
+        # 4. Record progress metadata in the execution context.
         progress = self.phase_controller.get_phase_progress(controller_phase)
 
-        # Execute the concrete phase logic via the simple handler.
+        # 5. Execute the concrete phase logic via the simple handler.
         phase_output = self._execute_phase_simple(phase, task, context)
 
-        # Augment the output with controller metadata.
+        # 6. Augment the output with controller metadata.
         phase_output['phase_controller'] = {
             'transitioned': transitioned,
             'reason': reason,

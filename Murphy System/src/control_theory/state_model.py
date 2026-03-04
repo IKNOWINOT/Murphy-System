@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 
 import numpy as np
 
@@ -298,10 +298,17 @@ class StateEvolution:
 
         x_{t+1} = F x_t + B u_t + w_t,   w_t ~ N(0, Q)
 
-    Provides predict() for the complete Kalman prediction step including
-    covariance propagation:
+    Supports an optional nonlinear transition function via *transition_fn*:
 
-        P_{t+1} = F P_t Fᵀ + Q
+        x_{t+1} = transition_fn(x_t, u_t)
+
+    When *transition_fn* is provided the linear F/B matrices are ignored.
+    An optional *jacobian_fn* enables Extended Kalman Filter covariance
+    propagation:
+
+        P_{t+1} = F(x_t) · P_t · F(x_t)ᵀ + Q
+
+    where F(x_t) = ∂f/∂x evaluated at the current state.
     """
 
     def __init__(
@@ -309,16 +316,25 @@ class StateEvolution:
         F: Optional[np.ndarray] = None,
         B: Optional[np.ndarray] = None,
         Q: Optional[np.ndarray] = None,
+        transition_fn: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
+        jacobian_fn: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
     ) -> None:
         """
         Args:
             F: state transition matrix (defaults to identity — random-walk model).
             B: control input matrix (defaults to identity).
             Q: process noise covariance (defaults to 0.001 * I).
+            transition_fn: optional nonlinear function
+                ``f(x_t, u_t) -> x_{t+1}`` (overrides F/B when provided).
+            jacobian_fn: optional function ``J(x_t, u_t) -> F_t`` that computes
+                the Jacobian ∂f/∂x for EKF covariance propagation.  Only
+                used when *transition_fn* is also provided.
         """
         self._F = F
         self._B = B
         self._Q = Q
+        self.transition_fn = transition_fn
+        self.jacobian_fn = jacobian_fn
 
     def predict(
         self,
@@ -328,8 +344,13 @@ class StateEvolution:
         """
         Propagate state vector and covariance one step forward.
 
+        Linear (default):
             x_{t+1} = F x_t + B u_t
             P_{t+1} = F P_t Fᵀ + Q
+
+        Nonlinear (when transition_fn is provided):
+            x_{t+1} = transition_fn(x_t, u_t)
+            P_{t+1} = J P_t Jᵀ + Q   (J from jacobian_fn, else identity)
 
         Args:
             state: current StateVector.
@@ -339,16 +360,30 @@ class StateEvolution:
             New predicted StateVector.
         """
         n = state.n
-        F = self._F if self._F is not None else np.eye(n)
-        B = self._B if self._B is not None else np.eye(n)
         Q = self._Q if self._Q is not None else np.eye(n) * 0.001
         u = control_input if control_input is not None else np.zeros(n)
 
-        x_pred = F @ state._x + B @ u
-        for i, dim in enumerate(state._dims):
-            x_pred[i] = dim.clamp(float(x_pred[i]))
+        if self.transition_fn is not None:
+            # Nonlinear prediction
+            x_pred = self.transition_fn(state._x.copy(), u)
+            if not isinstance(x_pred, np.ndarray):
+                x_pred = np.array(x_pred, dtype=float)
+            for i, dim in enumerate(state._dims):
+                x_pred[i] = dim.clamp(float(x_pred[i]))
 
-        P_pred = F @ state._P @ F.T + Q
+            if self.jacobian_fn is not None:
+                F_t = self.jacobian_fn(state._x.copy(), u)
+            else:
+                F_t = np.eye(n)
+            P_pred = F_t @ state._P @ F_t.T + Q
+        else:
+            # Linear prediction
+            F = self._F if self._F is not None else np.eye(n)
+            B = self._B if self._B is not None else np.eye(n)
+            x_pred = F @ state._x + B @ u
+            for i, dim in enumerate(state._dims):
+                x_pred[i] = dim.clamp(float(x_pred[i]))
+            P_pred = F @ state._P @ F.T + Q
 
         return StateVector(
             dimensions=list(state._dims),

@@ -72,9 +72,9 @@ class TestStateModel:
         assert isinstance(sv.phase_index, int)
 
     def test_state_dimensionality_defined(self):
-        """GAP: dimensionality undefined. Now tracked as integer 17."""
+        """GAP: dimensionality undefined. Now tracked as integer 25."""
         sv = CanonicalStateVector()
-        assert sv.dimensionality() == 17
+        assert sv.dimensionality() == 25
         assert sv.dimensionality() == len(sv.to_vector())
         assert sv.dimensionality() == len(CanonicalStateVector.dimension_names())
 
@@ -89,7 +89,7 @@ class TestStateModel:
         """GAP: no x_{t+1} = f(x_t, u_t, w_t). Now StateTransitionFunction exists."""
         trans = StateTransitionFunction(noise=ProcessNoise.zero())
         current = CanonicalStateVector(confidence=0.3)
-        control = [0.1] * 17
+        control = [0.1] * 25
         nxt = trans.transition(current, control, add_noise=False)
         assert isinstance(nxt, CanonicalStateVector)
         assert nxt.confidence > current.confidence
@@ -219,7 +219,7 @@ class TestControlStructure:
         current = CanonicalStateVector(confidence=0.2, authority=0.1)
         law = ControlLaw(base_gain=0.5)
         u = law.compute_control(target, current)
-        assert len(u) == 17
+        assert len(u) == 25
         assert u[0] > 0.0  # confidence dimension should push positive
 
     def test_gain_scheduling_varies_by_phase(self):

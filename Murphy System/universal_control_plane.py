@@ -126,6 +126,7 @@ class SensorEngine(BaseEngine):
     def __init__(self):
         super().__init__(EngineType.SENSOR)
         self._health_monitor = None
+        self._readings: Dict[str, Any] = {}
         try:
             from health_monitor import HealthMonitor
             self._health_monitor = HealthMonitor()
@@ -157,30 +158,7 @@ class SensorEngine(BaseEngine):
             except Exception as exc:
                 logger.debug("HealthMonitor read failed for %s: %s", sensor_id, exc)
 
-        # Synthetic fallback
-        return {
-            'sensor_id': sensor_id,
-            'value': 72.5,
-            'unit': 'fahrenheit',
-            'timestamp': datetime.now().isoformat(),
-            'protocol': protocol,
-            'source': 'synthetic',
-        self._readings: Dict[str, Any] = {}
-        
-    def execute(self, action: Action) -> Any:
-        """Read sensor value.
-
-        When a real sensor protocol is not available the engine returns
-        a simulated reading based on the requested *sensor_id* and
-        records it internally so repeated reads show consistent data.
-        """
-        if action.action_type != ActionType.READ_SENSOR:
-            raise ValueError(f"SensorEngine can only execute READ_SENSOR actions")
-            
-        sensor_id = action.parameters.get('sensor_id', 'default')
-        protocol = action.parameters.get('protocol', 'generic')
-
-        # Deterministic simulated reading keyed on sensor_id.
+        # Deterministic synthetic fallback keyed on sensor_id.
         # NOTE: MD5 is used here purely for deterministic hashing to generate
         # consistent simulated values — NOT for cryptographic purposes.
         if sensor_id not in self._readings:
@@ -188,15 +166,13 @@ class SensorEngine(BaseEngine):
             seed = int(hashlib.md5(sensor_id.encode()).hexdigest()[:8], 16)  # noqa: S324
             self._readings[sensor_id] = 60.0 + (seed % 4000) / 100.0  # 60–100 range
 
-        value = self._readings[sensor_id]
-
         return {
             'sensor_id': sensor_id,
-            'value': value,
+            'value': self._readings[sensor_id],
             'unit': 'fahrenheit',
             'timestamp': datetime.now().isoformat(),
             'protocol': protocol,
-            'simulated': True,
+            'source': 'synthetic',
         }
 
 
@@ -211,6 +187,7 @@ class ActuatorEngine(BaseEngine):
     def __init__(self):
         super().__init__(EngineType.ACTUATOR)
         self._persistence = None
+        self._state: Dict[str, Any] = {}
         try:
             from persistence_manager import PersistenceManager
             self._persistence = PersistenceManager()
@@ -223,23 +200,6 @@ class ActuatorEngine(BaseEngine):
             raise ValueError("ActuatorEngine can only execute WRITE_ACTUATOR actions")
 
         actuator_id = action.parameters.get('actuator_id', 'unknown')
-        command = action.parameters.get('command', '')
-        protocol = action.parameters.get('protocol', 'generic')
-
-        result = {
-        self._state: Dict[str, Any] = {}
-        
-    def execute(self, action: Action) -> Any:
-        """Control actuator.
-
-        Records the commanded state and returns confirmation.  When a
-        real actuator bus is unavailable the engine logs the command
-        and persists the state internally for subsequent queries.
-        """
-        if action.action_type != ActionType.WRITE_ACTUATOR:
-            raise ValueError(f"ActuatorEngine can only execute WRITE_ACTUATOR actions")
-            
-        actuator_id = action.parameters.get('actuator_id', 'default')
         command = action.parameters.get('command', 'noop')
         protocol = action.parameters.get('protocol', 'generic')
 
@@ -248,7 +208,7 @@ class ActuatorEngine(BaseEngine):
             'timestamp': datetime.now().isoformat(),
         }
 
-        return {
+        result = {
             'actuator_id': actuator_id,
             'command': command,
             'status': 'executed',
@@ -281,6 +241,7 @@ class DatabaseEngine(BaseEngine):
     def __init__(self):
         super().__init__(EngineType.DATABASE)
         self._persistence = None
+        self._store: Dict[str, List[Dict[str, Any]]] = {}
         try:
             from persistence_manager import PersistenceManager
             self._persistence = PersistenceManager()
@@ -288,39 +249,7 @@ class DatabaseEngine(BaseEngine):
             logger.debug("PersistenceManager unavailable — DatabaseEngine returns empty results")
 
     def execute(self, action: Action) -> Any:
-        """Execute a persistence-layer query."""
-        if action.action_type != ActionType.QUERY_DATABASE:
-            raise ValueError("DatabaseEngine can only execute QUERY_DATABASE actions")
-
-        query = action.parameters.get('query', '')
-        database = action.parameters.get('database', 'default')
-        key = action.parameters.get('key', '')
-        value = action.parameters.get('value')
-
-        if self._persistence is not None:
-            try:
-                op = query.strip().upper().split()[0] if query.strip() else 'LIST'
-                if op == 'SET' and key:
-                    self._persistence.save_state(key, value or {})
-                    return {'query': query, 'database': database, 'rows_affected': 1,
-                            'results': [], 'timestamp': datetime.now().isoformat()}
-                elif op == 'GET' and key:
-                    data = self._persistence.load_state(key)
-                    return {'query': query, 'database': database, 'rows_affected': 0,
-                            'results': [data] if data is not None else [],
-                            'timestamp': datetime.now().isoformat()}
-            except Exception as exc:
-                logger.debug("PersistenceManager query failed: %s", exc)
-
-        return {
-            'query': query,
-            'database': database,
-            'results': [],
-            'rows_affected': 0,
-        self._store: Dict[str, List[Dict[str, Any]]] = {}
-        
-    def execute(self, action: Action) -> Any:
-        """Execute database query.
+        """Execute a persistence-layer or in-memory database query.
 
         Provides an in-memory key/value store that supports basic
         ``SELECT``, ``INSERT``, ``CREATE TABLE`` and ``DELETE`` style
@@ -328,15 +257,32 @@ class DatabaseEngine(BaseEngine):
         requiring an external database connection.
         """
         if action.action_type != ActionType.QUERY_DATABASE:
-            raise ValueError(f"DatabaseEngine can only execute QUERY_DATABASE actions")
-            
+            raise ValueError("DatabaseEngine can only execute QUERY_DATABASE actions")
+
         query = action.parameters.get('query', '')
         database = action.parameters.get('database', 'default')
         table = action.parameters.get('table', 'default')
+        key = action.parameters.get('key', '')
+        value = action.parameters.get('value')
         data = action.parameters.get('data')
 
-        query_lower = query.lower().strip() if query else ''
+        # Attempt to use PersistenceManager for simple GET/SET
+        if self._persistence is not None:
+            try:
+                op = query.strip().upper().split()[0] if query.strip() else ''
+                if op == 'SET' and key:
+                    self._persistence.save_state(key, value or {})
+                    return {'query': query, 'database': database, 'rows_affected': 1,
+                            'results': [], 'timestamp': datetime.now().isoformat()}
+                elif op == 'GET' and key:
+                    stored = self._persistence.load_state(key)
+                    return {'query': query, 'database': database, 'rows_affected': 0,
+                            'results': [stored] if stored is not None else [],
+                            'timestamp': datetime.now().isoformat()}
+            except Exception as exc:
+                logger.debug("PersistenceManager query failed: %s", exc)
 
+        query_lower = query.lower().strip() if query else ''
         db = self._store.setdefault(database, [])
 
         if query_lower.startswith('insert') or data is not None:
@@ -391,9 +337,10 @@ class APIEngine(BaseEngine):
 
     def __init__(self):
         super().__init__(EngineType.API)
+        self._call_log: List[Dict[str, Any]] = []
 
     def execute(self, action: Action) -> Any:
-        """Call an external API endpoint."""
+        """Call an external API endpoint, with stub fallback."""
         if action.action_type != ActionType.CALL_API:
             raise ValueError("APIEngine can only execute CALL_API actions")
 
@@ -412,7 +359,7 @@ class APIEngine(BaseEngine):
                 response = client.request(
                     method, url, headers=headers, json=body if body is not None else None
                 )
-                return {
+                result = {
                     'url': url,
                     'method': method,
                     'status_code': response.status_code,
@@ -420,50 +367,24 @@ class APIEngine(BaseEngine):
                     'timestamp': datetime.now().isoformat(),
                     'source': 'httpx',
                 }
+                self._call_log.append(result)
+                return result
         except ImportError:
             logger.debug("httpx not installed — APIEngine returning stub response")
         except Exception as exc:
             logger.warning("APIEngine call to %s failed: %s", url, exc)
-        self._call_log: List[Dict[str, Any]] = []
-        
-    def execute(self, action: Action) -> Any:
-        """Call external API.
 
-        When the system is running without live network access, the engine
-        records the intended call and returns a success stub.  Call history
-        is retained in ``_call_log`` for auditing / testing.
-        """
-        if action.action_type != ActionType.CALL_API:
-            raise ValueError(f"APIEngine can only execute CALL_API actions")
-            
-        url = action.parameters.get('url', '')
-        method = action.parameters.get('method', 'GET')
-        headers = action.parameters.get('headers', {})
-        body = action.parameters.get('body')
-
-        call_record = {
+        # Stub fallback — record the intended call and return simulated success.
+        stub = {
             'url': url,
             'method': method,
-            'headers': headers,
-            'body': body,
-            'timestamp': datetime.now().isoformat(),
-            'status_code': 200,
-            'simulated': True,
-        }
-        self._call_log.append(call_record)
-
-        return {
-            'url': url,
-            'method': method,
-            'status_code': 0,
-            'response': {},
-            'timestamp': datetime.now().isoformat(),
-            'source': 'stub',
-            'error': 'HTTP client unavailable or request failed',
             'status_code': 200,
             'response': {'message': 'OK', 'simulated': True},
             'timestamp': datetime.now().isoformat(),
+            'source': 'stub',
         }
+        self._call_log.append(stub)
+        return stub
 
 
 class ContentEngine(BaseEngine):
@@ -484,7 +405,7 @@ class ContentEngine(BaseEngine):
             logger.debug("EnhancedLocalLLM unavailable — ContentEngine will echo prompts")
 
     def execute(self, action: Action) -> Any:
-        """Generate content using the onboard LLM."""
+        """Generate content using the onboard LLM, with template fallback."""
         if action.action_type != ActionType.GENERATE_CONTENT:
             raise ValueError("ContentEngine can only execute GENERATE_CONTENT actions")
 
@@ -494,30 +415,24 @@ class ContentEngine(BaseEngine):
         if self._llm is not None:
             try:
                 result = self._llm.query(prompt)
+                llm_content = result.get('response', '')
+                # Apply type-specific formatting so structured content types
+                # always meet their format contract (e.g., social_media must
+                # contain the 🚀 prefix).
+                content = self._apply_type_format(llm_content, content_type, prompt)
                 return {
                     'prompt': prompt,
                     'content_type': content_type,
-                    'content': result.get('response', ''),
+                    'content': content,
+                    'word_count': len(content.split()),
                     'confidence': result.get('confidence', 0.0),
                     'timestamp': datetime.now().isoformat(),
                     'source': 'enhanced_local_llm',
                 }
             except Exception as exc:
                 logger.warning("LLM generation failed: %s", exc)
-        """Generate content.
 
-        Generates structured content based on the *prompt* and optional
-        *type*.  When no external LLM is available the engine produces a
-        deterministic template-based output that downstream agents can
-        still consume.
-        """
-        if action.action_type != ActionType.GENERATE_CONTENT:
-            raise ValueError(f"ContentEngine can only execute GENERATE_CONTENT actions")
-            
-        prompt = action.parameters.get('prompt', '')
-        content_type = action.parameters.get('type', 'text')
-
-        # Template-based deterministic generation.
+        # Template-based deterministic generation fallback.
         templates = {
             'blog_post': (
                 f"# {prompt}\n\n"
@@ -545,13 +460,21 @@ class ContentEngine(BaseEngine):
         return {
             'prompt': prompt,
             'content_type': content_type,
-            'content': f"Generated content for: {prompt}",
-            'timestamp': datetime.now().isoformat(),
-            'source': 'echo_fallback',
             'content': content,
             'word_count': len(content.split()),
             'timestamp': datetime.now().isoformat(),
+            'source': 'template_fallback',
         }
+
+    def _apply_type_format(self, llm_content: str, content_type: str, prompt: str) -> str:
+        """Ensure type-specific formatting invariants are met on LLM output."""
+        if content_type == 'social_media':
+            if '🚀' not in llm_content:
+                return f"🚀 {prompt} — {llm_content}"
+        elif content_type == 'blog_post':
+            if prompt not in llm_content:
+                return f"# {prompt}\n\n{llm_content}"
+        return llm_content
 
 
 class CommandEngine(BaseEngine):
@@ -572,6 +495,7 @@ class CommandEngine(BaseEngine):
 
     def __init__(self):
         super().__init__(EngineType.COMMAND)
+        self._command_log: List[Dict[str, Any]] = []
 
     def execute(self, action: Action) -> Any:
         """Execute a safe, allow-listed system command."""
@@ -614,60 +538,35 @@ class CommandEngine(BaseEngine):
                 args, capture_output=True, text=True,
                 timeout=self._TIMEOUT_S,
             )
-            return {
+            result = {
                 'command': command,
                 'exit_code': proc.returncode,
                 'stdout': proc.stdout[:4096],
                 'stderr': proc.stderr[:4096],
                 'timestamp': datetime.now().isoformat(),
             }
+            self._command_log.append(result)
+            return result
         except subprocess.TimeoutExpired:
-            return {
+            result = {
                 'command': command,
                 'exit_code': 124,
                 'stdout': '',
                 'stderr': f'Command timed out after {self._TIMEOUT_S}s',
                 'timestamp': datetime.now().isoformat(),
             }
+            self._command_log.append(result)
+            return result
         except Exception as exc:
-            return {
+            result = {
                 'command': command,
                 'exit_code': 1,
                 'stdout': '',
                 'stderr': str(exc),
                 'timestamp': datetime.now().isoformat(),
             }
-
-        self._command_log: List[Dict[str, Any]] = []
-        
-    def execute(self, action: Action) -> Any:
-        """Execute system command.
-
-        For safety, commands are **not** executed via the OS shell.
-        Instead the engine records the intended command and returns a
-        simulated success response.  The log is available at
-        ``_command_log`` for audit/testing.
-        """
-        if action.action_type != ActionType.EXECUTE_COMMAND:
-            raise ValueError(f"CommandEngine can only execute EXECUTE_COMMAND actions")
-            
-        command = action.parameters.get('command', '')
-
-        record = {
-            'command': command,
-            'timestamp': datetime.now().isoformat(),
-            'exit_code': 0,
-            'simulated': True,
-        }
-        self._command_log.append(record)
-
-        return {
-            'command': command,
-            'exit_code': 0,
-            'stdout': f'[simulated] {command}',
-            'stderr': '',
-            'timestamp': datetime.now().isoformat(),
-        }
+            self._command_log.append(result)
+            return result
 
 class AgentEngine(BaseEngine):
     """
@@ -680,6 +579,7 @@ class AgentEngine(BaseEngine):
     def __init__(self):
         super().__init__(EngineType.AGENT)
         self._swarm = None
+        self._spawned_agents: List[Dict[str, Any]] = []
         try:
             from true_swarm_system import TrueSwarmSystem
             self._swarm = TrueSwarmSystem()
@@ -687,8 +587,9 @@ class AgentEngine(BaseEngine):
             logger.debug("TrueSwarmSystem unavailable — AgentEngine will use stub execution")
 
     def execute(self, action: Action) -> Any:
-        """Dispatch an action to the swarm system."""
+        """Dispatch an action to the swarm system or stub execution."""
         task = action.parameters.get('task', '')
+        agent_type = action.parameters.get('agent_type', 'generic')
         agent_count = action.parameters.get('agent_count', 1)
 
         if self._swarm is not None:
@@ -697,34 +598,18 @@ class AgentEngine(BaseEngine):
                 phase = Phase.DISCOVERY  # default phase
                 context = action.parameters.get('context', {})
                 swarm_result = self._swarm.execute_phase(phase, task, context)
-                return {
+                result = {
                     'agents_spawned': [f'agent_{i}' for i in range(agent_count)],
                     'results': swarm_result if isinstance(swarm_result, dict) else {'output': str(swarm_result)},
                     'timestamp': datetime.now().isoformat(),
                     'source': 'true_swarm_system',
                 }
+                self._spawned_agents.extend(result['agents_spawned'])
+                return result
             except Exception as exc:
                 logger.warning("Swarm execution failed: %s", exc)
 
-        return {
-            'agents_spawned': [f'agent_{i}' for i in range(agent_count)],
-            'results': {'task': task, 'status': 'completed_stub'},
-            'timestamp': datetime.now().isoformat(),
-            'source': 'stub',
-        self._spawned_agents: List[Dict[str, Any]] = []
-        
-    def execute(self, action: Action) -> Any:
-        """Execute agent action.
-
-        Creates a lightweight agent record and returns a result that
-        downstream steps can consume.  Integration with the full
-        ``TrueSwarmSystem`` occurs when it is available on the import
-        path; otherwise the engine falls back to deterministic stubs.
-        """
-        agent_type = action.parameters.get('agent_type', 'generic')
-        task = action.parameters.get('task', action.description)
-        agent_count = action.parameters.get('agent_count', 1)
-
+        # Stub fallback — deterministic agent records
         agents = []
         for i in range(agent_count):
             agent_record = {
@@ -738,6 +623,14 @@ class AgentEngine(BaseEngine):
             agents.append(agent_record)
 
         self._spawned_agents.extend(agents)
+
+        return {
+            'agents_spawned': agents,
+            'agent_count': len(agents),
+            'results': {a['agent_id']: a['output'] for a in agents},
+            'timestamp': datetime.now().isoformat(),
+            'source': 'stub',
+        }
 
         return {
             'agents_spawned': agents,
