@@ -287,7 +287,7 @@ class TrainingPipeline:
         }
         
         metadata_path = Path(self.config.checkpoint_dir) / f"checkpoint_{metrics.epoch}.json"
-        with open(metadata_path, 'w') as f:
+        with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump(checkpoint_metadata, f, indent=2)
         
         self.checkpoints.append(checkpoint)

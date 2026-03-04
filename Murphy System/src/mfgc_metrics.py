@@ -206,7 +206,7 @@ class MFGCMetricsCollector:
             'aggregate_stats': self.get_aggregate_stats()
         }
         
-        with open(filepath, 'w') as f:
+        with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2)
     
     def get_phase_analysis(self, phase_name: str) -> Dict[str, Any]:

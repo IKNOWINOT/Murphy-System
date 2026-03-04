@@ -231,7 +231,7 @@ class ModelRegistry:
         
         # Save model metadata
         metadata_path = model_dir / "metadata.json"
-        with open(metadata_path, 'w') as f:
+        with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump({
                 "id": str(version.id),
                 "name": version.name,
@@ -269,7 +269,7 @@ class ModelRegistry:
             }
         }
         
-        with open(registry_file, 'w') as f:
+        with open(registry_file, 'w', encoding='utf-8') as f:
             json.dump(registry_data, f, indent=2)
     
     def _load_registry(self):

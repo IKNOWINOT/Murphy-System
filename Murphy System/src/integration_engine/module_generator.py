@@ -210,13 +210,13 @@ class ModuleGenerator:
         
         # Save module metadata
         metadata_path = module_dir / 'module_metadata.json'
-        with open(metadata_path, 'w') as f:
+        with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump(module, f, indent=2)
         
         # Save wrapper code
         wrapper_path = module_dir / '__init__.py'
         wrapper_code = self.create_wrapper_code(module)
-        with open(wrapper_path, 'w') as f:
+        with open(wrapper_path, 'w', encoding='utf-8') as f:
             f.write(wrapper_code)
         
         return module_dir

@@ -320,7 +320,7 @@ class MultiSourceResearcher:
         filename = f"research_{compiled.topic.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         filepath = self.temp_dir / filename
         
-        with open(filepath, 'w') as f:
+        with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(compiled.to_dict(), f, indent=2)
         
         print(f"[Research] Saved to: {filepath}")

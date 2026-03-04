@@ -59,11 +59,11 @@ class SecureKeyManager:
         
         # Save to .env file for persistence
         if env_path.exists():
-            with open(env_path, 'a') as f:
+            with open(env_path, 'a', encoding='utf-8') as f:
                 f.write(f"\n# Master encryption key (DO NOT COMMIT)\n")
                 f.write(f"MURPHY_MASTER_KEY={new_key.decode()}\n")
         else:
-            with open(env_path, 'w') as f:
+            with open(env_path, 'w', encoding='utf-8') as f:
                 f.write(f"# Murphy System Environment Variables\n")
                 f.write(f"# Master encryption key (DO NOT COMMIT)\n")
                 f.write(f"MURPHY_MASTER_KEY={new_key.decode()}\n")
@@ -93,7 +93,7 @@ class SecureKeyManager:
             })
         
         # Write to file
-        with open(self.encrypted_keys_path, 'w') as f:
+        with open(self.encrypted_keys_path, 'w', encoding='utf-8') as f:
             json.dump(encrypted_data, f, indent=2)
         
         logger.info("Encrypted and stored %d API keys", len(keys))

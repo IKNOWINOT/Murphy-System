@@ -546,7 +546,7 @@ class CorrectionStorageSystem:
         """Export corrections to JSON file."""
         corrections_data = self.export_corrections()
         
-        with open(filepath, 'w') as f:
+        with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(corrections_data, f, indent=2, default=str)
     
     def import_from_file(self, filepath: str) -> List[str]:

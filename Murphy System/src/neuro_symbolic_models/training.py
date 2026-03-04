@@ -576,7 +576,7 @@ class ModelValidator:
             "timestamp": report.timestamp
         }
         
-        with open(path, 'w') as f:
+        with open(path, 'w', encoding='utf-8') as f:
             json.dump(report_dict, f, indent=2)
         
         print(f"Saved validation report to {path}")

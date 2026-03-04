@@ -165,7 +165,7 @@ class StabilityTelemetry:
     def _write_to_log(self, record: TelemetryRecord):
         """Write record to JSON log file"""
         try:
-            with open(self.current_log_file, 'a') as f:
+            with open(self.current_log_file, 'a', encoding='utf-8') as f:
                 json.dump(record.to_dict(), f)
                 f.write('\n')
         except Exception as exc:
