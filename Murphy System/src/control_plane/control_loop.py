@@ -247,6 +247,40 @@ class ControlAuthorityMatrix:
         required = self._REQUIRED_AUTHORITY.get(action, 99)
         return level >= required
 
+    def check_or_escalate(
+        self,
+        actor_id: str,
+        action: str,
+        registry=None,
+        escalation_policy=None,
+    ):
+        """
+        Return True when permitted, or attempt escalation when not.
+
+        If *escalation_policy* and *registry* are both provided and
+        ``is_permitted()`` returns False, escalation is triggered.
+
+        Args:
+            actor_id: the requesting actor.
+            action: the action being requested.
+            registry: ``ActorRegistry`` instance (required for escalation).
+            escalation_policy: ``EscalationPolicy`` instance (optional).
+
+        Returns:
+            True if the actor is permitted directly, or ``EscalationResult``
+            if escalation resolved, or False if neither succeeded.
+        """
+        if self.is_permitted(actor_id, action):
+            return True
+        if escalation_policy is not None and registry is not None:
+            level = float(self._actors.get(actor_id, 0))
+            depth = 0
+            if escalation_policy.should_escalate(actor_id, action, level, depth):
+                result = escalation_policy.escalate(actor_id, action, registry)
+                if result is not None:
+                    return result
+        return False
+
 
 __all__ = [
     "ControlVector",

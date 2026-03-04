@@ -336,12 +336,6 @@ class Plan(BaseModel):
         5. Critical tasks have zero total float (LF − EF == 0).
         6. Walk the zero-float chain in topological order to
            reconstruct the critical path.
-        """Get critical path (longest path through dependencies).
-
-        Uses the Critical Path Method (CPM): the critical path is the
-        longest chain of finish-to-start dependent tasks measured by
-        estimated hours.  Tasks without an ``estimated_hours`` value
-        default to 8 hours.
         """
         if not self.tasks:
             return []

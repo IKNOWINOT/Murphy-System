@@ -380,7 +380,8 @@ class EncryptionMiddleware:
             classical_sig, pqc_sig = HybridCryptography.sign_hybrid(
                 data, classical_kp.private_key, pqc_kp.private_key
             )
-            return classical_sig + pqc_sig
+            # Prefix with 4-byte length of classical sig so verify can split correctly.
+            return len(classical_sig).to_bytes(4, 'little') + classical_sig + pqc_sig
 
         from src.security_plane.cryptography import ClassicalCryptography
         return ClassicalCryptography.sign(data, classical_kp.private_key)
@@ -400,10 +401,17 @@ class EncryptionMiddleware:
         if classical_kp is None:
             return True  # graceful degradation — no keys to verify against
 
-        if pqc_kp is not None and len(signature) >= 64:
-            sig_len = len(signature) // 2
-            classical_sig = signature[:sig_len]
-            pqc_sig = signature[sig_len:]
+        if pqc_kp is not None and len(signature) > 4:
+            # Try to decode the 4-byte length prefix written by sign_data.
+            classical_sig_len = int.from_bytes(signature[:4], 'little')
+            if 4 + classical_sig_len < len(signature):
+                classical_sig = signature[4:4 + classical_sig_len]
+                pqc_sig = signature[4 + classical_sig_len:]
+            else:
+                # Fallback: old-style even split (no prefix)
+                sig_len = len(signature) // 2
+                classical_sig = signature[:sig_len]
+                pqc_sig = signature[sig_len:]
             return HybridCryptography.verify_hybrid(
                 data,
                 classical_sig,

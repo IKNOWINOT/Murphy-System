@@ -295,7 +295,7 @@ def create_auar_router(components: Optional[AUARComponents] = None):
     if components is None:
         components = initialize_auar()
 
-    router = APIRouter(prefix="/api/auar", tags=["auar"])
+    router = APIRouter(tags=["auar"])
 
     @router.post("/route")
     async def route_request(request: Request) -> JSONResponse:

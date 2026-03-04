@@ -156,3 +156,145 @@ class ActorRegistry:
                     visited.add(dst)
                     stack.append(dst)
         return visited
+
+
+# ------------------------------------------------------------------ #
+# Escalation policy
+# ------------------------------------------------------------------ #
+
+@dataclass
+class EscalationResult:
+    """Outcome of a successful escalation."""
+
+    escalated_to: str    # actor_id of the superior who accepted the action
+    reason: str
+    authority_level: float
+
+
+class EscalationPolicy:
+    """
+    Encapsulates authority-escalation logic for the control loop.
+
+    When an actor's authority is insufficient for a given action, the policy
+    searches up the delegation chain until it finds a superior with enough
+    authority (or exhausts the chain).
+
+    Usage::
+
+        policy = EscalationPolicy(authority_threshold=0.5, max_delegation_depth=3)
+        if policy.should_escalate(actor_id, action, current_authority, depth):
+            result = policy.escalate(actor_id, action, registry)
+    """
+
+    def __init__(
+        self,
+        authority_threshold: float,
+        max_delegation_depth: int = 5,
+        timeout_seconds: float = 30.0,
+    ) -> None:
+        """
+        Args:
+            authority_threshold: minimum authority level required to execute
+                without escalation (compared against the actor's authority score).
+            max_delegation_depth: maximum hops up the delegation chain.
+            timeout_seconds: advisory timeout for the escalation handoff.
+        """
+        if authority_threshold < 0.0:
+            raise ValueError("authority_threshold must be >= 0.")
+        if max_delegation_depth < 1:
+            raise ValueError("max_delegation_depth must be >= 1.")
+        self.authority_threshold = authority_threshold
+        self.max_delegation_depth = max_delegation_depth
+        self.timeout_seconds = timeout_seconds
+
+    def should_escalate(
+        self,
+        actor_id: str,
+        action: str,
+        current_authority: float,
+        delegation_depth: int = 0,
+    ) -> bool:
+        """
+        Return True if the actor should escalate this action.
+
+        Escalation is required when:
+          - current_authority < authority_threshold, OR
+          - delegation_depth >= max_delegation_depth.
+
+        Args:
+            actor_id: the requesting actor.
+            action: the action being requested.
+            current_authority: numeric authority level of the actor.
+            delegation_depth: current depth in the delegation chain.
+
+        Returns:
+            True if escalation is needed.
+        """
+        if delegation_depth >= self.max_delegation_depth:
+            return True
+        return current_authority < self.authority_threshold
+
+    def escalate(
+        self,
+        actor_id: str,
+        action: str,
+        registry: "ActorRegistry",
+        actor_authority_fn: Optional[callable] = None,
+    ) -> Optional[EscalationResult]:
+        """
+        Find the next actor in the delegation chain with sufficient authority.
+
+        The search performs a BFS up the *reverse* delegation graph
+        (i.e., looks for actors who have delegated TO *actor_id*).
+
+        Args:
+            actor_id: the actor whose authority is insufficient.
+            action: the action requiring escalation.
+            registry: the full ActorRegistry.
+            actor_authority_fn: optional callable ``(actor_id) -> float``
+                that returns the authority level of an actor.  Defaults to
+                looking at ``actor.metadata.get('authority', 0.0)``.
+
+        Returns:
+            An ``EscalationResult`` if a suitable superior is found,
+            else ``None``.
+        """
+        def _authority(aid: str) -> float:
+            if actor_authority_fn is not None:
+                return float(actor_authority_fn(aid))
+            actor = registry.get(aid)
+            if actor is None:
+                return 0.0
+            return float(actor.metadata.get("authority", 0.0))
+
+        # Build reverse delegation map: delegatee → set of delegators
+        reverse_map: Dict[str, Set[str]] = {}
+        for src, dst in registry._delegations:
+            reverse_map.setdefault(dst, set()).add(src)
+
+        visited: Set[str] = set()
+        queue = list(reverse_map.get(actor_id, []))
+        depth = 0
+
+        while queue and depth < self.max_delegation_depth:
+            next_queue: List[str] = []
+            for superior_id in queue:
+                if superior_id in visited:
+                    continue
+                visited.add(superior_id)
+                auth = _authority(superior_id)
+                if auth >= self.authority_threshold:
+                    return EscalationResult(
+                        escalated_to=superior_id,
+                        reason=(
+                            f"Actor '{actor_id}' lacked sufficient authority "
+                            f"({auth:.2f} >= {self.authority_threshold:.2f}). "
+                            f"Escalated to '{superior_id}'."
+                        ),
+                        authority_level=auth,
+                    )
+                next_queue.extend(reverse_map.get(superior_id, []))
+            queue = next_queue
+            depth += 1
+
+        return None

@@ -253,14 +253,7 @@ async def get_submission_status(submission_id: str) -> JSONResponse:
     - results: Results if complete
     """
     try:
-        # Query the in-memory submission ledger maintained by handlers
-        from .handlers import get_submission_status as _get_status
-
-        entry = _get_status(submission_id)
-        if entry is None:
         # Query the in-memory submission store for status.
-        # The store is populated by form handlers on submission and
-        # updated by the execution engine as tasks progress.
         from .handlers import _submission_store  # lightweight in-process store
 
         record = _submission_store.get(submission_id)
@@ -272,13 +265,10 @@ async def get_submission_status(submission_id: str) -> JSONResponse:
                     'status': 'not_found',
                     'message': f'No submission found for ID: {submission_id}',
                 },
-                    'message': f'No submission found with ID: {submission_id}'
-                }
             )
 
         return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content=entry,
             content={
                 'submission_id': submission_id,
                 'status': record.get('status', 'pending'),

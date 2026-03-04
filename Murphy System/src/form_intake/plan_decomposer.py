@@ -255,14 +255,14 @@ class PlanDecomposer:
             if not line:
                 continue
 
-            # First non-empty line becomes the title if nothing better found
-            if title == context and not line.startswith("#"):
-                title = line
-                continue
-
-            # Markdown headers → new section
+            # Markdown headers → new section (or title if first h1)
             if line.startswith("#"):
                 header = line.lstrip("#").strip()
+                level = len(line) - len(line.lstrip("#"))
+                # Top-level heading becomes the title
+                if level == 1 and title == (context or "Parsed Plan"):
+                    title = header
+                    continue
                 current_section = {"header": header, "items": []}
                 sections.append(current_section)
                 # Detect special sections
@@ -271,6 +271,11 @@ class PlanDecomposer:
                     current_section["_kind"] = "assumptions"
                 elif "risk" in lower_header:
                     current_section["_kind"] = "risks"
+                continue
+
+            # First non-empty non-heading line becomes the title if not set yet
+            if title == (context or "Parsed Plan") and not line.startswith("#"):
+                title = line
                 continue
 
             # Bullet items
@@ -299,75 +304,6 @@ class PlanDecomposer:
             "sections": sections,
             "assumptions": assumptions or ["Resources are available as planned"],
             "risks": risks or ["Timeline may slip due to unforeseen challenges"],
-        """Extract text content from plan document.
-
-        Supports plain-text (``.txt``), Markdown (``.md``), and JSON
-        (``.json``) files.  For unsupported formats the raw bytes are
-        decoded as UTF-8 with a fallback to Latin-1.
-        """
-        if not os.path.isfile(plan_document_path):
-            logger.warning("Plan document not found: %s", plan_document_path)
-            return ""
-
-        try:
-            with open(plan_document_path, 'r', encoding='utf-8') as fh:
-                content = fh.read()
-        except UnicodeDecodeError:
-            with open(plan_document_path, 'r', encoding='latin-1') as fh:
-                content = fh.read()
-
-        # For JSON documents, extract a readable summary.
-        if plan_document_path.endswith('.json'):
-            try:
-                import json as _json
-                data = _json.loads(content)
-                if isinstance(data, dict):
-                    parts = []
-                    for key, val in data.items():
-                        parts.append(f"{key}: {val}")
-                    content = "\n".join(parts)
-            except Exception:
-                pass  # keep raw content
-
-        return content.strip()
-    
-    def _parse_plan_structure(self, plan_content: str, context: str) -> Dict[str, Any]:
-        """Parse plan structure from content using lightweight heuristics.
-
-        Scans for Markdown headings (``#``), numbered lists, and common
-        section names to build a structured representation.
-        """
-        lines = plan_content.split('\n') if plan_content else []
-        title = context
-        sections: List[Dict[str, Any]] = []
-        current_section: Optional[Dict[str, Any]] = None
-
-        for line in lines:
-            stripped = line.strip()
-            if not stripped:
-                continue
-            # Detect Markdown headings.
-            if stripped.startswith('#'):
-                heading = stripped.lstrip('#').strip()
-                if not title or title == context:
-                    title = heading
-                current_section = {'heading': heading, 'items': []}
-                sections.append(current_section)
-            elif stripped[0:1].isdigit() or stripped.startswith('-') or stripped.startswith('*'):
-                item = stripped.lstrip('0123456789.-*) ').strip()
-                if current_section is not None:
-                    current_section['items'].append(item)
-                else:
-                    current_section = {'heading': 'General', 'items': [item]}
-                    sections.append(current_section)
-
-        return {
-            'title': title or 'Parsed Plan',
-            'description': context,
-            'goal': context,
-            'domain': 'custom',
-            'timeline': 'TBD',
-            'sections': sections,
         }
     
     def _generate_tasks_from_structure(
@@ -434,53 +370,6 @@ class PlanDecomposer:
                     status=TaskStatus.PENDING,
                     estimated_hours=8.0,
                     deliverables=[f"{phase} deliverable"],
-        """Generate tasks from plan structure.
-
-        If the parsed plan contains sections with items, each item becomes
-        a task.  Otherwise, falls back to generating a number of placeholder
-        tasks determined by the *expansion_level*.
-        """
-        tasks = []
-
-        sections = plan_structure.get('sections', [])
-        # When sections have meaningful items, derive tasks from them.
-        if sections:
-            for section in sections:
-                heading = section.get('heading', 'General')
-                items = section.get('items', [])
-                if not items:
-                    # Section with no items becomes a single task.
-                    items = [heading]
-                for item in items:
-                    priority = TaskPriority.HIGH if 'critical' in item.lower() or 'urgent' in item.lower() else TaskPriority.MEDIUM
-                    task = Task(
-                        task_id=self._generate_task_id(),
-                        title=item[:120],
-                        description=f"{heading}: {item}",
-                        priority=priority,
-                        status=TaskStatus.PENDING,
-                        estimated_hours=8.0,
-                        deliverables=[f"Completed: {item[:80]}"]
-                    )
-                    tasks.append(task)
-
-        # Fallback: expansion-level based generation.
-        if not tasks:
-            granularity = {
-                'minimal': 5,
-                'moderate': 15,
-                'comprehensive': 30,
-            }
-            num_tasks = granularity.get(expansion_level, 15)
-            for i in range(num_tasks):
-                task = Task(
-                    task_id=self._generate_task_id(),
-                    title=f"Task {i+1}",
-                    description=f"Description for task {i+1}",
-                    priority=TaskPriority.MEDIUM,
-                    status=TaskStatus.PENDING,
-                    estimated_hours=8.0,
-                    deliverables=[f"Deliverable for task {i+1}"]
                 )
                 tasks.append(task)
 
@@ -497,17 +386,14 @@ class PlanDecomposer:
         import re
         sentences = [s.strip() for s in re.split(r'[.;!\n]', goal) if s.strip()]
 
-        # Extract key objective phrases (clauses that start with action verbs)
-        _action_verbs = {
+        # Extract action verbs present in the goal as key objectives
+        _action_verbs = [
             "build", "create", "deploy", "design", "develop", "implement",
             "integrate", "launch", "migrate", "optimise", "optimize",
             "reduce", "scale", "ship", "test", "automate", "deliver",
-        }
-        key_objectives = []
-        for sent in sentences:
-            first_word = sent.split()[0].lower() if sent.split() else ""
-            if first_word in _action_verbs:
-                key_objectives.append(sent)
+        ]
+        goal_lower = goal.lower()
+        key_objectives = [v for v in _action_verbs if v in goal_lower]
         if not key_objectives:
             key_objectives = sentences[:3] or [goal]
 
@@ -524,9 +410,9 @@ class PlanDecomposer:
                 "Market-fit evidence documented",
             ],
             "marketing_campaign": [
-                "Target KPIs defined and baselined",
-                "Content calendar published",
-                "Conversion funnel instrumented",
+                "Audience reach",
+                "Conversion rate",
+                "Brand awareness",
             ],
         }
         success_factors = _domain_success.get(domain, [
@@ -549,46 +435,6 @@ class PlanDecomposer:
             "key_objectives": key_objectives,
             "success_factors": success_factors,
             "challenges": challenges,
-        """Analyze goal and extract key information using keyword heuristics.
-
-        Scans the *goal* text for action verbs and domain-relevant nouns
-        to build a structured analysis including key objectives, success
-        factors, and anticipated challenges.
-        """
-        goal_lower = goal.lower()
-
-        # Extract objectives from action phrases.
-        action_verbs = [
-            'build', 'create', 'design', 'develop', 'deploy', 'implement',
-            'improve', 'increase', 'launch', 'migrate', 'optimize',
-            'reduce', 'automate', 'integrate', 'scale', 'monitor',
-        ]
-        objectives = [v for v in action_verbs if v in goal_lower]
-
-        # Success factors based on domain.
-        domain_factors: Dict[str, List[str]] = {
-            'software_development': ['Code quality', 'Test coverage', 'Documentation'],
-            'business_strategy': ['Market alignment', 'Revenue growth', 'Stakeholder buy-in'],
-            'marketing_campaign': ['Audience reach', 'Conversion rate', 'Brand awareness'],
-        }
-        factors = domain_factors.get(domain, ['Timely delivery', 'Budget adherence', 'Quality'])
-
-        # Challenges heuristic.
-        challenges = []
-        if 'migrate' in goal_lower or 'legacy' in goal_lower:
-            challenges.append('Legacy system compatibility')
-        if 'scale' in goal_lower or 'performance' in goal_lower:
-            challenges.append('Performance at scale')
-        if not challenges:
-            challenges.append('Scope creep')
-            challenges.append('Resource constraints')
-
-        return {
-            'title': f"{domain.replace('_', ' ').title()} Plan",
-            'description': goal,
-            'key_objectives': objectives or ['Deliver project successfully'],
-            'success_factors': factors,
-            'challenges': challenges,
         }
     
     def _generate_tasks_from_goal(
