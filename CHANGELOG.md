@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Round 41 documentation accuracy** — sync docs with actual metrics:
+  - GETTING_STARTED: updated gap-closure count (190+ → 118), audit categories (14 → 90), test count (8,200+)
+  - README: updated badge (8,215 → 8,232), disclaimer (349 → 350 test files)
+  - 17 new doc-accuracy tests (HTML file existence, section numbering, cross-references)
+  - Fixed Round 31 test stale reference (190+ → 118)
 - **Round 40 final verification** — 90-category comprehensive audit complete:
   - 9 final gate tests covering syntax, imports, bare-except, eval/exec, wildcards, secrets, repo files, CHANGELOG, package coverage
   - 118 gap-closure tests across 12 round files, all passing

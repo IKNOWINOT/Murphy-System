@@ -77,8 +77,8 @@ class TestDocumentationAccuracy:
             f for f in os.listdir(test_dir) if f.startswith("test_gap_closure_round")
         ]
         assert len(gc_files) >= 20, f"Expected 20+ gap-closure test files, found {len(gc_files)}"
-        # Doc should reference 190+
-        assert "190+" in content, "GETTING_STARTED should reference 190+ gap-closure tests"
+        # Doc should reference 118 gap-closure tests
+        assert "118 gap-closure" in content, "GETTING_STARTED should reference 118 gap-closure tests"
 
 
 class TestHTMLUIFilesExist:
