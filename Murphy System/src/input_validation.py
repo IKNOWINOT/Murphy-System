@@ -114,7 +114,7 @@ class VerificationInput(BaseModel):
         if not v:
             return v
         
-        dangerous_chars = ['<', '>', ';', '&', '|', '$', '`', '\\']
+        dangerous_chars = ['<', '>', ';', '&', '|', '$', '`', '\\', '\x00']
         for char in dangerous_chars:
             v = v.replace(char, '')
         

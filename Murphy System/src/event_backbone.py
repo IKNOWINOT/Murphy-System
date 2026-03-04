@@ -147,10 +147,12 @@ class EventBackbone:
         self._subscription_index: Dict[str, _Subscription] = {}
         # Set of event_ids already seen (idempotency)
         self._seen_event_ids: set = set()
-        # Dead letter queue
+        # Dead letter queue (bounded)
         self._dlq: List[Event] = []
-        # Event history (completed / failed records)
+        self._max_dlq_size = 1000
+        # Event history (completed / failed records, bounded)
         self._history: List[Dict[str, Any]] = []
+        self._max_history_size = 10_000
         # Per-subscription circuit breakers
         self._circuit_breakers: Dict[str, _HandlerCircuitBreaker] = {}
         # Counters
@@ -377,6 +379,8 @@ class EventBackbone:
     def _send_to_dlq(self, event: Event) -> None:
         """Move an event to the dead letter queue."""
         with self._lock:
+            if len(self._dlq) >= self._max_dlq_size:
+                self._dlq = self._dlq[self._max_dlq_size // 10:]
             self._dlq.append(event)
             self._persist_state()
         self._record_history(event, "dead_letter")
@@ -388,6 +392,8 @@ class EventBackbone:
 
     def _record_history(self, event: Event, status: str) -> None:
         with self._lock:
+            if len(self._history) >= self._max_history_size:
+                self._history = self._history[self._max_history_size // 10:]
             self._history.append({
                 **event.to_dict(),
                 "status": status,
