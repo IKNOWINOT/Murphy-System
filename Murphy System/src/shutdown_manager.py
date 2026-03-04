@@ -94,8 +94,6 @@ class ShutdownManager:
             raise TimeoutError(f"Cleanup handler '{name}' timed out after {timeout}s")
         if exc_holder[0] is not None:
             raise exc_holder[0]
-        
-        logger.info("✅ Murphy System shutdown complete")
     
     def shutdown(self):
         """Manually trigger shutdown"""
