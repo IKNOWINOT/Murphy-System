@@ -189,44 +189,36 @@ class MurphyValidator:
             return None
 
         try:
-            # Extract v1-compatible artefacts from context (graceful defaults)
-            graph = context.get('artifact_graph')
-            phase = context.get('phase')
-            evidence = context.get('verification_evidence', [])
-            trust_model = context.get('trust_model')
-
-            if graph is None or phase is None or trust_model is None:
-                # Minimal fallback when full artefact context is unavailable:
-                # return the calculator's generative-adequacy score alone,
-                # which is still more informative than a hardcoded constant.
-                if graph is not None:
-                    return self.confidence_calculator_v1.calculate_generative_adequacy(graph)
-                return None
-        
-        try:
             from .confidence_calculator import ConfidenceCalculator
             from .models import ArtifactGraph, Phase as ConfPhase, TrustModel
 
-            # Build a minimal artifact graph from context.
-            graph = ArtifactGraph()
-            artifacts = context.get('artifacts', [])
-            for art in artifacts:
-                graph.add_node(art)
-
-            # Map phase string to confidence engine Phase enum.
-            phase_str = context.get('phase', 'expand')
-            phase_map = {p.value: p for p in ConfPhase}
-            phase = phase_map.get(phase_str, ConfPhase.EXPAND)
-
-            # Use default trust model.
-            trust = context.get('trust_model', TrustModel())
-
-            # Verification evidence from context (may be empty).
+            # Extract v1-compatible artefacts from context (graceful defaults)
+            graph = context.get('artifact_graph')
+            phase_arg = context.get('phase')
             evidence = context.get('verification_evidence', [])
+            trust_model = context.get('trust_model')
+
+            if graph is None or phase_arg is None or trust_model is None:
+                # Minimal fallback when full artefact context is unavailable.
+                if graph is not None:
+                    return self.confidence_calculator_v1.calculate_generative_adequacy(graph)
+                # Build a minimal artifact graph from any listed artifacts.
+                graph = ArtifactGraph()
+                artifacts = context.get('artifacts', [])
+                for art in artifacts:
+                    graph.add_node(art)
+
+                # Map phase string to confidence engine Phase enum.
+                phase_str = context.get('phase', 'expand')
+                phase_map = {p.value: p for p in ConfPhase}
+                phase_arg = phase_map.get(phase_str, ConfPhase.EXPAND)
+
+                # Use default trust model.
+                trust_model = context.get('trust_model', TrustModel())
 
             state = self.confidence_calculator_v1.compute_confidence(
                 graph=graph,
-                phase=phase,
+                phase=phase_arg,
                 verification_evidence=evidence,
                 trust_model=trust_model,
             )
@@ -234,13 +226,6 @@ class MurphyValidator:
         except Exception as exc:
             logger.warning("v1 confidence calculation failed: %s", exc)
             return None
-                trust_model=trust,
-            )
-            return state.confidence
-        except Exception as e:
-            logger.warning(f"Could not compute v1 confidence: {e}")
-            # Graceful degradation: derive a heuristic from context.
-            return context.get('confidence_hint', 0.75)
     
     def _generate_factors(
         self,
