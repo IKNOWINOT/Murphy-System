@@ -56,7 +56,7 @@ Murphy System ships with four interface layers. All are available out of the box
 | **Web UIs** | Static HTML files (open in browser) | Dashboards, wizards, and terminal views |
 | **Setup Wizard CLI** | Python one-liner (see §6) | Guided first-time configuration |
 
-Under the hood: 584 source modules across 54 packages, 190+ gap-closure tests, and 14 audit categories all at zero. Project configuration (pytest, mypy, ruff) lives in `pyproject.toml`.
+Under the hood: 584 source modules across 54 packages, 118 gap-closure tests, and 90 audit categories all at zero. Project configuration (pytest, mypy, ruff) lives in `pyproject.toml`.
 
 ---
 
@@ -305,5 +305,5 @@ for mod in ['fastapi', 'uvicorn', 'pydantic']:
 - **Explore the API** — Browse all 70+ endpoints at http://localhost:8000/docs.
 - **Try the onboarding wizard** — Open `onboarding_wizard.html` or run the CLI wizard for guided setup.
 - **Read the docs** — See the [`docs/`](docs/) directory for architecture details, deployment guides, and audit reports.
-- **Run the tests** — Execute `pytest` from the repository root to verify your installation (190+ gap-closure tests).
+- **Run the tests** — Execute `pytest` from the repository root to verify your installation (8,200+ tests including 118 gap-closure regression tests).
 - **Contribute** — Read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on submitting changes.

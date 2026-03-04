@@ -2,7 +2,7 @@
 
 **Universal AI Automation System**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/IKNOWINOT/Murphy-System) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.11+-yellow.svg)](https://www.python.org/) [![Tests](https://img.shields.io/badge/tests-8215%20passing-brightgreen.svg)](#-test-status)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/IKNOWINOT/Murphy-System) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.11+-yellow.svg)](https://www.python.org/) [![Tests](https://img.shields.io/badge/tests-8232%20passing-brightgreen.svg)](#-test-status)
 
 ---
 
@@ -26,8 +26,8 @@
 >   process improvement requests automatically, but this pipeline is still
 >   maturing. File issues or submit patches and the system's self-improvement
 >   loop will attempt to incorporate them.
-> - 📊 **Test coverage is extensive but not exhaustive** — 8,000+ tests pass
->   across 260+ test files, yet some Flask/Textual-dependent tests require
+> - 📊 **Test coverage is extensive but not exhaustive** — 8,200+ tests pass
+>   across 350 test files, yet some Flask/Textual-dependent tests require
 >   optional dependencies and are skipped when those packages are absent.
 > - 🤝 **Contributions welcome** — see [CONTRIBUTING.md](CONTRIBUTING.md). Bug
 >   reports, especially with reproduction steps, are especially valuable at
@@ -146,7 +146,7 @@ Murphy-System/
     ├── murphy                          ← CLI tool (start/stop/status/…)
     ├── murphy_system_1.0_runtime.py    ← Single production runtime
     ├── src/                            ← 420+ production modules
-    ├── tests/                          ← 349 test files (8,200+ tests)
+    ├── tests/                          ← 350 test files (8,200+ tests)
     ├── bots/                           ← 94 production bots
     ├── documentation/                  ← Structured API/user docs
     ├── docs/                           ← Technical docs
@@ -191,7 +191,7 @@ cd "Murphy System" && ./start_murphy_1.0.sh
 - Cryptographic bot identity verification (HMAC-SHA256 signing)
 - Behavioral anomaly detection (z-score analysis, resource spikes, API patterns)
 - Unified security dashboard with event correlation and compliance reporting
-- 42 integrated modules, 8,000+ tests passing
+- 42 integrated modules, 8,200+ tests passing
 - Neon terminal UI across 7 HTML interfaces with consistent theme
 
 **Architect UI:** serve `Murphy System/terminal_architect.html` with `python -m http.server 8090` and open `http://localhost:8090/Murphy%20System/terminal_architect.html?apiPort=8000`
