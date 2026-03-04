@@ -5,13 +5,15 @@ Defines:
   - ObservationChannel enum — every measurement source the system can use.
   - ObservationNoise — per-channel Gaussian noise model  v_t ~ N(0, R_t).
   - ObservationFunction — declarative mapping  z_t = h(x_t) + v_t.
+  - AdaptiveObserver — wires ObservationFunction, QuestionSelector, and
+      EntropyTracker for information-driven observation loops.
 """
 
 import math
 import random
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 
 import numpy as np
 
@@ -308,3 +310,131 @@ class KalmanObserver:
                 best_id = ch_id
 
         return best_id
+
+
+# ------------------------------------------------------------------ #
+# Adaptive Observer — wires ObservationFunction + QuestionSelector
+# ------------------------------------------------------------------ #
+
+
+class AdaptiveObserver:
+    """
+    Information-driven observation loop.
+
+    Wires together:
+      - ``ObservationFunction``   (z_t = h(x_t) + v_t)
+      - ``QuestionSelector``       (q* = argmax IG(q))
+      - ``EntropyTracker``         (records entropy history)
+
+    The observer iteratively selects the highest-information-gain channel,
+    executes the observation, and updates the entropy record until either
+    the entropy target is met or ``max_steps`` is exhausted.
+    """
+
+    def __init__(
+        self,
+        observation_fn: "ObservationFunction",
+        question_selector: "QuestionSelector",
+        entropy_tracker: "EntropyTracker",
+    ) -> None:
+        """
+        Args:
+            observation_fn: the formal observation function z = h(x) + v.
+            question_selector: selects highest-gain question from candidates.
+            entropy_tracker: records entropy at each observation step.
+        """
+        from .infinity_metric import EntropyTracker, QuestionSelector
+
+        self.observation_fn = observation_fn
+        self.question_selector = question_selector
+        self.entropy_tracker = entropy_tracker
+
+    # ---- single-step selection + observation ----------------------- #
+
+    def select_and_observe(
+        self,
+        state: CanonicalStateVector,
+        candidates: List["CandidateQuestion"],
+        *,
+        add_noise: bool = True,
+    ) -> Tuple["ObservationData", Optional["CandidateQuestion"]]:
+        """
+        Select the highest-gain question and execute the observation.
+
+        Args:
+            state: current canonical state vector.
+            candidates: list of CandidateQuestion objects.
+            add_noise: whether to add Gaussian noise (default True).
+
+        Returns:
+            (ObservationData, selected_question) — the observation result
+            and the question that was chosen.  If *candidates* is empty,
+            returns (empty ObservationData, None) using INQUISITORY channel.
+        """
+        best = self.question_selector.select_best_question(candidates)
+        if best is None:
+            return ObservationData(channel=ObservationChannel.INQUISITORY), None
+
+        # Determine which channel to use from question metadata (if available),
+        # defaulting to INQUISITORY.
+        channel_name = best.metadata.get("channel", ObservationChannel.INQUISITORY.value)
+        try:
+            channel = ObservationChannel(channel_name)
+        except ValueError:
+            channel = ObservationChannel.INQUISITORY
+
+        obs = self.observation_fn.observe(state, channel, add_noise=add_noise)
+        return obs, best
+
+    # ---- iterative observation loop -------------------------------- #
+
+    def observe_loop(
+        self,
+        state: CanonicalStateVector,
+        candidates: List["CandidateQuestion"],
+        max_steps: int = 10,
+        entropy_target: float = 0.5,
+    ) -> List["ObservationData"]:
+        """
+        Iteratively observe until entropy drops below *entropy_target* or
+        *max_steps* is reached.
+
+        Each step:
+          1. Select the best question.
+          2. Execute the observation.
+          3. Record entropy (using state entropy as proxy).
+          4. Remove the used question from the candidate pool.
+
+        Args:
+            state: current canonical state vector.
+            candidates: list of CandidateQuestion objects.
+            max_steps: maximum number of observation steps.
+            entropy_target: stop early when state entropy ≤ this value.
+
+        Returns:
+            List of ObservationData collected across all steps.
+        """
+        observations: List[ObservationData] = []
+        remaining = list(candidates)
+
+        for _ in range(max_steps):
+            if not remaining:
+                break
+
+            obs, best = self.select_and_observe(state, remaining, add_noise=False)
+            observations.append(obs)
+
+            # Record current state entropy.
+            current_entropy = state.state_entropy()
+            self.entropy_tracker._history.append(current_entropy)
+
+            if current_entropy <= entropy_target:
+                break
+
+            # Remove the used question so it is not repeated.
+            if best is not None and best in remaining:
+                remaining.remove(best)
+
+        return observations
+
+

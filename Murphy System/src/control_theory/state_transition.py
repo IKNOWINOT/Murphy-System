@@ -35,7 +35,7 @@ class ProcessNoise:
 
     @staticmethod
     def default() -> "ProcessNoise":
-        """Small default process noise for all 17 dimensions."""
+        """Small default process noise for all 25 dimensions."""
         return ProcessNoise(variances=tuple(0.001 for _ in _DIMENSION_NAMES))
 
     @staticmethod
@@ -73,6 +73,15 @@ _DIM_BOUNDS: Dict[str, tuple] = {
     "uptime_seconds": (0.0, None),
     "active_tasks": (0, None),
     "cpu_usage_percent": (0.0, 100.0),
+    # Extended dimensions (v1.1.0)
+    "response_latency": (0.0, None),
+    "domain_coverage": (0.0, 1.0),
+    "constraint_violation_count": (0, None),
+    "delegation_depth": (0, None),
+    "feedback_recency": (0.0, None),
+    "observation_staleness": (0.0, None),
+    "llm_confidence_aggregate": (0.0, 1.0),
+    "escalation_pending_count": (0, None),
 }
 
 
