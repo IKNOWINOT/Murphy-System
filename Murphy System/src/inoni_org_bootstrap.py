@@ -1,0 +1,645 @@
+"""Bootstrap Inoni LLC org chart with shadow agents.
+
+Uses Murphy System's shadow agent integration, sales automation, and campaign
+orchestration to stand up a fully AI-automated org chart where Corey Post is
+the sole human employee (Founder/Admin) and all other positions are filled by
+shadow agents.
+"""
+
+try:
+    from src.shadow_agent_integration import (
+        ShadowAgentIntegration,
+        AccountType,
+        ShadowAgent,
+        ShadowStatus,
+    )
+except ImportError:
+    ShadowAgentIntegration = None
+    AccountType = None
+    ShadowAgent = None
+    ShadowStatus = None
+
+try:
+    from src.sales_automation import (
+        SalesAutomationEngine,
+        SalesAutomationConfig,
+        LeadProfile,
+    )
+except ImportError:
+    SalesAutomationEngine = None
+    SalesAutomationConfig = None
+    LeadProfile = None
+
+try:
+    from src.campaign_orchestrator import CampaignOrchestrator
+except ImportError:
+    CampaignOrchestrator = None
+
+__all__ = ["InoniOrgBootstrap", "FOUNDER", "COMPANY"]
+
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+FOUNDER = {"name": "Corey Post", "title": "Founder/Admin", "email": "corey@inoni.com"}
+COMPANY = "Inoni LLC"
+
+
+class InoniOrgBootstrap:
+    """Bootstrap Inoni LLC org chart with shadow agents for full automation.
+
+    Corey Post is the sole human employee (Founder/Admin).
+    All other positions are filled by shadow agents that perform
+    their functions through Murphy System's automation pipeline.
+
+    First Market: Content moderation and creator automation
+    - OnlyFans agencies and operators
+    - Streamers (Twitch, YouTube, Kick)
+    - Content creators (TikTok, Patreon)
+
+    Revenue Model:
+    - Free tier: Trade services for marketing (creator promotes Inoni)
+    - Subscription: 5% revenue share on paid annual subscriptions they lock in
+    - Pro tier: $99/mo direct subscription
+    - Enterprise: Custom pricing for agencies managing 10+ creators
+    """
+
+    def __init__(
+        self,
+        shadow_integration=None,
+        sales_engine=None,
+        campaign_orchestrator=None,
+    ):
+        self.shadow = shadow_integration or ShadowAgentIntegration()
+        self.sales = sales_engine or SalesAutomationEngine(
+            SalesAutomationConfig(
+                company_name="Inoni LLC",
+                product_name="Murphy System",
+                target_industries=[
+                    "media",
+                    "entertainment",
+                    "content_creation",
+                    "streaming",
+                ],
+            )
+        )
+        self.campaigns = campaign_orchestrator or CampaignOrchestrator()
+        self.org_account = None
+        self.founder_account = None
+        self.agents = {}
+        self._initialized = False
+
+    def bootstrap(self):
+        """Create accounts, org chart, shadow agents, and initial campaigns."""
+        if self._initialized:
+            return self.get_status()
+
+        self.org_account = self.shadow.create_account(
+            display_name="Inoni LLC",
+            account_type=AccountType.ORGANIZATION,
+            metadata={
+                "industry": "automation_saas",
+                "market": "content_creator_automation",
+            },
+        )
+        self.founder_account = self.shadow.create_account(
+            display_name="Corey Post",
+            account_type=AccountType.USER,
+            metadata={
+                "role": "founder_admin",
+                "email": "corey@inoni.com",
+                "is_human": True,
+            },
+        )
+
+        agent_configs = [
+            {
+                "role": "chief_revenue_officer",
+                "dept": "executive",
+                "perms": [
+                    "revenue_strategy",
+                    "pricing",
+                    "market_analysis",
+                    "approve_deals",
+                ],
+                "avatar": "CRO Agent",
+            },
+            {
+                "role": "vp_sales",
+                "dept": "sales",
+                "perms": [
+                    "lead_management",
+                    "outreach",
+                    "pipeline",
+                    "close_deals",
+                ],
+                "avatar": "Sales Director Agent",
+            },
+            {
+                "role": "vp_marketing",
+                "dept": "marketing",
+                "perms": [
+                    "campaigns",
+                    "content_calendar",
+                    "analytics",
+                    "brand",
+                ],
+                "avatar": "Marketing Director Agent",
+            },
+            {
+                "role": "content_moderation_director",
+                "dept": "operations",
+                "perms": [
+                    "moderation_policy",
+                    "safety_compliance",
+                    "content_review",
+                    "escalation",
+                ],
+                "avatar": "Moderation Director Agent",
+            },
+            {
+                "role": "outreach_specialist",
+                "dept": "sales",
+                "perms": [
+                    "cold_email",
+                    "follow_up",
+                    "response_handling",
+                    "lead_qualification",
+                ],
+                "avatar": "Outreach Agent",
+            },
+            {
+                "role": "customer_success_manager",
+                "dept": "operations",
+                "perms": [
+                    "client_onboarding",
+                    "retention",
+                    "support",
+                    "upsell",
+                ],
+                "avatar": "Customer Success Agent",
+            },
+            {
+                "role": "technical_operations",
+                "dept": "engineering",
+                "perms": [
+                    "system_monitoring",
+                    "deployment",
+                    "integration_maintenance",
+                    "incident_response",
+                ],
+                "avatar": "TechOps Agent",
+            },
+            {
+                "role": "partnership_manager",
+                "dept": "sales",
+                "perms": [
+                    "affiliate_program",
+                    "agency_relations",
+                    "referral_tracking",
+                    "partnership_deals",
+                ],
+                "avatar": "Partnership Agent",
+            },
+            {
+                "role": "ai_communications",
+                "dept": "operations",
+                "perms": [
+                    "chat_response",
+                    "email_response",
+                    "client_avatar",
+                    "scheduling",
+                ],
+                "avatar": "Communications Agent",
+            },
+        ]
+
+        for config in agent_configs:
+            agent = self.shadow.create_shadow_agent(
+                primary_role_id=config["role"],
+                account_id=self.founder_account.account_id,
+                org_id=self.org_account.account_id,
+                department=config["dept"],
+                permissions=config["perms"],
+            )
+            self.agents[config["role"]] = {
+                "agent": agent,
+                "avatar": config["avatar"],
+                "department": config["dept"],
+            }
+
+        self._initialized = True
+        return self.get_status()
+
+    def get_status(self):
+        """Return full org chart status."""
+        agent_statuses = {}
+        for role, info in self.agents.items():
+            agent = info["agent"]
+            agent_statuses[role] = {
+                "agent_id": agent.agent_id,
+                "avatar": info["avatar"],
+                "department": info["department"],
+                "status": (
+                    agent.status.value
+                    if hasattr(agent.status, "value")
+                    else str(agent.status)
+                ),
+                "permissions": agent.permissions,
+            }
+        return {
+            "company": "Inoni LLC",
+            "founder": "Corey Post",
+            "founder_role": "Founder/Admin",
+            "total_agents": len(self.agents),
+            "total_positions": len(self.agents) + 1,  # +1 for founder
+            "org_account_id": (
+                self.org_account.account_id if self.org_account else None
+            ),
+            "agents": agent_statuses,
+            "initialized": self._initialized,
+        }
+
+    def get_org_chart(self):
+        """Return the org chart as a hierarchical structure."""
+        chart = {
+            "root": {
+                "title": "Founder / Admin",
+                "holder": "Corey Post (Human)",
+                "type": "human",
+                "reports": [],
+            }
+        }
+        departments = {}
+        for role, info in self.agents.items():
+            dept = info["department"]
+            if dept not in departments:
+                departments[dept] = []
+            departments[dept].append(
+                {
+                    "title": role.replace("_", " ").title(),
+                    "holder": info["avatar"],
+                    "type": "shadow_agent",
+                    "agent_id": info["agent"].agent_id,
+                    "status": (
+                        info["agent"].status.value
+                        if hasattr(info["agent"].status, "value")
+                        else str(info["agent"].status)
+                    ),
+                }
+            )
+        for dept, agents in departments.items():
+            chart["root"]["reports"].append(
+                {"department": dept, "positions": agents}
+            )
+        return chart
+
+    def create_outreach_campaign(self):
+        """Create the initial content creator outreach campaign.
+
+        Strategy:
+        1. Target OnlyFans agencies first (highest willingness to pay)
+        2. Individual operators (volume play)
+        3. Streamers (Twitch, YouTube, Kick)
+        4. Content creators (TikTok, Patreon)
+
+        Revenue model:
+        - Free tier: Service traded for marketing exposure
+        - Starter: 5% revenue share on annual subscriptions they bring in
+        - Pro: $99/mo flat rate
+        - Agency: Custom pricing for 10+ creator management
+        """
+        campaign = self.campaigns.create_campaign(
+            name="Content Creator Automation Launch",
+            total_budget=0.0,  # Bootstrap — zero budget, all AI-driven
+            channels=[
+                {"name": "email_outreach", "budget": 0.0},
+                {"name": "social_dm", "budget": 0.0},
+                {"name": "ai_chat_widget", "budget": 0.0},
+                {"name": "referral_program", "budget": 0.0},
+            ],
+            tags=[
+                "launch",
+                "content_creators",
+                "onlyfans",
+                "streaming",
+                "moderation",
+            ],
+        )
+        return {
+            "campaign": campaign.to_dict(),
+            "strategy": {
+                "phase_1": {
+                    "target": "OnlyFans agencies (5-50 creator rosters)",
+                    "channel": "email_outreach",
+                    "message": (
+                        "Automated content moderation + scheduling "
+                        "for your creator roster"
+                    ),
+                    "offer": (
+                        "Free 30-day trial, then 5% rev-share on "
+                        "annual creator subscriptions"
+                    ),
+                    "agent": "outreach_specialist",
+                },
+                "phase_2": {
+                    "target": "Individual OnlyFans operators",
+                    "channel": "social_dm + email",
+                    "message": (
+                        "AI-powered content scheduling, "
+                        "auto-moderation, fan engagement"
+                    ),
+                    "offer": "Free tier (promote Murphy) or $99/mo Pro",
+                    "agent": "outreach_specialist",
+                },
+                "phase_3": {
+                    "target": "Streamers (Twitch, YouTube, Kick)",
+                    "channel": "email + ai_chat_widget",
+                    "message": (
+                        "Automated stream moderation, clip creation, "
+                        "multi-platform scheduling"
+                    ),
+                    "offer": "Free for marketing partnership, Pro $99/mo",
+                    "agent": "vp_marketing",
+                },
+                "phase_4": {
+                    "target": "Content creators (TikTok, Patreon, general)",
+                    "channel": "referral_program + social_dm",
+                    "message": (
+                        "One platform to automate all your content ops"
+                    ),
+                    "offer": (
+                        "5% rev-share referral program + Starter free tier"
+                    ),
+                    "agent": "partnership_manager",
+                },
+            },
+            "pricing_tiers": [
+                {
+                    "name": "Free / Marketing Trade",
+                    "price": "$0",
+                    "terms": (
+                        "Creator promotes Murphy in exchange for service"
+                    ),
+                },
+                {
+                    "name": "Starter (Rev-Share)",
+                    "price": "5% of annual subscriptions locked in",
+                    "terms": (
+                        "1-year commitment, 5% of subscriber revenue"
+                    ),
+                },
+                {
+                    "name": "Pro",
+                    "price": "$99/mo",
+                    "terms": "Full automation suite, priority support",
+                },
+                {
+                    "name": "Agency",
+                    "price": "Custom",
+                    "terms": (
+                        "10+ creators, dedicated account manager, "
+                        "custom integrations"
+                    ),
+                },
+            ],
+        }
+
+    def generate_outreach_sequence(self, target_type="onlyfans_agency"):
+        """Generate an email outreach sequence for a target segment.
+
+        Returns a list of email templates that the Outreach Specialist
+        shadow agent will send one at a time, waiting for responses.
+        """
+        sequences = {
+            "onlyfans_agency": [
+                {
+                    "step": 1,
+                    "delay_days": 0,
+                    "subject": (
+                        "Automate content moderation for your creator roster"
+                    ),
+                    "body": (
+                        "Hi {{agency_name}},\n\n"
+                        "I'm Corey from Inoni — we built Murphy System, "
+                        "an AI automation platform that handles content "
+                        "moderation, scheduling, and fan engagement for "
+                        "creator agencies.\n\n"
+                        "Our clients automate:\n"
+                        "• Content moderation (AI-powered, 24/7)\n"
+                        "• Multi-platform scheduling "
+                        "(OnlyFans, Fansly, social)\n"
+                        "• Fan message automation with personalized "
+                        "responses\n"
+                        "• Revenue tracking across all creators\n\n"
+                        "We're offering agencies a free 30-day trial. "
+                        "After that, it's just 5% of the annual "
+                        "subscription revenue from creators you onboard "
+                        "— only when they commit to a year.\n\n"
+                        "Would you be open to a quick demo?\n\n"
+                        "Best,\nCorey Post\nFounder, Inoni LLC"
+                    ),
+                    "agent": "outreach_specialist",
+                },
+                {
+                    "step": 2,
+                    "delay_days": 3,
+                    "subject": (
+                        "Re: Content moderation automation for "
+                        "{{agency_name}}"
+                    ),
+                    "body": (
+                        "Hi {{agency_name}},\n\n"
+                        "Just following up — wanted to share a quick "
+                        "stat: agencies using automated moderation save "
+                        "15+ hours/week per creator on manual content "
+                        "review.\n\n"
+                        "Murphy handles it all: flagging, scheduling, "
+                        "fan engagement, compliance checks — and it "
+                        "learns your preferences over time.\n\n"
+                        "Happy to show you a 15-min demo whenever "
+                        "works.\n\n"
+                        "Corey"
+                    ),
+                    "agent": "outreach_specialist",
+                },
+                {
+                    "step": 3,
+                    "delay_days": 7,
+                    "subject": (
+                        "Last note — free automation for your agency"
+                    ),
+                    "body": (
+                        "Hi {{agency_name}},\n\n"
+                        "Last reach-out — I know you're busy. If "
+                        "content moderation and scheduling automation "
+                        "isn't a priority right now, no worries.\n\n"
+                        "If it ever becomes one, we're at "
+                        "murphy.inoni.com. The free trial is always "
+                        "available.\n\n"
+                        "Cheers,\nCorey"
+                    ),
+                    "agent": "outreach_specialist",
+                },
+            ],
+            "individual_creator": [
+                {
+                    "step": 1,
+                    "delay_days": 0,
+                    "subject": (
+                        "Free AI assistant for your content workflow"
+                    ),
+                    "body": (
+                        "Hey {{creator_name}},\n\n"
+                        "I built Murphy — an AI tool that automates "
+                        "content moderation, scheduling, and fan "
+                        "engagement for creators.\n\n"
+                        "It's free if you're willing to mention us in "
+                        "a post. Or $99/mo for the full Pro suite.\n\n"
+                        "Want to try it? Takes 5 minutes to set up."
+                        "\n\nCorey\nInoni LLC"
+                    ),
+                    "agent": "outreach_specialist",
+                },
+                {
+                    "step": 2,
+                    "delay_days": 4,
+                    "subject": "Re: Free content automation tool",
+                    "body": (
+                        "Hey {{creator_name}},\n\n"
+                        "Quick follow-up — Murphy can auto-moderate "
+                        "comments, schedule posts across platforms, "
+                        "and even handle fan DMs with AI-personalized "
+                        "responses.\n\n"
+                        "Free tier available. Let me know if you want "
+                        "a walkthrough.\n\nCorey"
+                    ),
+                    "agent": "outreach_specialist",
+                },
+            ],
+            "streamer": [
+                {
+                    "step": 1,
+                    "delay_days": 0,
+                    "subject": (
+                        "AI-powered stream moderation + "
+                        "multi-platform automation"
+                    ),
+                    "body": (
+                        "Hey {{streamer_name}},\n\n"
+                        "I'm Corey from Inoni. We built Murphy — an "
+                        "automation platform that handles stream "
+                        "moderation, clip creation, and multi-platform "
+                        "scheduling.\n\n"
+                        "Works with Twitch, YouTube, Kick, and more. "
+                        "Free if you're down to partner on marketing."
+                        "\n\nInterested?\n\nCorey"
+                    ),
+                    "agent": "outreach_specialist",
+                },
+            ],
+        }
+        return sequences.get(target_type, sequences["individual_creator"])
+
+    def handle_response(self, lead_email, response_text):
+        """Route an inbound response to the appropriate shadow agent.
+
+        The AI Communications Agent processes the response, qualifies
+        intent, and routes to the right agent:
+        - Interested → VP Sales (schedule demo)
+        - Questions → Customer Success (answer questions)
+        - Not interested → Log and move on
+        - Pricing questions → CRO (pricing negotiation)
+        """
+        lower = response_text.lower()
+
+        if any(
+            w in lower
+            for w in (
+                "not interested", "unsubscribe", "stop", "no thanks",
+            )
+        ):
+            return {
+                "action": "close_lead",
+                "agent": "outreach_specialist",
+                "response": (
+                    "Understood — removed from outreach. Best of luck!"
+                ),
+                "status": "closed_not_interested",
+            }
+
+        if any(
+            w in lower
+            for w in (
+                "demo", "show me", "interested", "let's talk",
+                "tell me more", "set up", "try it",
+            )
+        ):
+            return {
+                "action": "schedule_demo",
+                "agent": "vp_sales",
+                "response": (
+                    "Great to hear! I'd love to show you what Murphy "
+                    "can do. Are you free for a 15-minute demo this "
+                    "week? Pick a time that works: [calendar_link]"
+                ),
+                "status": "demo_requested",
+            }
+
+        if any(
+            w in lower
+            for w in (
+                "price", "cost", "how much", "pricing",
+                "budget", "afford",
+            )
+        ):
+            return {
+                "action": "pricing_discussion",
+                "agent": "chief_revenue_officer",
+                "response": (
+                    "Happy to walk through pricing. We have a few "
+                    "options:\n\n"
+                    "• Free tier — trade services for a marketing "
+                    "mention\n"
+                    "• Starter — 5% rev-share on annual subscriber "
+                    "revenue\n"
+                    "• Pro — $99/mo flat rate\n"
+                    "• Agency — custom pricing for 10+ creators\n\n"
+                    "Which sounds closest to what you need?"
+                ),
+                "status": "pricing_inquiry",
+            }
+
+        if any(
+            w in lower
+            for w in (
+                "how", "what", "does it", "can it",
+                "support", "help",
+            )
+        ):
+            return {
+                "action": "answer_questions",
+                "agent": "customer_success_manager",
+                "response": (
+                    "Great question! Let me help. Murphy handles:\n\n"
+                    "• AI content moderation (24/7 automated)\n"
+                    "• Multi-platform scheduling\n"
+                    "• Fan engagement automation\n"
+                    "• Revenue tracking and analytics\n\n"
+                    "What specific area are you most interested in?"
+                ),
+                "status": "questions",
+            }
+
+        return {
+            "action": "clarify",
+            "agent": "ai_communications",
+            "response": (
+                "Thanks for getting back to us! To make sure I point "
+                "you to the right person — are you looking to:\n\n"
+                "1. See a demo of the platform?\n"
+                "2. Learn about pricing?\n"
+                "3. Ask technical questions?\n\n"
+                "Just reply with a number or describe what you need."
+            ),
+            "status": "awaiting_clarification",
+        }
