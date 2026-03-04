@@ -512,9 +512,16 @@ class ComputeService:
             self.pending_requests.clear()
             self._execution_executor.shutdown(wait=False, cancel_futures=True)
 
-    def __del__(self):
+    def close(self) -> None:
+        """Release resources. Prefer using as a context manager."""
         try:
             self.shutdown()
         except Exception as exc:
-            logger.debug("Suppressed exception: %s", exc)
-            pass
+            logger.debug("Suppressed: %s", exc)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False

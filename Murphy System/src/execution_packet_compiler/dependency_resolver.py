@@ -17,7 +17,10 @@ from .models import (
 # Import from confidence engine
 import sys
 import os
+import logging
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+logger = logging.getLogger(__name__)
 
 from confidence_engine.models import (
     ArtifactGraph,
@@ -238,8 +241,8 @@ class DependencyResolver:
         if 'step_type' in content:
             try:
                 return StepType(content['step_type'])
-            except ValueError:
-                pass
+            except ValueError as exc:
+                logger.debug("Suppressed %s: %s", type(exc).__name__, exc)  # noqa: E501
         
         # Infer from content
         if 'api_endpoint' in content or 'api_call' in content:
