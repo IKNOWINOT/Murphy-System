@@ -5,11 +5,14 @@ Encrypts and manages API keys using Fernet symmetric encryption
 
 import os
 import json
+import logging
 from typing import List, Tuple, Optional
 from pathlib import Path
 from cryptography.fernet import Fernet
 import base64
 import hashlib
+
+logger = logging.getLogger(__name__)
 
 
 class SecureKeyManager:
@@ -65,8 +68,7 @@ class SecureKeyManager:
                 f.write(f"# Master encryption key (DO NOT COMMIT)\n")
                 f.write(f"MURPHY_MASTER_KEY={new_key.decode()}\n")
         
-        print(f"⚠️  Generated new master key and saved to .env")
-        print(f"⚠️  IMPORTANT: Back up your .env file securely!")
+        logger.info("Generated new master key and saved to .env")
         
         return new_key
     
@@ -94,7 +96,7 @@ class SecureKeyManager:
         with open(self.encrypted_keys_path, 'w') as f:
             json.dump(encrypted_data, f, indent=2)
         
-        print(f"✅ Encrypted and stored {len(keys)} API keys")
+        logger.info("Encrypted and stored %d API keys", len(keys))
         
         # Clear cache
         self._cached_keys = None
@@ -134,12 +136,11 @@ class SecureKeyManager:
                 # Verify hash (optional security check)
                 key_hash = hashlib.sha256(decrypted_key.encode()).hexdigest()[:16]
                 if key_hash != entry['key_hash']:
-                    print(f"⚠️  Warning: Hash mismatch for key '{entry['name']}'")
-                
+                    logger.warning("Hash mismatch for key '%s'", entry['name'])                
                 decrypted_keys.append((entry['name'], decrypted_key))
             
             except Exception as e:
-                print(f"❌ Failed to decrypt key '{entry['name']}': {e}")
+                logger.error("Failed to decrypt key '%s': %s", entry['name'], e)
                 continue
         
         # Cache the decrypted keys
@@ -154,7 +155,7 @@ class SecureKeyManager:
         Args:
             plaintext_file: Path to plaintext keys file
         """
-        print(f"🔄 Migrating keys from {plaintext_file}...")
+        logger.info("Migrating keys from %s", plaintext_file)
         
         keys = []
         with open(plaintext_file, 'r') as f:
@@ -175,9 +176,8 @@ class SecureKeyManager:
         # Encrypt and store
         self.encrypt_and_store_keys(keys)
         
-        print(f"✅ Migration complete: {len(keys)} keys encrypted")
-        print(f"⚠️  IMPORTANT: Delete the plaintext file: {plaintext_file}")
-        print(f"⚠️  IMPORTANT: Add to .gitignore if not already present")
+        logger.info("Migration complete: %d keys encrypted", len(keys))
+        logger.warning("Delete the plaintext file: %s", plaintext_file)
     
     def add_key(self, name: str, api_key: str):
         """
@@ -196,7 +196,7 @@ class SecureKeyManager:
         # Re-encrypt and store all keys
         self.encrypt_and_store_keys(existing_keys)
         
-        print(f"✅ Added key: {name}")
+        logger.info("Added key: %s", name)
     
     def remove_key(self, name: str):
         """
@@ -212,13 +212,13 @@ class SecureKeyManager:
         filtered_keys = [(n, k) for n, k in existing_keys if n != name]
         
         if len(filtered_keys) == len(existing_keys):
-            print(f"⚠️  Key not found: {name}")
+            logger.warning("Key not found: %s", name)
             return
         
         # Re-encrypt and store remaining keys
         self.encrypt_and_store_keys(filtered_keys)
         
-        print(f"✅ Removed key: {name}")
+        logger.info("Removed key: %s", name)
     
     def list_keys(self) -> List[str]:
         """
@@ -245,7 +245,7 @@ class SecureKeyManager:
             
             return decrypted == test_data
         except Exception as e:
-            print(f"❌ Encryption verification failed: {e}")
+            logger.error("Encryption verification failed: %s", e)
             return False
 
 

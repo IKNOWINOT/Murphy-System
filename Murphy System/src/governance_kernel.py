@@ -71,6 +71,9 @@ class GovernanceKernel:
     memory isolation, cross-department arbitration, and audit logging.
     """
 
+    _MAX_AUDIT_ENTRIES = 10_000
+    _MAX_EXECUTIONS = 10_000
+
     def __init__(self, strict_mode: bool = False) -> None:
         self._lock = threading.Lock()
         self._strict_mode = strict_mode
@@ -200,25 +203,47 @@ class GovernanceKernel:
         tool_name: str,
         cost: float,
         success: bool,
+        department_id: Optional[str] = None,
     ) -> None:
-        """Record a completed tool execution for budget and audit purposes."""
+        """Record a completed tool execution for budget and audit purposes.
+
+        Args:
+            caller_id: Identifier of the caller.
+            tool_name: Name of the tool that was executed.
+            cost: Actual cost incurred.
+            success: Whether the execution succeeded.
+            department_id: Department whose budget should be debited.
+                When provided the cost is applied to the matching department
+                budget.  When *None* (legacy callers) the first budget with
+                sufficient pending amount is used as a fallback.
+        """
         with self._lock:
+            if len(self._executions) >= self._MAX_EXECUTIONS:
+                self._executions = self._executions[self._MAX_EXECUTIONS // 10:]
             record = {
                 "record_id": uuid.uuid4().hex[:12],
                 "caller_id": caller_id,
                 "tool_name": tool_name,
                 "cost": cost,
                 "success": success,
+                "department_id": department_id,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
             self._executions.append(record)
 
-            # update budgets that have pending cost from this tool
-            for budget in self._budgets.values():
-                if budget.pending >= cost:
+            # Debit the correct department budget
+            if department_id is not None:
+                budget = self._budgets.get(department_id)
+                if budget is not None and budget.pending >= cost:
                     budget.pending -= cost
                     budget.spent += cost
-                    break
+            else:
+                # Legacy fallback: first budget with sufficient pending
+                for budget in self._budgets.values():
+                    if budget.pending >= cost:
+                        budget.pending -= cost
+                        budget.spent += cost
+                        break
 
         logger.info(
             "Recorded execution: caller=%s tool=%s cost=%.4f success=%s",
@@ -421,6 +446,8 @@ class GovernanceKernel:
         context: Dict[str, Any],
     ) -> None:
         """Append an audit entry. Must be called under lock."""
+        if len(self._audit_log) >= self._MAX_AUDIT_ENTRIES:
+            self._audit_log = self._audit_log[self._MAX_AUDIT_ENTRIES // 10:]
         self._audit_log.append({
             "event": "enforcement",
             "caller_id": caller_id,
