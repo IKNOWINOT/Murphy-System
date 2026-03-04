@@ -20,6 +20,7 @@ License: Apache License 2.0
 
 from __future__ import annotations
 
+import collections
 import logging
 import threading
 import time
@@ -131,8 +132,10 @@ class HealthMonitor:
     def __init__(self, event_backbone=None) -> None:
         self._lock = threading.Lock()
         self._checks: Dict[str, HealthCheckFn] = {}
-        self._history: List[HealthReport] = []
         self._max_history = 100
+        self._history: collections.deque[HealthReport] = collections.deque(
+            maxlen=self._max_history
+        )
         self._event_backbone = event_backbone
 
     # ------------------------------------------------------------------
@@ -200,8 +203,6 @@ class HealthMonitor:
 
         with self._lock:
             self._history.append(report)
-            if len(self._history) > self._max_history:
-                self._history = self._history[-self._max_history:]
 
         # [OBS-002] Publish to EventBackbone
         if self._event_backbone is not None:
@@ -233,7 +234,7 @@ class HealthMonitor:
     def get_history(self, limit: int = 10) -> List[Dict[str, Any]]:
         """Return recent health reports as dicts."""
         with self._lock:
-            recent = self._history[-limit:]
+            recent = list(self._history)[-limit:]
         return [r.to_dict() for r in recent]
 
     def get_status(self) -> Dict[str, Any]:

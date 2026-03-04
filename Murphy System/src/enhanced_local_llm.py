@@ -4,8 +4,10 @@ Replicates mock function outputs with similar quality and structure
 """
 
 import re
+import ast
 import math
 import json
+import operator
 from typing import Dict, Any, List, Tuple, Optional
 from datetime import datetime
 
@@ -394,7 +396,7 @@ class EnhancedLocalLLM:
         return None
     
     def _solve_arithmetic(self, match: re.Match, original_prompt: str) -> Dict[str, Any]:
-        """Solve arithmetic problems"""
+        """Solve arithmetic problems using a safe AST-based evaluator."""
         try:
             # Extract the expression
             expression = match.group(2) if len(match.groups()) >= 2 else match.group(0)
@@ -403,8 +405,8 @@ class EnhancedLocalLLM:
             expression = expression.replace('what is', '').strip()
             expression = re.sub(r'[^\d+\-*/().\s^]', '', expression)
             
-            # Evaluate safely
-            result = eval(expression)
+            # Evaluate safely — no eval(); walk the AST instead
+            result = self._safe_eval_arithmetic(expression)
             
             response = f"""
 **Mathematical Calculation**
@@ -433,9 +435,54 @@ class EnhancedLocalLLM:
                     "result_type": type(result).__name__
                 }
             }
-        except:
+        except Exception:
             return None
-    
+
+    # -- Safe arithmetic evaluator (replaces eval) ---------------------------
+
+    _SAFE_OPS = {
+        ast.Add: operator.add,
+        ast.Sub: operator.sub,
+        ast.Mult: operator.mul,
+        ast.Div: operator.truediv,
+        ast.Pow: operator.pow,
+        ast.USub: operator.neg,
+        ast.UAdd: operator.pos,
+    }
+
+    def _safe_eval_arithmetic(self, expression: str):
+        """Evaluate a numeric arithmetic expression without ``eval()``.
+
+        Only literal numbers and the operators ``+ - * / ** ^`` are
+        permitted.  Raises ``ValueError`` for anything else.
+        """
+        # Treat ``^`` as exponentiation (common user expectation)
+        expression = expression.replace("^", "**")
+        node = ast.parse(expression.strip(), mode="eval")
+        return self._safe_eval_node(node.body)
+
+    def _safe_eval_node(self, node):
+        if isinstance(node, ast.Expression):
+            return self._safe_eval_node(node.body)
+        if isinstance(node, (ast.Constant,)):
+            if isinstance(node.value, (int, float)):
+                return node.value
+            raise ValueError(f"Unsupported constant type: {type(node.value)}")
+        if isinstance(node, ast.UnaryOp):
+            op_fn = self._SAFE_OPS.get(type(node.op))
+            if op_fn is None:
+                raise ValueError(f"Unsupported unary op: {type(node.op).__name__}")
+            return op_fn(self._safe_eval_node(node.operand))
+        if isinstance(node, ast.BinOp):
+            op_fn = self._SAFE_OPS.get(type(node.op))
+            if op_fn is None:
+                raise ValueError(f"Unsupported binary op: {type(node.op).__name__}")
+            return op_fn(
+                self._safe_eval_node(node.left),
+                self._safe_eval_node(node.right),
+            )
+        raise ValueError(f"Unsupported AST node: {type(node).__name__}")
+
     def _simplify_expression(self, match: re.Match, original_prompt: str) -> Optional[Dict[str, Any]]:
         """Simplify mathematical expressions"""
         expression = match.group(1)
