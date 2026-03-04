@@ -286,6 +286,7 @@ class _IntegrationInstance:
                     latency_seconds=time.time() - start,
                 )
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 self.record_request(False)
                 return ActionResult(
                     action_name=action_name,

@@ -110,6 +110,7 @@ class PacketSealer:
             return True, signature, []
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             errors.append(f"Failed to seal packet: {str(exc)}")
             return False, "", errors
 

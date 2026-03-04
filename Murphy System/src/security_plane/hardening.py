@@ -298,6 +298,7 @@ class ValidationRule:
         try:
             return base64.b64decode(value, validate=True)
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             raise ValidationError(f"{field_name} is not valid base64: {exc}")
 
     def _validate_uuid(self, value: Any, field_name: str) -> str:

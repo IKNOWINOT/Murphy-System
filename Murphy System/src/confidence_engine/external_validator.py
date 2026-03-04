@@ -118,6 +118,7 @@ class CredentialValidator(ExternalValidator):
             return result
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return ValidationResult(
                 validation_type=ValidationType.CREDENTIAL,
                 status=ValidationStatus.ERROR,
@@ -166,6 +167,7 @@ class DataSourceValidator(ExternalValidator):
             )
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return ValidationResult(
                 validation_type=ValidationType.DATA_SOURCE,
                 status=ValidationStatus.ERROR,
@@ -213,6 +215,7 @@ class DomainExpertValidator(ExternalValidator):
             )
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return ValidationResult(
                 validation_type=ValidationType.DOMAIN_EXPERT,
                 status=ValidationStatus.ERROR,

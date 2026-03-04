@@ -82,6 +82,7 @@ class NumericSolver:
             }
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
                 'result': None,
                 'error': str(exc),

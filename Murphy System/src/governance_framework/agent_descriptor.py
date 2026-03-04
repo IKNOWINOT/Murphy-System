@@ -409,6 +409,7 @@ class AgentDescriptorValidator:
                 rule_errors = rule(descriptor)
                 errors.extend(rule_errors)
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 errors.append(f"Validation rule error: {str(exc)}")
 
         is_valid = len(errors) == 0

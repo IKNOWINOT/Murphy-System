@@ -271,6 +271,7 @@ class CrossPlatformDataSync:
                 try:
                     source_data = read_fn(mapping.entity_type)
                 except Exception as exc:
+                    logger.debug("Caught exception: %s", exc)
                     log_entry = {
                         "mapping_id": mapping.mapping_id,
                         "status": "error",

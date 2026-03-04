@@ -253,6 +253,7 @@ class IntegrationFramework:
             return result
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             integration.failed_calls += 1
             integration.last_error = str(exc)
 

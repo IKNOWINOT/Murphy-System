@@ -85,6 +85,7 @@ class ShutdownManager:
             try:
                 handler()
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 exc_holder[0] = exc
 
         t = threading.Thread(target=target, daemon=True)

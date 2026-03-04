@@ -220,6 +220,7 @@ class RosettaStoneHeartbeat:
                             "ack": ack,
                         })
                     except Exception as exc:
+                        logger.debug("Caught exception: %s", exc)
                         tier_state.status = PulseStatus.FAILED
                         tier_state.missed_count += 1
                         propagation_results.append({

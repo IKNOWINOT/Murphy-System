@@ -183,6 +183,7 @@ class TaskExecutor:
 
         except Exception as exc:
             # Record failure
+            logger.debug("Caught exception: %s", exc)
             self._record_task({
                 "success": False,
                 "tool_used": best_tool,

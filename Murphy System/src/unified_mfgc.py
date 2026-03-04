@@ -1323,6 +1323,7 @@ EXECUTE NOW and provide the complete deliverable."""
                         'unknowns_remaining': unknowns_count
                     }
                 except Exception as exc:
+                    logger.debug("Caught exception: %s", exc)
                     return {
                         'content': f"Error executing task: {str(exc)}",
                         'confidence': 0.3,
@@ -1394,6 +1395,7 @@ Make questions specific and actionable."""
                         'band': 'conversational'
                     }
                 except Exception as exc:
+                    logger.debug("Caught exception: %s", exc)
                     return {
                         'content': f"Error generating questions: {str(exc)}",
                         'confidence': confidence,

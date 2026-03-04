@@ -232,6 +232,7 @@ class ComputeService:
             try:
                 thread.start()
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 self.pending_requests.pop(request.request_id, None)
                 result = ComputeResult(
                     request_id=request.request_id,
@@ -342,6 +343,7 @@ class ComputeService:
             result.execution_time = time.time() - start_time
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             result = ComputeResult(
                 request_id=request.request_id,
                 status=ComputeStatus.FAIL,

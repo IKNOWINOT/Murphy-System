@@ -154,6 +154,7 @@ def validate_output(
             validated_object=obj,
         )
     except Exception as exc:  # pydantic.ValidationError or TypeError
+        logger.debug("Caught exception: %s", exc)
         return ValidationResult(
             is_valid=False,
             schema_name=schema_name,

@@ -180,6 +180,7 @@ class ContinuousComplianceMonitor:
                     result = sensor.check_fn(config or {})
                     compliant = result.get("compliant", True)
                 except Exception as exc:
+                    logger.debug("Caught exception: %s", exc)
                     result = {"compliant": False, "error": str(exc)}
                     compliant = False
             else:
@@ -454,6 +455,7 @@ class AutomatedRemediationEngine:
                 self._remediation_log.append(entry)
                 return entry
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 entry = {
                     "remediation_id": str(uuid.uuid4()),
                     "action": action,

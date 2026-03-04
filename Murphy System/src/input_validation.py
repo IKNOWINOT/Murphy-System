@@ -338,6 +338,7 @@ def validate_input(data: dict, schema_class: type[BaseModel]) -> tuple[bool, Opt
         return (True, validated, None)
 
     except Exception as exc:
+        logger.debug("Caught exception: %s", exc)
         error_msg = str(exc)
         return (False, None, error_msg)
 

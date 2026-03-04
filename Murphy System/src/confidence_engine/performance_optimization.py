@@ -208,6 +208,7 @@ class ParallelProcessor:
         except asyncio.TimeoutError:
             return False, None
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return False, str(exc)
 
 
@@ -489,6 +490,7 @@ class PerformanceBenchmark:
                 else:
                     func(*args, **kwargs)
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             success = False
             error = str(exc)
 

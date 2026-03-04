@@ -111,6 +111,7 @@ def create_api() -> Blueprint:
             }), 200
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return jsonify({
                 'status': 'error',
                 'message': str(exc)
@@ -188,6 +189,7 @@ def create_api() -> Blueprint:
             }), 200
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return jsonify({
                 'status': 'error',
                 'message': str(exc)
@@ -234,6 +236,7 @@ def create_api() -> Blueprint:
             }), 200
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return jsonify({
                 'status': 'error',
                 'message': str(exc)
@@ -268,6 +271,7 @@ def create_api() -> Blueprint:
             }), 200
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return jsonify({
                 'status': 'error',
                 'message': str(exc)
@@ -302,6 +306,7 @@ def create_api() -> Blueprint:
             }), 200
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return jsonify({
                 'status': 'error',
                 'message': str(exc)
@@ -346,6 +351,7 @@ def create_api() -> Blueprint:
             }), 200
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return jsonify({
                 'status': 'error',
                 'message': str(exc)
@@ -380,6 +386,7 @@ def create_api() -> Blueprint:
             }), 200
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return jsonify({
                 'status': 'error',
                 'message': str(exc)
@@ -408,6 +415,7 @@ def create_api() -> Blueprint:
             }), 200
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return jsonify({
                 'status': 'error',
                 'message': str(exc)
@@ -439,6 +447,7 @@ def create_api() -> Blueprint:
             }), 200
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return jsonify({
                 'status': 'unhealthy',
                 'error': str(exc)

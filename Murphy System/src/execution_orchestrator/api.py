@@ -340,6 +340,7 @@ def _execute_packet_async(packet: Dict, execution_state: ExecutionState):
         )
 
     except Exception as exc:
+        logger.debug("Caught exception: %s", exc)
         execution_state.status = ExecutionStatus.FAILED
         execution_state.error = str(exc)
         execution_state.end_time = datetime.now()

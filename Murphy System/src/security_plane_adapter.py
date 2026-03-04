@@ -131,6 +131,7 @@ class SecurityPlaneAdapter:
             return True, None
         except Exception as exc:
             # Log the validation failure
+            logger.debug("Caught exception: %s", exc)
             self._log_security_event("validation_failed", {
                 "field": field_name,
                 "error": str(exc)
@@ -164,6 +165,7 @@ class SecurityPlaneAdapter:
             input_type_enum = type_map.get(input_type, InputType.STRING)
             return sanitize_input(value, input_type_enum)
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             self._log_security_event("sanitize_failed", {
                 "error": str(exc)
             })

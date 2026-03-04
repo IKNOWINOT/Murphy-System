@@ -227,6 +227,7 @@ class CredentialVerifier:
             return result
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return CredentialVerificationResult(
                 credential_id=credential_id,
                 is_valid=False,

@@ -656,6 +656,7 @@ class RealTimeDashboard:
                 try:
                     d["data"] = providers[w.data_source]()
                 except Exception as exc:
+                    logger.debug("Caught exception: %s", exc)
                     d["data"] = {"error": str(exc)}
             result_widgets.append(d)
 

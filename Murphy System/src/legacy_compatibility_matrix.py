@@ -173,6 +173,7 @@ class LegacyCompatibilityMatrixAdapter:
                 "timestamp": timestamp,
             }
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             result = {
                 "status": "error",
                 "source": source,

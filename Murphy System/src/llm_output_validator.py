@@ -292,6 +292,7 @@ class LLMOutputValidator:
                 obj = model_cls(**{k: raw_output.get(k, getattr(model_cls, k, None)) for k in required})
                 return True, obj, []
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 return False, None, [str(exc)]
 
 

@@ -28,6 +28,7 @@ class GovernanceAPI:
                 "data": status
             }
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
                 "success": False,
                 "error": str(exc)
@@ -48,6 +49,7 @@ class GovernanceAPI:
                 }
             }
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
                 "success": False,
                 "error": str(exc)
@@ -62,6 +64,7 @@ class GovernanceAPI:
                 "data": result
             }
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
                 "success": False,
                 "error": str(exc)
@@ -76,6 +79,7 @@ class GovernanceAPI:
                 "data": validation_output
             }
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
                 "success": False,
                 "error": str(exc)
@@ -102,6 +106,7 @@ class GovernanceAPI:
                 "data": preset_data
             }
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
                 "success": False,
                 "error": str(exc)
@@ -116,6 +121,7 @@ class GovernanceAPI:
                 "data": result
             }
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
                 "success": False,
                 "error": str(exc)

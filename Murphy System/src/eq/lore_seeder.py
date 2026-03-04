@@ -205,6 +205,7 @@ class LoreSeeder:
             try:
                 self._process_npc(npc, result)
             except Exception as exc:  # noqa: BLE001
+                logger.debug("Caught exception: %s", exc)
                 result.errors.append(f"NPC {npc.npc_id} ({npc.name}): {exc}")
 
         return result

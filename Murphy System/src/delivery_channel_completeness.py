@@ -220,6 +220,7 @@ class RetryManager:
                     "result": result,
                 }
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 last_error = exc
                 record = {
                     "attempt": attempt,
@@ -306,6 +307,7 @@ class TemplateRenderingEngine:
                 "variables_used": list(variables.keys()),
             }
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {"success": False, "error": str(exc)}
 
     # -- internal helpers ---------------------------------------------------

@@ -111,6 +111,7 @@ class CommandParser:
                 'command': 'swarmmonitor'
             }
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
                 'content': f'Swarm status not available: {str(exc)}',
                 'band': 'introductory',
@@ -187,6 +188,7 @@ class CommandParser:
                 'command': 'memory'
             }
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
                 'content': f'Memory status not available: {str(exc)}',
                 'band': 'introductory',
@@ -384,6 +386,7 @@ class CommandParser:
                 'confidence': 1.0
             }
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
                 'content': f"Error reading document: {str(exc)}",
                 'is_command': True,

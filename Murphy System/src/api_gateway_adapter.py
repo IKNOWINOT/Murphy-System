@@ -285,6 +285,7 @@ class APIGatewayAdapter:
                     latency_ms=(time.time() - start) * 1000,
                 )
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 self._record_failure(route_state)
                 response = GatewayResponse(
                     request_id=request.request_id,

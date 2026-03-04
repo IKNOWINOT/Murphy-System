@@ -87,6 +87,7 @@ def create_app(compute_service: ComputeService = None) -> Flask:
             }), 202
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return jsonify({'error': str(exc)}), 400
 
     @app.route('/compute/<request_id>', methods=['GET'])
@@ -166,6 +167,7 @@ def create_app(compute_service: ComputeService = None) -> Flask:
             return jsonify(validation), 200
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return jsonify({'error': str(exc)}), 400
 
     @app.route('/statistics', methods=['GET'])

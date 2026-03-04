@@ -129,6 +129,7 @@ class MFGCAdapter:
                     parameters=parameters
                 )
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 if self.config.audit_trail:
                     mfgc_state.log_event("integrator_error", {
                         "error": str(exc),

@@ -279,6 +279,7 @@ class OperationalDashboardAggregator:
                 if status_data.get("system_status") in ("unhealthy", "degraded"):
                     health = ModuleHealth.DEGRADED
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             latency = (time.monotonic() - start) * 1000
             status_data = {}
             health = ModuleHealth.UNREACHABLE
