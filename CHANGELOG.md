@@ -8,6 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **25-category code-quality audit** (rounds 3–12) — systematic static analysis across all 583 source files:
+  - 01-bare_except, 02-http_timeout, 03-pickle, 04-eval, 05-yaml, 06-shell_true, 07-div_by_zero, 08-unbounded_append, 09-secrets, 10-syntax, 11-wildcard_imports, 12-asserts, 13-mutable_defaults, 14-silent_swallow, 15-sensitive_logs, 16-unreachable_code, 17-duplicate_methods, 18-nested_try, 19-exception_naming, 20-except_without_as, 21-write_encoding, 22-init_all, 23-unused_except_var, 24-read_encoding, 25-super_init
+  - 118 gap-closure tests verifying all categories remain at zero
+- **`__all__` exports** in `eq/__init__.py`, `rosetta/__init__.py`, `comms_system/__init__.py`
+
+### Fixed
+- **26 silent exception swallows** — added `logger.debug()` before `pass`/`continue`
+- **44 `except Exception:` without `as`** — added `as exc` clause
+- **328 inconsistent exception variables** — renamed `as e:` → `as exc:` across 121 files
+- **47 unused exception variables** — added `logger.debug("Suppressed: %s", exc)`
+- **5 unreachable code blocks** — removed dead code after `return`
+- **2 duplicate method definitions** — removed shadowed first definitions
+- **1 deeply nested try (depth ≥ 3)** — extracted helper method
+- **1 sensitive-data log** — log `type(exc).__name__` only
+- **50 `open()` calls without `encoding=`** — added `encoding='utf-8'` (24 write, 26 read)
+- **1 `== False` comparison** — replaced with `not x`
+- **5 missing `super().__init__()`** in delivery adapter subclasses
+- **`from __future__` ordering** in self_automation_orchestrator.py
+
+### Changed
+- **README.md** — updated stats (583 source files, 7,924 tests, 345 test files), added code-quality audit row to completion table, updated badges
+- **GETTING_STARTED.md** — updated "What Works" and "What's Included" sections with actual metrics
 - **Account Management System** (`src/account_management/`) — complete account lifecycle with OAuth, credential vault, consent-based import, and self-ticketing
   - `models.py` — OAuthProvider (Microsoft/Google/Meta/GitHub/Custom), AccountRecord, OAuthToken, StoredCredential, ConsentRecord, AccountEvent with 16 event types
   - `oauth_provider_registry.py` — OAuth authorization flows with PKCE, state management, profile normalization per provider, token lifecycle
