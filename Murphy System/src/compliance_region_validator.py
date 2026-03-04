@@ -16,6 +16,7 @@ import logging
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -366,7 +367,7 @@ class ComplianceRegionValidator:
             "result": result,
             "recorded_at": datetime.now(timezone.utc).isoformat(),
         }
-        self._validation_history.append(record)
+        capped_append(self._validation_history, record)
         logger.info("Recorded validation %s for region %s", record_id, region)
         return record_id
 

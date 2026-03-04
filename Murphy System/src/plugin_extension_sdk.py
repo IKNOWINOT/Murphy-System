@@ -14,6 +14,7 @@ import time
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
+from thread_safe_operations import capped_append
 
 
 class PluginState(Enum):
@@ -111,7 +112,7 @@ class PluginSandbox:
                     "error": "rate_limit_exceeded",
                     "plugin": self.manifest.name,
                 }
-            self._call_timestamps.append(now)
+            capped_append(self._call_timestamps, now)
 
         start = time.monotonic()
         try:
@@ -415,4 +416,4 @@ class PluginExtensionSDK:
         }
         if extra:
             event.update(extra)
-        self._event_log.append(event)
+        capped_append(self._event_log, event)

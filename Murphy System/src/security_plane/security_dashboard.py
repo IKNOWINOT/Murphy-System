@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -176,7 +177,7 @@ class SecurityDashboard:
                 self._events = self._events[-self._max_events:]
             group = self._correlate_event(event)
             if group is not None:
-                self._correlated_groups.append(group)
+                capped_append(self._correlated_groups, group)
         logger.info("Recorded event %s [%s/%s] from %s", event.event_id,
                      event.event_type.value, event.escalation_level.value,
                      event.source_module)

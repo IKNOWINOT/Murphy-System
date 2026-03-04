@@ -235,7 +235,7 @@ class MurphyCalculator:
                     unresolved_count += 1
                     break
         
-        unresolved_ratio = unresolved_count / len(graph.nodes)
+        unresolved_ratio = unresolved_count / (len(graph.nodes) or 1)
         
         return unresolved_ratio
     

@@ -18,6 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple
+from thread_safe_operations import capped_append
 
 
 # ---------------------------------------------------------------------------
@@ -247,7 +248,7 @@ class FactionManager:
             defender_faction=defender_id,
             reason=reason,
         )
-        self._wars.append(war)
+        capped_append(self._wars, war)
         agg.at_war_with.add(defender_id)
         dfn.at_war_with.add(aggressor_id)
         return war

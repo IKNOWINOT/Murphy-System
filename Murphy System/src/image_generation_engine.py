@@ -32,6 +32,7 @@ import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -479,7 +480,7 @@ class ImageGenerationEngine:
                 self._error_count += 1
             if len(self._history) >= self.MAX_HISTORY:
                 self._history.pop(0)
-            self._history.append(result.to_dict())
+            capped_append(self._history, result.to_dict())
 
         return result
 

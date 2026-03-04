@@ -119,7 +119,7 @@ class DecisionHistory:
         
         return {
             'count': len(outcomes),
-            'success_rate': successes / len(outcomes),
+            'success_rate': successes / (len(outcomes) or 1),
             'average_utility': statistics.mean(utilities),
             'average_confidence': statistics.mean(confidences)
         }
@@ -180,7 +180,7 @@ class PolicyManager:
             policy.action_utilities[action] = new_utility
             
             # Update average utility
-            policy.average_utility = sum(policy.action_utilities.values()) / len(policy.action_utilities)
+            policy.average_utility = sum(policy.action_utilities.values()) / (len(policy.action_utilities) or 1)
             
             # Decrease exploration rate over time
             policy.exploration_rate = max(0.01, policy.exploration_rate * 0.999)

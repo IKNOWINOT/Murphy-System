@@ -274,7 +274,7 @@ class RateLimiter:
                           if now - call_time < self.time_window]
             
             if len(self._calls) < self.max_calls:
-                self._calls.append(now)
+                capped_append(self._calls, now)
                 return True
             return False
     

@@ -141,7 +141,7 @@ class RiskLookupService:
         
         # Normalize to 0-10 scale
         if patterns:
-            total_risk_score = min(total_risk_score / len(patterns), 10.0)
+            total_risk_score = min(total_risk_score / (len(patterns) or 1), 10.0)
         
         # Find highest severity
         highest_severity = None
@@ -164,7 +164,7 @@ class RiskLookupService:
         requires_review = self._requires_human_review(patterns, total_risk_score)
         
         # Calculate overall confidence
-        confidence = sum(match.confidence for match in match_results) / len(match_results)
+        confidence = sum(match.confidence for match in match_results) / (len(match_results) or 1)
         
         result = RiskIdentificationResult(
             identified_risks=match_results,
@@ -542,7 +542,7 @@ class RiskLookupAnalyzer:
             "total_risks": len(result.identified_risks),
             "average_match_score": sum(
                 r.match_score for r in result.identified_risks
-            ) / len(result.identified_risks) if result.identified_risks else 0.0
+            ) / (len(result.identified_risks) or 1) if result.identified_risks else 0.0
         }
     
     def _generate_executive_summary(

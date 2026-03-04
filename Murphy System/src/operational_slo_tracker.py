@@ -18,6 +18,7 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from collections import defaultdict
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,7 @@ class OperationalSLOTracker:
         """Record an execution and return a unique record id."""
         record_id = uuid.uuid4().hex[:12]
         with self._lock:
-            self._records.append(record)
+            capped_append(self._records, record)
         logger.info(
             "Recorded execution for task_type=%s success=%s (id=%s)",
             record.task_type, record.success, record_id,
@@ -157,7 +158,7 @@ class OperationalSLOTracker:
         approval_required = [r for r in records if r.required_approval]
         if approval_required:
             approved_count = sum(1 for r in approval_required if r.approved)
-            approval_ratio = approved_count / len(approval_required)
+            approval_ratio = approved_count / (len(approval_required) or 1)
         else:
             approval_ratio = 0.0
 

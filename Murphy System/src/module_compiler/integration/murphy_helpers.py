@@ -429,7 +429,7 @@ class MurphyIntegrationHelper:
         
         # Boost for satisfied gates
         satisfied_gates = [g for g in gates if g.get('satisfied', False)]
-        gate_confidence = len(satisfied_gates) / len(gates) if gates else 0.0
+        gate_confidence = len(satisfied_gates) / (len(gates) or 1) if gates else 0.0
         
         # Combine confidences
         final_confidence = (base_confidence + gate_confidence) / 2

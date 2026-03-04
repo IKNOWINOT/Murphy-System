@@ -472,7 +472,7 @@ class BurstObfuscator:
         
         # Spread packets evenly over time
         duration = timestamps[-1] - timestamps[0]
-        interval = duration / len(packets)
+        interval = duration / (len(packets) or 1)
         
         new_timestamps = [timestamps[0] + i * interval for i in range(len(packets))]
         

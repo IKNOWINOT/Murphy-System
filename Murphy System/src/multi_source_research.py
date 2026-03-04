@@ -305,7 +305,7 @@ class MultiSourceResearcher:
         source_score = min(len(compiled.sources) / 5.0, 1.0)  # Max at 5 sources
         
         # Average trust score
-        avg_trust = sum(s.trust_score for s in compiled.sources) / len(compiled.sources)
+        avg_trust = sum(s.trust_score for s in compiled.sources) / (len(compiled.sources) or 1)
         
         # Fact coverage
         fact_score = min(len(compiled.compiled_facts) / 10.0, 1.0)  # Max at 10 facts

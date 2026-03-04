@@ -18,6 +18,7 @@ import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional
+from thread_safe_operations import capped_append
 
 
 # ---------------------------------------------------------------------------
@@ -182,7 +183,7 @@ class GovernanceLogger:
     def log_action(self, action: str, actor: str, target: str) -> GovernanceLog:
         """Record a governance action and return the log entry."""
         entry = GovernanceLog(action=action, actor=actor, target=target)
-        self._logs.append(entry)
+        capped_append(self._logs, entry)
         return entry
 
     def get_logs(self, actor: Optional[str] = None) -> List[GovernanceLog]:

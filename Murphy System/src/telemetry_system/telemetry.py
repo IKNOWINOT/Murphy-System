@@ -4,6 +4,7 @@ TelemetryCollector - Collects and exposes system metrics, logs, and audit trails
 
 from typing import Dict, Any, List
 from datetime import datetime
+from thread_safe_operations import capped_append
 
 
 class TelemetryCollector:
@@ -30,7 +31,7 @@ class TelemetryCollector:
 
     def log(self, entry: Dict[str, Any]) -> None:
         """Record a log entry."""
-        self._logs.append(entry)
+        capped_append(self._logs, entry)
 
     def get_audit_trail(self, packet_id: str) -> List[Dict[str, Any]]:
         """Return audit trail entries for a given packet."""

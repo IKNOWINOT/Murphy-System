@@ -551,7 +551,7 @@ class MitigationPlanGenerator:
         # Calculate expected risk reduction
         expected_reduction = sum(
             r.estimated_risk_reduction for r in all_recommendations
-        ) / len(all_recommendations) if all_recommendations else 0.0
+        ) / (len(all_recommendations) or 1) if all_recommendations else 0.0
         
         # Determine priority order
         priority_order = [r.id for r in all_recommendations]
@@ -616,7 +616,7 @@ class MitigationPlanGenerator:
         
         expected_reduction = sum(
             r.estimated_risk_reduction for r in optimized_recommendations
-        ) / len(optimized_recommendations) if optimized_recommendations else 0.0
+        ) / (len(optimized_recommendations) or 1) if optimized_recommendations else 0.0
         
         return MitigationPlan(
             plan_id=f"optimized_{plan.plan_id}",

@@ -177,7 +177,7 @@ class ConfidenceCalculator:
             dependents = graph.get_dependents(decision.id)
             branching_factors.append(len(dependents))
         
-        avg_branching = sum(branching_factors) / len(branching_factors) if branching_factors else 0
+        avg_branching = sum(branching_factors) / (len(branching_factors) or 1) if branching_factors else 0
         branching_score = min(1.0, avg_branching / 3.0)  # Expect ~3 alternatives per decision
         
         # Combine

@@ -360,7 +360,7 @@ class PlanDecomposer:
                 "Deployment & release",
             ]
             # Repeat / slice to match desired count
-            phase_list = (default_phases * ((num_tasks // len(default_phases)) + 1))[:num_tasks]
+            phase_list = (default_phases * ((num_tasks // (len(default_phases) or 1)) + 1))[:num_tasks]
             for i, phase in enumerate(phase_list):
                 task = Task(
                     task_id=self._generate_task_id(),
@@ -493,7 +493,7 @@ class PlanDecomposer:
                 priority=TaskPriority.MEDIUM if i < len(templates) // 2 else TaskPriority.HIGH,
                 status=TaskStatus.PENDING,
                 estimated_hours=16.0,
-                estimated_cost=budget / len(templates) if budget else None,
+                estimated_cost=budget / (len(templates) or 1) if budget else None,
                 deliverables=[f"{template} deliverable"]
             )
             tasks.append(task)

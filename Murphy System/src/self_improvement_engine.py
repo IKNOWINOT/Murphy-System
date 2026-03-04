@@ -416,11 +416,11 @@ class SelfImprovementEngine:
         llm_outcomes = [o for o in relevant if o.metrics.get("route") == "llm"]
 
         det_success = (
-            sum(1 for o in det_outcomes if o.outcome == OutcomeType.SUCCESS) / len(det_outcomes)
+            sum(1 for o in det_outcomes if o.outcome == OutcomeType.SUCCESS) / (len(det_outcomes) or 1)
             if det_outcomes else 0.0
         )
         llm_success = (
-            sum(1 for o in llm_outcomes if o.outcome == OutcomeType.SUCCESS) / len(llm_outcomes)
+            sum(1 for o in llm_outcomes if o.outcome == OutcomeType.SUCCESS) / (len(llm_outcomes) or 1)
             if llm_outcomes else 0.0
         )
 
@@ -504,4 +504,4 @@ class SelfImprovementEngine:
 
 def _safe_mean(values: List[float]) -> float:
     """Return the mean of *values*, or 0.0 for an empty list."""
-    return sum(values) / len(values) if values else 0.0
+    return sum(values) / (len(values) or 1) if values else 0.0

@@ -390,7 +390,7 @@ class FeedbackIsolationRouter:
             "allowed_count": allowed,
             "denied_count": denied,
             "violation_count": len(self.violations),
-            "violation_rate": denied / len(self.evaluation_history)
+            "violation_rate": denied / (len(self.evaluation_history) or 1)
         }
     
     def clear_lineage(self):

@@ -312,4 +312,4 @@ class ExternalValidationService:
         
         # Weighted average of confidence scores
         total_confidence = sum(r.confidence for r in valid_results)
-        return total_confidence / len(results)
+        return total_confidence / (len(results) or 1)

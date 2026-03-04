@@ -46,6 +46,7 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -278,7 +279,7 @@ class BugPatternDetector:
 
         with self._lock:
             self._patterns = patterns
-            self._reports.append(report)
+            capped_append(self._reports, report)
 
         # Inject proposals if improvement engine is attached
         if self._improvement is not None:

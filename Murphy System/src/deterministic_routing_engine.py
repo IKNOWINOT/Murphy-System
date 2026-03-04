@@ -18,6 +18,7 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from collections import defaultdict
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -198,7 +199,7 @@ class DeterministicRoutingEngine:
                 "timestamp": decision.timestamp,
                 "status": "routed",
             }
-            self._decisions.append(decision_dict)
+            capped_append(self._decisions, decision_dict)
             self._route_counts[route_type] += 1
             logger.debug("Routed task '%s' → %s", task_type, route_type)
             return decision_dict
@@ -245,7 +246,7 @@ class DeterministicRoutingEngine:
                 "source": "mfgc_fallback",
                 "status": "promoted",
             }
-            self._promotions.append(promotion)
+            capped_append(self._promotions, promotion)
             logger.info("Promoted fallback output for task %s", task_id)
             return promotion
 
@@ -292,8 +293,8 @@ class DeterministicRoutingEngine:
             unique_routes = list(set(route_types))
             parity = len(unique_routes) == 1
             confidences = [d["confidence"] for d in relevant]
-            mean_conf = sum(confidences) / len(confidences)
-            variance = sum((c - mean_conf) ** 2 for c in confidences) / len(confidences)
+            mean_conf = sum(confidences) / (len(confidences) or 1)
+            variance = sum((c - mean_conf) ** 2 for c in confidences) / (len(confidences) or 1)
             return {
                 "task_type": task_type,
                 "parity": parity,

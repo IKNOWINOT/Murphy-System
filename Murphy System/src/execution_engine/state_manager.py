@@ -287,7 +287,7 @@ class StateManager:
                 'total_states': len(self.states),
                 'states_by_type': states_by_type,
                 'total_transitions': total_transitions,
-                'average_transitions_per_state': total_transitions / len(self.states) if self.states else 0
+                'average_transitions_per_state': total_transitions / (len(self.states) or 1) if self.states else 0
             }
     
     def cleanup_old_states(self, days: int = 7) -> int:

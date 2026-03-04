@@ -29,6 +29,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -202,7 +203,7 @@ class HealthMonitor:
         )
 
         with self._lock:
-            self._history.append(report)
+            capped_append(self._history, report)
 
         # [OBS-002] Publish to EventBackbone
         if self._event_backbone is not None:

@@ -20,6 +20,7 @@ import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional
+from thread_safe_operations import capped_append
 
 
 # ---------------------------------------------------------------------------
@@ -212,7 +213,7 @@ class EscalationManager:
             entity_name=entity_name,
             card_count=new_count,
         )
-        self._announcements.append(announcement)
+        capped_append(self._announcements, announcement)
         return announcement
 
     @staticmethod

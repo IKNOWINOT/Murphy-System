@@ -111,7 +111,7 @@ class OnboardingProfile:
             1 for t in self.tasks
             if t.status in (TaskStatus.COMPLETED, TaskStatus.SKIPPED)
         )
-        return round(done / len(self.tasks) * 100, 1)
+        return round(done / (len(self.tasks) or 1) * 100, 1)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -332,7 +332,7 @@ class OnboardingAutomationEngine:
             avg_progress = 0.0
             active = [p for p in self._profiles.values() if p.status == OnboardingStatus.IN_PROGRESS]
             if active:
-                avg_progress = sum(p.progress_pct for p in active) / len(active)
+                avg_progress = sum(p.progress_pct for p in active) / (len(active) or 1)
         return {
             "total_profiles": total,
             "by_status": by_status,

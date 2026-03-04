@@ -321,7 +321,7 @@ class RiskMitigationTracker:
         status_counts = Counter(r.status.value for r in risks)
         likelihood_counts = Counter(r.likelihood.value for r in risks)
         impact_counts = Counter(r.impact.value for r in risks)
-        avg_score = sum(r.risk_score for r in risks) / len(risks) if risks else 0.0
+        avg_score = sum(r.risk_score for r in risks) / (len(risks) or 1) if risks else 0.0
 
         summary = RiskSummary(
             summary_id=f"rs-{uuid.uuid4().hex[:8]}",

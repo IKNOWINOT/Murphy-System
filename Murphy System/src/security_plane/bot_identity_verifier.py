@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +160,7 @@ class BotIdentityVerifier:
 
             identity.status = IdentityStatus.REVOKED
             identity.revoked_at = datetime.now(timezone.utc)
-            self._revocation_log.append(
+            capped_append(self._revocation_log, 
                 {"bot_id": bot_id, "reason": reason, "at": identity.revoked_at.isoformat()}
             )
             logger.info("Revoked identity for bot '%s' (reason: %s)", bot_id, reason)

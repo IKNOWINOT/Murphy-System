@@ -632,7 +632,7 @@ class LLMController:
             "total_requests": self.request_count,
             "total_cost": self.total_cost,
             "total_tokens": self.total_tokens,
-            "avg_confidence": sum(self.confidence_history) / len(self.confidence_history) if self.confidence_history else 0.0,
+            "avg_confidence": sum(self.confidence_history) / (len(self.confidence_history) or 1) if self.confidence_history else 0.0,
             "available_models": [
                 {
                     "name": info.name,

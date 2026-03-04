@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +110,7 @@ class ObservabilitySummaryCounters:
             "reason": reason,
             "timestamp": now,
         }
-        self._history.append(history_record)
+        capped_append(self._history, history_record)
 
         return {
             "status": "ok",

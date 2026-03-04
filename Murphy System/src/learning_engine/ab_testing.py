@@ -155,14 +155,14 @@ class ABTestFramework:
             
             # Accuracy
             correct = sum(1 for r in results if r.was_correct)
-            summary.accuracy_by_variant[variant] = correct / len(results)
+            summary.accuracy_by_variant[variant] = correct / (len(results) or 1)
             
             # Average confidence
-            avg_confidence = sum(r.confidence for r in results) / len(results)
+            avg_confidence = sum(r.confidence for r in results) / (len(results) or 1)
             summary.avg_confidence_by_variant[variant] = avg_confidence
             
             # Average response time
-            avg_time = sum(r.response_time_ms for r in results) / len(results)
+            avg_time = sum(r.response_time_ms for r in results) / (len(results) or 1)
             summary.avg_response_time_by_variant[variant] = avg_time
         
         # Check statistical significance

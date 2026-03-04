@@ -17,6 +17,7 @@ from typing import Deque, Dict, Optional, Tuple
 from pydantic import BaseModel, Field
 
 from .state_vector import StateVector
+from thread_safe_operations import capped_append
 
 
 # ------------------------------------------------------------------ #
@@ -162,7 +163,7 @@ class StabilityMonitor:
         Raises:
             StabilityViolation: if oscillation exceeds the configured limit.
         """
-        self._history.append(confidence)
+        capped_append(self._history, confidence)
         if len(self._history) < 2:
             return
 

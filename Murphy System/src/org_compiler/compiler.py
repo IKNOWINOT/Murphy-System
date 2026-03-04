@@ -375,7 +375,7 @@ class RoleTemplateCompiler:
         # From handoff events (calculate average duration)
         role_handoffs = [e for e in self.handoff_events if e.from_role == role_name and e.duration_hours is not None]
         if role_handoffs:
-            avg_duration = sum(e.duration_hours for e in role_handoffs) / len(role_handoffs)
+            avg_duration = sum(e.duration_hours for e in role_handoffs) / (len(role_handoffs) or 1)
             sla_targets['avg_handoff_hours'] = avg_duration
         
         # Quality gates from SOP

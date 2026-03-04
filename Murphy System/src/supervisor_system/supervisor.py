@@ -13,6 +13,7 @@ License: Apache License 2.0
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone
 import logging
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +74,7 @@ class Supervisor:
             'requested_at': datetime.now(timezone.utc).isoformat(),
             'status': 'pending',
         }
-        self._interventions.append(intervention)
+        capped_append(self._interventions, intervention)
         logger.info(f"Intervention requested for task {task_id}: {reason}")
     
     def notify_intervention_completed(
@@ -93,7 +94,7 @@ class Supervisor:
             'decision': decision,
             'completed_at': datetime.now(timezone.utc).isoformat(),
         }
-        self._completed.append(completion)
+        capped_append(self._completed, completion)
         logger.info(f"Intervention {request_id} completed: {decision}")
     
     def get_statistics(self) -> Dict[str, Any]:

@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional
 
 from robotics.robot_registry import RobotRegistry
 from robotics.robotics_models import ActuatorCommand, ActuatorResult, RobotStatus
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ class ActuatorEngine:
         result = client.execute_command(command)
         result.execution_time_seconds = time.monotonic() - start
         with self._lock:
-            self._command_log.append(result)
+            capped_append(self._command_log, result)
         return result
 
     def batch_execute(

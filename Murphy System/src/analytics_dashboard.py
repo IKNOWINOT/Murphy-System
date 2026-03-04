@@ -496,7 +496,7 @@ class BusinessIntelligence:
             "task_type": task_type,
             "count": len(entries),
             "total_cost": total,
-            "avg_cost": total / len(entries),
+            "avg_cost": total / (len(entries) or 1),
         }
 
     def get_roi(self, task_type: str) -> Dict[str, Any]:
@@ -509,7 +509,7 @@ class BusinessIntelligence:
             return {"task_type": task_type, "roi_percent": 0.0,
                     "savings_per_task": 0.0, "total_savings": 0.0,
                     "baseline_set": baseline is not None, "task_count": len(entries)}
-        avg_auto = sum(e["cost"] for e in entries) / len(entries)
+        avg_auto = sum(e["cost"] for e in entries) / (len(entries) or 1)
         savings_per_task = baseline - avg_auto
         total_savings = savings_per_task * len(entries)
         roi = (total_savings / (avg_auto * len(entries)) * 100) if avg_auto > 0 else 0.0
@@ -730,7 +730,7 @@ class AlertRulesEngine:
             self, callback: Callable[[Dict[str, Any]], None]) -> Dict[str, Any]:
         """Register a callback invoked when an alert fires."""
         with self._lock:
-            self._notification_callbacks.append(callback)
+            capped_append(self._notification_callbacks, callback)
         return {"registered": True,
                 "callback_count": len(self._notification_callbacks)}
 

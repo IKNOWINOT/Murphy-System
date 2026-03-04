@@ -17,6 +17,7 @@ import random
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
+from thread_safe_operations import capped_append
 
 
 # ---------------------------------------------------------------------------
@@ -207,7 +208,7 @@ class ExperienceLoreEngine:
             experiences_shared=shared_count,
             fidelity_after=min_fidelity if shared_count > 0 else FIDELITY_MAX,
         )
-        self._propagation_log.append(result)
+        capped_append(self._propagation_log, result)
         return result
 
     # --- Queries ---

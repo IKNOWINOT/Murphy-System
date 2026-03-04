@@ -354,6 +354,6 @@ class SemanticSearchEngine:
         return {
             'total_queries': len(self.query_history),
             'query_types': query_types,
-            'avg_results_per_query': sum(log['result_count'] for log in self.query_history) / len(self.query_history) if self.query_history else 0,
+            'avg_results_per_query': sum(log['result_count'] for log in self.query_history) / (len(self.query_history) or 1) if self.query_history else 0,
             'config': self.config.copy()
         }

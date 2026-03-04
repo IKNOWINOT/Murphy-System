@@ -280,7 +280,7 @@ class LyapunovMonitor:
             "min_V": np.min(V_values),
             "max_V": np.max(V_values),
             "mean_delta_V": np.mean(delta_V_values) if delta_V_values else 0.0,
-            "violation_rate": violation_count / len(self.history),
+            "violation_rate": violation_count / (len(self.history) or 1),
             "violation_count": violation_count,
             "consecutive_violations": self.consecutive_violations,
             "count": len(self.history)

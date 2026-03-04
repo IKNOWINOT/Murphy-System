@@ -249,7 +249,7 @@ class AutomationReadinessEvaluator:
                     healthy=is_healthy,
                     message=msg,
                 ))
-            score = phase_ok / len(labels) if labels else 1.0
+            score = phase_ok / (len(labels) or 1) if labels else 1.0
             phase_scores.append(PhaseScore(
                 phase=phase,
                 expected=len(labels),

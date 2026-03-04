@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import ClassVar, List, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
+from thread_safe_operations import capped_append
 
 
 # Ordered list of numeric dimension names — ORDER IS CANONICAL and must not change.
@@ -358,7 +359,7 @@ class DimensionRegistry:
         """
         if name in self._dimensions:
             raise ValueError(f"Dimension '{name}' already registered.")
-        self._dimensions.append(name)
+        capped_append(self._dimensions, name)
         self._version += 1
 
     def has_dimension(self, name: str) -> bool:

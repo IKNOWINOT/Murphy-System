@@ -262,7 +262,7 @@ class MurphyProbabilityEstimator:
         
         return {
             'total_failure_modes': len(failure_modes),
-            'average_murphy_probability': sum(murphy_probs) / len(murphy_probs),
+            'average_murphy_probability': sum(murphy_probs) / (len(murphy_probs) or 1),
             'max_murphy_probability': max(murphy_probs),
             'gates_required': gates_required,
             'high_risk_modes': high_risk_modes,

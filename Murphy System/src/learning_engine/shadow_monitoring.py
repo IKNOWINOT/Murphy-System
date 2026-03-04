@@ -140,9 +140,9 @@ class MonitoringDashboard:
         return {
             "time_period_hours": hours,
             "total_predictions": sum(m.total_predictions for m in recent_metrics),
-            "avg_accuracy": sum(m.accuracy for m in recent_metrics) / len(recent_metrics),
-            "avg_response_time_ms": sum(m.avg_response_time_ms for m in recent_metrics) / len(recent_metrics),
-            "avg_error_rate": sum(m.error_rate for m in recent_metrics) / len(recent_metrics),
+            "avg_accuracy": sum(m.accuracy for m in recent_metrics) / (len(recent_metrics) or 1),
+            "avg_response_time_ms": sum(m.avg_response_time_ms for m in recent_metrics) / (len(recent_metrics) or 1),
+            "avg_error_rate": sum(m.error_rate for m in recent_metrics) / (len(recent_metrics) or 1),
             "total_alerts": len([a for a in self.alert_history if a.created_at > cutoff]),
         }
     
@@ -171,8 +171,8 @@ class MonitoringDashboard:
         first_half = values[:len(values)//2]
         second_half = values[len(values)//2:]
         
-        avg_first = sum(first_half) / len(first_half) if first_half else 0
-        avg_second = sum(second_half) / len(second_half) if second_half else 0
+        avg_first = sum(first_half) / (len(first_half) or 1) if first_half else 0
+        avg_second = sum(second_half) / (len(second_half) or 1) if second_half else 0
         
         trend = "improving" if avg_second > avg_first else "declining" if avg_second < avg_first else "stable"
         change_pct = ((avg_second - avg_first) / avg_first * 100) if avg_first > 0 else 0
@@ -180,7 +180,7 @@ class MonitoringDashboard:
         return {
             "metric_name": metric_name,
             "current_value": values[-1],
-            "avg_value": sum(values) / len(values),
+            "avg_value": sum(values) / (len(values) or 1),
             "min_value": min(values),
             "max_value": max(values),
             "trend": trend,

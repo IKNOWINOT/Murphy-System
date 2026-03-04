@@ -17,6 +17,7 @@ from typing import Dict, List, Optional, Any, Set, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +140,7 @@ class RBACGovernance:
                 logger.warning("Tenant %s already exists", policy.tenant_id)
                 return policy.tenant_id
             self._tenants[policy.tenant_id] = policy
-            self._audit_log.append({
+            capped_append(self._audit_log, {
                 "event": "tenant_created",
                 "tenant_id": policy.tenant_id,
                 "name": policy.name,
@@ -161,7 +162,7 @@ class RBACGovernance:
                 logger.warning("User %s already registered", identity.user_id)
                 return identity.user_id
             self._users[identity.user_id] = identity
-            self._audit_log.append({
+            capped_append(self._audit_log, {
                 "event": "user_registered",
                 "user_id": identity.user_id,
                 "tenant_id": identity.tenant_id,
@@ -318,7 +319,7 @@ class RBACGovernance:
 
             if role not in user.roles:
                 user.roles.append(role)
-                self._audit_log.append({
+                capped_append(self._audit_log, {
                     "event": "role_assigned",
                     "user_id": user_id,
                     "role": role.value,
@@ -352,7 +353,7 @@ class RBACGovernance:
 
             if role in user.roles:
                 user.roles.remove(role)
-                self._audit_log.append({
+                capped_append(self._audit_log, {
                     "event": "role_removed",
                     "user_id": user_id,
                     "role": role.value,

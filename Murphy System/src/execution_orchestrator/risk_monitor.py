@@ -235,7 +235,7 @@ class RuntimeRiskMonitor:
         
         # Look at last few deltas
         recent_deltas = runtime_risk.risk_deltas[-5:]
-        avg_delta = sum(recent_deltas) / len(recent_deltas)
+        avg_delta = sum(recent_deltas) / (len(recent_deltas) or 1)
         
         if avg_delta > 0.01:
             return 'increasing'

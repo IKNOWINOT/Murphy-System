@@ -94,7 +94,7 @@ class ConfidenceEngine:
             })
 
         scores = [a.get("confidence", 0.0) for a in artifacts]
-        overall = sum(scores) / len(scores) if scores else 0.0
+        overall = sum(scores) / (len(scores) or 1) if scores else 0.0
 
         invalidated = [a for a in artifacts if a.get("invalidated")]
         if invalidated:

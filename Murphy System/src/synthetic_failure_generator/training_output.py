@@ -346,7 +346,7 @@ class TrainingOutputGenerator:
         
         # Average reward
         if self.reward_signals:
-            stats['average_reward'] = sum(r.total_reward for r in self.reward_signals) / len(self.reward_signals)
+            stats['average_reward'] = sum(r.total_reward for r in self.reward_signals) / (len(self.reward_signals) or 1)
         
         # Failure type distribution
         for artifact in self.training_artifacts:

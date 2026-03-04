@@ -297,7 +297,7 @@ class SignalInterpreter:
             # Parameter completeness
             if entry.required_params:
                 present = sum(1 for p in entry.required_params if p in params)
-                completeness = present / len(entry.required_params)
+                completeness = present / (len(entry.required_params) or 1)
             else:
                 completeness = 1.0 if capability else 0.0
 

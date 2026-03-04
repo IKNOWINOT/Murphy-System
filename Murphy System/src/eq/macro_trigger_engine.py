@@ -18,6 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
+from thread_safe_operations import capped_append
 
 
 # ---------------------------------------------------------------------------
@@ -338,7 +339,7 @@ class MacroTriggerEngine:
         self._triggers = sorted(triggers or [], key=lambda t: t.priority)
 
     def add_trigger(self, trigger: TriggerDefinition) -> None:
-        self._triggers.append(trigger)
+        capped_append(self._triggers, trigger)
         self._triggers.sort(key=lambda t: t.priority)
 
     @property

@@ -321,7 +321,7 @@ class GateLifecycleManager:
             by_category[category.value] = count
         
         # Calculate average priority
-        avg_priority = sum(g.priority for g in all_gates) / len(all_gates)
+        avg_priority = sum(g.priority for g in all_gates) / (len(all_gates) or 1)
         
         return {
             'total_gates': len(all_gates),

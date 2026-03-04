@@ -17,6 +17,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Set
+from thread_safe_operations import capped_append
 
 
 # ---------------------------------------------------------------------------
@@ -80,7 +81,7 @@ class DecayVoteManager:
     def cast_vote(self, vote: Vote) -> None:
         """Record a vote.  Activates the session on first ballot."""
         self._is_active = True
-        self._votes.append(vote)
+        capped_append(self._votes, vote)
 
     def tally_votes(self) -> VoteResult:
         """Count ballots and determine the outcome."""

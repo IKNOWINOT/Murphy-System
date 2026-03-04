@@ -17,6 +17,7 @@ import uuid
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
+from thread_safe_operations import capped_append
 
 
 # ---------------------------------------------------------------------------
@@ -222,7 +223,7 @@ class PlatformConnector:
                 "status": "moderated",
                 "metadata": metadata or {},
             }
-            self._moderation_log.append(entry)
+            capped_append(self._moderation_log, entry)
             return entry
 
     def get_content_queue(self) -> List[Dict[str, Any]]:
@@ -232,7 +233,7 @@ class PlatformConnector:
     def add_to_queue(self, item: Dict[str, Any]) -> Dict[str, Any]:
         with self._lock:
             item.setdefault("queued_at", time.time())
-            self._content_queue.append(item)
+            capped_append(self._content_queue, item)
             return {"queued": True, "platform": self.platform_type.value, "item": item}
 
     def disable(self) -> Dict[str, Any]:
@@ -314,7 +315,7 @@ class ContentClassifier:
                 "classified_at": time.time(),
                 "context": context or {},
             }
-            self._history.append(result)
+            capped_append(self._history, result)
             return result
 
     def get_history(self) -> List[Dict[str, Any]]:
@@ -454,7 +455,7 @@ class ModerationQueueManager:
                 record = self._to_dict(item)
                 record["auto_action"] = ModerationAction.APPROVE.value
                 record["status"] = "auto_approved"
-                self._processed.append(record)
+                capped_append(self._processed, record)
                 return record
 
             # Auto-reject clear violations with high confidence
@@ -463,11 +464,11 @@ class ModerationQueueManager:
                 record = self._to_dict(item)
                 record["auto_action"] = ModerationAction.REJECT.value
                 record["status"] = "auto_rejected"
-                self._processed.append(record)
+                capped_append(self._processed, record)
                 return record
 
             # Otherwise queue for human review
-            self._queue.append(item)
+            capped_append(self._queue, item)
             record = self._to_dict(item)
             record["status"] = "queued"
             return record
@@ -491,7 +492,7 @@ class ModerationQueueManager:
                     record["reviewer_id"] = reviewer_id
                     record["processed_at"] = time.time()
                     record["status"] = "processed"
-                    self._processed.append(record)
+                    capped_append(self._processed, record)
                     self._queue.pop(idx)
                     return record
             return {"error": "item_not_found", "item_id": item_id}
@@ -619,7 +620,7 @@ class ModerationAnalytics:
                 "is_false_positive": is_false_positive,
                 "recorded_at": time.time(),
             }
-            self._actions.append(entry)
+            capped_append(self._actions, entry)
             return entry
 
     def get_summary(self, platform: Optional[PlatformType] = None) -> Dict[str, Any]:
