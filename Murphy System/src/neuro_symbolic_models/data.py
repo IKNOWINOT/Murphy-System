@@ -301,7 +301,8 @@ class DataSplitter:
         """
         Split examples into train/val/test sets.
         """
-        assert abs(train_ratio + val_ratio + test_ratio - 1.0) < 1e-6
+        if abs(train_ratio + val_ratio + test_ratio - 1.0) >= 1e-6:
+            raise ValueError("train_ratio + val_ratio + test_ratio must equal 1.0")
         
         n = len(examples)
         indices = np.arange(n)

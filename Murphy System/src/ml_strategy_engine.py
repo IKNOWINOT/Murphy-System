@@ -24,7 +24,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Sequence, Tuple
-from thread_safe_operations import capped_append
+from thread_safe_operations import capped_append, capped_append_paired
 
 logger = logging.getLogger(__name__)
 
@@ -638,13 +638,7 @@ class EnsemblePredictor:
         self._weights: List[float] = []
 
     def add_member(self, classifier: NaiveBayesClassifier, weight: float = 1.0) -> None:
-        cap = 10_000
-        if len(self._classifiers) >= cap:
-            trim = cap // 10
-            del self._classifiers[:trim]
-            del self._weights[:trim]
-        self._classifiers.append(classifier)
-        self._weights.append(weight)
+        capped_append_paired(self._classifiers, classifier, self._weights, weight)
 
     def predict(self, features: Sequence[str]) -> EnsemblePrediction:
         if not self._classifiers:

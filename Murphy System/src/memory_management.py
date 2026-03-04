@@ -146,7 +146,7 @@ class DataCache:
             if key in self._cache:
                 # Update access order
                 self._access_order.remove(key)
-                self._access_order.append(key)  # LRU: bounded by cache eviction
+                self._access_order.append(key)  # bounded by max cache size
                 return self._cache[key]
             return None
     
