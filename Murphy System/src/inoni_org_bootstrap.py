@@ -504,7 +504,7 @@ class InoniOrgBootstrap:
             return self.get_agent_persona("chief_research_officer")
 
         # Route based on content keywords
-        if any(w in lower for w in ("price", "cost", "pricing", "budget", "deal", "revenue")):
+        if any(w in lower for w in ("price", "cost", "pricing", "budget", "deal", "revenue", "margin", "unit economics", "breakeven", "scale viability")):
             return self.get_agent_persona("chief_revenue_officer")
         if any(w in lower for w in ("demo", "buy", "purchase", "sales", "close", "pipeline")):
             return self.get_agent_persona("vp_sales")
