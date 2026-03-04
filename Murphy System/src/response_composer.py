@@ -45,7 +45,7 @@ class ResponseComposer:
         """
         Generate clarification request
         """
-        message = f"I need clarification to answer accurately.\n\n"
+        message = "I need clarification to answer accurately.\n\n"
         message += f"Issue: {reasoning}\n\n"
         
         if unknowns:

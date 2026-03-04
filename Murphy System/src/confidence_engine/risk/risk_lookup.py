@@ -417,7 +417,7 @@ class RiskLookupService:
         
         if high_risk:
             recommendations.append(
-                f"High risk operation detected - consider implementing mitigation strategies"
+                "High risk operation detected - consider implementing mitigation strategies"
             )
         
         # Check for multiple risks

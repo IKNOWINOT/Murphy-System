@@ -318,7 +318,7 @@ class SemanticFailureGenerator:
                 },
                 {
                     'gate_type': 'verification',
-                    'condition': f'validate_goal_prioritization()',
+                    'condition': 'validate_goal_prioritization()',
                     'priority': 'critical'
                 }
             ],

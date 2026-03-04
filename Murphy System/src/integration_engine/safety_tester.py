@@ -159,7 +159,7 @@ class SafetyTester:
                 'test': 'license_validation',
                 'passed': False,
                 'critical': False,
-                'message': f'License file found but type could not be determined. Manual review required.'
+                'message': 'License file found but type could not be determined. Manual review required.'
             }
         
         if not license_ok:

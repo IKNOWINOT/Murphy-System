@@ -182,7 +182,7 @@ class AdapterRuntime:
             True if successful
         """
         # In production, validate authorization
-        print(f"[UNFREEZE] Runtime unfrozen")
+        print("[UNFREEZE] Runtime unfrozen")
         self.is_frozen = False
         self.adapter.is_emergency_stopped = False
         

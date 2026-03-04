@@ -783,12 +783,12 @@ Format as a numbered list."""
         parts = []
         
         parts.append(f"## Exploratory Analysis: {task}\n")
-        parts.append(f"**INFINITY → DATA EXPANSION ACTIVE**\n")
-        parts.append(f"**Process:** Progressive problem crystallization from underspecified task\n")
+        parts.append("**INFINITY → DATA EXPANSION ACTIVE**\n")
+        parts.append("**Process:** Progressive problem crystallization from underspecified task\n")
         parts.append(f"**Expansion Axes:** {len(ExpansionAxis)} orthogonal dimensions explored")
         parts.append(f"**Bound Variables:** {len(expansion_result.bound_variables)}")
         parts.append(f"**Remaining Unknowns:** {len(expansion_result.remaining_unknowns)}")
-        parts.append(f"**Swarms:** Exploration + Control running in parallel")
+        parts.append("**Swarms:** Exploration + Control running in parallel")
         parts.append(f"**Artifacts Generated:** {len(swarm_result.get('artifacts', []))}")
         parts.append(f"**Gates Synthesized:** {len(gates)}\n")
         

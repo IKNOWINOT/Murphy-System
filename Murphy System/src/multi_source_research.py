@@ -246,14 +246,14 @@ class MultiSourceResearcher:
         if compiled.sources:
             best_source = max(compiled.sources, key=lambda s: s.trust_score)
             if best_source.content:
-                synthesis.append(f"## Overview\n")
+                synthesis.append("## Overview\n")
                 # Take first 2-3 sentences
                 overview = '. '.join(best_source.content.split('.')[:3]) + '.'
                 synthesis.append(f"{overview}\n")
         
         # Key findings from all sources
         if compiled.compiled_facts:
-            synthesis.append(f"\n## Key Findings\n")
+            synthesis.append("\n## Key Findings\n")
             
             # Group facts by uniqueness (simple deduplication)
             unique_facts = []
@@ -282,14 +282,14 @@ class MultiSourceResearcher:
                 synthesis.append("\n")
         
         # Sources section
-        synthesis.append(f"\n## Sources Consulted\n")
+        synthesis.append("\n## Sources Consulted\n")
         for source in compiled.sources:
             synthesis.append(f"- **{source.name}** (Trust: {source.trust_score:.0%}, Type: {source.source_type})\n")
             if source.url:
                 synthesis.append(f"  {source.url}\n")
         
         # Confidence and metadata
-        synthesis.append(f"\n## Research Metadata\n")
+        synthesis.append("\n## Research Metadata\n")
         synthesis.append(f"- **Sources Used:** {len(compiled.sources)}\n")
         synthesis.append(f"- **Facts Compiled:** {len(compiled.compiled_facts)}\n")
         synthesis.append(f"- **Timestamp:** {compiled.timestamp}\n")

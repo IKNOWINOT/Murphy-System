@@ -387,7 +387,7 @@ class HITLApprovalSystem:
         # Header
         lines.append("╔" + "═" * 78 + "╗")
         lines.append("║" + " " * 78 + "║")
-        lines.append("║" + f"  🚀 INTEGRATION READY FOR APPROVAL".center(78) + "║")
+        lines.append("║" + "  🚀 INTEGRATION READY FOR APPROVAL".center(78) + "║")
         lines.append("║" + " " * 78 + "║")
         lines.append("╚" + "═" * 78 + "╝")
         lines.append("")

@@ -409,11 +409,11 @@ class IterativeReasoningEngine:
         
         # Show final result
         if reasoning_result['solved']:
-            response += f"## ✅ Result:\n\n"
-            response += f"Successfully reasoned through the query.\n"
+            response += "## ✅ Result:\n\n"
+            response += "Successfully reasoned through the query.\n"
             response += f"**Confidence:** {reasoning_result['confidence']:.1%}\n"
         else:
-            response += f"## ⚠️ Unable to Solve:\n\n"
+            response += "## ⚠️ Unable to Solve:\n\n"
             response += f"{reasoning_result['unsolvable_reason']}\n\n"
             
             if reasoning_result['clarifying_questions']:

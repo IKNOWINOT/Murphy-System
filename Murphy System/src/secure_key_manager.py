@@ -60,12 +60,12 @@ class SecureKeyManager:
         # Save to .env file for persistence
         if env_path.exists():
             with open(env_path, 'a', encoding='utf-8') as f:
-                f.write(f"\n# Master encryption key (DO NOT COMMIT)\n")
+                f.write("\n# Master encryption key (DO NOT COMMIT)\n")
                 f.write(f"MURPHY_MASTER_KEY={new_key.decode()}\n")
         else:
             with open(env_path, 'w', encoding='utf-8') as f:
-                f.write(f"# Murphy System Environment Variables\n")
-                f.write(f"# Master encryption key (DO NOT COMMIT)\n")
+                f.write("# Murphy System Environment Variables\n")
+                f.write("# Master encryption key (DO NOT COMMIT)\n")
                 f.write(f"MURPHY_MASTER_KEY={new_key.decode()}\n")
         
         logger.info("Generated new master key and saved to .env")

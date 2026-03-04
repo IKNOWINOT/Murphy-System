@@ -118,7 +118,7 @@ class TelemetryIngestionPipeline:
         """
         device_id = telemetry.get('device_id')
         if not device_id:
-            print(f"[REJECT] Missing device_id")
+            print("[REJECT] Missing device_id")
             return None
         
         # Validate required fields

@@ -495,20 +495,20 @@ class LLMIntegrationLayer:
     def _local_aristotle_response(self, request: LLMRequest) -> str:
         """Local Aristotle deterministic engine (used when API is unavailable)."""
         if request.validation_type == "math":
-            return f"Aristotle deterministic analysis: Mathematical calculation verified. Confidence: 0.95. Result: The equation holds true under standard mathematical axioms."
+            return "Aristotle deterministic analysis: Mathematical calculation verified. Confidence: 0.95. Result: The equation holds true under standard mathematical axioms."
         elif request.validation_type == "physics":
-            return f"Aristotle deterministic analysis: Physics principles verified. Confidence: 0.95. Result: The calculation follows Newton's laws of motion."
+            return "Aristotle deterministic analysis: Physics principles verified. Confidence: 0.95. Result: The calculation follows Newton's laws of motion."
         else:
-            return f"Aristotle deterministic analysis: Verified under domain standards. Confidence: 0.95."
+            return "Aristotle deterministic analysis: Verified under domain standards. Confidence: 0.95."
     
     def _local_wulfrum_response(self, request: LLMRequest) -> str:
         """Local Wulfrum fuzzy engine (used when API is unavailable)."""
         if request.validation_type == "math":
-            return f"Wulfrum fuzzy match: Mathematical validation complete. Match score: 0.88. Minor discrepancies found in rounding."
+            return "Wulfrum fuzzy match: Mathematical validation complete. Match score: 0.88. Minor discrepancies found in rounding."
         elif request.validation_type == "physics":
-            return f"Wulfrum fuzzy match: Physics validation complete. Match score: 0.92. Principles align with fuzzy tolerance."
+            return "Wulfrum fuzzy match: Physics validation complete. Match score: 0.92. Principles align with fuzzy tolerance."
         else:
-            return f"Wulfrum fuzzy match: Validation complete. Match score: 0.85. General agreement within tolerance."
+            return "Wulfrum fuzzy match: Validation complete. Match score: 0.85. General agreement within tolerance."
     
     def _local_groq_response(self, request: LLMRequest) -> str:
         """Local generative engine (used when Groq API is unavailable)."""

@@ -758,7 +758,7 @@ if __name__ == "__main__":
     ]
     
     result = engine.deductive_reasoning(premises, {})
-    print(f"Conclusions:")
+    print("Conclusions:")
     for conclusion in result["conclusions"]:
         print(f"  - {conclusion}")
     print(f"Confidence: {result['confidence']:.2f}")

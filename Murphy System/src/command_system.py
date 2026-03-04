@@ -671,10 +671,10 @@ class CommandExecutor:
             output.append(f"## Command {i} Result\n")
             
             if result.success:
-                output.append(f"**Status:** ✓ Success\n")
+                output.append("**Status:** ✓ Success\n")
                 output.append(f"**Data:**\n```\n{json.dumps(result.data, indent=2)}\n```\n")
             else:
-                output.append(f"**Status:** ✗ Failed\n")
+                output.append("**Status:** ✗ Failed\n")
                 output.append(f"**Error:** {result.metadata.get('error', 'Unknown error')}\n")
             
             output.append(f"**Metadata:**\n```\n{json.dumps(result.metadata, indent=2)}\n```\n")

@@ -223,12 +223,12 @@ class AutomationCoverageAnalyzer:
         lines = [
             f"# Automation Coverage Report: {role_template.role_name}",
             "",
-            f"## Summary",
+            "## Summary",
             f"- Total Responsibilities: {coverage['total_responsibilities']}",
             f"- Automated: {coverage['automated_count']} ({coverage['coverage_percentage']:.1f}%)",
             f"- Human Retained: {coverage['human_retained_count']}",
             "",
-            f"## Proposed Automation Steps",
+            "## Proposed Automation Steps",
         ]
         
         for i, step in enumerate(coverage['automation_steps'], 1):
@@ -236,7 +236,7 @@ class AutomationCoverageAnalyzer:
         
         lines.extend([
             "",
-            f"## Human-Retained Responsibilities",
+            "## Human-Retained Responsibilities",
         ])
         
         for i, resp in enumerate(coverage['human_retained'], 1):
@@ -244,7 +244,7 @@ class AutomationCoverageAnalyzer:
         
         lines.extend([
             "",
-            f"## Human Signoff Points",
+            "## Human Signoff Points",
         ])
         
         for i, point in enumerate(coverage['human_signoff_points'], 1):
@@ -252,7 +252,7 @@ class AutomationCoverageAnalyzer:
         
         lines.extend([
             "",
-            f"## Risk Analysis",
+            "## Risk Analysis",
             f"- Compliance Risk: {coverage['risk_breakdown']['compliance_risk']}",
             f"- Authority Risk: {coverage['risk_breakdown']['authority_risk']}",
             f"- Quality Risk: {coverage['risk_breakdown']['quality_risk']}",

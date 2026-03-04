@@ -994,7 +994,7 @@ if __name__ == "__main__":
         print(f"  Type: {impact.impact_type}")
         print(f"  Level: {impact.impact_level}")
         print(f"  Affected Components: {', '.join(impact.affected_components)}")
-        print(f"  Mitigation Strategies:")
+        print("  Mitigation Strategies:")
         for strategy in impact.mitigation_strategies:
             print(f"    - {strategy}")
     
