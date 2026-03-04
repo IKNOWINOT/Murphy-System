@@ -110,7 +110,7 @@ class TestNoBareExcepts:
         fpath = os.path.join(
             os.path.dirname(__file__), "..", "src", f"{module_name}.py"
         )
-        with open(fpath) as f:
+        with open(fpath, encoding='utf-8') as f:
             for i, line in enumerate(f, 1):
                 stripped = line.strip()
                 if stripped == "except:" or stripped == "except: # noqa":
@@ -130,7 +130,7 @@ class TestResearchEngineSafeCalc:
         fpath = os.path.join(
             os.path.dirname(__file__), "..", "src", "research_engine.py"
         )
-        with open(fpath) as f:
+        with open(fpath, encoding='utf-8') as f:
             src = f.read()
 
         # Extract the code between the triple-quote markers

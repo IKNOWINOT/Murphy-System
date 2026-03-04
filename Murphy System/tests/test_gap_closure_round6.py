@@ -38,7 +38,7 @@ class TestNoBareExceptsRound2:
         fpath = os.path.join(
             os.path.dirname(__file__), "..", "src", f"{module_path}.py"
         )
-        with open(fpath) as f:
+        with open(fpath, encoding='utf-8') as f:
             for i, line in enumerate(f, 1):
                 stripped = line.strip()
                 if stripped == "except:" or stripped.startswith("except: "):
@@ -55,7 +55,7 @@ class TestNoBareExceptsRound2:
                 if not fname.endswith(".py"):
                     continue
                 fpath = os.path.join(root, fname)
-                with open(fpath) as f:
+                with open(fpath, encoding='utf-8') as f:
                     for i, line in enumerate(f, 1):
                         if re.match(r"^\s*except\s*:", line):
                             rel = os.path.relpath(fpath, src_dir)
@@ -73,7 +73,7 @@ class TestCommsConnectorsTimeout:
         fpath = os.path.join(
             os.path.dirname(__file__), "..", "src", "comms", "connectors.py"
         )
-        with open(fpath) as f:
+        with open(fpath, encoding='utf-8') as f:
             return f.read()
 
     def test_all_requests_calls_have_timeout(self):

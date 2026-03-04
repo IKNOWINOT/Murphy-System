@@ -40,7 +40,7 @@ class TestNoShadowedBuiltins:
                     continue
                 fpath = os.path.join(root, fname)
                 try:
-                    with open(fpath) as f:
+                    with open(fpath, encoding='utf-8') as f:
                         tree = ast.parse(f.read())
                 except SyntaxError:
                     continue
@@ -76,7 +76,7 @@ class TestNoTodoInSource:
                     continue
                 fpath = os.path.join(root, fname)
                 try:
-                    source = open(fpath).read()
+                    source = open(fpath, encoding='utf-8').read()
                     tokens = list(
                         tokenize.generate_tokens(
                             io.StringIO(source).readline
@@ -126,7 +126,7 @@ class TestRound13Regression:
                     continue
                 fpath = os.path.join(root, fname)
                 try:
-                    with open(fpath) as f:
+                    with open(fpath, encoding='utf-8') as f:
                         tree = ast.parse(f.read())
                 except SyntaxError:
                     continue
@@ -153,7 +153,7 @@ class TestRound13Regression:
                     continue
                 fpath = os.path.join(root, fname)
                 try:
-                    with open(fpath) as f:
+                    with open(fpath, encoding='utf-8') as f:
                         tree = ast.parse(f.read())
                 except SyntaxError:
                     continue
