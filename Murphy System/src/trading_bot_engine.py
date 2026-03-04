@@ -34,7 +34,7 @@ import statistics
 import threading
 import uuid
 from datetime import datetime, timedelta
-from thread_safe_operations import capped_append
+from thread_safe_operations import capped_append, capped_append_paired
 
 
 # =============================================================================
@@ -656,8 +656,7 @@ class PaperTradingSimulator:
         elif order.side == "sell":
             self.capital += cost
 
-        capped_append(self._filled_orders, order)
-        capped_append(self._equity_curve, self.capital)
+        capped_append_paired(self._filled_orders, order, self._equity_curve, self.capital)
 
         log_entry = {
             "order_id": order.order_id,

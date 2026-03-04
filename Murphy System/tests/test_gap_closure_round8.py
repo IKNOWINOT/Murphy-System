@@ -85,6 +85,9 @@ class TestUnboundedAppendsCapped:
                     # Already using capped_append for this attr?
                     if f"capped_append(self.{attr}" in content:
                         continue
+                    # Already using capped_append_paired for this attr?
+                    if f"capped_append_paired(self.{attr}" in content:
+                        continue
                     # Using deque (has built-in maxlen)?
                     if f"{attr} = deque(" in content or f"collections.deque(" in content:
                         continue
@@ -92,6 +95,9 @@ class TestUnboundedAppendsCapped:
                     if f"self.{attr} = self.{attr}[" in content:
                         continue
                     if f"del self.{attr}[" in content:
+                        continue
+                    # LRU access_order bounded by cache eviction?
+                    if attr == "_access_order" and "_evict" in content:
                         continue
                     rel = os.path.relpath(fpath, SRC_DIR)
                     violations.append(f"{rel}: {attr}")
@@ -126,6 +132,97 @@ class TestUnboundedAppendsCapped:
         assert data[-1] == 199
         # All elements are in ascending order
         assert data == sorted(data)
+
+
+class TestCappedAppendPaired:
+    """Paired lists must stay synchronised after trimming."""
+
+    def test_paired_lists_stay_in_sync(self):
+        from thread_safe_operations import capped_append_paired
+
+        a: list = []
+        b: list = []
+        cap = 100
+        for i in range(cap + 50):
+            capped_append_paired(a, i, b, i * 10, max_size=cap)
+
+        # Both lists have exactly the same length
+        assert len(a) == len(b)
+        # Last elements correspond
+        assert a[-1] == cap + 49
+        assert b[-1] == (cap + 49) * 10
+
+    def test_paired_never_desync_under_trimming(self):
+        from thread_safe_operations import capped_append_paired
+
+        x: list = []
+        y: list = []
+        z: list = []
+        cap = 50
+        for i in range(200):
+            capped_append_paired(x, i, y, -i, z, i * 2, max_size=cap)
+
+        assert len(x) == len(y) == len(z)
+        # Corresponding elements match
+        for xi, yi, zi in zip(x, y, z):
+            assert yi == -xi
+            assert zi == xi * 2
+
+    def test_no_remaining_paired_capped_append_calls(self):
+        """Adjacent capped_append on different attrs should use capped_append_paired."""
+        violations = []
+        for root, _dirs, files in os.walk(SRC_DIR):
+            for fname in files:
+                if not fname.endswith(".py"):
+                    continue
+                fpath = os.path.join(root, fname)
+                with open(fpath) as f:
+                    content = f.read()
+                    lines = content.split("\n")
+
+                # Strip docstrings to avoid false positives
+                in_docstring = False
+                executable = []
+                for line in lines:
+                    stripped = line.strip()
+                    if stripped.startswith('"""') or stripped.startswith("'''"):
+                        toggle = stripped[:3]
+                        # Single-line docstring
+                        if stripped.count(toggle) >= 2:
+                            executable.append("")
+                            continue
+                        in_docstring = not in_docstring
+                        executable.append("")
+                        continue
+                    if in_docstring:
+                        executable.append("")
+                    else:
+                        executable.append(line)
+
+                for i, line in enumerate(executable):
+                    if "capped_append(self." not in line:
+                        continue
+                    if line.strip().startswith("#"):
+                        continue
+                    m1 = re.search(r"capped_append\(self\.(_\w+)", line)
+                    if not m1:
+                        continue
+                    for j in range(i + 1, min(i + 3, len(executable))):
+                        if "capped_append(self." not in executable[j]:
+                            continue
+                        if executable[j].strip().startswith("#"):
+                            continue
+                        m2 = re.search(
+                            r"capped_append\(self\.(_\w+)", executable[j]
+                        )
+                        if m2 and m1.group(1) != m2.group(1):
+                            rel = os.path.relpath(fpath, SRC_DIR)
+                            violations.append(
+                                f"{rel}:{i+1} {m1.group(1)} + {m2.group(1)}"
+                            )
+        assert violations == [], (
+            f"Paired capped_append should use capped_append_paired: {violations}"
+        )
 
 
 # ===================================================================

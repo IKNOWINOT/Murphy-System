@@ -13,7 +13,7 @@ import uuid
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 from typing import Dict, List, Any, Optional
-from thread_safe_operations import capped_append
+from thread_safe_operations import capped_append_paired
 
 logger = logging.getLogger(__name__)
 
@@ -349,8 +349,7 @@ class BotTelemetryNormalizer:
                 warnings=[f"No rule matched for {source}::{event_type}"],
             )
             with self._lock:
-                capped_append(self._events, event)
-                capped_append(self._results, result)
+                capped_append_paired(self._events, event, self._results, result)
             logger.warning("No normalisation rule for %s::%s", source, event_type)
             return event
 
@@ -394,8 +393,7 @@ class BotTelemetryNormalizer:
         )
 
         with self._lock:
-            capped_append(self._events, event)
-            capped_append(self._results, result)
+            capped_append_paired(self._events, event, self._results, result)
 
         logger.info(
             "Normalised %s::%s -> %s  (mapped=%d dropped=%d)",

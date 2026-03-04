@@ -298,3 +298,27 @@ def capped_append(target_list: list, item: Any, max_size: int = 10_000) -> None:
     if len(target_list) >= max_size:
         del target_list[:max_size // 10]
     target_list.append(item)
+
+
+def capped_append_paired(
+    *lists_and_items: Any,
+    max_size: int = 10_000,
+) -> None:
+    """Atomically append to multiple paired lists, trimming all together.
+
+    Pass alternating (list, item) pairs::
+
+        capped_append_paired(self._events, event, self._results, result)
+
+    All lists are trimmed by the same amount so they stay synchronised.
+    """
+    pairs = list(zip(lists_and_items[::2], lists_and_items[1::2]))
+    if not pairs:
+        return
+    ref_list = pairs[0][0]
+    if len(ref_list) >= max_size:
+        trim = max_size // 10
+        for lst, _ in pairs:
+            del lst[:trim]
+    for lst, item in pairs:
+        lst.append(item)
