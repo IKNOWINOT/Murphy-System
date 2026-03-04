@@ -442,11 +442,11 @@ class TestDeterministicFallback(unittest.TestCase):
             os.environ["GROQ_API_KEY"] = self._old_key
 
     def test_fallback_includes_deterministic_message(self):
-        """When LLM is off, librarian_ask should explain deterministic mode."""
+        """When LLM is off, librarian_ask should explain onboard mode."""
         result = self.murphy.librarian_ask("hello", session_id=self.sid)
         self.assertTrue(result["success"])
-        self.assertEqual(result["mode"], "deterministic")
-        self.assertIn("deterministic mode", result["message"])
+        self.assertEqual(result["mode"], "onboard")
+        self.assertIn("onboard", result["message"].lower())
         self.assertIn("MURPHY_LLM_PROVIDER", result["message"])
 
     def test_fallback_still_suggests_commands(self):
