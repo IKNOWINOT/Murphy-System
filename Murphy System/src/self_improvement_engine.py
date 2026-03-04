@@ -366,7 +366,7 @@ class SelfImprovementEngine:
 
         successes = sum(1 for o in relevant if o.outcome == OutcomeType.SUCCESS)
         total = len(relevant)
-        success_rate = successes / total
+        success_rate = successes / total if total > 0 else 0.0
 
         reported_confs = [
             o.metrics["confidence"] for o in relevant

@@ -317,7 +317,8 @@ class ReasonCommand(CommandModule):
         
         # Normalize weights
         total_weight = sum(weights)
-        weights = [w / total_weight for w in weights]
+        if total_weight > 0:
+            weights = [w / total_weight for w in weights]
         
         # Extract options from data
         if 'facts' in data:

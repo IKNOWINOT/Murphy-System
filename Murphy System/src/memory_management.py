@@ -4,8 +4,10 @@ Provides streaming, pagination, and memory optimization capabilities.
 """
 
 import gc
-from typing import Any, Dict, Generator, Iterator, List, Optional, Callable
+from typing import Any, Dict, Generator, Iterator, List, Optional, Callable, TypeVar
 import sys
+
+T = TypeVar("T")
 
 
 class StreamProcessor:
@@ -188,7 +190,7 @@ class DataCache:
                 size += sum(self._estimate_size(k) + self._estimate_size(v) 
                            for k, v in obj.items())
             return size / (1024 * 1024)
-        except:
+        except Exception:
             return 0.01  # Default small size
     
     def clear(self) -> None:
@@ -257,7 +259,7 @@ class MemoryEfficientList:
         try:
             size = sum(sys.getsizeof(item) for item in self._data)
             return size / (1024 * 1024)
-        except:
+        except Exception:
             return 0.0
     
     def __len__(self) -> int:

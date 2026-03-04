@@ -498,7 +498,7 @@ Provide a helpful, context-aware response. Reference previous topics if relevant
             
             try:
                 response_text = self._call_llm(prompt, max_tokens)
-            except:
+            except Exception:
                 response_text = f"I understand you're asking about {domain}. Based on our conversation about {', '.join(self.conversation_context['topics_discussed'][-2:]) if self.conversation_context['topics_discussed'] else 'this topic'}, let me help with that."
         else:
             response_text = self._generate_intelligent_response(message, domain, confidence)
@@ -735,7 +735,7 @@ Format as a numbered list."""
                     return self.question_manager.format_next_question()
                 
                 return questions_text
-            except:
+            except Exception:
                 pass
         
         # Fallback questions for offline mode
@@ -1486,7 +1486,7 @@ Make questions specific and actionable."""
                 'control': control_count,
                 'execution': execution_count
             }
-        except:
+        except Exception:
             # Fallback to zero counts
             return {
                 'sandbox': 0,
