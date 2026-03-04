@@ -191,7 +191,7 @@ class EnhancedLocalLLM:
                     result = solver(match, prompt)
                     if result:
                         return result
-                except:
+                except Exception:
                     pass
         
         return None

@@ -630,7 +630,7 @@ class TelemetryAdapter:
             
             # Identify frequent errors
             for error_type, count in error_counts.items():
-                frequency = count / total_errors
+                frequency = count / total_errors if total_errors > 0 else 0.0
                 
                 if frequency >= 0.1:  # 10% or more
                     pattern = {

@@ -261,17 +261,36 @@ class CodeGenerator:
         if language == "python":
             code = '''def calculate(expression: str) -> float:
     """
-    Safely evaluate mathematical expression
-    Based on verified calculation patterns
+    Safely evaluate mathematical expression using AST parsing.
+    Only allows basic arithmetic: +, -, *, /, parentheses, and numbers.
     """
-    # Only allow safe characters
-    import re
-    if not re.match(r'^[\\d+\\-*/().\\s]+$', expression):
-        raise ValueError("Invalid expression")
-    
-    # Evaluate safely
+    import ast
+    import operator
+
+    _OPS = {
+        ast.Add: operator.add,
+        ast.Sub: operator.sub,
+        ast.Mult: operator.mul,
+        ast.Div: operator.truediv,
+        ast.USub: operator.neg,
+    }
+
+    def _eval_node(node):
+        if isinstance(node, ast.Expression):
+            return _eval_node(node.body)
+        if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+            return node.value
+        if isinstance(node, ast.BinOp) and type(node.op) in _OPS:
+            left = _eval_node(node.left)
+            right = _eval_node(node.right)
+            return _OPS[type(node.op)](left, right)
+        if isinstance(node, ast.UnaryOp) and type(node.op) in _OPS:
+            return _OPS[type(node.op)](_eval_node(node.operand))
+        raise ValueError(f"Unsupported expression node: {ast.dump(node)}")
+
     try:
-        result = eval(expression, {"__builtins__": {}}, {})
+        tree = ast.parse(expression.strip(), mode="eval")
+        result = _eval_node(tree)
         return float(result)
     except Exception as e:
         raise ValueError(f"Calculation error: {e}")
