@@ -389,6 +389,7 @@ class AutonomousScheduler:
 
         except Exception as exc:
             # Record failure
+            logger.debug("Caught exception: %s", exc)
             task.status = TaskStatus.FAILED
             task.completed_at = datetime.now()
             task.error = str(exc)

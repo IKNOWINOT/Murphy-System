@@ -371,6 +371,7 @@ class ComplianceOrchestrationBridge:
                         cr = ControlResult(ctrl.control_id, ctrl.name, ControlStatus.NOT_MET, evidence_str)
                         not_met += 1
                 except Exception as exc:
+                    logger.debug("Caught exception: %s", exc)
                     cr = ControlResult(ctrl.control_id, ctrl.name, ControlStatus.UNKNOWN, str(exc)[:200])
                     unknown += 1
             control_results.append(cr)

@@ -188,6 +188,7 @@ class SafeLLMWrapper:
                     max_tokens=max_tokens
                 )
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 return self._fallback_response(prompt, str(exc))
         else:
             return self._fallback_response(prompt, "No LLM backend")
@@ -209,6 +210,7 @@ class SafeLLMWrapper:
                     gates_failed.append(gate.name)
                     murphy_risk += gate.severity
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 gates_failed.append(f"{gate.name} (error: {exc})")
                 murphy_risk += gate.severity
 

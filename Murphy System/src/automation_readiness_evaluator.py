@@ -235,6 +235,7 @@ class AutomationReadinessEvaluator:
                         try:
                             is_healthy = bool(fn())
                         except Exception as exc:
+                            logger.debug("Caught exception: %s", exc)
                             msg = str(exc)[:200]
                     else:
                         is_healthy = True  # registered without check → assume OK

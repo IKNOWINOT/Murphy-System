@@ -261,6 +261,7 @@ class ReadinessBootstrapOrchestrator:
             task.status = BootstrapTaskStatus.COMPLETED
             task.message = f"Seeded {count} KPI baselines"
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             task.status = BootstrapTaskStatus.FAILED
             task.message = str(exc)[:200]
         task.completed_at = datetime.now(timezone.utc).isoformat()
@@ -297,6 +298,7 @@ class ReadinessBootstrapOrchestrator:
             task.status = BootstrapTaskStatus.COMPLETED
             task.message = f"Assigned {count} roles"
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             task.status = BootstrapTaskStatus.FAILED
             task.message = str(exc)[:200]
         task.completed_at = datetime.now(timezone.utc).isoformat()
@@ -328,6 +330,7 @@ class ReadinessBootstrapOrchestrator:
             task.status = BootstrapTaskStatus.COMPLETED
             task.message = f"Configured {count} tenants"
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             task.status = BootstrapTaskStatus.FAILED
             task.message = str(exc)[:200]
         task.completed_at = datetime.now(timezone.utc).isoformat()
@@ -350,6 +353,7 @@ class ReadinessBootstrapOrchestrator:
             task.status = BootstrapTaskStatus.COMPLETED
             task.message = f"Verified {len(rules)} alert rules"
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             task.status = BootstrapTaskStatus.FAILED
             task.message = str(exc)[:200]
         task.completed_at = datetime.now(timezone.utc).isoformat()
@@ -372,6 +376,7 @@ class ReadinessBootstrapOrchestrator:
             task.status = BootstrapTaskStatus.COMPLETED
             task.message = f"Verified {len(risks)} risks in register"
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             task.status = BootstrapTaskStatus.FAILED
             task.message = str(exc)[:200]
         task.completed_at = datetime.now(timezone.utc).isoformat()
@@ -404,6 +409,7 @@ class ReadinessBootstrapOrchestrator:
             task.status = BootstrapTaskStatus.COMPLETED
             task.message = f"Seeded gate templates for {domains_seeded} domains"
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             task.status = BootstrapTaskStatus.FAILED
             task.message = str(exc)[:200]
         task.completed_at = datetime.now(timezone.utc).isoformat()

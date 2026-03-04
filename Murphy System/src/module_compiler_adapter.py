@@ -127,6 +127,7 @@ class ModuleCompilerAdapter:
             return result
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
                 "success": False,
                 "error": str(exc),
@@ -212,6 +213,7 @@ class ModuleCompilerAdapter:
             }
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
                 "success": False,
                 "error": str(exc),

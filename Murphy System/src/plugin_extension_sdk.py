@@ -132,6 +132,7 @@ class PluginSandbox:
                 "elapsed_ms": round(elapsed, 2),
             }
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             elapsed = (time.monotonic() - start) * 1000
             with self._lock:
                 self._call_count += 1

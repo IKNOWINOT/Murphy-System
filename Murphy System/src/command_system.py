@@ -273,6 +273,7 @@ class MathCommand(CommandModule):
             )
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return CommandResult(
                 success=False,
                 data=None,

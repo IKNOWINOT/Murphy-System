@@ -782,6 +782,7 @@ class SecurityMiddleware:
 
         except Exception as exc:
             # Audit logging (failure)
+            logger.debug("Caught exception: %s", exc)
             self.audit.log_response(
                 {'error': str(exc), 'component': component},
                 context,

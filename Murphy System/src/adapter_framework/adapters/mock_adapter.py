@@ -197,6 +197,7 @@ class MockAdapter(AdapterAPI):
             }
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
                 "success": False,
                 "error": str(exc)

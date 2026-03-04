@@ -928,6 +928,7 @@ class DomainGateGenerator:
                 if not func_result.get("passed", True):
                     result["passed"] = False
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 result["wired_function_error"] = str(exc)
                 result["passed"] = False
 

@@ -146,6 +146,7 @@ class GateExecutionWiring:
                 evaluation.policy = policy
                 evaluation.gate_type = gate_type
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 evaluation = GateEvaluation(
                     gate_id=str(uuid.uuid4()),
                     gate_type=gate_type,
@@ -242,6 +243,7 @@ class GateExecutionWiring:
         try:
             result = executor(task)
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
                 "status": "error",
                 "gate_evaluations": gate_data,

@@ -111,6 +111,7 @@ class SymbolicSolver:
             )
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             execution_time = time.time() - start_time
             derivation_steps.append(f"Error: {exc}")
 
@@ -192,6 +193,7 @@ class SymbolicSolver:
                         validation['notes'].append(f"Results differ symbolically: {diff}")
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             validation['notes'].append(f"Comparison failed: {exc}")
 
         return validation

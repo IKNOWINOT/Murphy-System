@@ -247,6 +247,7 @@ class ProviderAdapter:
                 )
                 return resp
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 last_error = str(exc)
                 retries += 1
                 with self._lock:

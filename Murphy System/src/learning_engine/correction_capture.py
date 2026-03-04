@@ -442,6 +442,7 @@ class APICorrectionCapture:
                 if not rule(request):
                     errors.append(f"Validation rule failed: {rule.__name__}")
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 errors.append(f"Validation error: {str(exc)}")
 
         return errors

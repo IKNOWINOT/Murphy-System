@@ -145,6 +145,7 @@ class AdapterRuntime:
             return result
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             self._log_violation(f"Execution error: {exc}", packet)
             return {
                 "success": False,

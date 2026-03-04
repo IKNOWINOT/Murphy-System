@@ -135,6 +135,7 @@ class RollbackEnforcer:
                         'timestamp': datetime.now().isoformat()
                     })
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 errors.append(f"Exception during rollback of step {step_id}: {str(exc)}")
                 rollback_steps.append({
                     'step_id': step_id,
@@ -189,6 +190,7 @@ class RollbackEnforcer:
                 # Some step types don't need rollback (e.g., read operations)
                 return True, None
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return False, str(exc)
 
     def _rollback_filesystem_op(
@@ -208,6 +210,7 @@ class RollbackEnforcer:
                     os.remove(file_path)
                 return True, None
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 return False, str(exc)
 
         elif action == 'restore_original_content':
@@ -219,6 +222,7 @@ class RollbackEnforcer:
                     f.write(original_content)
                 return True, None
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 return False, str(exc)
 
         elif action == 'restore_deleted_file':
@@ -230,6 +234,7 @@ class RollbackEnforcer:
                     f.write(backup_content)
                 return True, None
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 return False, str(exc)
 
         else:
@@ -252,6 +257,7 @@ class RollbackEnforcer:
                 response.raise_for_status()
                 return True, None
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 return False, str(exc)
 
         elif action == 'restore_original_state':
@@ -264,6 +270,7 @@ class RollbackEnforcer:
                 response.raise_for_status()
                 return True, None
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 return False, str(exc)
 
         else:

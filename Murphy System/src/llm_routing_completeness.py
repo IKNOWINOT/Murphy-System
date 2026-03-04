@@ -638,6 +638,7 @@ class HybridExecutionEngine:
                     try:
                         res = fut.result()
                     except Exception as exc:
+                        logger.debug("Caught exception: %s", exc)
                         res = {"error": str(exc)}
                     subtask_results[s["subtask_id"]] = {
                         "subtask_id": s["subtask_id"],

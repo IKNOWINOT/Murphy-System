@@ -398,6 +398,7 @@ class AutomatedTestSuite:
             }
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
                 "passed": False,
                 "message": f"Basic functionality failed: {exc}"
@@ -421,6 +422,7 @@ class AutomatedTestSuite:
             }
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
                 "passed": False,
                 "message": f"Edge case handling failed: {exc}"
@@ -453,6 +455,7 @@ class AutomatedTestSuite:
             }
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
                 "passed": False,
                 "message": f"Performance test failed: {exc}"
@@ -481,6 +484,7 @@ class AutomatedTestSuite:
             }
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
                 "passed": False,
                 "message": f"Consistency test failed: {exc}"
@@ -504,6 +508,7 @@ class AutomatedTestSuite:
             }
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
                 "passed": False,
                 "message": f"Robustness test failed: {exc}"

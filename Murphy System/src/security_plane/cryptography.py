@@ -776,6 +776,7 @@ class PacketSigner:
             )
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return VerificationResult(
                 valid=False,
                 algorithm=packet_signature.algorithm,

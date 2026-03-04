@@ -712,6 +712,7 @@ class ReplayOrchestrator:
             result["status"] = "ok"
             result["result"] = step.result
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             step.error = str(exc)
             step.executed = True
             result["status"] = "error"

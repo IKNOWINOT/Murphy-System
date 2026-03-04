@@ -103,6 +103,7 @@ class LLMOutputValidator:
             model = expected_schema.model_validate(raw_output)
             return True, model, []
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             errors = self._extract_errors(exc)
             return False, None, errors
 

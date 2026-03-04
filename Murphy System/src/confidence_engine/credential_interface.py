@@ -185,6 +185,7 @@ class BaseCredentialVerifier(ABC):
                     is_valid = False
 
             except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 failed_methods.append(method)
                 is_valid = False
                 error_details = str(exc)

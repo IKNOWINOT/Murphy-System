@@ -292,6 +292,7 @@ class DeploymentAutomationController:
                 dep.updated_at = datetime.now(timezone.utc).isoformat()
                 self._record_event(deployment_id, "deployed", {"version": dep.version})
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             with self._lock:
                 dep.status = DeploymentStatus.FAILED
                 dep.error_message = str(exc)

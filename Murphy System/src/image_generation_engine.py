@@ -268,6 +268,7 @@ class _PillowBackend:
                 metadata={"mode": "procedural_placeholder"},
             )
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return ImageResult(
                 request_id=request.request_id,
                 status=GenerationStatus.FAILED,
@@ -383,6 +384,7 @@ class _StableDiffusionBackend:
                 },
             )
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return ImageResult(
                 request_id=request.request_id,
                 status=GenerationStatus.FAILED,

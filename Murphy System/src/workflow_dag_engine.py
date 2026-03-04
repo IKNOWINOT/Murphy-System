@@ -239,6 +239,7 @@ class WorkflowDAGEngine:
                     step_exec.result = result
                     step_exec.status = StepStatus.COMPLETED
                 except Exception as exc:
+                    logger.debug("Caught exception: %s", exc)
                     step_exec.error = str(exc)
                     step_exec.status = StepStatus.FAILED
             else:

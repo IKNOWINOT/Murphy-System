@@ -44,6 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **220 public classes** missing docstrings → added descriptive docstrings
 - **3 duplicate imports** in form_executor.py and murphy_gate.py → removed
 - **235 modules** (>50 lines) missing `import logging` → added logging infrastructure
+- **118 broad exception handlers** (`except Exception as exc:` without logging) → added `logger.debug()`
+- **21 apparent hardcoded credentials** → verified all are enum/constant labels (false positives)
 - **9 acronym-splitting docstrings** (LLM, NPC, API, AI, AB) → fixed
 - **4 Tier docstring spacing** (Tier1→Tier 1, etc.) → fixed
 

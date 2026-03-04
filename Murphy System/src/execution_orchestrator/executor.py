@@ -103,6 +103,7 @@ class StepwiseExecutor:
             )
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             end_time = datetime.now()
             duration_ms = (end_time - start_time).total_seconds() * 1000
 
@@ -197,6 +198,7 @@ class StepwiseExecutor:
             return response.json()
         except Exception as exc:
             # Fallback to simple evaluation for basic expressions
+            logger.debug("Caught exception: %s", exc)
             return {
                 'expression': expression,
                 'result': 'Compute plane unavailable',

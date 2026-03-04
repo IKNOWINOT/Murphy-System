@@ -1079,6 +1079,7 @@ class WebhookEventProcessor:
                 try:
                     handler(event)
                 except Exception as exc:
+                    logger.debug("Caught exception: %s", exc)
                     event.error = str(exc)
                     event.status = WebhookStatus.FAILED
                     with self._lock:

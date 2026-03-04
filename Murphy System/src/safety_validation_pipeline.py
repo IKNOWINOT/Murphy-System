@@ -325,6 +325,7 @@ class SafetyValidationPipeline:
                 ok, msg = bool(result), ""
             outcome = CheckOutcome.PASSED if ok else CheckOutcome.FAILED
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             outcome = CheckOutcome.FAILED
             msg = str(exc)[:200]
         return CheckResult(

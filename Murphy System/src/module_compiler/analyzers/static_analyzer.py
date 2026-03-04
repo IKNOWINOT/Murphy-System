@@ -119,6 +119,7 @@ class StaticAnalyzer:
 
         except Exception as exc:
             # Return empty structure on error
+            logger.debug("Caught exception: %s", exc)
             structure = CodeStructure()
             structure.dependencies.add(f"ERROR: {str(exc)}")
             return structure

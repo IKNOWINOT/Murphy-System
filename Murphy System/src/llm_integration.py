@@ -144,6 +144,7 @@ class OllamaLLM:
                 return f"[Error: {response.status_code}]"
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return f"[Error: {str(exc)}]"
 
     def chat(self, messages: List[Dict[str, str]],
@@ -188,6 +189,7 @@ class OllamaLLM:
                 return f"[Error: {response.status_code}]"
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return f"[Error: {str(exc)}]"
 
 

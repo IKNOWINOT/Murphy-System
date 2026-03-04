@@ -95,6 +95,7 @@ class ExpressionParser:
             )
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             raise ValueError(f"Failed to parse SymPy expression: {exc}")
 
     def _parse_wolfram(self, expression: str, assumptions: Dict[str, Any]) -> ParsedExpression:
@@ -233,6 +234,7 @@ class ExpressionParser:
                 result.add_warning(f"High parsing uncertainty: {parsed.uncertainty:.2f}")
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             result.add_error(f"Syntax error: {exc}")
             result.add_suggestion("Check expression syntax and try again")
 

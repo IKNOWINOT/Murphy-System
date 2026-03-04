@@ -130,6 +130,7 @@ class ModuleCompiler:
 
         except Exception as exc:
             # Return partial spec on error
+            logger.debug("Caught exception: %s", exc)
             return self._create_partial_spec(
                 module_id, source_path, version_hash,
                 error=str(exc)

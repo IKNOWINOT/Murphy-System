@@ -284,6 +284,7 @@ class SystemIntegrator:
             return response
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return SystemResponse(
                 request_id=request_id,
                 success=False,

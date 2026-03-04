@@ -68,6 +68,7 @@ class HTTPAdapter(AdapterAPI):
 
         except Exception as exc:
             # Return error telemetry
+            logger.debug("Caught exception: %s", exc)
             return {
                 "timestamp": time.time(),
                 "device_id": self.manifest.adapter_id,
@@ -121,6 +122,7 @@ class HTTPAdapter(AdapterAPI):
             }
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
                 "success": False,
                 "error": f"Command execution failed: {exc}"
@@ -155,6 +157,7 @@ class HTTPAdapter(AdapterAPI):
             return response.json()
 
         except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return {
                 "alive": False,
                 "error": str(exc)
