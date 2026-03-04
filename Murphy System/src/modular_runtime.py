@@ -16,8 +16,8 @@ import logging
 logger = logging.getLogger("modular_runtime")
 
 # Import gate builder
-from gate_builder import GateBuilder
-from system_builder import SystemBuilder
+from src.gate_builder import GateBuilder
+from src.system_builder import SystemBuilder
 
 class ModuleStatus(Enum):
     """Module lifecycle status"""
@@ -137,7 +137,7 @@ class ModularRuntime:
     def _setup_module_manager(self):
         """Setup module manager with core capabilities"""
         # Register core modules in module manager
-        from module_manager import module_manager
+        from src.module_manager import module_manager
 
         core_module_caps = [
             ("SystemBuilder", "src.system_builder",
