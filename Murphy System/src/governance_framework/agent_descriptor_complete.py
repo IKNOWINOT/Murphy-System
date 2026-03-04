@@ -319,7 +319,7 @@ class AgentDescriptor:
             
             return True
             
-        except Exception:
+        except Exception as exc:
             return False
     
     def can_execute_action(self, action_type: ActionType) -> bool:

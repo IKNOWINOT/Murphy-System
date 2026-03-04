@@ -11,6 +11,8 @@ import json
 from datetime import datetime
 import requests
 import os
+import logging
+logger = logging.getLogger(__name__)
 
 
 class LLMProvider(Enum):
@@ -361,7 +363,8 @@ class LLMIntegrationLayer:
                               "processing_type": "deterministic",
                               "source": "api"},
                 )
-            except Exception:
+            except Exception as exc:
+                logger.debug("Suppressed exception: %s", exc)
                 pass  # fall through to local engine
 
         response_text = self._local_aristotle_response(request)
@@ -407,7 +410,8 @@ class LLMIntegrationLayer:
                               "processing_type": "fuzzy_match",
                               "source": "api"},
                 )
-            except Exception:
+            except Exception as exc:
+                logger.debug("Suppressed exception: %s", exc)
                 pass  # fall through to local engine
 
         response_text = self._local_wulfrum_response(request)
@@ -470,7 +474,8 @@ class LLMIntegrationLayer:
                             "usage": data.get("usage", {}),
                         },
                     )
-            except Exception:
+            except Exception as exc:
+                logger.debug("Suppressed exception: %s", exc)
                 pass  # fall through to local engine
 
         response_text = self._local_groq_response(request)

@@ -40,7 +40,7 @@ class RosettaManager:
             with open(tmp_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, default=str)
             tmp_path.replace(filepath)
-        except Exception:
+        except Exception as exc:
             if tmp_path.exists():
                 tmp_path.unlink()
             raise
@@ -91,7 +91,7 @@ class RosettaManager:
                 try:
                     data = self._read_json(filepath)
                     state = RosettaAgentState.model_validate(data)
-                except Exception:
+                except Exception as exc:
                     return None
 
             current = state.model_dump(mode="json")

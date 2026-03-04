@@ -12,6 +12,8 @@ import tempfile
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 from ..models.module_spec import ModuleSpec, Capability
+import logging
+logger = logging.getLogger(__name__)
 
 
 class ModuleRegistry:
@@ -296,7 +298,8 @@ class ModuleRegistry:
             try:
                 with open(self.index_path, 'r') as f:
                     return json.load(f)
-            except Exception:
+            except Exception as exc:
+                logger.debug("Suppressed exception: %s", exc)
                 pass
         
         # Return empty index

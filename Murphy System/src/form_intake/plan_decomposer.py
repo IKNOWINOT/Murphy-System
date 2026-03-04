@@ -727,32 +727,6 @@ class PlanDecomposer:
                 f"The primary objective ('{objectives[0][:60]}…') is well-scoped and stable"
             )
         return assumptions
-        """Identify plan-level assumptions based on goal analysis and task set.
-
-        Combines generic project assumptions with signals from the goal
-        analysis (e.g. if the goal mentions *migration* we assume the
-        legacy system will remain available during the transition).
-        """
-        base_assumptions = [
-            'Resources are available as planned',
-            'No major external blockers',
-            'Team has necessary skills',
-        ]
-
-        # Goal-derived assumptions.
-        challenges = goal_analysis.get('challenges', [])
-        for challenge in challenges:
-            ch_lower = challenge.lower()
-            if 'legacy' in ch_lower or 'compatibility' in ch_lower:
-                base_assumptions.append('Legacy systems remain accessible during migration')
-            if 'scale' in ch_lower or 'performance' in ch_lower:
-                base_assumptions.append('Infrastructure can be scaled as needed')
-
-        # Task-count assumption.
-        if len(tasks) > 20:
-            base_assumptions.append('Sufficient bandwidth to manage a large number of parallel tasks')
-
-        return base_assumptions
 
     def _identify_risks(
         self,
@@ -763,7 +737,7 @@ class PlanDecomposer:
         """
         Derive plan-level risks scaled by *risk_tolerance*.
 
-        Higher risk tolerance → fewer flagged risks.
+        Higher risk tolerance -- fewer flagged risks.
         """
         base_risks = [
             "Timeline may slip due to unforeseen technical challenges",

@@ -115,7 +115,7 @@ class WikipediaVerifier:
                 "disambiguation": True,
                 "options": e.options[:5]
             }
-        except Exception:
+        except Exception as exc:
             return None
 
 
@@ -157,7 +157,7 @@ class WikidataVerifier:
             
             return None
             
-        except Exception:
+        except Exception as exc:
             return None
 
 
@@ -221,7 +221,7 @@ class CalculationEngine:
             
             result = eval_node(node.body)
             return float(result)
-        except Exception:
+        except Exception as exc:
             return None
     
     @staticmethod
@@ -242,7 +242,7 @@ class CalculationEngine:
         try:
             amount = principal * (1 + rate / n) ** (n * time)
             return round(amount, 2)
-        except Exception:
+        except Exception as exc:
             return None
 
 

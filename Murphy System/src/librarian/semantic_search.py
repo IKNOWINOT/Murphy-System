@@ -233,7 +233,8 @@ class SemanticSearchEngine:
                             score += 0.2
                         elif days_old < 30:
                             score += 0.1
-                    except Exception:
+                    except Exception as exc:
+                        logger.debug("Suppressed exception: %s", exc)
                         pass
             
             # Access popularity bonus

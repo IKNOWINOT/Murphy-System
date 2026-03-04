@@ -767,7 +767,7 @@ class AlertRulesEngine:
             for cb in callbacks:
                 try:
                     cb(alert)
-                except Exception:
+                except Exception as exc:
                     logger.exception("Alert callback failed")
 
         return {

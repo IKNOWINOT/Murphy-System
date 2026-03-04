@@ -9,6 +9,8 @@ from enum import Enum
 from pydantic import BaseModel, Field
 from abc import ABC, abstractmethod
 
+import logging
+logger = logging.getLogger(__name__)
 from src.confidence_engine.credential_verifier import (
     Credential, CredentialType, CredentialStatus, CredentialVerificationResult
 )
@@ -265,7 +267,8 @@ class AWSCredentialVerifier(BaseCredentialVerifier):
             return True
         except ImportError:
             pass
-        except Exception:
+        except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             pass
         # Fallback — validate key format only
         return self._validate_aws_key_format(credential.credential_value)
@@ -339,7 +342,7 @@ class GitHubCredentialVerifier(BaseCredentialVerifier):
             )
             with urllib.request.urlopen(req, timeout=5) as resp:
                 return resp.status == 200
-        except Exception:
+        except Exception as exc:
             # Network unavailable — fall back to format check
             return self._validate_github_token_format(credential.credential_value)
     

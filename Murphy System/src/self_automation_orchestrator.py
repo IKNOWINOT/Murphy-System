@@ -185,7 +185,7 @@ class SelfAutomationOrchestrator:
         try:
             self._persistence.save_document(self._PERSIST_DOC_ID, state)
             return True
-        except Exception:
+        except Exception as exc:
             return False
 
     def load_state(self) -> bool:
@@ -198,7 +198,7 @@ class SelfAutomationOrchestrator:
             return False
         try:
             state = self._persistence.load_document(self._PERSIST_DOC_ID)
-        except Exception:
+        except Exception as exc:
             return False
         if state is None:
             return False

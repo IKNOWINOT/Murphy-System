@@ -25,7 +25,7 @@ def _check_ollama_available(base_url: str = "http://localhost:11434") -> bool:
         req = urllib.request.Request(f"{base_url}/api/tags", method="GET")
         with urllib.request.urlopen(req, timeout=2) as resp:
             return resp.status == 200
-    except Exception:
+    except Exception as exc:
         return False
 
 
@@ -54,7 +54,7 @@ def _query_ollama(
         with urllib.request.urlopen(req, timeout=30) as resp:
             data = _json.loads(resp.read().decode("utf-8"))
             return data.get("response", "")
-    except Exception:
+    except Exception as exc:
         return None
 
 

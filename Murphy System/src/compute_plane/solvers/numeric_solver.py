@@ -7,6 +7,8 @@ Executes numeric computations with bounds and sensitivity analysis.
 from typing import Tuple, Dict, Any
 import time
 import math
+import logging
+logger = logging.getLogger(__name__)
 
 
 class NumericSolver:
@@ -119,7 +121,7 @@ class NumericSolver:
             # Return min and max
             return (min(values), max(values))
         
-        except Exception:
+        except Exception as exc:
             return (float('-inf'), float('inf'))
     
     def sensitivity_analysis(self, normalized_expr, base_point: Dict[str, float], perturbation: float = 0.01) -> Dict[str, float]:
@@ -166,7 +168,8 @@ class NumericSolver:
                     
                     sensitivities[var] = sensitivity
         
-        except Exception:
+        except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             pass
         
         return sensitivities

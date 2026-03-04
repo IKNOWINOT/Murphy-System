@@ -58,7 +58,7 @@ class StabilityMetrics:
                     state_changes.append(1)
                 else:
                     state_changes.append(0)
-            except Exception:
+            except Exception as exc:
                 state_changes.append(0)
         
         max_change_rate = max(state_changes) if state_changes else 0

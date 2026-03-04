@@ -350,7 +350,7 @@ print(json.dumps(context_analysis, indent=2))
         if result.success and result.output:
             try:
                 return json.loads(result.output)
-            except Exception:
+            except Exception as exc:
                 return {}
         
         return {}

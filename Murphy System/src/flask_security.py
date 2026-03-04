@@ -280,7 +280,8 @@ def configure_secure_app(app: Flask, service_name: str = "murphy-api") -> Flask:
                 if data and _check_injection(data):
                     logger.warning(f"[{service_name}] Injection attempt from {client_ip}")
                     return jsonify({"error": "Malicious input detected"}), 400
-            except Exception:
+            except Exception as exc:
+                logger.debug("Suppressed exception: %s", exc)
                 pass  # Non-JSON body, skip sanitization
         
         return None

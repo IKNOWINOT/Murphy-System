@@ -190,7 +190,7 @@ class DataCache:
                 size += sum(self._estimate_size(k) + self._estimate_size(v) 
                            for k, v in obj.items())
             return size / (1024 * 1024)
-        except Exception:
+        except Exception as exc:
             return 0.01  # Default small size
     
     def clear(self) -> None:
@@ -260,7 +260,7 @@ class MemoryEfficientList:
         try:
             size = sum(sys.getsizeof(item) for item in self._data)
             return size / (1024 * 1024)
-        except Exception:
+        except Exception as exc:
             return 0.0
     
     def __len__(self) -> int:

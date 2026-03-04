@@ -268,7 +268,7 @@ class CredentialVerifier:
             # In production, use PyJWT to decode and verify
             parts = credential.credential_value.split('.')
             return len(parts) == 3
-        except Exception:
+        except Exception as exc:
             return False
     
     def _update_credential_status(self, credential_id: str, status: CredentialStatus):

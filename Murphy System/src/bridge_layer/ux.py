@@ -13,6 +13,8 @@ Designed for neon green on black terminal aesthetic.
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timezone
 
+import logging
+logger = logging.getLogger(__name__)
 from .models import (
     HypothesisArtifact,
     VerificationArtifact,
@@ -98,7 +100,8 @@ class BlockingFeedback:
             body.append("  3. Increase confidence through validation")
             body.append("  4. Retry compilation")
             return render_panel("HYPOTHESIS EXECUTABILITY STATUS", body)
-        except Exception:
+        except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             pass
 
         # Fallback — inline ANSI rendering

@@ -143,7 +143,7 @@ class ProviderAdapter:
                     creds["access_token"] = new_token
                     access_token = new_token
             except Exception as exc:
-                logger.warning("OAuth2 token refresh failed: %s", exc)
+                logger.warning("OAuth2 token refresh failed: %s", type(exc).__name__)
 
         if access_token:
             return {"Authorization": f"Bearer {access_token}"}

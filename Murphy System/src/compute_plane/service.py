@@ -19,6 +19,8 @@ from .parsers.expression_parser import ExpressionParser
 from .solvers.symbolic_solver import SymbolicSolver
 from .solvers.numeric_solver import NumericSolver
 from .analyzers.determinism_analyzer import DeterminismAnalyzer
+import logging
+logger = logging.getLogger(__name__)
 
 
 class ComputeService:
@@ -327,21 +329,9 @@ class ComputeService:
                 # executor never dispatched it (e.g. threads unavailable).
                 # Fall back to direct, synchronous execution.
                 if cancelled:
-                    try:
-                        fallback_start = time.time()
-                        result = run_computation()
-                        if time.time() - fallback_start > request.timeout:
-                            result = ComputeResult(
-                                request_id=request.request_id,
-                                status=ComputeStatus.TIMEOUT,
-                                error_message=f"Computation timed out after {request.timeout} seconds"
-                            )
-                    except Exception as exc:
-                        result = ComputeResult(
-                            request_id=request.request_id,
-                            status=ComputeStatus.FAIL,
-                            error_message=str(exc),
-                        )
+                    result = self._run_fallback_computation(
+                        run_computation, request
+                    )
                 else:
                     result = ComputeResult(
                         request_id=request.request_id,
@@ -453,6 +443,26 @@ class ComputeService:
                 'success_rate': self._compute_success_rate()
             }
     
+    def _run_fallback_computation(self, run_computation, request) -> "ComputeResult":
+        """Execute computation synchronously as a fallback after timeout cancellation."""
+        try:
+            fallback_start = time.time()
+            result = run_computation()
+            if time.time() - fallback_start > request.timeout:
+                result = ComputeResult(
+                    request_id=request.request_id,
+                    status=ComputeStatus.TIMEOUT,
+                    error_message=f"Computation timed out after {request.timeout} seconds"
+                )
+        except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
+            result = ComputeResult(
+                request_id=request.request_id,
+                status=ComputeStatus.FAIL,
+                error_message=str(exc),
+            )
+        return result
+    
     def _compute_success_rate(self) -> float:
         """Compute success rate of completed requests"""
         if not self.request_cache:
@@ -505,5 +515,6 @@ class ComputeService:
     def __del__(self):
         try:
             self.shutdown()
-        except Exception:
+        except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
             pass

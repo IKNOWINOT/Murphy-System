@@ -208,7 +208,7 @@ Provide a JSON response with these fields:
         
         try:
             analysis = json.loads(response.content)
-        except Exception:
+        except Exception as exc:
             # Fallback analysis
             analysis = self._fallback_analysis(task_description)
         
@@ -382,7 +382,7 @@ Format: {{"steps": [...]}}
         try:
             plan_data = json.loads(response.content)
             steps_data = plan_data.get('steps', [])
-        except Exception:
+        except Exception as exc:
             # Fallback to simple plan
             steps_data = self._fallback_execution_plan(agents)
         
