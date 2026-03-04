@@ -12,7 +12,7 @@ processing and what we provide back at scale?"
 
 Computes:
   1. Per-customer processing cost (LLM tokens, compute, storage, support)
-  2. Revenue per tier (Free, Pro $99/mo, Enterprise custom, Creator rev-share)
+  2. Revenue per tier (Free, Pro $99/mo, Enterprise $750/mo/seat, Creator Starter $20/mo)
   3. Gross margin per tier
   4. Breakeven customer counts
   5. Scale projections (100 / 1K / 10K / 100K customers)
@@ -244,10 +244,10 @@ _DEFAULT_COST_PROFILES: Dict[str, ProcessingCostProfile] = {
 
 # Default tier revenue assumptions
 _DEFAULT_TIER_REVENUES: Dict[str, float] = {
-    "community": 0.00,       # Free
+    "community": 0.00,       # Free — budgeted from total paid income
     "pro": 99.00,            # $99/mo per seat
-    "enterprise": 500.00,    # Estimated average for custom pricing
-    "creator_starter": 15.00,  # 5% rev-share on ~$300/mo subscriber revenue
+    "enterprise": 750.00,    # $750/mo per seat
+    "creator_starter": 20.00,  # $20/mo flat rate
     "creator_pro": 99.00,    # Direct $99/mo subscription
 }
 
@@ -434,6 +434,9 @@ class UnitEconomicsAnalyzer:
             (p for p in scale_ladder if p.customer_count == 1_000), None
         )
 
+        # Community free-tier budget at 1K paid customers
+        community_budget = self.community_free_budget(paid_customer_count=1_000)
+
         report = {
             "report_id": f"ue-{uuid.uuid4().hex[:8]}",
             "summary": {
@@ -445,6 +448,9 @@ class UnitEconomicsAnalyzer:
                     blended_at_1k.blended_margin_pct if blended_at_1k else None
                 ),
                 "breakeven_customers": breakeven.get("breakeven_customers"),
+                "community_free_users_at_1k_paid": (
+                    community_budget.get("max_free_users")
+                ),
                 "verdict": (
                     "VIABLE — offerings support healthy margins at scale"
                     if all_paid_viable and (not alerts)
@@ -454,6 +460,7 @@ class UnitEconomicsAnalyzer:
             "tier_economics": {t: e.to_dict() for t, e in tier_econ.items()},
             "scale_projections": [p.to_dict() for p in scale_ladder],
             "breakeven": breakeven,
+            "community_budget": community_budget,
             "alerts": alerts,
             "monthly_fixed_costs": monthly_fixed_costs,
         }
@@ -465,6 +472,75 @@ class UnitEconomicsAnalyzer:
             len(alerts),
         )
         return report
+
+    # --- Community free-tier budget ---
+
+    def community_free_budget(
+        self,
+        paid_customer_count: int,
+        tier_mix: Optional[Dict[str, float]] = None,
+        reinvest_pct: float = 0.10,
+    ) -> Dict[str, Any]:
+        """Calculate how many free community users we can sustain.
+
+        The community tier is free.  We fund it by reinvesting a percentage
+        of total paid-tier income into a monthly community budget, then
+        dividing by per-user community cost.
+
+        Args:
+            paid_customer_count: Total number of *paying* customers.
+            tier_mix: Distribution of paying customers across paid tiers
+                      (community share is ignored; remaining fractions are
+                      re-normalised).
+            reinvest_pct: Fraction of total paid revenue allocated to the
+                          community free pool (default 10%).
+
+        Returns:
+            Dict with monthly budget, cost per free user, and max free users.
+        """
+        mix = tier_mix or self._tier_mix
+        tier_econ = self.analyze_all_tiers()
+
+        # Collect only paid tiers and re-normalise their shares
+        paid_shares: Dict[str, float] = {}
+        for tier, frac in mix.items():
+            econ = tier_econ.get(tier)
+            if econ and econ.monthly_revenue > 0:
+                paid_shares[tier] = frac
+
+        total_share = sum(paid_shares.values())
+        if total_share <= 0:
+            return {
+                "monthly_community_budget": 0.0,
+                "community_cost_per_user": 0.0,
+                "max_free_users": 0,
+                "reinvest_pct": reinvest_pct,
+                "paid_customer_count": paid_customer_count,
+            }
+
+        # Total monthly revenue from paid customers
+        total_paid_revenue = 0.0
+        for tier, frac in paid_shares.items():
+            normed = frac / total_share
+            econ = tier_econ[tier]
+            total_paid_revenue += econ.monthly_revenue * (paid_customer_count * normed)
+
+        monthly_budget = total_paid_revenue * reinvest_pct
+        community_cost = self._cost_profiles.get("community")
+        cost_per_free_user = community_cost.total_cost if community_cost else 0.0
+
+        max_free_users = (
+            int(monthly_budget / cost_per_free_user) if cost_per_free_user > 0 else 0
+        )
+
+        return {
+            "monthly_community_budget": round(monthly_budget, 2),
+            "community_cost_per_user": round(cost_per_free_user, 4),
+            "max_free_users": max_free_users,
+            "reinvest_pct": reinvest_pct,
+            "paid_customer_count": paid_customer_count,
+            "total_paid_monthly_revenue": round(total_paid_revenue, 2),
+        }
 
     # --- Status ---
 

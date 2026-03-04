@@ -61,9 +61,9 @@ class InoniOrgBootstrap:
 
     Revenue Model:
     - Free tier: Trade services for marketing (creator promotes Inoni)
-    - Subscription: 5% revenue share on paid annual subscriptions they lock in
+    - Subscription: $20/mo flat rate (Creator Starter)
     - Pro tier: $99/mo direct subscription
-    - Enterprise: Custom pricing for agencies managing 10+ creators
+    - Enterprise: $750/mo per seat for agencies managing 10+ creators
     """
 
     def __init__(
@@ -535,9 +535,9 @@ class InoniOrgBootstrap:
 
         Revenue model:
         - Free tier: Service traded for marketing exposure
-        - Starter: 5% revenue share on annual subscriptions they bring in
+        - Starter: $20/mo flat rate
         - Pro: $99/mo flat rate
-        - Agency: Custom pricing for 10+ creator management
+        - Agency: $750/mo per seat for 10+ creator management
         """
         campaign = self.campaigns.create_campaign(
             name="Content Creator Automation Launch",
@@ -567,8 +567,8 @@ class InoniOrgBootstrap:
                         "for your creator roster"
                     ),
                     "offer": (
-                        "Free 30-day trial, then 5% rev-share on "
-                        "annual creator subscriptions"
+                        "Free 30-day trial, then $20/mo Starter or "
+                        "$750/mo/seat Agency"
                     ),
                     "agent": "outreach_specialist",
                 },
@@ -599,7 +599,7 @@ class InoniOrgBootstrap:
                         "One platform to automate all your content ops"
                     ),
                     "offer": (
-                        "5% rev-share referral program + Starter free tier"
+                        "$20/mo Starter + Starter free trial"
                     ),
                     "agent": "partnership_manager",
                 },
@@ -613,10 +613,10 @@ class InoniOrgBootstrap:
                     ),
                 },
                 {
-                    "name": "Starter (Rev-Share)",
-                    "price": "5% of annual subscriptions locked in",
+                    "name": "Starter",
+                    "price": "$20/mo",
                     "terms": (
-                        "1-year commitment, 5% of subscriber revenue"
+                        "Full automation suite for individual creators"
                     ),
                 },
                 {
@@ -626,7 +626,7 @@ class InoniOrgBootstrap:
                 },
                 {
                     "name": "Agency",
-                    "price": "Custom",
+                    "price": "$750/mo per seat",
                     "terms": (
                         "10+ creators, dedicated account manager, "
                         "custom integrations"
