@@ -23,12 +23,14 @@ from typing import Any, Dict, List, Optional
 # ---------------------------------------------------------------------------
 
 class VoiceGender(Enum):
+    """Voice gender (Enum subclass)."""
     MALE = "male"
     FEMALE = "female"
     NEUTRAL = "neutral"
 
 
 class VoiceTone(Enum):
+    """Voice tone (Enum subclass)."""
     DEEP = "deep"
     GRAVELLY = "gravelly"
     SMOOTH = "smooth"

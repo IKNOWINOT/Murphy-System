@@ -49,10 +49,12 @@ except ImportError:
     _PYDANTIC_AVAILABLE = False
 
     class BaseModel:  # type: ignore[no-redef]
+        """Base model."""
         pass
 
     @dataclass
     class StateVariable(BaseModel):  # type: ignore[no-redef]
+        """State variable."""
         name: str = ""
         value: Any = None
         dtype: str = "float"
@@ -63,6 +65,7 @@ except ImportError:
 
     @dataclass
     class StateVectorSchema(BaseModel):  # type: ignore[no-redef]
+        """State vector schema."""
         domain: str = ""
         schema_version: str = "1.0"
         dimensions: List[StateVariable] = dc_field(default_factory=list)

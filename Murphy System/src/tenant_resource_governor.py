@@ -56,6 +56,7 @@ _MAX_SNAPSHOTS = 5_000
 # ---------------------------------------------------------------------------
 
 class LimitCheckResult(str, Enum):
+    """Limit check result (str subclass)."""
     ALLOWED = "allowed"
     DENIED_OVER_LIMIT = "denied_over_limit"
     DENIED_UNKNOWN_TENANT = "denied_unknown_tenant"

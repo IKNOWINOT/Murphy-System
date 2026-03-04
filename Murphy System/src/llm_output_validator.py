@@ -97,13 +97,16 @@ except ImportError:
     _PYDANTIC_AVAILABLE = False
 
     class BaseModel:  # type: ignore[no-redef]
+        """Base model."""
         pass
 
     class ValidationError(Exception):  # type: ignore[no-redef]
+        """Validation error (Exception subclass)."""
         pass
 
     @dataclass
     class ValidationResult(BaseModel):  # type: ignore[no-redef]
+        """Validation result."""
         valid: bool = True
         errors: List[str] = dc_field(default_factory=list)
         warnings: List[str] = dc_field(default_factory=list)
@@ -111,6 +114,7 @@ except ImportError:
 
     @dataclass
     class LLMOutputEnvelope(BaseModel):  # type: ignore[no-redef]
+        """L l m output envelope."""
         output_type: str = ""
         raw_output: str = ""
         parsed_output: Dict[str, Any] = dc_field(default_factory=dict)
@@ -120,6 +124,7 @@ except ImportError:
 
     @dataclass
     class LLMExpansionResult(BaseModel):  # type: ignore[no-redef]
+        """L l m expansion result."""
         new_dimension: str = ""
         initial_value: float = 0.0
         uncertainty: float = 0.5
@@ -127,6 +132,7 @@ except ImportError:
 
     @dataclass
     class LLMGeneratedExpert(BaseModel):  # type: ignore[no-redef]
+        """L l m generated expert."""
         name: str = ""
         domain: str = ""
         capabilities: List[str] = dc_field(default_factory=list)
@@ -134,6 +140,7 @@ except ImportError:
 
     @dataclass
     class LLMGeneratedGate(BaseModel):  # type: ignore[no-redef]
+        """L l m generated gate."""
         gate_type: str = ""
         target: str = ""
         trigger_condition: str = ""
@@ -141,6 +148,7 @@ except ImportError:
 
     @dataclass
     class LLMGeneratedConstraint(BaseModel):  # type: ignore[no-redef]
+        """L l m generated constraint."""
         parameter: str = ""
         operator: str = ""
         threshold: float = 0.0

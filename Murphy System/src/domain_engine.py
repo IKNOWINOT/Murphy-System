@@ -12,6 +12,7 @@ import logging
 logger = logging.getLogger("domain_engine")
 
 class DomainType(Enum):
+    """Domain type (Enum subclass)."""
     BUSINESS = "business"
     ENGINEERING = "engineering"
     FINANCIAL = "financial"
@@ -24,6 +25,7 @@ class DomainType(Enum):
     GENERATIVE = "generative"
 
 class ImpactLevel(Enum):
+    """Impact level (Enum subclass)."""
     NONE = 0
     LOW = 1
     MEDIUM = 2

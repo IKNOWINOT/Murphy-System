@@ -33,6 +33,7 @@ from thread_safe_operations import capped_append
 # ---------------------------------------------------------------------------
 
 class EndpointMethod(enum.Enum):
+    """Endpoint method (Enum subclass)."""
     GET = "GET"
     POST = "POST"
     PUT = "PUT"
@@ -42,6 +43,7 @@ class EndpointMethod(enum.Enum):
 
 
 class AuthPolicy(enum.Enum):
+    """Auth policy (Enum subclass)."""
     NONE = "none"
     API_KEY = "api_key"
     BEARER_TOKEN = "bearer_token"
@@ -50,6 +52,7 @@ class AuthPolicy(enum.Enum):
 
 
 class EndpointStatus(enum.Enum):
+    """Endpoint status (Enum subclass)."""
     ACTIVE = "active"
     DEGRADED = "degraded"
     DISABLED = "disabled"
@@ -58,6 +61,7 @@ class EndpointStatus(enum.Enum):
 
 
 class APIVersion(enum.Enum):
+    """A p i version (Enum subclass)."""
     V1 = "v1"
     V2 = "v2"
     V3 = "v3"

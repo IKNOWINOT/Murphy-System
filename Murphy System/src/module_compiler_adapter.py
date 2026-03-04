@@ -32,11 +32,13 @@ except ImportError:
 
     # Fallback classes
     class DeterminismLevel:
+        """Determinism level."""
         DETERMINISTIC = "deterministic"
         PROBABILISTIC = "probabilistic"
         EXTERNAL_STATE = "external_state"
 
     class FailureSeverity:
+        """Failure severity."""
         LOW = "low"
         MEDIUM = "medium"
         HIGH = "high"

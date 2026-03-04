@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 class SecurityEventType(str, Enum):
+    """Security event type (str subclass)."""
     AUTHORIZATION_DENIED = "authorization_denied"
     AUTHORIZATION_GRANTED = "authorization_granted"
     QUOTA_VIOLATION = "quota_violation"
@@ -34,6 +35,7 @@ class SecurityEventType(str, Enum):
 
 
 class EscalationLevel(str, Enum):
+    """Escalation level (str subclass)."""
     INFO = "info"
     WARNING = "warning"
     ALERT = "alert"
@@ -61,6 +63,7 @@ _NON_INCIDENT_TYPES = {
 
 @dataclass
 class SecurityEvent:
+    """Security event."""
     event_id: str
     event_type: SecurityEventType
     escalation_level: EscalationLevel
@@ -89,6 +92,7 @@ class SecurityEvent:
 
 @dataclass
 class CorrelatedEventGroup:
+    """Correlated event group."""
     group_id: str
     events: List[SecurityEvent]
     primary_event_id: str
@@ -107,6 +111,7 @@ class CorrelatedEventGroup:
 
 @dataclass
 class SecurityReport:
+    """Security report."""
     report_id: str
     generated_at: datetime
     period_start: datetime

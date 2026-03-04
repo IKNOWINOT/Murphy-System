@@ -21,6 +21,7 @@ from thread_safe_operations import capped_append
 # ---------------------------------------------------------------------------
 
 class EnergyManagementCategory(Enum):
+    """Energy management category (Enum subclass)."""
     UTILITY_ANALYTICS = "utility_analytics"
     BUILDING_EMS = "building_ems"
     GRID_MANAGEMENT = "grid_management"
@@ -30,6 +31,7 @@ class EnergyManagementCategory(Enum):
 
 
 class EnergyProtocol(Enum):
+    """Energy protocol (Enum subclass)."""
     MODBUS = "modbus"
     BACNET = "bacnet"
     OPC_UA = "opc_ua"
@@ -40,6 +42,7 @@ class EnergyProtocol(Enum):
 
 
 class ConnectorStatus(Enum):
+    """Connector status (Enum subclass)."""
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"

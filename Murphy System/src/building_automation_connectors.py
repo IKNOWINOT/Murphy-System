@@ -20,6 +20,7 @@ from thread_safe_operations import capped_append
 # ---------------------------------------------------------------------------
 
 class BuildingAutomationProtocol(Enum):
+    """Building automation protocol (Enum subclass)."""
     BACNET = "bacnet"
     MODBUS = "modbus"
     KNX = "knx"
@@ -29,6 +30,7 @@ class BuildingAutomationProtocol(Enum):
 
 
 class BuildingSystemCategory(Enum):
+    """Building system category (Enum subclass)."""
     HVAC = "hvac"
     LIGHTING = "lighting"
     FIRE_SAFETY = "fire_safety"
@@ -39,6 +41,7 @@ class BuildingSystemCategory(Enum):
 
 
 class ConnectorStatus(Enum):
+    """Connector status (Enum subclass)."""
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"

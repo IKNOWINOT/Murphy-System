@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional
 
 
 class TemplateCategory(str):
+    """Template category (str subclass)."""
     pass
 
 

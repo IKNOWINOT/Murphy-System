@@ -21,6 +21,7 @@ from thread_safe_operations import capped_append
 # ---------------------------------------------------------------------------
 
 class IntegrationCategory(Enum):
+    """Integration category (Enum subclass)."""
     ACCOUNTING_FINANCE = "accounting_finance"
     ENGINEERING_DESIGN = "engineering_design"
     PROJECT_MANAGEMENT = "project_management"
@@ -34,6 +35,7 @@ class IntegrationCategory(Enum):
 
 
 class AuthMethod(Enum):
+    """Auth method (Enum subclass)."""
     API_KEY = "api_key"
     OAUTH = "oauth"
     BASIC = "basic"
@@ -41,6 +43,7 @@ class AuthMethod(Enum):
 
 
 class ConnectorStatus(Enum):
+    """Connector status (Enum subclass)."""
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"

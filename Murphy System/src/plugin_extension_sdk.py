@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class PluginState(Enum):
+    """Plugin state (Enum subclass)."""
     REGISTERED = "registered"
     VALIDATED = "validated"
     INSTALLED = "installed"
@@ -30,6 +31,7 @@ class PluginState(Enum):
 
 
 class PluginCapability(Enum):
+    """Plugin capability (Enum subclass)."""
     READ_DATA = "read_data"
     WRITE_DATA = "write_data"
     EXECUTE_TASKS = "execute_tasks"

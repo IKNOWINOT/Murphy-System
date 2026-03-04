@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class IdentityStatus(str, Enum):
+    """Identity status (str subclass)."""
     ACTIVE = "active"
     REVOKED = "revoked"
     EXPIRED = "expired"
@@ -26,6 +27,7 @@ class IdentityStatus(str, Enum):
 
 
 class VerificationResult(str, Enum):
+    """Verification result (str subclass)."""
     VALID = "valid"
     INVALID_SIGNATURE = "invalid_signature"
     UNKNOWN_BOT = "unknown_bot"
@@ -35,6 +37,7 @@ class VerificationResult(str, Enum):
 
 @dataclass
 class BotIdentity:
+    """Bot identity."""
     bot_id: str
     tenant_id: str
     signing_key: str
@@ -61,6 +64,7 @@ class BotIdentity:
 
 @dataclass
 class SignedMessage:
+    """Signed message."""
     message_id: str
     from_bot: str
     to_bot: str

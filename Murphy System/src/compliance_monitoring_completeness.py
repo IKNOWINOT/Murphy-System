@@ -33,12 +33,14 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 class MonitorStatus(str, Enum):
+    """Monitor status (str subclass)."""
     RUNNING = "running"
     STOPPED = "stopped"
     ERROR = "error"
 
 
 class DriftSeverity(str, Enum):
+    """Drift severity (str subclass)."""
     CRITICAL = "critical"
     HIGH = "high"
     MEDIUM = "medium"
@@ -46,6 +48,7 @@ class DriftSeverity(str, Enum):
 
 
 class RemediationAction(str, Enum):
+    """Remediation action (str subclass)."""
     TOKEN_REFRESH = "token_refresh"
     ENABLE_ENCRYPTION = "enable_encryption"
     PATCH_ACCESS_POLICY = "patch_access_policy"
@@ -54,6 +57,7 @@ class RemediationAction(str, Enum):
 
 
 class RegulationImpact(str, Enum):
+    """Regulation impact (str subclass)."""
     BREAKING = "breaking"
     SIGNIFICANT = "significant"
     MINOR = "minor"
@@ -66,6 +70,7 @@ class RegulationImpact(str, Enum):
 
 @dataclass
 class ComplianceSensor:
+    """Compliance sensor."""
     sensor_id: str
     framework: str
     control_id: str
@@ -78,6 +83,7 @@ class ComplianceSensor:
 
 @dataclass
 class DriftBaseline:
+    """Drift baseline."""
     baseline_id: str
     framework: str
     snapshot: Dict[str, Any] = field(default_factory=dict)
@@ -86,6 +92,7 @@ class DriftBaseline:
 
 @dataclass
 class RegulationUpdate:
+    """Regulation update."""
     update_id: str
     regulation: str
     description: str

@@ -43,6 +43,7 @@ logger = logging.getLogger(__name__)
 
 # Pydantic models for API
 class TelemetrySubmission(BaseModel):
+    """Telemetry submission."""
     domain: str
     source_id: str
     data: Dict[str, Any]
@@ -50,24 +51,28 @@ class TelemetrySubmission(BaseModel):
 
 
 class AuthorizationRequest(BaseModel):
+    """Authorization request."""
     evolution_id: str
     authorized_by: str
     notes: Optional[str] = None
 
 
 class RejectionRequest(BaseModel):
+    """Rejection request."""
     evolution_id: str
     rejected_by: str
     reason: str
 
 
 class RollbackRequest(BaseModel):
+    """Rollback request."""
     evolution_id: str
     rolled_back_by: str
     reason: str
 
 
 class ModeChangeRequest(BaseModel):
+    """Mode change request."""
     mode: str
     enforcement_percentage: Optional[float] = None
 

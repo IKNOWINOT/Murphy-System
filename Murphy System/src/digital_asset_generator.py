@@ -33,6 +33,7 @@ from thread_safe_operations import capped_append
 # ---------------------------------------------------------------------------
 
 class AssetType(enum.Enum):
+    """Asset type (Enum subclass)."""
     TEXTURE = "texture"
     SPRITE_SHEET = "sprite_sheet"
     TEXTURE_ATLAS = "texture_atlas"
@@ -46,6 +47,7 @@ class AssetType(enum.Enum):
 
 
 class TargetPlatform(enum.Enum):
+    """Target platform (Enum subclass)."""
     UNREAL_ENGINE = "unreal_engine"
     MAYA = "maya"
     BLENDER = "blender"
@@ -56,6 +58,7 @@ class TargetPlatform(enum.Enum):
 
 
 class AssetFormat(enum.Enum):
+    """Asset format (Enum subclass)."""
     FBX = "fbx"
     GLTF = "gltf"
     USD = "usd"
@@ -72,6 +75,7 @@ class AssetFormat(enum.Enum):
 
 
 class PipelineStatus(enum.Enum):
+    """Pipeline status (Enum subclass)."""
     QUEUED = "queued"
     VALIDATING = "validating"
     GENERATING = "generating"

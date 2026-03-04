@@ -37,6 +37,7 @@ from thread_safe_operations import capped_append
 # ---------------------------------------------------------------------------
 
 class OrganizationTier(enum.Enum):
+    """Organization tier (Enum subclass)."""
     EXECUTIVE = "executive"
     MANAGEMENT = "management"
     OPERATIONS = "operations"
@@ -45,6 +46,7 @@ class OrganizationTier(enum.Enum):
 
 
 class PulseStatus(enum.Enum):
+    """Pulse status (Enum subclass)."""
     EMITTED = "emitted"
     PROPAGATING = "propagating"
     ACKNOWLEDGED = "acknowledged"
@@ -53,6 +55,7 @@ class PulseStatus(enum.Enum):
 
 
 class HeartbeatState(enum.Enum):
+    """Heartbeat state (Enum subclass)."""
     IDLE = "idle"
     RUNNING = "running"
     PAUSED = "paused"

@@ -39,6 +39,7 @@ from .spawner_registry import SpawnerEntry, SpawnerRegistry
 # ---------------------------------------------------------------------------
 
 class NPCRole:
+    """N p c role."""
     MERCHANT = "merchant"
     GUARD = "guard"
     QUEST_GIVER = "quest_giver"

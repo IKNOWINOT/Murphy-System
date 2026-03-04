@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 class AuthMethod(Enum):
+    """Auth method (Enum subclass)."""
     NONE = "none"
     API_KEY = "api_key"
     BEARER = "bearer"
@@ -37,6 +38,7 @@ class AuthMethod(Enum):
 
 
 class Protocol(Enum):
+    """Protocol (Enum subclass)."""
     REST = "rest"
     GRAPHQL = "graphql"
     GRPC = "grpc"

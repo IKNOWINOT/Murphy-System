@@ -18,6 +18,7 @@ from thread_safe_operations import capped_append
 
 
 class ConnectorCategory(Enum):
+    """Connector category (Enum subclass)."""
     CRM = "crm"
     COMMUNICATION = "communication"
     PROJECT_MANAGEMENT = "project_management"
@@ -33,6 +34,7 @@ class ConnectorCategory(Enum):
 
 
 class AuthType(Enum):
+    """Auth type (Enum subclass)."""
     API_KEY = "api_key"
     OAUTH2 = "oauth2"
     BASIC = "basic"
@@ -42,6 +44,7 @@ class AuthType(Enum):
 
 
 class ConnectorHealth(Enum):
+    """Connector health (Enum subclass)."""
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -51,6 +54,7 @@ class ConnectorHealth(Enum):
 
 @dataclass
 class RateLimitConfig:
+    """Rate limit config."""
     max_requests: int = 100
     window_seconds: int = 60
     burst_limit: int = 10
@@ -58,6 +62,7 @@ class RateLimitConfig:
 
 @dataclass
 class RetryConfig:
+    """Retry config."""
     max_retries: int = 3
     base_delay: float = 1.0
     max_delay: float = 30.0
@@ -66,6 +71,7 @@ class RetryConfig:
 
 @dataclass
 class ConnectorDefinition:
+    """Connector definition."""
     connector_id: str
     name: str
     category: ConnectorCategory
@@ -81,6 +87,7 @@ class ConnectorDefinition:
 
 @dataclass
 class ConnectorInstance:
+    """Connector instance."""
     definition: ConnectorDefinition
     credentials: Dict[str, str] = field(default_factory=dict)
     health: ConnectorHealth = ConnectorHealth.UNKNOWN
@@ -94,6 +101,7 @@ class ConnectorInstance:
 
 @dataclass
 class ConnectorAction:
+    """Connector action."""
     action_id: str
     connector_id: str
     action_type: str  # read, write, subscribe, execute
@@ -104,6 +112,7 @@ class ConnectorAction:
 
 @dataclass
 class ConnectorResult:
+    """Connector result."""
     action_id: str
     connector_id: str
     success: bool
