@@ -285,3 +285,16 @@ class RateLimiter:
             self._calls = [call_time for call_time in self._calls 
                           if now - call_time < self.time_window]
             return len(self._calls)
+
+def capped_append(target_list: list, item: Any, max_size: int = 10_000) -> None:
+    """Append *item* to *target_list*, trimming the oldest 10% when the
+    cap is reached.  This prevents unbounded memory growth (CWE-770).
+
+    Usage::
+
+        capped_append(self._history, record)
+        capped_append(self._audit_log, entry, max_size=5_000)
+    """
+    if len(target_list) >= max_size:
+        del target_list[:max_size // 10]
+    target_list.append(item)

@@ -15,6 +15,7 @@ import uuid
 import logging
 import threading
 from typing import Dict, List, Optional, Any
+from thread_safe_operations import capped_append
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -150,7 +151,7 @@ class ControlPlaneSeparation:
         )
 
         with self._lock:
-            self._routing_history.append(result)
+            capped_append(self._routing_history, result)
 
         logger.info(
             "Routed task %s to %s plane (mode=%s, reason=%s)",
