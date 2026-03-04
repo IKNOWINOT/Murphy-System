@@ -8,6 +8,10 @@ from datetime import datetime
 
 from .models import ExecutionPacket, PacketState
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class PostCompilationEnforcer:
     """

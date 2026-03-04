@@ -42,6 +42,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **4 `__init__.py` files** missing `__all__` → added explicit `__all__` declarations
 - **1 duplicate function** `_record_submission` in form_intake/handlers.py → renamed to `_record_submission_store`
 - **220 public classes** missing docstrings → added descriptive docstrings
+- **3 duplicate imports** in form_executor.py and murphy_gate.py → removed
+- **235 modules** (>50 lines) missing `import logging` → added logging infrastructure
+- **9 acronym-splitting docstrings** (LLM, NPC, API, AI, AB) → fixed
+- **4 Tier docstring spacing** (Tier1→Tier 1, etc.) → fixed
 
 ### Changed
 - **README.md** — updated stats (583 source files, 7,924 tests, 345 test files), added code-quality audit row to completion table, updated badges

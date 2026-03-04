@@ -12,6 +12,10 @@ import asyncio
 from collections import defaultdict
 import statistics
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ============================================================================
 # TASK 4.1: CACHING LAYER FOR UNCERTAINTY CALCULATIONS

@@ -13,6 +13,10 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ------------------------------------------------------------------ #
 # LLM output schemas (Pydantic enforcement)

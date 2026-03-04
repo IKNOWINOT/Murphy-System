@@ -9,6 +9,10 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 from enum import Enum
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class Phase(str, Enum):
     """Execution phases"""

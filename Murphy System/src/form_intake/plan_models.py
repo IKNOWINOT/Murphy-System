@@ -9,6 +9,10 @@ from datetime import datetime
 from enum import Enum
 from pydantic import BaseModel, ConfigDict, Field
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 # Floating-point comparison tolerance for CPM zero-float detection
 _FLOAT_TOLERANCE = 1e-9
 

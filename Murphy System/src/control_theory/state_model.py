@@ -22,6 +22,10 @@ from typing import Callable, List, Optional, Tuple
 
 import numpy as np
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ------------------------------------------------------------------ #
 # Dimension metadata

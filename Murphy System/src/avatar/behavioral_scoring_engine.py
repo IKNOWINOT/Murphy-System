@@ -5,6 +5,10 @@ from typing import Any, Dict
 
 from .avatar_models import UserAdaptation
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class BehavioralScoringEngine:
     """Scores user behavior based on interaction patterns."""

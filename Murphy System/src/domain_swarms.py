@@ -6,6 +6,10 @@ Specialized swarms for different problem domains
 from typing import List, Dict, Any, Optional
 from mfgc_core import Phase
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class DomainSwarmGenerator:
     """Base class for domain-specific swarm generation"""

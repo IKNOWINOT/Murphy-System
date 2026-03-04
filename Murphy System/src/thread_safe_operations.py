@@ -10,6 +10,10 @@ from typing import Any, Callable, Dict, List, Optional, TypeVar
 from functools import wraps
 import queue
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 T = TypeVar('T')
 
 

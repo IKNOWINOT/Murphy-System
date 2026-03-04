@@ -9,6 +9,10 @@ from datetime import datetime, timezone
 from enum import Enum
 from pydantic import BaseModel, Field
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ValidationType(str, Enum):
     """Types of external validation."""

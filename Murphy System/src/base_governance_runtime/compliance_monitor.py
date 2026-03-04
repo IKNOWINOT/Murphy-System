@@ -16,6 +16,10 @@ from dataclasses import dataclass, field
 from .preset_manager import GovernancePreset
 from .validation_engine import ValidationResult, ComplianceStatus, ComplianceGap
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ComplianceEvent:
     """Compliance monitoring event"""

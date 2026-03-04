@@ -7,6 +7,10 @@ from enum import Enum
 from typing import Optional
 from dataclasses import dataclass
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class State(Enum):
     """System states for authority gate"""

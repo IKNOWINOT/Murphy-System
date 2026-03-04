@@ -6,6 +6,10 @@ Provides telemetry endpoint for Recursive Stability Controller integration.
 
 from flask import jsonify
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def add_telemetry_endpoint(app, current_graph, verification_evidence_store):
     """

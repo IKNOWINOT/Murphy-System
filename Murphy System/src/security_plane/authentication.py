@@ -43,6 +43,10 @@ from .cryptography import (
     CryptographicAlgorithm
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class AuthenticationType(Enum):
     """Type of authentication."""

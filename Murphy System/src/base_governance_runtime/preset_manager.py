@@ -15,6 +15,10 @@ import tempfile
 
 from dataclasses import dataclass, field
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class EnforcementMode(Enum):
     """How preset requirements are enforced"""

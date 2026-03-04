@@ -11,6 +11,10 @@ import copy
 from dataclasses import dataclass, field
 import json
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 try:
     from pydantic import BaseModel, Field, field_validator
     _PYDANTIC_AVAILABLE = True

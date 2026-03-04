@@ -31,6 +31,10 @@ from .schemas import (
     AuthorityLevel
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class AccessDecision(Enum):
     """Access decision outcomes"""

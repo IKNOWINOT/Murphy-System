@@ -12,6 +12,10 @@ envelope-level validation workflows (Gap CFP-6).
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple, Type
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 try:
     from pydantic import BaseModel, Field, ValidationError, field_validator
 

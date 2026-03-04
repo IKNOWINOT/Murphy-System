@@ -10,6 +10,10 @@ from enum import Enum
 from typing import Dict, List, Optional, Any
 from uuid import UUID, uuid4
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class FeatureType(str, Enum):
     """Types of features extracted from corrections"""

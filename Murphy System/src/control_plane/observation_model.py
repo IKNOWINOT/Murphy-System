@@ -20,6 +20,10 @@ from pydantic import BaseModel, Field
 
 from .state_vector import StateVector
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ------------------------------------------------------------------ #
 # Observation Channel Enum

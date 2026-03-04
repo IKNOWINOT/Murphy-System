@@ -13,6 +13,10 @@ from .entropy import (
     uniform_distribution,
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 _EPSILON = 1e-15
 
 

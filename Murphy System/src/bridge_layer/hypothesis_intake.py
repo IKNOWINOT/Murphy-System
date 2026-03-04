@@ -8,6 +8,10 @@ import re
 from typing import Dict, Any, List
 from thread_safe_operations import capped_append
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class HypothesisIntakeService:
     """Simplified intake service for integration tests."""

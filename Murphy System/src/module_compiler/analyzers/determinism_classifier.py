@@ -12,6 +12,10 @@ from typing import Set, List, Optional
 from ..models.module_spec import DeterminismLevel
 from .static_analyzer import FunctionInfo, CodeStructure
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class AdvancedDeterminismClassifier:
     """

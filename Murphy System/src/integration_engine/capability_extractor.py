@@ -10,6 +10,10 @@ This module analyzes SwissKiss audit results and extracts:
 from typing import Dict, List, Optional, Any
 import re
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class CapabilityExtractor:
     """

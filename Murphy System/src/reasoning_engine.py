@@ -10,6 +10,10 @@ import math
 from datetime import datetime, timedelta
 import json
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ReasoningEngine:
     """

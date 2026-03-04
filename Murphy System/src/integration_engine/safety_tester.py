@@ -12,6 +12,10 @@ This module runs comprehensive safety tests:
 from typing import Dict, List, Optional, Any
 import re
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class SafetyTester:
     """

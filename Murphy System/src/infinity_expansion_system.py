@@ -13,6 +13,10 @@ from typing import Dict, List, Set, Any, Optional, Tuple
 from enum import Enum
 import time
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ExpansionAxis(Enum):
     """Orthogonal axes along which infinity is explored"""

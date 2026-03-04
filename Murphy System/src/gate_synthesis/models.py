@@ -9,6 +9,10 @@ from enum import Enum
 from datetime import datetime, timedelta
 import hashlib
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class GateType(Enum):
     """Types of gates that can be synthesized"""

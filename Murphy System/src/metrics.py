@@ -12,6 +12,10 @@ import time
 import threading
 from typing import Any, Dict, List, Optional
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 _start_time = time.monotonic()
 
 # ── In-process counters ────────────────────────────────────────────

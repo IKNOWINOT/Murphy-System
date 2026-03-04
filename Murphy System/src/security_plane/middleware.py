@@ -57,6 +57,10 @@ from src.security_plane.anti_surveillance import (
     ExecutionTimeNormalizer
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ============================================================================
 # MIDDLEWARE CONFIGURATION

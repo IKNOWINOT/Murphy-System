@@ -14,6 +14,10 @@ from .models import (
     ArtifactSource
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class GraphAnalyzer:
     """

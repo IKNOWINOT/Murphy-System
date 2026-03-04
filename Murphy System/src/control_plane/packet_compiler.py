@@ -16,6 +16,10 @@ from .execution_packet import (
     ActionType, ConstraintType, create_simple_packet
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class PacketCompilationError(Exception):
     """Raised when packet compilation fails"""

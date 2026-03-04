@@ -18,6 +18,10 @@ from compute_plane.models.compute_request import ComputeRequest
 
 from flask_security import configure_secure_app, is_debug_mode
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def create_app(compute_service: ComputeService = None) -> Flask:
     """

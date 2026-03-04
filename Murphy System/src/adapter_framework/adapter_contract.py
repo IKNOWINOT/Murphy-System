@@ -16,6 +16,10 @@ from typing import Dict, List, Optional, Any
 from enum import Enum
 import time
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class AdapterCapability(Enum):
     """Adapter capability types"""

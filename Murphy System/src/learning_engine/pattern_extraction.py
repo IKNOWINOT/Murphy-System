@@ -15,6 +15,10 @@ from .correction_models import (
     Correction, CorrectionType, CorrectionSeverity, CorrectionStatus
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ============================================================================
 # SECTION 3: CORRECTION VALIDATION

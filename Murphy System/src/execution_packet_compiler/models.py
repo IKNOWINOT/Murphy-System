@@ -10,6 +10,10 @@ from datetime import datetime
 import hashlib
 import json
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class PacketState(Enum):
     """States of an execution packet"""

@@ -6,6 +6,10 @@ Handles iterative questioning - asks ONE question at a time
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class Question:

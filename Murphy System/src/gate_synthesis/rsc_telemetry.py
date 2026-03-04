@@ -6,6 +6,10 @@ Provides telemetry endpoint for Recursive Stability Controller integration.
 
 from flask import jsonify
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def add_telemetry_endpoint(app, gate_lifecycle_manager):
     """

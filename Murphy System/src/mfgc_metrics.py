@@ -9,6 +9,10 @@ import json
 from dataclasses import dataclass, field
 from mfgc_core import SystemState, Phase
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class PhaseMetrics:

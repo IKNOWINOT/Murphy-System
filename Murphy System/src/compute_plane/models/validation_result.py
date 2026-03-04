@@ -7,6 +7,10 @@ Represents the result of expression validation.
 from dataclasses import dataclass, field
 from typing import List, Dict, Any
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class ValidationResult:

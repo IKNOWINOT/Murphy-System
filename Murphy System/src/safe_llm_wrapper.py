@@ -8,6 +8,10 @@ from dataclasses import dataclass
 from enum import Enum
 import re
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class VerificationStatus(Enum):
     """Verification status for LLM outputs"""

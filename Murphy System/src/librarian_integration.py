@@ -15,6 +15,10 @@ from dataclasses import dataclass, field
 from datetime import datetime
 import hashlib
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class StateEntry:

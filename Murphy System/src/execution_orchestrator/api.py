@@ -79,6 +79,10 @@ from artifact_viewport import ArtifactViewport
 from artifact_viewport_api import mount_viewport_api
 from viewport_content_resolver import ViewportContentResolver
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 _viewport = ArtifactViewport()
 _viewport_resolver = ViewportContentResolver()
 mount_viewport_api(app, _viewport, _viewport_resolver.resolve)

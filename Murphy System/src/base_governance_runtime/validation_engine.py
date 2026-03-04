@@ -15,6 +15,10 @@ from dataclasses import dataclass, field
 
 from .preset_manager import GovernancePreset, GovernanceRequirement, EnforcementMode
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ComplianceStatus(Enum):
     """Compliance status levels"""

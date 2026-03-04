@@ -15,6 +15,10 @@ from enum import Enum
 import hashlib
 import json
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class AssumptionStatus(Enum):
     """Status of an assumption"""

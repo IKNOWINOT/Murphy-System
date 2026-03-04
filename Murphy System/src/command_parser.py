@@ -6,6 +6,10 @@ Handles system commands like /gates, /confidence, /swarmmonitor, etc.
 from typing import Dict, Any, Optional, Tuple
 import re
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class CommandParser:
     """Parse and execute system commands"""

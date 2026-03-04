@@ -9,6 +9,10 @@ from enum import Enum
 from pydantic import BaseModel, Field
 import uuid
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class CorrectionType(str, Enum):
     """Types of corrections."""

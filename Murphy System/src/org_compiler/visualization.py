@@ -21,6 +21,10 @@ from .schemas import (
     HandoffEvent,
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class RoleWorkGraphGenerator:
     """

@@ -17,6 +17,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from module_compiler import ModuleCompiler, ModuleRegistry
 from module_compiler.models.module_spec import ModuleSpec
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def create_api() -> Blueprint:
     """

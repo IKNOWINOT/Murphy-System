@@ -9,6 +9,10 @@ from typing import Dict, Any, Literal
 from datetime import datetime
 import uuid
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class ComputeRequest:

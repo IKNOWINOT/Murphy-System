@@ -17,6 +17,10 @@ from datetime import datetime
 from collections import defaultdict
 import statistics
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class DecisionOutcome:

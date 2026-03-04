@@ -36,6 +36,10 @@ import uuid
 from datetime import datetime, timedelta
 from thread_safe_operations import capped_append, capped_append_paired
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # =============================================================================
 # SAFETY: LIVE TRADING IS DISABLED BY DEFAULT

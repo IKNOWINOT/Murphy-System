@@ -14,6 +14,10 @@ Safety Rules:
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class SafetyEnforcer:
     """

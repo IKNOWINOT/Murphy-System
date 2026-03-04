@@ -8,6 +8,10 @@ from dataclasses import dataclass, field
 from enum import Enum
 import json
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class Department(Enum):
     """Common departments in organizations."""

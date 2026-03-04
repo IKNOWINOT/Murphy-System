@@ -18,6 +18,10 @@ from collections import deque
 import json
 import uuid
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ApprovalStatus(Enum):
     """Approval status"""

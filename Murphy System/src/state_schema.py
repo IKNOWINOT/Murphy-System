@@ -10,6 +10,10 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Type
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 try:
     from pydantic import BaseModel, Field, field_validator
 

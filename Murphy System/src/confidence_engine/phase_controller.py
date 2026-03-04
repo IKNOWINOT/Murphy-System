@@ -8,6 +8,10 @@ from datetime import datetime
 
 from .models import Phase, ConfidenceState
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class PhaseController:
     """

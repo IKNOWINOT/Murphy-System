@@ -10,6 +10,10 @@ from typing import Any, Dict
 
 from .rosetta_manager import RosettaManager
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class GlobalAggregator:
     """Aggregate Rosetta metrics across all agents."""

@@ -6,6 +6,10 @@ Defines validation schemas for all telemetry domains and artifacts.
 
 from typing import Dict, Any
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 OPERATIONAL_TELEMETRY_SCHEMA: Dict[str, Any] = {
     "$schema": "http://json-schema.org/draft-07/schema#",

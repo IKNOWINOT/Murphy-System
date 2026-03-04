@@ -28,6 +28,10 @@ from confidence_engine.models import (
     AuthorityBand
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class FailureModeEnumerator:
     """

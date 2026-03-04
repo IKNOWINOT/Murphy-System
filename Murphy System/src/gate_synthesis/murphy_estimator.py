@@ -13,6 +13,10 @@ from .models import (
     ExposureSignal
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class MurphyProbabilityEstimator:
     """

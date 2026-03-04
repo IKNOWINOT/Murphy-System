@@ -9,6 +9,10 @@ from typing import Dict, Any
 from ..models.parsed_expression import ParsedExpression, NormalizedExpression
 from ..models.validation_result import ValidationResult
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ExpressionParser:
     """

@@ -13,6 +13,10 @@ from .models import (
 )
 from .graph_analyzer import GraphAnalyzer
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class MurphyCalculator:
     """

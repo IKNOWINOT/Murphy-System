@@ -23,6 +23,10 @@ from .models import (
     ConfidenceProfile
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class OrganizationalFailureGenerator:
     """

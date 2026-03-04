@@ -27,6 +27,10 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 from thread_safe_operations import capped_append
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ---------------------------------------------------------------------------
 # Enums

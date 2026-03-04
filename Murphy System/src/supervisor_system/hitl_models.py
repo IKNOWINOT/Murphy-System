@@ -9,6 +9,10 @@ from datetime import datetime
 from enum import Enum
 from pydantic import BaseModel, ConfigDict, Field
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class InterventionType(str, Enum):
     """Types of human interventions"""

@@ -26,6 +26,10 @@ from .schemas import (
     GateStatus,
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class TelemetryCollector:
     """

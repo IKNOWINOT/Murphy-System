@@ -40,6 +40,10 @@ from .safety_enforcer import SafetyEnforcer
 
 from flask_security import configure_secure_app
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 app = Flask(__name__)
 configure_secure_app(app, service_name="synthetic-failure-generator")

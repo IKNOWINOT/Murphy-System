@@ -22,6 +22,10 @@ from .schemas import (
     ComplianceConstraint,
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class PerformanceEvidenceValidator:
     """

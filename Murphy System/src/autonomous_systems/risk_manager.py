@@ -17,6 +17,10 @@ from enum import Enum
 from collections import defaultdict
 import statistics
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class RiskSeverity(Enum):
     """Risk severity levels"""

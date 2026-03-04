@@ -8,6 +8,10 @@ from typing import Any, Dict, List, Optional
 from .avatar_models import CostEntry
 from thread_safe_operations import capped_append
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class CostLedger:
     """Tracks costs per avatar and service."""

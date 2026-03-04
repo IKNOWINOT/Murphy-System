@@ -11,6 +11,10 @@ from typing import Any, Dict, List, Optional, Tuple, Type
 
 from pydantic import BaseModel, Field, field_validator
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ------------------------------------------------------------------ #
 # LLM Output Schema Models

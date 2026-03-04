@@ -23,6 +23,10 @@ import json
 import statistics
 from collections import defaultdict, deque
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ThreatLevel(Enum):
     """Threat severity levels"""

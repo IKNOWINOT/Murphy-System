@@ -9,6 +9,10 @@ from dataclasses import dataclass, field
 from enum import Enum
 import json
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ExpertiseLevel(Enum):
     """Levels of expertise for domain experts."""

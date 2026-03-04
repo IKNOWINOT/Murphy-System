@@ -6,6 +6,10 @@ Provides a GateSynthesisEngine with a simplified ``synthesize_gates`` helper.
 import uuid
 from typing import Dict, Any, List
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class GateSynthesisEngine:
     """Simplified gate synthesis engine for integration tests."""

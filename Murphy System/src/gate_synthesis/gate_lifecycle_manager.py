@@ -14,6 +14,10 @@ from .models import (
     RetirementCondition
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class GateLifecycleManager:
     """

@@ -8,6 +8,10 @@ from dataclasses import dataclass, asdict
 import time
 import json
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class SystemStateSnapshot:

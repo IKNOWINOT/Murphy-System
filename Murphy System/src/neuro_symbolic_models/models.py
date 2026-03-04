@@ -15,6 +15,10 @@ from torch_geometric.nn import GraphSAGE, GATConv, global_mean_pool
 from typing import Tuple, Optional, Dict, Any
 from dataclasses import dataclass
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class ModelConfig:

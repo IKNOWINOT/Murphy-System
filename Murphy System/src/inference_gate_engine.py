@@ -55,6 +55,10 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from .domain_gate_generator import DomainGate, DomainGateGenerator, GateSeverity, GateType
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ---------------------------------------------------------------------------
 # Industry / Role knowledge base — drives inference

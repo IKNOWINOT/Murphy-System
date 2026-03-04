@@ -23,6 +23,10 @@ from .schemas import (
     RedactionLevel,
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class PIIType(Enum):
     """Types of PII"""
