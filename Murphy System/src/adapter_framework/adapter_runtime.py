@@ -141,11 +141,11 @@ class AdapterRuntime:
             
             return result
             
-        except Exception as e:
-            self._log_violation(f"Execution error: {e}", packet)
+        except Exception as exc:
+            self._log_violation(f"Execution error: {exc}", packet)
             return {
                 "success": False,
-                "error": f"Execution failed: {e}"
+                "error": f"Execution failed: {exc}"
             }
     
     def emergency_stop(self, reason: str = "Manual trigger") -> bool:

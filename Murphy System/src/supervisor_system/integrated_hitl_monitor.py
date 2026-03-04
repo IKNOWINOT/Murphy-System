@@ -91,8 +91,8 @@ class IntegratedHITLMonitor:
                 supervisor_needs_intervention = self.supervisor.should_intervene(
                     task, phase
                 )
-            except Exception as e:
-                logger.error(f"Error checking supervisor: {e}")
+            except Exception as exc:
+                logger.error(f"Error checking supervisor: {exc}")
         
         # Check with HITL monitor
         hitl_result = self.hitl_monitor.check_intervention_needed(
@@ -155,8 +155,8 @@ class IntegratedHITLMonitor:
                     task_id=task.get('id'),
                     reason=reason
                 )
-            except Exception as e:
-                logger.error(f"Error notifying supervisor: {e}")
+            except Exception as exc:
+                logger.error(f"Error notifying supervisor: {exc}")
         
         return request
     
@@ -196,8 +196,8 @@ class IntegratedHITLMonitor:
                     request_id=request_id,
                     decision=response.decision
                 )
-            except Exception as e:
-                logger.error(f"Error notifying supervisor: {e}")
+            except Exception as exc:
+                logger.error(f"Error notifying supervisor: {exc}")
         
         return response
     
@@ -233,7 +233,7 @@ class IntegratedHITLMonitor:
             try:
                 supervisor_stats = self.supervisor.get_statistics()
                 stats['supervisor'] = supervisor_stats
-            except Exception as e:
-                logger.error(f"Error getting supervisor statistics: {e}")
+            except Exception as exc:
+                logger.error(f"Error getting supervisor statistics: {exc}")
         
         return stats

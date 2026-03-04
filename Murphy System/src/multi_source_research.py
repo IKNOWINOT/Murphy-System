@@ -187,8 +187,8 @@ class MultiSourceResearcher:
                 ]
                 
                 return source
-        except Exception as e:
-            print(f"[Research] Wikipedia query failed: {e}")
+        except Exception as exc:
+            print(f"[Research] Wikipedia query failed: {exc}")
         
         return None
     
@@ -206,8 +206,8 @@ class MultiSourceResearcher:
             # This would use web-search tool
             # For now, return empty list
             pass
-        except Exception as e:
-            print(f"[Research] Web search failed: {e}")
+        except Exception as exc:
+            print(f"[Research] Web search failed: {exc}")
         
         return sources
     

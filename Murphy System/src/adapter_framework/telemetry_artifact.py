@@ -152,8 +152,8 @@ class TelemetryIngestionPipeline:
                 metadata=telemetry.get('metadata'),
                 previous_checksum=self.last_checksum.get(device_id)
             )
-        except ValueError as e:
-            print(f"[REJECT] Invalid artifact: {e}")
+        except ValueError as exc:
+            print(f"[REJECT] Invalid artifact: {exc}")
             return None
         
         # Check for duplicates

@@ -207,8 +207,8 @@ class TaskExecutor:
                 # Sleep briefly to avoid busy waiting
                 time.sleep(0.1)
                 
-            except Exception as e:
-                logger.error(f"Error in executor loop: {e}")
+            except Exception as exc:
+                logger.error(f"Error in executor loop: {exc}")
     
     def _execute_task(self, task: Task) -> None:
         """Execute a single task"""
@@ -229,14 +229,14 @@ class TaskExecutor:
             
             logger.info(f"Task completed: {task.task_id} in {task.execution_time:.2f}s")
             
-        except Exception as e:
+        except Exception as exc:
             # Task failed
-            task.error = e
+            task.error = exc
             task.state = TaskState.FAILED
             task.completed_at = datetime.now(timezone.utc)
             task.execution_time = (task.completed_at - task.started_at).total_seconds()
             
-            logger.error(f"Task failed: {task.task_id} - {e}")
+            logger.error(f"Task failed: {task.task_id} - {exc}")
         
         finally:
             # Update scheduler and decrement active count
@@ -262,8 +262,8 @@ class TaskExecutor:
                 
                 return result
                 
-            except Exception as e:
-                last_error = e
+            except Exception as exc:
+                last_error = exc
                 task.retry_count = attempt + 1
                 
                 if attempt < task.max_retries:

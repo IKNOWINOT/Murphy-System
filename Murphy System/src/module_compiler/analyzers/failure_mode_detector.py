@@ -108,7 +108,7 @@ class EnhancedFailureModeDetector:
             # 7. Generic failures (always present)
             failure_modes.extend(self._detect_generic_failures())
         
-        except SyntaxError as e:
+        except SyntaxError as exc:
             # If code can't be parsed, return generic failures only
             failure_modes.extend(self._detect_generic_failures())
         

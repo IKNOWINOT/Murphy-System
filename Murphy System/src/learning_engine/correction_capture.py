@@ -236,8 +236,8 @@ class BatchCorrectionCapture:
                 correction = self._process_request(request)
                 corrections.append(correction)
                 self.processed_corrections.append(correction)
-            except Exception as e:
-                print(f"Error processing correction: {e}")
+            except Exception as exc:
+                print(f"Error processing correction: {exc}")
                 continue
         
         # Clear queue
@@ -438,8 +438,8 @@ class APICorrectionCapture:
             try:
                 if not rule(request):
                     errors.append(f"Validation rule failed: {rule.__name__}")
-            except Exception as e:
-                errors.append(f"Validation error: {str(e)}")
+            except Exception as exc:
+                errors.append(f"Validation error: {str(exc)}")
         
         return errors
     

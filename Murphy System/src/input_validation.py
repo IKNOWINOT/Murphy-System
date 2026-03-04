@@ -333,8 +333,8 @@ def validate_input(data: dict, schema_class: type[BaseModel]) -> tuple[bool, Opt
         validated = schema_class(**data)
         return (True, validated, None)
     
-    except Exception as e:
-        error_msg = str(e)
+    except Exception as exc:
+        error_msg = str(exc)
         return (False, None, error_msg)
 
 

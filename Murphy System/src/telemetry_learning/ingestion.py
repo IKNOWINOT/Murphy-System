@@ -171,8 +171,8 @@ class TelemetryIngester:
                 )
             
             return True
-        except jsonschema.ValidationError as e:
-            logger.error(f"Validation failed for {artifact.artifact_id}: {e}")
+        except jsonschema.ValidationError as exc:
+            logger.error(f"Validation failed for {artifact.artifact_id}: {exc}")
             self.stats["validation_failures"] += 1
             return False
     

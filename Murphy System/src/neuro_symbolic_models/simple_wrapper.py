@@ -68,8 +68,8 @@ class SimpleNeuroSymbolicModel:
             logger.info(f"Added knowledge for entity: {entity}")
             return True
             
-        except Exception as e:
-            logger.error(f"Error adding knowledge: {e}")
+        except Exception as exc:
+            logger.error(f"Error adding knowledge: {exc}")
             return False
     
     def add_rule(self, rule_name: str, conditions: List[Dict], 
@@ -100,8 +100,8 @@ class SimpleNeuroSymbolicModel:
             logger.info(f"Added inference rule: {rule_name}")
             return True
             
-        except Exception as e:
-            logger.error(f"Error adding rule: {e}")
+        except Exception as exc:
+            logger.error(f"Error adding rule: {exc}")
             return False
     
     def infer(self, query: Dict[str, Any]) -> Dict[str, Any]:
@@ -156,13 +156,13 @@ class SimpleNeuroSymbolicModel:
             logger.info(f"Inference completed for entity {entity} with confidence {results['confidence']}")
             return results
             
-        except Exception as e:
-            logger.error(f"Error during inference: {e}")
+        except Exception as exc:
+            logger.error(f"Error during inference: {exc}")
             return {
                 'entity': query.get('entity', ''),
                 'inferred_attributes': {},
                 'confidence': 0.0,
-                'error': str(e)
+                'error': str(exc)
             }
     
     def _evaluate_conditions(self, conditions: List[Dict], query: Dict) -> bool:

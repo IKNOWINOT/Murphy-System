@@ -291,8 +291,8 @@ class ModelRegistry:
                 # In production, would fully deserialize
                 logger.info(f"Loaded model from registry: {model_data['name']}")
         
-        except Exception as e:
-            logger.warning(f"Failed to load registry: {e}")
+        except Exception as exc:
+            logger.warning(f"Failed to load registry: {exc}")
     
     def get_registry_summary(self) -> Dict[str, Any]:
         """Get summary of registry"""

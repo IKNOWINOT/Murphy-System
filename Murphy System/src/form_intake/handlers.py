@@ -185,14 +185,14 @@ class PlanUploadFormHandler:
                 data=result_data
             )
             
-        except Exception as e:
-            logger.error(f"Error handling plan upload form: {str(e)}")
+        except Exception as exc:
+            logger.error(f"Error handling plan upload form: {str(exc)}")
             return FormSubmissionResult(
                 success=False,
                 submission_id="",
                 form_type=self.form_type,
-                message=f"Error processing form: {str(e)}",
-                errors={'validation_error': str(e)}
+                message=f"Error processing form: {str(exc)}",
+                errors={'validation_error': str(exc)}
             )
     
     def _generate_submission_id(self, form: PlanUploadForm) -> str:
@@ -255,14 +255,14 @@ class PlanGenerationFormHandler:
                 data=result_data
             )
             
-        except Exception as e:
-            logger.error(f"Error handling plan generation form: {str(e)}")
+        except Exception as exc:
+            logger.error(f"Error handling plan generation form: {str(exc)}")
             return FormSubmissionResult(
                 success=False,
                 submission_id="",
                 form_type=self.form_type,
-                message=f"Error processing form: {str(e)}",
-                errors={'validation_error': str(e)}
+                message=f"Error processing form: {str(exc)}",
+                errors={'validation_error': str(exc)}
             )
     
     def _generate_submission_id(self, form: PlanGenerationForm) -> str:
@@ -321,14 +321,14 @@ class TaskExecutionFormHandler:
                 data=result_data
             )
             
-        except Exception as e:
-            logger.error(f"Error handling task execution form: {str(e)}")
+        except Exception as exc:
+            logger.error(f"Error handling task execution form: {str(exc)}")
             return FormSubmissionResult(
                 success=False,
                 submission_id="",
                 form_type=self.form_type,
-                message=f"Error processing form: {str(e)}",
-                errors={'validation_error': str(e)}
+                message=f"Error processing form: {str(exc)}",
+                errors={'validation_error': str(exc)}
             )
     
     def _generate_submission_id(self, form: TaskExecutionForm) -> str:
@@ -392,14 +392,14 @@ class ValidationFormHandler:
                 data=result_data
             )
             
-        except Exception as e:
-            logger.error(f"Error handling validation form: {str(e)}")
+        except Exception as exc:
+            logger.error(f"Error handling validation form: {str(exc)}")
             return FormSubmissionResult(
                 success=False,
                 submission_id="",
                 form_type=self.form_type,
-                message=f"Error processing form: {str(e)}",
-                errors={'validation_error': str(e)}
+                message=f"Error processing form: {str(exc)}",
+                errors={'validation_error': str(exc)}
             )
     
     def _generate_submission_id(self, form: ValidationForm) -> str:
@@ -458,14 +458,14 @@ class CorrectionFormHandler:
                 data=result_data
             )
             
-        except Exception as e:
-            logger.error(f"Error handling correction form: {str(e)}")
+        except Exception as exc:
+            logger.error(f"Error handling correction form: {str(exc)}")
             return FormSubmissionResult(
                 success=False,
                 submission_id="",
                 form_type=self.form_type,
-                message=f"Error processing form: {str(e)}",
-                errors={'validation_error': str(e)}
+                message=f"Error processing form: {str(exc)}",
+                errors={'validation_error': str(exc)}
             )
     
     def _generate_submission_id(self, form: CorrectionForm) -> str:

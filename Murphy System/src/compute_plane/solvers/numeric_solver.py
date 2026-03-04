@@ -81,10 +81,10 @@ class NumericSolver:
                 'error': None
             }
         
-        except Exception as e:
+        except Exception as exc:
             return {
                 'result': None,
-                'error': str(e),
+                'error': str(exc),
                 'execution_time': time.time() - start_time
             }
     

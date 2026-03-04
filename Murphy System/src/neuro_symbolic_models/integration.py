@@ -186,8 +186,8 @@ class MLEnhancedConfidenceEngine:
             logger.warning(f"ML service timeout ({self.config.ml_timeout_ms}ms)")
             self.ml_timeouts += 1
         
-        except Exception as e:
-            logger.warning(f"ML signal unavailable: {e}")
+        except Exception as exc:
+            logger.warning(f"ML signal unavailable: {exc}")
             self.ml_failures += 1
         
         return None  # Graceful degradation

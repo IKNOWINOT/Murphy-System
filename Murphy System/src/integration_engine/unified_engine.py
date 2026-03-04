@@ -313,14 +313,14 @@ class UnifiedIntegrationEngine:
                     }
                 )
         
-        except Exception as e:
-            print(f"\n❌ ERROR: {str(e)}")
+        except Exception as exc:
+            print(f"\n❌ ERROR: {str(exc)}")
             import traceback
             traceback.print_exc()
             
             return IntegrationResult(
                 success=False,
-                errors=[str(e)],
+                errors=[str(exc)],
                 metadata={'status': 'failed'}
             )
     
@@ -619,8 +619,8 @@ class UnifiedIntegrationEngine:
             }
 
             print(f"   ✓ Agent registered with TrueSwarmSystem as {profession.value}")
-        except Exception as e:
-            print(f"   ⚠ Could not register agent with TrueSwarmSystem: {e}")
+        except Exception as exc:
+            print(f"   ⚠ Could not register agent with TrueSwarmSystem: {exc}")
 
     def _cleanup_rejected_integration(self, module: Dict[str, Any]) -> None:
         """Remove generated files for a rejected integration.
@@ -648,8 +648,8 @@ class UnifiedIntegrationEngine:
                 elif target.is_dir():
                     shutil.rmtree(target)
                     print(f"   ✓ Removed generated directory: {target.name}")
-            except OSError as e:
-                print(f"   ⚠ Could not remove {target}: {e}")
+            except OSError as exc:
+                print(f"   ⚠ Could not remove {target}: {exc}")
 
 
 # Convenience function

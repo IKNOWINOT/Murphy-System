@@ -159,8 +159,8 @@ class TrainingPipeline:
                 f"val_acc={final_metrics.validation_accuracy:.4f}"
             )
             
-        except Exception as e:
-            logger.error(f"Training failed: {e}")
+        except Exception as exc:
+            logger.error(f"Training failed: {exc}")
             raise
         
         return model
@@ -223,8 +223,8 @@ class TrainingPipeline:
                     y_val, val_predictions
                 )
         
-        except Exception as e:
-            logger.warning(f"Failed to calculate metrics: {e}")
+        except Exception as exc:
+            logger.warning(f"Failed to calculate metrics: {exc}")
         
         return metrics
     

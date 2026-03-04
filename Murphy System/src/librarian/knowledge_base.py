@@ -92,8 +92,8 @@ class KnowledgeBase:
             logger.info(f"Added entry {entry_id} to knowledge base")
             return True
             
-        except Exception as e:
-            logger.error(f"Error adding entry {entry_id}: {e}")
+        except Exception as exc:
+            logger.error(f"Error adding entry {entry_id}: {exc}")
             return False
     
     def get_entry(self, entry_id: str) -> Optional[Dict]:
@@ -114,8 +114,8 @@ class KnowledgeBase:
                 self.stats['queries_processed'] += 1
                 return entry.copy()
             return None
-        except Exception as e:
-            logger.error(f"Error retrieving entry {entry_id}: {e}")
+        except Exception as exc:
+            logger.error(f"Error retrieving entry {entry_id}: {exc}")
             return None
     
     def query(self, 
@@ -163,8 +163,8 @@ class KnowledgeBase:
             logger.info(f"Query returned {len(results)} results")
             return results
             
-        except Exception as e:
-            logger.error(f"Error executing query: {e}")
+        except Exception as exc:
+            logger.error(f"Error executing query: {exc}")
             return []
     
     def add_cross_reference(self, from_id: str, to_id: str) -> bool:
@@ -188,8 +188,8 @@ class KnowledgeBase:
             logger.info(f"Added cross-reference from {from_id} to {to_id}")
             return True
             
-        except Exception as e:
-            logger.error(f"Error adding cross-reference: {e}")
+        except Exception as exc:
+            logger.error(f"Error adding cross-reference: {exc}")
             return False
     
     def get_related_entries(self, entry_id: str, depth: int = 1) -> List[Dict]:
@@ -226,8 +226,8 @@ class KnowledgeBase:
             logger.info(f"Found {len(related)} related entries for {entry_id}")
             return related
             
-        except Exception as e:
-            logger.error(f"Error getting related entries: {e}")
+        except Exception as exc:
+            logger.error(f"Error getting related entries: {exc}")
             return []
     
     def update_entry(self, entry_id: str, content: Optional[Dict] = None, 
@@ -262,8 +262,8 @@ class KnowledgeBase:
             logger.info(f"Updated entry {entry_id}")
             return True
             
-        except Exception as e:
-            logger.error(f"Error updating entry {entry_id}: {e}")
+        except Exception as exc:
+            logger.error(f"Error updating entry {entry_id}: {exc}")
             return False
     
     def delete_entry(self, entry_id: str) -> bool:
@@ -297,8 +297,8 @@ class KnowledgeBase:
             
             return False
             
-        except Exception as e:
-            logger.error(f"Error deleting entry {entry_id}: {e}")
+        except Exception as exc:
+            logger.error(f"Error deleting entry {entry_id}: {exc}")
             return False
     
     def get_statistics(self) -> Dict:
@@ -316,8 +316,8 @@ class KnowledgeBase:
             # This would load from a file or database
             # For now, we'll just initialize empty
             logger.info("Knowledge base storage not implemented, starting fresh")
-        except Exception as e:
-            logger.error(f"Error loading from storage: {e}")
+        except Exception as exc:
+            logger.error(f"Error loading from storage: {exc}")
     
     def export_knowledge(self, format: str = 'json') -> str:
         """
@@ -335,6 +335,6 @@ class KnowledgeBase:
             else:
                 logger.warning(f"Format {format} not supported")
                 return ""
-        except Exception as e:
-            logger.error(f"Error exporting knowledge: {e}")
+        except Exception as exc:
+            logger.error(f"Error exporting knowledge: {exc}")
             return ""

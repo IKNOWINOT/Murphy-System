@@ -268,12 +268,12 @@ class MathCommand(CommandModule):
                 }
             )
             
-        except Exception as e:
+        except Exception as exc:
             return CommandResult(
                 success=False,
                 data=None,
                 metadata={
-                    'error': str(e),
+                    'error': str(exc),
                     'expression': expression
                 }
             )

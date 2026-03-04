@@ -134,8 +134,8 @@ class IntegratedFormExecutor:
         if self.orchestrator:
             try:
                 result = await self._execute_with_orchestrator(task, exec_context)
-            except Exception as e:
-                logger.error(f"Error executing with orchestrator: {e}")
+            except Exception as exc:
+                logger.error(f"Error executing with orchestrator: {exc}")
                 result = await self._execute_with_form_executor(task, exec_context)
         else:
             # Fallback to form executor
@@ -177,12 +177,12 @@ class IntegratedFormExecutor:
                 timestamp=datetime.now()
             )
         
-        except Exception as e:
-            logger.error(f"Orchestrator execution failed: {e}")
+        except Exception as exc:
+            logger.error(f"Orchestrator execution failed: {exc}")
             return ExecutionResult(
                 task_id=task.get('id'),
                 status=ExecutionStatus.FAILED,
-                error=str(e),
+                error=str(exc),
                 timestamp=datetime.now()
             )
     
@@ -208,12 +208,12 @@ class IntegratedFormExecutor:
             result = self.form_executor.execute_task(task)
             return result
         
-        except Exception as e:
-            logger.error(f"Form executor execution failed: {e}")
+        except Exception as exc:
+            logger.error(f"Form executor execution failed: {exc}")
             return ExecutionResult(
                 task_id=task.get('id'),
                 status=ExecutionStatus.FAILED,
-                error=str(e),
+                error=str(exc),
                 timestamp=datetime.now()
             )
     
@@ -257,8 +257,8 @@ class IntegratedFormExecutor:
         if self.orchestrator:
             try:
                 return self.orchestrator.get_status(task_id)
-            except Exception as e:
-                logger.error(f"Error getting status from orchestrator: {e}")
+            except Exception as exc:
+                logger.error(f"Error getting status from orchestrator: {exc}")
         
         # Fallback to form executor
         return None

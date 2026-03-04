@@ -59,8 +59,8 @@ class DatabaseConnector:
                     logger.error(f"Failed to connect to {self.database_type.value} database")
                     return False
             
-            except Exception as e:
-                logger.error(f"Error connecting to database: {e}")
+            except Exception as exc:
+                logger.error(f"Error connecting to database: {exc}")
                 return False
     
     def disconnect(self) -> bool:
@@ -71,8 +71,8 @@ class DatabaseConnector:
                 self.is_connected = False
                 logger.info(f"Disconnected from {self.database_type.value} database")
                 return True
-            except Exception as e:
-                logger.error(f"Error disconnecting from database: {e}")
+            except Exception as exc:
+                logger.error(f"Error disconnecting from database: {exc}")
                 return False
     
     def _establish_connection(self) -> bool:
@@ -99,9 +99,9 @@ class DatabaseConnector:
             result = self._execute_query(query, parameters)
             return IntegrationResult(success=True, data=result)
         
-        except Exception as e:
-            logger.error(f"Error executing query: {e}")
-            return IntegrationResult(success=False, error=str(e))
+        except Exception as exc:
+            logger.error(f"Error executing query: {exc}")
+            return IntegrationResult(success=False, error=str(exc))
     
     def _execute_query(
         self,
@@ -132,9 +132,9 @@ class DatabaseConnector:
             
             return IntegrationResult(success=True, data=results)
         
-        except Exception as e:
-            logger.error(f"Error executing transaction: {e}")
-            return IntegrationResult(success=False, error=str(e))
+        except Exception as exc:
+            logger.error(f"Error executing transaction: {exc}")
+            return IntegrationResult(success=False, error=str(exc))
 
 
 class SQLDatabaseConnector(DatabaseConnector):
@@ -197,9 +197,9 @@ class SQLDatabaseConnector(DatabaseConnector):
             }
             return IntegrationResult(success=True, data=result)
         
-        except Exception as e:
-            logger.error(f"Error executing stored procedure: {e}")
-            return IntegrationResult(success=False, error=str(e))
+        except Exception as exc:
+            logger.error(f"Error executing stored procedure: {exc}")
+            return IntegrationResult(success=False, error=str(exc))
 
 
 class NoSQLDatabaseConnector(DatabaseConnector):
@@ -239,9 +239,9 @@ class NoSQLDatabaseConnector(DatabaseConnector):
             }
             return IntegrationResult(success=True, data=document)
         
-        except Exception as e:
-            logger.error(f"Error getting document: {e}")
-            return IntegrationResult(success=False, error=str(e))
+        except Exception as exc:
+            logger.error(f"Error getting document: {exc}")
+            return IntegrationResult(success=False, error=str(exc))
     
     def save_document(
         self,
@@ -269,9 +269,9 @@ class NoSQLDatabaseConnector(DatabaseConnector):
                 data={'document_id': document.get('_id', str(uuid.uuid4()))}
             )
         
-        except Exception as e:
-            logger.error(f"Error saving document: {e}")
-            return IntegrationResult(success=False, error=str(e))
+        except Exception as exc:
+            logger.error(f"Error saving document: {exc}")
+            return IntegrationResult(success=False, error=str(exc))
     
     def query_documents(
         self,
@@ -305,6 +305,6 @@ class NoSQLDatabaseConnector(DatabaseConnector):
             
             return IntegrationResult(success=True, data=documents)
         
-        except Exception as e:
-            logger.error(f"Error querying documents: {e}")
-            return IntegrationResult(success=False, error=str(e))
+        except Exception as exc:
+            logger.error(f"Error querying documents: {exc}")
+            return IntegrationResult(success=False, error=str(exc))

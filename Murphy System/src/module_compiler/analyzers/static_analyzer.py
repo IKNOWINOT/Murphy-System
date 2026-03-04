@@ -113,10 +113,10 @@ class StaticAnalyzer:
             
             return self.analyze_source(source_code)
         
-        except Exception as e:
+        except Exception as exc:
             # Return empty structure on error
             structure = CodeStructure()
-            structure.dependencies.add(f"ERROR: {str(e)}")
+            structure.dependencies.add(f"ERROR: {str(exc)}")
             return structure
     
     def analyze_source(self, source_code: str) -> CodeStructure:
@@ -177,10 +177,10 @@ class StaticAnalyzer:
             
             return structure
         
-        except SyntaxError as e:
+        except SyntaxError as exc:
             # Return structure with error
             structure = CodeStructure()
-            structure.dependencies.add(f"SYNTAX_ERROR: {str(e)}")
+            structure.dependencies.add(f"SYNTAX_ERROR: {str(exc)}")
             return structure
     
     def _process_import(self, node: ast.Import, structure: CodeStructure):

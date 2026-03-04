@@ -191,7 +191,7 @@ class SafeREPL:
                 execution_time=(datetime.now() - start_time).total_seconds()
             )
             
-        except Exception as e:
+        except Exception as exc:
             error_output = stderr_capture.getvalue()
             error_trace = traceback.format_exc()
             

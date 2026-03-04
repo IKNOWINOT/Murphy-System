@@ -90,8 +90,8 @@ class ExpressionParser:
                 metadata={'free_symbols': [str(s) for s in free_symbols]}
             )
         
-        except Exception as e:
-            raise ValueError(f"Failed to parse SymPy expression: {e}")
+        except Exception as exc:
+            raise ValueError(f"Failed to parse SymPy expression: {exc}")
     
     def _parse_wolfram(self, expression: str, assumptions: Dict[str, Any]) -> ParsedExpression:
         """Parse Wolfram Language expression (basic support)"""
@@ -228,8 +228,8 @@ class ExpressionParser:
             if parsed.uncertainty > 0.5:
                 result.add_warning(f"High parsing uncertainty: {parsed.uncertainty:.2f}")
         
-        except Exception as e:
-            result.add_error(f"Syntax error: {e}")
+        except Exception as exc:
+            result.add_error(f"Syntax error: {exc}")
             result.add_suggestion("Check expression syntax and try again")
         
         return result

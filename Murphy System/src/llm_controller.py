@@ -371,8 +371,8 @@ class LLMController:
                 metadata={"provider": "groq", "model": "mixtral-8x7b-32768"}
             )
             
-        except Exception as e:
-            print(f"Error querying Groq Mixtral: {e}")
+        except Exception as exc:
+            print(f"Error querying Groq Mixtral: {exc}")
             return await self._query_fallback(request)
     
     async def _query_groq_llama(self, request: LLMRequest) -> LLMResponse:
@@ -413,8 +413,8 @@ class LLMController:
                 metadata={"provider": "groq", "model": "llama3-70b-8192"}
             )
             
-        except Exception as e:
-            print(f"Error querying Groq Llama: {e}")
+        except Exception as exc:
+            print(f"Error querying Groq Llama: {exc}")
             return await self._query_fallback(request)
     
     async def _query_groq_gemma(self, request: LLMRequest) -> LLMResponse:
@@ -455,8 +455,8 @@ class LLMController:
                 metadata={"provider": "groq", "model": "gemma-7b-it"}
             )
             
-        except Exception as e:
-            print(f"Error querying Groq Gemma: {e}")
+        except Exception as exc:
+            print(f"Error querying Groq Gemma: {exc}")
             return await self._query_fallback(request)
     
     async def _query_local_small(self, request: LLMRequest) -> LLMResponse:

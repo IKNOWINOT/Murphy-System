@@ -113,12 +113,12 @@ class CredentialValidator(ExternalValidator):
             self.cache_result(cache_key, result)
             return result
             
-        except Exception as e:
+        except Exception as exc:
             return ValidationResult(
                 validation_type=ValidationType.CREDENTIAL,
                 status=ValidationStatus.ERROR,
                 confidence=0.0,
-                error_message=str(e)
+                error_message=str(exc)
             )
     
     async def _check_credential(self, credential: str, cred_type: str, service: str) -> bool:
@@ -161,12 +161,12 @@ class DataSourceValidator(ExternalValidator):
                 }
             )
             
-        except Exception as e:
+        except Exception as exc:
             return ValidationResult(
                 validation_type=ValidationType.DATA_SOURCE,
                 status=ValidationStatus.ERROR,
                 confidence=0.0,
-                error_message=str(e)
+                error_message=str(exc)
             )
     
     async def _check_data_source(self, source: str, source_type: str) -> bool:
@@ -208,12 +208,12 @@ class DomainExpertValidator(ExternalValidator):
                 }
             )
             
-        except Exception as e:
+        except Exception as exc:
             return ValidationResult(
                 validation_type=ValidationType.DOMAIN_EXPERT,
                 status=ValidationStatus.ERROR,
                 confidence=0.0,
-                error_message=str(e)
+                error_message=str(exc)
             )
     
     async def _query_expert_system(self, query: str, domain: str) -> float:

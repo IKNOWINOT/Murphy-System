@@ -139,8 +139,8 @@ class SecureKeyManager:
                     logger.warning("Hash mismatch for key '%s'", entry['name'])                
                 decrypted_keys.append((entry['name'], decrypted_key))
             
-            except Exception as e:
-                logger.error("Failed to decrypt key '%s': %s", entry['name'], e)
+            except Exception as exc:
+                logger.error("Failed to decrypt key '%s': %s", entry['name'], exc)
                 continue
         
         # Cache the decrypted keys
@@ -244,8 +244,8 @@ class SecureKeyManager:
             decrypted = self.cipher.decrypt(encrypted).decode()
             
             return decrypted == test_data
-        except Exception as e:
-            logger.error("Encryption verification failed: %s", e)
+        except Exception as exc:
+            logger.error("Encryption verification failed: %s", exc)
             return False
 
 

@@ -108,16 +108,16 @@ class SymbolicSolver:
                 metadata={'operation': operation}
             )
         
-        except Exception as e:
+        except Exception as exc:
             execution_time = time.time() - start_time
-            derivation_steps.append(f"Error: {e}")
+            derivation_steps.append(f"Error: {exc}")
             
             return SymbolicResult(
                 result=None,
                 derivation_steps=derivation_steps,
                 solver="sympy",
                 execution_time=execution_time,
-                metadata={'operation': operation, 'error': str(e)}
+                metadata={'operation': operation, 'error': str(exc)}
             )
     
     def solve_wolfram(self, normalized_expr, operation: str = "simplify") -> SymbolicResult:
@@ -188,8 +188,8 @@ class SymbolicSolver:
                     except Exception as exc:
                         validation['notes'].append(f"Results differ symbolically: {diff}")
         
-        except Exception as e:
-            validation['notes'].append(f"Comparison failed: {e}")
+        except Exception as exc:
+            validation['notes'].append(f"Comparison failed: {exc}")
         
         return validation
     

@@ -185,9 +185,9 @@ class WorkflowDAGEngine:
 
         try:
             order = self._topological_sort(workflow)
-        except ValueError as e:
+        except ValueError as exc:
             execution.status = WorkflowStatus.FAILED
-            return {"error": str(e)}
+            return {"error": str(exc)}
 
         step_map = {s.step_id: s for s in workflow.steps}
         results = {}
@@ -228,8 +228,8 @@ class WorkflowDAGEngine:
                     result = handler(step_def, execution.context)
                     step_exec.result = result
                     step_exec.status = StepStatus.COMPLETED
-                except Exception as e:
-                    step_exec.error = str(e)
+                except Exception as exc:
+                    step_exec.error = str(exc)
                     step_exec.status = StepStatus.FAILED
             else:
                 # Default simulation

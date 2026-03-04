@@ -563,9 +563,9 @@ class KeyManager:
             try:
                 self.rotate_key(key_id)
                 rotated.append(key_id)
-            except Exception as e:
+            except Exception as exc:
                 # Log error but continue rotating other keys
-                print(f"Error rotating key {key_id}: {e}")
+                print(f"Error rotating key {key_id}: {exc}")
         
         return rotated
 
@@ -771,11 +771,11 @@ class PacketSigner:
                 error_message=None if valid else "Signature verification failed"
             )
         
-        except Exception as e:
+        except Exception as exc:
             return VerificationResult(
                 valid=False,
                 algorithm=packet_signature.algorithm,
                 verified_at=datetime.now(),
                 public_key=signing_key.public_key,
-                error_message=f"Verification error: {str(e)}"
+                error_message=f"Verification error: {str(exc)}"
             )

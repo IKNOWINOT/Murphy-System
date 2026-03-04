@@ -87,12 +87,12 @@ class TrainingDataCollector:
                 try:
                     example = self._process_failure(failure)
                     examples.append(example)
-                except Exception as e:
-                    print(f"Failed to process failure: {e}")
+                except Exception as exc:
+                    print(f"Failed to process failure: {exc}")
                     continue
         
-        except Exception as e:
-            print(f"Failed to collect training batch: {e}")
+        except Exception as exc:
+            print(f"Failed to collect training batch: {exc}")
         
         return examples
     
@@ -216,8 +216,8 @@ class TrainingDataCollector:
                     # (simplified - in practice, extract full failure sequence)
                     print(f"Collected historical disaster: {disaster}")
             
-            except Exception as e:
-                print(f"Failed to collect historical disaster {disaster}: {e}")
+            except Exception as exc:
+                print(f"Failed to collect historical disaster {disaster}: {exc}")
         
         return examples
 

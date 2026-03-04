@@ -106,9 +106,9 @@ class CommandParser:
                 'is_command': True,
                 'command': 'swarmmonitor'
             }
-        except Exception as e:
+        except Exception as exc:
             return {
-                'content': f'Swarm status not available: {str(e)}',
+                'content': f'Swarm status not available: {str(exc)}',
                 'band': 'introductory',
                 'confidence': 1.0,
                 'is_command': True,
@@ -182,9 +182,9 @@ class CommandParser:
                 'is_command': True,
                 'command': 'memory'
             }
-        except Exception as e:
+        except Exception as exc:
             return {
-                'content': f'Memory status not available: {str(e)}',
+                'content': f'Memory status not available: {str(exc)}',
                 'band': 'introductory',
                 'confidence': 1.0,
                 'is_command': True,
@@ -379,9 +379,9 @@ class CommandParser:
                 'band': 'introductory',
                 'confidence': 1.0
             }
-        except Exception as e:
+        except Exception as exc:
             return {
-                'content': f"Error reading document: {str(e)}",
+                'content': f"Error reading document: {str(exc)}",
                 'is_command': True,
                 'band': 'introductory',
                 'confidence': 1.0

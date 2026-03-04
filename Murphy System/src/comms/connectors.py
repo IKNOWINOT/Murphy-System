@@ -175,8 +175,8 @@ class EmailConnector(BaseConnector):
             imap.close()
             imap.logout()
         
-        except Exception as e:
-            logger.exception("Error receiving emails via IMAP: %s", e)
+        except Exception as exc:
+            logger.exception("Error receiving emails via IMAP: %s", exc)
         
         return messages
     
@@ -217,8 +217,8 @@ class EmailConnector(BaseConnector):
                     
                     messages.append(artifact)
         
-        except Exception as e:
-            logger.exception("Error receiving emails via Graph: %s", e)
+        except Exception as exc:
+            logger.exception("Error receiving emails via Graph: %s", exc)
         
         return messages
     
@@ -268,8 +268,8 @@ class EmailConnector(BaseConnector):
             
             return True
         
-        except Exception as e:
-            logger.exception("Error sending email via SMTP: %s", e)
+        except Exception as exc:
+            logger.exception("Error sending email via SMTP: %s", exc)
             return False
     
     def _send_via_graph(self, packet: CommunicationPacket) -> bool:
@@ -300,8 +300,8 @@ class EmailConnector(BaseConnector):
             
             return response.status_code == 202
         
-        except Exception as e:
-            logger.exception("Error sending email via Graph: %s", e)
+        except Exception as exc:
+            logger.exception("Error sending email via Graph: %s", exc)
             return False
     
     def _extract_email_content(self, email_message) -> str:
@@ -366,8 +366,8 @@ class SlackConnector(BaseConnector):
                     
                     messages.append(artifact)
         
-        except Exception as e:
-            logger.exception("Error receiving Slack messages: %s", e)
+        except Exception as exc:
+            logger.exception("Error receiving Slack messages: %s", exc)
         
         return messages
     
@@ -407,8 +407,8 @@ class SlackConnector(BaseConnector):
             
             return success
         
-        except Exception as e:
-            logger.exception("Error sending Slack message: %s", e)
+        except Exception as exc:
+            logger.exception("Error sending Slack message: %s", exc)
             return False
 
 
@@ -460,8 +460,8 @@ class TeamsConnector(BaseConnector):
                     
                     messages.append(artifact)
         
-        except Exception as e:
-            logger.exception("Error receiving Teams messages: %s", e)
+        except Exception as exc:
+            logger.exception("Error receiving Teams messages: %s", exc)
         
         return messages
     
@@ -504,8 +504,8 @@ class TeamsConnector(BaseConnector):
             
             return success
         
-        except Exception as e:
-            logger.exception("Error sending Teams message: %s", e)
+        except Exception as exc:
+            logger.exception("Error sending Teams message: %s", exc)
             return False
 
 
@@ -636,8 +636,8 @@ class TicketConnector(BaseConnector):
             elif self.system == 'zendesk':
                 messages = self._receive_zendesk_comments()
         
-        except Exception as e:
-            logger.exception("Error receiving ticket messages: %s", e)
+        except Exception as exc:
+            logger.exception("Error receiving ticket messages: %s", exc)
         
         return messages
     
@@ -755,8 +755,8 @@ class TicketConnector(BaseConnector):
             
             return success
         
-        except Exception as e:
-            print(f"Error sending ticket message: {e}")
+        except Exception as exc:
+            print(f"Error sending ticket message: {exc}")
             return False
     
     def _send_jira_comment(self, packet: CommunicationPacket) -> bool:

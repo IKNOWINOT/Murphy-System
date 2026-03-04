@@ -129,7 +129,7 @@ class PluginSandbox:
                 "plugin": self.manifest.name,
                 "elapsed_ms": round(elapsed, 2),
             }
-        except Exception as e:
+        except Exception as exc:
             elapsed = (time.monotonic() - start) * 1000
             with self._lock:
                 self._call_count += 1
@@ -137,8 +137,8 @@ class PluginSandbox:
                 self._total_time_ms += elapsed
             return {
                 "success": False,
-                "error": str(e),
-                "error_type": type(e).__name__,
+                "error": str(exc),
+                "error_type": type(exc).__name__,
                 "plugin": self.manifest.name,
                 "elapsed_ms": round(elapsed, 2),
             }

@@ -123,13 +123,13 @@ class SecurityPlaneAdapter:
         try:
             result = self.validator.validate(field_name, value)
             return True, None
-        except Exception as e:
+        except Exception as exc:
             # Log the validation failure
             self._log_security_event("validation_failed", {
                 "field": field_name,
-                "error": str(e)
+                "error": str(exc)
             })
-            return False, str(e)
+            return False, str(exc)
     
     def sanitize_input(self, value: Any, input_type: str = "string") -> Any:
         """
@@ -157,9 +157,9 @@ class SecurityPlaneAdapter:
             
             input_type_enum = type_map.get(input_type, InputType.STRING)
             return sanitize_input(value, input_type_enum)
-        except Exception as e:
+        except Exception as exc:
             self._log_security_event("sanitize_failed", {
-                "error": str(e)
+                "error": str(exc)
             })
             return value
     

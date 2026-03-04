@@ -124,10 +124,10 @@ class ModuleCompilerAdapter:
             
             return result
             
-        except Exception as e:
+        except Exception as exc:
             return {
                 "success": False,
-                "error": str(e),
+                "error": str(exc),
                 "source_path": source_path
             }
     
@@ -172,9 +172,9 @@ class ModuleCompilerAdapter:
                 try:
                     spec = self.compiler.compile_module(file_path)
                     specs.append(spec)
-                except Exception as e:
+                except Exception as exc:
                     # Continue with other files even if one fails
-                    logger.debug("Suppressed exception: %s", e)
+                    logger.debug("Suppressed exception: %s", exc)
                     continue
             
             # Convert all specs to dicts
@@ -209,10 +209,10 @@ class ModuleCompilerAdapter:
                 "results": results
             }
             
-        except Exception as e:
+        except Exception as exc:
             return {
                 "success": False,
-                "error": str(e),
+                "error": str(exc),
                 "directory_path": directory_path
             }
     

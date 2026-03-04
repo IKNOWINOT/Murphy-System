@@ -58,11 +58,11 @@ async def submit_plan_upload_form(form_data: Dict[str, Any]) -> JSONResponse:
                 content=result.to_dict()
             )
             
-    except Exception as e:
-        logger.error(f"Error in plan upload endpoint: {str(e)}")
+    except Exception as exc:
+        logger.error(f"Error in plan upload endpoint: {str(exc)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(e)}"
+            detail=f"Internal server error: {str(exc)}"
         )
 
 
@@ -102,11 +102,11 @@ async def submit_plan_generation_form(form_data: Dict[str, Any]) -> JSONResponse
                 content=result.to_dict()
             )
             
-    except Exception as e:
-        logger.error(f"Error in plan generation endpoint: {str(e)}")
+    except Exception as exc:
+        logger.error(f"Error in plan generation endpoint: {str(exc)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(e)}"
+            detail=f"Internal server error: {str(exc)}"
         )
 
 
@@ -143,11 +143,11 @@ async def submit_task_execution_form(form_data: Dict[str, Any]) -> JSONResponse:
                 content=result.to_dict()
             )
             
-    except Exception as e:
-        logger.error(f"Error in task execution endpoint: {str(e)}")
+    except Exception as exc:
+        logger.error(f"Error in task execution endpoint: {str(exc)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(e)}"
+            detail=f"Internal server error: {str(exc)}"
         )
 
 
@@ -185,11 +185,11 @@ async def submit_validation_form(form_data: Dict[str, Any]) -> JSONResponse:
                 content=result.to_dict()
             )
             
-    except Exception as e:
-        logger.error(f"Error in validation endpoint: {str(e)}")
+    except Exception as exc:
+        logger.error(f"Error in validation endpoint: {str(exc)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(e)}"
+            detail=f"Internal server error: {str(exc)}"
         )
 
 
@@ -228,11 +228,11 @@ async def submit_correction_form(form_data: Dict[str, Any]) -> JSONResponse:
                 content=result.to_dict()
             )
             
-    except Exception as e:
-        logger.error(f"Error in correction endpoint: {str(e)}")
+    except Exception as exc:
+        logger.error(f"Error in correction endpoint: {str(exc)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(e)}"
+            detail=f"Internal server error: {str(exc)}"
         )
 
 
@@ -280,11 +280,11 @@ async def get_submission_status(submission_id: str) -> JSONResponse:
             }
         )
         
-    except Exception as e:
-        logger.error(f"Error getting submission status: {str(e)}")
+    except Exception as exc:
+        logger.error(f"Error getting submission status: {str(exc)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(e)}"
+            detail=f"Internal server error: {str(exc)}"
         )
 
 

@@ -202,16 +202,16 @@ class WorkflowOrchestrator:
             
             logger.info(f"Workflow completed: {workflow.workflow_id} in {workflow.execution_time:.2f}s")
             
-        except Exception as e:
+        except Exception as exc:
             workflow.state = WorkflowState.FAILED
             workflow.completed_at = datetime.now(timezone.utc)
             workflow.execution_time = (workflow.completed_at - workflow.started_at).total_seconds()
             workflow.errors.append({
-                'error': str(e),
+                'error': str(exc),
                 'timestamp': datetime.now(timezone.utc).isoformat()
             })
             
-            logger.error(f"Workflow failed: {workflow.workflow_id} - {e}")
+            logger.error(f"Workflow failed: {workflow.workflow_id} - {exc}")
         
         return workflow_id
     
@@ -239,19 +239,19 @@ class WorkflowOrchestrator:
                 # Store result in workflow variables
                 workflow.results[step.step_id] = result
                 
-            except Exception as e:
-                step.error = e
+            except Exception as exc:
+                step.error = exc
                 step.state = WorkflowState.FAILED
                 step.completed_at = datetime.now(timezone.utc)
                 step.execution_time = (step.completed_at - step.started_at).total_seconds()
                 
                 workflow.errors.append({
                     'step_id': step.step_id,
-                    'error': str(e),
+                    'error': str(exc),
                     'timestamp': datetime.now(timezone.utc).isoformat()
                 })
                 
-                logger.error(f"Step failed: {step.step_id} - {e}")
+                logger.error(f"Step failed: {step.step_id} - {exc}")
                 raise
             
             # Move to next step

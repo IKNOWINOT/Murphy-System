@@ -425,8 +425,8 @@ class TelemetryStreamer:
             for callback in self.subscribers[packet_id]:
                 try:
                     callback(event)
-                except Exception as e:
-                    print(f"Error notifying subscriber: {e}")
+                except Exception as exc:
+                    print(f"Error notifying subscriber: {exc}")
     
     def export_stream(self, packet_id: str, format: str = 'json') -> str:
         """

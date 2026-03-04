@@ -182,8 +182,8 @@ class HumanInTheLoopMonitor:
         for callback in self.notification_callbacks:
             try:
                 callback(intervention)
-            except Exception as e:
-                logger.error(f"Notification callback failed: {e}")
+            except Exception as exc:
+                logger.error(f"Notification callback failed: {exc}")
     
     # ========================================================================
     # CHECKPOINT IMPLEMENTATIONS

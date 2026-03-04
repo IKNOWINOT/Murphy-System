@@ -61,8 +61,8 @@ class CorrectionToTrainingTransformer:
             try:
                 extracted = extractor_func(correction)
                 features.extend(extracted)
-            except Exception as e:
-                logger.warning(f"Failed to extract {extractor_name}: {e}")
+            except Exception as exc:
+                logger.warning(f"Failed to extract {extractor_name}: {exc}")
         
         # Create label from correction
         label = self._create_label_from_correction(correction)
@@ -103,8 +103,8 @@ class CorrectionToTrainingTransformer:
                 example = self.transform_correction(correction)
                 examples.append(example)
                 source_corrections.append(correction.id)
-            except Exception as e:
-                logger.error(f"Failed to transform correction {correction.id}: {e}")
+            except Exception as exc:
+                logger.error(f"Failed to transform correction {correction.id}: {exc}")
         
         # Create dataset
         dataset = TrainingDataset(

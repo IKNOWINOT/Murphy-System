@@ -52,8 +52,8 @@ class Module:
             
             self.status = ModuleStatus.ACTIVE
             
-        except Exception as e:
-            print(f"Error loading module {self.name}: {e}")
+        except Exception as exc:
+            print(f"Error loading module {self.name}: {exc}")
             self.status = ModuleStatus.LOADED
     
     def get_command_signature(self, command_name: str) -> str:

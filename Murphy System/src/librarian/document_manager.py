@@ -107,8 +107,8 @@ class DocumentManager:
                 logger.error(f"Failed to store document {document_id}")
                 return None
                 
-        except Exception as e:
-            logger.error(f"Error ingesting document: {e}")
+        except Exception as exc:
+            logger.error(f"Error ingesting document: {exc}")
             return None
     
     def get_document(self, document_id: str) -> Optional[Dict]:
@@ -126,8 +126,8 @@ class DocumentManager:
             if entry:
                 return entry
             return None
-        except Exception as e:
-            logger.error(f"Error retrieving document {document_id}: {e}")
+        except Exception as exc:
+            logger.error(f"Error retrieving document {document_id}: {exc}")
             return None
     
     def update_document(self, 
@@ -186,8 +186,8 @@ class DocumentManager:
             
             return False
             
-        except Exception as e:
-            logger.error(f"Error updating document {document_id}: {e}")
+        except Exception as exc:
+            logger.error(f"Error updating document {document_id}: {exc}")
             return False
     
     def delete_document(self, document_id: str) -> bool:
@@ -213,8 +213,8 @@ class DocumentManager:
             
             return False
             
-        except Exception as e:
-            logger.error(f"Error deleting document {document_id}: {e}")
+        except Exception as exc:
+            logger.error(f"Error deleting document {document_id}: {exc}")
             return False
     
     def list_documents(self, 
@@ -248,8 +248,8 @@ class DocumentManager:
             logger.info(f"Listed {len(summaries)} documents")
             return summaries
             
-        except Exception as e:
-            logger.error(f"Error listing documents: {e}")
+        except Exception as exc:
+            logger.error(f"Error listing documents: {exc}")
             return []
     
     def _generate_document_id(self, content: Any, document_type: str) -> str:
@@ -324,8 +324,8 @@ class DocumentManager:
                 metadata['has_alpha_chars'] = any(c.isalpha() for c in content_str)
                 metadata['has_numeric_chars'] = any(c.isdigit() for c in content_str)
             
-        except Exception as e:
-            logger.error(f"Error extracting metadata: {e}")
+        except Exception as exc:
+            logger.error(f"Error extracting metadata: {exc}")
         
         return metadata
     
