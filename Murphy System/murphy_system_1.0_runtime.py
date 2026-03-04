@@ -3591,6 +3591,66 @@ class MurphySystem:
     def _should_skip_module_path(self, parts: Tuple[str, ...]) -> bool:
         return any(part.startswith("__") or part in self.MODULE_SCAN_EXCLUDED_DIRS for part in parts)
 
+    def _build_clarifying_questions(
+        self,
+        task_description: str,
+        activation_preview: Dict[str, Any],
+    ) -> List[Dict[str, Any]]:
+        """Generate clarifying questions from the activation preview to help raise confidence.
+
+        When execution is blocked because confidence is below the threshold, these
+        questions guide the user toward providing the information the system needs
+        to proceed.  There is no limit on the number of questions — the goal is to
+        reach the confidence threshold, not to bypass it.
+        """
+        questions: List[Dict[str, Any]] = []
+        dip = activation_preview.get("dynamic_implementation") or {}
+
+        # 1. Surface information gaps as direct questions
+        for gap in dip.get("information_gaps", []):
+            questions.append({
+                "id": f"info_gap_{gap.get('id', 'unknown')}",
+                "question": gap.get("reason", "Please provide more details."),
+                "category": "information_gap",
+                "stage": gap.get("label", gap.get("id", "")),
+            })
+
+        # 2. Turn next_actions into questions
+        for i, action in enumerate(dip.get("next_actions", [])):
+            questions.append({
+                "id": f"action_{i}",
+                "question": action,
+                "category": "next_action",
+            })
+
+        # 3. Add task-specific questions when the description is too vague
+        doc_confidence = activation_preview.get("confidence", 0)
+        if doc_confidence < 0.6 and not questions:
+            questions.extend([
+                {
+                    "id": "q_goal",
+                    "question": "What is the specific goal or deliverable you expect from this task?",
+                    "category": "task_clarification",
+                },
+                {
+                    "id": "q_audience",
+                    "question": "Who is the intended audience or consumer of the output?",
+                    "category": "task_clarification",
+                },
+                {
+                    "id": "q_constraints",
+                    "question": "Are there any constraints, deadlines, or compliance requirements?",
+                    "category": "task_clarification",
+                },
+                {
+                    "id": "q_data_sources",
+                    "question": "What data sources or inputs should be used?",
+                    "category": "task_clarification",
+                },
+            ])
+
+        return questions
+
     def _build_execution_policy(
         self,
         dynamic_implementation: Optional[Dict[str, Any]],
@@ -4357,6 +4417,9 @@ class MurphySystem:
                 "activation_preview": activation_preview,
                 "gate_evaluations": gate_result,
                 "persistence_snapshot": persistence_snapshot,
+                "clarifying_questions": self._build_clarifying_questions(
+                    task_description, activation_preview,
+                ),
                 "error": "; ".join(gate_result["blocked_reasons"]),
                 "metadata": {
                     "task_description": task_description,
@@ -4394,6 +4457,9 @@ class MurphySystem:
                 "execution_wiring": execution_wiring,
                 "execution_policy": execution_policy,
                 "persistence_snapshot": persistence_snapshot,
+                "clarifying_questions": self._build_clarifying_questions(
+                    task_description, activation_preview,
+                ),
                 "error": blocked_reason,
                 "reason": blocked_reason,
                 "metadata": {
@@ -11944,6 +12010,7 @@ class MurphySystem:
         return {
             "success": True,
             "session_id": session_id,
+            "response": message,
             "message": message,
             "intent": intent,
         }

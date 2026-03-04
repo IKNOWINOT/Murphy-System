@@ -464,7 +464,7 @@
                     }
                 } catch (_) {}
             }
-            document.getElementById('connStatus').textContent = 'Offline — start Murphy runtime first';
+            document.getElementById('connStatus').textContent = 'Offline — cannot reach backend (check runtime and CORS)';
         }
 
         // ============ Tab Switching ============
@@ -479,7 +479,7 @@
         // ============ Setup Wizard ============
         async function startWizard() {
             if (!systemOnline) {
-                alert('Murphy System backend is not running. Please start it first.');
+                alert('Cannot reach Murphy System backend. Ensure the runtime is started and that CORS allows this origin. See STORYBOARD_DEFICIENCY_REPORT.md for details.');
                 return;
             }
             try {
@@ -779,7 +779,7 @@
 
         async function createEmployee() {
             if (!systemOnline) {
-                alert('Murphy System backend is not running.');
+                alert('Cannot reach Murphy System backend. Ensure the runtime is started and that CORS allows this origin.');
                 return;
             }
             const name = document.getElementById('empName').value.trim();

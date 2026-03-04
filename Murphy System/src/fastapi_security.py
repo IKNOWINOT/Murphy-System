@@ -39,7 +39,10 @@ def get_cors_origins() -> List[str]:
     Reads MURPHY_CORS_ORIGINS env var (comma-separated).
     Defaults to localhost origins for development.
     """
-    default_origins = "http://localhost:3000,http://localhost:8080,http://localhost:8000"
+    default_origins = (
+        "http://localhost:3000,http://localhost:5000,http://localhost:8000,"
+        "http://localhost:8080,http://localhost:9000"
+    )
     origins_str = os.environ.get("MURPHY_CORS_ORIGINS", default_origins)
     return [o.strip() for o in origins_str.split(",") if o.strip()]
 
@@ -170,9 +173,12 @@ _SECURITY_HEADERS = {
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
     "Content-Security-Policy": (
-        "default-src 'self'; script-src 'self'; "
-        "style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
-        "font-src 'self'; connect-src 'self'; "
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "img-src 'self' data: https://fastapi.tiangolo.com; "
+        "font-src 'self' https://cdn.jsdelivr.net; "
+        "connect-src 'self'; "
         "frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
     ),
 }
