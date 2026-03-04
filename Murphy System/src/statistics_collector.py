@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 from collections import defaultdict
 import threading
 
-from .thread_safe_operations import ThreadSafeCounter, ThreadSafeDict
+from thread_safe_operations import ThreadSafeCounter, ThreadSafeDict
 from thread_safe_operations import capped_append
 
 import logging

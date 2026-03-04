@@ -24,7 +24,14 @@ from .ab_testing import ABTestFramework, ABTestConfig, GradualRollout, VariantTy
 from .shadow_evaluation import ModelEvaluator, AutomatedTestSuite
 from .shadow_monitoring import MonitoringDashboard, MonitoringConfig, FeedbackLoop
 
-from ..correction_capture.models import Correction, Feedback, Pattern
+try:
+    from .correction_models import Correction, CorrectionType  # noqa: F401
+    from .feedback_system import Feedback  # noqa: F401
+    from .pattern_extraction import CorrectionPattern as Pattern  # noqa: F401
+except ImportError:
+    Correction = None  # type: ignore[assignment,misc]
+    Feedback = None  # type: ignore[assignment,misc]
+    Pattern = None  # type: ignore[assignment,misc]
 
 logger = logging.getLogger(__name__)
 

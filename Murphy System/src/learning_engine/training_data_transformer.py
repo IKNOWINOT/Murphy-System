@@ -9,13 +9,16 @@ from typing import List, Dict, Any, Optional
 from uuid import UUID
 import logging
 
-from ..correction_capture.models import (
-    Correction,
-    CorrectionType,
-    Feedback,
-    FeedbackType,
-    Pattern,
-)
+try:
+    from .correction_models import Correction, CorrectionType  # noqa: F401
+    from .feedback_system import Feedback, FeedbackType  # noqa: F401
+    from .pattern_extraction import CorrectionPattern as Pattern  # noqa: F401
+except ImportError:
+    Correction = None  # type: ignore[assignment,misc]
+    CorrectionType = None  # type: ignore[assignment,misc]
+    Feedback = None  # type: ignore[assignment,misc]
+    FeedbackType = None  # type: ignore[assignment,misc]
+    Pattern = None  # type: ignore[assignment,misc]
 from .models import (
     Feature,
     FeatureType,

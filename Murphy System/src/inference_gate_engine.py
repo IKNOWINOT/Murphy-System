@@ -53,7 +53,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
-from .domain_gate_generator import DomainGate, DomainGateGenerator, GateSeverity, GateType
+from domain_gate_generator import DomainGate, DomainGateGenerator, GateSeverity, GateType
 
 import logging
 
