@@ -189,7 +189,7 @@ class TestInvariant5_ExecutionIsSupervisedOnly:
 
     def test_kernel_full_pipeline_is_supervised(self):
         """The kernel never auto-executes without explicit human approval."""
-        kernel = AionMindKernel()
+        kernel = AionMindKernel(auto_bridge_bots=False, auto_discover_rsc=False)
         kernel.register_capability(Capability(
             capability_id="c1", name="test", provider="p", tags=["test"],
         ))
