@@ -529,7 +529,7 @@ class SelfImprovementEngine:
             test_criteria = [
                 {"check": "route_success_rate_improved", "category": proposal.category},
             ]
-            expected_outcome = f"Routing optimised for '{proposal.category}'"
+            expected_outcome = f"Routing optimized for '{proposal.category}'"
 
         elif "recovery" in action_lower or "restart" in action_lower or "retry" in action_lower:
             fix_type = "recovery_registration"
