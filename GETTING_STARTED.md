@@ -194,7 +194,7 @@ cd "Murphy System"
 python -c "from src.setup_wizard import run_cli; run_cli()"
 ```
 
-The wizard walks you through environment configuration, API key setup, and initial system preferences.
+The wizard walks you through environment configuration, API key setup, and initial system preferences. You can answer in natural language — for example, type **"all of them"** to select every option, **"local for now"** to pick `local`, or **"not yet"** for a no. The wizard will extract the closest valid answer from your response; if it can't determine one, it falls back to the default.
 
 ---
 
