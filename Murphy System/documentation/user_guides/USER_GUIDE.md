@@ -628,5 +628,5 @@ python demo/api_server_v2.py --port 8053
 ---
 
 **© 2025 Corey Post InonI LLC. All rights reserved.**  
-**Licensed under the Apache License, Version 2.0**  
+**Licensed under BSL 1.1 (converts to Apache 2.0 after 4 years)**  
 **Contact: corey.gfc@gmail.com**
