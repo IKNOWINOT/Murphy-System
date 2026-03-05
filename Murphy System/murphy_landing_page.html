@@ -7,18 +7,18 @@
     <style>
         :root {
             --neon-green: #00ff41;
-            --neon-cyan: #00e5ff;
+            --neon-cyan: #00ffff;
             --dark-bg: #0a0a0a;
             --panel-bg: #111111;
-            --border-color: #1a3a1a;
-            --text-dim: #7a9f7a;
+            --border-color: #333;
+            --text-dim: #888;
             --text-bright: #b0ffb0;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Courier New', 'Fira Code', monospace;
+            font-family: 'Courier New', monospace;
             background-color: var(--dark-bg);
             color: var(--neon-green);
             line-height: 1.7;
@@ -471,6 +471,14 @@
     </style>
 </head>
 <body>
+
+<div style="display:flex; gap:14px; padding:4px 15px; background:#0f0f0f; border-bottom:1px solid #333; font-size:11px; flex-wrap:wrap; align-items:center; font-family:'Courier New',monospace;">
+    <span style="color:#666; font-weight:bold; text-transform:uppercase; letter-spacing:1px; margin-right:4px;">Color Key:</span>
+    <span style="display:flex; align-items:center; gap:4px;"><span style="width:10px; height:10px; border-radius:2px; display:inline-block; background:#00ff41;"></span><span style="color:#00ff41;">System / Success</span></span>
+    <span style="display:flex; align-items:center; gap:4px;"><span style="width:10px; height:10px; border-radius:2px; display:inline-block; background:#00ffff;"></span><span style="color:#00ffff;">Info</span></span>
+    <span style="display:flex; align-items:center; gap:4px;"><span style="width:10px; height:10px; border-radius:2px; display:inline-block; background:#ffcc00;"></span><span style="color:#ffcc00;">Warning</span></span>
+    <span style="display:flex; align-items:center; gap:4px;"><span style="width:10px; height:10px; border-radius:2px; display:inline-block; background:#ff0000;"></span><span style="color:#ff0000;">Error</span></span>
+</div>
 
 <!-- ═══════════════ HERO ═══════════════ -->
 <header class="hero">
