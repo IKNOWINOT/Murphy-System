@@ -149,6 +149,36 @@ POST   /api/automation/{engine}/{action}  # Run automation
 GET    /api/modules                    # List modules
 ```
 
+### No-Code Workflow Builder Endpoints
+```
+POST   /api/workflow-terminal/sessions              # Create Librarian session
+POST   /api/workflow-terminal/sessions/{id}/message  # Send message to Librarian
+GET    /api/workflow-terminal/sessions/{id}          # Get session details
+GET    /api/workflow-terminal/sessions/{id}/compile  # Compile workflow
+GET    /api/workflow-terminal/sessions/{id}/agents/{aid} # Agent drill-down
+```
+
+### Onboarding & Org Chart Endpoints
+```
+POST   /api/onboarding-flow/org/initialize          # Initialize org chart
+GET    /api/onboarding-flow/org/chart               # View org chart
+POST   /api/onboarding-flow/start                   # Start onboarding
+GET    /api/onboarding-flow/sessions/{id}/questions  # Get questions
+POST   /api/onboarding-flow/sessions/{id}/answer     # Answer question
+POST   /api/onboarding-flow/sessions/{id}/shadow-agent # Assign shadow agent
+POST   /api/onboarding-flow/sessions/{id}/transition # Transition to builder
+```
+
+### IP Classification & Credential Endpoints
+```
+POST   /api/ip/assets                               # Register IP asset
+GET    /api/ip/summary                              # IP summary
+GET    /api/ip/trade-secrets                        # List trade secrets
+POST   /api/credentials/profiles                    # Create credential profile
+GET    /api/credentials/metrics                     # Optimal automation metrics
+GET    /api/agent-dashboard/snapshot                # Agent dashboard
+```
+
 ---
 
 ## 🔧 Configuration
@@ -233,6 +263,40 @@ curl -X POST http://localhost:8000/api/automation/marketing/create_content \
       "length": "1500 words"
     }
   }'
+```
+
+### Use Case 5: No-Code Workflow Builder (NEW)
+```bash
+# 1. Create a Librarian session
+curl -X POST http://localhost:8000/api/workflow-terminal/sessions
+
+# 2. Describe what you want to automate
+curl -X POST http://localhost:8000/api/workflow-terminal/sessions/{session_id}/message \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Monitor API endpoints and send Slack alerts on failures"}'
+
+# 3. Finalize the workflow
+curl -X POST http://localhost:8000/api/workflow-terminal/sessions/{session_id}/message \
+  -H "Content-Type: application/json" \
+  -d '{"message": "finalize"}'
+```
+
+### Use Case 6: Complete Onboarding → Builder Flow (NEW)
+```bash
+# 1. Initialize org chart
+curl -X POST http://localhost:8000/api/onboarding-flow/org/initialize
+
+# 2. Start onboarding for a new employee
+curl -X POST http://localhost:8000/api/onboarding-flow/start \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alex Smith", "email": "alex@company.com"}'
+
+# 3. Assign shadow agent (becomes Employee IP)
+curl -X POST http://localhost:8000/api/onboarding-flow/sessions/{id}/shadow-agent \
+  -H "Content-Type: application/json" -d '{}'
+
+# 4. Transition to no-code builder
+curl -X POST http://localhost:8000/api/onboarding-flow/sessions/{id}/transition
 ```
 
 ---
