@@ -37,6 +37,13 @@ class EventType(Enum):
     SYSTEM_HEALTH = "system_health"
     RECALIBRATION_START = "recalibration_start"
     ROSETTA_UPDATED = "rosetta_updated"
+    SELF_FIX_STARTED = "self_fix_started"
+    SELF_FIX_PLAN_CREATED = "self_fix_plan_created"
+    SELF_FIX_EXECUTED = "self_fix_executed"
+    SELF_FIX_TESTED = "self_fix_tested"
+    SELF_FIX_VERIFIED = "self_fix_verified"
+    SELF_FIX_COMPLETED = "self_fix_completed"
+    SELF_FIX_ROLLED_BACK = "self_fix_rolled_back"
 
 
 @dataclass
