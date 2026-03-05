@@ -26,9 +26,10 @@
 >   process improvement requests automatically, but this pipeline is still
 >   maturing. File issues or submit patches and the system's self-improvement
 >   loop will attempt to incorporate them.
-> - 📊 **Test coverage is extensive but not exhaustive** — 8,800+ tests pass
->   across 371 test files, yet some Flask/Textual-dependent tests require
->   optional dependencies and are skipped when those packages are absent.
+> - 📊 **Test coverage is extensive but not exhaustive** — 8,200+ core tests
+>   (8,800+ total including optional suites) pass across 371 test files, yet
+>   some Flask/Textual-dependent tests require optional dependencies and are
+>   skipped when those packages are absent.
 > - 🤝 **Contributions welcome** — see [CONTRIBUTING.md](CONTRIBUTING.md). Bug
 >   reports, especially with reproduction steps, are especially valuable at
 >   this stage.

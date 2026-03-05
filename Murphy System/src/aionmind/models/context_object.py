@@ -7,12 +7,15 @@ into a single Pydantic-validated object that every downstream layer consumes.
 
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 
 class RiskLevel(str, Enum):

@@ -12,6 +12,7 @@ All endpoints honour the no-autonomy invariant:
 
 from __future__ import annotations
 
+import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException
@@ -21,6 +22,8 @@ from aionmind.models.context_object import ContextObject, Priority, RiskLevel
 from aionmind.models.execution_graph import ExecutionGraphObject
 from aionmind.models.proposals import ProposalStatus
 from aionmind.runtime_kernel import AionMindKernel
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/aionmind", tags=["aionmind"])
 
@@ -46,6 +49,8 @@ def _get_kernel() -> AionMindKernel:
 # ── Request / response schemas ────────────────────────────────────
 
 class BuildContextRequest(BaseModel):
+    """Request body for building a ContextObject from raw inputs."""
+
     source: str
     raw_input: str = ""
     intent: str = ""
@@ -62,25 +67,35 @@ class BuildContextRequest(BaseModel):
 
 
 class OrchestratePlanRequest(BaseModel):
+    """Request body for generating candidate orchestration graphs."""
+
     context: BuildContextRequest
     max_candidates: int = 3
 
 
 class ExecuteRequest(BaseModel):
+    """Request body for executing an approved execution graph."""
+
     graph: Dict[str, Any]
 
 
 class ApproveNodeRequest(BaseModel):
+    """Request body for approving a pending HITL checkpoint node."""
+
     execution_id: str
     node_id: str
     approver: str
 
 
 class ApproveProposalRequest(BaseModel):
+    """Request body for approving an optimisation proposal."""
+
     approver: str
 
 
 class RejectProposalRequest(BaseModel):
+    """Request body for rejecting an optimisation proposal."""
+
     reason: str
 
 

@@ -37,6 +37,8 @@ logger = logging.getLogger(__name__)
 
 
 class OrchestrationStatus(str, Enum):
+    """Runtime status of an orchestration execution."""
+
     PENDING = "pending"
     RUNNING = "running"
     PAUSED = "paused"
@@ -48,6 +50,8 @@ class OrchestrationStatus(str, Enum):
 
 @dataclass
 class AuditEntry:
+    """Single entry in an orchestration audit trail."""
+
     timestamp: str
     node_id: str
     event: str
@@ -56,6 +60,8 @@ class AuditEntry:
 
 @dataclass
 class OrchestrationState:
+    """Mutable state tracking the progress of an orchestration execution."""
+
     execution_id: str
     graph_id: str
     status: OrchestrationStatus = OrchestrationStatus.PENDING

@@ -418,7 +418,7 @@ class AdaptiveCampaignEngine:
             }
 
         avg_conv_rate = (
-            sum(s.conversion_rate for s in recent) / len(recent)
+            sum(s.conversion_rate for s in recent) / (len(recent) or 1)
         )
 
         if avg_conv_rate >= self.HEALTHY_CONVERSION_RATE:

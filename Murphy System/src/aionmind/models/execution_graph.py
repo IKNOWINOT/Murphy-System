@@ -8,12 +8,15 @@ invocation, gate check, HITL checkpoint, etc.).
 
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 
 class ExecutionNodeType(str, Enum):
