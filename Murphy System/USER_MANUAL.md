@@ -1217,31 +1217,9 @@ curl http://localhost:8000/api/health
 
 ---
 
-## Chapter 19: Business Model
+## Chapter 19: License
 
-### 19.1 Editions
-
-| Feature | Community | Professional | Enterprise |
-|---------|-----------|-------------|------------|
-| **License** | MIT (Open Source) | Per-Seat | Annual Agreement |
-| **Core Automation** | ✅ | ✅ | ✅ |
-| **All 6 Automation Types** | ✅ | ✅ | ✅ |
-| **Self-Integration** | ✅ | ✅ | ✅ |
-| **Self-Improvement** | ✅ | ✅ | ✅ |
-| **Bot System (80+)** | ✅ | ✅ | ✅ |
-| **Priority Support** | — | ✅ | ✅ |
-| **SLA Guarantees** | — | ✅ | ✅ |
-| **Custom Integrations** | — | ✅ | ✅ |
-| **Compliance Packages** | — | — | ✅ |
-| **Dedicated Support** | — | — | ✅ |
-| **On-Premise Deployment** | — | — | ✅ |
-| **Custom Bot Development** | — | — | ✅ |
-
-### 19.2 Edition Details
-
-- **Community Edition** — fully functional open-source (MIT). All core features, self-hosted. Community support via GitHub Issues.
-- **Professional Edition** — per-seat licensing. Priority support, SLA guarantees, custom integration assistance, regular updates.
-- **Enterprise Edition** — annual agreement. Dedicated account management, full compliance packages (HIPAA, SOC 2, GDPR), on-premise deployment, custom bot/module development, training and onboarding.
+Murphy System is available under the Business Source License 1.1. See [LICENSE](../LICENSE) for details.
 
 ---
 

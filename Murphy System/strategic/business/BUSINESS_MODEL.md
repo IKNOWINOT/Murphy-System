@@ -1,3 +1,5 @@
+> **Internal planning document — not a public-facing commitment.**
+
 # Murphy System 1.0 - Business Model
 
 **Created:** February 27, 2026  

@@ -376,17 +376,6 @@ git commit -m "fix: normalize file name casing"
 
 ![Murphy System Landing Page](https://github.com/user-attachments/assets/f5364d3c-55ca-4c30-a2ac-1d14985c4142)
 
-### Pricing Tiers
-
-| Tier | Price | Notes |
-|------|-------|-------|
-| Community | Free | Open source (MIT), budgeted from paid income |
-| Creator Starter | $20/mo | Monthly |
-| Professional | $99/mo | Per seat |
-| Enterprise | Contact us | Custom pricing — funds community free tier |
-
-![Pricing Section](https://github.com/user-attachments/assets/eeb32121-ae1f-402a-af57-43a35f579b2c)
-
 ### Onboarding Wizard
 
 ![Onboarding Wizard](https://github.com/user-attachments/assets/dfe82ae2-20c3-4539-b6d2-11afca3215bb)
