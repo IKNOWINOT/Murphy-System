@@ -58,34 +58,16 @@ Murphy is a **complete, operational AI automation system** that can automate any
 
 ## 🚀 Quick Start & Installation
 
-### One-Step Setup & Start (Recommended)
+### ⚡ One-Line Install (Recommended)
 
-Clone the repo, then run **one command** — it installs everything and starts Murphy:
-
-```bash
-git clone https://github.com/IKNOWINOT/Murphy-System.git
-cd Murphy-System
-bash setup_and_start.sh
-```
-
-On Windows:
-```cmd
-git clone https://github.com/IKNOWINOT/Murphy-System.git
-cd Murphy-System
-setup_and_start.bat
-```
-
-That's it. The script handles the virtual environment, installs **all** dependencies (including extras), configures `.env`, and lets you choose between the backend server or the terminal UI.
-
-> **No API key required** — the onboard LLM works out of the box. Add a [Groq API key](https://console.groq.com) to `.env` for enhanced quality (optional).
-
-### Remote One-Line Install
+**Copy-paste this single command** — it clones, installs, and configures everything:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/IKNOWINOT/Murphy-System/main/install.sh | bash
 ```
 
-Then use the `murphy` CLI:
+Then start Murphy:
+
 ```bash
 murphy start          # Start in foreground
 murphy start -d       # Start as background daemon
@@ -93,6 +75,26 @@ murphy status         # Check health
 murphy stop           # Stop daemon
 murphy help           # See all commands
 ```
+
+> **No API key required** — the onboard LLM works out of the box. Add a [Groq API key](https://console.groq.com) to `.env` for enhanced quality (optional).
+
+### Clone & Run
+
+If you prefer not to pipe to bash:
+
+```bash
+git clone https://github.com/IKNOWINOT/Murphy-System.git
+cd Murphy-System
+bash setup_and_start.sh          # Linux / macOS
+```
+
+```cmd
+git clone https://github.com/IKNOWINOT/Murphy-System.git
+cd Murphy-System
+setup_and_start.bat              &REM Windows
+```
+
+The script handles the virtual environment, installs **all** dependencies (including extras), configures `.env`, and lets you choose between the backend server or the terminal UI.
 
 **📚 Documentation:**
 - **Complete Guide:** [GETTING_STARTED.md](GETTING_STARTED.md)
