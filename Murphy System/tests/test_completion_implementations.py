@@ -190,7 +190,7 @@ class TestGhostControllerBotLogging:
 
     def test_push_to_google_doc_source_has_no_todo(self):
         """[UNIT] Ghost Controller Bot source no longer has a TODO stub."""
-        bot_path = os.path.join(_base, 'bots', 'Ghost_Controller_Bot.py')
+        bot_path = os.path.join(_base, 'bots', 'ghost_controller_bot.py')
         with open(bot_path) as f:
             source = f.read()
         assert '# TODO: Implement using Google Docs API' not in source
