@@ -1,39 +1,39 @@
 # Getting Started with Murphy System
 
-A complete guide to installing, launching, and using Murphy System — from zero to running in one command.
+A complete guide to installing, launching, and using Murphy System — from zero to the Architect Terminal in minutes.
 
 ---
 
 ## 1. Quick Start
 
-### One-Command Setup (Linux / macOS)
+### Step 1 — Install & Start the Backend
 
-From the repository root:
+**One-command setup (Linux / macOS):**
 
 ```bash
 bash setup_and_start.sh
 ```
 
-This script checks prerequisites (Python 3.10+), creates a virtual environment, installs all dependencies, configures your environment, and starts the system.
+The script checks prerequisites (Python 3.10+), creates a virtual environment, installs dependencies, generates a `.env` configuration file, and starts the backend server. When prompted, choose option **1** (backend server).
 
-### Windows
+**Windows:**
 
 ```cmd
 setup_and_start.bat
 ```
 
-### Remote Install (no clone required)
+**Remote install (no clone required):**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/IKNOWINOT/Murphy-System/main/install.sh | bash
 ```
 
-### Manual Setup
+**Manual setup:**
 
 ```bash
 # Requires Python 3.10+
-pip install -r requirements.txt
 cd "Murphy System"
+pip install -r requirements.txt
 python murphy_system_1.0_runtime.py
 ```
 
@@ -41,20 +41,63 @@ The REST API server starts on **http://localhost:8000**. Confirm it is running:
 
 ```bash
 curl http://localhost:8000/api/health
+# Expected: {"status":"healthy","version":"1.0.0"}
 ```
+
+### Step 2 — Open the Architect Terminal
+
+With the backend running, open the **Architect Terminal** in your browser:
+
+```bash
+# macOS
+open "Murphy System/terminal_architect.html"
+
+# Linux
+xdg-open "Murphy System/terminal_architect.html"
+
+# Windows
+start "Murphy System\terminal_architect.html"
+```
+
+The Architect Terminal connects to the backend at `http://localhost:8000` automatically. You can type natural-language commands directly in the terminal prompt — Murphy routes them through `/api/chat` and responds using the onboard knowledge system (no API keys required to start).
+
+**That's it — you're running.** The Architect Terminal is the primary interface for designing, planning, and controlling Murphy System.
 
 ---
 
-## 2. What You Get
+## 2. The Architect Terminal
 
-Murphy System ships with four interface layers. All are available out of the box.
+The **Architect Terminal** (`terminal_architect.html`) is the main interface for Murphy System. It provides a full-featured terminal experience in your browser, connected to the backend API.
+
+**Key features:**
+
+- Natural-language chat routed through `/api/chat`
+- MFGC 7-phase progress tracking (EXPAND → TYPE → ENUM → CONSTRAIN → SPECIALIZE → OPERATIONALIZE → DEPLOY)
+- Murphy Index confidence metric with live updates
+- Gate tracking and block execution tree
+- Profile switching (DEV / CERT / PROD)
+- Document and workflow management
+
+**The backend must be running** for the Architect Terminal to work. All HTML-based UIs are static files that connect to `http://localhost:8000` — they are not served by the backend itself.
+
+### Other Interfaces
+
+Murphy ships with several interface layers. All are available out of the box once the backend is running.
 
 | Interface | Entry Point | Description |
 |-----------|-------------|-------------|
+| **Architect Terminal** | `terminal_architect.html` (open in browser) | Primary UI — system design, planning, and chat |
 | **REST API** | `murphy_system_1.0_runtime.py` (port 8000) | 70+ endpoints, Swagger docs at `/docs` |
-| **Terminal UI** | `murphy_terminal.py` | Conversational TUI (requires `textual`) |
-| **Web UIs** | Static HTML files (open in browser) | Dashboards, wizards, and terminal views |
+| **Worker Terminal** | `terminal_worker.html` (open in browser) | Task execution and monitoring |
+| **Integrated Terminal** | `terminal_integrated.html` (open in browser) | Combined architect + worker view |
+| **Enhanced Terminal** | `terminal_enhanced.html` (open in browser) | Advanced output formatting and extended commands |
+| **Landing Page** | `murphy_landing_page.html` (open in browser) | Dashboard — system overview and navigation |
+| **Onboarding Wizard** | `onboarding_wizard.html` (open in browser) | No-code setup wizard |
+| **Integrated Management** | `murphy_ui_integrated.html` (open in browser) | Unified admin panel |
+| **CLI Terminal** | `murphy_terminal.py` (run in shell) | Textual-based TUI (requires `textual` package) |
 | **Setup Wizard CLI** | Python one-liner (see §6) | Guided first-time configuration |
+
+All HTML files are located inside the `Murphy System/` directory. Open them in any browser while the backend is running.
 
 Under the hood: 584 source modules across 54 packages, 118 gap-closure tests, and 90 audit categories all at zero. Project configuration (pytest, mypy, ruff) lives in `pyproject.toml`.
 
@@ -71,7 +114,7 @@ The FastAPI server exposes 70+ endpoints under `/api/`. Interactive documentatio
 | `/api/health` | GET | Health check |
 | `/api/status` | GET | System status and loaded components |
 | `/api/execute` | POST | Execute a task |
-| `/api/chat` | POST | Conversational interface |
+| `/api/chat` | POST | Conversational interface (same endpoint used by Architect Terminal) |
 | `/api/forms/*` | various | Dynamic form management |
 | `/api/onboarding/wizard/*` | various | Guided onboarding flow |
 | `/api/librarian/*` | various | Knowledge-base operations |
@@ -95,7 +138,7 @@ curl -X POST http://localhost:8000/api/execute \
   -d '{"task_description": "Summarize quarterly sales data", "task_type": "query"}'
 ```
 
-**Chat with Murphy:**
+**Chat with Murphy (same as the Architect Terminal):**
 
 ```bash
 curl -X POST http://localhost:8000/api/chat \
@@ -105,85 +148,49 @@ curl -X POST http://localhost:8000/api/chat \
 
 ---
 
-## 4. Using the Web UIs
+## 4. Role-Based Web UIs
 
-Open any of the following HTML files directly in a browser. They connect to the REST API on port 8000.
+Murphy provides role-specific UIs so different team members see only what they need. Open any HTML file in a browser while the backend is running.
 
-| File | Purpose |
-|------|---------|
-| `onboarding_wizard.html` | No-code setup wizard — configure Murphy without touching config files |
-| `murphy_landing_page.html` | Control-plane dashboard — system overview and navigation |
-| `murphy_ui_integrated.html` | Integrated management interface — unified admin panel |
-| `terminal_architect.html` | Architect terminal — system design and planning |
-| `terminal_worker.html` | Worker terminal — task execution and monitoring |
-| `terminal_integrated.html` | Full integrated terminal — combined architect + worker view |
-| `terminal_enhanced.html` | Enhanced terminal — advanced features and output formatting |
-| `murphy_ui_integrated_terminal.html` | Unified terminal with integrated management controls |
+### Terminals
 
-All files are located inside the `Murphy System/` directory. Example:
-
-```bash
-# macOS
-open "Murphy System/onboarding_wizard.html"
-
-# Linux
-xdg-open "Murphy System/onboarding_wizard.html"
-
-# Windows
-start "Murphy System\onboarding_wizard.html"
-```
-
-Make sure the REST API server is running before using the web UIs.
-
-### Onboarding Wizard Walkthrough
-
-The **No-Code Onboarding Wizard** (`onboarding_wizard.html`) is the recommended starting point for new users. It has two tabs:
-
-1. **System Setup Wizard** — Describe your business or use case in plain English. Murphy asks follow-up questions to raise confidence, then generates a complete configuration. Steps:
-   - Click **"Start Setup Wizard"** on the welcome screen.
-   - Answer each question (business name, industry, what you want to automate).
-   - Review the summary of generated settings.
-   - Click **"Download Config"** to save your `murphy_config.json`.
-
-2. **Employee Onboarding** — Add team members, assign roles, and track their onboarding tasks (e.g., API key setup, first workflow creation).
-
-### Role-Based Terminals
-
-Murphy provides role-specific terminal UIs so different team members see only what they need:
-
-- **Architect Terminal** (`terminal_architect.html`) — For system designers and tech leads. Provides gate review, system design commands, dependency graph visualization, and architecture planning. Includes 30+ interactive functions.
-- **Worker Terminal** (`terminal_worker.html`) — For execution staff. Focused on task execution, status monitoring, and delivery tracking. Streamlined 8-function interface.
+- **Architect Terminal** (`terminal_architect.html`) — Primary interface for system designers and tech leads. Gate review, system design commands, dependency graph visualization, and architecture planning. 30+ interactive functions.
+- **Worker Terminal** (`terminal_worker.html`) — For execution staff. Task execution, status monitoring, and delivery tracking. Streamlined 8-function interface.
 - **Integrated Terminal** (`terminal_integrated.html`) — Combines architect + worker views for power users who need both planning and execution in one window. 35+ functions.
-- **Enhanced Terminal** (`terminal_enhanced.html`) — Adds advanced output formatting, syntax highlighting, and extended command palette. 20+ functions.
+- **Enhanced Terminal** (`terminal_enhanced.html`) — Advanced output formatting, syntax highlighting, and extended command palette. 20+ functions.
 
-### Dashboards
+### Dashboards & Wizards
 
 - **Landing Page** (`murphy_landing_page.html`) — High-level control-plane dashboard showing system status, active workflows, and quick navigation to all other UIs.
 - **Integrated Management** (`murphy_ui_integrated.html`) — Unified admin panel for configuration, monitoring, and system management.
+- **Onboarding Wizard** (`onboarding_wizard.html`) — No-code setup wizard. Describe your business or use case in plain English, answer follow-up questions, and download a generated `murphy_config.json`.
+- **Integrated Terminal Management** (`murphy_ui_integrated_terminal.html`) — Unified terminal with integrated management controls.
 
 ---
 
-## 5. Using the Terminal UI
+## 5. Using the CLI Terminal
 
-The Textual-based TUI provides a natural-language conversational interface in your terminal.
+The Textual-based TUI (`murphy_terminal.py`) provides a natural-language conversational interface directly in your shell, without a browser.
 
 ```bash
 cd "Murphy System"
 python murphy_terminal.py
 ```
 
-> **Note:** The `textual` package is an optional dependency. If it is not installed, add it with:
-> ```bash
-> pip install textual
-> ```
+The CLI terminal connects to the same backend API as the Architect Terminal. It requires the `textual` package:
+
+```bash
+pip install textual
+```
 
 ---
 
 ## 6. Using the Setup Wizard
 
-For guided first-time configuration, run the CLI setup wizard:
+For guided first-time configuration, run the CLI setup wizard from the `Murphy System/` directory:
 
 ```bash
+cd "Murphy System"
 python -c "from src.setup_wizard import run_cli; run_cli()"
 ```
 
@@ -539,8 +546,9 @@ summary = archive.get_storage_summary()
 
 ## 13. Next Steps
 
+- **Open the Architect Terminal** — Start the backend and open `terminal_architect.html` in your browser.
 - **Explore the API** — Browse all 70+ endpoints at http://localhost:8000/docs.
 - **Try the onboarding wizard** — Open `onboarding_wizard.html` or run the CLI wizard for guided setup.
 - **Read the docs** — See the [User Manual](<Murphy System/USER_MANUAL.md>) and [API Documentation](<Murphy System/API_DOCUMENTATION.md>) for detailed guides.
-- **Run the tests** — Execute `pytest` from the repository root to verify your installation (8,200+ tests including 118 gap-closure regression tests).
+- **Run the tests** — Execute `pytest` from the `Murphy System/` directory to verify your installation (8,200+ tests including 118 gap-closure regression tests).
 - **Contribute** — Read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on submitting changes.
