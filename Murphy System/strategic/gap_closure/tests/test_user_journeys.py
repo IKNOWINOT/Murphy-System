@@ -13,6 +13,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+from typing import Generator
 
 import pytest
 
@@ -36,85 +37,72 @@ def _screenshot_path(name: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Shared pytest fixture — one browser session per test, shared launch overhead
+# ---------------------------------------------------------------------------
+
+@pytest.fixture()
+def browser_page() -> Generator:
+    """Yield a ready Playwright (chromium) page and close it after the test."""
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page(viewport=DEFAULT_VIEWPORT)
+        yield page
+        browser.close()
+
+
+# ---------------------------------------------------------------------------
 # Workflow Builder UI tests
 # ---------------------------------------------------------------------------
 
-def test_workflow_builder_loads() -> None:
+def test_workflow_builder_loads(browser_page) -> None:
     """Opens workflow_builder_ui.html and takes screenshot of initial state."""
-    from playwright.sync_api import sync_playwright
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport=DEFAULT_VIEWPORT)
-        page.goto(_html_url("lowcode/workflow_builder_ui.html"))
-        page.wait_for_load_state("networkidle")
-        out = _screenshot_path("01_workflow_builder_initial.png")
-        page.screenshot(path=out, full_page=True)
-        browser.close()
+    browser_page.goto(_html_url("lowcode/workflow_builder_ui.html"))
+    browser_page.wait_for_load_state("networkidle")
+    out = _screenshot_path("01_workflow_builder_initial.png")
+    browser_page.screenshot(path=out, full_page=True)
     assert os.path.exists(out)
 
 
-def test_workflow_builder_has_node_palette() -> None:
+def test_workflow_builder_has_node_palette(browser_page) -> None:
     """Verifies node palette is visible and screenshots it."""
-    from playwright.sync_api import sync_playwright
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport=DEFAULT_VIEWPORT)
-        page.goto(_html_url("lowcode/workflow_builder_ui.html"))
-        page.wait_for_load_state("networkidle")
-        out = _screenshot_path("02_workflow_builder_palette.png")
-        page.screenshot(path=out, full_page=False)
-        browser.close()
+    browser_page.goto(_html_url("lowcode/workflow_builder_ui.html"))
+    browser_page.wait_for_load_state("networkidle")
+    out = _screenshot_path("02_workflow_builder_palette.png")
+    browser_page.screenshot(path=out, full_page=False)
     assert os.path.exists(out)
 
 
-def test_workflow_builder_has_canvas() -> None:
+def test_workflow_builder_has_canvas(browser_page) -> None:
     """Verifies canvas area and screenshots it."""
-    from playwright.sync_api import sync_playwright
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport=DEFAULT_VIEWPORT)
-        page.goto(_html_url("lowcode/workflow_builder_ui.html"))
-        page.wait_for_load_state("networkidle")
-        out = _screenshot_path("03_workflow_builder_canvas.png")
-        page.screenshot(path=out, full_page=False)
-        # Check that the page has expected structure
-        content = page.content()
-        assert "canvas" in content.lower() or "workflow" in content.lower()
-        browser.close()
+    browser_page.goto(_html_url("lowcode/workflow_builder_ui.html"))
+    browser_page.wait_for_load_state("networkidle")
+    out = _screenshot_path("03_workflow_builder_canvas.png")
+    browser_page.screenshot(path=out, full_page=False)
+    content = browser_page.content()
+    assert "canvas" in content.lower() or "workflow" in content.lower()
     assert os.path.exists(out)
 
 
-def test_workflow_builder_toolbar_buttons() -> None:
+def test_workflow_builder_toolbar_buttons(browser_page) -> None:
     """Screenshots toolbar with Save/Load/Run buttons."""
-    from playwright.sync_api import sync_playwright
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport=DEFAULT_VIEWPORT)
-        page.goto(_html_url("lowcode/workflow_builder_ui.html"))
-        page.wait_for_load_state("networkidle")
-        out = _screenshot_path("04_workflow_builder_toolbar.png")
-        page.screenshot(path=out, full_page=False)
-        # Verify toolbar buttons exist
-        content = page.content()
-        assert any(word in content for word in ["Save", "save", "Run", "Export", "Clear"])
-        browser.close()
+    browser_page.goto(_html_url("lowcode/workflow_builder_ui.html"))
+    browser_page.wait_for_load_state("networkidle")
+    out = _screenshot_path("04_workflow_builder_toolbar.png")
+    browser_page.screenshot(path=out, full_page=False)
+    content = browser_page.content()
+    assert any(word in content for word in ["Save", "save", "Run", "Export", "Clear"])
     assert os.path.exists(out)
 
 
-def test_workflow_builder_sample_workflow_visible() -> None:
+def test_workflow_builder_sample_workflow_visible(browser_page) -> None:
     """Screenshots the pre-loaded sample workflow."""
-    from playwright.sync_api import sync_playwright
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport=DEFAULT_VIEWPORT)
-        page.goto(_html_url("lowcode/workflow_builder_ui.html"))
-        page.wait_for_load_state("networkidle")
-        out = _screenshot_path("05_workflow_builder_sample.png")
-        page.screenshot(path=out, full_page=True)
-        # Verify sample workflow content
-        content = page.content()
-        assert any(word in content for word in ["Patient", "HIPAA", "Trigger", "trigger"])
-        browser.close()
+    browser_page.goto(_html_url("lowcode/workflow_builder_ui.html"))
+    browser_page.wait_for_load_state("networkidle")
+    out = _screenshot_path("05_workflow_builder_sample.png")
+    browser_page.screenshot(path=out, full_page=True)
+    content = browser_page.content()
+    assert any(word in content for word in ["Patient", "HIPAA", "Trigger", "trigger"])
     assert os.path.exists(out)
 
 
@@ -122,51 +110,37 @@ def test_workflow_builder_sample_workflow_visible() -> None:
 # Community Portal tests
 # ---------------------------------------------------------------------------
 
-def test_community_portal_loads() -> None:
+def test_community_portal_loads(browser_page) -> None:
     """Opens community_portal.html and screenshots."""
-    from playwright.sync_api import sync_playwright
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport=DEFAULT_VIEWPORT)
-        page.goto(_html_url("community/community_portal.html"))
-        page.wait_for_load_state("networkidle")
-        out = _screenshot_path("06_community_portal_initial.png")
-        page.screenshot(path=out, full_page=False)
-        browser.close()
+    browser_page.goto(_html_url("community/community_portal.html"))
+    browser_page.wait_for_load_state("networkidle")
+    out = _screenshot_path("06_community_portal_initial.png")
+    browser_page.screenshot(path=out, full_page=False)
     assert os.path.exists(out)
 
 
-def test_community_portal_plugin_marketplace() -> None:
+def test_community_portal_plugin_marketplace(browser_page) -> None:
     """Scrolls to plugin marketplace and screenshots it."""
-    from playwright.sync_api import sync_playwright
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport=DEFAULT_VIEWPORT)
-        page.goto(_html_url("community/community_portal.html"))
-        page.wait_for_load_state("networkidle")
-        page.evaluate("window.scrollTo(0, document.body.scrollHeight / 2)")
-        out = _screenshot_path("07_community_portal_marketplace.png")
-        page.screenshot(path=out, full_page=False)
-        content = page.content()
-        assert any(word in content for word in
-                   ["plugin", "Plugin", "connector", "marketplace", "Marketplace"])
-        browser.close()
+    browser_page.goto(_html_url("community/community_portal.html"))
+    browser_page.wait_for_load_state("networkidle")
+    browser_page.evaluate("window.scrollTo(0, document.body.scrollHeight / 2)")
+    out = _screenshot_path("07_community_portal_marketplace.png")
+    browser_page.screenshot(path=out, full_page=False)
+    content = browser_page.content()
+    assert any(word in content for word in
+               ["plugin", "Plugin", "connector", "marketplace", "Marketplace"])
     assert os.path.exists(out)
 
 
-def test_community_portal_stats() -> None:
+def test_community_portal_stats(browser_page) -> None:
     """Screenshots community stats section."""
-    from playwright.sync_api import sync_playwright
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport=DEFAULT_VIEWPORT)
-        page.goto(_html_url("community/community_portal.html"))
-        page.wait_for_load_state("networkidle")
-        out = _screenshot_path("08_community_portal_stats.png")
-        page.screenshot(path=out, full_page=True)
-        content = page.content()
-        assert any(word in content for word in ["stars", "Stars", "contributor", "Contributors", "plugin", "Plugin"])
-        browser.close()
+    browser_page.goto(_html_url("community/community_portal.html"))
+    browser_page.wait_for_load_state("networkidle")
+    out = _screenshot_path("08_community_portal_stats.png")
+    browser_page.screenshot(path=out, full_page=True)
+    content = browser_page.content()
+    assert any(word in content for word in
+               ["stars", "Stars", "contributor", "Contributors", "plugin", "Plugin"])
     assert os.path.exists(out)
 
 
@@ -174,54 +148,39 @@ def test_community_portal_stats() -> None:
 # Observability Dashboard tests
 # ---------------------------------------------------------------------------
 
-def test_observability_dashboard_loads() -> None:
+def test_observability_dashboard_loads(browser_page) -> None:
     """Opens dashboard.html and screenshots."""
-    from playwright.sync_api import sync_playwright
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport=DEFAULT_VIEWPORT)
-        page.goto(_html_url("observability/dashboard.html"))
-        page.wait_for_load_state("domcontentloaded")
-        page.wait_for_timeout(1000)
-        out = _screenshot_path("09_observability_dashboard_initial.png")
-        page.screenshot(path=out, full_page=False)
-        browser.close()
+    browser_page.goto(_html_url("observability/dashboard.html"))
+    browser_page.wait_for_load_state("domcontentloaded")
+    browser_page.wait_for_timeout(1000)
+    out = _screenshot_path("09_observability_dashboard_initial.png")
+    browser_page.screenshot(path=out, full_page=False)
     assert os.path.exists(out)
 
 
-def test_observability_dashboard_health_indicator() -> None:
+def test_observability_dashboard_health_indicator(browser_page) -> None:
     """Screenshots health status section."""
-    from playwright.sync_api import sync_playwright
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport=DEFAULT_VIEWPORT)
-        page.goto(_html_url("observability/dashboard.html"))
-        page.wait_for_load_state("domcontentloaded")
-        page.wait_for_timeout(500)
-        out = _screenshot_path("10_observability_health_status.png")
-        page.screenshot(path=out, full_page=False)
-        content = page.content()
-        assert any(word in content for word in
-                   ["health", "Health", "GREEN", "YELLOW", "RED", "status", "Status"])
-        browser.close()
+    browser_page.goto(_html_url("observability/dashboard.html"))
+    browser_page.wait_for_load_state("domcontentloaded")
+    browser_page.wait_for_timeout(500)
+    out = _screenshot_path("10_observability_health_status.png")
+    browser_page.screenshot(path=out, full_page=False)
+    content = browser_page.content()
+    assert any(word in content for word in
+               ["health", "Health", "GREEN", "YELLOW", "RED", "status", "Status"])
     assert os.path.exists(out)
 
 
-def test_observability_dashboard_metrics() -> None:
+def test_observability_dashboard_metrics(browser_page) -> None:
     """Screenshots metrics section."""
-    from playwright.sync_api import sync_playwright
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport=DEFAULT_VIEWPORT)
-        page.goto(_html_url("observability/dashboard.html"))
-        page.wait_for_load_state("domcontentloaded")
-        page.wait_for_timeout(500)
-        out = _screenshot_path("11_observability_metrics.png")
-        page.screenshot(path=out, full_page=True)
-        content = page.content()
-        assert any(word in content for word in
-                   ["metric", "Metric", "confidence", "Confidence", "gate", "Gate", "LLM"])
-        browser.close()
+    browser_page.goto(_html_url("observability/dashboard.html"))
+    browser_page.wait_for_load_state("domcontentloaded")
+    browser_page.wait_for_timeout(500)
+    out = _screenshot_path("11_observability_metrics.png")
+    browser_page.screenshot(path=out, full_page=True)
+    content = browser_page.content()
+    assert any(word in content for word in
+               ["metric", "Metric", "confidence", "Confidence", "gate", "Gate", "LLM"])
     assert os.path.exists(out)
 
 
