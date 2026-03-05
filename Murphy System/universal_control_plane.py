@@ -10,7 +10,7 @@ Each session is an isolated control plane with its own engine set.
 
 Copyright © 2020 Inoni Limited Liability Company
 Created by: Corey Post
-License: Apache License 2.0
+License: BSL 1.1
 """
 
 import sys

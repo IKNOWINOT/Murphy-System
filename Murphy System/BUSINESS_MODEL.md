@@ -3,7 +3,7 @@
 **Created:** February 27, 2026  
 **Version:** 1.0.0  
 **Owner:** Product & Strategy Team  
-**License:** Apache License 2.0
+**License:** BSL 1.1 (converts to Apache 2.0 after 4 years)
 
 ---
 

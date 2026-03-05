@@ -2,7 +2,7 @@
 
 **Universal AI Automation System**
 **Version:** 1.0 | **Publisher:** Inoni LLC | **Creator:** Corey Post
-**License:** MIT (Community Edition)
+**License:** BSL 1.1 (converts to Apache 2.0 after 4 years)
 
 ---
 
