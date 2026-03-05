@@ -141,6 +141,6 @@ class StabilityIntegration:
         try:
             status = self._rsc.get_status()  # type: ignore[union-attr]
             return float(status.get("stability_score", 1.0))
-        except Exception:
-            logger.exception("RSC query failed — defaulting to score 1.0")
+        except Exception as exc:
+            logger.exception("RSC query failed — defaulting to score 1.0: %s", exc)
             return 1.0
