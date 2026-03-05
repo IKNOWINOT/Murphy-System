@@ -2,7 +2,14 @@
 # Copyright © 2020 Inoni Limited Liability Company
 # Creator: Corey Post
 # License: Apache License 2.0
-# 
+#
+# Dependency Pinning Policy:
+# All dependencies use minimum-version pins (>=) to allow compatible upgrades
+# while protecting against known-broken older versions. For reproducible
+# production deployments, generate a fully pinned lockfile with:
+#   pip install -r requirements_murphy_1.0.txt && pip freeze > requirements.lock
+# and commit requirements.lock to your deployment environment.
+#
 # NOTE: Requires Python 3.11 or higher (check version with: python --version)
 
 # ==================== Core Dependencies ====================

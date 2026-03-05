@@ -2,7 +2,7 @@
 Self-Improvement Engine for Murphy System Runtime
 
 This module closes the feedback loop between execution outcomes and planning,
-providing continuous self-improvement capabilities including:
+providing observability and recommendation capabilities including:
 - Execution outcome tracking with metrics
 - Recurring failure/success pattern extraction
 - Correction proposal generation from failure patterns
@@ -10,6 +10,10 @@ providing continuous self-improvement capabilities including:
 - Route optimization (deterministic vs. LLM) suggestions
 - Remediation backlog management with priority and status
 - Learning feedback loop for future planning decisions
+
+Note: This engine provides observability and recommendations only.
+It does not automatically modify source code or system behavior.
+Proposals must be reviewed and implemented by a human operator.
 """
 
 import uuid
@@ -68,6 +72,10 @@ class SelfImprovementEngine:
 
     Tracks outcomes, extracts patterns, generates improvement proposals,
     calibrates confidence, and optimises task routing decisions.
+
+    Note: This engine provides observability and recommendations only.
+    It does not automatically modify source code or system behavior.
+    Proposals must be reviewed and implemented by a human operator.
 
     Design Label: ARCH-001 — Persistence-Aware Self-Improvement Engine
     Owner: Backend Team
@@ -327,7 +335,13 @@ class SelfImprovementEngine:
         return pending
 
     def apply_correction(self, proposal_id: str, result: str) -> bool:
-        """Mark a proposal as applied and record the correction result."""
+        """Mark a proposal as applied and record the correction result.
+
+        Note: This method only updates proposal metadata and records the
+        correction in the audit log. It does NOT automatically modify source
+        code or system behavior. The actual implementation of the correction
+        must be performed by a human operator.
+        """
         with self._lock:
             proposal = self._proposals.get(proposal_id)
             if proposal is None:
