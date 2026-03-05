@@ -386,7 +386,20 @@ class BugPatternDetector:
     def _inject_proposal(self, pattern: BugPattern) -> None:
         """Inject an improvement proposal for a detected bug pattern."""
         try:
-            self._improvement.generate_correction_proposals()
+            from self_improvement_engine import ExecutionOutcome, OutcomeType
+            outcome = ExecutionOutcome(
+                task_id=f"bug-{pattern.pattern_id}",
+                session_id="bug_detector",
+                outcome=OutcomeType.FAILURE,
+                metrics={
+                    "task_type": pattern.component or "unknown",
+                    "error_type": pattern.error_type,
+                    "fingerprint": pattern.fingerprint,
+                    "occurrences": pattern.occurrences,
+                },
+            )
+            self._improvement.record_outcome(outcome)
+            self._improvement.generate_proposals()
         except Exception as exc:
             logger.debug("Improvement injection skipped: %s", exc)
 

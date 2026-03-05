@@ -741,15 +741,19 @@ Murphy includes built-in self-improvement infrastructure:
 | **Self-Improvement Engine** | `src/self_improvement_engine.py` | Extracts lessons from corrections, calibrates confidence scores |
 | **Correction Loop** | `src/learning_engine/` | Shadow agent training pipeline that learns from human overrides |
 | **Self-Healing Coordinator** | `src/self_healing_coordinator.py` | Coordinates automated remediation across subsystems |
+| **Self-Fix Loop** | `src/self_fix_loop.py` | **NEW** — Autonomous closed-loop: diagnose → plan → execute → test → verify → repeat |
 | **Synthetic Failure Generator** | `src/synthetic_failure_generator/` | Creates controlled failures to test recovery paths |
 
-**Can Murphy fix itself?** Partially. The self-improvement engine can:
+**Can Murphy fix itself?** Yes — for runtime-adjustable issues:
 - ✅ Detect recurring error patterns and suggest fixes
 - ✅ Learn from human corrections and adjust behavior
 - ✅ Auto-calibrate confidence thresholds based on outcomes
 - ✅ Process patch requests through the correction loop
-- ⚠️ Cannot yet auto-generate and apply code patches without human review
+- ✅ **NEW: Autonomously diagnose gaps, plan runtime fixes, execute adjustments (timeout tuning, confidence recalibration, recovery procedure registration, route optimization), test the fix, and repeat until zero gaps remain**
+- ❌ Modify source code (requires human review via code proposals)
 - ⚠️ Complex emergent bugs require manual diagnosis
+
+See [`docs/SELF_FIX_LOOP.md`](docs/SELF_FIX_LOOP.md) for full documentation on the autonomous self-fix loop.
 
 File an issue or submit a patch — Murphy's learning loop will incorporate the
 feedback into its operational models.
