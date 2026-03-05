@@ -560,7 +560,7 @@ class SetupWizard:
 
 _YES_WORDS = frozenset([
     "y", "yes", "true", "1", "sure", "yep", "yeah",
-    "absolutely", "of course", "definitely", "please",
+    "absolutely", "of course", "definitely",
 ])
 
 _NO_WORDS = frozenset([
@@ -576,6 +576,11 @@ _NO_PHRASES = (
     "not yet", "not now", "no thanks", "not right now",
     "maybe later", "skip", "none", "later",
 )
+
+_MULTI_SKIP_PHRASES = frozenset([
+    "none", "skip", "later", "not yet", "not sure", "no idea",
+    "i don't know", "i dont know", "i don't know yet", "i dont know yet",
+])
 
 
 def _parse_bool(raw: str) -> Optional[bool]:
@@ -636,15 +641,13 @@ def _fuzzy_match_multi_choice(raw: str, options: List[str]) -> Optional[List[str
     if lower in ("all", "everything") or lower.startswith("all of"):
         return list(options)
     # "none" / uncertainty / deferral phrases → empty list (use default)
-    _skip_phrases = (
-        "none", "skip", "later", "not yet", "not sure", "no idea",
-        "i don't know", "i dont know", "i don't know yet", "i dont know yet",
-    )
-    if lower in _skip_phrases:
+    if lower in _MULTI_SKIP_PHRASES:
         return []
+    # Build a case-insensitive lookup for option matching
+    options_lower = {opt.lower(): opt for opt in options}
     # Try comma-separated first (normal path)
-    parts = [v.strip() for v in raw.split(",") if v.strip()]
-    valid = [p for p in parts if p in options]
+    parts = [v.strip().lower() for v in raw.split(",") if v.strip()]
+    valid = [options_lower[p] for p in parts if p in options_lower]
     if valid:
         return valid
     # Try to find individual options mentioned anywhere in the text
