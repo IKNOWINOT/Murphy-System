@@ -9,11 +9,14 @@ status is visible throughout the process.
 
 import uuid
 import json
+import logging
 import re
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class ConversationState(Enum):

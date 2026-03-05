@@ -7,11 +7,14 @@ to build profiles of optimal automation. This data becomes System IP
 licensed to Murphy for providing better metrics and recommendations.
 """
 
+import logging
 import uuid
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class ProfileTier(Enum):
@@ -307,9 +310,9 @@ class CredentialProfileSystem:
             tier = profile.tier.value
             tier_distribution[tier] = tier_distribution.get(tier, 0) + 1
 
-        avg_trust = sum(trust_scores) / len(trust_scores) if trust_scores else 0.0
+        avg_trust = sum(trust_scores) / (len(trust_scores) or 1) if trust_scores else 0.0
         avg_response = (
-            sum(total_response_times) / len(total_response_times)
+            sum(total_response_times) / (len(total_response_times) or 1)
             if total_response_times else 0.0
         )
         approval_rate = (
