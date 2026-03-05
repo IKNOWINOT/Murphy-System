@@ -233,7 +233,7 @@ class TestGap3_WorkflowDAGBridge:
             node_id="step-1",
             node_type=ExecutionNodeType.CAPABILITY_CALL,
             capability_id="cap-a",
-            label="Analyse",
+            label="Analyze",
         )
         n2 = ExecutionNode(
             node_id="step-2",

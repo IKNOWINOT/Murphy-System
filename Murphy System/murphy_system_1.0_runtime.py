@@ -13804,6 +13804,8 @@ def create_app() -> FastAPI:
             auto_discover_rsc=True,
         )
         aionmind_api.init_kernel(_aionmind_kernel)
+        # Mount AionMind 2.0 endpoints at /api/aionmind/*
+        # (status, context, orchestrate, execute, proposals, memory)
         app.include_router(aionmind_api.router)
         logger.info("AionMind 2.0 cognitive pipeline initialised (%d capabilities).",
                      _aionmind_kernel.registry.count())

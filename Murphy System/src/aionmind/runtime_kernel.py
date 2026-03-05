@@ -311,7 +311,7 @@ class AionMindKernel:
             graph = candidates[0]
 
         # Step 4 — approval gate
-        if auto_approve and ctx.risk_level in (RiskLevel.LOW, RiskLevel.MEDIUM):
+        if auto_approve and ctx.risk_level == RiskLevel.LOW:
             graph.approved = True
             graph.approved_by = approver
         elif not graph.approved:
