@@ -293,60 +293,6 @@
         .terminal-block .comment { color: var(--text-dim); }
         .terminal-block .line { padding: 2px 0; white-space: nowrap; }
 
-        /* ── Pricing ── */
-        .tier-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 24px;
-        }
-
-        .tier-card {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 32px 24px;
-            text-align: center;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
-
-        .tier-card.featured {
-            border-color: var(--neon-cyan);
-            box-shadow: 0 0 24px rgba(0,229,255,0.12);
-        }
-
-        .tier-card h3 {
-            color: var(--neon-cyan);
-            font-size: 1.15rem;
-            margin-bottom: 4px;
-        }
-
-        .tier-card .price {
-            font-size: 1.6rem;
-            color: var(--neon-green);
-            text-shadow: 0 0 8px rgba(0,255,65,0.3);
-            margin: 12px 0;
-        }
-
-        .tier-card .price-sub {
-            font-size: 0.7rem;
-            color: var(--text-dim);
-            margin-bottom: 16px;
-        }
-
-        .tier-card ul {
-            list-style: none;
-            text-align: left;
-            padding: 0;
-        }
-
-        .tier-card li {
-            color: var(--text-dim);
-            font-size: 0.8rem;
-            padding: 4px 0;
-        }
-
-        .tier-card li::before { content: '✓ '; color: var(--neon-green); }
-
         /* ── Module Catalog (expandable) ── */
         .module-toggle {
             display: block;
@@ -622,11 +568,16 @@
     </div>
 </div>
 
-<!-- ═══════════════ PRICING ═══════════════ -->
+<!-- ═══════════════ LICENSE ═══════════════ -->
 <div class="section">
-    <h2 class="section-title">Pricing</h2>
-    <p class="section-subtitle">Open-core model. The full engine is free. Scale when you're ready.</p>
-    <div class="tier-grid" id="tierGrid"></div>
+    <h2 class="section-title">License</h2>
+    <p class="section-subtitle">Murphy is free to use under the Business Source License 1.1 (BSL 1.1).</p>
+    <p style="color:var(--text-dim);text-align:center;max-width:640px;margin:0 auto;">
+        Use it for personal, commercial, internal, or educational purposes.
+        The only restriction: you may not offer Murphy itself as a competing hosted service.
+        After four years, each version automatically converts to <strong style="color:var(--neon-cyan)">Apache 2.0</strong>.
+        See <a href="https://github.com/IKNOWINOT/Murphy-System/blob/main/LICENSE" style="color:var(--neon-cyan)">LICENSE</a> for details.
+    </p>
 </div>
 
 <!-- ═══════════════ MODULE CATALOG ═══════════════ -->
@@ -643,7 +594,7 @@
 <!-- ═══════════════ FOOTER ═══════════════ -->
 <footer class="footer" role="contentinfo">
     <p>&copy; 2024&ndash;2026 Corey Post &mdash; InonI LLC. All rights reserved.</p>
-    <p style="margin-top: 4px;">Open-core licensed. Community edition available under MIT license.</p>
+    <p style="margin-top: 4px;">Available under the Business Source License 1.1 (BSL 1.1). Converts to Apache 2.0 after four years.</p>
     <div class="footer-links">
         <a href="https://github.com/IKNOWINOT/Murphy-System">GitHub</a>
         <a href="https://github.com/IKNOWINOT/Murphy-System/issues">Issues</a>
@@ -705,51 +656,6 @@
         { name: "ui_testing_framework", desc: "12 UI testing capabilities: visual regression, interactive components, E2E, performance, cross-browser, mobile gestures, dark mode, security, i18n", caps: ["visual_regression","e2e_testing","performance","security","i18n"] }
     ];
 
-    // ── PRICING TIERS ──
-    var TIERS = [
-        {
-            name: "Community",
-            price: "Free",
-            priceSub: "MIT License \u2014 forever",
-            featured: false,
-            items: [
-                "Full automation engine and runtime",
-                "All " + MODULE_CATALOG.length + "+ modules and connectors",
-                "CLI and terminal interfaces",
-                "ML strategy engine (11 strategies)",
-                "Community support via GitHub Issues"
-            ]
-        },
-        {
-            name: "Professional",
-            price: "$99/mo",
-            priceSub: "Per seat \u2014 billed annually",
-            featured: true,
-            items: [
-                "Everything in Community",
-                "Managed cloud hosting",
-                "Priority support with SLA",
-                "Advanced analytics dashboards",
-                "Custom connector development",
-                "White-label branding support"
-            ]
-        },
-        {
-            name: "Enterprise",
-            price: "Contact us",
-            priceSub: "Custom pricing",
-            featured: false,
-            items: [
-                "Everything in Professional",
-                "Unlimited seats and deployments",
-                "On-premise / air-gapped installation",
-                "24/7 premium support with SRE team",
-                "SOC2 / HIPAA audit assistance",
-                "Dedicated customer success manager"
-            ]
-        }
-    ];
-
     // ── RENDER ──
 
     function renderStats() {
@@ -759,18 +665,6 @@
         document.getElementById('statConnectors').textContent = '59+';
         document.getElementById('moduleCountBadge').textContent = MODULE_CATALOG.length;
         document.getElementById('moduleCountInline').textContent = MODULE_CATALOG.length + '+';
-    }
-
-    function renderTiers() {
-        var grid = document.getElementById('tierGrid');
-        grid.innerHTML = TIERS.map(function (tier) {
-            return '<div class="tier-card ' + (tier.featured ? 'featured' : '') + '">' +
-                '<h3>' + tier.name + '</h3>' +
-                '<div class="price">' + tier.price + '</div>' +
-                '<div class="price-sub">' + tier.priceSub + '</div>' +
-                '<ul>' + tier.items.map(function (item) { return '<li>' + item + '</li>'; }).join('') + '</ul>' +
-            '</div>';
-        }).join('');
     }
 
     function renderModules() {
@@ -798,7 +692,6 @@
 
     // ── INIT ──
     renderStats();
-    renderTiers();
     renderModules();
 })();
 </script>
