@@ -92,7 +92,7 @@ Murphy System is a universal AI automation platform with:
 - **8 web interfaces** for dashboards, monitoring, and administration.
 - **REST API** with FastAPI for programmatic access to all capabilities.
 - **Architect Terminal** — an interactive CLI for plan decomposition and supervised execution.
-- **Autonomy Toggle Training** — Murphy's human-in-the-loop (HITL) system operates on a graduated autonomy model rather than a blanket "no autonomy" policy. Autonomy levels are toggled per task type and escalation tier. Low-risk repetitive tasks can be trained toward higher autonomy, while high-risk actions (financial transactions, deployment, external API calls) always require explicit human approval. The system learns operator trust patterns over time, allowing supervised escalation of autonomy as confidence builds.
+- **Autonomy Toggle Training (ATT)** — Murphy automates extensively across all task types; ATT is the governance layer that calibrates *how much* autonomy each task class runs with. Low-risk, repetitive work executes fully autonomously and is trained toward even greater autonomy over time as operator confidence builds. High-risk actions — financial transactions, deployments, external API calls — pass through a Human-in-the-Loop (HITL) approval gate. Autonomy is toggled per task type and escalation tier, so the system scales from fully hands-off to human-supervised without applying a blanket policy in either direction.
 
 ---
 
