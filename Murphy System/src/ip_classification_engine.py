@@ -10,10 +10,13 @@ Includes trade secret marking, protection, and licensing framework.
 
 import uuid
 import hashlib
+import logging
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class IPClassification(Enum):

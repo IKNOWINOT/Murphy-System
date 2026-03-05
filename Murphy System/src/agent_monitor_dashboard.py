@@ -6,11 +6,14 @@ Shows what each agent is doing, how they're monitoring, with
 drill-down capability to inspect any agent's activity at any time.
 """
 
+import logging
 import uuid
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class AgentState(Enum):

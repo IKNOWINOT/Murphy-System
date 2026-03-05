@@ -7,11 +7,14 @@ agentic corporate positions, shadow agent assignment, and IP
 classification for employees, business, and system.
 """
 
+import logging
 import uuid
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class OnboardingPhase(Enum):

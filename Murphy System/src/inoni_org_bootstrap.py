@@ -6,6 +6,7 @@ the sole human employee (Founder/Admin) and all other positions are filled by
 shadow agents.
 """
 
+import logging
 import re
 
 try:
@@ -38,6 +39,8 @@ except ImportError:
     CampaignOrchestrator = None
 
 __all__ = ["InoniOrgBootstrap", "FOUNDER", "COMPANY"]
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Constants

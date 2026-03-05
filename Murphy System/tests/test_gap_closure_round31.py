@@ -64,7 +64,7 @@ class TestDocumentationAccuracy:
             for root, _, files in os.walk(SRC_DIR)
             if "__pycache__" not in root and "__init__.py" in files
         )
-        assert actual == 54, f"Expected 54 packages, found {actual}"
+        assert actual == 56, f"Expected 56 packages, found {actual}"
 
     def test_gap_closure_test_count_in_docs(self):
         """GETTING_STARTED references at least the actual gap-closure test count."""

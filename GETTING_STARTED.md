@@ -4,6 +4,19 @@ A complete guide to installing, launching, and using Murphy System — from zero
 
 ---
 
+## What You Get
+
+Murphy System is a universal AI automation platform with:
+
+- **610 source modules** across 56 packages covering control theory, orchestration, governance, telemetry, and more.
+- **8,200+ automated tests** spanning unit, integration, gap-closure, and end-to-end suites.
+- **8 web interfaces** for dashboards, monitoring, and administration.
+- **REST API** with FastAPI for programmatic access to all capabilities.
+- **Architect Terminal** — an interactive CLI for plan decomposition and supervised execution.
+- **No-autonomy guard-rails** — every high-risk action requires human approval (HITL).
+
+---
+
 ## 1. Quick Start
 
 ### Step 1 — Install & Start the Backend
@@ -99,7 +112,7 @@ Murphy ships with several interface layers. All are available out of the box onc
 
 All HTML files are located inside the `Murphy System/` directory. Open them in any browser while the backend is running.
 
-Under the hood: 584 source modules across 54 packages, 118 gap-closure tests, and 90 audit categories all at zero. Project configuration (pytest, mypy, ruff) lives in `pyproject.toml`.
+Under the hood: 610 source modules across 56 packages, 118 gap-closure tests, and 90 audit categories all at zero. Project configuration (pytest, mypy, ruff) lives in `pyproject.toml`.
 
 ---
 
