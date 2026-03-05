@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 # ── lightweight TF-IDF helpers (no external deps) ────────────────
 
 def _tokenize(text: str) -> List[str]:
-    """Simple whitespace + lowercase tokeniser."""
+    """Simple whitespace + lowercase tokenizer."""
     return [w for w in text.lower().split() if len(w) > 1]
 
 

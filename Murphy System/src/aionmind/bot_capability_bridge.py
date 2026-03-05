@@ -1,7 +1,7 @@
 """
 Bot Inventory → AionMind Capability Bridge.
 
-Converts the 30+ capabilities defined in ``bot_inventory_library.BotInventoryLibrary``
+Converts the capabilities defined in ``bot_inventory_library.BotInventoryLibrary``
 into :class:`Capability` objects and bulk-registers them into a
 :class:`CapabilityRegistry` so the Reasoning Engine can plan against real
 system capabilities rather than manually registered stubs.
