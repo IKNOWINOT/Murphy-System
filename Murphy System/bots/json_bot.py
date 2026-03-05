@@ -1,7 +1,9 @@
 """JSONBot with detailed error messages and strict mode."""
 from __future__ import annotations
 
+import ast
 import json
+import logging
 from typing import Any
 
 
@@ -116,7 +118,7 @@ class JSONBot:
                 config.read_string(input_data)
                 return {section: dict(config.items(section)) for section in config.sections()}
             if input_format == 'python' or (not input_format and 'dict' in input_data or ':' in input_data):
-                return eval(input_data, {"__builtins__": {}})
+                return ast.literal_eval(input_data)
             if input_format == 'text' or not input_format:
                 return self._parse_text_blob(input_data)
             raise ValueError('Unknown format')
@@ -197,12 +199,14 @@ class JSONBot:
 from .tool_dispatcher import dispatch
 from .feedback_bot import FeedbackBot
 
+_logger = logging.getLogger(__name__)
+
 def handle_validated_task(task_json: dict) -> dict:
     """Route validated task to dispatcher and log outcome."""
     result = dispatch(task_json)
     if FeedbackBot:
         try:
             FeedbackBot.log_task_outcome(task_json.get("task_id", "?"), result)
-        except Exception:
-            pass
+        except Exception as exc:
+            _logger.debug("Suppressed exception: %s", exc)
     return result

@@ -10,10 +10,13 @@ Repository: https://github.com/IKNOWINOT/Murphy-System
 
 import json
 import os
+import re
+import sys
 import uuid
 import time
 import logging
 import threading
+from contextlib import contextmanager
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List, Any, Optional
 from pathlib import Path
@@ -91,23 +94,62 @@ class PersistenceManager:
 
     # ==================== Internal Helpers ====================
 
+    @staticmethod
+    @contextmanager
+    def _file_lock(filepath: Path):
+        """Acquire an OS-level file lock for cross-process safety."""
+        lock_path = filepath.with_suffix(filepath.suffix + ".lock")
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(lock_path, "w", encoding="utf-8") as lock_file:
+            try:
+                if sys.platform == "win32":
+                    import msvcrt
+                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
+                else:
+                    import fcntl
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+                yield
+            finally:
+                if sys.platform == "win32":
+                    import msvcrt
+                    try:
+                        msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+                    except OSError:
+                        pass
+                else:
+                    import fcntl
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+    def _sanitize_id(self, id_str: str) -> str:
+        """Sanitize an ID to prevent path traversal attacks."""
+        if not id_str or not isinstance(id_str, str):
+            raise ValueError("ID must be a non-empty string")
+        sanitized = re.sub(r'[/\\]', '', id_str)
+        while '..' in sanitized:
+            sanitized = sanitized.replace('..', '')
+        if not re.match(r'^[a-zA-Z0-9_\-][a-zA-Z0-9_\-\.]*$', sanitized):
+            raise ValueError(f"Invalid ID format: {id_str!r}")
+        return sanitized
+
     def _write_json(self, filepath: Path, data: Any) -> None:
-        """Atomically write JSON data to a file."""
+        """Atomically write JSON data to a file with OS-level file locking."""
         tmp_path = filepath.with_suffix(".tmp")
-        try:
-            with open(tmp_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2, default=str)
-            tmp_path.replace(filepath)
-        except Exception as exc:
-            logger.debug("Suppressed exception: %s", exc)
-            if tmp_path.exists():
-                tmp_path.unlink()
-            raise
+        with self._file_lock(filepath):
+            try:
+                with open(tmp_path, "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=2, default=str)
+                tmp_path.replace(filepath)
+            except Exception as exc:
+                logger.debug("Suppressed exception: %s", exc)
+                if tmp_path.exists():
+                    tmp_path.unlink()
+                raise
 
     def _read_json(self, filepath: Path) -> Any:
-        """Read JSON data from a file."""
-        with open(filepath, "r", encoding="utf-8") as f:
-            return json.load(f)
+        """Read JSON data from a file with OS-level file locking."""
+        with self._file_lock(filepath):
+            with open(filepath, "r", encoding="utf-8") as f:
+                return json.load(f)
 
     def _make_event_id(self) -> str:
         """Generate a unique event ID."""
@@ -126,6 +168,7 @@ class PersistenceManager:
         Returns:
             The doc_id used for storage.
         """
+        doc_id = self._sanitize_id(doc_id)
         filepath = self._base_dir / DOCUMENTS_DIR / f"{doc_id}.json"
         with self._locks[DOCUMENTS_DIR]:
             self._write_json(filepath, document)
@@ -139,6 +182,7 @@ class PersistenceManager:
         Returns:
             Document dict or None if not found.
         """
+        doc_id = self._sanitize_id(doc_id)
         filepath = self._base_dir / DOCUMENTS_DIR / f"{doc_id}.json"
         with self._locks[DOCUMENTS_DIR]:
             if not filepath.exists():
@@ -184,6 +228,7 @@ class PersistenceManager:
             session_id=session_id,
             data=gate_event,
         )
+        session_id = self._sanitize_id(session_id)
         filepath = self._base_dir / GATE_HISTORY_DIR / f"{session_id}.json"
         with self._locks[GATE_HISTORY_DIR]:
             history: List[Dict[str, Any]] = []
@@ -204,6 +249,7 @@ class PersistenceManager:
         Returns:
             List of gate event dicts, or empty list if none found.
         """
+        session_id = self._sanitize_id(session_id)
         filepath = self._base_dir / GATE_HISTORY_DIR / f"{session_id}.json"
         with self._locks[GATE_HISTORY_DIR]:
             if not filepath.exists():
@@ -228,6 +274,7 @@ class PersistenceManager:
         Returns:
             The request_id used for storage.
         """
+        request_id = self._sanitize_id(request_id)
         filepath = self._base_dir / LIBRARIAN_DIR / f"{request_id}.json"
         record = {
             "request_id": request_id,
@@ -246,6 +293,7 @@ class PersistenceManager:
         Returns:
             Context dict or None if not found.
         """
+        request_id = self._sanitize_id(request_id)
         filepath = self._base_dir / LIBRARIAN_DIR / f"{request_id}.json"
         with self._locks[LIBRARIAN_DIR]:
             if not filepath.exists():
@@ -353,6 +401,7 @@ class PersistenceManager:
 
     def save_rosetta_state(self, agent_id: str, state: Dict[str, Any]) -> str:
         """Save rosetta agent state."""
+        agent_id = self._sanitize_id(agent_id)
         filepath = self._base_dir / ROSETTA_DIR / f"{agent_id}.json"
         with self._locks[ROSETTA_DIR]:
             self._write_json(filepath, state)
@@ -361,6 +410,7 @@ class PersistenceManager:
 
     def load_rosetta_state(self, agent_id: str) -> Optional[Dict[str, Any]]:
         """Load rosetta agent state."""
+        agent_id = self._sanitize_id(agent_id)
         filepath = self._base_dir / ROSETTA_DIR / f"{agent_id}.json"
         with self._locks[ROSETTA_DIR]:
             if not filepath.exists():
