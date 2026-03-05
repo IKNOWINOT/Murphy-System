@@ -13,6 +13,8 @@ A complete guide to installing, launching, and using Murphy System — from zero
 curl -fsSL https://raw.githubusercontent.com/IKNOWINOT/Murphy-System/main/install.sh | bash
 ```
 
+> ⚠️ **Note:** `install.sh` does not yet exist — the curl command above will return a **404**. This one-line installer is **coming soon**. In the meantime, use the manual setup path described below.
+
 This works on **Linux and macOS** (including WSL on Windows). It will:
 
 1. Check prerequisites (Python 3.10+, pip, git)
@@ -28,6 +30,23 @@ murphy start
 ```
 
 > **No API key required** — the onboard LLM works out of the box.
+
+---
+
+## ✅ Recommended for Windows (Git Bash / MINGW64)
+
+> **If you are on Windows using Git Bash (MINGW64), use the manual setup steps below.** The `setup_and_start.sh` script may hang at Step 2 (venv activation or pip self-upgrade) on Windows Git Bash. The manual path below is the proven, reliable workaround until the script is patched.
+
+```bash
+git clone https://github.com/IKNOWINOT/Murphy-System.git
+cd Murphy-System
+cd "Murphy System"
+python -m venv venv
+source venv/Scripts/activate
+pip install -r requirements_murphy_1.0.txt
+pip install -r requirements.txt
+python murphy_system_1.0_runtime.py
+```
 
 ---
 
@@ -73,7 +92,7 @@ Murphy System is a universal AI automation platform with:
 - **8 web interfaces** for dashboards, monitoring, and administration.
 - **REST API** with FastAPI for programmatic access to all capabilities.
 - **Architect Terminal** — an interactive CLI for plan decomposition and supervised execution.
-- **No-autonomy guard-rails** — every high-risk action requires human approval (HITL).
+- **Autonomy Toggle Training** — Murphy's human-in-the-loop (HITL) system operates on a graduated autonomy model rather than a blanket "no autonomy" policy. Autonomy levels are toggled per task type and escalation tier. Low-risk repetitive tasks can be trained toward higher autonomy, while high-risk actions (financial transactions, deployment, external API calls) always require explicit human approval. The system learns operator trust patterns over time, allowing supervised escalation of autonomy as confidence builds.
 
 ---
 
@@ -672,7 +691,31 @@ summary = archive.get_storage_summary()
 
 ---
 
-## 13. Next Steps
+## 13. Ownership, Licensing & Data Valuation
+
+### Automation Ownership
+
+- **Shadow Automations** — personal automations, private workflows, personal productivity bots, and individual shadow-IT automations belong to **the user** who created them. The user retains full ownership of their shadow automation data and configurations.
+- **Corporate Chart Management Automations** — organizational automations tied to corporate hierarchy, org-chart management, team workflows, and enterprise process automations belong to **the organization** that deploys them.
+- **Both** categories are **licensed to Inoni LLC** for use within the Murphy System database. Inoni LLC holds a perpetual, non-exclusive license to utilize anonymized and aggregated patterns from both shadow and corporate automations to improve the Murphy System platform, train models, and enhance system intelligence.
+
+### Utility Packet Valuation Model
+
+All automation interactions are decomposed into **utility packets** — the smallest atomic micro-actions (a click, a field entry, a toggle, an approval, a route decision) performed in sequence. When these micro-actions are adopted in a specific order by specific people with specific credentials, they become **ultra-valuable behavioral data**.
+
+The valuation model works as follows:
+
+- **Average Threshold Pricing** — Murphy maintains an average value threshold across all utility packets. This baseline ensures that every utilized click, every human decision point, and every HITL interaction carries a minimum floor value. The threshold raises the value of *every* click that is utilized rather than letting high-volume low-quality interactions dilute the data.
+- **Per-Valuation HITL Costs** — every human-in-the-loop approval, review, or decision point has an associated per-valuation cost. This cost must be established based on:
+  1. **Enterprise service distribution costs** — the real cost of distributing enterprise-grade services and maintaining the infrastructure that supports HITL operations.
+  2. **Credential-matched gig routing (Fiverr connection model)** — HITL review tasks can be routed as gigs to qualified reviewers, built on a credentialed marketplace model. Each gig is constructed with specific credential requirements on a case-by-case basis. The system enforces domain expertise matching: a rocket design review must be routed to someone with aerospace or engineering credentials, not to an unrelated discipline. A financial audit review goes to a CPA, not a graphic designer. The credential gate ensures peer review integrity and justifies the per-valuation cost premium.
+- **Credential-Gated Peer Review** — the system enforces that HITL review assignments are matched to the reviewer's verified credentials and domain expertise. This is not a general-purpose gig marketplace — it is a precision-matched, case-by-case routing system where the complexity and risk of the task determines the credential bar required.
+
+> **Note:** The exact per-valuation cost number is TBD and will be established based on enterprise service distribution economics and the credentialed gig routing cost model. This section will be updated with specific pricing once the valuation framework is finalized.
+
+---
+
+## 14. Next Steps
 
 - **Open the Architect Terminal** — Start the backend and open `terminal_architect.html` in your browser.
 - **Explore the API** — Browse all 70+ endpoints at http://localhost:8000/docs.
