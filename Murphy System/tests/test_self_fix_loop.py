@@ -9,8 +9,8 @@ Design Label: TEST-ARCH-005
 Owner: QA Team
 """
 
-import sys
 import os
+import sys
 import threading
 import time
 
