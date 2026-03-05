@@ -48,10 +48,23 @@ fi
 # Install dependencies if needed
 echo ""
 echo "📦 Checking dependencies..."
-python3 -c "import fastapi, uvicorn" 2>/dev/null
+
+# Always ensure dependencies are fully installed from requirements files
+NEED_INSTALL=false
+
+python3 -c "import fastapi, uvicorn, pydantic, numpy, aiohttp, httpx, rich, yaml" 2>/dev/null
 if [ $? -ne 0 ]; then
-    echo "⚠️  Some dependencies missing. Installing..."
-    pip install --quiet fastapi uvicorn pydantic aiohttp httpx matplotlib watchdog 2>&1 | grep -v "Requirement already satisfied" || true
+    NEED_INSTALL=true
+fi
+
+if $NEED_INSTALL; then
+    echo "⚠️  Some dependencies missing. Installing from requirements files..."
+    if [ -f requirements_murphy_1.0.txt ]; then
+        pip install --quiet -r requirements_murphy_1.0.txt 2>&1 | grep -v "Requirement already satisfied" || true
+    fi
+    if [ -f requirements.txt ]; then
+        pip install --quiet -r requirements.txt 2>&1 | grep -v "Requirement already satisfied" || true
+    fi
     echo "✅ Dependencies installed"
 else
     echo "✅ Dependencies OK"

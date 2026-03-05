@@ -32,6 +32,52 @@ import re
 import math
 import numbers
 from uuid import uuid4
+
+# ---------------------------------------------------------------------------
+# Auto-dependency check: ensure all requirements are installed before startup
+# ---------------------------------------------------------------------------
+def _ensure_dependencies() -> None:
+    """Verify core dependencies are importable; pip-install from requirements if not."""
+    _check_pkgs = ["fastapi", "uvicorn", "pydantic", "numpy", "yaml", "aiohttp", "httpx", "rich"]
+    missing = []
+    for pkg in _check_pkgs:
+        try:
+            __import__(pkg)
+        except ImportError:
+            missing.append(pkg)
+    if not missing:
+        return
+    # Locate requirements file relative to this script
+    _req_file = Path(__file__).parent / "requirements_murphy_1.0.txt"
+    _req_base = Path(__file__).parent / "requirements.txt"
+    import subprocess
+    targets: list[str] = []
+    if _req_file.exists():
+        targets.extend(["-r", str(_req_file)])
+    if _req_base.exists():
+        targets.extend(["-r", str(_req_base)])
+    if not targets:
+        print(
+            f"⚠️  Missing dependencies ({', '.join(missing)}) but no requirements file found.\n"
+            f"   Install manually:  pip install {' '.join(missing)}"
+        )
+        return
+    print(f"📦 Auto-installing missing dependencies ({', '.join(missing)})...")
+    try:
+        subprocess.check_call(
+            [sys.executable, "-m", "pip", "install", "--quiet"] + targets,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+        )
+        print("✅ Dependencies installed successfully.")
+    except subprocess.CalledProcessError as exc:
+        print(
+            f"⚠️  pip install failed (exit {exc.returncode}). Some features may be unavailable.\n"
+            f"   Run manually:  pip install {' '.join(f'-r {t}' if t.endswith('.txt') else t for t in targets)}"
+        )
+
+_ensure_dependencies()
+
 try:
     from dotenv import load_dotenv as _load_dotenv
 except ImportError:
