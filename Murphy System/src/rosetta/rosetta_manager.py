@@ -9,6 +9,9 @@ from __future__ import annotations
 
 import json
 import logging
+import re
+import sys
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from threading import Lock
@@ -30,31 +33,71 @@ class RosettaManager:
 
     # ---- helpers ----
 
+    @staticmethod
+    @contextmanager
+    def _file_lock(filepath: Path):
+        """Acquire an OS-level file lock for cross-process safety."""
+        lock_path = filepath.with_suffix(filepath.suffix + ".lock")
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(lock_path, "w", encoding="utf-8") as lock_file:
+            try:
+                if sys.platform == "win32":
+                    import msvcrt
+                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
+                else:
+                    import fcntl
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+                yield
+            finally:
+                if sys.platform == "win32":
+                    import msvcrt
+                    try:
+                        msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+                    except OSError:
+                        pass
+                else:
+                    import fcntl
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+    @staticmethod
+    def _sanitize_id(id_str: str) -> str:
+        """Sanitize an agent ID to prevent path traversal attacks."""
+        if not id_str or not isinstance(id_str, str):
+            raise ValueError("ID must be a non-empty string")
+        sanitized = re.sub(r'[/\\]', '', id_str)
+        while '..' in sanitized:
+            sanitized = sanitized.replace('..', '')
+        if not re.match(r'^[a-zA-Z0-9_\-][a-zA-Z0-9_\-\.]*$', sanitized):
+            raise ValueError(f"Invalid ID format: {id_str!r}")
+        return sanitized
+
     def _filepath(self, agent_id: str) -> Path:
         return self._persistence_dir / f"{agent_id}.json"
 
     def _write_json(self, filepath: Path, data: Any) -> None:
-        """Atomically write JSON data to a file."""
+        """Atomically write JSON data to a file with OS-level file locking."""
         tmp_path = filepath.with_suffix(".tmp")
-        try:
-            with open(tmp_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2, default=str)
-            tmp_path.replace(filepath)
-        except Exception as exc:
-            logger.debug("Suppressed exception: %s", exc)
-            if tmp_path.exists():
-                tmp_path.unlink()
-            raise
+        with self._file_lock(filepath):
+            try:
+                with open(tmp_path, "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=2, default=str)
+                tmp_path.replace(filepath)
+            except Exception as exc:
+                logger.debug("Suppressed exception: %s", exc)
+                if tmp_path.exists():
+                    tmp_path.unlink()
+                raise
 
     def _read_json(self, filepath: Path) -> Any:
-        with open(filepath, "r", encoding="utf-8") as f:
-            return json.load(f)
+        with self._file_lock(filepath):
+            with open(filepath, "r", encoding="utf-8") as f:
+                return json.load(f)
 
     # ---- public API ----
 
     def save_state(self, state: RosettaAgentState) -> str:
         """Save agent state to disk and in-memory cache. Returns agent_id."""
-        agent_id = state.identity.agent_id
+        agent_id = self._sanitize_id(state.identity.agent_id)
         state.metadata.updated_at = datetime.now(timezone.utc)
         with self._lock:
             self._states[agent_id] = state
@@ -64,6 +107,7 @@ class RosettaManager:
 
     def load_state(self, agent_id: str) -> Optional[RosettaAgentState]:
         """Load agent state, preferring in-memory cache, falling back to disk."""
+        agent_id = self._sanitize_id(agent_id)
         with self._lock:
             if agent_id in self._states:
                 return self._states[agent_id]
@@ -83,6 +127,7 @@ class RosettaManager:
         self, agent_id: str, updates: Dict[str, Any]
     ) -> Optional[RosettaAgentState]:
         """Partial update of an existing agent state. Returns updated state or None."""
+        agent_id = self._sanitize_id(agent_id)
         with self._lock:
             state = self._states.get(agent_id)
             if state is None:
@@ -113,6 +158,7 @@ class RosettaManager:
 
     def delete_state(self, agent_id: str) -> bool:
         """Delete agent state from memory and disk."""
+        agent_id = self._sanitize_id(agent_id)
         with self._lock:
             self._states.pop(agent_id, None)
             filepath = self._filepath(agent_id)

@@ -11,6 +11,10 @@
 # Copyright © 2020 Inoni Limited Liability Company
 # Creator: Corey Post | License: Apache License 2.0
 # ============================================================================
+# ============================================================================
+# SECURITY NOTE: Always inspect scripts before piping to bash.
+# To review first:  curl -fsSL <URL> -o install.sh && less install.sh && bash install.sh
+# ============================================================================
 set -euo pipefail
 
 # ---- configuration ---------------------------------------------------------
