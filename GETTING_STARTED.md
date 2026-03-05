@@ -340,14 +340,14 @@ git pull
 **Prevent future occurrences:**
 
 ```bash
-# Ensure Git uses the correct case tracking on Windows:
-git config core.ignorecase true
+# Tell Git to track case changes even on case-insensitive file systems:
+git config core.ignorecase false
 
 # If a file still shows as modified with a different case, rename it
 # back to the correct lowercase name:
 git mv "Murphy System/bots/Engineering_bot.py" "Murphy System/bots/engineering_bot.py"
 git mv "Murphy System/bots/Ghost_Controller_Bot.py" "Murphy System/bots/ghost_controller_bot.py"
-git commit -m "fix: normalise file name casing"
+git commit -m "fix: normalize file name casing"
 ```
 
 > **Tip:** The repository ships a `.gitattributes` file that normalises line
