@@ -4,6 +4,66 @@ A complete guide to installing, launching, and using Murphy System — from zero
 
 ---
 
+## ⚡ One-Line Install
+
+> **Copy and paste this single command** into your terminal to install and start Murphy System.
+> No manual clone, no dependency juggling — one line does it all.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/IKNOWINOT/Murphy-System/main/install.sh | bash
+```
+
+This works on **Linux and macOS** (including WSL on Windows). It will:
+
+1. Check prerequisites (Python 3.10+, pip, git)
+2. Clone the repository
+3. Create a virtual environment and install all dependencies
+4. Generate a default `.env` configuration
+5. Install the `murphy` CLI
+
+Once complete, start Murphy:
+
+```bash
+murphy start
+```
+
+> **No API key required** — the onboard LLM works out of the box.
+
+---
+
+## Alternative Installation Methods
+
+If you prefer not to pipe to bash, or you're on Windows without WSL, choose one of these options:
+
+### Clone & Run (all platforms)
+
+```bash
+git clone https://github.com/IKNOWINOT/Murphy-System.git
+cd Murphy-System
+bash setup_and_start.sh          # Linux / macOS
+```
+
+```cmd
+git clone https://github.com/IKNOWINOT/Murphy-System.git
+cd Murphy-System
+setup_and_start.bat              &REM Windows
+```
+
+The script checks prerequisites (Python 3.10+), creates a virtual environment, installs dependencies, generates a `.env` configuration file, and starts the backend server. When prompted, choose option **1** (backend server).
+
+### Manual Setup
+
+```bash
+# Requires Python 3.10+
+git clone https://github.com/IKNOWINOT/Murphy-System.git
+cd Murphy-System
+pip install -r requirements.txt
+cd "Murphy System"
+python murphy_system_1.0_runtime.py
+```
+
+---
+
 ## What You Get
 
 Murphy System is a universal AI automation platform with:
@@ -19,36 +79,7 @@ Murphy System is a universal AI automation platform with:
 
 ## 1. Quick Start
 
-### Step 1 — Install & Start the Backend
-
-**One-command setup (Linux / macOS):**
-
-```bash
-bash setup_and_start.sh
-```
-
-The script checks prerequisites (Python 3.10+), creates a virtual environment, installs dependencies, generates a `.env` configuration file, and starts the backend server. When prompted, choose option **1** (backend server).
-
-**Windows:**
-
-```cmd
-setup_and_start.bat
-```
-
-**Remote install (no clone required):**
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/IKNOWINOT/Murphy-System/main/install.sh | bash
-```
-
-**Manual setup:**
-
-```bash
-# Requires Python 3.10+
-pip install -r requirements.txt
-cd "Murphy System"
-python murphy_system_1.0_runtime.py
-```
+### Step 1 — Verify the Backend is Running
 
 The REST API server starts on **http://localhost:8000**. Confirm it is running:
 
