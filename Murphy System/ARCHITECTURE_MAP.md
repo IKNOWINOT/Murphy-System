@@ -96,6 +96,31 @@
 └────────┘ └────────┘ └────────┘ └────────┘ └────────────┘
 ```
 
+### AionMind 2.0a Cognitive Pipeline (Embedded)
+
+```
+┌───────────────────────────────────────────────────────────────────┐
+│                 AIONMIND 2.0a COGNITIVE PIPELINE                  │
+│                  (Orchestrator-of-Orchestrators)                   │
+├───────────────────────────────────────────────────────────────────┤
+│  Layer 1: Context Engine     → ContextObject (structured input)   │
+│  Layer 2: Capability Registry → 20+ bot capabilities auto-bridged │
+│           Reasoning Engine   → Candidate ExecutionGraphObjects     │
+│  Layer 3: RSC Integration    → Stability-gated expansion          │
+│  Layer 4: Orchestration      → Graph execution with HITL gates    │
+│  Layer 5: Memory (STM/LTM)  → Similarity search, archival        │
+│  Layer 6: Optimization       → Conservative proposals only        │
+├───────────────────────────────────────────────────────────────────┤
+│  /api/execute  ──→  cognitive_execute() ──→  legacy fallback      │
+│  /api/forms/*  ──→  cognitive_execute() ──→  legacy fallback      │
+│  /api/aionmind/* ──→ dedicated 2.0 endpoints                     │
+└───────────────────────────────────────────────────────────────────┘
+         │                    │                    │
+         ▼                    ▼                    ▼
+  Bot Inventory       RSC Controller      WorkflowDAGEngine
+  (capability bridge)  (live wiring)       (backward compat)
+```
+
 ---
 
 ## Core Components
