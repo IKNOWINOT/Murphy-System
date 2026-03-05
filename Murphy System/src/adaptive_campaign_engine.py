@@ -263,7 +263,7 @@ _DEFAULT_TIER_CAMPAIGNS: Dict[str, Dict[str, Any]] = {
         "channels": ["enterprise_sales", "linkedin_enterprise", "industry_events", "partner_referrals"],
         "demographics": ["cto_vp_eng", "enterprise_it", "compliance_officers", "c_suite"],
         "messaging": (
-            "$750/mo per seat — unlimited deployments, on-premise, "
+            "Contact us — unlimited deployments, on-premise, "
             "24/7 SRE support, SOC2/HIPAA, dedicated CSM."
         ),
     },

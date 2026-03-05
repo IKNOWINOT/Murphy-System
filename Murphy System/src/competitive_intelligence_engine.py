@@ -237,7 +237,7 @@ _MURPHY_CAPABILITIES: Set[str] = {
 _MURPHY_PRICING: Dict[str, str] = {
     "community": "Free (open source)",
     "pro": "$99/mo per seat",
-    "enterprise": "$750/mo per seat",
+    "enterprise": "Contact us",
     "creator_starter": "$20/mo",
     "creator_pro": "$99/mo",
 }

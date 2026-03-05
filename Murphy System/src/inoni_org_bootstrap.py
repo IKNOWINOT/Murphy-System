@@ -61,9 +61,9 @@ class InoniOrgBootstrap:
 
     Revenue Model:
     - Free tier: Trade services for marketing (creator promotes Inoni)
-    - Subscription: $20/mo flat rate (Creator Starter)
+    - Subscription: $20/mo monthly (Creator Starter)
     - Pro tier: $99/mo direct subscription
-    - Enterprise: $750/mo per seat for agencies managing 10+ creators
+    - Enterprise: Contact us for agencies managing 10+ creators
     """
 
     def __init__(
@@ -535,9 +535,9 @@ class InoniOrgBootstrap:
 
         Revenue model:
         - Free tier: Service traded for marketing exposure
-        - Starter: $20/mo flat rate
+        - Starter: $20/mo monthly
         - Pro: $99/mo flat rate
-        - Agency: $750/mo per seat for 10+ creator management
+        - Agency: Contact us for 10+ creator management
         """
         campaign = self.campaigns.create_campaign(
             name="Content Creator Automation Launch",
@@ -568,7 +568,7 @@ class InoniOrgBootstrap:
                     ),
                     "offer": (
                         "Free 30-day trial, then $20/mo Starter or "
-                        "$750/mo/seat Agency"
+                        "Contact us for Agency"
                     ),
                     "agent": "outreach_specialist",
                 },
@@ -626,7 +626,7 @@ class InoniOrgBootstrap:
                 },
                 {
                     "name": "Agency",
-                    "price": "$750/mo per seat",
+                    "price": "Contact us",
                     "terms": (
                         "10+ creators, dedicated account manager, "
                         "custom integrations"
@@ -831,9 +831,9 @@ class InoniOrgBootstrap:
                     "options:\n\n"
                     "• Free tier — trade services for a marketing "
                     "mention\n"
-                    "• Starter — $20/mo flat rate\n"
+                    "• Starter — $20/mo monthly\n"
                     "• Pro — $99/mo flat rate\n"
-                    "• Agency — $750/mo per seat for 10+ creators\n\n"
+                    "• Agency — Contact us for 10+ creators\n\n"
                     "Which sounds closest to what you need?"
                 ),
                 "status": "pricing_inquiry",
