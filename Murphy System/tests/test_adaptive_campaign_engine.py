@@ -9,7 +9,7 @@ Validates:
   - Paid-ad proposal generation with HITL founder approval gate
   - Proposal approval and rejection flows
   - evaluate_and_act full-cycle integration
-  - Updated pricing: Creator Starter $20/mo, Enterprise $750/mo
+  - Updated pricing: Creator Starter $20/mo, Enterprise Contact us
 
 Design Label: TEST-007 / MKT-004
 Owner: QA Team
@@ -84,10 +84,10 @@ class TestBootstrap:
         c = engine.get_campaign("creator_starter")
         assert "$20/mo" in c["messaging"]
 
-    def test_enterprise_messaging_contains_750(self, engine):
-        """Enterprise campaigns should reference $750/mo pricing."""
+    def test_enterprise_messaging_contains_contact(self, engine):
+        """Enterprise campaigns should reference 'Contact us' pricing."""
         c = engine.get_campaign("enterprise")
-        assert "$750/mo" in c["messaging"]
+        assert "Contact us" in c["messaging"]
 
 
 # ------------------------------------------------------------------
@@ -270,7 +270,7 @@ class TestPaidAdProposals:
     def test_proposal_projected_roi(self, engine):
         engine.record_snapshot("enterprise", "W1", impressions=500, leads=20, conversions=2)
         proposal = engine.propose_paid_campaign("enterprise", 5000.0)
-        # Enterprise = $750/mo * 12 = $9000/year per conversion
+        # Enterprise = custom pricing (750 baseline) * 12 = $9000/year per conversion
         assert proposal.projected_roi > 0
 
     def test_campaign_status_pending_after_proposal(self, engine):
@@ -347,7 +347,7 @@ class TestStatus:
 
 
 # ------------------------------------------------------------------
-# Updated Pricing Tests (Creator Starter $20/mo, Enterprise $750/mo)
+# Updated Pricing Tests (Creator Starter $20/mo, Enterprise Contact us)
 # ------------------------------------------------------------------
 
 class TestUpdatedPricing:
@@ -360,7 +360,7 @@ class TestUpdatedPricing:
         assert econ.monthly_revenue == 20.0
 
     def test_enterprise_revenue_750(self):
-        """Unit economics analyzer reflects $750/mo enterprise."""
+        """Unit economics analyzer uses 750 baseline for enterprise modeling."""
         from src.unit_economics_analyzer import UnitEconomicsAnalyzer
         a = UnitEconomicsAnalyzer()
         econ = a.get_tier_economics("enterprise")
@@ -376,7 +376,7 @@ class TestUpdatedPricing:
         assert econ.gross_margin_pct > 25.0  # 30% at $20 vs $14
 
     def test_enterprise_margin_improved(self):
-        """At $750/mo with $150 cost, enterprise has 80% margin."""
+        """At 750 baseline with $150 cost, enterprise has 80% margin."""
         from src.unit_economics_analyzer import UnitEconomicsAnalyzer
         a = UnitEconomicsAnalyzer()
         econ = a.get_tier_economics("enterprise")

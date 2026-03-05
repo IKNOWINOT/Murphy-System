@@ -313,7 +313,7 @@ for mod in ['fastapi', 'uvicorn', 'pydantic']:
 | Community | Free | Open source (MIT), budgeted from paid income |
 | Creator Starter | $20/mo | Monthly |
 | Professional | $99/mo | Per seat |
-| Enterprise | $750/mo | Per seat — funds community free tier |
+| Enterprise | Contact us | Custom pricing — funds community free tier |
 
 ![Pricing Section](https://github.com/user-attachments/assets/eeb32121-ae1f-402a-af57-43a35f579b2c)
 
