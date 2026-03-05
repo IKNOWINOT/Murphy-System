@@ -14,8 +14,6 @@
 6. [Chat Endpoints](#chat-endpoints)
 7. [Status Endpoints](#status-endpoints)
 8. [Trigger Endpoints](#trigger-endpoints)
-9. [Telemetry Endpoints](#telemetry-endpoints)
-10. [Recommendation Endpoints](#recommendation-endpoints)
 
 ---
 
