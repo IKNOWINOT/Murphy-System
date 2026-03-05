@@ -10,6 +10,82 @@ Currently, no authentication is required. In production, implement appropriate a
 
 ---
 
+## AionMind 2.0 Cognitive Pipeline Endpoints
+
+All endpoints below are served under `/api/aionmind/` and route through the
+six-layer cognitive pipeline. The no-autonomy invariant is enforced: execution
+requires explicit approval.
+
+### Status
+
+**Endpoint:** `GET /api/aionmind/status`
+
+Returns kernel status including registered capabilities, memory stats, and
+pending proposals.
+
+### Build Context (Layer 1)
+
+**Endpoint:** `POST /api/aionmind/context`
+
+**Request Body:**
+```json
+{
+  "source": "user",
+  "raw_input": "Deploy production v2",
+  "intent": "deployment",
+  "priority": "high",
+  "risk_level": "medium"
+}
+```
+
+### Orchestrate (Layer 2 — Planning)
+
+**Endpoint:** `POST /api/aionmind/orchestrate`
+
+Generates candidate execution graphs. Does **not** execute — graphs are proposals.
+
+**Request Body:**
+```json
+{
+  "context": { "source": "user", "raw_input": "Deploy v2" },
+  "max_candidates": 3
+}
+```
+
+### Execute (Layer 4)
+
+**Endpoint:** `POST /api/aionmind/execute`
+
+Executes an **approved** execution graph. Returns 403 if `approved: false`.
+
+**Request Body:**
+```json
+{
+  "graph": { "graph_id": "...", "approved": true, "approved_by": "operator", ... }
+}
+```
+
+### Memory (Layer 5)
+
+- `GET /api/aionmind/memory/stats` — STM/LTM statistics
+- `GET /api/aionmind/memory/stm/{key}` — Retrieve STM entry
+- `GET /api/aionmind/memory/ltm/{key}` — Retrieve LTM entry
+
+### Proposals (Layer 6)
+
+- `GET /api/aionmind/proposals` — List optimisation proposals
+- `POST /api/aionmind/proposals/{id}/approve` — Approve a proposal
+- `POST /api/aionmind/proposals/{id}/reject` — Reject a proposal
+
+### Cognitive Pipeline Integration
+
+The existing `POST /api/execute` and `POST /api/forms/*` endpoints now route
+through the AionMind cognitive pipeline (`build_context → plan → select →
+execute`) when available, with transparent fallback to the legacy path.
+Responses include an `aionmind` key with pipeline metadata.
+
+---
+
 ## Form Endpoints
 
 ### 1. Upload Plan
