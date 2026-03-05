@@ -234,8 +234,14 @@ def test_terminal_has_log_role():
 def test_terminal_has_aria_labels():
     """Terminal buttons and input must have aria-label attributes."""
     content = _read_html('terminal_architect.html')
-    assert 'aria-label="Execute command"' in content or 'aria-label=' in content, (
-        "terminal_architect.html missing aria-label on interactive elements"
+    assert 'aria-label="Execute command"' in content, (
+        "terminal_architect.html missing aria-label on Execute button"
+    )
+    assert 'aria-label="Terminal command input"' in content, (
+        "terminal_architect.html missing aria-label on command input"
+    )
+    assert 'aria-label="Toggle MFGC control"' in content, (
+        "terminal_architect.html missing aria-label on MFGC toggle button"
     )
 
 
