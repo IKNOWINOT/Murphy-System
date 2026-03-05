@@ -514,7 +514,10 @@
         });
 
         // Send initial greeting to activate the LLM companion welcome
+        let greetingSent = false;
         async function sendGreeting() {
+            if (greetingSent) return;
+            greetingSent = true;
             try {
                 const response = await fetch(`${API_BASE_URL}/chat`, {
                     method: 'POST',

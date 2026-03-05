@@ -59,7 +59,10 @@ def _ensure_dependencies() -> None:
     if not targets:
         print(
             f"⚠️  Missing dependencies ({', '.join(missing)}) but no requirements file found.\n"
-            f"   Install manually:  pip install {' '.join(missing)}"
+            f"   Install manually:\n"
+            f"     pip install -r requirements_murphy_1.0.txt\n"
+            f"   Or individually:\n"
+            f"     pip install {' '.join(missing)}"
         )
         return
     print(f"📦 Auto-installing missing dependencies ({', '.join(missing)})...")
