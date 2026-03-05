@@ -608,15 +608,16 @@ We welcome contributions! Please read:
 
 **Business Source License 1.1 (BSL 1.1)**
 
-Copyright © 2025 Inoni Limited Liability Company  
-Creator: Corey Post
+Murphy is **free to use, modify, and deploy** for any purpose — personal,
+commercial, internal, or educational. The only restriction: you cannot offer
+Murphy itself as a competing hosted service.
 
-The core Murphy System is licensed under BSL 1.1, which converts to Apache
-License 2.0 after four years. You may freely use, modify, and redistribute
-the software for any purpose except offering it as a competing hosted service.
-Enterprise features are available under a separate commercial license.
+After four years, each version automatically converts to **Apache 2.0**
+(fully permissive open source).
 
-See [LICENSE](LICENSE) for the full license text.
+**TL;DR:** Use it however you want. Just don't clone it and sell it as SaaS.
+
+See [LICENSE](LICENSE) for details.
 
 ---
 
