@@ -192,6 +192,96 @@ def test_no_emoji_in_banner_borders():
         )
 
 
+# ── Accessibility & UX tests ────────────────────────────────────────
+
+
+def test_skip_link_present():
+    """Key HTML files must have a skip-to-content link for keyboard users."""
+    files_requiring_skip = [
+        'terminal_architect.html',
+        'murphy_landing_page.html',
+        'onboarding_wizard.html',
+    ]
+    for fname in files_requiring_skip:
+        content = _read_html(fname)
+        assert 'skip-link' in content, (
+            f"{fname} missing skip-to-content link (.skip-link)"
+        )
+
+
+def test_focus_visible_styles():
+    """Interactive HTML files must define :focus-visible styles."""
+    files_requiring_focus = [
+        'terminal_architect.html',
+        'murphy_landing_page.html',
+        'onboarding_wizard.html',
+    ]
+    for fname in files_requiring_focus:
+        content = _read_html(fname)
+        assert 'focus-visible' in content, (
+            f"{fname} missing :focus-visible styles for keyboard navigation"
+        )
+
+
+def test_terminal_has_log_role():
+    """Terminal output div must have role='log' for screen readers."""
+    content = _read_html('terminal_architect.html')
+    assert 'role="log"' in content, (
+        "terminal_architect.html terminal output missing role='log'"
+    )
+
+
+def test_terminal_has_aria_labels():
+    """Terminal buttons and input must have aria-label attributes."""
+    content = _read_html('terminal_architect.html')
+    assert 'aria-label="Execute command"' in content or 'aria-label=' in content, (
+        "terminal_architect.html missing aria-label on interactive elements"
+    )
+
+
+def test_landing_page_has_main_landmark():
+    """Landing page must have a <main> landmark element."""
+    content = _read_html('murphy_landing_page.html')
+    assert '<main' in content, (
+        "murphy_landing_page.html missing <main> landmark"
+    )
+
+
+def test_onboarding_error_has_aria_live():
+    """Onboarding wizard error messages must use aria-live for screen readers."""
+    content = _read_html('onboarding_wizard.html')
+    assert 'aria-live' in content, (
+        "onboarding_wizard.html missing aria-live on error messages"
+    )
+
+
+def test_terminal_has_responsive_styles():
+    """Terminal architect must have responsive CSS media queries."""
+    content = _read_html('terminal_architect.html')
+    assert '@media' in content, (
+        "terminal_architect.html missing responsive media queries"
+    )
+
+
+def test_landing_has_small_screen_breakpoint():
+    """Landing page must have a breakpoint for screens below 480px."""
+    content = _read_html('murphy_landing_page.html')
+    assert '480px' in content, (
+        "murphy_landing_page.html missing small-screen breakpoint (480px)"
+    )
+
+
+def test_text_dim_contrast():
+    """Dim text color must meet minimum contrast — #aaa or brighter, not #888."""
+    content = _read_html('murphy_landing_page.html')
+    style_match = re.search(r'<style>(.*?)</style>', content, re.DOTALL)
+    if style_match:
+        css = style_match.group(1)
+        assert '#888' not in css, (
+            "murphy_landing_page.html still uses low-contrast #888 for dim text"
+        )
+
+
 if __name__ == '__main__':
     import pytest
     pytest.main([__file__, '-v'])
