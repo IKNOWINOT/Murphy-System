@@ -71,18 +71,24 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 class CycleType(str, Enum):
+    """Type of operational cycle."""
+
     TRACTION = "traction"          # 30-day
     RD_SPRINT = "rd_sprint"        # 60-day
     DISRUPTION = "disruption"      # Instant
 
 
 class CycleStatus(str, Enum):
+    """Status of an operational cycle."""
+
     ACTIVE = "active"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
 
 
 class DisruptionSeverity(str, Enum):
+    """Severity classification for a market disruption event."""
+
     CRITICAL = "critical"          # Major industry shift
     HIGH = "high"                  # Significant new competitor/product
     MEDIUM = "medium"              # Notable feature release by competitor
@@ -90,6 +96,8 @@ class DisruptionSeverity(str, Enum):
 
 
 class DisruptionResponseStatus(str, Enum):
+    """Lifecycle status of a disruption response."""
+
     DETECTED = "detected"
     ANALYZING = "analyzing"
     PROPOSAL_READY = "proposal_ready"
