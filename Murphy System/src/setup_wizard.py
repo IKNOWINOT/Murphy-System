@@ -587,7 +587,8 @@ def _parse_bool(raw: str) -> Optional[bool]:
     """Parse a yes/no string into a boolean.
 
     Handles natural-language responses such as ``"not yet"``, ``"sure"``,
-    or ``"nah"``.
+    or ``"nah"``.  Negative phrases are checked before positive ones so
+    that hedging responses like ``"not yet"`` are treated as *no*.
     """
     lower = raw.strip().lower()
     if lower in _YES_WORDS:
