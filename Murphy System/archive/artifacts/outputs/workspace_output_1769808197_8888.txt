@@ -1,6 +1,0 @@
-✓ Copied 0 Python modules
-✓ Copied installation scripts
-✓ Copied requirements.txt
-✓ Copied README.md
-
-✓ Package directory ready: murphy_system_fixed/

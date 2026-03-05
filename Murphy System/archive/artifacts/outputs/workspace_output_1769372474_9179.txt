@@ -1,6 +1,0 @@
-{
-  "demo_mode": true,
-  "provider": "Demo LLM",
-  "response": "I understand you're asking about: What is 2+2?\n\nThis is the demo mode. To use real LLM capabilities, please configure API keys for Groq or Aristotle.",
-  "success": true
-}

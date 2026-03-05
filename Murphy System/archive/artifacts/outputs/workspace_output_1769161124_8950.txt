@@ -1,4 +1,0 @@
-{
-    "message": "Attention system reset successfully",
-    "success": true
-}

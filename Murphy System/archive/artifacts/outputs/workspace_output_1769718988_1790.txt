@@ -1,7 +1,0 @@
-    main_marker = "if __name__ == '__main__':"
-    if main_marker in murphy_content:
-        murphy_content = murphy_content.replace(main_marker, new_endpoints + "\n" + main_marker)
---
-if __name__ == '__main__':
-    success = integrate_agent_communication()
-    if success:

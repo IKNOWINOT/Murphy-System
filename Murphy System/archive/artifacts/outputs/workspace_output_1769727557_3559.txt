@@ -1,2 +1,0 @@
-Murphy Process Memory: 3092 KB (3.02 MB)
-Murphy Process CPU: 0.0%

@@ -1,1 +1,0 @@
-{"agents_created":5,"gates_created":2,"message":"System initialized successfully","states_created":1,"success":true,"system_id":"system-33e04148"}

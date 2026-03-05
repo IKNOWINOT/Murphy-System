@@ -1,5 +1,0 @@
-2564:        const terminalInput = document.getElementById('terminal-input');
-2565:        const terminal = document.getElementById('terminal');
-2692:            const terminalContent = document.getElementById('terminal-content');
-2709:            const terminal = document.getElementById('terminal');
-4130:            const terminalContent = document.getElementById('terminal-content');

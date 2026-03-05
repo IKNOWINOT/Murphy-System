@@ -1,3 +1,0 @@
-521:@app.route('/api/states/<state_id>/evolve', methods=['POST'])
-539:@app.route('/api/states/<state_id>/regenerate', methods=['POST'])
-557:@app.route('/api/states/<state_id>/rollback', methods=['POST'])

@@ -1,1 +1,0 @@
-365:        command_registry.librarian_adapter.log_command_execution(command, args)

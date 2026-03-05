@@ -1,3 +1,0 @@
-Script tags: 13 opens, 13 closes
-OK: Script tags balanced
-ERROR: Script 13 has unbalanced braces: 774 opens, 777 closes

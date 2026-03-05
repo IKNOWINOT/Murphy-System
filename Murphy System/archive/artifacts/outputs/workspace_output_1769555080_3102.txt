@@ -1,9 +1,0 @@
-Braces in strings: 22
-Total open braces: 1129
-Total close braces: 1128
-Difference: 1
-
-Braces outside strings:
-  Open: 1118
-  Close: 1117
-  Difference: 1

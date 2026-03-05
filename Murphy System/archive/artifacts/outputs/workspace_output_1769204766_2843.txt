@@ -1,7 +1,0 @@
-        let currentStates = [];
-        let currentAgents = [];
-        let currentConnections = [];
-        let currentConnections = [];
-        let selectedStateId = null;
-
-        // ============================================

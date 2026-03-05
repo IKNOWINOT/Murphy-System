@@ -1,3 +1,0 @@
-Testing environment variable support...
-Secret key would be: test-secret-from-env
-✓ Environment variable support is ready

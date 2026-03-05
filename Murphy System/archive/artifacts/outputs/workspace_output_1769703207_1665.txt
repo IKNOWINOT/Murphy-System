@@ -1,2 +1,0 @@
-69:    AUTH_AVAILABLE = True
-74:    AUTH_AVAILABLE = False

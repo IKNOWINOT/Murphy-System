@@ -1,1 +1,0 @@
-1967:        const API_BASE = isLocalhost ? 'http://localhost:3002' : 'https://3002-0e281fd4-a558-4e54-b1ea-6dc0c0ecb8fe.sandbox-service.public.prod.myninja.ai';

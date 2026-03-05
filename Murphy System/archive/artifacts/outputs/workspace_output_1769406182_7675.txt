@@ -1,4 +1,0 @@
-  File "<string>", line 15
-    if ' in line or " in line:
-       ^
-SyntaxError: unterminated string literal (detected at line 15)

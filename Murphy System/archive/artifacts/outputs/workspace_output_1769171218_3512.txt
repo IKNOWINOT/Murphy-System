@@ -1,6 +1,0 @@
-13:class ArtifactType(Enum):
-24:class ArtifactStatus(Enum):
-32:class Artifact:
-74:class ArtifactGenerator:
-688:class ArtifactGenerationSystem:
-704:    async def generate_artifact(self, artifact_type: str, document: Dict, 

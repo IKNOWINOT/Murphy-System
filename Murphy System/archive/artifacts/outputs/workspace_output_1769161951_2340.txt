@@ -1,5 +1,0 @@
-            }
-        }
-
-        function executeTerminalCommand(command) {
-            const terminalContent = document.getElementById('terminal-content');

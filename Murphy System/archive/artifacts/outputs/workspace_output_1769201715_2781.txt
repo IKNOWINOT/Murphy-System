@@ -1,4 +1,0 @@
-    <!-- Temporarily disabled to test basic terminal
-    <script src="command_enhancements.js"></script>
-    <script src="terminal_enhancements_integration.js"></script>
-    -->

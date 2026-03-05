@@ -1,4 +1,0 @@
-189:<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
-243:    <script>
-254:        window.onload = function() {
-587:    </script>

@@ -1,8 +1,0 @@
-        
-        // Initialize visualizations on load
-        window.addEventListener('load', function() {
-            initAgentGraph();
-            initProcessFlow();
-            
-            // Initialize Librarian Panel
-            window.librarianPanel = new LibrarianPanel(API_BASE);

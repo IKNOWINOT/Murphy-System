@@ -1,5 +1,0 @@
-911:    <div id="detail-panel" class="detail-panel">
-920:    <div id="artifact-detail-modal" class="detail-panel"></div>
-921:    <div id="artifact-generate-modal" class="detail-panel"></div>
-922:    <div id="artifact-version-modal" class="detail-panel"></div>
-923:    <div id="artifact-convert-modal" class="detail-panel"></div>

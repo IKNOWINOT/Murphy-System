@@ -1,6 +1,0 @@
-Checking murphy_backend_complete.py:
-✓ OK
-Checking auth_system.py:
-✓ OK
-Checking auth_middleware.py:
-✓ OK

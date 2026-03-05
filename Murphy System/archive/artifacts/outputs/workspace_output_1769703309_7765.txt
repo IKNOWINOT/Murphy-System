@@ -1,2 +1,0 @@
-✗ Could not find insertion point
-✓ Syntax is valid

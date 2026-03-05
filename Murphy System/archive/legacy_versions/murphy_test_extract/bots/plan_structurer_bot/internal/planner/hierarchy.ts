@@ -1,1 +1,0 @@
-export function countNodes(tree:any[]){ let c=0; const dfs=(n:any)=>{ c++; (n.children||[]).forEach(dfs); }; (tree||[]).forEach(dfs); return c; }

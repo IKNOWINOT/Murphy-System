@@ -1,4 +1,0 @@
-murphy_integrated/bots/swisskiss_loader.py
-murphy_integrated/bots/swisskiss_loader
-murphy_integrated/bots/swisskiss_loader/test/swisskiss_loader.spec.ts
-murphy_integrated/bots/swisskiss_loader/swisskiss_loader.ts

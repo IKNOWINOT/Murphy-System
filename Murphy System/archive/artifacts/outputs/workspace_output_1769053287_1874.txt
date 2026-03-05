@@ -1,3 +1,0 @@
-cp: 'command_enhancements.js' and '/workspace/command_enhancements.js' are the same file
-cp: 'murphy_complete_v2.html' and '/workspace/murphy_complete_v2.html' are the same file
-cp: 'terminal_enhancements_integration.js' and '/workspace/terminal_enhancements_integration.js' are the same file

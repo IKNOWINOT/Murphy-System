@@ -13,7 +13,7 @@ Phase 2: PRODUCTION EXECUTION (Automated Repeat)
 
 Copyright © 2020 Inoni Limited Liability Company
 Created by: Corey Post
-License: Apache License 2.0
+License: BSL 1.1
 """
 
 import sys

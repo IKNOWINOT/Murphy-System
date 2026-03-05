@@ -431,4 +431,4 @@ If you experience or witness a Code of Conduct violation, report it by emailing 
 
 Violations may result in a warning, temporary suspension from community spaces, or a permanent ban, depending on severity and frequency.
 
-For the full Code of Conduct, see [CODE_OF_CONDUCT.md](../../../CODE_OF_CONDUCT.md) in the repository root.
+For the full Code of Conduct, see [CODE_OF_CONDUCT.md](../../../../CODE_OF_CONDUCT.md) in the repository root.

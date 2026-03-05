@@ -1,1 +1,0 @@
-export async function loadWindow(db:any, window?:{from?:string,to?:string}){ return []; }

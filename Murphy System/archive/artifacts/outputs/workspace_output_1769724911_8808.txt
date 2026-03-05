@@ -1,4 +1,0 @@
-{
-    "error": "GenerativeGateSystem.generate_gates() missing 1 required positional argument: 'context'",
-    "success": false
-}

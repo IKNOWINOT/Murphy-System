@@ -1,4 +1,0 @@
-root         662  0.0  1.4  63908 56616 ?        S    21:48   0:00 python3 murphy_complete_integrated.py
-root        1533  0.0  0.0   2920   916 ?        Ss   22:05   0:00 timeout --preserve-status --signal=KILL 60s bash -lc { cd /workspace ; mkdir -p /workspace/outputs ; } { cd /workspace && ps aux | grep murphy __ec=$? } >"/workspace/outputs/workspace_output_1769724323_2766.txt" 2>&1 head -c 80000 "/workspace/outputs/workspace_output_1769724323_2766.txt" ( exit "$__ec" )
-root        1534  0.0  0.0   4352  3144 ?        S    22:05   0:00 bash -lc { cd /workspace ; mkdir -p /workspace/outputs ; } { cd /workspace && ps aux | grep murphy __ec=$? } >"/workspace/outputs/workspace_output_1769724323_2766.txt" 2>&1 head -c 80000 "/workspace/outputs/workspace_output_1769724323_2766.txt" ( exit "$__ec" )
-root        1539  0.0  0.0   3752  2016 ?        S    22:05   0:00 grep murphy

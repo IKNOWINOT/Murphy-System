@@ -1,7 +1,0 @@
-============================================================
-MURPHY SYSTEM - IMPORT ERROR SCAN
-============================================================
-
-[2] Checking Import Errors in Main File...
-------------------------------------------------------------
-✅ murphy_complete_integrated.py imports successfully

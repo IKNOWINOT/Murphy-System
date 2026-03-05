@@ -1,7 +1,0 @@
-0000000                   &   q   u   o   t   ;   &   q   u   o   t   ;
-0000020   &   q   u   o   t   ;   G   e   n   e   r   a   t   e       d
-0000040   e   c   i   s   i   o   n       g   a   t   e   s       d   y
-0000060   n   a   m   i   c   a   l   l   y       f   o   r       a    
-0000100   t   a   s   k   &   q   u   o   t   ;   &   q   u   o   t   ;
-0000120   &   q   u   o   t   ;  \n
-0000127

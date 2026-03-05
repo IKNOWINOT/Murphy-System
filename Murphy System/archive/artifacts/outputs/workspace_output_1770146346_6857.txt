@@ -1,6 +1,0 @@
-     4527  2026-02-03 19:18   murphy_complete_system_package/README.md
-      760  2026-02-03 19:17   murphy_complete_system_package/LICENSE
-     7586  2026-02-03 18:02   murphy_complete_system_package/murphy_implementation/README.md
-     5299  2026-01-29 15:51   murphy_complete_system_package/murphy_runtime/README.md
-     3895  2026-01-29 23:10   murphy_complete_system_package/murphy_runtime/README_INSTALL.md
-    11984  2026-01-20 00:40   murphy_complete_system_package/murphy_runtime/README_BACKEND_INTEGRATION.md

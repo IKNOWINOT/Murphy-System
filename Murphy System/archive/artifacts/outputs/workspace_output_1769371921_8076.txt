@@ -1,1 +1,0 @@
-3192:                        addTerminalLog('  /librarian ask <q>  - Ask a question', 'info');

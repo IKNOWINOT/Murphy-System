@@ -1,8 +1,0 @@
-       datname       
----------------------
- postgres
- automation_platform
- template1
- template0
-(4 rows)
-

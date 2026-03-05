@@ -1,9 +1,0 @@
-Collecting nest-asyncio==1.5.8
-  Downloading nest_asyncio-1.5.8-py3-none-any.whl.metadata (2.8 kB)
-Downloading nest_asyncio-1.5.8-py3-none-any.whl (5.3 kB)
-Installing collected packages: nest-asyncio
-Successfully installed nest-asyncio-1.5.8
-WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
-
-[notice] A new release of pip is available: 24.0 -> 25.3
-[notice] To update, run: pip install --upgrade pip

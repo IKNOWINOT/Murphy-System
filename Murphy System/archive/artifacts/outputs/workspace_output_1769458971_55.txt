@@ -1,2 +1,0 @@
-2861:                        addTerminalLog(`🤖 Intent: ${librarianData.intent.category.toUpperCase()} (confidence: ${(librarianData.intent.confidence * 100).toFixed(0)}%)`, 'info');
-4454:            window.librarianPanel = new LibrarianPanel(API_BASE);

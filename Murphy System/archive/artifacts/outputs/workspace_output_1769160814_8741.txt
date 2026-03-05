@@ -1,4 +1,0 @@
-{
-    "message": "Error recording observation: 'str' object has no attribute 'value'",
-    "success": false
-}

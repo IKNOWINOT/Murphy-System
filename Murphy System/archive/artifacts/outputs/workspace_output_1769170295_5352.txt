@@ -1,1 +1,0 @@
-1038:@app.route('/api/artifacts/<artifact_id>/convert', methods=['POST'])

@@ -1,4 +1,0 @@
-{
-  "message": "Failed to initialize: 'ShadowAgentSystem' object has no attribute 'initialize_default_agents'",
-  "success": false
-}

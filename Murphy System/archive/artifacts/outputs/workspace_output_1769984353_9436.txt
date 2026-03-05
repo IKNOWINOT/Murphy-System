@@ -1,7 +1,0 @@
-  adding: murphy_system_documentation_package/ (stored 0%)
-  adding: murphy_system_documentation_package/PHASE_1_DISCOVERY_AND_GAP_ANALYSIS.md (deflated 66%)
-  adding: murphy_system_documentation_package/README.md (deflated 59%)
-  adding: murphy_system_documentation_package/FLEXIBLE_COMPLIANCE_AND_CONFIGURATION_SYSTEM.md (deflated 78%)
-  adding: murphy_system_documentation_package/FEATURE_COMPARISON_ANALYSIS.md (deflated 71%)
-  adding: murphy_system_documentation_package/SYSTEM_GUIDELINES.md (deflated 62%)
-  adding: murphy_system_documentation_package/COMPLETE_SYSTEM_INTEGRATION_PLAN.md (deflated 68%)

@@ -1,7 +1,0 @@
-3. Checking Murphy System component imports in backend:
-# Import Murphy System components
-try:
-    from mfgc_core import Phase, MFGCSystemState
-    from advanced_swarm_system import SwarmType, AdvancedSwarmGenerator
-    from constraint_system import ConstraintSystem
-    from gate_builder import GateBuilder

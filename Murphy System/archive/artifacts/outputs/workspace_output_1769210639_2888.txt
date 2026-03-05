@@ -1,9 +1,0 @@
-Pattern: b'&&'
-Pattern hex: 2626
-Expected: b'&amp;&amp;'
-Expected hex: 26616d703b26616d703b
-Are they equal? False
-Replaced && with &&
-Remaining occurrences: 6
-
-Line 2994: b'if (data.results &amp;&amp; data.results.length > 0) {'

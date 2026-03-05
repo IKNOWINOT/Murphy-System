@@ -1,3 +1,0 @@
-1736:        window.API_BASE = window.location.origin;
-1967:        const API_BASE = window.location.origin;
-1969:        window.API_BASE = API_BASE;

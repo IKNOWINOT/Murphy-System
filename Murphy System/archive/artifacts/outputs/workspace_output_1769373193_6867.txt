@@ -1,3 +1,0 @@
-2476:def get_commands():
-2522:def execute_command_endpoint():
-2548:def get_command_details(command_name):

@@ -1,6 +1,0 @@
-Testing initialize WITHOUT authentication (should be rejected)...
-{
-    "error": "authentication_required",
-    "message": "Authentication required. Provide Bearer token in Authorization header.",
-    "success": false
-}

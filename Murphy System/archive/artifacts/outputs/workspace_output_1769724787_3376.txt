@@ -1,2 +1,0 @@
-113:    librarian_system = LibrarianSystem(llm_client=llm_manager if llm_manager else None)
-118:    librarian_system = None

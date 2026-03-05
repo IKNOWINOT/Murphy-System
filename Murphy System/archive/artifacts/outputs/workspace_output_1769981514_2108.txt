@@ -1,2 +1,0 @@
-murphy_backup_extracted/murphy_complete_backend.py
-murphy_backup_extracted/setup.py

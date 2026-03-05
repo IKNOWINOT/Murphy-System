@@ -1,9 +1,0 @@
-Total public methods found: 0
-
-Sample methods (first 30):
-
-============================================================
-Checking CommandRegistry registration:
-============================================================
-
-No explicit command registration section found!

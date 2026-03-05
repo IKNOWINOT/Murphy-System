@@ -6,7 +6,7 @@ all four remaining tuning recommendations (#1, #2, #6, #7).
 
 Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
-License: Apache License 2.0
+License: BSL 1.1
 """
 
 import json

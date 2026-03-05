@@ -1,6 +1,0 @@
-================================================================================
-INTEGRATING AGENT COMMUNICATION SYSTEM
-================================================================================
-✗ Could not find initialization marker
-
-✗ Integration failed

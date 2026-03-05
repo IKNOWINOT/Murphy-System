@@ -1,4 +1,0 @@
-2766:                { name: 'librarian overview', description: 'Get system overview', options: [], implemented: false },
-3188:                        addTerminalLog('  /librarian ask <q>  - Ask a question', 'info');
-3191:                        addTerminalLog('  /librarian overview - System overview', 'info');
-3192:                        addTerminalLog('  /librarian guide    - Get guidance', 'info');

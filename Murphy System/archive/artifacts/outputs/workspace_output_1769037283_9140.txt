@@ -1,1 +1,0 @@
-{"states":[{"children":[],"confidence":0.95,"description":"Generated state for Root System State","id":"state-4aecc2c8","label":"Root System State","metadata":{},"parent_id":null,"timestamp":"2026-01-21T23:14:08.287286","type":"document"}]}

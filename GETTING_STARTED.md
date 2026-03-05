@@ -541,6 +541,6 @@ summary = archive.get_storage_summary()
 
 - **Explore the API** — Browse all 70+ endpoints at http://localhost:8000/docs.
 - **Try the onboarding wizard** — Open `onboarding_wizard.html` or run the CLI wizard for guided setup.
-- **Read the docs** — See the [`docs/`](docs/) directory for architecture details, deployment guides, and audit reports.
+- **Read the docs** — See the [User Manual](<Murphy System/USER_MANUAL.md>) and [API Documentation](<Murphy System/API_DOCUMENTATION.md>) for detailed guides.
 - **Run the tests** — Execute `pytest` from the repository root to verify your installation (8,200+ tests including 118 gap-closure regression tests).
 - **Contribute** — Read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on submitting changes.

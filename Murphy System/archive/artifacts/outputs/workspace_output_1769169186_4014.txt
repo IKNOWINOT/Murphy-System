@@ -1,4 +1,0 @@
-Verifying database persistence...
-Total states in database: 4
-
-Sample states:

@@ -1,8 +1,0 @@
-        window.addEventListener('load', () => {
-            addLog('Murphy System UI loaded', 'success');
-            updateStatus();
-            setInterval(updateStatus, 5000); // Update every 5 seconds
-        });
-    </script>
-</body>
-</html>

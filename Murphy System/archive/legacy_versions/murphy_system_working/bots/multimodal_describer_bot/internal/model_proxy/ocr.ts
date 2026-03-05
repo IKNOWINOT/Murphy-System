@@ -1,1 +1,0 @@
-export async function ocrImage(_ctx:any,_bytes:Uint8Array){ return { text:'[ocr unavailable: stub]', usage:{tokens_in:0,tokens_out:0,cost_usd:0.0} } }

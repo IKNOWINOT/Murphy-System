@@ -1,8 +1,0 @@
-{
-    "agents_count": 0,
-    "artifacts_count": 0,
-    "initialized": false,
-    "states_count": 0,
-    "status": "running",
-    "timestamp": "2026-01-29T15:50:15.925187"
-}

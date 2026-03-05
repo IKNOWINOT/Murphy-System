@@ -1,8 +1,0 @@
-734:        .init-modal {
-747:        .init-modal.hidden {
-751:        .init-modal-content {
-760:        .init-modal-content h2 {
-765:        .init-modal-content p {
-1777:    <div id="init-modal" class="init-modal">
-1778:        <div class="init-modal-content">
-4009:                    const modal = document.getElementById('init-modal');

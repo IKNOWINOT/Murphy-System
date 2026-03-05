@@ -1,6 +1,0 @@
-✓ Created: murphy_system_v2.1_UI_BUGFIXED_20260130_2123.zip
-✓ Size: 118,299 bytes (0.11 MB)
-✓ Files: 33
-
-✓ murphy_ui_final.html: 33,115 bytes
-✗✗✗ WRONG FILE SIZE ✗✗✗

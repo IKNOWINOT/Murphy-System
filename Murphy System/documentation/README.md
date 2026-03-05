@@ -1,7 +1,7 @@
 # Murphy System Runtime - Complete Documentation
 
 **Copyright © 2025 Corey Post InonI LLC**  
-**License:** Apache License 2.0  
+**License:** BSL 1.1 (converts to Apache 2.0 after 4 years)  
 **Contact:** corey.gfc@gmail.com
 
 ---
@@ -348,9 +348,9 @@ Common issues and solutions:
 
 ### License
 
-This project is licensed under the Apache License 2.0.
+This project is licensed under BSL 1.1 (converts to Apache 2.0 after 4 years).
 
-- [License](legal/LICENSE.md) - Full Apache License 2.0 text
+- [License](legal/LICENSE.md) - BSL 1.1 (converts to Apache 2.0 after 4 years)
 
 ### Copyright
 
@@ -463,5 +463,5 @@ When reporting issues, please include:
 ---
 
 **© 2025 Corey Post InonI LLC. All rights reserved.**  
-**Licensed under the Apache License, Version 2.0**  
+**Licensed under BSL 1.1 (converts to Apache 2.0 after 4 years)**  
 **Contact: corey.gfc@gmail.com**

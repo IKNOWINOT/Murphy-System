@@ -1,5 +1,0 @@
-/workspace/document_editor_panel.js:8:class DocumentEditorPanel {
-/workspace/librarian_panel.js:7:class LibrarianPanel {
-/workspace/monitoring_panel.js:6:class MonitoringPanel {
-/workspace/plan_review_panel.js:8:class PlanReviewPanel {
-/workspace/shadow_agent_panel.js:6:class ShadowAgentPanel {

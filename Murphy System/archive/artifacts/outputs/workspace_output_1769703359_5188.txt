@@ -1,2 +1,0 @@
-root        7743  0.3  6.6 23065248 266308 ?     Sl   15:27   0:09 node /usr/bin/n8n start
-root        7760  0.1  2.3 21999564 95952 ?      Sl   15:27   0:03 node --disallow-code-generation-from-strings --disable-proto=delete /usr/lib/node_modules/n8n/node_modules/@n8n/task-runner/dist/start.js

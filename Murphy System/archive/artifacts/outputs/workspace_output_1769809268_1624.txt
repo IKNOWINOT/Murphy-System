@@ -1,1 +1,0 @@
-368:    return send_from_directory('.', 'murphy_ui_complete.html')

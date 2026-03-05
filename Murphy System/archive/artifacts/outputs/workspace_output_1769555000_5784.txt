@@ -1,2 +1,0 @@
-Removed duplicate function (lines 2933 to 3014)
-Removed 82 lines

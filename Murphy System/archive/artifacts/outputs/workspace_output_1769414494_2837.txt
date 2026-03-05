@@ -1,1 +1,0 @@
-✓ Removed problematic section and added enhanced initialization

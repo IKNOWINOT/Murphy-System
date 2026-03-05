@@ -1,2 +1,0 @@
-root        2762  0.0  0.0   4352  3168 ?        S    15:51   0:00 bash -lc  python3 -m http.server 8090 > frontend.log 2>&1 
-root        2769  0.2  0.4  25864 18908 ?        S    15:51   0:00 python3 -m http.server 8090

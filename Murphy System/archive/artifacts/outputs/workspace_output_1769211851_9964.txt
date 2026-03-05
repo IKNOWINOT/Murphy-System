@@ -1,3 +1,0 @@
-root         664  0.0  0.4  25872 19088 ?        S    22:41   0:00 python3 -m http.server 9000
-root         665  0.0  0.4  25872 19032 ?        S    22:41   0:00 python -m http.server 9090
-root         667  0.0  0.4  25872 18992 ?        S    22:41   0:00 python -m http.server 9091

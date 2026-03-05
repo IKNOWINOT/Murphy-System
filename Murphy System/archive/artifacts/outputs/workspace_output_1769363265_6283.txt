@@ -1,6 +1,0 @@
-{
-  "agents_count": 5,
-  "message": "System data already initialized",
-  "states_count": 7,
-  "success": true
-}

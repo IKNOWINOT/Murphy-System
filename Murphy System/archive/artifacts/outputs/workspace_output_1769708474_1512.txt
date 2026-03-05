@@ -1,6 +1,0 @@
-✓ Multi-agent book generation integrated into Murphy system
-
-New endpoints added:
-  POST /api/book/generate-multi-agent
-  GET  /api/book/writing-styles
-  GET  /api/book/multi-agent/status

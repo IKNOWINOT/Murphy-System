@@ -1,6 +1,0 @@
-
-@app.route('/api/llm/status', methods=['GET'])
-def llm_status():
-    """Get LLM system status."""
-    try:
-        if not LLM_AVAILABLE or not llm_manager:

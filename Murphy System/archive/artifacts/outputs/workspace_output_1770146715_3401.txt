@@ -1,1 +1,0 @@
-MANIFEST not in temp location

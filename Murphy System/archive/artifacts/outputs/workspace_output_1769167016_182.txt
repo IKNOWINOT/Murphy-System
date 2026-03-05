@@ -1,3 +1,0 @@
-@app.route('/api/auth/login', methods=['POST'])
-@rate_limit(limit=5, per=60)  # 5 login attempts per minute
-def login():

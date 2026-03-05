@@ -3,7 +3,7 @@ Setup script for Murphy System Runtime
 
 Copyright 2024 Corey Post InonI LLC
 Contact: corey.gfc@gmail.com
-License: Apache License 2.0
+License: BSL 1.1
 """
 
 from setuptools import setup, find_packages

@@ -1,1 +1,0 @@
-549:    document.addEventListener('DOMContentLoaded', () => ArtifactPanel.init());

@@ -1,2 +1,0 @@
-8 /workspace/Murphy System Keys.txt
-/workspace/Murphy System Keys.txt: ASCII text, with CRLF line terminators

@@ -1,6 +1,0 @@
-{
-    "statistics": {
-        "total_events": 0
-    },
-    "success": true
-}

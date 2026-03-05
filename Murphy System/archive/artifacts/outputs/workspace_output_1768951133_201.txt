@@ -1,1 +1,0 @@
-720:    print(f"Aristotle (Claude) Available: {anthropic_client is not None}")

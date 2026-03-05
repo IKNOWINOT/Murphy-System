@@ -1,5 +1,0 @@
- client_id |   name    
------------+-----------
-         1 | Acme Corp
-(1 row)
-

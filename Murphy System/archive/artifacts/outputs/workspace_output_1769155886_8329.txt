@@ -1,3 +1,0 @@
-ERROR:__main__:✗ Failed to load LLM components: No module named 'aiohttp'
-ERROR:__main__:✗ Failed to load Monitoring components: No module named 'psutil'
-INFO:werkzeug:127.0.0.1 - - [23/Jan/2026 08:11:10] "[33mPOST /api/cooperative/workflows/execute HTTP/1.1[0m" 404 -

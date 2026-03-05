@@ -1,4 +1,0 @@
-TASKS_v1_Assign_Tasks|1
-TASKS_v1_Create_Tasks|1
-TASKS_v1_Generate_Reports|1
-TASKS_v1_Monitor_SLA|1

@@ -1,4 +1,0 @@
-Traceback (most recent call last):
-  File "/workspace/test_ui_bug_fixes.py", line 8, in <module>
-    from selenium import webdriver
-ModuleNotFoundError: No module named 'selenium'

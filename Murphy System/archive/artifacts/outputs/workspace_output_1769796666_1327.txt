@@ -1,7 +1,0 @@
-     1685  2026-01-30 18:10   murphy_system/UI_GUIDE.md
-     3398  2026-01-30 18:10   murphy_system/README.md
-    12705  2026-01-30 00:52   murphy_system/systematic_ui_test.py
-    17157  2026-01-30 00:55   murphy_system/complete_ui_validation.py
-     3895  2026-01-29 23:10   murphy_system/README_INSTALL.md
-     1396  2026-01-30 18:10   murphy_system/CHANGELOG.md
-    31840  2026-01-30 00:54   murphy_system/murphy_ui_final.html

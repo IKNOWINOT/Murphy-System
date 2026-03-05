@@ -1,5 +1,0 @@
-296:@app.route('/api/status', methods=['GET'])
-319:@app.route('/api/initialize', methods=['POST'])
-419:@app.route('/api/states', methods=['GET'])
-432:@app.route('/api/states/<state_id>/evolve', methods=['POST'])
-462:@app.route('/api/states/<state_id>/regenerate', methods=['POST'])

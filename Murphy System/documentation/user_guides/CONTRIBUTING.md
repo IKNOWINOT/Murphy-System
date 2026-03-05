@@ -571,4 +571,4 @@ By contributing to the Murphy System Runtime, you agree that your contributions 
 
 **Document Owner**: Corey Post InonI LLC
 **Contact**: corey.gfc@gmail.com
-**License**: Apache License 2.0
+**License**: BSL 1.1 (converts to Apache 2.0 after 4 years)
