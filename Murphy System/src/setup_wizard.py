@@ -627,13 +627,21 @@ def _fuzzy_match_multi_choice(raw: str, options: List[str]) -> Optional[List[str
     """Try to extract valid options from free-text input.
 
     Recognises ``"all"``, ``"all of them"``, ``"all of those"`` as selecting
-    every option.  Also attempts to find individual options mentioned in
-    the user's response.
+    every option.  Recognises uncertainty phrases like ``"I don't know"`` or
+    ``"skip"`` as an empty selection.  Also attempts to find individual options
+    mentioned in the user's response.
     """
     lower = raw.strip().lower()
     # "all" / "all of them" / "all of those" / "everything"
     if lower in ("all", "everything") or lower.startswith("all of"):
         return list(options)
+    # "none" / uncertainty / deferral phrases → empty list (use default)
+    _skip_phrases = (
+        "none", "skip", "later", "not yet", "not sure", "no idea",
+        "i don't know", "i dont know", "i don't know yet", "i dont know yet",
+    )
+    if lower in _skip_phrases:
+        return []
     # Try comma-separated first (normal path)
     parts = [v.strip() for v in raw.split(",") if v.strip()]
     valid = [p for p in parts if p in options]
@@ -656,6 +664,7 @@ def run_cli() -> None:
     print("=" * 40)
     print("Answer the following questions to configure your system.\n")
 
+    step = 0
     for q in questions:
         qid = q["id"]
         qtype = q["question_type"]
@@ -666,7 +675,8 @@ def run_cli() -> None:
             wizard.apply_answer(qid, [])
             continue
 
-        print(f"\n[{qid}] {q['text']}")
+        step += 1
+        print(f"\n[Step {step}] {q['text']}")
 
         if qtype == "choice":
             print(f"  Options: {', '.join(q['options'])}")
@@ -680,7 +690,7 @@ def run_cli() -> None:
 
         elif qtype == "multi_choice":
             print(f"  Options: {', '.join(q['options'])}")
-            print("  Enter comma-separated values (or press Enter for none):")
+            print("  Enter comma-separated values, 'all', or press Enter for none:")
             raw = input("  > ").strip()
             if not raw:
                 answer = q["default"] if q["default"] else []

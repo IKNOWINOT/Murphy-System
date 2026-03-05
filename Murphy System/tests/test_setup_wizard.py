@@ -412,9 +412,17 @@ class TestFuzzyMatchMultiChoice:
         result = _fuzzy_match_multi_choice("data, content", VALID_AUTOMATION_TYPES)
         assert result == ["data", "content"]
 
-    def test_no_match_returns_none(self):
+    def test_skip_phrase_returns_empty(self):
         result = _fuzzy_match_multi_choice("I dont know yet", VALID_COMPLIANCE_FRAMEWORKS)
-        assert result is None
+        assert result == []
+
+    def test_skip_none_keyword(self):
+        result = _fuzzy_match_multi_choice("skip", VALID_AUTOMATION_TYPES)
+        assert result == []
+
+    def test_skip_not_sure(self):
+        result = _fuzzy_match_multi_choice("not sure", VALID_AUTOMATION_TYPES)
+        assert result == []
 
     def test_single_word_match(self):
         result = _fuzzy_match_multi_choice("just data", VALID_AUTOMATION_TYPES)
