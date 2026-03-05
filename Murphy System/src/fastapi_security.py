@@ -133,7 +133,10 @@ class _FastAPIRateLimiter:
         self._last_cleanup = now
 
 
-_rate_limiter = _FastAPIRateLimiter()
+_rate_limiter = _FastAPIRateLimiter(
+    requests_per_minute=int(os.environ.get("MURPHY_RATE_LIMIT_RPM", "60")),
+    burst_size=int(os.environ.get("MURPHY_RATE_LIMIT_BURST", "20")),
+)
 
 
 # ── Input Sanitization ──────────────────────────────────────────────
