@@ -28,7 +28,7 @@ STANDARD_GREEN = '#00ff41'
 STANDARD_CYAN = '#00ffff'
 STANDARD_BG = '#0a0a0a'
 # Old colors that should NOT appear
-BANNED_GREENS = ['#00ff88']  # mint green from old onboarding wizard
+BANNED_GREENS = ['#00ff88', '#00ff00']  # old mint green and old lime green
 BANNED_FONTS = ["'Segoe UI'", 'system-ui', 'sans-serif']
 
 
@@ -92,7 +92,13 @@ def test_no_mint_green():
 
 def test_cyan_color_is_00ffff():
     """Every terminal HTML file must use #00ffff as cyan accent."""
-    terminal_files = [f for f in HTML_FILES if 'terminal' in f or 'architect' in f or 'worker' in f or 'enhanced' in f]
+    terminal_files = [
+        'terminal_architect.html',
+        'terminal_integrated.html',
+        'terminal_enhanced.html',
+        'terminal_worker.html',
+        'murphy_ui_integrated_terminal.html',
+    ]
     for fname in terminal_files:
         content = _read_html(fname)
         assert STANDARD_CYAN in content, (
