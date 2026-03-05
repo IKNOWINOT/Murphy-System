@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Round 45 AionMind gap closure** — 5 architectural gaps closed with 43 new tests:
+  - **Gap 1 (Medium):** Bot inventory → AionMind capability bridge — `bot_capability_bridge.py` auto-registers 20+ bot capabilities into CapabilityRegistry at startup
+  - **Gap 2 (Medium):** Live RSC wiring — `rsc_client_adapter.py` wraps in-process RSC or HTTP client and auto-injects into StabilityIntegration
+  - **Gap 3 (Low):** WorkflowDAGEngine bridge — `dag_bridge.py` compiles ExecutionGraphObject into legacy WorkflowDAGEngine workflows
+  - **Gap 4 (Low/2.0b):** Similarity-based memory retrieval — `MemoryLayer.search_similar()` with lightweight TF-IDF + cosine similarity (no external deps)
+  - **Gap 5 (Medium):** Existing endpoint integration — `AionMindKernel.cognitive_execute()` runs full cognitive pipeline; `/api/execute` and `/api/forms/*` route through AionMind with legacy fallback
+  - AionMind FastAPI router mounted at `/api/aionmind/*` in main app
+  - 43 new gap-closure tests (9 bridge + 9 RSC + 7 DAG + 9 similarity + 6 pipeline + 3 cross-gap)
+  - Updated badge: 8,240 → 8,283 tests; 351 → 352 test files
 - **Round 42 refined deep-scan** — eliminated false positives, confirmed zero real gaps:
   - Verified enum values are not real secrets (9 false positives excluded)
   - Verified REPL exec() is intentionally sandboxed (1 false positive excluded)
