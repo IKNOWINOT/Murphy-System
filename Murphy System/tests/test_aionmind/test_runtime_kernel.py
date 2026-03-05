@@ -13,7 +13,7 @@ from aionmind.runtime_kernel import AionMindKernel
 
 
 def _setup_kernel() -> AionMindKernel:
-    kernel = AionMindKernel()
+    kernel = AionMindKernel(auto_bridge_bots=False, auto_discover_rsc=False)
     kernel.register_capability(
         Capability(
             capability_id="cap-a",

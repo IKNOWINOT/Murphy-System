@@ -51,16 +51,21 @@ class AionMindKernel:
         *,
         stability_threshold: float = 0.5,
         rsc_client: Optional[Any] = None,
+        auto_bridge_bots: bool = True,
+        auto_discover_rsc: bool = True,
     ) -> None:
         # Layer 1
         self._context_engine = ContextEngine()
         # Layer 2
         self._registry = CapabilityRegistry()
         self._reasoning = ReasoningEngine(self._registry)
-        # Layer 3
+        # Layer 3 — RSC wiring (Gap 2)
+        effective_rsc = rsc_client
+        if effective_rsc is None and auto_discover_rsc:
+            effective_rsc = self._try_discover_rsc()
         self._stability = StabilityIntegration(
             stability_threshold=stability_threshold,
-            rsc_client=rsc_client,
+            rsc_client=effective_rsc,
         )
         # Layer 4
         self._orchestration = OrchestrationEngine(self._stability)
@@ -68,6 +73,35 @@ class AionMindKernel:
         self._memory = MemoryLayer()
         # Layer 6
         self._optimization = OptimizationEngine()
+
+        # Gap 1 — bot inventory → capability bridge
+        if auto_bridge_bots:
+            self._bridge_bot_capabilities()
+
+    # ── private bootstrap helpers ─────────────────────────────────
+
+    def _bridge_bot_capabilities(self) -> None:
+        """Auto-load bot_inventory_library capabilities into the registry."""
+        try:
+            from aionmind.bot_capability_bridge import (
+                load_bot_capabilities_into_registry,
+            )
+            count = load_bot_capabilities_into_registry(self._registry)
+            if count:
+                logger.info("Auto-bridged %d bot capabilities.", count)
+        except Exception:
+            logger.debug("Bot capability bridge unavailable — skipped.", exc_info=True)
+
+    @staticmethod
+    def _try_discover_rsc() -> Optional[Any]:
+        """Attempt to create an RSC adapter at startup."""
+        try:
+            from aionmind.rsc_client_adapter import create_rsc_adapter
+            adapter = create_rsc_adapter(auto_discover=True)
+            return adapter
+        except Exception:
+            logger.debug("RSC auto-discovery unavailable.", exc_info=True)
+            return None
 
     # ── accessors ─────────────────────────────────────────────────
 
@@ -180,6 +214,148 @@ class AionMindKernel:
 
     def approve_proposal(self, proposal_id: str, approver: str) -> bool:
         return self._optimization.approve_proposal(proposal_id, approver)
+
+    # ── Gap 3: WorkflowDAGEngine bridge ───────────────────────────
+
+    def compile_to_dag(
+        self,
+        graph: ExecutionGraphObject,
+        *,
+        dag_engine: Optional[Any] = None,
+    ) -> Dict[str, Any]:
+        """Optionally compile an ExecutionGraphObject into a legacy
+        WorkflowDAGEngine workflow for backward compatibility.
+
+        Returns a dict with ``workflow_id`` and ``engine`` on success,
+        or ``{"error": ...}`` on failure.
+        """
+        try:
+            from aionmind.dag_bridge import compile_to_workflow_dag
+            return compile_to_workflow_dag(graph, dag_engine=dag_engine)
+        except Exception as exc:
+            logger.debug("DAG bridge unavailable: %s", exc)
+            return {"error": str(exc)}
+
+    # ── Gap 5: Cognitive pipeline entry-point ─────────────────────
+
+    def cognitive_execute(
+        self,
+        *,
+        source: str = "api",
+        raw_input: str = "",
+        intent: str = "",
+        task_type: str = "general",
+        parameters: Optional[Dict[str, Any]] = None,
+        auto_approve: bool = False,
+        approver: str = "system",
+    ) -> Dict[str, Any]:
+        """High-level convenience that runs the full cognitive pipeline:
+        ``build_context → plan → select → (approve) → execute``.
+
+        This is the method existing endpoints (``/api/execute``,
+        ``/api/forms/*``) call to route through AionMind.
+
+        Parameters
+        ----------
+        source : str
+            Origin label (e.g. ``"api"``, ``"form"``, ``"user"``).
+        raw_input : str
+            The user's natural-language request.
+        intent : str
+            Detected or declared intent.
+        task_type : str
+            Task classification (``"general"``, ``"automation"``, etc.).
+        parameters : dict, optional
+            Extra parameters forwarded as metadata.
+        auto_approve : bool
+            When ``True`` the selected graph is auto-approved (for low-risk
+            tasks only; high-risk tasks still require human approval).
+        approver : str
+            Label for the approver when auto_approve is enabled.
+
+        Returns
+        -------
+        dict
+            Unified result with ``context``, ``graph``, ``execution``, and
+            ``pipeline`` keys.
+        """
+        meta = parameters or {}
+        meta["task_type"] = task_type
+
+        # Step 1 — build context
+        risk = RiskLevel.LOW
+        if task_type in ("integration", "deployment", "security"):
+            risk = RiskLevel.MEDIUM
+        ctx = self.build_context(
+            source=source,
+            raw_input=raw_input,
+            intent=intent or raw_input,
+            risk_level=risk,
+            metadata=meta,
+        )
+
+        # Step 2 — plan
+        candidates = self.plan(ctx, max_candidates=3)
+        if not candidates:
+            return {
+                "pipeline": "aionmind",
+                "context_id": ctx.context_id,
+                "status": "no_candidates",
+                "detail": "Reasoning engine produced no candidate graphs — "
+                          "check registered capabilities.",
+            }
+
+        # Step 3 — select best
+        graph = self.select(candidates, ctx)
+        if graph is None:
+            graph = candidates[0]
+
+        # Step 4 — approval gate
+        if auto_approve and ctx.risk_level in (RiskLevel.LOW, RiskLevel.MEDIUM):
+            graph.approved = True
+            graph.approved_by = approver
+        elif not graph.approved:
+            return {
+                "pipeline": "aionmind",
+                "context_id": ctx.context_id,
+                "graph_id": graph.graph_id,
+                "status": "pending_approval",
+                "graph": graph.model_dump(),
+                "note": "Graph requires human approval before execution.",
+            }
+
+        # Step 5 — execute
+        state = self.execute(graph)
+
+        # Step 6 — memory archival
+        self._memory.store_intermediate_state(
+            f"pipeline:{state.execution_id}",
+            {
+                "context_id": ctx.context_id,
+                "graph_id": graph.graph_id,
+                "execution_id": state.execution_id,
+                "status": state.status.value,
+                "task_type": task_type,
+                "raw_input": raw_input,
+            },
+        )
+
+        return {
+            "pipeline": "aionmind",
+            "context_id": ctx.context_id,
+            "graph_id": graph.graph_id,
+            "execution_id": state.execution_id,
+            "status": state.status.value,
+            "audit_trail": [
+                {
+                    "timestamp": a.timestamp,
+                    "node_id": a.node_id,
+                    "event": a.event,
+                    "details": a.details,
+                }
+                for a in state.audit_trail
+            ],
+        }
 
     # ── Observability ─────────────────────────────────────────────
 

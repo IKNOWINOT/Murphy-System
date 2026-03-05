@@ -35,6 +35,9 @@ from aionmind.orchestration_engine import OrchestrationEngine
 from aionmind.memory_layer import MemoryLayer
 from aionmind.optimization_engine import OptimizationEngine
 from aionmind.runtime_kernel import AionMindKernel
+from aionmind.bot_capability_bridge import load_bot_capabilities_into_registry
+from aionmind.rsc_client_adapter import RSCClientAdapter, create_rsc_adapter
+from aionmind.dag_bridge import compile_to_workflow_dag
 
 __all__ = [
     "ContextObject",
@@ -56,4 +59,8 @@ __all__ = [
     "MemoryLayer",
     "OptimizationEngine",
     "AionMindKernel",
+    "load_bot_capabilities_into_registry",
+    "RSCClientAdapter",
+    "create_rsc_adapter",
+    "compile_to_workflow_dag",
 ]
