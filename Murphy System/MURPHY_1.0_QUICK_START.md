@@ -291,7 +291,7 @@ curl -X POST http://localhost:8000/api/onboarding-flow/start \
   -H "Content-Type: application/json" \
   -d '{"name": "Alex Smith", "email": "alex@company.com"}'
 
-# 3. Assign shadow agent (becomes Employee IP)
+# 3. Assign shadow agent (becomes Employee IP; position_id is optional)
 curl -X POST http://localhost:8000/api/onboarding-flow/sessions/{id}/shadow-agent \
   -H "Content-Type: application/json" -d '{}'
 
