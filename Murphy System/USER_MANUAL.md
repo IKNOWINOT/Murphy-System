@@ -27,6 +27,12 @@
 17. [API Reference](#chapter-17-api-reference)
 18. [Troubleshooting](#chapter-18-troubleshooting)
 19. [Business Model](#chapter-19-business-model)
+20. [No-Code Workflow Builder](#chapter-20-no-code-workflow-builder)
+21. [Onboarding & Org Chart](#chapter-21-onboarding--org-chart)
+22. [IP Classification & Trade Secrets](#chapter-22-ip-classification--trade-secrets)
+23. [Credential Profiles & Automation Metrics](#chapter-23-credential-profiles--automation-metrics)
+24. [Agent Monitor Dashboard](#chapter-24-agent-monitor-dashboard)
+25. [Complete User Journey](#chapter-25-complete-user-journey)
 
 ---
 
@@ -1264,6 +1270,444 @@ curl http://localhost:8000/api/health
 
 ---
 
+## Chapter 20: No-Code Workflow Builder
+
+The No-Code Workflow Builder provides a conversational "Librarian" terminal where you describe what you want to automate in natural language. The Librarian infers configuration, creates workflow steps in real-time, assigns monitoring agents, and compiles deployable workflows.
+
+### 20.1 Creating a Session
+
+```bash
+curl -X POST http://localhost:8000/api/workflow-terminal/sessions
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "session": {
+    "session_id": "abc-123",
+    "state": "greeting",
+    "conversation_history": [
+      {
+        "role": "librarian",
+        "message": "Welcome to the Murphy No-Code Workflow Builder. I'm your Librarian — describe what you'd like to automate..."
+      }
+    ]
+  }
+}
+```
+
+### 20.2 Describing Your Workflow
+
+Send a natural language message and the Librarian infers which steps to create:
+
+```bash
+curl -X POST http://localhost:8000/api/workflow-terminal/sessions/{session_id}/message \
+  -H "Content-Type: application/json" \
+  -d '{"message": "I need to monitor our API endpoints and send notifications on failures"}'
+```
+
+**Response includes:**
+- `steps_created` — each workflow step built in real-time
+- `agent_status` — monitoring agents assigned to each step
+- `inferences` — what the Librarian understood from your description
+- `workflow_snapshot` — current state of the full workflow
+
+### 20.3 Supported Intent Categories
+
+The Librarian recognizes 10 automation categories from keywords in your description:
+
+| Category | Keywords | Step Type |
+|----------|----------|-----------|
+| Data Processing | process, transform, etl, csv, database | Transform |
+| Notification | notify, alert, email, slack, sms | Action |
+| Monitoring | monitor, watch, track, health, uptime | Action |
+| Scheduling | schedule, cron, daily, weekly, recurring | Action |
+| API Integration | api, rest, endpoint, webhook, fetch | Connector |
+| Content Generation | generate, create, write, report, pdf | Action |
+| Security | security, scan, audit, compliance, encrypt | Action |
+| Deployment | deploy, release, build, ci, docker | Action |
+| Approval | approve, review, sign-off, authorize | Condition |
+| Onboarding | onboard, welcome, new hire, provision | Action |
+
+### 20.4 Reviewing and Finalizing
+
+```bash
+# Review current state
+curl -X POST http://localhost:8000/api/workflow-terminal/sessions/{session_id}/message \
+  -H "Content-Type: application/json" \
+  -d '{"message": "review the workflow"}'
+
+# Finalize and compile
+curl -X POST http://localhost:8000/api/workflow-terminal/sessions/{session_id}/message \
+  -H "Content-Type: application/json" \
+  -d '{"message": "finalize"}'
+```
+
+### 20.5 Compiling and Exporting
+
+```bash
+curl http://localhost:8000/api/workflow-terminal/sessions/{session_id}/compile
+```
+
+Returns a compiled workflow with nodes, edges, and agent configurations ready for execution.
+
+### 20.6 Agent Drill-Down
+
+Inspect any agent's activity during workflow building:
+
+```bash
+curl http://localhost:8000/api/workflow-terminal/sessions/{session_id}/agents/{agent_id}
+```
+
+---
+
+## Chapter 21: Onboarding & Org Chart
+
+The Onboarding Flow manages the complete journey from corporate org chart setup through individual onboarding to the no-code workflow builder.
+
+### 21.1 Initialize Corporate Org Chart
+
+Set up the default org chart with 12 agentic positions:
+
+```bash
+curl -X POST http://localhost:8000/api/onboarding-flow/org/initialize
+```
+
+**Creates positions across:**
+- **C-Suite:** CEO, CTO, COO, CFO
+- **VP Level:** VP Engineering, VP Sales, VP Product
+- **Managers:** Engineering Manager, Product Manager, Sales Manager
+- **ICs:** Software Engineer, Sales Representative
+
+Each position has a shadow agent configuration with monitoring level and auto-escalation settings. The org chart structure is classified as **Business IP**.
+
+### 21.2 View Org Chart
+
+```bash
+# Full hierarchical chart
+curl http://localhost:8000/api/onboarding-flow/org/chart
+
+# List all positions
+curl http://localhost:8000/api/onboarding-flow/org/positions
+```
+
+### 21.3 Start Individual Onboarding
+
+```bash
+curl -X POST http://localhost:8000/api/onboarding-flow/start \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alex Smith", "email": "alex@company.com"}'
+```
+
+### 21.4 Onboarding Questions
+
+The system provides 10 onboarding questions covering:
+
+| Category | Questions |
+|----------|-----------|
+| Personal | Full name, work email |
+| Role | Department, position, manager |
+| Responsibilities | Primary job duties |
+| Tools | GitHub, Jira, Slack, Salesforce, etc. |
+| Automation | Repetitive tasks to automate |
+| Preferences | Notification style |
+| Security | Compliance requirements (HIPAA, SOC2, GDPR, PCI-DSS) |
+
+```bash
+# Get questions
+curl http://localhost:8000/api/onboarding-flow/sessions/{session_id}/questions
+
+# Answer a question
+curl -X POST http://localhost:8000/api/onboarding-flow/sessions/{session_id}/answer \
+  -H "Content-Type: application/json" \
+  -d '{"question_id": "q1", "answer": "Alex Smith"}'
+```
+
+### 21.5 Shadow Agent Assignment
+
+Shadow agents are assigned to onboarded individuals. The agent learns from their work patterns and becomes **Employee IP**:
+
+```bash
+curl -X POST http://localhost:8000/api/onboarding-flow/sessions/{session_id}/shadow-agent \
+  -H "Content-Type: application/json" \
+  -d '{"position_id": "pos-123"}'
+```
+
+### 21.6 Transition to Workflow Builder
+
+After onboarding, the system naturally transitions to the no-code builder with pre-loaded context:
+
+```bash
+curl -X POST http://localhost:8000/api/onboarding-flow/sessions/{session_id}/transition
+```
+
+The builder context includes the employee's name, position, shadow agent ID, and suggested automations based on their role and answers.
+
+---
+
+## Chapter 22: IP Classification & Trade Secrets
+
+Murphy manages intellectual property across three tiers with trade secret protection.
+
+### 22.1 Three-Tier IP Model
+
+| Tier | Source | Protection | Owner |
+|------|--------|------------|-------|
+| **Employee IP** | Shadow agent learning data | Confidential | Employee |
+| **Business IP** | Org chart interactions, process flows | Restricted | Business |
+| **System IP** | Aggregated automation metrics | Internal (licensed to Murphy) | System |
+
+### 22.2 Registering IP Assets
+
+```bash
+# Employee IP (from shadow agent)
+curl -X POST http://localhost:8000/api/ip/assets \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Work Patterns",
+    "description": "Shadow agent learning data",
+    "classification": "employee_ip",
+    "owner_id": "emp-001",
+    "owner_type": "employee"
+  }'
+
+# Business IP (trade secret)
+curl -X POST http://localhost:8000/api/ip/assets \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Department Interaction Map",
+    "description": "How engineering interacts with product",
+    "classification": "business_ip",
+    "owner_id": "org-001",
+    "owner_type": "business",
+    "is_trade_secret": true
+  }'
+```
+
+### 22.3 Trade Secret Protection
+
+Trade secrets receive additional protections:
+- Access logging on every attempt
+- Need-to-know basis restrictions
+- NDA requirement tracking
+- Encryption at rest designation
+
+### 22.4 Access Control
+
+```bash
+curl -X POST http://localhost:8000/api/ip/assets/{asset_id}/access-check \
+  -H "Content-Type: application/json" \
+  -d '{"requester_id": "user-123"}'
+```
+
+Returns `allowed: true/false` with reason (owner access, licensed access, or restricted).
+
+### 22.5 IP Summary
+
+```bash
+curl http://localhost:8000/api/ip/summary
+```
+
+Returns breakdown by classification, protection level, trade secret count, and active licenses.
+
+---
+
+## Chapter 23: Credential Profiles & Automation Metrics
+
+HITL credential profiles track user interaction patterns to build optimal automation recommendations.
+
+### 23.1 Creating Profiles
+
+```bash
+curl -X POST http://localhost:8000/api/credentials/profiles \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "user-001", "user_name": "Jane Doe", "role": "engineer"}'
+```
+
+### 23.2 Recording Interactions
+
+Every HITL decision is tracked:
+
+```bash
+curl -X POST http://localhost:8000/api/credentials/profiles/{profile_id}/interactions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "interaction_type": "approval",
+    "context": "deploy-v2",
+    "decision": "approved",
+    "confidence_before": 0.7,
+    "confidence_after": 0.9,
+    "response_time_ms": 1500
+  }'
+```
+
+**Interaction types:** approval, rejection, modification, escalation, override, delegation, review.
+
+### 23.3 Tier Progression
+
+| Tier | Interactions Required |
+|------|-----------------------|
+| New | 0-9 |
+| Learning | 10-49 |
+| Established | 50-199 |
+| Expert | 200-499 |
+| Authority | 500+ |
+
+### 23.4 Trust Score
+
+The automation trust score (0.0–1.0) is computed from approval/rejection ratios:
+- High approval rate → higher trust → more automation
+- High rejection rate → lower trust → more human oversight
+
+### 23.5 Optimal Automation Metrics (System IP)
+
+```bash
+curl http://localhost:8000/api/credentials/metrics
+```
+
+Returns system-wide metrics licensed to Murphy for improving recommendations:
+- `auto_approve_confidence` — threshold above which tasks can be auto-approved
+- `escalation_confidence` — threshold below which tasks should be escalated
+- `target_response_time_ms` — target for human review speed
+
+---
+
+## Chapter 24: Agent Monitor Dashboard
+
+The Agent Monitor Dashboard provides real-time visibility into all agents in the system.
+
+### 24.1 Registering Agents
+
+```bash
+curl -X POST http://localhost:8000/api/agent-dashboard/agents \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "API Monitor",
+    "role": "monitor",
+    "monitoring_mode": "active",
+    "targets": ["api-service"],
+    "metrics": ["latency", "error_rate"]
+  }'
+```
+
+### 24.2 Dashboard Snapshot
+
+```bash
+curl http://localhost:8000/api/agent-dashboard/snapshot
+```
+
+Returns total agents, agents by state, agents by role, total alerts, and summaries.
+
+### 24.3 Agent Drill-Down
+
+```bash
+# Full agent details
+curl http://localhost:8000/api/agent-dashboard/agents/{agent_id}
+
+# Activity log
+curl http://localhost:8000/api/agent-dashboard/agents/{agent_id}/activity
+```
+
+### 24.4 Agent States
+
+| State | Description |
+|-------|-------------|
+| idle | Agent registered but not actively monitoring |
+| monitoring | Actively monitoring assigned targets |
+| executing | Running a task |
+| alerting | Has raised an alert |
+| paused | Temporarily paused |
+| error | Agent encountered an error |
+| terminated | Agent deregistered |
+
+---
+
+## Chapter 25: Complete User Journey
+
+This chapter walks through the complete flow from initial setup to active automation.
+
+### Step 1 — Initialize the Organization
+
+```bash
+curl -X POST http://localhost:8000/api/onboarding-flow/org/initialize
+# Creates 12 agentic positions with reporting chains
+# Org chart = Business IP
+```
+
+### Step 2 — Onboard an Individual
+
+```bash
+# Start onboarding
+curl -X POST http://localhost:8000/api/onboarding-flow/start \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alex Smith", "email": "alex@company.com"}'
+
+# Answer onboarding questions (10 questions)
+curl -X POST http://localhost:8000/api/onboarding-flow/sessions/{id}/answer \
+  -H "Content-Type: application/json" \
+  -d '{"question_id": "q1", "answer": "Alex Smith"}'
+```
+
+### Step 3 — Assign Shadow Agent
+
+```bash
+curl -X POST http://localhost:8000/api/onboarding-flow/sessions/{id}/shadow-agent \
+  -H "Content-Type: application/json" \
+  -d '{"position_id": "pos-cto"}'
+# Shadow agent = Employee IP
+```
+
+### Step 4 — Transition to No-Code Builder
+
+```bash
+curl -X POST http://localhost:8000/api/onboarding-flow/sessions/{id}/transition
+# Returns builder context with suggested automations
+```
+
+### Step 5 — Build Workflow with Librarian
+
+```bash
+# Create builder session
+curl -X POST http://localhost:8000/api/workflow-terminal/sessions
+
+# Describe your automation
+curl -X POST http://localhost:8000/api/workflow-terminal/sessions/{id}/message \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Monitor our servers and alert on failures"}'
+
+# Finalize
+curl -X POST http://localhost:8000/api/workflow-terminal/sessions/{id}/message \
+  -H "Content-Type: application/json" \
+  -d '{"message": "finalize"}'
+```
+
+### Step 6 — Monitor Agents
+
+```bash
+# Register workflow agents on dashboard
+curl -X POST http://localhost:8000/api/agent-dashboard/agents \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Server Monitor", "role": "monitor", "monitoring_mode": "active"}'
+
+# View dashboard
+curl http://localhost:8000/api/agent-dashboard/snapshot
+```
+
+### Step 7 — Track IP & Credentials
+
+```bash
+# Register automation metrics as System IP
+curl -X POST http://localhost:8000/api/ip/assets \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Q1 Metrics", "classification": "system_ip", "owner_id": "murphy_system"}'
+
+# View optimal automation metrics
+curl http://localhost:8000/api/credentials/metrics
+```
+
+---
+
 ## Appendix B: Glossary
 
 | Term | Definition |
@@ -1276,10 +1720,16 @@ curl http://localhost:8000/api/health
 | **Exposure** | The blast radius of a potential failure |
 | **Packet** | Self-contained execution unit with task, plan, gates, and risk assessment |
 | **Drift** | Divergence of an agent's behavior from expected baseline |
-| **Shadow Agent** | A model trained on corrections that runs in parallel for evaluation |
+| **Shadow Agent** | An AI agent that mirrors a human role, learning from their work patterns; becomes Employee IP |
 | **Solidify** | Finalize and lock an artifact after validation |
 | **Magnify** | Deep inspection of an artifact's trust and confidence scores |
 | **UCP** | Universal Control Plane — the routing layer for all automation types |
+| **Librarian** | The conversational AI in the no-code workflow builder that infers and builds automations |
+| **Employee IP** | Intellectual property generated by shadow agents learning employee work patterns |
+| **Business IP** | Intellectual property from org chart structure and system interaction patterns |
+| **System IP** | Aggregated automation metrics licensed to Murphy for improving recommendations |
+| **Trade Secret** | Protected IP with restricted access, audit logging, and need-to-know controls |
+| **Credential Profile** | HITL user profile tracking approval patterns, trust scores, and tier progression |
 
 ---
 

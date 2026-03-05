@@ -33,6 +33,11 @@ All endpoints are prefixed with `/api`.
 | **Core** | `/api/health`, `/api/status`, `/api/execute`, `/api/chat` | Health checks, system status, task execution, chat |
 | **Forms** | `/api/forms/*` | Form intake and processing |
 | **Onboarding** | `/api/onboarding/wizard/*` | Guided onboarding wizard |
+| **Onboarding Flow** | `/api/onboarding-flow/*` | Corporate org chart, individual onboarding, shadow agent assignment |
+| **Workflow Terminal** | `/api/workflow-terminal/*` | No-code Librarian terminal — describe workflows in natural language |
+| **Agent Dashboard** | `/api/agent-dashboard/*` | Real-time agent monitoring with drill-down |
+| **IP Classification** | `/api/ip/*` | IP asset registration, trade secret protection, licensing |
+| **Credentials** | `/api/credentials/*` | HITL credential profiles and optimal automation metrics |
 | **Librarian** | `/api/librarian/*` | Knowledge-base and document librarian |
 | **Documents** | `/api/documents/*` | Document management |
 | **Integrations** | `/api/integrations/*` | External system integrations |
@@ -111,13 +116,18 @@ kubectl apply -f k8s/
 Murphy System/
 ├── murphy_system_1.0_runtime.py   # Entry point — FastAPI server
 ├── murphy_terminal.py             # Optional Textual TUI
-├── src/                           # 584 modules, 54 packages
+├── src/                           # 590+ modules, 54 packages
 │   ├── config.py                  # Pydantic settings
 │   ├── confidence_engine/         # Murphy Formula / Gate / Confidence
 │   ├── execution_engine/          # Task execution
 │   ├── form_intake/               # Form processing
 │   ├── learning_engine/           # Corrections & shadow-agent training
 │   ├── supervisor_system/         # HITL monitoring
+│   ├── nocode_workflow_terminal.py # Librarian-powered no-code workflow builder
+│   ├── agent_monitor_dashboard.py  # Real-time agent monitoring dashboard
+│   ├── onboarding_flow.py         # Org chart + onboarding + shadow agents
+│   ├── ip_classification_engine.py # 3-tier IP classification & trade secrets
+│   ├── credential_profile_system.py # HITL credential profiles & metrics
 │   └── ...                        # Additional subsystem packages
 ├── tests/                         # Pytest test suite
 ├── docs/                          # Project documentation
