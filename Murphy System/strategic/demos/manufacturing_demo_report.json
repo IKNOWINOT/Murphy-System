@@ -1,6 +1,6 @@
 {
   "demo": "manufacturing_iot_safety",
-  "generated": "2026-03-05T01:37:06.448257",
+  "generated": "2026-03-05T01:38:38.388975",
   "verified_by": "Corey Post \u2014 Inoni LLC",
   "summary": {
     "total": 5,
@@ -22,7 +22,7 @@
           "w_d": 0.55,
           "kappa": 0.2
         },
-        "timestamp": "2026-03-05T01:37:06.446818"
+        "timestamp": "2026-03-05T01:38:38.388759"
       },
       "safety_gate": {
         "gate_id": "safety_critical",
@@ -72,7 +72,7 @@
           "w_d": 0.55,
           "kappa": 0.2
         },
-        "timestamp": "2026-03-05T01:37:06.447067"
+        "timestamp": "2026-03-05T01:38:38.388813"
       },
       "safety_gate": {
         "gate_id": "safety_critical",
@@ -122,7 +122,7 @@
           "w_d": 0.55,
           "kappa": 0.15
         },
-        "timestamp": "2026-03-05T01:37:06.447307"
+        "timestamp": "2026-03-05T01:38:38.388853"
       },
       "safety_gate": {
         "gate_id": "safety_critical",
@@ -172,7 +172,7 @@
           "w_d": 0.55,
           "kappa": 0.2
         },
-        "timestamp": "2026-03-05T01:37:06.447536"
+        "timestamp": "2026-03-05T01:38:38.388888"
       },
       "safety_gate": {
         "gate_id": "safety_critical",
@@ -222,7 +222,7 @@
           "w_d": 0.45,
           "kappa": 0.15
         },
-        "timestamp": "2026-03-05T01:37:06.447786"
+        "timestamp": "2026-03-05T01:38:38.388921"
       },
       "safety_gate": {
         "gate_id": "safety_critical",

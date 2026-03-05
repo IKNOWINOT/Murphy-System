@@ -1,6 +1,6 @@
 {
   "demo": "financial_compliance",
-  "generated": "2026-03-05T01:37:06.443290",
+  "generated": "2026-03-05T01:38:38.387362",
   "verified_by": "Corey Post \u2014 Inoni LLC",
   "summary": {
     "total": 4,
@@ -22,7 +22,7 @@
           "w_d": 0.55,
           "kappa": 0.2
         },
-        "timestamp": "2026-03-05T01:37:06.442328"
+        "timestamp": "2026-03-05T01:38:38.387117"
       },
       "budget_gate": {
         "gate_id": "budget_risk",
@@ -82,7 +82,7 @@
           "w_d": 0.55,
           "kappa": 0.2
         },
-        "timestamp": "2026-03-05T01:37:06.442583"
+        "timestamp": "2026-03-05T01:38:38.387176"
       },
       "budget_gate": {
         "gate_id": "budget_risk",
@@ -142,7 +142,7 @@
           "w_d": 0.55,
           "kappa": 0.2
         },
-        "timestamp": "2026-03-05T01:37:06.442862"
+        "timestamp": "2026-03-05T01:38:38.387225"
       },
       "budget_gate": {
         "gate_id": "budget_risk",
@@ -202,7 +202,7 @@
           "w_d": 0.45,
           "kappa": 0.15
         },
-        "timestamp": "2026-03-05T01:37:06.443105"
+        "timestamp": "2026-03-05T01:38:38.387314"
       },
       "budget_gate": {
         "gate_id": "budget_risk",
