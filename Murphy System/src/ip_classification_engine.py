@@ -272,6 +272,7 @@ class IPClassificationEngine:
 
         asset.is_trade_secret = True
         asset.protection_level = ProtectionLevel.TRADE_SECRET
+        asset.metadata["original_classification"] = asset.classification.value
         asset.classification = IPClassification.TRADE_SECRET
         asset.updated_at = datetime.now(timezone.utc).isoformat()
 

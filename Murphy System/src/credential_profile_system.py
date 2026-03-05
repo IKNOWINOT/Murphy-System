@@ -326,8 +326,11 @@ class CredentialProfileSystem:
             "tier_distribution": tier_distribution,
             "ip_classification": "system_ip",
             "optimal_thresholds": {
+                # Cap at 0.95 max; slightly above avg trust to encourage automation
                 "auto_approve_confidence": round(min(0.95, avg_trust + 0.1), 2),
+                # Floor at 0.2; below this trust level, escalate to human
                 "escalation_confidence": round(max(0.2, avg_trust - 0.3), 2),
+                # Target 20% faster than current average; default 1s if no data
                 "target_response_time_ms": round(avg_response * 0.8, 2) if avg_response > 0 else 1000.0,
             },
         }

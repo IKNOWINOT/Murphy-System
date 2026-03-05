@@ -862,7 +862,7 @@ class TestEndToEndOnboardingToBuilder:
 
         # Check results
         assert profile.total_approvals == 5
-        assert profile.tier == ProfileTier.NEW  # <10 interactions
+        assert profile.tier == ProfileTier.NEW  # 5 interactions; LEARNING requires >=10
         assert dashboard.get_agent_detail(agent.agent_id) is not None
 
         # Optimal metrics

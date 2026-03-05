@@ -14607,6 +14607,314 @@ def create_app() -> FastAPI:
             return JSONResponse({"success": False, "error": "Onboarding engine not available"}, status_code=503)
         return JSONResponse({"success": True, **_onboarding_engine.get_status()})
 
+    # ==================== NO-CODE WORKFLOW LIBRARIAN TERMINAL ====================
+
+    try:
+        from src.nocode_workflow_terminal import NoCodeWorkflowTerminal
+        _workflow_terminal = NoCodeWorkflowTerminal()
+    except ImportError:
+        _workflow_terminal = None
+
+    @app.post("/api/workflow-terminal/sessions")
+    async def create_workflow_terminal_session():
+        """Create a new Librarian workflow builder session."""
+        if _workflow_terminal is None:
+            return JSONResponse({"success": False, "error": "Workflow terminal not available"}, status_code=503)
+        session = _workflow_terminal.create_session()
+        return JSONResponse({"success": True, "session": session.to_dict()})
+
+    @app.post("/api/workflow-terminal/sessions/{session_id}/message")
+    async def send_workflow_terminal_message(session_id: str, request: Request):
+        """Send a message to the Librarian in an existing session."""
+        if _workflow_terminal is None:
+            return JSONResponse({"success": False, "error": "Workflow terminal not available"}, status_code=503)
+        data = await request.json()
+        result = _workflow_terminal.send_message(session_id, data.get("message", ""))
+        return JSONResponse({"success": True, **result})
+
+    @app.get("/api/workflow-terminal/sessions/{session_id}")
+    async def get_workflow_terminal_session(session_id: str):
+        """Get details of a workflow terminal session."""
+        if _workflow_terminal is None:
+            return JSONResponse({"success": False, "error": "Workflow terminal not available"}, status_code=503)
+        session = _workflow_terminal.get_session(session_id)
+        if not session:
+            return JSONResponse({"success": False, "error": "Session not found"}, status_code=404)
+        return JSONResponse({"success": True, "session": session.to_dict()})
+
+    @app.get("/api/workflow-terminal/sessions/{session_id}/compile")
+    async def compile_workflow_terminal(session_id: str):
+        """Compile the workflow from a terminal session."""
+        if _workflow_terminal is None:
+            return JSONResponse({"success": False, "error": "Workflow terminal not available"}, status_code=503)
+        compiled = _workflow_terminal.compile_workflow(session_id)
+        if not compiled:
+            return JSONResponse({"success": False, "error": "Cannot compile"}, status_code=400)
+        return JSONResponse({"success": True, "workflow": compiled})
+
+    @app.get("/api/workflow-terminal/sessions/{session_id}/agents/{agent_id}")
+    async def get_workflow_terminal_agent(session_id: str, agent_id: str):
+        """Drill down into a specific agent's activity in a session."""
+        if _workflow_terminal is None:
+            return JSONResponse({"success": False, "error": "Workflow terminal not available"}, status_code=503)
+        detail = _workflow_terminal.get_agent_detail(session_id, agent_id)
+        if not detail:
+            return JSONResponse({"success": False, "error": "Agent not found"}, status_code=404)
+        return JSONResponse({"success": True, "agent_detail": detail})
+
+    @app.get("/api/workflow-terminal/sessions")
+    async def list_workflow_terminal_sessions():
+        """List all active workflow terminal sessions."""
+        if _workflow_terminal is None:
+            return JSONResponse({"success": False, "error": "Workflow terminal not available"}, status_code=503)
+        return JSONResponse({"success": True, "sessions": _workflow_terminal.list_sessions()})
+
+    # ==================== AGENT MONITOR DASHBOARD ====================
+
+    try:
+        from src.agent_monitor_dashboard import AgentMonitorDashboard
+        _agent_dashboard = AgentMonitorDashboard()
+    except ImportError:
+        _agent_dashboard = None
+
+    @app.post("/api/agent-dashboard/agents")
+    async def register_dashboard_agent(request: Request):
+        """Register an agent on the monitoring dashboard."""
+        if _agent_dashboard is None:
+            return JSONResponse({"success": False, "error": "Agent dashboard not available"}, status_code=503)
+        data = await request.json()
+        agent = _agent_dashboard.register_agent(
+            name=data.get("name", ""),
+            role=data.get("role", "monitor"),
+            monitoring_mode=data.get("monitoring_mode", "passive"),
+            targets=data.get("targets"),
+            metrics=data.get("metrics"),
+            config=data.get("config"),
+        )
+        return JSONResponse({"success": True, "agent": agent.to_dict()})
+
+    @app.get("/api/agent-dashboard/snapshot")
+    async def get_agent_dashboard_snapshot():
+        """Get a point-in-time snapshot of all agents."""
+        if _agent_dashboard is None:
+            return JSONResponse({"success": False, "error": "Agent dashboard not available"}, status_code=503)
+        snapshot = _agent_dashboard.get_dashboard_snapshot()
+        return JSONResponse({"success": True, "snapshot": snapshot.to_dict()})
+
+    @app.get("/api/agent-dashboard/agents/{agent_id}")
+    async def get_dashboard_agent_detail(agent_id: str):
+        """Drill down into a specific agent's full details."""
+        if _agent_dashboard is None:
+            return JSONResponse({"success": False, "error": "Agent dashboard not available"}, status_code=503)
+        detail = _agent_dashboard.get_agent_detail(agent_id)
+        if not detail:
+            return JSONResponse({"success": False, "error": "Agent not found"}, status_code=404)
+        return JSONResponse({"success": True, "agent": detail})
+
+    @app.get("/api/agent-dashboard/agents/{agent_id}/activity")
+    async def get_dashboard_agent_activity(agent_id: str):
+        """Get the activity log for a specific agent."""
+        if _agent_dashboard is None:
+            return JSONResponse({"success": False, "error": "Agent dashboard not available"}, status_code=503)
+        activities = _agent_dashboard.get_agent_activity(agent_id)
+        if activities is None:
+            return JSONResponse({"success": False, "error": "Agent not found"}, status_code=404)
+        return JSONResponse({"success": True, "activities": activities})
+
+    @app.get("/api/agent-dashboard/agents")
+    async def list_dashboard_agents():
+        """List all agents on the dashboard."""
+        if _agent_dashboard is None:
+            return JSONResponse({"success": False, "error": "Agent dashboard not available"}, status_code=503)
+        return JSONResponse({"success": True, "agents": _agent_dashboard.list_agents()})
+
+    # ==================== ONBOARDING FLOW + ORG CHART ====================
+
+    try:
+        from src.onboarding_flow import OnboardingFlow
+        _onboarding_flow = OnboardingFlow()
+    except ImportError:
+        _onboarding_flow = None
+
+    @app.post("/api/onboarding-flow/org/initialize")
+    async def initialize_org_chart():
+        """Initialize the corporate org chart with default positions."""
+        if _onboarding_flow is None:
+            return JSONResponse({"success": False, "error": "Onboarding flow not available"}, status_code=503)
+        result = _onboarding_flow.initialize_org()
+        return JSONResponse({"success": True, **result})
+
+    @app.get("/api/onboarding-flow/org/chart")
+    async def get_org_chart():
+        """Get the full corporate org chart."""
+        if _onboarding_flow is None:
+            return JSONResponse({"success": False, "error": "Onboarding flow not available"}, status_code=503)
+        return JSONResponse({"success": True, "org_chart": _onboarding_flow.org_chart.get_org_chart()})
+
+    @app.get("/api/onboarding-flow/org/positions")
+    async def list_org_positions():
+        """List all positions in the org chart."""
+        if _onboarding_flow is None:
+            return JSONResponse({"success": False, "error": "Onboarding flow not available"}, status_code=503)
+        return JSONResponse({"success": True, "positions": _onboarding_flow.org_chart.list_positions()})
+
+    @app.post("/api/onboarding-flow/start")
+    async def start_onboarding_flow(request: Request):
+        """Start an onboarding session for a new individual."""
+        if _onboarding_flow is None:
+            return JSONResponse({"success": False, "error": "Onboarding flow not available"}, status_code=503)
+        data = await request.json()
+        session = _onboarding_flow.start_onboarding(
+            employee_name=data.get("name", ""),
+            employee_email=data.get("email", ""),
+        )
+        return JSONResponse({"success": True, "session": session.to_dict()})
+
+    @app.get("/api/onboarding-flow/sessions/{session_id}/questions")
+    async def get_onboarding_questions(session_id: str):
+        """Get onboarding questions for a session."""
+        if _onboarding_flow is None:
+            return JSONResponse({"success": False, "error": "Onboarding flow not available"}, status_code=503)
+        questions = _onboarding_flow.get_questions(session_id)
+        return JSONResponse({"success": True, "questions": questions})
+
+    @app.post("/api/onboarding-flow/sessions/{session_id}/answer")
+    async def answer_onboarding_question(session_id: str, request: Request):
+        """Answer an onboarding question."""
+        if _onboarding_flow is None:
+            return JSONResponse({"success": False, "error": "Onboarding flow not available"}, status_code=503)
+        data = await request.json()
+        result = _onboarding_flow.answer_question(
+            session_id, data.get("question_id", ""), data.get("answer", "")
+        )
+        return JSONResponse({"success": True, **result})
+
+    @app.post("/api/onboarding-flow/sessions/{session_id}/shadow-agent")
+    async def assign_onboarding_shadow_agent(session_id: str, request: Request):
+        """Assign a shadow agent to the onboarded individual."""
+        if _onboarding_flow is None:
+            return JSONResponse({"success": False, "error": "Onboarding flow not available"}, status_code=503)
+        data = await request.json()
+        result = _onboarding_flow.assign_shadow_agent(session_id, data.get("position_id"))
+        return JSONResponse({"success": True, **result})
+
+    @app.post("/api/onboarding-flow/sessions/{session_id}/transition")
+    async def transition_to_builder(session_id: str):
+        """Transition from onboarding to the no-code workflow builder."""
+        if _onboarding_flow is None:
+            return JSONResponse({"success": False, "error": "Onboarding flow not available"}, status_code=503)
+        result = _onboarding_flow.transition_to_workflow_builder(session_id)
+        return JSONResponse({"success": True, **result})
+
+    # ==================== IP CLASSIFICATION ====================
+
+    try:
+        from src.ip_classification_engine import IPClassificationEngine
+        _ip_engine = IPClassificationEngine()
+    except ImportError:
+        _ip_engine = None
+
+    @app.post("/api/ip/assets")
+    async def register_ip_asset(request: Request):
+        """Register a new IP asset."""
+        if _ip_engine is None:
+            return JSONResponse({"success": False, "error": "IP engine not available"}, status_code=503)
+        data = await request.json()
+        asset = _ip_engine.register_asset(
+            name=data.get("name", ""),
+            description=data.get("description", ""),
+            classification=data.get("classification", "system_ip"),
+            owner_id=data.get("owner_id", ""),
+            owner_type=data.get("owner_type", "system"),
+            is_trade_secret=data.get("is_trade_secret", False),
+        )
+        return JSONResponse({"success": True, "asset": asset.to_dict()})
+
+    @app.get("/api/ip/assets")
+    async def list_ip_assets():
+        """List all IP assets."""
+        if _ip_engine is None:
+            return JSONResponse({"success": False, "error": "IP engine not available"}, status_code=503)
+        return JSONResponse({"success": True, "assets": _ip_engine.list_assets()})
+
+    @app.get("/api/ip/summary")
+    async def get_ip_summary():
+        """Get IP classification summary."""
+        if _ip_engine is None:
+            return JSONResponse({"success": False, "error": "IP engine not available"}, status_code=503)
+        return JSONResponse({"success": True, "summary": _ip_engine.get_ip_summary()})
+
+    @app.get("/api/ip/trade-secrets")
+    async def list_trade_secrets():
+        """List all trade secret records."""
+        if _ip_engine is None:
+            return JSONResponse({"success": False, "error": "IP engine not available"}, status_code=503)
+        return JSONResponse({"success": True, "trade_secrets": _ip_engine.list_trade_secrets()})
+
+    @app.post("/api/ip/assets/{asset_id}/access-check")
+    async def check_ip_access(asset_id: str, request: Request):
+        """Check access to an IP asset."""
+        if _ip_engine is None:
+            return JSONResponse({"success": False, "error": "IP engine not available"}, status_code=503)
+        data = await request.json()
+        result = _ip_engine.check_access(asset_id, data.get("requester_id", ""))
+        return JSONResponse({"success": True, **result})
+
+    # ==================== CREDENTIAL PROFILES ====================
+
+    try:
+        from src.credential_profile_system import CredentialProfileSystem
+        _credential_system = CredentialProfileSystem()
+    except ImportError:
+        _credential_system = None
+
+    @app.post("/api/credentials/profiles")
+    async def create_credential_profile(request: Request):
+        """Create a new credential profile."""
+        if _credential_system is None:
+            return JSONResponse({"success": False, "error": "Credential system not available"}, status_code=503)
+        data = await request.json()
+        profile = _credential_system.create_profile(
+            user_id=data.get("user_id", ""),
+            user_name=data.get("user_name", ""),
+            role=data.get("role", ""),
+        )
+        return JSONResponse({"success": True, "profile": profile.to_dict()})
+
+    @app.post("/api/credentials/profiles/{profile_id}/interactions")
+    async def record_credential_interaction(profile_id: str, request: Request):
+        """Record a HITL interaction for a credential profile."""
+        if _credential_system is None:
+            return JSONResponse({"success": False, "error": "Credential system not available"}, status_code=503)
+        data = await request.json()
+        result = _credential_system.record_interaction(
+            profile_id=profile_id,
+            interaction_type=data.get("interaction_type", "approval"),
+            context=data.get("context", ""),
+            decision=data.get("decision", ""),
+            confidence_before=data.get("confidence_before", 0.0),
+            confidence_after=data.get("confidence_after", 0.0),
+            response_time_ms=data.get("response_time_ms", 0.0),
+            outcome=data.get("outcome", ""),
+        )
+        if result is None:
+            return JSONResponse({"success": False, "error": "Profile not found"}, status_code=404)
+        return JSONResponse({"success": True, "interaction": result})
+
+    @app.get("/api/credentials/profiles")
+    async def list_credential_profiles():
+        """List all credential profiles."""
+        if _credential_system is None:
+            return JSONResponse({"success": False, "error": "Credential system not available"}, status_code=503)
+        return JSONResponse({"success": True, "profiles": _credential_system.list_profiles()})
+
+    @app.get("/api/credentials/metrics")
+    async def get_optimal_automation_metrics():
+        """Get optimal automation metrics (System IP)."""
+        if _credential_system is None:
+            return JSONResponse({"success": False, "error": "Credential system not available"}, status_code=503)
+        return JSONResponse({"success": True, "metrics": _credential_system.get_optimal_automation_metrics()})
+
     return app
 
 
