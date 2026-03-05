@@ -289,6 +289,11 @@ class DistributedTracer:
         with self._lock:
             return [s for s in self._spans.values() if s.end_time is None]
 
+    def total_spans_recorded(self) -> int:
+        """Return the total number of spans recorded across all traces."""
+        with self._lock:
+            return sum(len(v) for v in self._traces.values())
+
 
 # ---------------------------------------------------------------------------
 # ObservabilityDashboard
@@ -322,9 +327,7 @@ class ObservabilityDashboard:
             },
             "tracing": {
                 "active_spans": len(active),
-                "total_spans_recorded": sum(
-                    len(v) for v in self._tracer._traces.values()
-                ),
+                "total_spans_recorded": self._tracer.total_spans_recorded(),
             },
             "gauges": dict(snap["gauges"]),
         }
