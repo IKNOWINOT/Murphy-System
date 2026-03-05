@@ -67,12 +67,57 @@ open "Murphy System/terminal_architect.html"
 
 # Linux
 xdg-open "Murphy System/terminal_architect.html"
-
-# Windows
-start "Murphy System\terminal_architect.html"
 ```
 
+**Windows** — see the [Opening the HTML Terminal UI (Windows)](#opening-the-html-terminal-ui-windows) section below for the correct commands.
+
 The Architect Terminal connects to the backend at `http://localhost:8000` automatically. You can type natural-language commands directly in the terminal prompt — Murphy routes them through `/api/chat` and responds using the onboard knowledge system (no API keys required to start).
+
+#### Opening the HTML Terminal UI (Windows)
+
+> **Note:** The HTML UIs need the Murphy backend running on port 8000. Start it first with `setup_and_start.bat` or `python murphy_system_1.0_runtime.py` (see Step 1).
+
+**Recommended — serve via local HTTP server (works in all shells)**
+
+This is the most reliable method because it avoids browser restrictions on local `file://` URLs and correctly handles paths with spaces.
+
+1. Start a static file server from the repo root:
+
+   ```cmd
+   python -m http.server 8090
+   ```
+
+2. Open the Architect Terminal in your browser:
+
+   ```
+   http://localhost:8090/Murphy%20System/terminal_architect.html?apiPort=8000
+   ```
+
+   Other interfaces follow the same pattern — replace `terminal_architect.html` with the desired file name (e.g. `terminal_worker.html`, `terminal_integrated.html`).
+
+---
+
+**Alternative — open the file directly (without a local server)**
+
+> ⚠️ **Git Bash (MINGW64) warning:** Running `start "Murphy System\terminal_architect.html"` inside Git Bash opens a *new terminal window* instead of your browser. Use one of the commands below instead.
+
+**From cmd.exe:**
+
+```cmd
+start "" "Murphy System\terminal_architect.html"
+```
+
+**From Git Bash (MINGW64):**
+
+```bash
+# Option 1 — delegate to cmd.exe
+cmd.exe /c start "" "Murphy System\\terminal_architect.html"
+
+# Option 2 — use explorer.exe
+explorer.exe "Murphy System\\terminal_architect.html"
+```
+
+---
 
 **That's it — you're running.** The Architect Terminal is the primary interface for designing, planning, and controlling Murphy System.
 
