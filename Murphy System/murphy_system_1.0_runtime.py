@@ -12121,7 +12121,7 @@ class MurphySystem:
                 "**Billing Tiers:**\n\n"
                 "• **Community** (Free) — Core modules, 1 automation, local LLM\n"
                 "• **Professional** ($99/mo) — All modules, 10 automations, cloud LLM\n"
-                "• **Enterprise** ($750/mo per seat) — Unlimited, dedicated support, on-prem option",
+                "• **Enterprise** (Contact us) — Unlimited, dedicated support, on-prem option",
                 session_id, intent=intent
             )
         if intent == "compliance":

@@ -169,8 +169,8 @@ echo ""
 # Offer choice: backend server vs terminal UI
 if [ -f "$MURPHY_DIR/murphy_terminal.py" ]; then
     echo -e "${CYAN}How would you like to start Murphy?${NC}"
-    echo -e "  ${BOLD}1)${NC} Start backend server  (API + Swagger UI at http://localhost:${MURPHY_PORT}/docs)"
-    echo -e "  ${BOLD}2)${NC} Start terminal UI     (interactive natural-language terminal)"
+    echo -e "  ${BOLD}1)${NC} Start backend server  (API + Architect Terminal in browser)"
+    echo -e "  ${BOLD}2)${NC} Start terminal UI     (interactive natural-language terminal in shell)"
     echo ""
     read -r -p "Enter choice [1]: " LAUNCH_CHOICE
     LAUNCH_CHOICE="${LAUNCH_CHOICE:-1}"
@@ -190,6 +190,8 @@ case "$LAUNCH_CHOICE" in
         ;;
     *)
         echo -e "${CYAN}🚀 Starting Murphy System backend on port ${MURPHY_PORT}…${NC}"
+        echo -e "${GREEN}${BOLD}→ Open the Architect Terminal in your browser:${NC}"
+        echo -e "  ${BLUE}Murphy System/terminal_architect.html${NC}"
         echo -e "${YELLOW}Press Ctrl+C to stop${NC}"
         echo ""
         $PY murphy_system_1.0_runtime.py

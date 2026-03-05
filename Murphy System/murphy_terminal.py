@@ -1235,8 +1235,8 @@ class MurphyTerminalApp(App):
             if handler:
                 handler(message)
                 return
-        # Default: route through Librarian + LLM
-        self._send_librarian(message)
+        # Default: route through /api/chat (same as web UIs)
+        self._send_chat(message)
 
     # -- feedback handling --
 
@@ -1705,10 +1705,10 @@ class MurphyTerminalApp(App):
         self._write_murphy(
             "[bold cyan]💳 Billing & Subscription[/bold cyan]\n\n"
             "Available tiers:\n"
-            "  • [green]Free[/green]       — basic automation, community support\n"
-            "  • [green]Starter[/green]    — 5 modules, email support\n"
-            "  • [green]Pro[/green]        — all modules, priority support, HITL\n"
-            "  • [green]Enterprise[/green] — custom SLA, dedicated onboarding, full API\n\n"
+            "  • [green]Community[/green]  — Free, core modules, community support\n"
+            "  • [green]Starter[/green]    — $20/mo, 5 modules, email support\n"
+            "  • [green]Pro[/green]        — $99/mo, all modules, priority support, HITL\n"
+            "  • [green]Enterprise[/green] — Contact us, custom SLA, dedicated onboarding, full API\n\n"
             "To check your current tier or manage billing, use:\n"
             "  [green]execute billing status[/green]"
         )
