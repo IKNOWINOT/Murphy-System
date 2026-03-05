@@ -1,6 +1,0 @@
-/workspace/murphy_test_extract/bots/analysisbot.py:41:Also recommend GitHub modules if applicable.
-/workspace/murphy_test_extract/bots/analysisbot.py:65:        """Try to load task-specific GitHub modules using SwissKiss."""
-/workspace/murphy_test_extract/bots/cad_bot.py:113:You are CADBot. Suggest open-source GitHub repos related to:
-/workspace/murphy_test_extract/bots/cad_bot.py:115:Return an array of GitHub URLs or keywords.
-/workspace/murphy_test_extract/documentation/user_guides/CONTRIBUTING.md:31:# Fork the repository on GitHub
-/workspace/murphy_test_extract/documentation/user_guides/CONTRIBUTING.md:541:- **Discussions**: Use GitHub Discussions for questions

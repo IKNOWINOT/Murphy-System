@@ -1,4 +1,0 @@
-  File "<stdin>", line 19
-    print(f"\nTotal lines fixed: {sum(1 for line in lines if '"' in line or '&' in line)}")
-                                                                              ^
-SyntaxError: unterminated string literal (detected at line 19)

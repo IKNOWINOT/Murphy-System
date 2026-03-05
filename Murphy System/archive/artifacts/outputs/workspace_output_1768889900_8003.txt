@@ -1,1 +1,0 @@
-{"groq_clients_available":9,"model":"llama-3.3-70b-versatile","response":"I'm working and can provide information, answer questions, and assist with tasks such as language translation, text summarization, and generating text on a wide range of topics.","success":true}

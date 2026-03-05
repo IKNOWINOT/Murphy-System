@@ -1,1 +1,0 @@
-export async function proposeWithModelProxy(_ctx:any, target_bot:string, area:string){ return [{ arm_id:'A', spec:{ patch:'hint_on' } }, { arm_id:'B', spec:{ patch:'hint_off' } }]; }

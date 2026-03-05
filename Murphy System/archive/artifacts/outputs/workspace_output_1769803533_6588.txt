@@ -1,8 +1,0 @@
-1519:    user_request = data.get('request', '')
-1521:    if not user_request:
-1526:        plan = librarian.explode_request(user_request)
-1670:    Determines: user provides, AI generates, or hire external
-1675:        "user_has_capability": true
-1683:    user_capability = data.get('user_has_capability', False)
-1690:        decision = decider.decide_source(info_needed, user_capability)
-1860:            user_request=data['user_request']

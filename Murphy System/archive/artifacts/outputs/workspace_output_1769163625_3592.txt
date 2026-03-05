@@ -1,8 +1,0 @@
-34:    from health_monitor import HealthMonitor
-45:health_monitor = None
-51:        # Initialize in correct order: monitoring_system -> health_monitor -> anomaly_detector -> optimization_engine
-53:        health_monitor = HealthMonitor(monitoring_system)
-297:    if not MONITORING_AVAILABLE or not health_monitor:
-304:        health_summary = health_monitor.get_health_summary()
-400:        if health_monitor:
-401:            results['health'] = str(health_monitor.get_overall_health())

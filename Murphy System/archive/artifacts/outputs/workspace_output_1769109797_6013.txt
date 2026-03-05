@@ -1,2 +1,0 @@
-3461:            document.getElementById('shadow-agents-modal').style.display = 'block';
-3472:            document.getElementById('monitoring-panel-modal').style.display = 'block';

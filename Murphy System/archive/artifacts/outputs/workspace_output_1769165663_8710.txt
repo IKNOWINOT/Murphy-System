@@ -1,8 +1,0 @@
-1827:            <button class="close-btn" onclick="closeDetailPanel()">×</button>
-1843:                <button onclick="closeShadowPanel()" class="close-btn">&times;</button>
-1885:                <button onclick="closeMonitoringPanel()" class="close-btn">&times;</button>
-1928:                    <button class="btn btn-primary" onclick="monitoringPanel.runAnalysis()">
-1931:                    <button class="btn btn-secondary" onclick="closeMonitoringPanel()">
-2538:                        <button class="action-btn primary" onclick="evolveState('${data.stateId}')">EVOLVE</button>
-2539:                        <button class="action-btn" onclick="regenerateState('${data.stateId}')">REGENERATE</button>
-2540:                        <button class="action-btn danger" onclick="rollbackState('${data.stateId}')">ROLLBACK</button>

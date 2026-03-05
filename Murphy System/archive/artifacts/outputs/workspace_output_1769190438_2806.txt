@@ -1,5 +1,0 @@
-database.py:45:            self.conn.close()
-murphy_backend_complete.py:906:            loop.close()
-murphy_backend_complete.py:1656:            loop.close()
-murphy_backend_complete.py:1738:            loop.close()
-murphy_backend_complete.py:1783:            loop.close()

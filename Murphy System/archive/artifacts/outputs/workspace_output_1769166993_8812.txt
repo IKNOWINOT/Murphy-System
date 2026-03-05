@@ -1,2 +1,0 @@
-185:def validate_input(validator_func):
-198:        @validate_input(validate_artifact_request)

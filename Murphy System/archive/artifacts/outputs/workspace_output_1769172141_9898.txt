@@ -1,2 +1,0 @@
-1017:        capabilities = self.capability_extractor.extract_capabilities(analysis)
-1074:        capabilities = self.capability_extractor.extract_capabilities(analysis)

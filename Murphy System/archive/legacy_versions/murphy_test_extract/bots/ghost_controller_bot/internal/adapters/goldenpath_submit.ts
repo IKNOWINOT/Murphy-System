@@ -1,1 +1,0 @@
-export function toGoldenPathSubmitPayload(profile:any, microtasks:any[], spec:any){ return { task_type:'ghost_automation_chain', key:{app:profile?.active_window||'unknown', ts:profile?.timestamp||new Date().toISOString()}, spec:{title:spec?.title||'Automation', microtasks, source:'ghost_controller_bot'} }; }

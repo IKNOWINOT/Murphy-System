@@ -1,2 +1,0 @@
-4265:        function addTerminalLog(message, type = 'info') {
-4318:        function addLog(message, type = 'info') {

@@ -1,1 +1,0 @@
--rw-r--r-- 1 root root 760 Feb  3 19:17 murphy_complete_system_package/LICENSE

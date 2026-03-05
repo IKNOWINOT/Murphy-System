@@ -1,2 +1,0 @@
-106:    llm_manager = EnhancedLLMManager(
-114:    llm_manager = None

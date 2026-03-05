@@ -1,6 +1,0 @@
-4215:            window.librarianPanel.init();
-4219:            window.planReviewPanel.init();
-4223:            window.documentEditorPanel.init();
-4227:                ArtifactPanel.init();
-4233:            window.shadowAgentPanel.init();
-4237:            window.monitoringPanel.init();

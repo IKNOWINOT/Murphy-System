@@ -1,4 +1,0 @@
-def create_task_review():
-    """Create a complete review state for an agent task"""
-    if not communication_hub:
-        return jsonify({'success': False, 'error': 'Communication hub not initialized'}), 503

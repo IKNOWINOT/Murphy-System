@@ -1,4 +1,0 @@
-  File "/workspace/murphy_complete_integrated.py", line 1058
-    &quot;&quot;&quot;
-    ^
-SyntaxError: invalid syntax

@@ -1,6 +1,0 @@
-Testing database initialization...
-{
-  "error": "invalid_token",
-  "message": "Invalid or expired token",
-  "success": false
-}

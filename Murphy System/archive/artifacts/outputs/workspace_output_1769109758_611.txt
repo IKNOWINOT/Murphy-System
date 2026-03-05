@@ -1,9 +1,0 @@
-    <div id="init-modal" class="init-modal">
-        <div class="init-modal-content">
-            <h2>🚀 MURPHY SYSTEM v2.0</h2>
-            <p>Interactive Business Operating System with Real-time Visualization</p>
-            <button class="action-btn primary" onclick="initializeSystem()">INITIALIZE SYSTEM</button>
-        </div>
-    </div>
-
-    <!-- Header -->

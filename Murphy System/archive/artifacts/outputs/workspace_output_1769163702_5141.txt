@@ -1,1 +1,0 @@
-bash: line 2: kill: (7517) - No such process

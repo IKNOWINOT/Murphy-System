@@ -1,2 +1,0 @@
-/workspace/Murphy System Keys.txt
-/workspace/murphy_test_extract/backend_aristotle.log

@@ -1,3 +1,0 @@
-tcp        0      0 0.0.0.0:9000            0.0.0.0:*               LISTEN      694/python3         
-tcp        0      0 0.0.0.0:9090            0.0.0.0:*               LISTEN      696/python          
-tcp        0      0 0.0.0.0:6666            0.0.0.0:*               LISTEN      1450/python         

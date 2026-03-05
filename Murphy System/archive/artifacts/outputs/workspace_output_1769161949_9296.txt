@@ -1,8 +1,0 @@
-                } else {
-                    historyIndex = commandHistory.length;
-                    terminalInput.value = '';
-                }
-                event.preventDefault();
-            }
-        }
-

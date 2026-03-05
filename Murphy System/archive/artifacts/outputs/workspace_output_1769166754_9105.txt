@@ -1,1 +1,0 @@
-LISTEN 0      128          0.0.0.0:3002      0.0.0.0:*    users:(("python3",pid=16788,fd=6),("python3",pid=16788,fd=5),("python3",pid=16786,fd=5))

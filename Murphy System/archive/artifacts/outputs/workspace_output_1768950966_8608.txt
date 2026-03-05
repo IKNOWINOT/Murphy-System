@@ -1,9 +1,0 @@
-/workspace/murphy_test_extract/murphy_complete_backend.py
-/workspace/murphy_test_extract/src/inquisitory_engine.py
-/workspace/murphy_test_extract/src/ui_data_service.py
-/workspace/murphy_test_extract/src/gate_builder.py
-/workspace/murphy_test_extract/src/system_builder.py
-/workspace/murphy_test_extract/murphy_complete_ui.html
-/workspace/murphy_test_extract/bots/llm_backend.py
-/workspace/murphy_test_extract/bots/scheduler_ui.py
-/workspace/murphy_test_extract/tests/test_system_quick.py

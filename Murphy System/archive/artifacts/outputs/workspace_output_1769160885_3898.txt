@@ -1,4 +1,0 @@
-{
-    "message": "Error listing workflows: 'CooperativeSwarmSystem' object has no attribute 'workflow_orchestrator'",
-    "success": false
-}

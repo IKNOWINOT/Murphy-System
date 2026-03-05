@@ -1,1 +1,0 @@
-220:@app.route('/api/initialize', methods=['POST'])

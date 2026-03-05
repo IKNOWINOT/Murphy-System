@@ -1,2 +1,0 @@
-614:@app.route('/api/components/<component_id>', methods=['GET'])
-623:@app.route('/api/gates/<gate_id>/validate', methods=['POST'])

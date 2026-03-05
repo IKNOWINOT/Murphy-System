@@ -1,8 +1,0 @@
-            if (e.key === 'Escape') {
-                closeDetailPanel();
-            }
-        });
-
-        // Initialize terminal input - MOVED HERE TO BE INSIDE DOMContentLoaded
-        const terminalInput = document.getElementById('terminal-input');
-        

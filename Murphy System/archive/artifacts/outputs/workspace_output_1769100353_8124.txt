@@ -1,8 +1,0 @@
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-        }
-        
-        async function handleDomainCommand(action, args) {
-            switch (action) {
-                case 'list':
-                    addTerminalLog('Listing all domains...', 'info');

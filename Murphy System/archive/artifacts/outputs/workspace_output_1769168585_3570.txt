@@ -1,5 +1,0 @@
-Testing database integration...
-✓ Database manager initialized
-✓ System initialized
-✓ Statistics retrieved
-✓ Retrieved 5 agents

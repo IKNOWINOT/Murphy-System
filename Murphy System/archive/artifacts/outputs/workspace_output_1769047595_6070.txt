@@ -1,4 +1,0 @@
-Archive:  /workspace/murphy_system_runtime.zip
-  inflating: /workspace/src/system_librarian.py  
-  inflating: /workspace/src/advanced_swarm_system.py  
-  inflating: /workspace/src/gate_builder.py  

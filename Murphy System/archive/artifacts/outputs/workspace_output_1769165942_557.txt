@@ -1,1 +1,0 @@
-818:@app.route('/api/artifacts/<artifact_id>', methods=['DELETE'])

@@ -1,4 +1,0 @@
-LISTEN 0      5            0.0.0.0:9091      0.0.0.0:*    users:(("python",pid=666,fd=3))                                                         
-LISTEN 0      5            0.0.0.0:9090      0.0.0.0:*    users:(("python",pid=665,fd=3))                                                         
-LISTEN 0      128          0.0.0.0:3002      0.0.0.0:*    users:(("python3",pid=25004,fd=7),("python3",pid=25004,fd=6),("python3",pid=25002,fd=6))
-LISTEN 0      5            0.0.0.0:9000      0.0.0.0:*    users:(("python3",pid=24997,fd=3))                                                      

@@ -1,4 +1,0 @@
-  File "/workspace/murphy_backend_complete.py", line 2596
-    &quot;&quot;&quot;Generate LLM response.&quot;&quot;&quot;
-    ^
-SyntaxError: invalid syntax

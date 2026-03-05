@@ -1,7 +1,0 @@
-total 44
-drwxr-xr-x  3 root root  4096 Feb  3 19:33 .
-drwxr-xr-x 30 root root  4096 Feb  3 19:33 ..
--rw-r--r--  1 root root   458 Feb  3 19:33 __init__.py
-drwxr-xr-x  2 root root  4096 Feb  3 19:33 __pycache__
--rw-r--r--  1 root root  9848 Feb  3 19:33 database_connectors.py
--rw-r--r--  1 root root 14529 Feb  3 19:33 integration_framework.py

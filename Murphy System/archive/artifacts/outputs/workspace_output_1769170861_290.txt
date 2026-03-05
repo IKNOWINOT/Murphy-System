@@ -1,3 +1,0 @@
-1931:                    <button class="btn btn-secondary" onclick="closeMonitoringPanel()">
-3442:        function openMonitoringPanel() {
-3449:        function closeMonitoringPanel() {

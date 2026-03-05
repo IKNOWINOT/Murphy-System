@@ -1,2 +1,0 @@
-150:    from artifact_generation_system import ArtifactGenerationSystem, ArtifactType
-853:            from artifact_generation_system import Artifact

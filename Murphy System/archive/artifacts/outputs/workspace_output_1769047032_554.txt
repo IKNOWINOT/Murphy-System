@@ -1,6 +1,0 @@
-{
-  "id": "state-d9ab2746",
-  "label": "Root System State",
-  "type": "document",
-  "confidence": 0.95
-}

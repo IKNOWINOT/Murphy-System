@@ -1,4 +1,0 @@
-  File "/workspace/murphy_backend_phase2.py", line 73
-    cooperative_swarm = CooperativeSwarmSystem()
-    ^
-IndentationError: expected an indented block after 'except' statement on line 70

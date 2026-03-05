@@ -1,2 +1,0 @@
-python  660 root    3u  IPv4   2125      0t0  TCP *:http-alt (LISTEN)
-python  697 root    3u  IPv4   2125      0t0  TCP *:http-alt (LISTEN)

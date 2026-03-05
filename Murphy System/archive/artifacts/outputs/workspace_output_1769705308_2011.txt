@@ -1,6 +1,0 @@
-{
-    "message": "Unified schema created",
-    "note": "Schema file created. Apply manually with: psql < murphy_unified_schema.sql",
-    "schema_file": "murphy_unified_schema.sql",
-    "success": true
-}

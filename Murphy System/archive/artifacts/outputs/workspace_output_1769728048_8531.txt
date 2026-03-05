@@ -1,4 +1,0 @@
-16:import asyncio
-179:            # Run async method synchronously
-180:            loop = asyncio.new_event_loop()
-181:            asyncio.set_event_loop(loop)

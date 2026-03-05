@@ -1,4 +1,0 @@
-{
-  "message": "ArtifactManager.search_artifacts() takes 2 positional arguments but 3 were given",
-  "success": false
-}

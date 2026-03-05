@@ -1,7 +1,0 @@
-            addLog('Type /plan or /document to work with plans and documents', 'info');
-            
-            // Auto-initialize system
-            initializeSystem();
-        });
-        </script></body>
-</html>

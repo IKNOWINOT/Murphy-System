@@ -1,5 +1,0 @@
-./generative_gate_system.py
-./agent_communication_system.py
-./librarian_system.py
-./swarm_knowledge_pipeline.py
-./confidence_scoring_system.py

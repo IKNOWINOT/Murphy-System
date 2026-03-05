@@ -1,2 +1,0 @@
-4462:            window.librarianPanel = new LibrarianPanel(API_BASE);
-4463:            window.librarianPanel.init();

@@ -1,4 +1,0 @@
-root       12913  0.0  0.0   4352  1720 ?        S    10:17   0:00 bash -lc  kill 11867 && sleep 1 && cd /workspace && python3 -m http.server 7000 > /dev/null 2>&1 & 
-root       12915  0.0  0.4  25864 18884 ?        S    10:17   0:00 python3 -m http.server 7000
-root       13233  0.0  0.0   2920   904 ?        Ss   10:19   0:00 timeout --preserve-status --signal=KILL 60s bash -lc { cd /workspace ; mkdir -p /workspace/outputs ; } { ps aux | grep python | grep -E "7000" __ec=$? } >"/workspace/outputs/workspace_output_1769163560_7209.txt" 2>&1 head -c 80000 "/workspace/outputs/workspace_output_1769163560_7209.txt" ( exit "$__ec" )
-root       13234  0.0  0.0   4352  3088 ?        S    10:19   0:00 bash -lc { cd /workspace ; mkdir -p /workspace/outputs ; } { ps aux | grep python | grep -E "7000" __ec=$? } >"/workspace/outputs/workspace_output_1769163560_7209.txt" 2>&1 head -c 80000 "/workspace/outputs/workspace_output_1769163560_7209.txt" ( exit "$__ec" )

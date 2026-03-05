@@ -1,9 +1,0 @@
- id | client_id |      metric_name      | metric_value | metric_unit |            tags             |          recorded_at          
-----+-----------+-----------------------+--------------+-------------+-----------------------------+-------------------------------
- 10 |           | disk_usage_percent    |      77.7000 | percent     | {"resource": "disk"}        | 2026-01-29 16:15:06.768134+00
-  9 |           | system_memory_percent |      62.8000 | percent     | {"resource": "memory"}      | 2026-01-29 16:15:06.768134+00
-  8 |           | system_cpu_percent    |      45.2000 | percent     | {"resource": "cpu"}         | 2026-01-29 16:15:06.768134+00
-  7 |           | tasks_created         |      89.0000 | count       | {"metric_type": "business"} | 2026-01-29 16:15:06.768134+00
-  6 |           | documents_processed   |     234.0000 | count       | {"metric_type": "business"} | 2026-01-29 16:15:06.768134+00
-(5 rows)
-

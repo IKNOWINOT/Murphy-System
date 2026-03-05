@@ -1,6 +1,0 @@
-class StabilityBasedAttentionSystem:
-    """
-    Main attention system implementing stability-based attention and role-governed cognition.
-    
-    This system:
-    - Governs internal attention formation before proposal generation

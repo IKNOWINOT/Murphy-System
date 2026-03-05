@@ -1,8 +1,0 @@
-            }
-        }
-
-        function executeTerminalCommand(command) {
-            const terminalContent = document.getElementById('terminal-content');
-            
-            // Add command to terminal
-            const cmdLine = document.createElement('div');

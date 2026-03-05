@@ -1,4 +1,0 @@
-  File "/workspace/murphy_backend_complete.py", line 2749
-    else:
-    ^^^^
-SyntaxError: invalid syntax

@@ -1,6 +1,0 @@
-Testing database initialization without auth (for testing)...
-{
-  "error": "authentication_required",
-  "message": "Authentication required. Provide Bearer token in Authorization header.",
-  "success": false
-}

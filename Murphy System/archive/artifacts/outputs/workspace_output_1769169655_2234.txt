@@ -1,4 +1,0 @@
-                    method: 'POST'
-                });
-                const initResult = await initResponse.json();
-                

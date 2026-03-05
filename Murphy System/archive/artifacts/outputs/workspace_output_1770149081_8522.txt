@@ -1,3 +1,0 @@
-murphy_runtime_analysis/terminal_architect.html
-murphy_runtime_analysis/terminal_enhanced.html
-murphy_runtime_analysis/terminal_worker.html

@@ -1,6 +1,0 @@
-    'workflow': False,
-    'database': False
-}
-
-# Global variables
-communication_hub = None

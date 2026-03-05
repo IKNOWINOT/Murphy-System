@@ -1,4 +1,0 @@
-{
-    "message": "Invalid role: EXECUTOR. Must be one of: ['executor', 'supervisor', 'governor', 'auditor']",
-    "success": false
-}

@@ -1,25 +1,0 @@
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0*   Trying 127.0.0.1:3002...
-* Connected to localhost (127.0.0.1) port 3002 (#0)
-> GET /api/health HTTP/1.1
-> Host: localhost:3002
-> User-Agent: curl/7.88.1
-> Accept: */*
-> 
-< HTTP/1.1 404 NOT FOUND
-< Server: Werkzeug/3.1.5 Python/3.11.14
-< Date: Thu, 29 Jan 2026 22:05:32 GMT
-< Content-Type: text/html; charset=utf-8
-< Content-Length: 207
-< Access-Control-Allow-Origin: *
-< Connection: close
-< 
-{ [207 bytes data]
-100   207  100   207    0     0  90590      0 --:--:-- --:--:-- --:--:--  101k
-* Closing connection 0
-<!doctype html>
-<html lang=en>
-<title>404 Not Found</title>
-<h1>Not Found</h1>
-<p>The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.</p>

@@ -1,3 +1,0 @@
-jq: error: syntax error, unexpected ',', expecting ':' (Unix shell quoting issues?) at <top-level>, line 1:
-.states[] | {id, label, type, confidence}                      
-jq: 1 compile error

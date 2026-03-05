@@ -1,3 +1,0 @@
-1735:    <script src="artifact_panel.js"></script>
-1948:    <script src="shadow_agent_panel.js"></script>
-1950:    <script src="monitoring_panel.js"></script>

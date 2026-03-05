@@ -1,6 +1,0 @@
-43:        .llm-controls {
-49:        .llm-indicator {
-60:        .llm-indicator.active {
-604:        <div class="llm-controls">
-605:            <div class="llm-indicator active">
-609:            <div class="llm-indicator active">

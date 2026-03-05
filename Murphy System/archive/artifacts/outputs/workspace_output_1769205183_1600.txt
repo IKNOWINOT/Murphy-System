@@ -1,2 +1,0 @@
-Line 2979: const data = await response.json();
-File updated

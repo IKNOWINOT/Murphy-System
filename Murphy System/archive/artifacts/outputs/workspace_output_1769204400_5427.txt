@@ -1,3 +1,0 @@
-47:        const terminalInput = document.getElementById('terminal-input');
-48:        const terminal = document.getElementById('terminal');
-54:            const terminalContent = terminal;

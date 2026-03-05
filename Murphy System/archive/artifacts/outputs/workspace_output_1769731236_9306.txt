@@ -1,4 +1,0 @@
-Status: running
-Initialized: True
-Systems: 21 total
-Operational: 21 / 21

@@ -1,2 +1,0 @@
-13:from flask_cors import CORS
-33:CORS(app)

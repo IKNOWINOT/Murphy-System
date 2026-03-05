@@ -1,2 +1,0 @@
-8:import logging
-14:logger = logging.getLogger(__name__)

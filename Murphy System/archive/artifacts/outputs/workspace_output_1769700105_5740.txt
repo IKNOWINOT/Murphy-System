@@ -1,9 +1,0 @@
-Found 2 template literals with unbalanced braces:
-
-Line 2401:
-  Balance: +1 (1 open, 0 close)
-  Content preview: `<ul>${agent.recent_ops.map(op => `
-
-Line 2401:
-  Balance: -1 (0 open, 1 close)
-  Content preview: `).join('')}</ul>`
