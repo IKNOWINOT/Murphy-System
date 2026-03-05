@@ -61,7 +61,7 @@ class InoniOrgBootstrap:
 
     Revenue Model:
     - Free tier: Trade services for marketing (creator promotes Inoni)
-    - Subscription: $20/mo flat rate (Creator Starter)
+    - Subscription: $20/mo monthly (Creator Starter)
     - Pro tier: $99/mo direct subscription
     - Enterprise: $750/mo per seat for agencies managing 10+ creators
     """
@@ -535,7 +535,7 @@ class InoniOrgBootstrap:
 
         Revenue model:
         - Free tier: Service traded for marketing exposure
-        - Starter: $20/mo flat rate
+        - Starter: $20/mo monthly
         - Pro: $99/mo flat rate
         - Agency: $750/mo per seat for 10+ creator management
         """
@@ -831,7 +831,7 @@ class InoniOrgBootstrap:
                     "options:\n\n"
                     "• Free tier — trade services for a marketing "
                     "mention\n"
-                    "• Starter — $20/mo flat rate\n"
+                    "• Starter — $20/mo monthly\n"
                     "• Pro — $99/mo flat rate\n"
                     "• Agency — $750/mo per seat for 10+ creators\n\n"
                     "Which sounds closest to what you need?"
