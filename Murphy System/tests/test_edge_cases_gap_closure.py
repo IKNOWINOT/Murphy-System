@@ -131,7 +131,7 @@ class TestWorkflowTerminalEdgeCases:
         assert compiled is not None
 
     def test_unicode_in_message(self):
-        """Unicode characters in messages are handled."""
+        """Unicode characters in messages are handled (Chinese: 'process data monitor API endpoints')."""
         terminal = NoCodeWorkflowTerminal()
         session = terminal.create_session()
         result = terminal.send_message(session.session_id, "处理数据 监控 API 端点")

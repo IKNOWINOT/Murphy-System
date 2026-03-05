@@ -1458,6 +1458,12 @@ Murphy manages intellectual property across three tiers with trade secret protec
 | **Business IP** | Org chart interactions, process flows | Restricted | Business |
 | **System IP** | Aggregated automation metrics | Internal (licensed to Murphy) | System |
 
+**Protection Levels:**
+- **Confidential** — Viewable only by the asset owner; not shared with other users or systems.
+- **Restricted** — Limited to authorized personnel within the organization; eligible for trade secret designation.
+- **Internal** — Accessible within the Murphy platform; automatically licensed for system-wide improvement.
+- **Trade Secret** — Highest protection with access logging, NDA requirements, encryption at rest, and need-to-know access control.
+
 ### 22.2 Registering IP Assets
 
 ```bash
