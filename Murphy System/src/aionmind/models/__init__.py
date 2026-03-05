@@ -1,0 +1,1 @@
+"""AionMind data models."""
