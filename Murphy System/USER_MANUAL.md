@@ -50,7 +50,7 @@
 
 ### 1.2 Installation
 
-**⚡ One-line install (recommended):**
+**⚡ One-Line Install (recommended):**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/IKNOWINOT/Murphy-System/main/install.sh | bash

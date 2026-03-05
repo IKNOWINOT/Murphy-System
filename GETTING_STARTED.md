@@ -4,7 +4,7 @@ A complete guide to installing, launching, and using Murphy System — from zero
 
 ---
 
-## ⚡ One-Click Install
+## ⚡ One-Line Install
 
 > **Copy and paste this single command** into your terminal to install and start Murphy System.
 > No manual clone, no dependency juggling — one line does it all.
