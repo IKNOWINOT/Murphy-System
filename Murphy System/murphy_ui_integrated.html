@@ -23,14 +23,14 @@
             max-width: 1400px;
             margin: 0 auto;
             background: #111;
-            border-radius: 10px;
+            border-radius: 5px;
             box-shadow: 0 0 20px rgba(0,255,65,0.3);
-            border: 1px solid #00ff41;
+            border: 2px solid #00ff41;
             overflow: hidden;
         }
         
         .header {
-            background: linear-gradient(135deg, #001a00, #002200);
+            background: #0f0f0f;
             color: white;
             padding: 30px;
             text-align: center;
@@ -45,7 +45,7 @@
         
         .header p {
             font-size: 16px;
-            color: #00e5ff;
+            color: #00ffff;
         }
         
         .tabs {
@@ -68,13 +68,13 @@
         }
         
         .tab:hover {
-            color: #00e5ff;
+            color: #00ffff;
             background: rgba(0,255,65,0.1);
         }
         
         .tab.active {
-            color: #00e5ff;
-            border-bottom: 3px solid #00e5ff;
+            color: #00ffff;
+            border-bottom: 2px solid #00ffff;
             background: #111;
         }
         
@@ -98,7 +98,7 @@
         }
 
         h2 {
-            color: #00e5ff;
+            color: #00ff41;
         }
         
         @keyframes fadeIn {
@@ -114,7 +114,7 @@
             display: block;
             margin-bottom: 8px;
             font-weight: 600;
-            color: #00e5ff;
+            color: #00ffff;
         }
         
         .form-group input,
@@ -155,7 +155,7 @@
         .btn-primary {
             background: linear-gradient(135deg, #003300, #004400);
             color: #00ff41;
-            border: 1px solid #00ff41;
+            border: 2px solid #00ff41;
         }
         
         .btn-primary:hover {
@@ -167,12 +167,12 @@
         
         .btn-secondary {
             background: #1a1a1a;
-            color: #00e5ff;
-            border: 1px solid #00e5ff;
+            color: #00ffff;
+            border: 1px solid #00ffff;
         }
         
         .btn-secondary:hover {
-            background: rgba(0,229,255,0.1);
+            background: rgba(0,255,255,0.1);
         }
         
         .result-box {
@@ -206,14 +206,14 @@
             background: #1a1a1a;
             color: #00ff41;
             padding: 25px;
-            border-radius: 10px;
-            border: 1px solid #00ff41;
+            border-radius: 5px;
+            border: 2px solid #00ff41;
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
         
         .stat-card h3 {
             font-size: 14px;
-            color: #00e5ff;
+            color: #00ffff;
             margin-bottom: 10px;
         }
         
@@ -235,7 +235,7 @@
         }
         
         .correction-item h4 {
-            color: #00e5ff;
+            color: #00ffff;
             margin-bottom: 10px;
         }
 
@@ -268,8 +268,8 @@
         }
         
         .badge-info {
-            background: rgba(0,229,255,0.2);
-            color: #00e5ff;
+            background: rgba(0,255,255,0.2);
+            color: #00ffff;
         }
         
         .loading {
@@ -318,6 +318,35 @@
             color: #0a0a0a;
             font-weight: bold;
         }
+        /* ── Color Key Legend ────────────────────────────── */
+        .color-key {
+            display: flex;
+            gap: 14px;
+            padding: 4px 15px;
+            background: #111;
+            border-bottom: 1px solid #333;
+            font-size: 11px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .color-key-label {
+            color: #666;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-right: 4px;
+        }
+        .color-key-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .color-key-swatch {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
@@ -326,6 +355,33 @@
             <h1>🚀 Murphy System - Integrated Interface</h1>
             <p>Form-Driven Task Execution with Murphy Validation</p>
         </div>
+        <div class="color-key">
+            <span class="color-key-label">Color Key:</span>
+            <span class="color-key-item"><span class="color-key-swatch" style="background:#00ff41"></span><span style="color:#00ff41">Success</span></span>
+            <span class="color-key-item"><span class="color-key-swatch" style="background:#00ffff"></span><span style="color:#00ffff">Info</span></span>
+            <span class="color-key-item"><span class="color-key-swatch" style="background:#ffcc00"></span><span style="color:#ffcc00">Warning</span></span>
+            <span class="color-key-item"><span class="color-key-swatch" style="background:#ff0000"></span><span style="color:#ff0000">Error / Danger</span></span>
+        </div>
+        
+        <div style="white-space:pre; line-height:1.15; font-size:0.85em; color:#00ff41; padding:10px 15px; background:#0d0d0d; border-bottom:1px solid #333;">
+╔════════════════════════════════════════════════════════════════════════╗
+║ ███╗   ███╗██╗   ██╗██████╗ ██████╗ ██╗  ██╗██╗   ██╗                  ║
+║ ████╗ ████║██║   ██║██╔══██╗██╔══██╗██║  ██║╚██╗ ██╔╝                  ║
+║ ██╔████╔██║██║   ██║██████╔╝██████╔╝███████║ ╚████╔╝                   ║
+║ ██║╚██╔╝██║██║   ██║██╔══██╗██╔═══╝ ██╔══██║  ╚██╔╝                    ║
+║ ██║ ╚═╝ ██║╚██████╔╝██║  ██║██║     ██║  ██║   ██║                     ║
+║ ╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝   ╚═╝                     ║
+║                                                                        ║
+║ ███████╗██╗   ██╗███████╗████████╗███████╗███╗   ███╗                  ║
+║ ██╔════╝╚██╗ ██╔╝██╔════╝╚══██╔══╝██╔════╝████╗ ████║                  ║
+║ ███████╗ ╚████╔╝ ███████╗   ██║   █████╗  ██╔████╔██║                  ║
+║ ╚════██║  ╚██╔╝  ╚════██║   ██║   ██╔══╝  ██║╚██╔╝██║                  ║
+║ ███████║   ██║   ███████║   ██║   ███████╗██║ ╚═╝ ██║                  ║
+║ ╚══════╝   ╚═╝   ╚══════╝   ╚═╝   ╚══════╝╚═╝     ╚═╝                  ║
+║                                                                        ║
+║  Integrated Interface  |  Form-Driven Control                          ║
+║  Murphy System v2.0  |  Task Execution                                 ║
+╚════════════════════════════════════════════════════════════════════════╝</div>
         
         <div class="tabs">
             <button class="tab active" onclick="switchTab('forms')">📝 Form Submission</button>

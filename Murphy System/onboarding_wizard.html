@@ -7,19 +7,20 @@
     <style>
         :root {
             --bg: #0a0a0a;
-            --surface: #141414;
-            --border: #2a2a2a;
-            --accent: #00ff88;
-            --accent-dim: #00cc6e;
-            --text: #e0e0e0;
+            --surface: #0f0f0f;
+            --border: #333;
+            --accent: #00ff41;
+            --accent-dim: #00cc33;
+            --text: #00ff41;
             --text-dim: #888;
-            --error: #ff4444;
-            --warning: #ffaa00;
-            --info: #44aaff;
+            --error: #ff0000;
+            --warning: #ffcc00;
+            --info: #0088ff;
+            --cyan: #00ffff;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-family: 'Courier New', monospace;
             background: var(--bg);
             color: var(--text);
             min-height: 100vh;
@@ -29,14 +30,14 @@
         }
         .header {
             width: 100%;
-            padding: 20px 40px;
+            padding: 15px 40px;
             background: var(--surface);
-            border-bottom: 1px solid var(--border);
+            border-bottom: 2px solid var(--accent);
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
-        .header h1 { font-size: 1.4rem; color: var(--accent); }
+        .header h1 { font-size: 1.2rem; color: var(--accent); }
         .header .status { font-size: 0.85rem; color: var(--text-dim); }
         .header .status.online { color: var(--accent); }
 
@@ -81,7 +82,7 @@
         .question-card {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: 5px;
             padding: 30px;
             margin-bottom: 20px;
             transition: opacity 0.3s ease;
@@ -105,7 +106,7 @@
             padding: 12px 16px;
             background: var(--bg);
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: 3px;
             color: var(--text);
             font-size: 1rem;
             outline: none;
@@ -122,17 +123,17 @@
             padding: 12px 16px;
             background: var(--bg);
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: 3px;
             color: var(--text);
             font-size: 0.95rem;
             cursor: pointer;
             transition: all 0.2s;
             text-align: center;
         }
-        .option-btn:hover { border-color: var(--accent); background: #0d1f12; }
+        .option-btn:hover { border-color: var(--accent); background: #001a00; }
         .option-btn.selected {
             border-color: var(--accent);
-            background: #0d2a16;
+            background: #002200;
             color: var(--accent);
         }
 
@@ -142,7 +143,7 @@
             padding: 14px;
             background: var(--bg);
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: 3px;
             color: var(--text);
             font-size: 1rem;
             cursor: pointer;
@@ -152,7 +153,7 @@
         .bool-btn:hover { border-color: var(--accent); }
         .bool-btn.selected {
             border-color: var(--accent);
-            background: #0d2a16;
+            background: #002200;
             color: var(--accent);
         }
 
@@ -164,7 +165,7 @@
         }
         .nav-btn {
             padding: 12px 28px;
-            border-radius: 8px;
+            border-radius: 3px;
             font-size: 1rem;
             cursor: pointer;
             border: none;
@@ -193,7 +194,7 @@
         }
 
         /* Summary screen */
-        .summary { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 30px; }
+        .summary { background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 30px; }
         .summary h2 { color: var(--accent); margin-bottom: 20px; }
         .summary-section { margin-bottom: 16px; }
         .summary-section h4 { color: var(--accent); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
@@ -218,7 +219,7 @@
         .validation-issues {
             background: #1a1000;
             border: 1px solid var(--warning);
-            border-radius: 8px;
+            border-radius: 3px;
             padding: 16px;
             margin-bottom: 16px;
         }
@@ -228,9 +229,9 @@
         .success-banner {
             text-align: center;
             padding: 40px;
-            background: #0d2a16;
-            border: 1px solid var(--accent);
-            border-radius: 12px;
+            background: #002200;
+            border: 2px solid var(--accent);
+            border-radius: 5px;
             margin-top: 20px;
         }
         .success-banner h2 { color: var(--accent); margin-bottom: 10px; }
@@ -266,7 +267,7 @@
         .profile-card {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: 5px;
             padding: 20px;
             margin-bottom: 12px;
         }
@@ -341,12 +342,48 @@
             .option-grid { grid-template-columns: 1fr; }
             .form-row { grid-template-columns: 1fr; }
         }
+        /* ── Color Key Legend ────────────────────────────── */
+        .color-key {
+            display: flex;
+            gap: 14px;
+            padding: 4px 15px;
+            background: #111;
+            border-bottom: 1px solid #333;
+            font-size: 11px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .color-key-label {
+            color: #666;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-right: 4px;
+        }
+        .color-key-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .color-key-swatch {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>💀 Murphy System — No-Code Onboarding ☠</h1>
         <div class="status" id="connStatus">Connecting...</div>
+    </div>
+    <div class="color-key">
+        <span class="color-key-label">Color Key:</span>
+        <span class="color-key-item"><span class="color-key-swatch" style="background:var(--accent)"></span><span style="color:var(--accent)">Success / Accent</span></span>
+        <span class="color-key-item"><span class="color-key-swatch" style="background:var(--info)"></span><span style="color:var(--info)">Info</span></span>
+        <span class="color-key-item"><span class="color-key-swatch" style="background:var(--warning)"></span><span style="color:var(--warning)">Warning</span></span>
+        <span class="color-key-item"><span class="color-key-swatch" style="background:var(--error)"></span><span style="color:var(--error)">Error</span></span>
     </div>
 
     <div class="container">
@@ -464,7 +501,7 @@
                     }
                 } catch (_) {}
             }
-            document.getElementById('connStatus').textContent = 'Offline — start Murphy runtime first';
+            document.getElementById('connStatus').textContent = 'Offline — cannot reach backend (check runtime and CORS)';
         }
 
         // ============ Tab Switching ============
@@ -479,7 +516,7 @@
         // ============ Setup Wizard ============
         async function startWizard() {
             if (!systemOnline) {
-                alert('Murphy System backend is not running. Please start it first.');
+                alert('Cannot reach Murphy System backend. Ensure the runtime is started and that CORS allows this origin. See STORYBOARD_DEFICIENCY_REPORT.md for details.');
                 return;
             }
             try {
@@ -779,7 +816,7 @@
 
         async function createEmployee() {
             if (!systemOnline) {
-                alert('Murphy System backend is not running.');
+                alert('Cannot reach Murphy System backend. Ensure the runtime is started and that CORS allows this origin.');
                 return;
             }
             const name = document.getElementById('empName').value.trim();

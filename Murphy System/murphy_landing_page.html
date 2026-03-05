@@ -3,34 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Murphy System — Universal Generative Automation Control Plane</title>
+    <title>Murphy System — Automate Everything. Control Everything.</title>
     <style>
         :root {
             --neon-green: #00ff41;
-            --neon-cyan: #00e5ff;
-            --neon-blue: #0088ff;
+            --neon-cyan: #00ffff;
             --dark-bg: #0a0a0a;
             --panel-bg: #111111;
-            --border-color: #1a3a1a;
-            --text-dim: #7a9f7a;
+            --border-color: #333;
+            --text-dim: #888;
             --text-bright: #b0ffb0;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Courier New', 'Fira Code', monospace;
+            font-family: 'Courier New', monospace;
             background-color: var(--dark-bg);
             color: var(--neon-green);
-            line-height: 1.6;
+            line-height: 1.7;
             overflow-x: hidden;
         }
 
-        /* ── Scanline overlay ── */
         body::before {
             content: '';
             position: fixed;
@@ -38,75 +32,109 @@
             width: 100%; height: 100%;
             background: repeating-linear-gradient(
                 0deg, transparent, transparent 2px,
-                rgba(0, 255, 65, 0.02) 2px, rgba(0, 255, 65, 0.02) 4px
+                rgba(0, 255, 65, 0.015) 2px, rgba(0, 255, 65, 0.015) 4px
             );
             pointer-events: none;
             z-index: 9999;
         }
 
-        /* ── Header ── */
+        a { color: var(--neon-green); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        /* ── Hero ── */
         .hero {
             text-align: center;
-            padding: 60px 20px 40px;
-            border-bottom: 1px solid var(--border-color);
+            padding: 100px 20px 80px;
             position: relative;
         }
 
         .hero::after {
             content: '';
             position: absolute;
-            bottom: -1px; left: 0;
+            bottom: 0; left: 0;
             width: 100%; height: 1px;
             background: linear-gradient(90deg, transparent, var(--neon-green), transparent);
-            box-shadow: 0 0 10px var(--neon-green);
+            box-shadow: 0 0 12px var(--neon-green);
         }
 
         .hero h1 {
-            font-size: 3rem;
+            font-size: 3.5rem;
             color: var(--neon-green);
-            text-shadow: 0 0 20px rgba(0,255,65,0.5), 0 0 40px rgba(0,255,65,0.2);
-            letter-spacing: 4px;
+            text-shadow: 0 0 30px rgba(0,255,65,0.5), 0 0 60px rgba(0,255,65,0.2);
+            letter-spacing: 6px;
             text-transform: uppercase;
         }
 
         .hero .subtitle {
-            font-size: 1.1rem;
+            font-size: 1.3rem;
             color: var(--neon-cyan);
-            margin-top: 10px;
+            margin-top: 16px;
             text-shadow: 0 0 10px rgba(0,229,255,0.3);
+            letter-spacing: 1px;
         }
 
-        .hero .owner {
-            font-size: 0.85rem;
+        .hero .tagline {
+            font-size: 0.9rem;
             color: var(--text-dim);
-            margin-top: 8px;
+            margin-top: 12px;
         }
 
-        .hero .version-badge {
+        .hero-cta {
+            margin-top: 36px;
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
             display: inline-block;
-            margin-top: 15px;
-            padding: 4px 16px;
+            padding: 14px 36px;
             border: 1px solid var(--neon-green);
-            border-radius: 3px;
-            font-size: 0.8rem;
+            border-radius: 4px;
             color: var(--neon-green);
-            box-shadow: 0 0 8px rgba(0,255,65,0.3);
+            font-family: inherit;
+            font-size: 0.95rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: all 0.3s;
+            cursor: pointer;
+            background: transparent;
         }
 
-        /* ── Live Stats Bar ── */
-        .live-stats {
+        .btn:hover {
+            background: rgba(0,255,65,0.12);
+            box-shadow: 0 0 20px rgba(0,255,65,0.3);
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: rgba(0,255,65,0.1);
+            box-shadow: 0 0 12px rgba(0,255,65,0.15);
+        }
+
+        .btn-secondary {
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(0,229,255,0.1);
+            box-shadow: 0 0 20px rgba(0,229,255,0.25);
+        }
+
+        /* ── Stats Bar ── */
+        .stats-bar {
             display: flex;
             justify-content: center;
             flex-wrap: wrap;
-            gap: 30px;
-            padding: 20px;
+            gap: 40px;
+            padding: 28px 20px;
             background: var(--panel-bg);
             border-bottom: 1px solid var(--border-color);
         }
 
-        .stat-item {
-            text-align: center;
-        }
+        .stat-item { text-align: center; }
 
         .stat-item .number {
             font-size: 2rem;
@@ -115,354 +143,484 @@
         }
 
         .stat-item .label {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: var(--text-dim);
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 1.5px;
         }
 
-        /* ── Section containers ── */
+        /* ── Sections ── */
         .section {
-            max-width: 1200px;
+            max-width: 1100px;
             margin: 0 auto;
-            padding: 40px 20px;
-            border-bottom: 1px solid var(--border-color);
+            padding: 64px 24px;
         }
 
-        .section h2 {
+        .section + .section { border-top: 1px solid var(--border-color); }
+
+        .section-title {
             font-size: 1.5rem;
             color: var(--neon-cyan);
             text-shadow: 0 0 10px rgba(0,229,255,0.3);
-            margin-bottom: 20px;
             text-transform: uppercase;
             letter-spacing: 2px;
+            margin-bottom: 12px;
         }
 
-        .section h2::before {
-            content: '▸ ';
+        .section-title::before { content: '▸ '; color: var(--neon-green); }
+
+        .section-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            margin-bottom: 36px;
+        }
+
+        /* ── Value Props ── */
+        .value-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
+        }
+
+        .value-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 28px 24px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .value-card:hover {
+            border-color: var(--neon-green);
+            box-shadow: 0 0 18px rgba(0,255,65,0.1);
+        }
+
+        .value-card .icon {
+            font-size: 1.8rem;
+            margin-bottom: 12px;
+        }
+
+        .value-card h3 {
             color: var(--neon-green);
+            font-size: 1rem;
+            margin-bottom: 8px;
         }
 
-        /* ── Module Grid ── */
+        .value-card p {
+            color: var(--text-dim);
+            font-size: 0.82rem;
+            line-height: 1.6;
+        }
+
+        /* ── Audience Grid ── */
+        .audience-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .audience-card {
+            background: var(--panel-bg);
+            border-left: 3px solid var(--neon-green);
+            padding: 20px 24px;
+            transition: border-color 0.3s;
+        }
+
+        .audience-card:hover { border-color: var(--neon-cyan); }
+
+        .audience-card h3 {
+            color: var(--neon-cyan);
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+        }
+
+        .audience-card p {
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            line-height: 1.5;
+        }
+
+        /* ── Steps ── */
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 28px;
+            counter-reset: step-counter;
+        }
+
+        .step {
+            text-align: center;
+            padding: 28px 20px;
+            counter-increment: step-counter;
+        }
+
+        .step::before {
+            content: counter(step-counter);
+            display: block;
+            width: 48px; height: 48px;
+            line-height: 48px;
+            margin: 0 auto 16px;
+            border: 2px solid var(--neon-cyan);
+            border-radius: 50%;
+            color: var(--neon-cyan);
+            font-size: 1.4rem;
+            text-shadow: 0 0 8px rgba(0,229,255,0.4);
+        }
+
+        .step h3 {
+            color: var(--neon-green);
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+        }
+
+        .step p {
+            color: var(--text-dim);
+            font-size: 0.8rem;
+        }
+
+        /* ── Terminal Block ── */
+        .terminal-block {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 24px;
+            font-size: 0.85rem;
+            overflow-x: auto;
+        }
+
+        .terminal-block .prompt { color: var(--neon-cyan); }
+        .terminal-block .cmd { color: var(--neon-green); margin-left: 8px; }
+        .terminal-block .comment { color: var(--text-dim); }
+        .terminal-block .line { padding: 2px 0; white-space: nowrap; }
+
+        /* ── Pricing ── */
+        .tier-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .tier-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 32px 24px;
+            text-align: center;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .tier-card.featured {
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 24px rgba(0,229,255,0.12);
+        }
+
+        .tier-card h3 {
+            color: var(--neon-cyan);
+            font-size: 1.15rem;
+            margin-bottom: 4px;
+        }
+
+        .tier-card .price {
+            font-size: 1.6rem;
+            color: var(--neon-green);
+            text-shadow: 0 0 8px rgba(0,255,65,0.3);
+            margin: 12px 0;
+        }
+
+        .tier-card .price-sub {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            margin-bottom: 16px;
+        }
+
+        .tier-card ul {
+            list-style: none;
+            text-align: left;
+            padding: 0;
+        }
+
+        .tier-card li {
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            padding: 4px 0;
+        }
+
+        .tier-card li::before { content: '✓ '; color: var(--neon-green); }
+
+        /* ── Module Catalog (expandable) ── */
+        .module-toggle {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--neon-cyan);
+            font-family: inherit;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-align: center;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+
+        .module-toggle:hover {
+            border-color: var(--neon-green);
+            box-shadow: 0 0 12px rgba(0,255,65,0.15);
+        }
+
+        .module-catalog {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .module-catalog.open { display: block; }
+
         .module-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 12px;
         }
 
         .module-card {
             background: var(--panel-bg);
             border: 1px solid var(--border-color);
             border-radius: 4px;
-            padding: 15px;
-            transition: border-color 0.3s, box-shadow 0.3s;
+            padding: 14px;
+            transition: border-color 0.3s;
         }
 
         .module-card:hover {
             border-color: var(--neon-green);
-            box-shadow: 0 0 15px rgba(0,255,65,0.15);
         }
 
         .module-card .module-name {
             color: var(--neon-green);
-            font-size: 0.9rem;
+            font-size: 0.82rem;
             font-weight: bold;
         }
 
         .module-card .module-desc {
             color: var(--text-dim);
-            font-size: 0.75rem;
-            margin-top: 5px;
+            font-size: 0.72rem;
+            margin-top: 4px;
         }
 
         .module-card .module-caps {
-            margin-top: 8px;
+            margin-top: 6px;
             display: flex;
             flex-wrap: wrap;
             gap: 4px;
         }
 
         .module-card .cap-tag {
-            font-size: 0.65rem;
-            padding: 2px 6px;
+            font-size: 0.62rem;
+            padding: 1px 6px;
             border: 1px solid var(--border-color);
             border-radius: 2px;
             color: var(--text-bright);
         }
 
-        /* ── Capability Categories ── */
-        .category-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-        }
-
-        .category-item {
-            background: var(--panel-bg);
-            border-left: 3px solid var(--neon-green);
-            padding: 15px;
-        }
-
-        .category-item h3 {
-            color: var(--neon-cyan);
-            font-size: 0.95rem;
-            margin-bottom: 8px;
-        }
-
-        .category-item ul {
-            list-style: none;
-            padding: 0;
-        }
-
-        .category-item li {
-            color: var(--text-dim);
-            font-size: 0.8rem;
-            padding: 2px 0;
-        }
-
-        .category-item li::before {
-            content: '◆ ';
-            color: var(--neon-green);
-        }
-
-        /* ── Business Model ── */
-        .tier-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 20px;
-        }
-
-        .tier-card {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 20px;
-            text-align: center;
-        }
-
-        .tier-card.featured {
-            border-color: var(--neon-cyan);
-            box-shadow: 0 0 20px rgba(0,229,255,0.15);
-        }
-
-        .tier-card h3 {
-            color: var(--neon-cyan);
-            font-size: 1.2rem;
-            margin-bottom: 5px;
-        }
-
-        .tier-card .tier-type {
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            margin-bottom: 10px;
-        }
-
-        .tier-card ul {
-            list-style: none;
-            padding: 0;
-            text-align: left;
-        }
-
-        .tier-card li {
-            color: var(--text-dim);
-            font-size: 0.8rem;
-            padding: 3px 0;
-        }
-
-        .tier-card li::before {
-            content: '✓ ';
-            color: var(--neon-green);
-        }
-
-        /* ── Community ── */
-        .community-links {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            justify-content: center;
-        }
-
-        .community-link {
-            display: inline-block;
-            padding: 10px 25px;
-            border: 1px solid var(--neon-green);
-            border-radius: 3px;
-            color: var(--neon-green);
-            text-decoration: none;
-            font-size: 0.85rem;
-            transition: all 0.3s;
-        }
-
-        .community-link:hover {
-            background: rgba(0,255,65,0.1);
-            box-shadow: 0 0 15px rgba(0,255,65,0.3);
-        }
-
         /* ── Footer ── */
         .footer {
             text-align: center;
-            padding: 30px 20px;
+            padding: 40px 20px;
             color: var(--text-dim);
             font-size: 0.75rem;
             border-top: 1px solid var(--border-color);
         }
 
-        .footer a {
-            color: var(--neon-green);
-            text-decoration: none;
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 12px;
+            flex-wrap: wrap;
         }
 
-        /* ── Pulse animation ── */
+        .footer-links a {
+            color: var(--neon-green);
+            font-size: 0.8rem;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover { color: var(--neon-cyan); }
+
+        /* ── Animations ── */
         @keyframes pulse {
             0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+            50% { opacity: 0.6; }
         }
 
-        .pulse { animation: pulse 2s infinite; }
-
-        /* ── Terminal prompt ── */
-        .terminal-block {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 20px;
-            margin: 20px 0;
-            font-size: 0.85rem;
-        }
-
-        .terminal-block .prompt {
-            color: var(--neon-cyan);
-        }
-
-        .terminal-block .response {
-            color: var(--neon-green);
-            margin-left: 10px;
-        }
+        .pulse { animation: pulse 2.5s ease-in-out infinite; }
 
         /* ── Responsive ── */
         @media (max-width: 768px) {
-            .hero h1 { font-size: 1.8rem; letter-spacing: 2px; }
+            .hero { padding: 60px 16px 50px; }
+            .hero h1 { font-size: 2rem; letter-spacing: 3px; }
+            .hero .subtitle { font-size: 1rem; }
+            .stats-bar { gap: 20px; }
             .stat-item .number { font-size: 1.5rem; }
+            .section { padding: 40px 16px; }
+            .value-grid,
+            .audience-grid,
+            .steps,
+            .tier-grid,
             .module-grid { grid-template-columns: 1fr; }
-            .tier-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════════════════════════════ -->
-<!-- HERO                                                          -->
-<!-- ══════════════════════════════════════════════════════════════ -->
+<div style="display:flex; gap:14px; padding:4px 15px; background:#0f0f0f; border-bottom:1px solid #333; font-size:11px; flex-wrap:wrap; align-items:center; font-family:'Courier New',monospace;">
+    <span style="color:#666; font-weight:bold; text-transform:uppercase; letter-spacing:1px; margin-right:4px;">Color Key:</span>
+    <span style="display:flex; align-items:center; gap:4px;"><span style="width:10px; height:10px; border-radius:2px; display:inline-block; background:#00ff41;"></span><span style="color:#00ff41;">System / Success</span></span>
+    <span style="display:flex; align-items:center; gap:4px;"><span style="width:10px; height:10px; border-radius:2px; display:inline-block; background:#00ffff;"></span><span style="color:#00ffff;">Info</span></span>
+    <span style="display:flex; align-items:center; gap:4px;"><span style="width:10px; height:10px; border-radius:2px; display:inline-block; background:#ffcc00;"></span><span style="color:#ffcc00;">Warning</span></span>
+    <span style="display:flex; align-items:center; gap:4px;"><span style="width:10px; height:10px; border-radius:2px; display:inline-block; background:#ff0000;"></span><span style="color:#ff0000;">Error</span></span>
+</div>
+
+<!-- ═══════════════ HERO ═══════════════ -->
 <header class="hero">
-    <h1>⚡ Murphy System</h1>
-    <p class="subtitle">Universal Generative Automation Control Plane</p>
-    <p class="owner">Created by Corey Post — InonI LLC</p>
-    <span class="version-badge pulse" id="versionBadge">v1.0 — <span id="moduleCountBadge">0</span> Modules Active</span>
+    <h1>Murphy System</h1>
+    <p class="subtitle">Automate Everything. Control Everything. From One Platform.</p>
+    <p class="tagline">Built by InonI LLC &mdash; the automation platform that runs itself.</p>
+    <div class="hero-cta">
+        <a href="terminal_integrated.html" class="btn btn-primary">Get Started</a>
+        <a href="README.md" class="btn btn-secondary">View Docs</a>
+    </div>
 </header>
 
-<!-- ══════════════════════════════════════════════════════════════ -->
-<!-- LIVE STATS (auto-updated from MODULE_CATALOG)                 -->
-<!-- ══════════════════════════════════════════════════════════════ -->
-<div class="live-stats" id="liveStats">
-    <div class="stat-item"><div class="number" id="statModules">—</div><div class="label">Modules</div></div>
-    <div class="stat-item"><div class="number" id="statIntegrations">—</div><div class="label">Integrations</div></div>
-    <div class="stat-item"><div class="number" id="statTests">—</div><div class="label">Tests Passing</div></div>
-    <div class="stat-item"><div class="number" id="statPlatforms">—</div><div class="label">Platform Connectors</div></div>
-    <div class="stat-item"><div class="number" id="statCapabilities">—</div><div class="label">Capabilities</div></div>
+<!-- ═══════════════ STATS BAR ═══════════════ -->
+<div class="stats-bar">
+    <div class="stat-item"><div class="number pulse" id="statModules">&mdash;</div><div class="label">Modules</div></div>
+    <div class="stat-item"><div class="number pulse" id="statCapabilities">&mdash;</div><div class="label">Capabilities</div></div>
+    <div class="stat-item"><div class="number pulse" id="statConnectors">&mdash;</div><div class="label">Connectors</div></div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════ -->
-<!-- WHAT MURPHY CAN DO                                            -->
-<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- ═══════════════ WHAT IT DOES ═══════════════ -->
 <div class="section">
-    <h2>What Murphy Can Do</h2>
-    <div class="category-list" id="categoryList">
-        <!-- Auto-populated by JS -->
+    <h2 class="section-title">What It Does</h2>
+    <p class="section-subtitle">Murphy isn't another task runner. It's a self-running automation control plane.</p>
+    <div class="value-grid">
+        <div class="value-card">
+            <div class="icon">&#9889;</div>
+            <h3>Self-Running Automation</h3>
+            <p>Murphy doesn't just automate tasks &mdash; it learns, adapts, and runs itself with confidence-gated execution. Every action is scored before it fires.</p>
+        </div>
+        <div class="value-card">
+            <div class="icon">&#128737;</div>
+            <h3>Human-in-the-Loop Safety</h3>
+            <p>Every critical decision passes through approval gates. Escalation paths, audit trails, and HITL controls keep you in command.</p>
+        </div>
+        <div class="value-card">
+            <div class="icon">&#128268;</div>
+            <h3><span id="moduleCountInline">45+</span> Modules, One Platform</h3>
+            <p>From HVAC and BAS to CRM, content creation, and manufacturing &mdash; every connector wired and ready to deploy.</p>
+        </div>
+        <div class="value-card">
+            <div class="icon">&#128274;</div>
+            <h3>Enterprise-Grade Compliance</h3>
+            <p>GDPR, SOC2, HIPAA, PCI-DSS &mdash; built in, not bolted on. Policy enforcement, RBAC, and full audit logging from day one.</p>
+        </div>
     </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════ -->
-<!-- MODULE CATALOG (auto-populated)                               -->
-<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- ═══════════════ WHO IT'S FOR ═══════════════ -->
 <div class="section">
-    <h2>Module Catalog</h2>
-    <p style="color: var(--text-dim); font-size: 0.8rem; margin-bottom: 15px;">
-        Every module below is wired into the runtime with full gate synthesis,
-        event publishing, persistence, and executive planning integration.
-        This list auto-updates when new modules are added.
-    </p>
-    <div class="module-grid" id="moduleGrid">
-        <!-- Auto-populated by JS -->
+    <h2 class="section-title">Who It's For</h2>
+    <p class="section-subtitle">One platform, five industries, zero limits.</p>
+    <div class="audience-grid">
+        <div class="audience-card">
+            <h3>Building &amp; Facility Managers</h3>
+            <p>BACnet, Modbus, KNX, LonWorks, DALI, OPC UA &mdash; automate HVAC, lighting, and energy with connectors for Johnson Controls, Honeywell, Siemens, Trane, and Carrier.</p>
+        </div>
+        <div class="audience-card">
+            <h3>Manufacturing Operations</h3>
+            <p>ISA-95, OPC UA, MTConnect, PackML, MQTT/Sparkplug B &mdash; production line automation with 7-phase gate control and real-time telemetry.</p>
+        </div>
+        <div class="audience-card">
+            <h3>Business Automation Teams</h3>
+            <p>CRM, email, payments, project management &mdash; integrate QuickBooks, SAP, Dynamics 365, Jira, Slack, Teams, and 59+ enterprise connectors.</p>
+        </div>
+        <div class="audience-card">
+            <h3>Content Creators &amp; Streamers</h3>
+            <p>YouTube, Twitch, TikTok, Patreon, Kick, Rumble &mdash; scheduling, simulcasting, and monetization tracking across every platform.</p>
+        </div>
+        <div class="audience-card">
+            <h3>Software Teams</h3>
+            <p>CI/CD, monitoring, deployment automation &mdash; DAG workflow engine, API gateway, and self-healing endpoint management built in.</p>
+        </div>
     </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════ -->
-<!-- QUICK START                                                   -->
-<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- ═══════════════ HOW IT WORKS ═══════════════ -->
 <div class="section">
-    <h2>Quick Start</h2>
+    <h2 class="section-title">How It Works</h2>
+    <p class="section-subtitle">Three steps from zero to fully automated.</p>
+    <div class="steps">
+        <div class="step">
+            <h3>Tell Murphy What You Need</h3>
+            <p>Natural language onboarding. Describe your workflows &mdash; Murphy builds the plan.</p>
+        </div>
+        <div class="step">
+            <h3>Murphy Builds Your Plan</h3>
+            <p>Confidence scoring on every action. Every automation step is evaluated before execution.</p>
+        </div>
+        <div class="step">
+            <h3>Watch It Run</h3>
+            <p>Intervene only when you want to. Human-in-the-loop controls let you approve, pause, or override at any point.</p>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ QUICK START ═══════════════ -->
+<div class="section">
+    <h2 class="section-title">Quick Start</h2>
+    <p class="section-subtitle">Up and running in under a minute.</p>
     <div class="terminal-block">
-        <div><span class="prompt">$</span><span class="response"> git clone https://github.com/IKNOWINOT/Murphy-System.git</span></div>
-        <div><span class="prompt">$</span><span class="response"> cd Murphy-System/Murphy\ System/murphy_integrated</span></div>
-        <div><span class="prompt">$</span><span class="response"> pip install -r requirements.txt</span></div>
-        <div><span class="prompt">$</span><span class="response"> python murphy_system_1.0_runtime.py</span></div>
-        <div style="margin-top: 10px; color: var(--text-dim);"># Or run the integration tests</div>
-        <div><span class="prompt">$</span><span class="response"> python -m pytest tests/ -v</span></div>
+        <div class="line"><span class="prompt">$</span><span class="cmd">git clone https://github.com/IKNOWINOT/Murphy-System.git</span></div>
+        <div class="line"><span class="prompt">$</span><span class="cmd">cd Murphy-System/Murphy\ System</span></div>
+        <div class="line"><span class="prompt">$</span><span class="cmd">pip install -r requirements.txt</span></div>
+        <div class="line"><span class="prompt">$</span><span class="cmd">python murphy_system_1.0_runtime.py</span></div>
     </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════ -->
-<!-- BUSINESS MODEL                                                -->
-<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- ═══════════════ PRICING ═══════════════ -->
 <div class="section">
-    <h2>Business Model — Open-Core</h2>
-    <p style="color: var(--text-dim); font-size: 0.8rem; margin-bottom: 15px;">
-        Murphy follows an open-core model. The automation engine, connectors,
-        and testing frameworks are open-source. Enterprise features
-        (multi-tenant SaaS, premium support, managed hosting) are commercial.
-    </p>
-    <div class="tier-grid" id="tierGrid">
-        <!-- Auto-populated by JS -->
+    <h2 class="section-title">Pricing</h2>
+    <p class="section-subtitle">Open-core model. The full engine is free. Scale when you're ready.</p>
+    <div class="tier-grid" id="tierGrid"></div>
+</div>
+
+<!-- ═══════════════ MODULE CATALOG ═══════════════ -->
+<div class="section">
+    <h2 class="section-title">Module Catalog</h2>
+    <p class="section-subtitle">Every module auto-wired with gate synthesis, event publishing, and persistence.</p>
+    <button class="module-toggle" id="moduleToggle" aria-expanded="false" aria-controls="moduleCatalog">Show All <span id="moduleCountBadge">0</span> Modules &#9662;</button>
+    <div class="module-catalog" id="moduleCatalog">
+        <div class="module-grid" id="moduleGrid"></div>
     </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════ -->
-<!-- COMMUNITY                                                     -->
-<!-- ══════════════════════════════════════════════════════════════ -->
-<div class="section" style="text-align: center;">
-    <h2>Community</h2>
-    <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 20px;">
-        Contribute modules, report issues, and help shape the future of
-        universal automation.
-    </p>
-    <div class="community-links">
-        <a href="https://github.com/IKNOWINOT/Murphy-System" class="community-link">GitHub Repository</a>
-        <a href="https://github.com/IKNOWINOT/Murphy-System/issues" class="community-link">Report Issues</a>
-        <a href="https://github.com/IKNOWINOT/Murphy-System/pulls" class="community-link">Pull Requests</a>
-        <a href="https://github.com/IKNOWINOT/Murphy-System/wiki" class="community-link">Wiki / Docs</a>
-    </div>
-</div>
-
-<!-- ══════════════════════════════════════════════════════════════ -->
-<!-- FOOTER                                                        -->
-<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- ═══════════════ FOOTER ═══════════════ -->
 <footer class="footer">
-    <p>© 2024–2026 Corey Post — InonI LLC. All rights reserved.</p>
-    <p>Murphy System is a product of <a href="https://github.com/IKNOWINOT">InonI LLC</a>.</p>
-    <p style="margin-top: 5px;">Open-core licensed. Community edition available under MIT license.</p>
+    <p>&copy; 2024&ndash;2026 Corey Post &mdash; InonI LLC. All rights reserved.</p>
+    <p style="margin-top: 4px;">Open-core licensed. Community edition available under MIT license.</p>
+    <div class="footer-links">
+        <a href="https://github.com/IKNOWINOT/Murphy-System">GitHub</a>
+        <a href="https://github.com/IKNOWINOT/Murphy-System/issues">Issues</a>
+        <a href="https://github.com/IKNOWINOT/Murphy-System/wiki">Wiki</a>
+    </div>
 </footer>
 
-<!-- ══════════════════════════════════════════════════════════════ -->
-<!-- AUTO-UPDATE ENGINE                                            -->
-<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- ═══════════════ JAVASCRIPT ═══════════════ -->
 <script>
-(function() {
+(function () {
     'use strict';
 
     // ── MODULE_CATALOG (mirrors murphy_system_1.0_runtime.py) ──
-    // This is auto-maintained: add a module to the runtime and add its
-    // entry here.  The landing page re-renders automatically.
-    const MODULE_CATALOG = [
+    var MODULE_CATALOG = [
         { name: "module_manager", desc: "Dynamic module lifecycle management with hot-reload and dependency resolution", caps: ["hot_reload","dependency_resolution","versioning"] },
         { name: "modular_runtime", desc: "Pluggable runtime with task routing, session management, and execution metrics", caps: ["task_routing","session_management","execution_metrics"] },
         { name: "universal_control_plane", desc: "Central orchestration with swarm coordination, priority queuing, and circuit breakers", caps: ["orchestration","swarm_coordination","circuit_breakers"] },
@@ -507,127 +665,104 @@
         { name: "agentic_api_provisioner", desc: "Self-provisioning API that autonomously generates endpoints from module introspection with OpenAPI specs, webhooks, and self-healing", caps: ["auto_provision","openapi","webhooks","self_healing"] },
         { name: "video_streaming_connector", desc: "Twitch, YouTube Live, OBS, vMix, Restream, StreamYard, Streamlabs, Kick Live with simulcasting", caps: ["live_streaming","simulcast","obs","twitch","youtube_live"] },
         { name: "remote_access_connector", desc: "TeamViewer, AnyDesk, RDP, VNC, SSH, Parsec, Chrome Remote Desktop, Guacamole, Splashtop", caps: ["remote_desktop","teamviewer","rdp","vnc","ssh"] },
-        { name: "ui_testing_framework", desc: "12 UI testing capabilities: visual regression, interactive components, E2E, performance, cross-browser, mobile gestures, dark mode, security, i18n", caps: ["visual_regression","e2e_testing","performance","security","i18n"] },
+        { name: "ui_testing_framework", desc: "12 UI testing capabilities: visual regression, interactive components, E2E, performance, cross-browser, mobile gestures, dark mode, security, i18n", caps: ["visual_regression","e2e_testing","performance","security","i18n"] }
     ];
 
-    // ── CAPABILITY CATEGORIES ──
-    const CATEGORIES = [
-        { name: "Automation & Orchestration", items: ["Swarm intelligence with emergent task distribution", "DAG workflow engine with parallel execution", "Two-phase distributed transactions", "MFGC 7-phase gate control", "Cron scheduling and event-driven triggers"] },
-        { name: "Building & Energy Automation", items: ["BACnet, Modbus, KNX, LonWorks, DALI, OPC UA", "Johnson Controls, Honeywell, Siemens, Trane, Carrier, Alerton", "GridPoint, Tridium Niagara, ABB Ability, Brainbox AI", "ISA-95, MTConnect, PackML, MQTT/Sparkplug B"] },
-        { name: "AI & Machine Learning", items: ["Anomaly detection (z-score, IQR)", "Time-series forecasting (exponential smoothing)", "Naive Bayes classification", "K-means clustering", "Q-learning reinforcement learning", "Ensemble methods and online learning"] },
-        { name: "Enterprise Integration", items: ["QuickBooks, SAP, Dynamics 365, NetSuite", "AutoCAD, Blender, Maya, Revit", "Jira, Asana, Monday.com, Trello", "Slack, Teams, Discord, WhatsApp, Telegram, Signal"] },
-        { name: "Content & Streaming", items: ["YouTube, Twitch, TikTok, OnlyFans, Patreon, Kick", "OBS Studio, vMix, Restream, StreamYard", "Multi-platform simulcasting", "Content scheduling and monetization tracking"] },
-        { name: "Digital Asset Creation", items: ["Unreal Engine 5 asset pipelines", "Maya, Blender, Unity, Godot integration", "Fortnite Creative / UEFN support", "Sprite sheets, texture atlases, 3D model descriptors"] },
-        { name: "Remote Access & Operations", items: ["TeamViewer, AnyDesk, RDP, VNC, SSH tunneling", "Parsec, Chrome Remote Desktop, Apache Guacamole", "Unattended access and Wake-on-LAN", "Session recording and file transfer"] },
-        { name: "Security & Compliance", items: ["GDPR, SOC2, HIPAA, PCI-DSS sensors", "RBAC governance with policy compilation", "XSS prevention, injection testing", "CSP header validation and auth bypass detection", "Admin/owner-only automation toggle controls", "Comprehensive audit logging for compliance"] },
-        { name: "Self-Improvement", items: ["Agentic API self-provisioning from MODULE_CATALOG", "Self-healing endpoint health monitoring", "Adaptive learning from execution outcomes", "Recursive stability controller", "Toggleable full automation with HITL gap detection", "Risk-based automation activation", "Success rate monitoring and adaptive mode transitions"] },
-        { name: "Testing & Quality", items: ["12-gap UI testing framework", "Visual regression with baseline comparison", "Performance testing (Core Web Vitals)", "Cross-browser and mobile gesture testing", "i18n and RTL language validation"] },
-    ];
-
-    // ── BUSINESS TIERS ──
-    const TIERS = [
+    // ── PRICING TIERS ──
+    var TIERS = [
         {
-            name: "Community Edition",
-            type: "Open Source — MIT License",
+            name: "Community",
+            price: "Free",
+            priceSub: "MIT License \u2014 forever",
             featured: false,
             items: [
                 "Full automation engine and runtime",
-                "All 45+ modules and connectors",
-                "Building/manufacturing/energy automation",
-                "ML strategy engine (11 strategies)",
-                "UI testing framework (12 capabilities)",
-                "Integration test suite (400+ tests)",
+                "All " + MODULE_CATALOG.length + "+ modules and connectors",
                 "CLI and terminal interfaces",
-                "Community support via GitHub Issues",
-            ],
+                "ML strategy engine (11 strategies)",
+                "Community support via GitHub Issues"
+            ]
         },
         {
-            name: "Professional Edition",
-            type: "Commercial — Per-Seat License",
+            name: "Professional",
+            price: "$99/mo",
+            priceSub: "Per seat \u2014 billed annually",
             featured: true,
             items: [
-                "Everything in Community Edition",
-                "Priority support and SLA guarantees",
+                "Everything in Community",
+                "Managed cloud hosting",
+                "Priority support with SLA",
                 "Advanced analytics dashboards",
-                "Multi-tenant deployment",
                 "Custom connector development",
-                "Managed cloud hosting option",
-                "White-label branding support",
-                "Dedicated onboarding and training",
-            ],
+                "White-label branding support"
+            ]
         },
         {
-            name: "Enterprise Edition",
-            type: "Commercial — Annual Agreement",
+            name: "Enterprise",
+            price: "$750/mo",
+            priceSub: "Per seat \u2014 billed annually",
             featured: false,
             items: [
-                "Everything in Professional Edition",
+                "Everything in Professional",
                 "Unlimited seats and deployments",
                 "On-premise / air-gapped installation",
                 "24/7 premium support with SRE team",
-                "Custom module development",
                 "SOC2 / HIPAA audit assistance",
-                "Executive planning engine deep config",
-                "Dedicated customer success manager",
-            ],
-        },
+                "Dedicated customer success manager"
+            ]
+        }
     ];
 
-    // ── RENDER FUNCTIONS ──
+    // ── RENDER ──
 
     function renderStats() {
-        const totalCaps = MODULE_CATALOG.reduce((sum, m) => sum + m.caps.length, 0);
+        var totalCaps = MODULE_CATALOG.reduce(function (sum, m) { return sum + m.caps.length; }, 0);
         document.getElementById('statModules').textContent = MODULE_CATALOG.length;
-        document.getElementById('moduleCountBadge').textContent = MODULE_CATALOG.length;
-        document.getElementById('statIntegrations').textContent = '59+';
-        document.getElementById('statTests').textContent = '401';
-        document.getElementById('statPlatforms').textContent = '29';
         document.getElementById('statCapabilities').textContent = totalCaps;
-    }
-
-    function renderModules() {
-        const grid = document.getElementById('moduleGrid');
-        grid.innerHTML = MODULE_CATALOG.map(m => `
-            <div class="module-card">
-                <div class="module-name">${m.name.replace(/_/g, '_')}</div>
-                <div class="module-desc">${m.desc}</div>
-                <div class="module-caps">
-                    ${m.caps.slice(0, 5).map(c => `<span class="cap-tag">${c}</span>`).join('')}
-                </div>
-            </div>
-        `).join('');
-    }
-
-    function renderCategories() {
-        const list = document.getElementById('categoryList');
-        list.innerHTML = CATEGORIES.map(cat => `
-            <div class="category-item">
-                <h3>${cat.name}</h3>
-                <ul>
-                    ${cat.items.map(item => `<li>${item}</li>`).join('')}
-                </ul>
-            </div>
-        `).join('');
+        document.getElementById('statConnectors').textContent = '59+';
+        document.getElementById('moduleCountBadge').textContent = MODULE_CATALOG.length;
+        document.getElementById('moduleCountInline').textContent = MODULE_CATALOG.length + '+';
     }
 
     function renderTiers() {
-        const grid = document.getElementById('tierGrid');
-        grid.innerHTML = TIERS.map(tier => `
-            <div class="tier-card ${tier.featured ? 'featured' : ''}">
-                <h3>${tier.name}</h3>
-                <div class="tier-type">${tier.type}</div>
-                <ul>
-                    ${tier.items.map(item => `<li>${item}</li>`).join('')}
-                </ul>
-            </div>
-        `).join('');
+        var grid = document.getElementById('tierGrid');
+        grid.innerHTML = TIERS.map(function (tier) {
+            return '<div class="tier-card ' + (tier.featured ? 'featured' : '') + '">' +
+                '<h3>' + tier.name + '</h3>' +
+                '<div class="price">' + tier.price + '</div>' +
+                '<div class="price-sub">' + tier.priceSub + '</div>' +
+                '<ul>' + tier.items.map(function (item) { return '<li>' + item + '</li>'; }).join('') + '</ul>' +
+            '</div>';
+        }).join('');
     }
+
+    function renderModules() {
+        var grid = document.getElementById('moduleGrid');
+        grid.innerHTML = MODULE_CATALOG.map(function (m) {
+            return '<div class="module-card">' +
+                '<div class="module-name">' + m.name + '</div>' +
+                '<div class="module-desc">' + m.desc + '</div>' +
+                '<div class="module-caps">' +
+                    m.caps.slice(0, 5).map(function (c) { return '<span class="cap-tag">' + c + '</span>'; }).join('') +
+                '</div>' +
+            '</div>';
+        }).join('');
+    }
+
+    // ── MODULE TOGGLE ──
+    document.getElementById('moduleToggle').addEventListener('click', function () {
+        var catalog = document.getElementById('moduleCatalog');
+        var isOpen = catalog.classList.toggle('open');
+        this.setAttribute('aria-expanded', isOpen);
+        this.innerHTML = isOpen
+            ? 'Hide Module Catalog \u25B4'
+            : 'Show All ' + MODULE_CATALOG.length + ' Modules \u25BE';
+    });
 
     // ── INIT ──
     renderStats();
-    renderModules();
-    renderCategories();
     renderTiers();
+    renderModules();
 })();
 </script>
 </body>

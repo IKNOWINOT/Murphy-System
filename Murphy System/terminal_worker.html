@@ -13,17 +13,17 @@
 
         body {
             font-family: 'Courier New', monospace;
-            background-color: #000000;
-            color: #00FF00;
+            background-color: #0a0a0a;
+            color: #00ff41;
             overflow: hidden;
             height: 100vh;
         }
 
         /* Header */
         .header {
-            background-color: #000000;
-            border-bottom: 2px solid #00FF00;
-            box-shadow: 0 2px 10px rgba(0, 255, 0, 0.3);
+            background-color: #0a0a0a;
+            border-bottom: 2px solid #00ff41;
+            box-shadow: 0 2px 10px rgba(0, 255, 65, 0.3);
             padding: 15px 20px;
             display: flex;
             justify-content: space-between;
@@ -34,12 +34,12 @@
             font-size: 18px;
             font-weight: bold;
             letter-spacing: 2px;
-            color: #00FF00;
+            color: #00ff41;
         }
 
         .header-subtitle {
             font-size: 12px;
-            color: #00AA00;
+            color: #00cc33;
             margin-top: 4px;
         }
 
@@ -58,7 +58,7 @@
         .status-indicator {
             width: 8px;
             height: 8px;
-            background-color: #00FF00;
+            background-color: #00ff41;
             border-radius: 50%;
             animation: pulse 2s infinite;
         }
@@ -79,14 +79,14 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            border-right: 2px solid #00FF00;
+            border-right: 2px solid #00ff41;
         }
 
         .terminal-output {
             flex: 1;
             padding: 20px;
             overflow-y: auto;
-            background-color: #000000;
+            background-color: #0a0a0a;
             font-size: 14px;
             line-height: 1.6;
         }
@@ -96,11 +96,11 @@
         }
 
         .terminal-output::-webkit-scrollbar-track {
-            background: #000000;
+            background: #0a0a0a;
         }
 
         .terminal-output::-webkit-scrollbar-thumb {
-            background: #00FF00;
+            background: #00ff41;
             border-radius: 4px;
         }
 
@@ -115,29 +115,29 @@
         }
 
         .terminal-line.user {
-            color: #00FFFF;
+            color: #00ffff;
         }
 
         .terminal-line.system {
-            color: #00FF00;
+            color: #00ff41;
         }
 
         .terminal-line.error {
-            color: #FF0000;
+            color: #ff0000;
         }
 
         .terminal-line.warning {
-            color: #FFFF00;
+            color: #ffcc00;
         }
 
         .terminal-line.info {
-            color: #0088FF;
+            color: #0088ff;
         }
 
         .terminal-input-container {
             padding: 20px;
-            border-top: 2px solid #00FF00;
-            background-color: #000000;
+            border-top: 2px solid #00ff41;
+            background-color: #0a0a0a;
         }
 
         .terminal-input-wrapper {
@@ -147,24 +147,24 @@
         }
 
         .terminal-prompt {
-            color: #00FF00;
+            color: #00ff41;
             font-weight: bold;
         }
 
         #messageInput {
             flex: 1;
-            background-color: #000000;
+            background-color: #0a0a0a;
             border: none;
-            color: #00FFFF;
+            color: #00ffff;
             font-family: 'Courier New', monospace;
             font-size: 14px;
             padding: 10px;
             outline: none;
-            border-bottom: 1px solid #00FF00;
+            border-bottom: 1px solid #00ff41;
         }
 
         #messageInput::placeholder {
-            color: #00FF00;
+            color: #00ff41;
             opacity: 0.5;
         }
 
@@ -174,8 +174,8 @@
         }
 
         .send-button {
-            background-color: #00FF00;
-            color: #000000;
+            background-color: #00ff41;
+            color: #0a0a0a;
             border: none;
             padding: 10px 20px;
             font-family: 'Courier New', monospace;
@@ -198,14 +198,14 @@
             width: 300px;
             display: flex;
             flex-direction: column;
-            background-color: #000000;
+            background-color: #0a0a0a;
             padding: 20px;
             overflow-y: auto;
         }
 
         .task-section {
             margin-bottom: 20px;
-            border: 1px solid #00FF00;
+            border: 1px solid #00ff41;
             padding: 15px;
             background-color: #001100;
         }
@@ -214,7 +214,7 @@
             font-size: 12px;
             font-weight: bold;
             margin-bottom: 10px;
-            color: #00FF00;
+            color: #00ff41;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
@@ -222,7 +222,7 @@
         .task-info {
             font-size: 11px;
             line-height: 1.6;
-            color: #00AA00;
+            color: #00cc33;
         }
 
         .task-info-row {
@@ -232,24 +232,24 @@
         }
 
         .task-info-label {
-            color: #00FF00;
+            color: #00ff41;
         }
 
         .task-info-value {
-            color: #00FFFF;
+            color: #00ffff;
         }
 
         .progress-bar {
             width: 100%;
             height: 20px;
             background-color: #001100;
-            border: 1px solid #00FF00;
+            border: 1px solid #00ff41;
             margin-top: 10px;
         }
 
         .progress-fill {
             height: 100%;
-            background-color: #00FF00;
+            background-color: #00ff41;
             transition: width 0.3s ease;
         }
 
@@ -263,18 +263,18 @@
         }
 
         .status-badge.active {
-            background-color: #00FF00;
-            color: #000000;
+            background-color: #00ff41;
+            color: #0a0a0a;
         }
 
         .status-badge.pending {
-            background-color: #FFFF00;
-            color: #000000;
+            background-color: #ffcc00;
+            color: #0a0a0a;
         }
 
         .status-badge.complete {
             background-color: #00AAFF;
-            color: #000000;
+            color: #0a0a0a;
         }
 
         /* Quick Actions */
@@ -286,9 +286,9 @@
             width: 100%;
             padding: 8px;
             margin-bottom: 5px;
-            background-color: #000000;
-            border: 1px solid #00FF00;
-            color: #00FF00;
+            background-color: #0a0a0a;
+            border: 1px solid #00ff41;
+            color: #00ff41;
             font-family: 'Courier New', monospace;
             font-size: 11px;
             cursor: pointer;
@@ -296,8 +296,8 @@
         }
 
         .quick-action-btn:hover {
-            background-color: #00FF00;
-            color: #000000;
+            background-color: #00ff41;
+            color: #0a0a0a;
         }
 
         .quick-action-btn:active {
@@ -307,7 +307,7 @@
         /* Help Panel */
         .help-panel {
             margin-top: 20px;
-            border: 1px solid #00FF00;
+            border: 1px solid #00ff41;
             padding: 15px;
             background-color: #001100;
         }
@@ -316,18 +316,47 @@
             font-size: 12px;
             font-weight: bold;
             margin-bottom: 10px;
-            color: #00FF00;
+            color: #00ff41;
         }
 
         .help-item {
             font-size: 11px;
             margin-bottom: 5px;
-            color: #00AA00;
+            color: #00cc33;
         }
 
         .help-command {
-            color: #00FFFF;
+            color: #00ffff;
             font-weight: bold;
+        }
+        /* ── Color Key Legend ────────────────────────────── */
+        .color-key {
+            display: flex;
+            gap: 14px;
+            padding: 4px 15px;
+            background: #0a0a0a;
+            border-bottom: 1px solid #333;
+            font-size: 11px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .color-key-label {
+            color: #666;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-right: 4px;
+        }
+        .color-key-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .color-key-swatch {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            display: inline-block;
         }
     </style>
 </head>
@@ -348,23 +377,38 @@
             </div>
         </div>
     </div>
+    <div class="color-key">
+        <span class="color-key-label">Color Key:</span>
+        <span class="color-key-item"><span class="color-key-swatch" style="background:#00ff41"></span><span style="color:#00ff41">System / Success</span></span>
+        <span class="color-key-item"><span class="color-key-swatch" style="background:#00ffff"></span><span style="color:#00ffff">User Input</span></span>
+        <span class="color-key-item"><span class="color-key-swatch" style="background:#0088ff"></span><span style="color:#0088ff">Info</span></span>
+        <span class="color-key-item"><span class="color-key-swatch" style="background:#ffcc00"></span><span style="color:#ffcc00">Warning</span></span>
+        <span class="color-key-item"><span class="color-key-swatch" style="background:#ff0000"></span><span style="color:#ff0000">Error</span></span>
+    </div>
 
     <div class="container">
         <!-- Terminal Panel -->
         <div class="terminal-panel">
             <div class="terminal-output" id="terminalOutput">
                 <div class="terminal-line system" style="white-space:pre; line-height:1.15; font-size:0.85em;">
-☠══════════════════════════════════════════════════════════════════════☠
-║ ███╗   ███╗██╗   ██╗██████╗ ██████╗ ██╗  ██╗██╗   ██╗             ║
-║ ████╗ ████║██║   ██║██╔══██╗██╔══██╗██║  ██║╚██╗ ██╔╝             ║
-║ ██╔████╔██║██║   ██║██████╔╝██████╔╝███████║ ╚████╔╝              ║
-║ ██║╚██╔╝██║██║   ██║██╔══██╗██╔═══╝ ██╔══██║  ╚██╔╝              ║
-║ ██║ ╚═╝ ██║╚██████╔╝██║  ██║██║     ██║  ██║   ██║               ║
-║ ╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝   ╚═╝              ║
-║                                                                     ║
-║  💀  Worker Terminal · Minimal Task Execution  💀                  ║
-║  ☠   Type 'help' for available commands   ☠                       ║
-☠══════════════════════════════════════════════════════════════════════☠
+╔════════════════════════════════════════════════════════════════════════╗
+║ ███╗   ███╗██╗   ██╗██████╗ ██████╗ ██╗  ██╗██╗   ██╗                  ║
+║ ████╗ ████║██║   ██║██╔══██╗██╔══██╗██║  ██║╚██╗ ██╔╝                  ║
+║ ██╔████╔██║██║   ██║██████╔╝██████╔╝███████║ ╚████╔╝                   ║
+║ ██║╚██╔╝██║██║   ██║██╔══██╗██╔═══╝ ██╔══██║  ╚██╔╝                    ║
+║ ██║ ╚═╝ ██║╚██████╔╝██║  ██║██║     ██║  ██║   ██║                     ║
+║ ╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝   ╚═╝                     ║
+║                                                                        ║
+║ ███████╗██╗   ██╗███████╗████████╗███████╗███╗   ███╗                  ║
+║ ██╔════╝╚██╗ ██╔╝██╔════╝╚══██╔══╝██╔════╝████╗ ████║                  ║
+║ ███████╗ ╚████╔╝ ███████╗   ██║   █████╗  ██╔████╔██║                  ║
+║ ╚════██║  ╚██╔╝  ╚════██║   ██║   ██╔══╝  ██║╚██╔╝██║                  ║
+║ ███████║   ██║   ███████║   ██║   ███████╗██║ ╚═╝ ██║                  ║
+║ ╚══════╝   ╚═╝   ╚══════╝   ╚═╝   ╚══════╝╚═╝     ╚═╝                  ║
+║                                                                        ║
+║  Worker Terminal  |  Minimal Task Execution                            ║
+║  Type 'help' for available commands                                    ║
+╚════════════════════════════════════════════════════════════════════════╝
                 </div>
             </div>
             <div class="terminal-input-container">
@@ -652,7 +696,7 @@
         // Update MFGC status
         function updateMfgcStatus() {
             document.getElementById('mfgcStatus').textContent = mfgcEnabled ? 'ON' : 'OFF';
-            document.getElementById('mfgcStatus').style.color = mfgcEnabled ? '#00FF00' : '#AA0000';
+            document.getElementById('mfgcStatus').style.color = mfgcEnabled ? '#00ff41' : '#AA0000';
         }
 
         // Update stats display
