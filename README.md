@@ -2,7 +2,7 @@
 
 **Universal AI Automation System**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/IKNOWINOT/Murphy-System) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.11+-yellow.svg)](https://www.python.org/) [![Tests](https://img.shields.io/badge/tests-8240%20passing-brightgreen.svg)](#-test-status)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/IKNOWINOT/Murphy-System) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.10+-yellow.svg)](https://www.python.org/) [![Tests](https://img.shields.io/badge/tests-8843%20passing-brightgreen.svg)](#-test-status)
 
 ---
 
@@ -12,7 +12,7 @@
 > developed and maintained by a **single developer** ([@IKNOWINOT](https://github.com/IKNOWINOT)).
 > While the architecture is comprehensive and the test suite covers thousands of
 > functions, **not everything works as intended**. Emergent bugs are still being
-> discovered and classified across the 420+ module surface area.
+> discovered and classified across the 595+ module surface area.
 >
 > **What this means for you:**
 >
@@ -26,8 +26,8 @@
 >   process improvement requests automatically, but this pipeline is still
 >   maturing. File issues or submit patches and the system's self-improvement
 >   loop will attempt to incorporate them.
-> - 📊 **Test coverage is extensive but not exhaustive** — 8,200+ tests pass
->   across 351 test files, yet some Flask/Textual-dependent tests require
+> - 📊 **Test coverage is extensive but not exhaustive** — 8,800+ tests pass
+>   across 371 test files, yet some Flask/Textual-dependent tests require
 >   optional dependencies and are skipped when those packages are absent.
 > - 🤝 **Contributions welcome** — see [CONTRIBUTING.md](CONTRIBUTING.md). Bug
 >   reports, especially with reproduction steps, are especially valuable at
@@ -115,11 +115,11 @@ murphy help           # See all commands
 | Test coverage (dynamic chains) | **100%** |
 | UI + user testing | **85%** |
 | Security hardening | **100%** |
-| Code quality audit (25 categories) | **100%** |
+| Code quality audit (90 categories) | **100%** |
 | **Overall average** | **~99%** |
 
-> **Test status (latest run):** 7,924 passed · 0 failed · 72 skipped
-> across 345 test files. Skipped tests require optional packages (Flask, Textual, torch).
+> **Test status (latest run):** 8,843 test functions · 0 failed · 371 test files.
+> Skipped tests require optional packages (Flask, Textual, torch).
 > See [Test Status](#-test-status) below.
 
 ---
@@ -145,15 +145,15 @@ Murphy-System/
 └── Murphy System/                      ← ACTIVE SYSTEM
     ├── murphy                          ← CLI tool (start/stop/status/…)
     ├── murphy_system_1.0_runtime.py    ← Single production runtime
-    ├── src/                            ← 420+ production modules
-    ├── tests/                          ← 351 test files (8,200+ tests)
-    ├── bots/                           ← 94 production bots
+    ├── src/                            ← 595 production modules
+    ├── tests/                          ← 371 test files (8,800+ tests)
+    ├── bots/                           ← 104 bot modules
     ├── documentation/                  ← Structured API/user docs
     ├── docs/                           ← Technical docs
     ├── k8s/                            ← Kubernetes manifests
     ├── monitoring/                     ← Prometheus config
     ├── scripts/                        ← Operational scripts
-    ├── *.html                          ← 7 neon terminal UIs
+    ├── *.html                          ← 8 neon terminal UIs
     ├── USER_MANUAL.md                  ← Comprehensive user manual
     ├── BUSINESS_MODEL.md               ← Open-core editions
     ├── README.md, API_DOCUMENTATION.md, DEPLOYMENT_GUIDE.md
@@ -195,8 +195,8 @@ cd "Murphy System" && ./start_murphy_1.0.sh
 - Cryptographic bot identity verification (HMAC-SHA256 signing)
 - Behavioral anomaly detection (z-score analysis, resource spikes, API patterns)
 - Unified security dashboard with event correlation and compliance reporting
-- 42 integrated modules, 8,200+ tests passing
-- Neon terminal UI across 7 HTML interfaces with consistent theme
+- 42 integrated modules, 8,800+ tests passing
+- Neon terminal UI across 8 HTML interfaces with consistent theme
 
 **Architect UI:** serve `Murphy System/terminal_architect.html` with `python -m http.server 8090` and open `http://localhost:8090/Murphy%20System/terminal_architect.html?apiPort=8000`
 
@@ -212,9 +212,7 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **Role-based UIs** | `Murphy System/terminal_architect.html` | Architect planning + gate review UI | `python -m http.server 8090`, `?apiPort=8000` |
 | **Operations UI** | `Murphy System/terminal_integrated.html` | Operations execution UI | `python -m http.server 8090`, `?apiPort=8000` |
 | **Worker UI** | `Murphy System/terminal_worker.html` | Delivery worker UI | `python -m http.server 8090`, `?apiPort=8000` |
-| **Legacy UI Redirect** | `Murphy System/murphy_production_ui.html` | Redirects to architect UI; legacy toggle | `murphy_production_ui.html?legacy=true` |
 | **Legacy UI Assets** | `Murphy System/murphy_ui_integrated.html` | Legacy UI assets (scheduled for archive) | Open directly for reference |
-| **Screenshot Assets** | `docs/screenshots/` | UI verification images for capability grading | Referenced in `VISUAL_SETUP_GUIDE_WITH_SCREENSHOTS.md` |
 | **Tests** | `Murphy System/tests/` | Dynamic chain, gate, and capability tests | `python -m pytest` |
 
 ### Subsystem Lookup
@@ -408,7 +406,7 @@ Murphy **runs Inoni LLC autonomously** via configurable automation templates:
 
 ## 📦 What's Included
 
-### Complete System (~1,500 files in Murphy System)
+### Complete System (~1,780 files in Murphy System)
 
 | Component | Description | Files |
 | --- | --- | --- |
@@ -687,19 +685,19 @@ See [LICENSE](LICENSE) for the full license text.
 
 ---
 
-## 📊 Stats (Murphy System, as of 2026-03-04)
+## 📊 Stats (Murphy System, as of 2026-03-05)
 
 | Metric | Value |
 | --- | --- |
-| **Source Files** | 584 Python modules |
-| **Source Lines** | 209,701 |
-| **Classes** | 2,431 |
-| **Functions / Methods** | 8,174 |
+| **Source Files** | 595 Python modules |
+| **Source Lines** | 218,497 |
+| **Classes** | 2,487 |
+| **Functions / Methods** | 8,472 |
 | **Packages** | 54 subsystem directories |
-| **Test Files** | 345 |
-| **Test Functions** | 8,350 |
+| **Test Files** | 371 |
+| **Test Functions** | 8,843 |
 | **Automation Types** | 6 (factory, content, data, system, agent, business) |
-| **Gap-Closure Categories Audited** | 50+ (all at zero) |
+| **Gap-Closure Categories Audited** | 90 (all at zero) |
 
 ---
 
@@ -712,16 +710,13 @@ cd "Murphy System"
 python -m pytest tests/ -q --tb=short
 ```
 
-**Latest verified results (2026-03-04):**
+**Latest verified results (2026-03-05):**
 
 | Metric | Count |
 | --- | --- |
-| Collected | 7,996 |
-| Passed | 7,924 |
-| Failed | 0 |
-| Skipped | 72 |
-| Test files | 345 |
-| Gap-closure tests | 156 (rounds 3–22) |
+| Test files | 371 |
+| Test functions | 8,843 |
+| Gap-closure tests | 406 (rounds 3–42) |
 
 **Skipped tests** require optional dependencies (Flask, Textual, torch) that are
 not part of the core FastAPI-based system. Install them with `pip install flask
