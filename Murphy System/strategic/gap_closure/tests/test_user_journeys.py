@@ -22,6 +22,9 @@ os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
 # Parent directory (gap_closure root) for resolving HTML files
 HTML_DIR = os.path.join(os.path.dirname(__file__), "..")
 
+# Default browser viewport shared across all browser tests
+DEFAULT_VIEWPORT = {"width": 1400, "height": 900}
+
 
 def _html_url(filename: str) -> str:
     path = os.path.abspath(os.path.join(HTML_DIR, filename))
@@ -41,7 +44,7 @@ def test_workflow_builder_loads() -> None:
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport={"width": 1400, "height": 900})
+        page = browser.new_page(viewport=DEFAULT_VIEWPORT)
         page.goto(_html_url("lowcode/workflow_builder_ui.html"))
         page.wait_for_load_state("networkidle")
         out = _screenshot_path("01_workflow_builder_initial.png")
@@ -55,7 +58,7 @@ def test_workflow_builder_has_node_palette() -> None:
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport={"width": 1400, "height": 900})
+        page = browser.new_page(viewport=DEFAULT_VIEWPORT)
         page.goto(_html_url("lowcode/workflow_builder_ui.html"))
         page.wait_for_load_state("networkidle")
         out = _screenshot_path("02_workflow_builder_palette.png")
@@ -69,7 +72,7 @@ def test_workflow_builder_has_canvas() -> None:
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport={"width": 1400, "height": 900})
+        page = browser.new_page(viewport=DEFAULT_VIEWPORT)
         page.goto(_html_url("lowcode/workflow_builder_ui.html"))
         page.wait_for_load_state("networkidle")
         out = _screenshot_path("03_workflow_builder_canvas.png")
@@ -86,7 +89,7 @@ def test_workflow_builder_toolbar_buttons() -> None:
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport={"width": 1400, "height": 900})
+        page = browser.new_page(viewport=DEFAULT_VIEWPORT)
         page.goto(_html_url("lowcode/workflow_builder_ui.html"))
         page.wait_for_load_state("networkidle")
         out = _screenshot_path("04_workflow_builder_toolbar.png")
@@ -103,7 +106,7 @@ def test_workflow_builder_sample_workflow_visible() -> None:
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport={"width": 1400, "height": 900})
+        page = browser.new_page(viewport=DEFAULT_VIEWPORT)
         page.goto(_html_url("lowcode/workflow_builder_ui.html"))
         page.wait_for_load_state("networkidle")
         out = _screenshot_path("05_workflow_builder_sample.png")
@@ -124,7 +127,7 @@ def test_community_portal_loads() -> None:
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport={"width": 1400, "height": 900})
+        page = browser.new_page(viewport=DEFAULT_VIEWPORT)
         page.goto(_html_url("community/community_portal.html"))
         page.wait_for_load_state("networkidle")
         out = _screenshot_path("06_community_portal_initial.png")
@@ -138,7 +141,7 @@ def test_community_portal_plugin_marketplace() -> None:
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport={"width": 1400, "height": 900})
+        page = browser.new_page(viewport=DEFAULT_VIEWPORT)
         page.goto(_html_url("community/community_portal.html"))
         page.wait_for_load_state("networkidle")
         page.evaluate("window.scrollTo(0, document.body.scrollHeight / 2)")
@@ -156,7 +159,7 @@ def test_community_portal_stats() -> None:
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport={"width": 1400, "height": 900})
+        page = browser.new_page(viewport=DEFAULT_VIEWPORT)
         page.goto(_html_url("community/community_portal.html"))
         page.wait_for_load_state("networkidle")
         out = _screenshot_path("08_community_portal_stats.png")
@@ -176,7 +179,7 @@ def test_observability_dashboard_loads() -> None:
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport={"width": 1400, "height": 900})
+        page = browser.new_page(viewport=DEFAULT_VIEWPORT)
         page.goto(_html_url("observability/dashboard.html"))
         page.wait_for_load_state("domcontentloaded")
         page.wait_for_timeout(1000)
@@ -191,7 +194,7 @@ def test_observability_dashboard_health_indicator() -> None:
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport={"width": 1400, "height": 900})
+        page = browser.new_page(viewport=DEFAULT_VIEWPORT)
         page.goto(_html_url("observability/dashboard.html"))
         page.wait_for_load_state("domcontentloaded")
         page.wait_for_timeout(500)
@@ -209,7 +212,7 @@ def test_observability_dashboard_metrics() -> None:
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport={"width": 1400, "height": 900})
+        page = browser.new_page(viewport=DEFAULT_VIEWPORT)
         page.goto(_html_url("observability/dashboard.html"))
         page.wait_for_load_state("domcontentloaded")
         page.wait_for_timeout(500)
