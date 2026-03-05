@@ -13792,6 +13792,25 @@ def create_app() -> FastAPI:
 
     # Initialize Murphy System
     murphy = MurphySystem()
+
+    # ── AionMind 2.0 Cognitive Pipeline Integration (Gap 5) ──────
+    _aionmind_kernel = None
+    try:
+        from aionmind.runtime_kernel import AionMindKernel
+        from aionmind import api as aionmind_api
+
+        _aionmind_kernel = AionMindKernel(
+            auto_bridge_bots=True,
+            auto_discover_rsc=True,
+        )
+        aionmind_api.init_kernel(_aionmind_kernel)
+        # Mount AionMind 2.0 endpoints at /api/aionmind/*
+        # (status, context, orchestrate, execute, proposals, memory)
+        app.include_router(aionmind_api.router)
+        logger.info("AionMind 2.0 cognitive pipeline initialised (%d capabilities).",
+                     _aionmind_kernel.registry.count())
+    except Exception as _aim_exc:
+        logger.warning("AionMind kernel not available — endpoints use legacy path only: %s", _aim_exc)
     
     # Register RBAC governance with security layer (SEC-005)
     rbac = getattr(murphy, 'rbac_governance', None)
@@ -13806,11 +13825,40 @@ def create_app() -> FastAPI:
     
     @app.post("/api/execute")
     async def execute_task(request: Request):
-        """Execute a task"""
+        """Execute a task — routes through AionMind cognitive pipeline when available."""
         data = await request.json()
+        task_description = data.get('task_description', '')
+        task_type = data.get('task_type', 'general')
+
+        # Route through AionMind cognitive pipeline if available
+        if _aionmind_kernel is not None:
+            try:
+                aionmind_result = _aionmind_kernel.cognitive_execute(
+                    source="api",
+                    raw_input=task_description,
+                    task_type=task_type,
+                    parameters=data.get('parameters'),
+                    auto_approve=True,
+                    approver="api_auto",
+                )
+                # Fall through to legacy if no candidates
+                if aionmind_result.get("status") != "no_candidates":
+                    # Merge with legacy execution for full feature coverage
+                    legacy_result = await murphy.execute_task(
+                        task_description=task_description,
+                        task_type=task_type,
+                        parameters=data.get('parameters'),
+                        session_id=data.get('session_id'),
+                    )
+                    legacy_result["aionmind"] = aionmind_result
+                    return JSONResponse(legacy_result)
+            except Exception as _exc:
+                logger.debug("AionMind pipeline fallback: %s", _exc)
+
+        # Legacy path
         result = await murphy.execute_task(
-            task_description=data.get('task_description', ''),
-            task_type=data.get('task_type', 'general'),
+            task_description=task_description,
+            task_type=task_type,
             parameters=data.get('parameters'),
             session_id=data.get('session_id')
         )
@@ -14107,22 +14155,64 @@ def create_app() -> FastAPI:
 
     @app.post("/api/forms/task-execution")
     async def form_task_execution(request: Request):
-        """Execute task via form endpoint"""
+        """Execute task via form endpoint — routes through AionMind cognitive pipeline."""
         data = await request.json()
+        # Enrich form data with AionMind context if available
+        if _aionmind_kernel is not None:
+            try:
+                desc = data.get("description") or data.get("task_description", "")
+                aionmind_result = _aionmind_kernel.cognitive_execute(
+                    source="form:task-execution",
+                    raw_input=desc,
+                    task_type=data.get("task_type", "general"),
+                    parameters=data.get("parameters"),
+                    auto_approve=True,
+                    approver="form_auto",
+                )
+                result = await murphy.handle_form_task_execution(data)
+                result["aionmind"] = aionmind_result
+                return JSONResponse(result)
+            except Exception as _exc:
+                logger.debug("AionMind form pipeline fallback: %s", _exc)
         result = await murphy.handle_form_task_execution(data)
         return JSONResponse(result)
 
     @app.post("/api/forms/validation")
     async def form_validation(request: Request):
-        """Validate task via form endpoint"""
+        """Validate task via form endpoint — enriched with AionMind context."""
         data = await request.json()
+        if _aionmind_kernel is not None:
+            try:
+                desc = (data.get("task_data") or data).get("description", "")
+                ctx = _aionmind_kernel.build_context(
+                    source="form:validation",
+                    raw_input=desc,
+                )
+                result = murphy.handle_form_validation(data)
+                result["aionmind_context_id"] = ctx.context_id
+                return JSONResponse(result)
+            except Exception as _exc:
+                logger.debug("AionMind validation context fallback: %s", _exc)
         result = murphy.handle_form_validation(data)
         return JSONResponse(result)
 
     @app.post("/api/forms/correction")
     async def form_correction(request: Request):
-        """Submit correction via form endpoint"""
+        """Submit correction via form endpoint — enriched with AionMind context."""
         data = await request.json()
+        if _aionmind_kernel is not None:
+            try:
+                desc = data.get("task_description") or data.get("original_task", "")
+                ctx = _aionmind_kernel.build_context(
+                    source="form:correction",
+                    raw_input=desc,
+                    metadata={"correction": data.get("correction", "")},
+                )
+                result = murphy.handle_form_correction(data)
+                result["aionmind_context_id"] = ctx.context_id
+                return JSONResponse(result)
+            except Exception as _exc:
+                logger.debug("AionMind correction context fallback: %s", _exc)
         result = murphy.handle_form_correction(data)
         return JSONResponse(result)
 
