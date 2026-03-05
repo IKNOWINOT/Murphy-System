@@ -50,10 +50,17 @@
 
 ### 1.2 Installation
 
-**One-command setup (recommended):**
+**⚡ One-line install (recommended):**
 
 ```bash
-# Clone and start
+curl -fsSL https://raw.githubusercontent.com/IKNOWINOT/Murphy-System/main/install.sh | bash
+```
+
+This single command clones the repo, sets up a virtual environment, installs dependencies, and configures Murphy. Then start with `murphy start`.
+
+**Clone & run:**
+
+```bash
 git clone https://github.com/IKNOWINOT/Murphy-System.git
 cd Murphy-System
 bash setup_and_start.sh
@@ -72,12 +79,6 @@ python murphy_system_1.0_runtime.py
 ```bat
 cd "Murphy System"
 setup_murphy.bat
-```
-
-**Remote one-line install:**
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/IKNOWINOT/Murphy-System/main/install.sh | bash
 ```
 
 ### 1.3 Quick Start
