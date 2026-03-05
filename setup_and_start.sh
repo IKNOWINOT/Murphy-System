@@ -95,9 +95,15 @@ else
     $PY -m venv "$VENV_DIR"
 fi
 
-# Activate (POSIX)
+# Activate – works on POSIX (bin/activate) and MINGW64/Git-Bash on Windows (Scripts/activate)
 # shellcheck disable=SC1091
-source "$VENV_DIR/bin/activate"
+if [ -f "$VENV_DIR/bin/activate" ]; then
+    source "$VENV_DIR/bin/activate"
+elif [ -f "$VENV_DIR/Scripts/activate" ]; then
+    source "$VENV_DIR/Scripts/activate"
+else
+    fail "Cannot find venv activate script in '$VENV_DIR'."
+fi
 pip install --upgrade pip -q 2>/dev/null
 ok "Virtual environment ready and activated"
 
