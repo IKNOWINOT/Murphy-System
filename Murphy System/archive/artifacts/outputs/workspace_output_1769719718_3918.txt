@@ -1,2 +1,0 @@
-INFO:__main__:✓ Shadow Agent System initialized
-INFO:register_all_commands:✓ Registered 7 Shadow Agent commands

@@ -1,1 +1,0 @@
-export function sampleFrames(frames:number[][][][], step:number=5){ const out=[]; for(let i=0;i<frames.length;i+=step){ out.push({i, frame:frames[i]}); } return out; }

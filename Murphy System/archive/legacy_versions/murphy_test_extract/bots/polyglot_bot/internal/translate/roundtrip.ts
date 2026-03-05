@@ -1,1 +1,0 @@
-export function roundtripScore(src:string, tgt:string){ if(!src||!tgt) return 0.6; const lenSim = Math.min(src.length, tgt.length)/Math.max(1, Math.max(src.length, tgt.length)); return +(0.6 + 0.4*lenSim).toFixed(2); }

@@ -1,3 +1,0 @@
-1951:        document.addEventListener('DOMContentLoaded', function() {
-2563:        // Initialize terminal input - MOVED HERE TO BE INSIDE DOMContentLoaded
-4202:        }); // End of DOMContentLoaded

@@ -4,8 +4,7 @@ This directory contains visual screenshots for the Murphy System setup process.
 Screenshots were regenerated on March 4, 2026 based on actual system behavior
 observed during storyboard validation testing.
 
-> **Note:** Some screenshots now document deficiencies found during testing.
-> See [STORYBOARD_DEFICIENCY_REPORT.md](../STORYBOARD_DEFICIENCY_REPORT.md) for details.
+> **Note:** Some screenshots document deficiencies found during testing.
 
 ## Screenshots Included
 
@@ -56,7 +55,6 @@ observed during storyboard validation testing.
 
 These screenshots are referenced in:
 - [GETTING_STARTED.md](../../GETTING_STARTED.md)
-- [STORYBOARD_DEFICIENCY_REPORT.md](../STORYBOARD_DEFICIENCY_REPORT.md)
 
 Each screenshot shows the actual system output observed during storyboard validation testing.
 

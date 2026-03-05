@@ -1,2 +1,0 @@
-310:@app.route('/api/llm/generate', methods=['POST'])
-311:def llm_generate():

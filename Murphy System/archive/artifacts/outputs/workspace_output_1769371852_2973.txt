@@ -1,6 +1,0 @@
-{
-  "demo_mode": true,
-  "provider": "Demo LLM",
-  "response": "The Murphy System is a comprehensive business automation platform with:\n- 5 AI agents (Executive, Engineering, Financial, Legal, Operations)\n- 7 system states showing current workflow progression\n- 6 interactive panels for system management\n- Real-time monitoring and shadow agent learning\n- Artifact generation capabilities\n\nCurrent Status: All systems operational\nDatabase: Connected with 13 tables\nMonitoring: 100% health score",
-  "success": true
-}

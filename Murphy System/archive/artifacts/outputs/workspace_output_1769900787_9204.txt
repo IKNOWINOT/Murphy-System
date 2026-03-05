@@ -1,6 +1,0 @@
-591:            <div id="messages" class="messages"></div>
-870:            messageEl.className = 'message';
-873:                <div class="message-header">
-874:                    <span class="message-type ${cssClass}">${type}</span>
-875:                    <span class="message-time">${time}</span>
-877:                <div class="message-content ${cssClass}">${escapeHtml(content)}</div>

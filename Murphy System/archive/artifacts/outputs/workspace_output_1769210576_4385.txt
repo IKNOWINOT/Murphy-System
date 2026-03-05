@@ -1,4 +1,0 @@
-Found 28 occurrences of '&'
-Pattern found at index 45
-Context: b'a.results &amp;&amp; data.results.length > 0) {'
-Hex: 26616d703b26616d703b20646174612e72657375

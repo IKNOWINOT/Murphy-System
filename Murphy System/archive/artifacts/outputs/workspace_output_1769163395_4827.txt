@@ -1,5 +1,0 @@
-Script 13 starts at line 1950
-Script 13 length: 110578 characters
-Open braces: 774
-Close braces: 777
-Difference: 3 extra closing braces

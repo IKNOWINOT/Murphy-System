@@ -1,6 +1,0 @@
-     1	            // Parse command
-     2	            const parts = command.trim().split(/\s+/);
-     3	            const cmdName = parts[0].toLowerCase().replace(/^\//, '');
-     4	            const args = parts.slice(1);
-     5	            
-     6	            // Process command

@@ -1,4 +1,0 @@
-🚀 Starting MONITOR_v1 workflow import...
-
-❌ Failed to connect to n8n database: connection to server at "localhost" (127.0.0.1), port 5432 failed: FATAL:  database "n8n" does not exist
-

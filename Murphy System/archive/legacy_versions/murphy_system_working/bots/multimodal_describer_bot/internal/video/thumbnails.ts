@@ -1,1 +1,0 @@
-export async function makeThumbnails(_frames:number[][][][], maxK:number, env?:any){ const out=[]; for(let i=0;i<maxK;i++){ out.push(`r2://thumb_${Date.now()}_${i}.png`); } return out; }

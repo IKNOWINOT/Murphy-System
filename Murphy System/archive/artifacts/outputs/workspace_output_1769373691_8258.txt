@@ -1,4 +1,0 @@
-  File "/workspace/add_librarian_endpoint.py", line 69
-    """Process any user input with intent classification and command mapping."""
-       ^^^^^^^
-SyntaxError: invalid syntax

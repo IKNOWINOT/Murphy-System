@@ -1,1 +1,0 @@
-263:def validate_init_request(data):

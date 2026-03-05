@@ -1,3 +1,0 @@
-1774:            <div id="terminal" class="terminal">
-1775:                <div id="terminal-content" class="terminal-content">
-1782:                    <input type="text" id="terminal-input" class="terminal-input" placeholder="Enter command..." autocomplete="off">

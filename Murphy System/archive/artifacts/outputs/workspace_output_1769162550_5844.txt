@@ -1,8 +1,0 @@
-463:<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
-579:    <script>
-610:                this.startButton.addEventListener('click', () => this.startGeneration());
-612:                document.getElementById('validateBtn').addEventListener('click', () => {
-616:                document.getElementById('rejectBtn').addEventListener('click', () => {
-620:                document.getElementById('closeBtn').addEventListener('click', () => {
-804:                block.addEventListener('click', () => this.openDialogue(data));
-1063:    </script>

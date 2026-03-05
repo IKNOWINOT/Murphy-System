@@ -1,3 +1,0 @@
-@app.route('/api/initialize', methods=['POST'])
-@require_auth(auth_system if AUTH_AVAILABLE else None)
-def initialize_system():

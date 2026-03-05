@@ -1,1 +1,0 @@
-export function explainStats(stats:any){ if(!stats||!isFinite(stats.mean||0)) return 'No data'; return `n=${stats.n}, mean=${stats.mean.toFixed(3)}, sd=${stats.sd.toFixed(3)}, min=${stats.min.toFixed(3)}, max=${stats.max.toFixed(3)}` }

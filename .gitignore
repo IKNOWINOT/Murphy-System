@@ -85,7 +85,7 @@ node_modules/
 # OS files
 Thumbs.db
 
-# Legacy / Archive — prevents new files from being tracked; existing tracked files retained in history
+# Archive (transferred to https://github.com/IKNOWINOT/murphy-system-archive)
 Murphy System/archive/
 
 # IDE workspace files

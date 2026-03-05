@@ -58,11 +58,6 @@ class TestBrokenDocLinks:
             + "\n".join(f"  {b}" for b in broken)
         )
 
-    def test_security_implementation_plan_exists(self):
-        """SECURITY_IMPLEMENTATION_PLAN.md must exist (referenced 6× in README + SECURITY.md)."""
-        path = os.path.join(REPO_ROOT, "SECURITY_IMPLEMENTATION_PLAN.md")
-        assert os.path.isfile(path), "SECURITY_IMPLEMENTATION_PLAN.md is missing"
-
     def test_key_docs_exist(self):
         """Core professional-repo documents must be present."""
         required = [
@@ -73,7 +68,6 @@ class TestBrokenDocLinks:
             "CHANGELOG.md",
             "LICENSE",
             "GETTING_STARTED.md",
-            "SECURITY_IMPLEMENTATION_PLAN.md",
         ]
         missing = [f for f in required if not os.path.isfile(os.path.join(REPO_ROOT, f))]
         assert missing == [], f"Missing required repo files: {missing}"

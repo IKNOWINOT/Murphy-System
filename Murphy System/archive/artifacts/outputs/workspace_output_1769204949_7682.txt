@@ -1,2 +1,0 @@
-2981:                                addTerminalLog(`✓ Found ${data.count} results:`, 'success');
-3321:                    addTerminalLog(`\n✓ Found ${data.results.length} matching artifacts:\n`, 'success');

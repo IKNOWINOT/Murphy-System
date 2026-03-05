@@ -1,4 +1,0 @@
-  File "/workspace/murphy_backend_complete.py", line 2723
-    """Get LLM system status."""
-                             ^
-SyntaxError: unterminated triple-quoted string literal (detected at line 2766)

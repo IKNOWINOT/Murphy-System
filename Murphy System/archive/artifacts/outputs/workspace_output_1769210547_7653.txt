@@ -1,1 +1,0 @@
-                            if (data.results &amp;&amp; data.results.length > 0) {

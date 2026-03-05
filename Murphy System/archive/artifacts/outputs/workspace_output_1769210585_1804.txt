@@ -1,3 +1,0 @@
-Replaced all && with &&
-Remaining && occurrences: 6
-Line 2994: b'if (data.results &amp;&amp; data.results.length > 0) {'

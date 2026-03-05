@@ -1,6 +1,0 @@
-        // ============================================
-        
-        function initProcessFlow() {
-            processFlowSvg = d3.select("#process-flow")
-                .append("svg")
-                .attr("width", "100%")

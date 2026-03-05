@@ -1,4 +1,0 @@
-172:    async def execute_cooperative_workflow(self, workflow_definition: Dict[str, Any]) -> Dict[str, Any]:
-192:        workflow_id = workflow_definition.get("workflow_id", str(uuid.uuid4()))
-194:            "definition": workflow_definition,
-272:    def get_workflow_status(self, workflow_id: str) -> Dict[str, Any]:

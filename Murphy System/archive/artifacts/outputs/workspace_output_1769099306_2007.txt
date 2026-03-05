@@ -1,8 +1,0 @@
-734:        .init-modal {
-747:        .init-modal.hidden {
-751:        .init-modal-content {
-760:        .init-modal-content h2 {
-765:        .init-modal-content p {
-819:    <div id="init-modal" class="init-modal">
-820:        <div class="init-modal-content">
-972:                    document.getElementById('init-modal').classList.add('hidden');

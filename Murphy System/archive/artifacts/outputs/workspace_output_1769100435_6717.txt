@@ -1,5 +1,0 @@
-802:             .sidebar, .metrics-panel {
-803:                 display: none;
-804:             }
-805:         }
-806:     </style>

@@ -1,6 +1,0 @@
-366:@app.route('/')
-367-def index():
-368-    return send_from_directory('.', 'murphy_complete_v2.html')
-369-
-370-@app.route('/api/status', methods=['GET'])
-371-def status():

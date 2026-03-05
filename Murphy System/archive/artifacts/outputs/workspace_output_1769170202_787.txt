@@ -1,4 +1,0 @@
-DELETE
-GET
-POST
-PUT

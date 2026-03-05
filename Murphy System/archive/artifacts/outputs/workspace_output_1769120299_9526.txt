@@ -1,3 +1,0 @@
-Found inline script start at line 1997
-Found inline script end at line 4331
-Successfully wrapped inline JavaScript in DOMContentLoaded!

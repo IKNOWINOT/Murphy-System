@@ -1,8 +1,0 @@
-root         628  0.1  0.7  37200 31276 ?        Ss   06:00   0:00 /usr/bin/python3 /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf
-root         652  0.5  1.5 150800 64196 ?        Sl   06:00   0:01 python /app/browser_api.py
-root         657  0.5  1.2  55884 48732 ?        S    06:00   0:01 python /app/server.py
-root         744  0.0  0.2  15616 11800 ?        S    06:00   0:00 /usr/local/bin/python -c from multiprocessing.resource_tracker import main;main(4)
-root         745  0.3  1.2  55844 49124 ?        S    06:00   0:00 /usr/local/bin/python -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=5, pipe_handle=7) --multiprocessing-fork
-root         746  0.4  1.8 1451596 76108 ?       Sl   06:00   0:00 /usr/local/lib/python3.11/site-packages/playwright/driver/node /usr/local/lib/python3.11/site-packages/playwright/driver/package/cli.js run-driver
-root        1004  0.0  0.5  28032 21812 ?        S    06:03   0:00 python3 -m websockify --web /opt/novnc 0.0.0.0:6080 localhost:5901
-root        1087  0.2  0.4  25868 19052 ?        S    06:04   0:00 python3 -m http.server 9000

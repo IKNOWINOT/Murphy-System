@@ -1,2 +1,0 @@
-173:LLM_AVAILABLE = False  # Will try to load later
-191:            'llm': LLM_AVAILABLE

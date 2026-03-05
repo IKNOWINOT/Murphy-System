@@ -1,6 +1,0 @@
-820:        function updateAgentGraph(agents, connections) {
-889:        function updateProcessFlow(data) {
-977:        function renderStateTree(states) {
-1004:        function renderTreeNodes(states, parentId) {
-1983:        function updateMetrics() {
-1990:        async function updateLLMStatus() {

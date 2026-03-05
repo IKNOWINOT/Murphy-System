@@ -1,5 +1,0 @@
-root        1665  2.8  1.2 131244 51560 ?        S    20:11   0:00 python3 murphy_backend_complete.py
-root        1667  5.1  1.3 132424 52532 ?        Sl   20:11   0:01 /usr/local/bin/python3 murphy_backend_complete.py
-root        1724  0.8  0.4  25872 19092 ?        S    20:12   0:00 python3 -m http.server 9000
-root        1725  0.8  0.4  25872 19092 ?        S    20:12   0:00 python -m http.server 9090
-root        1726  1.1  0.4  25872 19064 ?        S    20:12   0:00 python -m http.server 9091

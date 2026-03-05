@@ -1,1 +1,0 @@
-export async function dispatch(_ctx:any,_artifact:any){ return true }

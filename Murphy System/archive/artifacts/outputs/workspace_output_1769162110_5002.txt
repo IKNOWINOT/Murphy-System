@@ -1,8 +1,0 @@
-
-        // Focus terminal when clicking anywhere in terminal area
-        document.getElementById('terminal')?.addEventListener('click', function() {
-            document.getElementById('terminal-input').focus();
-        });
-
-        // ============================================
-        // METRICS

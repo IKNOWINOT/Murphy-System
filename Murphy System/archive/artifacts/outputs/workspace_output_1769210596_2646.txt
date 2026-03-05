@@ -1,6 +1,0 @@
-Line 2729 (JS): const fullCommand = args.length > 0 && !args[0].startsWith('-')
-Line 2732 (JS): const remainingArgs = args.length > 0 && !args[0].startsWith('-') ? args.slice(1) : args;
-Line 3474 (JS): if (agents && agents.length > 0) {
-Line 3497 (JS): if (observations && observations.length > 0) {
-Line 3517 (JS): if (proposals && proposals.length > 0) {
-Line 3538 (JS): if (automations && automations.length > 0) {

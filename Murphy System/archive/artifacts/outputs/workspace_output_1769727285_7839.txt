@@ -1,5 +1,0 @@
-19:    GateTypeEnum, ConfidenceLevelEnum, GateSpecModel, RuleModel, ObservationModel
-24:    MessageType, ConfidenceLevel, AgentMessage, AgentTaskReview
-31:    ConfidenceLevel,
-1563:            confidence=ConfidenceLevel(confidence)
-1699:                confidence=ConfidenceLevel(block_data.get('confidence', 'yellow')),

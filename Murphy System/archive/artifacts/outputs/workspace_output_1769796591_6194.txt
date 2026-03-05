@@ -1,5 +1,0 @@
--rw-r--r-- 1 root root 2409348 Jan 20 16:38 murphy_system_runtime.zip
--rw-r--r-- 1 root root 2409348 Jan 20 16:42 murphy_system_runtime_backup.zip
--rw-r--r-- 1 root root 2422345 Jan 20 16:48 murphy_system_runtime_v2_naming_fixed.zip
--rw-r--r-- 1 root root  139927 Jan 29 23:13 murphy_system_v1.0_20260129.zip
--rw-r--r-- 1 root root  189085 Jan 30 00:27 murphy_system_v1.0_FINAL.zip

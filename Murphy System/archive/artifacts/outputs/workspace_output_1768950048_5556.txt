@@ -1,3 +1,0 @@
-60:ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', 'placeholder-anthropic-key')
-82:    if ANTHROPIC_API_KEY != 'placeholder-anthropic-key':
-83:        anthropic_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)

@@ -1,9 +1,0 @@
--rw-r--r-- 1 root root   4688 Jan 25 20:42 add_librarian_endpoint.py
--rw-r--r-- 1 root root  25508 Jan 22 16:10 artifact_generation_system.py
--rw-r--r-- 1 root root  14326 Jan 22 16:11 artifact_manager.py
--rw-r--r-- 1 root root  20834 Jan 29 16:55 business_integrations.py
--rw-r--r-- 1 root root  44607 Jan 26 06:49 enhanced_librarian_system.py
--rw-r--r-- 1 root root   8734 Jan 23 12:40 librarian_adapter.py
--rw-r--r-- 1 root root  25923 Jan 22 15:26 librarian_system.py
--rw-r--r-- 1 root root   1131 Jan 29 16:30 test_autonomous_business.py
--rw-r--r-- 1 root root   2809 Jan 25 20:11 update_librarian_llm.py

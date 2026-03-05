@@ -1,2 +1,0 @@
-2708:                    event.preventDefault();
-2718:                event.preventDefault();

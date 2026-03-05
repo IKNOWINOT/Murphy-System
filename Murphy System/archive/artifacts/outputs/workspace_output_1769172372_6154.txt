@@ -1,5 +1,0 @@
-167:if ARTIFACTS_AVAILABLE:
-291:            'artifacts': ARTIFACTS_AVAILABLE,
-842:    if not ARTIFACTS_AVAILABLE or not artifact_generation_system:
-865:    if not ARTIFACTS_AVAILABLE or not artifact_generation_system:
-932:    if not ARTIFACTS_AVAILABLE or not artifact_manager:

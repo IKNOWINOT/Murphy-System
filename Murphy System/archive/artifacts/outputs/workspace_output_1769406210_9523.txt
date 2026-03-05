@@ -1,2 +1,0 @@
-awk: cmd. line:1: /"""/ || '''/ {print NR": "$0}
-awk: cmd. line:1:          ^ invalid char ''' in expression

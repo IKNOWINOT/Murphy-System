@@ -1,6 +1,0 @@
-122:    from monitoring_system import MonitoringSystem
-123:    monitoring_system = MonitoringSystem()
-128:    monitoring_system = None
-391:    if monitoring_system:
-606:    if not monitoring_system:
-610:        health = monitoring_system.get_health()

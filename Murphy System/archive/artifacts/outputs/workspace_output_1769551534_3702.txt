@@ -1,1 +1,0 @@
-3203:        async function handleLibrarianCommand(action, args) {

@@ -1,1 +1,0 @@
-    <title>Murphy System v2 - Interactive Visualization</title>

@@ -1,1 +1,0 @@
-export function rms(samples:number[]){ let s=0; for(const v of samples){ s+=v*v; } return Math.sqrt(s/Math.max(1,samples.length)); }

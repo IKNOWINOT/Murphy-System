@@ -1,4 +1,0 @@
-{
-    "error": "name 'risk_gates' is not defined",
-    "success": false
-}

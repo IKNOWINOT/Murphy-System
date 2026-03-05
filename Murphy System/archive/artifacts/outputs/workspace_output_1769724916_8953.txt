@@ -1,1 +1,0 @@
-674:    def generate_gates(self, analysis: Dict[str, Any], context: Dict[str, Any]) -> List[GateSpecModel]:

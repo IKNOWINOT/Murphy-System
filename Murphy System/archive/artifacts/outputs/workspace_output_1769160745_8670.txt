@@ -1,4 +1,0 @@
-{
-    "message": "Error listing shadow agents: 'ShadowAgentSystem' object has no attribute 'get_all_agents'",
-    "success": false
-}

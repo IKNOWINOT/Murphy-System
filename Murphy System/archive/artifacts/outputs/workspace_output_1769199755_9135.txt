@@ -1,1 +1,0 @@
-1782:                    <input type="text" id="terminal-input" class="terminal-input" placeholder="Enter command..." autocomplete="off">

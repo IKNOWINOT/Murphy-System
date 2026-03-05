@@ -1,2 +1,0 @@
-2149:                    // console.log('Unknown message type:', data.type);
-4015:                console.error('Initialization error:', error);

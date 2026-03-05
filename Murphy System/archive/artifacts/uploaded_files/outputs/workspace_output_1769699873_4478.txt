@@ -1,3 +1,0 @@
-v20.20.0
-10.8.2
-psql (PostgreSQL) 15.15 (Debian 15.15-0+deb12u1)

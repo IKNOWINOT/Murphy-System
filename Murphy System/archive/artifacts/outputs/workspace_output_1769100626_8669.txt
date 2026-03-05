@@ -1,1 +1,0 @@
-3632:        async function handleDomainCommand(action, args) {

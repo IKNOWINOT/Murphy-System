@@ -11,7 +11,7 @@ Connects to the Murphy backend API at http://localhost:8000 (configurable
 via MURPHY_API_URL environment variable).
 
 Copyright © 2020 Inoni Limited Liability Company
-Creator: Corey Post | License: Apache License 2.0
+Creator: Corey Post | License: BSL 1.1
 """
 
 from __future__ import annotations

@@ -1,2 +1,0 @@
-34:    from health_monitor import HealthMonitor
-53:        health_monitor = HealthMonitor(monitoring_system)

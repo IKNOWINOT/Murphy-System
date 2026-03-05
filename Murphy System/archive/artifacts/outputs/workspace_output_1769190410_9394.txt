@@ -1,1 +1,0 @@
-database.py:38:            self.conn = sqlite3.connect(self.db_path, check_same_thread=False)

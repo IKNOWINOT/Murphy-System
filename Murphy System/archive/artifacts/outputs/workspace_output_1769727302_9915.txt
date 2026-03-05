@@ -1,6 +1,0 @@
-24:class ConfidenceLevel(Enum):
-25-    """Confidence levels for agent decisions"""
-26-    GREEN = "green"  # 95%+ - Ready to execute
-27-    YELLOW = "yellow"  # 70-94% - Needs clarification
-28-    RED = "red"  # <70% - Major information needed
-29-

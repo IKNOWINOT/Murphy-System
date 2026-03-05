@@ -1,2 +1,0 @@
-root        7510  0.0  1.1  51128 45028 ?        S    09:38   0:00 python3 murphy_backend_complete.py
-root       13857  3.2  1.1 126068 45924 ?        Sl   10:21   0:00 /usr/local/bin/python3 murphy_backend_complete.py

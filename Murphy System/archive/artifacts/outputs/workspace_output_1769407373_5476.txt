@@ -1,5 +1,0 @@
-38:            const response = await fetch(`${API_BASE}/api/artifacts/list`);
-84:            const response = await fetch(`${API_BASE}/api/artifacts/${artifactId}`);
-190:            const response = await fetch(`${API_BASE}/api/documents/list`);
-200:            const response = await fetch(`${API_BASE}/api/artifacts/types`);
-312:            const response = await fetch(`${API_BASE}/api/artifacts/generate`, {

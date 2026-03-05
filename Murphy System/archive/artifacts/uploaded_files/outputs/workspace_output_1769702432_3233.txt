@@ -1,5 +1,0 @@
-root        7743  0.4  6.5 23062688 264280 ?     Sl   15:27   0:08 node /usr/bin/n8n start
-root        7760  0.1  2.3 21999564 95048 ?      Sl   15:27   0:02 node --disallow-code-generation-from-strings --disable-proto=delete /usr/lib/node_modules/n8n/node_modules/@n8n/task-runner/dist/start.js
-root        9149  0.0  0.0   2920   928 ?        Ss   16:00   0:00 timeout --preserve-status --signal=KILL 60s bash -lc { cd /workspace ; mkdir -p /workspace/outputs ; } { ps aux | grep n8n __ec=$? } >"/workspace/outputs/workspace_output_1769702432_3233.txt" 2>&1 head -c 80000 "/workspace/outputs/workspace_output_1769702432_3233.txt" ( exit "$__ec" )
-root        9150  0.0  0.0   4352  3072 ?        S    16:00   0:00 bash -lc { cd /workspace ; mkdir -p /workspace/outputs ; } { ps aux | grep n8n __ec=$? } >"/workspace/outputs/workspace_output_1769702432_3233.txt" 2>&1 head -c 80000 "/workspace/outputs/workspace_output_1769702432_3233.txt" ( exit "$__ec" )
-root        9155  0.0  0.0   3884  1908 ?        S    16:00   0:00 grep n8n

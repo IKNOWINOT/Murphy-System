@@ -1,8 +1,0 @@
-            // Smooth scroll to bottom with delay to ensure render
-            setTimeout(() => {
-                messagesEl.scrollTop = messagesEl.scrollHeight;
-            }, 50);
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');

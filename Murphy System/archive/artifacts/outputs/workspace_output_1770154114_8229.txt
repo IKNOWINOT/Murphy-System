@@ -1,9 +1,0 @@
-murphy_integrated/src/synthetic_failure_generator/api.py
-murphy_integrated/src/synthetic_failure_generator/injection_pipeline.py
-murphy_integrated/src/synthetic_failure_generator/control_failures.py
-murphy_integrated/src/security_plane/cryptography.py
-murphy_integrated/src/adapter_framework/safety_hooks.py
-murphy_integrated/src/adapter_framework/execution_packet_extension.py
-murphy_integrated/src/recursive_stability_controller/feedback_isolation.py
-murphy_integrated/src/control_plane/packet_compiler.py
-murphy_integrated/src/control_plane/execution_packet.py

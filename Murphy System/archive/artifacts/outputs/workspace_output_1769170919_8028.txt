@@ -1,2 +1,0 @@
-1951:        document.addEventListener('DOMContentLoaded', function() {
-4209:        window.addEventListener('load', function() {

@@ -1,4 +1,0 @@
-root        7510  0.0  1.1  51128 45028 ?        S    09:38   0:00 python3 murphy_backend_complete.py
-root       12913  0.0  0.0   4352  1720 ?        S    10:17   0:00 bash -lc  kill 11867 && sleep 1 && cd /workspace && python3 -m http.server 7000 > /dev/null 2>&1 & 
-root       12915  0.0  0.4  99596 19612 ?        S    10:17   0:00 python3 -m http.server 7000
-root       13857  1.8  1.1 199800 46288 ?        Sl   10:21   0:33 /usr/local/bin/python3 murphy_backend_complete.py
