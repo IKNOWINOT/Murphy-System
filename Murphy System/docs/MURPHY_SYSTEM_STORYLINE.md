@@ -1256,8 +1256,8 @@ improves the system; governance ensures it doesn't improve itself into a dangero
 | Bot governance | `bot_governance_policy_mapper.py`, `bot_inventory_library.py` |
 | Bot telemetry | `bot_telemetry_normalizer.py` |
 | Top-level scripts | `inoni_business_automation.py`, `murphy_system_1.0_runtime.py` |
-| Bots: Engineering | `bots/Engineering_bot.py`, `bots/engineering_bot.py`, `bots/coding_bot.py` |
-| Bots: Ghost Controller | `bots/Ghost_Controller_Bot.py`, `bots/ghost_controller_bot/` |
+| Bots: Engineering | `bots/engineering_bot.py`, `bots/coding_bot.py` |
+| Bots: Ghost Controller | `bots/ghost_controller_bot.py`, `bots/ghost_controller_bot/` |
 | Bots: Analysis | `bots/analysis_bot.py`, `bots/analytics.py`, `bots/anomaly_detection.py` |
 | Bots: Memory & knowledge | `bots/memory_cortex_bot.py`, `bots/crosslinked_knowledge_index.py` |
 | Bots: Optimization | `bots/optimization_bot.py`, `bots/efficiency_optimizer.py` |
