@@ -573,6 +573,9 @@ Container and Kubernetes deployment manifests are available as legacy reference 
 | [API Documentation](<Murphy System/API_DOCUMENTATION.md>) | API reference |
 | [Deployment Guide](<Murphy System/DEPLOYMENT_GUIDE.md>) | Deployment instructions |
 | [User Manual](<Murphy System/USER_MANUAL.md>) | Comprehensive user manual |
+| [Launch Automation Plan](<Murphy System/docs/LAUNCH_AUTOMATION_PLAN.md>) | Self-automating launch strategy |
+| [Operations & Testing Plan](<Murphy System/docs/OPERATIONS_TESTING_PLAN.md>) | Iterative test-fix-document cycle |
+| [Gap Analysis](<Murphy System/docs/GAP_ANALYSIS.md>) | System gap analysis and status |
 | [API Docs](http://localhost:8000/docs) | Interactive API docs (requires running server) |
 | [Archive](https://github.com/IKNOWINOT/murphy-system-archive) | Legacy versions and artifacts (separate repository) |
 
