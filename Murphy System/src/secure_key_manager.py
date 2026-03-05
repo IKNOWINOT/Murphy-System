@@ -24,6 +24,10 @@ class SecureKeyManager:
     - API keys encrypted and stored in JSON file
     - Keys loaded on demand and cached in memory
     - Thread-safe operations
+
+    Note: Flat-file storage of the master key is suitable for development only.
+    For production use, provide MURPHY_MASTER_KEY via a proper secret manager
+    (e.g., HashiCorp Vault, AWS Secrets Manager, Azure Key Vault).
     """
 
     def __init__(self, encrypted_keys_path: str = "encrypted_keys.json"):
@@ -68,6 +72,11 @@ class SecureKeyManager:
                 f.write("# Master encryption key (DO NOT COMMIT)\n")
                 f.write(f"MURPHY_MASTER_KEY={new_key.decode()}\n")
 
+        logger.warning(
+            "SECURITY: Auto-generated master key stored in .env file. "
+            "For production use, provide MURPHY_MASTER_KEY via a proper secret manager "
+            "(e.g., HashiCorp Vault, AWS Secrets Manager, Azure Key Vault)."
+        )
         logger.info("Generated new master key and saved to .env")
 
         return new_key

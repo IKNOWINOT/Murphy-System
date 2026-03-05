@@ -1,6 +1,7 @@
 """FeedbackBot with reinforcement-aware time decay."""
 from __future__ import annotations
 
+import logging
 import math
 import json
 from uuid import uuid4
@@ -8,6 +9,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import List, Optional
 from .gpt_oss_runner import GPTOSSRunner  # ✅ Injected
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -71,8 +74,8 @@ class FeedbackBot:
                 'ttl_seconds': 0,
             }
             archive_to_ltm(entry)
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Suppressed exception: %s", exc)
 
     # --- hive_mind_math_patch_v2.0 additions ---
     def build_feedback_graph(self) -> dict:

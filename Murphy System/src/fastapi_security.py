@@ -279,6 +279,13 @@ def configure_secure_fastapi(app: FastAPI, service_name: str = "murphy-api") -> 
     # 2. Security middleware (auth + rate limiting + headers)
     app.add_middleware(SecurityMiddleware, service_name=service_name)
 
+    murphy_env = os.environ.get("MURPHY_ENV", "development")
+    if murphy_env == "development":
+        logger.warning(
+            "⚠️ Authentication is DISABLED in development mode. "
+            "Set MURPHY_ENV=production to enable."
+        )
+
     logger.info(
         f"[{service_name}] Security hardening applied: auth, CORS, rate limiting, security headers"
     )
